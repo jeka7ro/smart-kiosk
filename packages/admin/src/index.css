@@ -1,0 +1,19 @@
+/* Admin Panel Global Styles */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0a0d15;
+  --bg-card: #111827;
+  --bg-surface: #1a2035;
+  --border: #1e2d45;
+  --text: #e8eaf0;
+  --text-muted: #6b7a99;
+  --primary: #3b82f6;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --purple: #8b5cf6;
+  --cyan: #06b6d4;
+}
+body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+button { cursor: pointer; border: none; font-family: inherit; }
+a { text-decoration: none; color: inherit; }

@@ -1,0 +1,394 @@
+/**
+ * Syrve (iiko) Cloud API Service — Multi-brand
+ * Base URL: https://api-eu.syrve.live
+ *
+ * SmashMe:      API key from SYRVE_API_KEY        | org from SYRVE_ORG_IDS
+ * SushiMaster:  API key from SYRVE_API_KEY_SUSHI  | org from SYRVE_ORG_ID_SUSHI
+ * WeLoveSushi:  same API key as SushiMaster         | org from SYRVE_ORG_ID_WELOVESUSHI
+ * Ikura:        same API key as SushiMaster         | org from SYRVE_ORG_ID_IKURA
+ */
+
+const API_URL = process.env.SYRVE_API_URL || 'https://api-eu.syrve.live';
+
+// Brand config — each brand has its own API key + org ID
+const BRANDS = {
+  smashme: {
+    apiKey: process.env.SYRVE_API_KEY || '',
+    orgId:  (process.env.SYRVE_ORG_IDS || '9c63cff6-1d66-442d-a98d-2302656e3943').split(',')[0].trim(),
+    token: null,
+    tokenExpiry: 0,
+  },
+  sushimaster: {
+    apiKey: process.env.SYRVE_API_KEY_SUSHI || '',
+    orgId:  process.env.SYRVE_ORG_ID_SUSHI || 'adddb5a0-26e5-4d50-b472-1c74726c3f72',
+    token: null,
+    tokenExpiry: 0,
+  },
+  welovesushi: {
+    apiKey: process.env.SYRVE_API_KEY_SUSHI || '',  // same account as sushimaster
+    orgId:  process.env.SYRVE_ORG_ID_WELOVESUSHI || '',
+    token: null,
+    tokenExpiry: 0,
+  },
+  ikura: {
+    apiKey: process.env.SYRVE_API_KEY_SUSHI || '',  // same account as sushimaster
+    orgId:  process.env.SYRVE_ORG_ID_IKURA || '',
+    token: null,
+    tokenExpiry: 0,
+  },
+};
+
+// ── Auth ────────────────────────────────────────────────────────────────────
+
+async function getToken(brandId = 'smashme') {
+  const brand = BRANDS[brandId];
+  if (!brand?.apiKey) throw new Error(`No API key configured for brand: ${brandId}`);
+  const now = Date.now();
+  if (brand.token && now < brand.tokenExpiry - 60_000) return brand.token;
+
+  const res = await fetch(`${API_URL}/api/1/access_token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ apiLogin: brand.apiKey }),
+  });
+  const data = await res.json();
+  if (!data.token) throw new Error(`Syrve auth failed [${brandId}]: ${data.errorDescription}`);
+
+  brand.token = data.token;
+  brand.tokenExpiry = now + 60 * 60 * 1000;
+  return brand.token;
+}
+
+// ── Helpers (per-brand) ──────────────────────────────────────────────────────
+
+async function syrvePost(path, body, brandId = 'smashme') {
+  const token = await getToken(brandId);
+  const res = await fetch(`${API_URL}${path}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+  return res.json();
+}
+
+async function syrveGet(path, brandId = 'smashme') {
+  const token = await getToken(brandId);
+  const res = await fetch(`${API_URL}${path}`, {
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  return res.json();
+}
+
+// ── Org Discovery — lists all organizations for a given API key ──────────────
+
+async function discoverOrgs(brandId) {
+  try {
+    const data = await syrveGet('/api/1/organizations', brandId);
+    const orgs = data.organizations || [];
+    console.log(`\n[Syrve] Organizations for [${brandId}]:`);
+    orgs.forEach(o => console.log(`   • ${o.name}  →  id: ${o.id}`));
+    return orgs;
+  } catch (err) {
+    console.error(`[Syrve] Failed to list orgs for [${brandId}]:`, err.message);
+    return [];
+  }
+}
+
+// ── Auto-assign org IDs for sushi brands that have no env var set ────────────
+
+async function autoAssignSushiOrgs() {
+  const needsDiscovery = ['sushimaster', 'welovesushi', 'ikura'].some(
+    b => !BRANDS[b].orgId
+  );
+  if (!needsDiscovery) return;
+
+  const apiKey = process.env.SYRVE_API_KEY_SUSHI;
+  if (!apiKey) return;
+
+  const orgs = await discoverOrgs('sushimaster');
+  if (!orgs.length) return;
+
+  // Map by name (case-insensitive contains match)
+  const match = (name, keywords) =>
+    keywords.some(k => name.toLowerCase().includes(k.toLowerCase()));
+
+  for (const org of orgs) {
+    if (!BRANDS.sushimaster.orgId && match(org.name, ['sushi master', 'sushimaster'])) {
+      BRANDS.sushimaster.orgId = org.id;
+      console.log(`[Syrve] Auto-assigned sushimaster orgId: ${org.id} (${org.name})`);
+    } else if (!BRANDS.welovesushi.orgId && match(org.name, ['we love sushi', 'welovesushi', 'love sushi'])) {
+      BRANDS.welovesushi.orgId = org.id;
+      console.log(`[Syrve] Auto-assigned welovesushi orgId: ${org.id} (${org.name})`);
+    } else if (!BRANDS.ikura.orgId && match(org.name, ['ikura'])) {
+      BRANDS.ikura.orgId = org.id;
+      console.log(`[Syrve] Auto-assigned ikura orgId: ${org.id} (${org.name})`);
+    }
+  }
+}
+
+// ── Menu transformer: Syrve nomenclature → kiosk format ─────────────────────
+
+function transformMenu(raw) {
+  const { groups = [], products = [] } = raw;
+
+  const groupMap = {};
+  for (const g of groups) {
+    if (!g.isGroupModifier) groupMap[g.id] = g;
+  }
+
+  const kioskRoot = groups.find(g => g.name?.toUpperCase().includes('KIOSK'));
+  const kioskRootId = kioskRoot?.id;
+
+  let categories = groups.filter(g => !g.isGroupModifier && g.parentGroup);
+  if (kioskRootId) {
+    categories = groups.filter(g => !g.isGroupModifier && g.parentGroup === kioskRootId);
+  }
+  if (categories.length === 0) {
+    categories = groups.filter(g => !g.isGroupModifier);
+  }
+
+  const emojiMap = {
+    'burger': '🍔', 'smash': '🍔', 'pizza': '🍕', 'paste': '🍝', 'salat': '🥗',
+    'sos': '🥣', 'bautur': '🥤', 'drink': '🥤', 'desert': '🍰', 'garnitur': '🍟',
+    'meniu': '🍱', 'combo': '🎁', 'snack': '🍟', 'chicken': '🍗',
+    'sushi': '🍣', 'roll': '🍣', 'maki': '🍣', 'nigiri': '🍣', 'ramen': '🍜',
+    'gyoza': '🥟', 'wok': '🥢', 'sake': '🍶', 'miso': '🍲',
+  };
+  function getEmoji(name) {
+    const n = (name || '').toLowerCase();
+    for (const [k, v] of Object.entries(emojiMap)) {
+      if (n.includes(k)) return v;
+    }
+    return '🍽️';
+  }
+
+  const mappedCategories = categories.map(cat => ({
+    id: cat.id,
+    name: cat.name,
+    emoji: getEmoji(cat.name),
+    parentGroupId: cat.parentGroup,
+  }));
+
+  const categoryIds = new Set(mappedCategories.map(c => c.id));
+
+  const mappedProducts = products
+    .filter(p => {
+      return categoryIds.has(p.parentGroup) &&
+             !p.isDeleted &&
+             p.type !== 'Modifier';
+    })
+    .map(p => {
+      const sizePrices = p.sizePrices || [];
+      const price = sizePrices.length > 0
+        ? (sizePrices[0]?.price?.currentPrice || 0)
+        : 0;
+
+      const modifierGroups = (p.groupModifiers || []).map(gm => ({
+        id: gm.id,
+        name: gm.name || 'Opțiuni',
+        required: gm.required || false,
+        minAmount: gm.minAmount || 0,
+        maxAmount: gm.maxAmount || 1,
+        options: (gm.items || []).map(item => ({
+          id: item.id,
+          name: item.name,
+          price: item.price || 0,
+        })),
+      }));
+
+      return {
+        id: p.id,
+        categoryId: p.parentGroup,
+        name: p.name,
+        description: p.description || '',
+        price: Math.round(price * 100) / 100,
+        image: p.imageLinks?.[0] || p.imagePaths?.[0] || null,
+        weight: p.weight || null,
+        energyAmount: p.energyAmount || null,
+        allergenGroups: p.allergenGroups || [],
+        tags: p.tags || [],
+        isNew: false,
+        modifierGroups,
+      };
+    });
+
+  return { categories: mappedCategories, products: mappedProducts };
+}
+
+// In-memory menu cache (will use Redis when available)
+const _menuCache = {};
+
+// ── Public functions ─────────────────────────────────────────────────────────
+
+/**
+ * Get organizations for a brand's API key
+ */
+async function getOrganizations(brandId = 'smashme') {
+  return syrveGet('/api/1/organizations', brandId);
+}
+
+/**
+ * Fetch and transform menu for one organization (brand-aware)
+ */
+async function fetchMenu(orgId, brandId = 'smashme') {
+  const raw = await syrvePost('/api/1/nomenclature', { organizationId: orgId }, brandId);
+  if (raw.errorDescription) throw new Error(`Menu fetch failed: ${raw.errorDescription}`);
+  return transformMenu(raw);
+}
+
+/**
+ * Convenience: fetch menu by brand name
+ */
+async function fetchMenuForBrand(brandId) {
+  const brand = BRANDS[brandId];
+  if (!brand) throw new Error(`Unknown brand: ${brandId}`);
+  return fetchMenu(brand.orgId, brandId);
+}
+
+/**
+ * Sync menus for ALL configured brands (auto-discovers sushi orgs first)
+ */
+async function syncAllMenus() {
+  // First: auto-assign org IDs for sushi brands that aren't set via env
+  await autoAssignSushiOrgs();
+
+  for (const [brandId, brand] of Object.entries(BRANDS)) {
+    if (!brand.apiKey) {
+      console.log(`[Syrve] No API key for ${brandId} — skipping`);
+      continue;
+    }
+    if (!brand.orgId) {
+      console.log(`[Syrve] No org ID for ${brandId} — skipping (set SYRVE_ORG_ID_${brandId.toUpperCase()} in .env)`);
+      continue;
+    }
+    try {
+      const menu = await fetchMenu(brand.orgId, brandId);
+      _menuCache[brand.orgId] = { menu, brandId, syncedAt: new Date().toISOString() };
+      _menuCache[brandId]     = { menu, brandId, syncedAt: new Date().toISOString() };
+      console.log(`[Syrve] ✅ Synced ${brandId} (${brand.orgId}): ${menu.categories.length} cats, ${menu.products.length} products`);
+    } catch (err) {
+      console.error(`[Syrve] ❌ Sync failed for ${brandId}:`, err.message);
+    }
+  }
+}
+
+/**
+ * Get cached menu for an organization
+ */
+function getCachedMenu(orgId) {
+  return _menuCache[orgId]?.menu || null;
+}
+
+/**
+ * Get all cached menus
+ */
+function getAllCachedMenus() {
+  return _menuCache;
+}
+
+/**
+ * Get org ID for a brand
+ */
+function getOrgIdForBrand(brandId) {
+  return BRANDS[brandId]?.orgId || null;
+}
+
+/**
+ * Fetch stop list (out of stock items) across all configured orgs
+ */
+async function syncStopLists() {
+  const orgIds = Object.values(BRANDS)
+    .filter(b => b.apiKey && b.orgId)
+    .map(b => b.orgId)
+    .filter((v, i, a) => a.indexOf(v) === i); // unique
+
+  if (!orgIds.length) return;
+
+  try {
+    // Use smashme token for smashme orgs, sushi token for sushi orgs
+    const smashmeOrgId = BRANDS.smashme.orgId;
+    const smashmeOrgs  = orgIds.filter(id => id === smashmeOrgId);
+    const sushiOrgs    = orgIds.filter(id => id !== smashmeOrgId);
+
+    if (smashmeOrgs.length) {
+      const res = await syrvePost('/api/1/stop_lists', { organizationIds: smashmeOrgs }, 'smashme');
+      if (res.productStopListItems) {
+        console.log(`[Syrve] Stop list synced (SmashMe): ${res.productStopListItems.length} items`);
+      }
+    }
+    if (sushiOrgs.length) {
+      const res = await syrvePost('/api/1/stop_lists', { organizationIds: sushiOrgs }, 'sushimaster');
+      if (res.productStopListItems) {
+        console.log(`[Syrve] Stop list synced (Sushi): ${res.productStopListItems.length} items`);
+      }
+    }
+  } catch (err) {
+    console.error('[Syrve] Stop list sync error:', err.message);
+  }
+}
+
+/**
+ * Create an order in Syrve — brand-aware
+ * Called after payment confirmation from orders.js
+ */
+async function createOrder({ brandId = 'smashme', orgId, order }) {
+  const brand = BRANDS[brandId];
+
+  // If no API key for this brand, log and return mock
+  if (!brand?.apiKey) {
+    console.log(`[Syrve] No API key for ${brandId} — mock order #${order.orderNumber}`);
+    return { id: `mock-${Date.now()}` };
+  }
+
+  const resolvedOrgId = orgId || brand?.orgId;
+  if (!resolvedOrgId) {
+    console.warn(`[Syrve] No orgId for ${brandId} — skipping Syrve order creation`);
+    return null;
+  }
+
+  try {
+    const payload = {
+      organizationId: resolvedOrgId,
+      terminalGroupId: null, // will be set per-location in future
+      createRequest: {
+        orderTypeId: null, // will resolve from Syrve order types
+        items: order.items.map(item => ({
+          productId: item.productId,
+          amount:    item.quantity,
+          price:     item.unitPrice,
+          comment:   item.selectedModifiers?.map(m => m.optionName).join(', ') || '',
+        })),
+        deliveryPoint: null,
+        comment: `${order.orderType === 'dine-in' ? `Masa #${order.tableNumber}` : 'La pachet'} | ${order.channel}`,
+        customer: null,
+        phone: null,
+      },
+    };
+
+    const res = await syrvePost('/api/1/order/create', payload, brandId);
+    if (res.errorDescription) {
+      console.error(`[Syrve] createOrder error [${brandId}]:`, res.errorDescription);
+      return null;
+    }
+    console.log(`[Syrve] ✅ Order created [${brandId}]:`, res?.orderInfo?.id || res?.id);
+    return res;
+  } catch (err) {
+    console.error(`[Syrve] createOrder exception [${brandId}]:`, err.message);
+    return null;
+  }
+}
+
+module.exports = {
+  syncAllMenus,
+  syncStopLists,
+  createOrder,
+  getOrganizations,
+  getOrgIdForBrand,
+  fetchMenu,
+  fetchMenuForBrand,
+  getCachedMenu,
+  getAllCachedMenus,
+};

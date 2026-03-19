@@ -1,0 +1,84 @@
+/* QR Web App — Mobile-first styles */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0; padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+:root {
+  --primary:     #EE3B24;
+  --accent:      #FFB800;
+  --bg:          #F5F5F5;
+  --card:        #FFFFFF;
+  --surface:     #F2F2F2;
+  --text:        #1A1A1A;
+  --text-muted:  #6E6F84;
+  --border:      #E8E8E8;
+  --font: 'Outfit', sans-serif;
+  --shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+
+html, body, #root {
+  width: 100%; min-height: 100vh;
+  background: var(--bg); color: var(--text);
+  font-family: var(--font);
+}
+
+/* Safe area for mobile notch */
+.safe-top    { padding-top: env(safe-area-inset-top, 16px); }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom, 16px); }
+
+/* ─── ANIMATIONS ─── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.fade-up { animation: fadeUp 0.35s ease both; }
+
+/* ─── BUTTONS ─── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px; border: none; cursor: pointer;
+  font-family: var(--font); font-weight: 700;
+  border-radius: 14px; transition: all 0.15s; outline: none;
+}
+.btn:active { transform: scale(0.96); }
+.btn-primary {
+  background: var(--primary); color: #fff;
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--primary) 35%, transparent);
+}
+.btn-primary:hover { background: color-mix(in srgb, var(--primary) 85%, black); }
+.btn-secondary { background: var(--surface); color: var(--text); border: 1.5px solid var(--border); }
+.btn-ghost { background: transparent; color: var(--text-muted); border: 1.5px solid var(--border); }
+.btn-lg { min-height: 56px; font-size: 1.1rem; padding: 0 28px; }
+.btn-full { width: 100%; }
+.btn-success { background: #22C55E; color: #fff; box-shadow: 0 4px 16px rgba(34,197,94,0.35); }
+
+/* ─── CARDS ─── */
+.card {
+  background: var(--card);
+  border-radius: 16px; border: 1.5px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+/* ─── PRICE ─── */
+.price { font-weight: 700; color: var(--primary); }
+.price-md { font-size: 1.3rem; }
+.price-lg { font-size: 1.6rem; }
+
+/* ─── BADGE ─── */
+.badge {
+  background: var(--primary); color: #fff; font-weight: 700;
+  border-radius: 50%; font-size: 0.7rem; min-width: 20px; height: 20px;
+  display: inline-flex; align-items: center; justify-content: center; padding: 0 3px;
+}
+
+/* ─── BOTTOM STICKY ─── */
+.sticky-bottom {
+  position: sticky; bottom: 0;
+  background: var(--card); border-top: 1.5px solid var(--border);
+  padding: 14px 18px env(safe-area-inset-bottom, 14px);
+  box-shadow: 0 -4px 16px rgba(0,0,0,0.08);
+}

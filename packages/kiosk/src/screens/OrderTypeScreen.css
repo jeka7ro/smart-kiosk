@@ -1,0 +1,83 @@
+.order-type-screen {
+  width: 100vw; height: 100vh;
+  background: var(--bg-dark);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 40px; gap: 32px; position: relative;
+}
+.back-btn-screen {
+  position: absolute; top: 24px; left: 24px;
+  background: var(--bg-card); border: 1.5px solid var(--border);
+  color: var(--text-muted); font-family: 'Outfit', sans-serif; font-size: 1rem;
+  padding: 10px 18px; border-radius: 12px; cursor: pointer;
+  transition: all 0.2s; box-shadow: var(--shadow-card);
+}
+.back-btn-screen:hover { border-color: var(--primary); color: var(--primary); }
+.ot-header { text-align: center; }
+.ot-header h1 { font-size: 2.2rem; font-weight: 800; color: var(--text); margin-bottom: 8px; }
+.ot-header p  { font-size: 1rem; color: var(--text-muted); }
+.ot-options { display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 480px; }
+.ot-divider {
+  text-align: center; color: var(--text-muted); font-size: 0.85rem;
+  text-transform: uppercase; letter-spacing: 2px;
+}
+.ot-card {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 10px; padding: 32px;
+  background: var(--bg-card); border: 2px solid var(--border);
+  border-radius: 20px; cursor: pointer; transition: all 0.2s;
+  position: relative; width: 100%;
+  box-shadow: var(--shadow-card);
+}
+.ot-card:hover, .ot-card:active {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 5%, var(--bg-card));
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--primary) 15%, transparent);
+}
+.ot-card-icon { font-size: 3.2rem; }
+.ot-card h2 { font-size: 1.5rem; font-weight: 700; color: var(--text); }
+.ot-card p  { font-size: 0.9rem; color: var(--text-muted); text-align: center; }
+.ot-arrow { position: absolute; right: 22px; top: 50%; transform: translateY(-50%); font-size: 1.4rem; color: var(--text-muted); }
+
+/* TABLE INPUT */
+.table-input-wrap { display: flex; flex-direction: column; align-items: center; gap: 16px; width: 100%; max-width: 400px; }
+.table-icon { font-size: 4rem; }
+.table-input-wrap h2 { font-size: 1.8rem; font-weight: 700; color: var(--text); }
+.table-input-wrap p  { font-size: 1rem; color: var(--text-muted); }
+.table-display {
+  font-size: 3rem; font-weight: 800; color: var(--primary);
+  background: var(--bg-card); border: 2px solid color-mix(in srgb, var(--primary) 30%, transparent);
+  border-radius: 16px; width: 100%; text-align: center; padding: 16px;
+  min-height: 80px; display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--shadow-card);
+}
+.numpad {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%;
+}
+.numpad-key {
+  background: var(--bg-card); border: 1.5px solid var(--border);
+  color: var(--text); font-family: 'Outfit', sans-serif; font-size: 1.4rem; font-weight: 600;
+  border-radius: 14px; height: 70px; cursor: pointer; transition: all 0.15s;
+  box-shadow: var(--shadow-card);
+}
+.numpad-key:hover { border-color: var(--primary); color: var(--primary); background: color-mix(in srgb, var(--primary) 5%, var(--bg-card)); }
+.numpad-key:active { transform: scale(0.94); background: var(--primary); color: #fff; border-color: var(--primary); }
+.numpad-key--empty { background: transparent; border: none; cursor: default; box-shadow: none; }
+.numpad-key--empty:hover { background: transparent; border: none; color: inherit; }
+
+/* SHARED BACK BTN */
+.back-btn {
+  background: var(--bg-card); border: 1.5px solid var(--border);
+  color: var(--text-muted); font-family: 'Outfit',sans-serif; font-size: 0.95rem;
+  padding: 10px 18px; border-radius: 12px; cursor: pointer; transition: all 0.2s;
+  box-shadow: var(--shadow-card);
+}
+.back-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+/* Pickup note at bottom */
+.ot-note {
+  font-size: 1rem; color: var(--text-muted); margin-top: 8px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px 24px; text-align: center;
+}

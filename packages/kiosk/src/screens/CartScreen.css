@@ -1,0 +1,79 @@
+.cart-screen { background: var(--bg-dark); }
+.cart-header {
+  display: flex; align-items: center; gap: 20px; padding: 16px 28px;
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+  background: var(--bg-card); box-shadow: var(--shadow-card);
+}
+.cart-header h1 { font-size: 1.5rem; font-weight: 800; color: var(--text); flex: 1; }
+.cart-count-badge {
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--primary); border: 1px solid color-mix(in srgb, var(--primary) 30%, transparent);
+  border-radius: 10px; padding: 6px 14px; font-size: 0.9rem; font-weight: 600;
+}
+.cart-body { display: flex; flex: 1; overflow: hidden; }
+.cart-items { flex: 1; padding: 18px 24px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+.add-more-btn {
+  background: var(--bg-card); border: 2px dashed var(--border);
+  color: var(--text-muted); border-radius: 14px; padding: 16px;
+  font-family: 'Outfit',sans-serif; font-size: 1rem; cursor: pointer; transition: all 0.2s;
+}
+.add-more-btn:hover { border-color: var(--primary); color: var(--primary); }
+.cart-item {
+  display: flex; align-items: center; gap: 14px; justify-content: space-between;
+  padding: 16px 18px; background: var(--bg-card); border-radius: 14px;
+  border: 1.5px solid var(--border); box-shadow: var(--shadow-card);
+}
+.ci-thumb {
+  width: 56px; height: 56px; border-radius: 10px; flex-shrink: 0;
+  background: var(--surface); overflow: hidden;
+  display: flex; align-items: center; justify-content: center; font-size: 1.6rem;
+}
+.ci-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.ci-info { flex: 1; }
+.ci-name { font-size: 1rem; font-weight: 700; color: var(--text); }
+.ci-mods { font-size: 0.82rem; color: var(--text-muted); margin-top: 3px; }
+.ci-unit { font-size: 0.78rem; color: var(--text-muted); margin-top: 3px; display: block; }
+.ci-controls { display: flex; align-items: center; gap: 12px; }
+.ci-qty {
+  display: flex; align-items: center;
+  border: 1.5px solid var(--border); border-radius: 10px; overflow: hidden;
+}
+.ci-btn {
+  width: 38px; height: 38px; background: var(--surface); border: none;
+  color: var(--text); font-size: 1.2rem; cursor: pointer; transition: background 0.15s;
+  font-family: 'Outfit',sans-serif;
+}
+.ci-btn:hover { background: var(--primary); color: #fff; }
+.ci-qty span { width: 36px; text-align: center; font-weight: 700; color: var(--text); font-family: 'Outfit',sans-serif; background: var(--bg-card); height: 38px; display: flex; align-items: center; justify-content: center; }
+.ci-total { font-size: 1.05rem; font-weight: 700; color: var(--primary); min-width: 70px; text-align: right; }
+.ci-remove { background: none; border: none; font-size: 1.1rem; cursor: pointer; opacity: 0.4; transition: opacity 0.2s; }
+.ci-remove:hover { opacity: 1; }
+
+/* SUMMARY */
+.cart-summary {
+  width: 340px; flex-shrink: 0; padding: 24px;
+  background: var(--bg-card); border-left: 1.5px solid var(--border);
+  display: flex; flex-direction: column; justify-content: flex-end; gap: 10px;
+}
+.summary-rows { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+.summary-row { display: flex; justify-content: space-between; font-size: 0.95rem; color: var(--text-muted); }
+.summary-row--total { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+.summary-divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+/* EMPTY */
+.cart-empty {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 14px; text-align: center;
+}
+.cart-empty-icon { font-size: 5rem; }
+.cart-empty h2 { font-size: 2rem; font-weight: 700; color: var(--text); }
+.cart-empty p  { font-size: 1rem; color: var(--text-muted); }
+
+/* SHARED BACK BTN */
+.back-btn {
+  background: var(--bg-card); border: 1.5px solid var(--border);
+  color: var(--text-muted); font-family: 'Outfit',sans-serif; font-size: 0.95rem;
+  padding: 10px 18px; border-radius: 12px; cursor: pointer; transition: all 0.2s;
+  box-shadow: var(--shadow-card);
+}
+.back-btn:hover { border-color: var(--primary); color: var(--primary); }

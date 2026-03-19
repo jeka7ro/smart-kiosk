@@ -1,0 +1,20 @@
+{
+  "name": "smart-kiosk",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:kiosk\" \"npm run dev:qr\" \"npm run dev:admin\" \"npm run dev:kitchen\"",
+    "dev:backend": "npm run dev --workspace=packages/backend",
+    "dev:kiosk": "npm run dev --workspace=packages/kiosk",
+    "dev:qr": "npm run dev --workspace=packages/qr-web",
+    "dev:admin": "npm run dev --workspace=packages/admin",
+    "dev:kitchen": "npm run dev --workspace=packages/kds",
+    "install:all": "npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

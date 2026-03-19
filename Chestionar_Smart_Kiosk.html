@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<title>Chestionar Smart Kiosk Digital</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', Arial, sans-serif; font-size: 11pt; color: #1a1a2e; background: #f5f7fc; }
+  .page { max-width: 820px; margin: 0 auto; padding: 40px 50px 60px; background: white; min-height: 100vh; }
+
+  /* HEADER */
+  .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #0f3460; padding-bottom: 18px; margin-bottom: 20px; }
+  .header h1 { font-size: 20pt; font-weight: 700; color: #0f3460; line-height: 1.2; }
+  .header p { font-size: 9.5pt; color: #666; margin-top: 4px; }
+  .logo-box { background: #0f3460; color: white; font-weight: 700; font-size: 10pt; padding: 10px 16px; border-radius: 8px; text-align: center; }
+  .logo-box span { display: block; font-size: 7pt; color: #a8c8ff; margin-top: 2px; letter-spacing: 1px; text-transform: uppercase; }
+
+  .intro { background: #f0f4ff; border-left: 4px solid #0f3460; border-radius: 0 8px 8px 0; padding: 10px 14px; margin-bottom: 24px; font-size: 9.5pt; color: #444; line-height: 1.6; }
+
+  /* SECTION */
+  .section { margin-bottom: 22px; }
+  .section-title { display: flex; align-items: center; gap: 10px; background: #0f3460; color: white; padding: 7px 14px; border-radius: 6px; font-size: 10.5pt; font-weight: 600; margin-bottom: 10px; }
+  .section-num { background: #e94560; color: white; font-weight: 700; font-size: 9pt; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+  /* QUESTION */
+  .question { display: flex; gap: 10px; margin-bottom: 8px; padding: 10px 12px; border: 1px solid #e8ecf5; border-radius: 6px; background: #fafbff; }
+  .critical { background: #fff0f3; border: 1px solid #e94560; border-left: 4px solid #e94560; }
+  .q-num { background: #e8ecf5; color: #0f3460; font-weight: 700; font-size: 8.5pt; min-width: 24px; height: 24px; border-radius: 5px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .critical .q-num { background: #e94560; color: white; }
+  .q-content { flex: 1; }
+  .critical-label { font-size: 7.5pt; color: #e94560; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+  .q-text { font-size: 10pt; color: #1a1a2e; line-height: 1.5; font-weight: 600; }
+  .q-note { font-size: 8.5pt; color: #888; font-style: italic; margin-top: 2px; margin-bottom: 6px; }
+
+  /* OPTIONS */
+  .options { margin-top: 7px; display: flex; flex-direction: column; gap: 5px; }
+  .option { display: flex; align-items: center; gap: 8px; font-size: 9.5pt; color: #333; cursor: pointer; }
+  .option input[type="checkbox"] {
+    width: 16px; height: 16px; accent-color: #0f3460; cursor: pointer; flex-shrink: 0;
+  }
+  .critical .option input[type="checkbox"] { accent-color: #e94560; }
+
+  /* TEXT INPUT */
+  .text-input {
+    width: 100%; border: none; border-bottom: 1.5px solid #c0cadf; background: transparent;
+    font-family: 'Inter', Arial, sans-serif; font-size: 9.5pt; color: #1a1a2e;
+    padding: 4px 2px; margin-top: 6px; outline: none;
+    transition: border-color 0.2s;
+  }
+  .text-input:focus { border-bottom-color: #0f3460; }
+  .critical .text-input:focus { border-bottom-color: #e94560; }
+  .text-input::placeholder { color: #bbb; font-style: italic; }
+
+  /* INLINE INPUT in option */
+  .inline-input {
+    border: none; border-bottom: 1px dashed #aaa; background: transparent;
+    font-family: 'Inter', Arial, sans-serif; font-size: 9.5pt; color: #1a1a2e;
+    width: 160px; padding: 1px 2px; outline: none;
+  }
+  .inline-input:focus { border-bottom-color: #0f3460; }
+
+  /* FOOTER */
+  .footer { margin-top: 36px; padding-top: 14px; border-top: 2px solid #e8ecf5; display: flex; justify-content: space-between; align-items: flex-end; font-size: 9pt; color: #aaa; }
+  .footer input { border: none; border-bottom: 1px solid #ccc; font-family: 'Inter', Arial; font-size: 9.5pt; color: #555; width: 220px; padding: 2px; outline: none; background: transparent; }
+
+  /* PRINT BUTTON */
+  .print-btn-wrap { text-align: center; margin: 24px 0 0; }
+  .print-btn {
+    background: #0f3460; color: white; border: none; padding: 12px 32px;
+    font-family: 'Inter', Arial; font-size: 11pt; font-weight: 600; border-radius: 8px;
+    cursor: pointer; transition: background 0.2s;
+  }
+  .print-btn:hover { background: #1a4f8a; }
+
+  @media print {
+    body { background: white; }
+    .page { padding: 15px 25px; max-width: 100%; }
+    .print-btn-wrap { display: none; }
+    .section { page-break-inside: avoid; }
+    .text-input, .inline-input { border-bottom-color: #999 !important; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div>
+      <h1>Chestionar Tehnic<br>Smart Kiosk Digital</h1>
+      <p>Document de colectare cerinte &mdash; v1.0 &nbsp;|&nbsp; Martie 2026</p>
+    </div>
+    <div class="logo-box">SMART KIOSK<span>Proiect Digital</span></div>
+  </div>
+
+  <div class="intro">
+    Completati digital sau tiparit. Intrebarile marcate cu <strong style="color:#e94560;">rosu</strong> sunt <strong>critice</strong>. Dupa completare: <strong>Ctrl+P / Cmd+P &rarr; Salvare ca PDF</strong>.
+  </div>
+
+  <!-- SECTIUNEA 1 -->
+  <div class="section">
+    <div class="section-title"><div class="section-num">1</div>Infrastructura &amp; Hardware</div>
+
+    <div class="question">
+      <div class="q-num">1</div>
+      <div class="q-content">
+        <div class="q-text">Ce dispozitive vor fi folosite ca kiosk?</div>
+        <div class="q-note">ex: touchscreen dedicat, tableta, all-in-one, ecran + PC separat</div>
+        <input class="text-input" type="text" placeholder="Raspuns...">
+      </div>
+    </div>
+
+    <div class="question critical">
+      <div class="q-num">2</div>
+      <div class="q-content">
+        <div class="critical-label">⚠ Critic</div>
+        <div class="q-text">Care este sistemul de operare al kiosk-ului?</div>
+        <div class="options">
+          <label class="option"><input type="checkbox"> Windows</label>
+          <label class="option"><input type="checkbox"> Android</label>
+          <label class="option"><input type="checkbox"> Linux</label>
+          <label class="option"><input type="checkbox"> Altul: <input class="inline-input" type="text" placeholder="specificati..."></label>
+        </div>
+      </div>
+    </div>
+
+    <div class="question">
+      <div class="q-num">3</div>
+      <div class="q-content">
+        <div class="q-text">Cine furnizeaza hardware-ul kiosk-ului?</div>
+        <div class="options">
+          <label class="option"><input type="checkbox"> Clientul (deja aveti)</label>
+          <label class="option"><input type="checkbox"> Urmeaza sa fie achizitionat</label>
+          <label class="option"><input type="checkbox"> Furnizor recomandat de noi</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="question">
+      <div class="q-num">4</div>
+      <div class="q-content">
+        <div class="q-text">Retea disponibila in fiecare locatie?</div>
+        <div class="options">
+          <label class="option"><input type="checkbox"> Wi-Fi stabil</label>
+          <label class="option"><input type="checkbox"> Cablu Ethernet (LAN)</label>
+          <label class="option"><input type="checkbox"> 4G / LTE</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="question">
+      <div class="q-num">5</div>
+      <div class="q-content">
+        <div class="q-text">Cate kiosk-uri vor fi instalate per locatie?</div>
+        <input class="text-input" type="text" placeholder="ex: 1, 2, depinde de marimea localului...">
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTIUNEA 2 -->
+  <div class="section">
+    <div class="section-title"><div class="section-num">2</div>Plata cu Cardul</div>
+
+    <div class="question critical">
+      <div class="q-num">6</div>
+      <div class="q-content">
+        <div class="critical-label">⚠ Critic</div>
+        <div class="q-text">Ce terminal POS fizic se va folosi?</div>
+        <div class="q-note">ex: Ingenico, PAX, Verifone, NeoPay &mdash; marca si model</div>
+        <input class="text-input" type="text" placeholder="Marca / model POS...">
+      </div>
+    </div>
+
+    <div class="question critical">
+      <div class="q-num">7</div>
+      <div class="q-content">
+        <div class="critical-label">⚠ Critic</div>
+        <div class="q-text">Exista deja contract cu banca / procesator de plati?</div>
+        <div class="q-note">ex: BT, Raiffeisen, ING, NeoPay, Stripe Terminal</div>
+        <input class="text-input" type="text" placeholder="Banca / procesator...">
+      </div>
+    </div>
+
+    <div class="question critical">
+      <div class="q-num">8</div>
+      <div class="q-content">
+        <div class="critical-label">⚠ Critic</div>
+        <div class="q-text">Cum se initiaza plata?</div>
+        <div class="options">
+          <label class="option"><input type="checkbox"> <strong>Integrat software</strong> &mdash; kiosk-ul trimite suma la POS automat</label>
+          <label class="option"><input type="checkbox"> <strong>Manual</strong> &mdash; operatorul introduce suma pe POS</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="question">
+      <div class="q-num">9</div>
+      <div class="q-content">
+        <div class="q-text">Este necesara plata cash?</div>
+        <div class="options">
+          <label class="option"><input type="checkbox"> Da (necesita sertar de numerar)</label>
+          <label class="option"><input type="checkbox"> Nu, doar card</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTIUNEA 3 -->
+  <div class="section">
+    <div class="section-title"><div class="section-num">3</div>Meniu &amp; Integrare iiko</div>
+
+    <div class="question critical">
+      <div class="q-num">10</div>
+      <div class="q-content">
+        <div class="critical-label">⚠ Critic</div>
+        <div class="q-text">Aveti acces la iiko API? (API Key, URL instanta)</div>
+        <div class="options">
+          <label class="option"><input type="checkbox"> Da, avem credentiale</label>
+          <label class="option"><input type="checkbox"> Trebuie sa le solicitam de la iiko</label>
+          <label class="option"><input type="checkbox"> Nu stim, investigam</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="question">
+      <div class="q-num">11</div>
+      <div class="q-content">
+        <div class="q-text">Meniul din iiko este structurat pe categorii cu preturi actualizate?</div>
+        <div class="options">
+          <label class="option"><input type="checkbox"> Da, complet</label>
+          <label class="option"><input type="checkbox"> Partial, necesita completare</label>
+          <label class="option"><input type="checkbox"> Nu, meniul trebuie introdus</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="question">
+      <div class="q-num">12</div>
+      <div class="q-content">
+        <div class="q-text">Exista modificatori / optiuni configurabile per produs?</div>
+        <div class="q-note">ex: marime, garnitura, grad de coacere, alergeni</div>
+        <div class="options">
+          <label class="option"><input type="checkbox"> Da &mdash; sunt configurati in iiko</label>
+          <label class="option"><input type="checkbox"> Da &mdash; trebuie configurati</label>
+          <label class="option"><input type="checkbox"> Nu</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="question">
+      <div class="q-num">13</div>
+      <div class="q-content">
+        <div class="q-text">Cat de des se actualizeaza meniul?</div>
+        <div class="options">
+          <label class="option"><input type="checkbox"> Zilnic (preturi, disponibilitate)</label>
+          <label class="option"><input type="checkbox"> Saptamanal</label>
+          <label class="option"><input type="checkbox"> Rar (sezonier)</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="question critical">
+      <div class="q-num">14</div>
+      <div class="q-content">
+        <div class="critical-label">⚠ Critic</div>
+        <div class="q-text">iiko genereaza si printeaza bonul fiscal automat la receptia comenzii?</div>
+        <div class="options">
+          <label class="option"><input type="checkbox"> Da, automat</label>
+          <label class="option"><input type="checkbox"> Necesita confirmare din iiko</label>
+          <label class="option"><input type="checkbox"> Nu stim, verificam</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="question">
+      <div class="q-num">15</div>
+      <div class="q-content">
+        <div class="q-text">Exista meniuri diferite per locatie sau acelasi meniu in toata reteaua?</div>
+        <div class="options">
+          <label class="option"><input type="checkbox"> Acelasi meniu, toate locatiile</label>
+          <label class="option"><input type="checkbox"> Meniuri diferite per locatie</label>
+          <label class="option"><input type="checkbox"> Meniu de baza + specificuri locale</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTIUNEA 4 -->
+  <div class="section">
+    <div class="section-title"><div class="section-num">4</div>Flux Comanda &amp; Bucatarie</div>
+
+    <div class="question critical">
+      <div class="q-num">16</div>
+      <div class="q-content">
+        <div class="critical-label">⚠ Critic</div>
+        <div class="q-text">Cum ajunge comanda la bucatarie?</div>
+        <div class="options">
+          <label class="option"><input type="checkbox"> Printer termic (KOT — Kitchen Order Ticket)</label>
+          <label class="option"><input type="checkbox"> Ecran KDS (Kitchen Display System)</label>
+          <label class="option"><input type="checkbox"> Statie iiko in bucatarie (apare automat)</label>
+          <label class="option"><input type="checkbox"> Altul: <input class="inline-input" type="text" placeholder="specificati..."></label>
+        </div>
+      </div>
+    </div>
+
+    <div class="question">
+      <div class="q-num">17</div>
+      <div class="q-content">
+        <div class="q-text">Exista mai multe statii in bucatarie cu printeri separati?</div>
+        <div class="q-note">ex: bar, gratar, salate &mdash; fiecare cu printer propriu</div>
+        <div class="options">
+          <label class="option"><input type="checkbox"> Da &mdash; cate statii: <input class="inline-input" type="text" placeholder="nr..."></label>
+          <label class="option"><input type="checkbox"> Nu, un singur punct</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="question">
+      <div class="q-num">18</div>
+      <div class="q-content">
+        <div class="q-text">Clientul primeste o confirmare dupa plasarea comenzii?</div>
+        <div class="options">
+          <label class="option"><input type="checkbox"> Numar de comanda afisat pe ecran</label>
+          <label class="option"><input type="checkbox"> Bon tiparit de kiosk</label>
+          <label class="option"><input type="checkbox"> Notificare SMS / email</label>
+          <label class="option"><input type="checkbox"> Nimic (clientul asteapta la ghiseu)</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTIUNEA 5 -->
+  <div class="section">
+    <div class="section-title"><div class="section-num">5</div>Admin Panel &amp; Management</div>
+
+    <div class="question">
+      <div class="q-num">19</div>
+      <div class="q-content">
+        <div class="q-text">Cine administreaza sistemul?</div>
+        <div class="options">
+          <label class="option"><input type="checkbox"> Administrator central (toate locatiile)</label>
+          <label class="option"><input type="checkbox"> Manager local per locatie</label>
+          <label class="option"><input type="checkbox"> Ambele roluri</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="question">
+      <div class="q-num">20</div>
+      <div class="q-content">
+        <div class="q-text">Functionalitati necesare in panoul de administrare:</div>
+        <div class="options">
+          <label class="option"><input type="checkbox"> Editare meniu</label>
+          <label class="option"><input type="checkbox"> Activare / dezactivare produse (stoc)</label>
+          <label class="option"><input type="checkbox"> Rapoarte vanzari</label>
+          <label class="option"><input type="checkbox"> Gestionare locatii</label>
+          <label class="option"><input type="checkbox"> Promotii / reduceri / coduri voucher</label>
+          <label class="option"><input type="checkbox"> Altele: <input class="inline-input" type="text" placeholder="specificati..."></label>
+        </div>
+      </div>
+    </div>
+
+    <div class="question">
+      <div class="q-num">21</div>
+      <div class="q-content">
+        <div class="q-text">Integrare cu sistem de contabilitate / ERP?</div>
+        <div class="q-note">ex: Saga, WinMentor, SmartBill</div>
+        <div class="options">
+          <label class="option"><input type="checkbox"> Da &mdash; care: <input class="inline-input" type="text" placeholder="sistem..."></label>
+          <label class="option"><input type="checkbox"> Nu</label>
+          <label class="option"><input type="checkbox"> Poate mai tarziu</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTIUNEA 6 -->
+  <div class="section">
+    <div class="section-title"><div class="section-num">6</div>Experienta Clientului</div>
+
+    <div class="question">
+      <div class="q-num">22</div>
+      <div class="q-content">
+        <div class="q-text">Ce limbi trebuie sa suporte interfata kiosk?</div>
+        <div class="options">
+          <label class="option"><input type="checkbox"> Romana</label>
+          <label class="option"><input type="checkbox"> Engleza</label>
+          <label class="option"><input type="checkbox"> Rusa</label>
+          <label class="option"><input type="checkbox"> Alta: <input class="inline-input" type="text" placeholder="specificati..."></label>
+        </div>
+      </div>
+    </div>
+
+    <div class="question">
+      <div class="q-num">23</div>
+      <div class="q-content">
+        <div class="q-text">Exista program de loialitate / puncte pentru clienti?</div>
+        <div class="options">
+          <label class="option"><input type="checkbox"> Da &mdash; sistem existent: <input class="inline-input" type="text" placeholder="care..."></label>
+          <label class="option"><input type="checkbox"> Nu deocamdata</label>
+          <label class="option"><input type="checkbox"> Dorim sa implementam unul</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="question">
+      <div class="q-num">24</div>
+      <div class="q-content">
+        <div class="q-text">Se doresc promotii / bannere afisate pe kiosk in modul standby?</div>
+        <div class="options">
+          <label class="option"><input type="checkbox"> Da (imagini / video promotional)</label>
+          <label class="option"><input type="checkbox"> Nu</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="question">
+      <div class="q-num">25</div>
+      <div class="q-content">
+        <div class="q-text">Clientul poate selecta tipul de comanda?</div>
+        <div class="options">
+          <label class="option"><input type="checkbox"> La masa (cu numar masa)</label>
+          <label class="option"><input type="checkbox"> Take-away (la pachet)</label>
+          <label class="option"><input type="checkbox"> Ambele</label>
+          <label class="option"><input type="checkbox"> Un singur tip</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="question">
+      <div class="q-num">26</div>
+      <div class="q-content">
+        <div class="q-text">Este necesara functionalitate de rating / feedback dupa comanda?</div>
+        <div class="options">
+          <label class="option"><input type="checkbox"> Da</label>
+          <label class="option"><input type="checkbox"> Nu</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTIUNEA 7 -->
+  <div class="section">
+    <div class="section-title"><div class="section-num">7</div>Legal &amp; Fiscal</div>
+
+    <div class="question">
+      <div class="q-num">27</div>
+      <div class="q-content">
+        <div class="q-text">Firma este platitoare de TVA? Cota aplicata:</div>
+        <div class="options">
+          <label class="option"><input type="checkbox"> Da &mdash; cota: <input class="inline-input" type="text" placeholder="9% / 19% / 21%..."></label>
+          <label class="option"><input type="checkbox"> Nu</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="question critical">
+      <div class="q-num">28</div>
+      <div class="q-content">
+        <div class="critical-label">⚠ Critic</div>
+        <div class="q-text">Bonul fiscal este generat de iiko/POS sau kiosk-ul trebuie sa aiba casa de marcat proprie?</div>
+        <div class="options">
+          <label class="option"><input type="checkbox"> iiko / POS genereaza bonul (nu avem nevoie de casa separata)</label>
+          <label class="option"><input type="checkbox"> Kiosk-ul trebuie sa aiba casa de marcat integrata</label>
+          <label class="option"><input type="checkbox"> Nu stim, verificam cu contabilul</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="question">
+      <div class="q-num">29</div>
+      <div class="q-content">
+        <div class="q-text">Exista cerinte speciale ANAF legate de sistemul de kiosk?</div>
+        <div class="options">
+          <label class="option"><input type="checkbox"> Da &mdash; detalii: <input class="inline-input" style="width:200px" type="text" placeholder="specificati..."></label>
+          <label class="option"><input type="checkbox"> Nu</label>
+          <label class="option"><input type="checkbox"> Verificam</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTIUNEA 8 -->
+  <div class="section">
+    <div class="section-title"><div class="section-num">8</div>Scalabilitate &amp; Planuri Viitoare</div>
+
+    <div class="question">
+      <div class="q-num">30</div>
+      <div class="q-content">
+        <div class="q-text">Se planifica extinderea peste 20 locatii pe termen scurt (6-12 luni)?</div>
+        <div class="options">
+          <label class="option"><input type="checkbox"> Da &mdash; estimat: <input class="inline-input" type="text" placeholder="nr locatii..."></label>
+          <label class="option"><input type="checkbox"> Nu, ramane la numarul actual</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="question">
+      <div class="q-num">31</div>
+      <div class="q-content">
+        <div class="q-text">Intentia de a adauga comanda online (app mobil / website) in viitor?</div>
+        <div class="options">
+          <label class="option"><input type="checkbox"> Da, cu prioritate</label>
+          <label class="option"><input type="checkbox"> Poate mai tarziu</label>
+          <label class="option"><input type="checkbox"> Nu</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="question">
+      <div class="q-num">32</div>
+      <div class="q-content">
+        <div class="q-text">Aplicatie mobila pentru manageri (notificari, comenzi in timp real)?</div>
+        <div class="options">
+          <label class="option"><input type="checkbox"> Da, dorit</label>
+          <label class="option"><input type="checkbox"> Nu</label>
+          <label class="option"><input type="checkbox"> Consideram mai tarziu</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div>
+      <div style="margin-bottom:8px; color:#555">Completat de: <input type="text" placeholder="Nume Prenume" style="border:none;border-bottom:1px solid #ccc;font-family:Inter,Arial;font-size:9.5pt;color:#333;width:200px;padding:2px;outline:none;background:transparent;"></div>
+      <div style="color:#555">Data: <input type="text" placeholder="zz/ll/aaaa" style="border:none;border-bottom:1px solid #ccc;font-family:Inter,Arial;font-size:9.5pt;color:#333;width:130px;padding:2px;outline:none;background:transparent;"></div>
+    </div>
+    <div style="text-align:right; line-height:1.6;">Smart Kiosk Digital &mdash; v1.0<br>Document confidential</div>
+  </div>
+
+  <div class="print-btn-wrap">
+    <button class="print-btn" onclick="window.print()">🖨️ Tipareste / Salveaza ca PDF</button>
+  </div>
+
+</div>
+</body>
+</html>
