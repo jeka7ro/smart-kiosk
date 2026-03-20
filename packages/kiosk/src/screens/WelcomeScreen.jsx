@@ -1,9 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useKioskStore } from '../store/kioskStore';
 import { useBrand } from '../App';
 import { BRANDS, applyBrandTheme } from '../config/brands.js';
 import { t, LANGUAGES, LANGUAGE_NAMES } from '../i18n/translations.js';
+import { io } from 'socket.io-client';
 import './WelcomeScreen.css';
+
+const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 
 export default function WelcomeScreen() {
   const goTo    = useKioskStore((s) => s.goTo);
@@ -14,6 +17,62 @@ export default function WelcomeScreen() {
   const [slide, setSlide] = useState(0);
   const slides = brand.welcomeSlides;
 
+  // ─── Poster / Screensaver ────────────────────────────────
+  const [poster, setPoster] = useState(null);   // { url, type, enabled }
+  const [posterVisible, setPosterVisible] = useState(false);
+  const socketRef = useRef(null);
+
+  // Fetch poster config from backend
+  useEffect(() => {
+    const brandId = brand.id || import.meta.env.VITE_BRAND || 'smashme';
+
+    // Try location-specific first, then brand-level
+    const fetchPoster = async () => {
+      try {
+        // Try all possible keys: location ID, brand-specific location, brand ID
+        const keys = [
+          import.meta.env.VITE_LOCATION_ID,    // specific kiosk
+          `${brandId}-main`,                     // brand main location
+          brandId,                               // brand level
+        ].filter(Boolean);
+
+        for (const key of keys) {
+          const res = await fetch(`${BACKEND}/api/admin/kiosk-config/${key}`);
+          const data = await res.json();
+          if (data.poster && data.poster.enabled && data.poster.url) {
+            setPoster(data.poster);
+            setPosterVisible(true);
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('[Poster] Fetch failed:', e.message);
+      }
+    };
+
+    fetchPoster();
+
+    // Listen for real-time poster updates via Socket.IO
+    try {
+      const socket = io(BACKEND, { reconnectionAttempts: 3, timeout: 5000 });
+      socketRef.current = socket;
+      socket.on('poster_updated', ({ brandId: bid, poster: newPoster }) => {
+        const myBrand = brand.id || import.meta.env.VITE_BRAND || 'smashme';
+        if (bid === myBrand || bid === `${myBrand}-main` || bid === import.meta.env.VITE_LOCATION_ID) {
+          if (newPoster && newPoster.enabled && newPoster.url) {
+            setPoster(newPoster);
+            setPosterVisible(true);
+          } else {
+            setPoster(null);
+            setPosterVisible(false);
+          }
+        }
+      });
+      return () => socket.disconnect();
+    } catch (e) {}
+  }, [brand.id]);
+
+  // Slide timer
   useEffect(() => {
     const timer = setInterval(() => setSlide((s) => (s + 1) % slides.length), 3500);
     return () => clearInterval(timer);
@@ -24,8 +83,47 @@ export default function WelcomeScreen() {
     window.location.search = `?brand=${brandId}`;
   };
 
+  // Handle tap on poster — dismiss poster and go to orderType
+  const handlePosterTap = () => {
+    setPosterVisible(false);
+    goTo('orderType');
+  };
+
   return (
     <div className="welcome-screen" onClick={() => goTo('orderType')}>
+      {/* ─── POSTER SCREENSAVER (fullscreen overlay) ─── */}
+      {posterVisible && poster && (
+        <div className="poster-overlay" onClick={(e) => { e.stopPropagation(); handlePosterTap(); }}>
+          {poster.type === 'video' ? (
+            <video
+              src={poster.url}
+              className="poster-media"
+              autoPlay muted loop playsInline
+            />
+          ) : poster.type === 'iframe' ? (
+            <iframe
+              src={poster.url}
+              className="poster-iframe"
+              title="Promo"
+            />
+          ) : (
+            <img
+              src={poster.url}
+              alt="Promo"
+              className="poster-media"
+              onError={() => setPosterVisible(false)}
+            />
+          )}
+          <div className="poster-cta-center">
+            <button className="poster-cta-btn" onClick={(e) => { e.stopPropagation(); handlePosterTap(); }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 13"/></svg>
+              Începe comanda
+            </button>
+            <span className="poster-tap-hint">Atinge oriunde pe ecran</span>
+          </div>
+        </div>
+      )}
+
       {/* Animated background orbs */}
       <div className="orb orb-1" />
       <div className="orb orb-2" />

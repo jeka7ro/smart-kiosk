@@ -1,5 +1,49 @@
 [
   {
+    "_id": "ORD-1774001625190",
+    "orderNumber": 934,
+    "locationId": "loc1",
+    "locationName": null,
+    "brand": "smashme",
+    "orgId": null,
+    "orderType": "takeaway",
+    "tableNumber": null,
+    "items": [
+      {
+        "productId": "f1ae5619-d0e1-4f4c-b86e-ecfe05baaed4",
+        "name": "Cheesburger Simplu",
+        "quantity": 1,
+        "unitPrice": 30.99,
+        "totalPrice": 30.99,
+        "selectedModifiers": []
+      },
+      {
+        "productId": "dbb2ef28-4ff7-4fea-8ced-5d42b9b8e9b2",
+        "name": "Ketchup 50g",
+        "quantity": 1,
+        "unitPrice": 3.99,
+        "totalPrice": 3.99,
+        "selectedModifiers": []
+      },
+      {
+        "productId": "2b59b738-ca54-4d26-b512-3d8c5d4927aa",
+        "name": "Crispy Nuggests & Fries",
+        "quantity": 1,
+        "unitPrice": 31.39,
+        "totalPrice": 31.39,
+        "selectedModifiers": []
+      }
+    ],
+    "totalAmount": 66.37,
+    "lang": "ro",
+    "channel": "kiosk",
+    "paymentMethod": "card",
+    "status": "pending",
+    "syrveOrderId": null,
+    "arrivedAt": 1774001625190,
+    "createdAt": "2026-03-20T10:13:45.190Z"
+  },
+  {
     "_id": "ORD-1773999916765",
     "orderNumber": 535,
     "locationId": "loc1",
