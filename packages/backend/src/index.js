@@ -25,7 +25,12 @@ const server = http.createServer(app);
 const allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').map(o => o.trim());
 app.use(cors({
   origin: (origin, cb) => {
-    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    // Allow all Netlify subdomains + explicit origins
+    if (!origin
+        || allowedOrigins.includes(origin)
+        || origin.endsWith('.netlify.app')) {
+      return cb(null, true);
+    }
     cb(new Error(`CORS blocked: ${origin}`));
   },
   credentials: true,

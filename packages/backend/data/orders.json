@@ -1,0 +1,30 @@
+[
+  {
+    "_id": "ORD-1773999487453",
+    "orderNumber": 487,
+    "locationId": "loc1",
+    "locationName": null,
+    "brand": "smashme",
+    "orgId": null,
+    "orderType": "dine-in",
+    "tableNumber": null,
+    "items": [
+      {
+        "productId": "289d8ea6-3bb8-42c4-9c32-2c1b35313ad5",
+        "name": "Big Boss Triplu",
+        "quantity": 1,
+        "unitPrice": 52.49,
+        "totalPrice": 52.49,
+        "selectedModifiers": []
+      }
+    ],
+    "totalAmount": 52.49,
+    "lang": "ro",
+    "channel": "kiosk",
+    "paymentMethod": "card",
+    "status": "pending",
+    "syrveOrderId": null,
+    "arrivedAt": 1773999487453,
+    "createdAt": "2026-03-20T09:38:07.453Z"
+  }
+]
