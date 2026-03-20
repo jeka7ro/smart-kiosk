@@ -58,15 +58,30 @@
 }
 .logo-sub { font-size: 0.9rem; color: var(--text-muted); letter-spacing: 4px; text-transform: uppercase; margin-top: 4px; }
 
-/* ─── PROMO SLIDE ────────────────────────────────────────── */
-.welcome-promo {
-  text-align: center; z-index: 1; animation: fadeSlide 0.5s ease-out;
-  display: flex; flex-direction: column; align-items: center; gap: 12px;
-  max-width: 600px;
+/* ─── PROMO SLIDE (crossfade) ───────────────────────────── */
+.welcome-promo-wrap {
+  position: relative; z-index: 1;
+  width: 100%; max-width: 600px;
+  min-height: 380px;
+  display: flex; flex-direction: column; align-items: center;
 }
-@keyframes fadeSlide {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
+.welcome-promo {
+  position: absolute; top: 0; left: 0; right: 0;
+  text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  opacity: 0;
+  transition: opacity 0.8s ease-in-out;
+  pointer-events: none;
+}
+.welcome-promo.promo--active {
+  opacity: 1;
+  pointer-events: auto;
+}
+.slide-dots {
+  position: relative; z-index: 2;
+  display: flex; gap: 8px; margin-top: auto;
+  align-self: center;
+  padding-top: 340px;
 }
 .promo-emoji { font-size: 5rem; line-height: 1; margin-bottom: 4px; }
 .promo-hero-img {
@@ -85,7 +100,6 @@
   line-height: 1.1; letter-spacing: -1px;
 }
 .promo-sub { font-size: 1.2rem; color: var(--text-muted); }
-.slide-dots { display: flex; gap: 8px; margin-top: 4px; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); transition: all 0.3s; }
 .dot--active { width: 28px; border-radius: 4px; background: var(--primary); }
 

@@ -160,3 +160,135 @@
   padding: 8px 16px; border-radius: 8px; cursor: pointer; transition: all 0.2s;
 }
 .btn-refresh:hover { border-color: var(--primary); color: var(--primary); }
+
+/* ─── Kiosk Location List ─── */
+.kiosk-location-list { display: flex; flex-direction: column; gap: 12px; }
+.kl-brand-filter { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+.kl-filter-btn {
+  background: var(--bg-surface); border: 1.5px solid var(--border); color: var(--text-muted);
+  font-family: 'Outfit',sans-serif; font-size: 0.85rem; font-weight: 600;
+  padding: 8px 16px; border-radius: 10px; cursor: pointer; transition: all 0.2s;
+}
+.kl-filter-btn.active,
+.kl-filter-btn:hover {
+  border-color: var(--bc, var(--primary)); color: var(--bc, var(--primary));
+  background: color-mix(in srgb, var(--bc, var(--primary)) 12%, transparent);
+}
+
+.kl-brand-group {
+  background: var(--bg-card); border: 1.5px solid var(--border);
+  border-radius: 14px; overflow: hidden;
+}
+.kl-brand-header {
+  width: 100%; display: flex; align-items: center; gap: 12px;
+  background: transparent; border: none; padding: 16px 20px;
+  font-family: 'Outfit',sans-serif; font-size: 1rem; font-weight: 700;
+  cursor: pointer; transition: all 0.15s; color: var(--text);
+  border-left: 4px solid var(--bc, var(--primary));
+}
+.kl-brand-header:hover { background: var(--bg-surface); }
+.kl-brand-name { flex: 1; text-align: left; }
+.kl-brand-count {
+  font-size: 0.78rem; font-weight: 600; color: var(--text-muted);
+  background: var(--bg-surface); padding: 3px 10px; border-radius: 6px;
+}
+.kl-expand { font-size: 0.75rem; color: var(--text-muted); }
+
+.kl-locations { border-top: 1px solid var(--border); }
+.kl-location-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 20px 10px 28px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
+}
+.kl-location-row:last-child { border-bottom: none; }
+.kl-location-row:hover { background: var(--bg-surface); }
+.kl-loc-info { display: flex; align-items: center; gap: 10px; }
+.kl-status {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.kl-online { background: var(--success, #10b981); }
+.kl-offline { background: var(--danger, #ef4444); }
+.kl-loc-name { font-weight: 600; font-size: 0.9rem; }
+.kl-loc-id { font-size: 0.72rem; color: var(--text-muted); font-family: monospace; }
+.kl-poster-btn {
+  background: var(--bg-surface); border: 1.5px solid var(--border);
+  font-family: 'Outfit',sans-serif; font-size: 0.8rem; font-weight: 600;
+  color: var(--text-muted); padding: 5px 12px; border-radius: 8px;
+  cursor: pointer; transition: all 0.15s;
+}
+.kl-poster-btn:hover { border-color: var(--primary); color: var(--primary); }
+.kl-poster-panel { padding: 12px 20px; border-top: 1px solid var(--border); background: var(--bg-surface); }
+
+/* ─── Poster Card ─── */
+.poster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 16px; }
+.poster-card {
+  background: var(--bg-card); border: 1.5px solid var(--bc, var(--border));
+  border-radius: 14px; padding: 20px;
+}
+.pc-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.pc-brand { font-size: 1.1rem; font-weight: 800; color: var(--bc, var(--text)); }
+.pc-toggle {
+  display: flex; align-items: center; gap: 8px;
+  cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);
+}
+.pc-toggle input { display: none; }
+.toggle-slider {
+  width: 40px; height: 22px; border-radius: 11px;
+  background: var(--border); position: relative; transition: background 0.2s;
+}
+.toggle-slider::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: #fff; transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.pc-toggle input:checked + .toggle-slider { background: var(--bc, var(--primary)); }
+.pc-toggle input:checked + .toggle-slider::after { transform: translateX(18px); }
+
+.pc-form { display: flex; flex-direction: column; gap: 10px; }
+.pc-label { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; }
+.pc-input {
+  width: 100%; padding: 10px 14px; border: 1.5px solid var(--border);
+  border-radius: 10px; font-family: 'Outfit',sans-serif; font-size: 0.9rem;
+  background: var(--bg-surface); color: var(--text); outline: none;
+  transition: border-color 0.2s;
+}
+.pc-input:focus { border-color: var(--bc, var(--primary)); }
+.pc-type-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.pc-type-btns { display: flex; gap: 6px; }
+.pc-type-btn {
+  background: var(--bg-surface); border: 1.5px solid var(--border);
+  font-family: 'Outfit',sans-serif; font-size: 0.78rem; font-weight: 600;
+  color: var(--text-muted); padding: 5px 12px; border-radius: 8px;
+  cursor: pointer; transition: all 0.15s;
+}
+.pc-type-btn.active {
+  border-color: var(--bc, var(--primary)); color: var(--bc, var(--primary));
+  background: color-mix(in srgb, var(--bc, var(--primary)) 12%, transparent);
+}
+
+.pc-preview { margin-top: 12px; }
+.pc-preview-box {
+  margin-top: 6px; border: 1px solid var(--border); border-radius: 10px;
+  overflow: hidden; max-height: 200px; background: #000;
+}
+.pc-preview-box img, .pc-preview-box video {
+  width: 100%; max-height: 200px; object-fit: contain; display: block;
+}
+.pc-preview-box iframe { width: 100%; height: 200px; border: none; }
+
+.pc-actions { display: flex; gap: 8px; margin-top: 14px; }
+.btn-save {
+  background: var(--bc, var(--primary)); color: #fff;
+  font-family: 'Outfit',sans-serif; font-size: 0.88rem; font-weight: 700;
+  padding: 10px 24px; border: none; border-radius: 10px;
+  cursor: pointer; transition: all 0.2s;
+}
+.btn-save:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.btn-delete {
+  background: transparent; color: var(--danger, #ef4444);
+  font-family: 'Outfit',sans-serif; font-size: 0.88rem; font-weight: 600;
+  padding: 10px 16px; border: 1.5px solid var(--danger, #ef4444); border-radius: 10px;
+  cursor: pointer; transition: all 0.15s;
+}
+.btn-delete:hover { background: #ef44440d; }

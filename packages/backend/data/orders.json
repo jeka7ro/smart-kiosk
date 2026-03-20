@@ -1,5 +1,33 @@
 [
   {
+    "_id": "ORD-1773999916765",
+    "orderNumber": 535,
+    "locationId": "loc1",
+    "locationName": null,
+    "brand": "smashme",
+    "orgId": null,
+    "orderType": "takeaway",
+    "tableNumber": null,
+    "items": [
+      {
+        "productId": "fde10ee6-419a-47e9-bb15-37a0b5b3caa3",
+        "name": "Cheesburger Triplu",
+        "quantity": 1,
+        "unitPrice": 48.99,
+        "totalPrice": 48.99,
+        "selectedModifiers": []
+      }
+    ],
+    "totalAmount": 48.99,
+    "lang": "ro",
+    "channel": "kiosk",
+    "paymentMethod": "card",
+    "status": "pending",
+    "syrveOrderId": null,
+    "arrivedAt": 1773999916765,
+    "createdAt": "2026-03-20T09:45:16.765Z"
+  },
+  {
     "_id": "ORD-1773999487453",
     "orderNumber": 487,
     "locationId": "loc1",

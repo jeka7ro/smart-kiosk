@@ -15,7 +15,7 @@ const STATUS_LABELS = {
 };
 
 export default function AdminApp() {
-  const [tab,       setTab]       = useState('orders'); // orders | menu | stats
+  const [tab,       setTab]       = useState('orders'); // orders | menu | kiosks | stats
   const [orders,    setOrders]    = useState([]);
   const [menuStatus,setMenuStatus]= useState(null);
   const [connected, setConnected] = useState(false);
@@ -92,6 +92,7 @@ export default function AdminApp() {
           {[
             { id: 'dashboard', icon: '📊', label: 'Dashboard' },
             { id: 'orders',    icon: '📋', label: 'Comenzi' },
+            { id: 'kiosks',    icon: '📺', label: 'Kioskuri' },
             { id: 'menu',      icon: '🍽',  label: 'Meniu / Syrve' },
           ].map(item => (
             <button
@@ -198,6 +199,15 @@ export default function AdminApp() {
             )}
           </div>
         )}
+
+        {/* ─── KIOSKS / POSTER ─── */}
+        {tab === 'kiosks' && (
+          <div className="admin-section">
+            <h2 className="section-title">📺 Kioskuri — Poster Promo</h2>
+            <p style={{color:'var(--text-muted)',marginBottom:16,fontSize:'0.9rem'}}>Setează o imagine, video sau link care apare pe ecranul kiosk-ului când e inactiv. Când clientul atinge ecranul, intră în modul de comandă.</p>
+            <KioskLocationList backend={BACKEND} />
+          </div>
+        )}
       </main>
     </div>
   );
@@ -254,6 +264,242 @@ function OrdersTable({ orders, full }) {
           })}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function KioskPosterCard({ brandId, brandName, emoji, backend }) {
+  const [url, setUrl]         = useState('');
+  const [type, setType]       = useState('image');
+  const [enabled, setEnabled] = useState(false);
+  const [saved, setSaved]     = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Load existing config
+  useEffect(() => {
+    fetch(`${backend}/api/admin/kiosk-config/${brandId}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.poster) {
+          setUrl(d.poster.url || '');
+          setType(d.poster.type || 'image');
+          setEnabled(d.poster.enabled !== false);
+        }
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [brandId, backend]);
+
+  const save = async () => {
+    try {
+      await fetch(`${backend}/api/admin/kiosk-config/${brandId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url, type, enabled }),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (e) {
+      console.error('Save failed:', e);
+    }
+  };
+
+  const remove = async () => {
+    await fetch(`${backend}/api/admin/kiosk-config/${brandId}`, { method: 'DELETE' });
+    setUrl('');
+    setType('image');
+    setEnabled(false);
+  };
+
+  if (loading) return <div className="poster-card"><p>Se încarcă...</p></div>;
+
+  // Auto-detect type from URL
+  const detectType = (u) => {
+    if (/\.(mp4|webm|mov)(\?|$)/i.test(u)) return 'video';
+    if (/\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i.test(u)) return 'image';
+    if (/youtube|vimeo|dailymotion/i.test(u)) return 'iframe';
+    return 'image';
+  };
+
+  const handleUrlChange = (e) => {
+    const newUrl = e.target.value;
+    setUrl(newUrl);
+    if (newUrl) setType(detectType(newUrl));
+  };
+
+  return (
+    <div className="poster-card" style={{ '--bc': brandId === 'smashme' ? '#ef4444' : '#3b82f6' }}>
+      <div className="pc-header">
+        <span className="pc-brand">{emoji} {brandName}</span>
+        <label className="pc-toggle">
+          <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
+          <span className="toggle-slider" />
+          <span>{enabled ? 'Activ' : 'Inactiv'}</span>
+        </label>
+      </div>
+
+      <div className="pc-form">
+        <label className="pc-label">Link poster (imagine, video, sau pagină web)</label>
+        <input
+          className="pc-input"
+          type="url"
+          placeholder="https://example.com/promo.jpg"
+          value={url}
+          onChange={handleUrlChange}
+        />
+
+        <div className="pc-type-row">
+          <label className="pc-label" style={{marginBottom: 0}}>Tip conținut:</label>
+          <div className="pc-type-btns">
+            {['image', 'video', 'iframe'].map(t => (
+              <button
+                key={t}
+                className={`pc-type-btn ${type === t ? 'active' : ''}`}
+                onClick={() => setType(t)}
+              >
+                {t === 'image' ? '🖼 Imagine' : t === 'video' ? '🎬 Video' : '🌐 Pagină web'}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Preview */}
+      {url && (
+        <div className="pc-preview">
+          <span className="pc-label">Preview:</span>
+          <div className="pc-preview-box">
+            {type === 'image' && <img src={url} alt="Preview" onError={e => e.target.src=''} />}
+            {type === 'video' && <video src={url} autoPlay muted loop />}
+            {type === 'iframe' && <iframe src={url} title="Preview" />}
+          </div>
+        </div>
+      )}
+
+      <div className="pc-actions">
+        <button className="btn-save" onClick={save}>
+          {saved ? '✅ Salvat!' : '💾 Salvează'}
+        </button>
+        {url && <button className="btn-delete" onClick={remove}>🗑 Șterge</button>}
+      </div>
+    </div>
+  );
+}
+
+function KioskLocationList({ backend }) {
+  const [locations, setLocations] = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [expandedBrand, setExpandedBrand] = useState(null);
+  const [selectedLoc, setSelectedLoc]     = useState(null);
+  const [brandFilter, setBrandFilter]     = useState('all');
+
+  useEffect(() => {
+    fetch(`${backend}/api/locations`)
+      .then(r => r.json())
+      .then(d => {
+        setLocations(d.locations || []);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [backend]);
+
+  if (loading) return <p className="loading-text">Se încarcă locațiile...</p>;
+
+  const brandMeta = {
+    smashme:     { name: 'SmashMe',       emoji: '🍔', color: '#ef4444' },
+    sushimaster: { name: 'Sushi Master',  emoji: '🍣', color: '#3b82f6' },
+    ikura:       { name: 'Ikura',         emoji: '🍣', color: '#d4af37' },
+    welovesushi: { name: 'WeLoveSushi',   emoji: '❤️', color: '#ec4899' },
+  };
+
+  // Unique brands from locations
+  const brandIds = [...new Set(locations.map(l => l.brandId))];
+
+  // Filter locations by selected brand
+  const filtered = brandFilter === 'all' ? locations : locations.filter(l => l.brandId === brandFilter);
+
+  // Group filtered locations by brandId
+  const grouped = {};
+  for (const loc of filtered) {
+    if (!grouped[loc.brandId]) grouped[loc.brandId] = [];
+    grouped[loc.brandId].push(loc);
+  }
+
+  return (
+    <div className="kiosk-location-list">
+      {/* Brand filter */}
+      <div className="kl-brand-filter">
+        <button
+          className={`kl-filter-btn ${brandFilter === 'all' ? 'active' : ''}`}
+          onClick={() => setBrandFilter('all')}
+        >
+          Toate ({locations.length})
+        </button>
+        {brandIds.map(bid => {
+          const m = brandMeta[bid] || { name: bid, emoji: '📍', color: '#6b7a99' };
+          const count = locations.filter(l => l.brandId === bid).length;
+          return (
+            <button
+              key={bid}
+              className={`kl-filter-btn ${brandFilter === bid ? 'active' : ''}`}
+              style={{ '--bc': m.color }}
+              onClick={() => setBrandFilter(bid)}
+            >
+              {m.emoji} {m.name} ({count})
+            </button>
+          );
+        })}
+      </div>
+
+      {Object.entries(grouped).map(([brandId, locs]) => {
+        const meta = brandMeta[brandId] || { name: brandId, emoji: '📍', color: '#6b7a99' };
+        const isExpanded = expandedBrand === brandId;
+
+        return (
+          <div key={brandId} className="kl-brand-group">
+            <button
+              className="kl-brand-header"
+              style={{ '--bc': meta.color }}
+              onClick={() => setExpandedBrand(isExpanded ? null : brandId)}
+            >
+              <span className="kl-brand-name">{meta.emoji} {meta.name}</span>
+              <span className="kl-brand-count">{locs.length} locații</span>
+              <span className="kl-expand">{isExpanded ? '▼' : '▶'}</span>
+            </button>
+
+            {isExpanded && (
+              <div className="kl-locations">
+                {locs.map(loc => (
+                  <div key={loc.id} className="kl-location-row">
+                    <div className="kl-loc-info">
+                      <span className={`kl-status ${loc.active ? 'kl-online' : 'kl-offline'}`} />
+                      <span className="kl-loc-name">{loc.name}</span>
+                      <span className="kl-loc-id">{loc.id}</span>
+                    </div>
+                    <button
+                      className="kl-poster-btn"
+                      onClick={() => setSelectedLoc(selectedLoc?.id === loc.id ? null : loc)}
+                    >
+                      🖼 Poster
+                    </button>
+                  </div>
+                ))}
+
+                {selectedLoc && grouped[brandId]?.some(l => l.id === selectedLoc.id) && (
+                  <div className="kl-poster-panel">
+                    <KioskPosterCard
+                      brandId={selectedLoc.id}
+                      brandName={selectedLoc.name}
+                      emoji={meta.emoji}
+                      backend={backend}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

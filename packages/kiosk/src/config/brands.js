@@ -38,7 +38,7 @@ export const BRANDS = {
     // Welcome screen
     welcomeSlides: [
       { headline: 'Burgeri smash,', sub: 'suculenți și memorabili', heroImage: 'https://smashme.ro/_next/image?url=https%3A%2F%2Fbackend.smashme.ro%2Fuploads%2Fproducts%2Fclassic-smash.jpg&w=640&q=75' },
-      { headline: 'Carne proaspătă,', sub: 'smashată la comandă', heroImage: 'https://smashme.ro/_next/image?url=https%3A%2F%2Fbackend.smashme.ro%2Fuploads%2Fproducts%2Fbbq-bacon-smash.jpg&w=640&q=75' },
+      { headline: 'Ingrediente fresh,', sub: 'gătite la comandă', heroImage: 'https://smashme.ro/_next/image?url=https%3A%2F%2Fbackend.smashme.ro%2Fuploads%2Fproducts%2Fbbq-bacon-smash.jpg&w=640&q=75' },
       { headline: 'Plată rapidă', sub: 'cu cardul sau contactless', heroImage: 'https://smashme.ro/_next/image?url=https%3A%2F%2Fbackend.smashme.ro%2Fuploads%2Fproducts%2Fclassic-smash.jpg&w=640&q=75' },
     ],
 
