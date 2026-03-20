@@ -48,7 +48,16 @@ export default function WelcomeScreen() {
 
       {/* Promo slide */}
       <div className="welcome-promo" key={slide}>
-        <div className="promo-emoji">{slides[slide].emoji}</div>
+        {slides[slide].heroImage ? (
+          <img
+            src={slides[slide].heroImage}
+            alt={slides[slide].headline}
+            className="promo-hero-img"
+            onError={(e) => { e.target.style.display='none'; }}
+          />
+        ) : (
+          <div className="promo-emoji">{slides[slide].emoji}</div>
+        )}
         <h1 className="promo-headline">{slides[slide].headline}</h1>
         <p className="promo-sub">{slides[slide].sub}</p>
         <div className="slide-dots">
@@ -60,12 +69,9 @@ export default function WelcomeScreen() {
 
       {/* CTA */}
       <div className="welcome-cta">
-        <div className="cta-ring">
-          <div className="cta-ring-inner">
-            <span className="cta-hand">👆</span>
-          </div>
-        </div>
-        <p className="cta-label">{t('tap_to_order', lang)}</p>
+        <button className="cta-button">
+          {t('tap_to_order', lang)}
+        </button>
       </div>
 
       {/* Language selector */}

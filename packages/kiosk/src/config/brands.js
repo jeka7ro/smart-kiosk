@@ -37,9 +37,9 @@ export const BRANDS = {
 
     // Welcome screen
     welcomeSlides: [
-      { headline: 'Burgeri smash,', sub: 'suculenți și memorabili', emoji: '🍔' },
-      { headline: 'Carne proaspătă,', sub: 'smashată la comandă', emoji: '🥩' },
-      { headline: 'Plată rapidă', sub: 'cu cardul sau contactless', emoji: '💳' },
+      { headline: 'Burgeri smash,', sub: 'suculenți și memorabili', heroImage: 'https://smashme.ro/_next/image?url=https%3A%2F%2Fbackend.smashme.ro%2Fuploads%2Fproducts%2Fclassic-smash.jpg&w=640&q=75' },
+      { headline: 'Carne proaspătă,', sub: 'smashată la comandă', heroImage: 'https://smashme.ro/_next/image?url=https%3A%2F%2Fbackend.smashme.ro%2Fuploads%2Fproducts%2Fbbq-bacon-smash.jpg&w=640&q=75' },
+      { headline: 'Plată rapidă', sub: 'cu cardul sau contactless', heroImage: 'https://smashme.ro/_next/image?url=https%3A%2F%2Fbackend.smashme.ro%2Fuploads%2Fproducts%2Fclassic-smash.jpg&w=640&q=75' },
     ],
 
     // Category style
@@ -84,9 +84,9 @@ export const BRANDS = {
 
     // Welcome screen
     welcomeSlides: [
-      { headline: 'Sushi proaspăt,', sub: 'pregătit la comandă', emoji: '🍣' },
-      { headline: 'Rețete japoneze', sub: 'autentice și rafinate', emoji: '🎌' },
-      { headline: 'Plată rapidă', sub: 'cu cardul sau contactless', emoji: '💳' },
+      { headline: 'Sushi proaspăt,', sub: 'pregătit la comandă', heroImage: 'https://sushimaster.ro/_next/image?url=https%3A%2F%2Fbackend.sushimaster.ro%2Fuploads%2Fproducts%2Fcalifornia-roll.jpg&w=640&q=75' },
+      { headline: 'Rețete japoneze', sub: 'autentice și rafinate', heroImage: 'https://sushimaster.ro/_next/image?url=https%3A%2F%2Fbackend.sushimaster.ro%2Fuploads%2Fproducts%2Fcalifornia-roll.jpg&w=640&q=75' },
+      { headline: 'Plată rapidă', sub: 'cu cardul sau contactless', heroImage: 'https://sushimaster.ro/_next/image?url=https%3A%2F%2Fbackend.sushimaster.ro%2Fuploads%2Fproducts%2Fcalifornia-roll.jpg&w=640&q=75' },
     ],
 
     categoryEmojis: {
