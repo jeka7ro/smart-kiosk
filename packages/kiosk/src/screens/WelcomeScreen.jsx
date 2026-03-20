@@ -115,9 +115,10 @@ export default function WelcomeScreen() {
             />
           )}
           <div className="poster-cta-center">
-            <button className="poster-cta-btn" onClick={(e) => { e.stopPropagation(); handlePosterTap(); }}>
-              🍔 Începe comanda
+            <button className="poster-cta-round" onClick={(e) => { e.stopPropagation(); handlePosterTap(); }}>
+              <span className="poster-burger-icon">🍔</span>
             </button>
+            <span className="poster-cta-label">Începe comanda</span>
             <span className="poster-tap-hint">Atinge oriunde pe ecran</span>
           </div>
         </div>

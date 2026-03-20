@@ -33,22 +33,34 @@
   position: relative; z-index: 10;
   display: flex; flex-direction: column; align-items: center; gap: 16px;
 }
-.poster-cta-btn {
+.poster-cta-round {
+  width: 160px; height: 160px;
+  border-radius: 50%;
   background: linear-gradient(135deg, #22c55e, #16a34a);
-  color: #fff; border: none;
-  font-family: 'Outfit', sans-serif;
-  font-size: 2.2rem; font-weight: 800;
-  padding: 32px 72px;
-  border-radius: 28px;
+  border: 4px solid rgba(255,255,255,0.3);
   cursor: pointer;
-  box-shadow: 0 8px 40px rgba(34,197,94,0.5);
+  box-shadow: 0 0 0 8px rgba(34,197,94,0.2), 0 12px 40px rgba(34,197,94,0.5);
   animation: ctaGlow 2s ease-in-out infinite;
-  letter-spacing: 1px;
-  display: flex; align-items: center; gap: 16px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.poster-cta-round:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 0 12px rgba(34,197,94,0.3), 0 16px 56px rgba(34,197,94,0.6);
+}
+.poster-burger-icon {
+  font-size: 5rem; line-height: 1;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+}
+.poster-cta-label {
+  color: #fff; font-family: 'Outfit', sans-serif;
+  font-size: 1.6rem; font-weight: 800;
+  letter-spacing: 0.5px;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.5);
 }
 @keyframes ctaGlow {
-  0%, 100% { transform: scale(1); box-shadow: 0 8px 40px rgba(34,197,94,0.5); }
-  50%       { transform: scale(1.06); box-shadow: 0 16px 56px rgba(34,197,94,0.6); }
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 8px rgba(34,197,94,0.2), 0 12px 40px rgba(34,197,94,0.5); }
+  50%       { transform: scale(1.06); box-shadow: 0 0 0 16px rgba(34,197,94,0.15), 0 16px 56px rgba(34,197,94,0.6); }
 }
 .poster-tap-hint {
   color: rgba(255,255,255,0.7);
