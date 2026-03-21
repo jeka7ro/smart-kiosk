@@ -19,19 +19,19 @@ const BRANDS = {
     tokenExpiry: 0,
   },
   sushimaster: {
-    apiKey: process.env.SYRVE_API_KEY_SUSHI || '',
+    apiKey: process.env.SYRVE_API_KEY_SUSHI || process.env.SYRVE_API_KEY || '',
     orgId:  process.env.SYRVE_ORG_ID_SUSHI || 'adddb5a0-26e5-4d50-b472-1c74726c3f72',
     token: null,
     tokenExpiry: 0,
   },
   welovesushi: {
-    apiKey: process.env.SYRVE_API_KEY_SUSHI || '',  // same account as sushimaster
+    apiKey: process.env.SYRVE_API_KEY_SUSHI || process.env.SYRVE_API_KEY || '',  // same account as sushimaster or master
     orgId:  process.env.SYRVE_ORG_ID_WELOVESUSHI || '',
     token: null,
     tokenExpiry: 0,
   },
   ikura: {
-    apiKey: process.env.SYRVE_API_KEY_SUSHI || '',  // same account as sushimaster
+    apiKey: process.env.SYRVE_API_KEY_SUSHI || process.env.SYRVE_API_KEY || '',  // same account as sushimaster or master
     orgId:  process.env.SYRVE_ORG_ID_IKURA || '',
     token: null,
     tokenExpiry: 0,
