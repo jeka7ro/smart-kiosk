@@ -1,0 +1,79 @@
+.users-manager {
+  padding: 20px;
+  animation: fadeIn 0.3s ease;
+}
+
+.um-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 30px;
+}
+
+.um-add-panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  padding: 24px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+.um-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.um-form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.um-form-grid input,
+.um-form-grid select {
+  font-family: inherit;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.um-loc-assign h4 {
+  margin: 0 0 12px 0;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.loc-grid-mini {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.loc-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg);
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.loc-check:hover {
+  border-color: var(--primary);
+}
+
+.tag.role-admin { background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: rgba(239, 68, 68, 0.3); }
+.tag.role-manager { background: rgba(59, 130, 246, 0.1); color: #3b82f6; border-color: rgba(59, 130, 246, 0.3); }
+.tag.role-demo { background: rgba(107, 114, 128, 0.1); color: #9ca3af; border-color: rgba(107, 114, 128, 0.3); }
