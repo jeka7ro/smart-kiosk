@@ -93,6 +93,7 @@ export default function AdminApp() {
             { id: 'dashboard', icon: '📊', label: 'Dashboard' },
             { id: 'orders',    icon: '📋', label: 'Comenzi' },
             { id: 'kiosks',    icon: '📺', label: 'Kioskuri' },
+            { id: 'qrcodes',   icon: '📱', label: 'QR Coduri' },
             { id: 'menu',      icon: '🍽',  label: 'Meniu / Syrve' },
           ].map(item => (
             <button
@@ -206,6 +207,15 @@ export default function AdminApp() {
             <h2 className="section-title">📺 Kioskuri — Poster Promo</h2>
             <p style={{color:'var(--text-muted)',marginBottom:16,fontSize:'0.9rem'}}>Setează o imagine, video sau link care apare pe ecranul kiosk-ului când e inactiv. Când clientul atinge ecranul, intră în modul de comandă.</p>
             <KioskLocationList backend={BACKEND} />
+          </div>
+        )}
+
+        {/* ─── QR CODE GENERATOR ─── */}
+        {tab === 'qrcodes' && (
+          <div className="admin-section">
+            <h2 className="section-title">📱 Generator QR Coduri</h2>
+            <p style={{color:'var(--text-muted)',marginBottom:16,fontSize:'0.9rem'}}>Generează coduri QR pentru mese. Clienții scanează QR-ul și comandă direct de pe telefon.</p>
+            <QrGenerator backend={BACKEND} />
           </div>
         )}
       </main>
@@ -500,6 +510,115 @@ function KioskLocationList({ backend }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+/* ─── QR GENERATOR ──────────────────────────────────────────────────── */
+function QrGenerator({ backend }) {
+  const [brand, setBrand] = useState('smashme');
+  const [loc, setLoc] = useState('1');
+  const [tableCount, setTableCount] = useState(10);
+  const [qrs, setQrs] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const QR_WEB_BASE = 'https://loquacious-madeleine-ed11d3.netlify.app';
+
+  const brands = [
+    { id: 'smashme', name: 'SmashMe', emoji: '🍔', color: '#ef4444' },
+    { id: 'sushimaster', name: 'Sushi Master', emoji: '🍣', color: '#3b82f6' },
+    { id: 'ikura', name: 'Ikura', emoji: '🥢', color: '#f97316' },
+    { id: 'welovesushi', name: 'We Love Sushi', emoji: '🍱', color: '#8b5cf6' },
+  ];
+
+  const generate = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${backend}/api/qr/location/${loc}?brand=${brand}&tables=${tableCount}`);
+      const data = await res.json();
+      setQrs(data.qrs || []);
+    } catch (err) {
+      console.error('QR gen error:', err);
+      setQrs([]);
+    }
+    setLoading(false);
+  };
+
+  const downloadQr = (dataUrl, tableNum) => {
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = `qr-${brand}-masa-${tableNum}.png`;
+    a.click();
+  };
+
+  const downloadAll = () => {
+    qrs.forEach((q, i) => {
+      setTimeout(() => downloadQr(q.dataUrl, q.tableNumber), i * 200);
+    });
+  };
+
+  const selectedBrand = brands.find(b => b.id === brand) || brands[0];
+
+  return (
+    <div className="qr-gen">
+      {/* Controls */}
+      <div className="qr-controls">
+        <div className="qr-field">
+          <label>Brand</label>
+          <div className="qr-brand-pills">
+            {brands.map(b => (
+              <button
+                key={b.id}
+                className={`qr-brand-pill ${brand === b.id ? 'active' : ''}`}
+                style={brand === b.id ? { background: b.color, borderColor: b.color } : {}}
+                onClick={() => setBrand(b.id)}
+              >
+                {b.emoji} {b.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="qr-field-row">
+          <div className="qr-field">
+            <label>Locație ID</label>
+            <input type="text" value={loc} onChange={e => setLoc(e.target.value)} placeholder="ex: 1" />
+          </div>
+          <div className="qr-field">
+            <label>Număr mese</label>
+            <input type="number" min="1" max="50" value={tableCount} onChange={e => setTableCount(parseInt(e.target.value) || 1)} />
+          </div>
+        </div>
+
+        <button className="qr-gen-btn" onClick={generate} disabled={loading} style={{ background: selectedBrand.color }}>
+          {loading ? '⏳ Generez...' : `${selectedBrand.emoji} Generează ${tableCount} QR Coduri`}
+        </button>
+      </div>
+
+      {/* Results */}
+      {qrs.length > 0 && (
+        <div className="qr-results">
+          <div className="qr-results-header">
+            <h3>{selectedBrand.emoji} {selectedBrand.name} — {qrs.length} coduri generate</h3>
+            <button className="qr-dl-all" onClick={downloadAll}>📥 Descarcă toate</button>
+          </div>
+
+          <div className="qr-grid">
+            {qrs.map(q => (
+              <div key={q.tableNumber} className="qr-card">
+                <div className="qr-card-header" style={{ background: selectedBrand.color }}>
+                  Masa {q.tableNumber}
+                </div>
+                <img src={q.dataUrl} alt={`QR Masa ${q.tableNumber}`} className="qr-card-img" />
+                <div className="qr-card-url">{QR_WEB_BASE}/?brand={brand}&table={q.tableNumber}&loc={loc}</div>
+                <button className="qr-card-dl" onClick={() => downloadQr(q.dataUrl, q.tableNumber)}>
+                  📥 Descarcă PNG
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
