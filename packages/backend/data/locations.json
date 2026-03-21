@@ -2,8 +2,12 @@
   {
     "id": "smashme-main",
     "name": "SmashMe Centru",
-    "brands": ["smashme"],
-    "orgIds": { "smashme": "9c63cff6-1d66-442d-a98d-2302656e3943" },
+    "brands": [
+      "smashme"
+    ],
+    "orgIds": {
+      "smashme": "9c63cff6-1d66-442d-a98d-2302656e3943"
+    },
     "kiosks": [],
     "tables": 10,
     "active": true
@@ -11,146 +15,258 @@
   {
     "id": "sm-brasov",
     "name": "SM Brasov",
-    "brands": ["sushimaster"],
-    "orgIds": { "sushimaster": "adddb5a0-26e5-4d50-b472-1c74726c3f72" },
+    "brands": [
+      "sushimaster",
+      "welovesushi"
+    ],
+    "orgIds": {
+      "sushimaster": "adddb5a0-26e5-4d50-b472-1c74726c3f72",
+      "welovesushi": "adddb5a0-26e5-4d50-b472-1c74726c3f72"
+    },
     "kiosks": [],
     "tables": 15,
-    "active": true
+    "active": true,
+    "isMultiBrand": true
   },
   {
     "id": "sm-cluj",
     "name": "SM Cluj",
-    "brands": ["sushimaster"],
-    "orgIds": { "sushimaster": "90296b11-9ba9-4279-a69b-1f84e193315e" },
+    "brands": [
+      "sushimaster",
+      "welovesushi"
+    ],
+    "orgIds": {
+      "sushimaster": "90296b11-9ba9-4279-a69b-1f84e193315e",
+      "welovesushi": "90296b11-9ba9-4279-a69b-1f84e193315e"
+    },
     "kiosks": [],
     "tables": 12,
-    "active": true
+    "active": true,
+    "isMultiBrand": true
   },
   {
     "id": "sm-buc-titan",
     "name": "SM Bucuresti Titan",
-    "brands": ["sushimaster"],
-    "orgIds": { "sushimaster": "04062575-5a47-426b-9d35-9dc748f24139" },
+    "brands": [
+      "sushimaster",
+      "welovesushi"
+    ],
+    "orgIds": {
+      "sushimaster": "04062575-5a47-426b-9d35-9dc748f24139",
+      "welovesushi": "04062575-5a47-426b-9d35-9dc748f24139"
+    },
     "kiosks": [],
     "tables": 20,
-    "active": true
+    "active": true,
+    "isMultiBrand": true
   },
   {
     "id": "sm-buc-unirii",
     "name": "SM Bucuresti Unirii",
-    "brands": ["sushimaster"],
-    "orgIds": { "sushimaster": "0a7c46eb-f8e1-43f8-bac2-f7c34239d185" },
+    "brands": [
+      "sushimaster",
+      "welovesushi"
+    ],
+    "orgIds": {
+      "sushimaster": "0a7c46eb-f8e1-43f8-bac2-f7c34239d185",
+      "welovesushi": "0a7c46eb-f8e1-43f8-bac2-f7c34239d185"
+    },
     "kiosks": [],
     "tables": 18,
-    "active": true
+    "active": true,
+    "isMultiBrand": true
   },
   {
     "id": "sm-buc-cora",
     "name": "SM Bucuresti Cora",
-    "brands": ["sushimaster"],
-    "orgIds": { "sushimaster": "6956213e-6f71-48ed-9431-44d020511190" },
+    "brands": [
+      "sushimaster",
+      "welovesushi"
+    ],
+    "orgIds": {
+      "sushimaster": "6956213e-6f71-48ed-9431-44d020511190",
+      "welovesushi": "6956213e-6f71-48ed-9431-44d020511190"
+    },
     "kiosks": [],
     "tables": 15,
-    "active": true
+    "active": true,
+    "isMultiBrand": true
   },
   {
     "id": "sm-buc-ceaikovski",
     "name": "SM Bucuresti Ceaikovski",
-    "brands": ["sushimaster"],
-    "orgIds": { "sushimaster": "742343d9-38c1-4712-add3-1035b6bd7637" },
+    "brands": [
+      "sushimaster",
+      "welovesushi"
+    ],
+    "orgIds": {
+      "sushimaster": "742343d9-38c1-4712-add3-1035b6bd7637",
+      "welovesushi": "742343d9-38c1-4712-add3-1035b6bd7637"
+    },
     "kiosks": [],
     "tables": 12,
-    "active": true
+    "active": true,
+    "isMultiBrand": true
   },
   {
     "id": "sm-pitesti",
     "name": "SM Pitesti",
-    "brands": ["sushimaster"],
-    "orgIds": { "sushimaster": "f0454d67-586e-4a21-9fda-f0b0f6f601e9" },
+    "brands": [
+      "sushimaster",
+      "welovesushi"
+    ],
+    "orgIds": {
+      "sushimaster": "f0454d67-586e-4a21-9fda-f0b0f6f601e9",
+      "welovesushi": "f0454d67-586e-4a21-9fda-f0b0f6f601e9"
+    },
     "kiosks": [],
     "tables": 10,
-    "active": true
+    "active": true,
+    "isMultiBrand": true
   },
   {
     "id": "sm-sibiu",
     "name": "SM Sibiu",
-    "brands": ["sushimaster"],
-    "orgIds": { "sushimaster": "c45b986e-5297-47b7-b733-293bbc91da23" },
+    "brands": [
+      "sushimaster",
+      "welovesushi"
+    ],
+    "orgIds": {
+      "sushimaster": "c45b986e-5297-47b7-b733-293bbc91da23",
+      "welovesushi": "c45b986e-5297-47b7-b733-293bbc91da23"
+    },
     "kiosks": [],
     "tables": 10,
-    "active": true
+    "active": true,
+    "isMultiBrand": true
   },
   {
     "id": "sm-piatra-neamt",
     "name": "SM Piatra Neamt",
-    "brands": ["sushimaster"],
-    "orgIds": { "sushimaster": "c54de781-08e4-4226-bea8-28565ab2b3d0" },
+    "brands": [
+      "sushimaster",
+      "welovesushi"
+    ],
+    "orgIds": {
+      "sushimaster": "c54de781-08e4-4226-bea8-28565ab2b3d0",
+      "welovesushi": "c54de781-08e4-4226-bea8-28565ab2b3d0"
+    },
     "kiosks": [],
     "tables": 8,
-    "active": true
+    "active": true,
+    "isMultiBrand": true
   },
   {
     "id": "sm-targu-mures",
     "name": "SM Targu Mures",
-    "brands": ["sushimaster"],
-    "orgIds": { "sushimaster": "958aefef-28b5-4f25-9f4d-97fb02d2bf9d" },
+    "brands": [
+      "sushimaster",
+      "welovesushi"
+    ],
+    "orgIds": {
+      "sushimaster": "958aefef-28b5-4f25-9f4d-97fb02d2bf9d",
+      "welovesushi": "958aefef-28b5-4f25-9f4d-97fb02d2bf9d"
+    },
     "kiosks": [],
     "tables": 10,
-    "active": true
+    "active": true,
+    "isMultiBrand": true
   },
   {
     "id": "sm-craiova",
     "name": "SM Craiova",
-    "brands": ["sushimaster"],
-    "orgIds": { "sushimaster": "a7f99f17-1ded-4f6f-8920-931ace99b3e0" },
+    "brands": [
+      "sushimaster",
+      "welovesushi"
+    ],
+    "orgIds": {
+      "sushimaster": "a7f99f17-1ded-4f6f-8920-931ace99b3e0",
+      "welovesushi": "a7f99f17-1ded-4f6f-8920-931ace99b3e0"
+    },
     "kiosks": [],
     "tables": 12,
-    "active": true
+    "active": true,
+    "isMultiBrand": true
   },
   {
     "id": "sm-iasi-1",
     "name": "SM Iasi #1",
-    "brands": ["sushimaster"],
-    "orgIds": { "sushimaster": "26bc7c2c-5113-4a18-a9e9-c1c84da4ba9f" },
+    "brands": [
+      "sushimaster",
+      "welovesushi"
+    ],
+    "orgIds": {
+      "sushimaster": "26bc7c2c-5113-4a18-a9e9-c1c84da4ba9f",
+      "welovesushi": "26bc7c2c-5113-4a18-a9e9-c1c84da4ba9f"
+    },
     "kiosks": [],
     "tables": 10,
-    "active": true
+    "active": true,
+    "isMultiBrand": true
   },
   {
     "id": "sm-iasi-2",
     "name": "SM Iasi #2",
-    "brands": ["sushimaster"],
-    "orgIds": { "sushimaster": "9f260bf3-b6d8-42db-b2f1-ee8bb01cc7aa" },
+    "brands": [
+      "sushimaster",
+      "welovesushi"
+    ],
+    "orgIds": {
+      "sushimaster": "9f260bf3-b6d8-42db-b2f1-ee8bb01cc7aa",
+      "welovesushi": "9f260bf3-b6d8-42db-b2f1-ee8bb01cc7aa"
+    },
     "kiosks": [],
     "tables": 10,
-    "active": true
+    "active": true,
+    "isMultiBrand": true
   },
   {
     "id": "sm-balotesti",
     "name": "SM Balotesti",
-    "brands": ["sushimaster"],
-    "orgIds": { "sushimaster": "264cb8e8-0dc9-46c3-b8f5-6a38f6c43fe9" },
+    "brands": [
+      "sushimaster",
+      "welovesushi"
+    ],
+    "orgIds": {
+      "sushimaster": "264cb8e8-0dc9-46c3-b8f5-6a38f6c43fe9",
+      "welovesushi": "264cb8e8-0dc9-46c3-b8f5-6a38f6c43fe9"
+    },
     "kiosks": [],
     "tables": 8,
-    "active": true
+    "active": true,
+    "isMultiBrand": true
   },
   {
     "id": "sm-suceava",
     "name": "SM Suceava",
-    "brands": ["sushimaster"],
-    "orgIds": { "sushimaster": "502e619b-c6bf-47b9-8c93-75833c810deb" },
+    "brands": [
+      "sushimaster",
+      "welovesushi"
+    ],
+    "orgIds": {
+      "sushimaster": "502e619b-c6bf-47b9-8c93-75833c810deb",
+      "welovesushi": "502e619b-c6bf-47b9-8c93-75833c810deb"
+    },
     "kiosks": [],
     "tables": 8,
-    "active": true
+    "active": true,
+    "isMultiBrand": true
   },
   {
     "id": "sm-galati",
     "name": "SM Galati",
-    "brands": ["sushimaster"],
-    "orgIds": { "sushimaster": "37512ec4-ce69-4ce7-91f8-76d7a4216091" },
+    "brands": [
+      "sushimaster",
+      "welovesushi"
+    ],
+    "orgIds": {
+      "sushimaster": "37512ec4-ce69-4ce7-91f8-76d7a4216091",
+      "welovesushi": "37512ec4-ce69-4ce7-91f8-76d7a4216091"
+    },
     "kiosks": [],
     "tables": 10,
-    "active": true
+    "active": true,
+    "isMultiBrand": true
   },
   {
     "id": "sm-constanta",
@@ -171,49 +287,79 @@
   {
     "id": "sm-botosani",
     "name": "SM Botosani",
-    "brands": ["sushimaster"],
-    "orgIds": { "sushimaster": "f6c77b52-5bf8-4808-b4e4-e7fbfa1a2805" },
+    "brands": [
+      "sushimaster",
+      "welovesushi"
+    ],
+    "orgIds": {
+      "sushimaster": "f6c77b52-5bf8-4808-b4e4-e7fbfa1a2805",
+      "welovesushi": "f6c77b52-5bf8-4808-b4e4-e7fbfa1a2805"
+    },
     "kiosks": [],
     "tables": 8,
-    "active": true
+    "active": true,
+    "isMultiBrand": true
   },
   {
     "id": "sm-braila",
     "name": "SM Braila",
-    "brands": ["sushimaster"],
-    "orgIds": { "sushimaster": "effc9518-ceef-4eec-8ad5-9b48ae84c540" },
+    "brands": [
+      "sushimaster",
+      "welovesushi"
+    ],
+    "orgIds": {
+      "sushimaster": "effc9518-ceef-4eec-8ad5-9b48ae84c540",
+      "welovesushi": "effc9518-ceef-4eec-8ad5-9b48ae84c540"
+    },
     "kiosks": [],
     "tables": 8,
-    "active": true
+    "active": true,
+    "isMultiBrand": true
   },
   {
     "id": "sm-bacau",
     "name": "SM Bacau",
-    "brands": ["sushimaster"],
-    "orgIds": { "sushimaster": "d0ca9d11-a38e-48e1-ae02-54ce627f8419" },
+    "brands": [
+      "sushimaster",
+      "welovesushi"
+    ],
+    "orgIds": {
+      "sushimaster": "d0ca9d11-a38e-48e1-ae02-54ce627f8419",
+      "welovesushi": "d0ca9d11-a38e-48e1-ae02-54ce627f8419"
+    },
     "kiosks": [],
     "tables": 10,
-    "active": true
+    "active": true,
+    "isMultiBrand": true
   },
   {
     "id": "sm-timisoara",
     "name": "SM Timisoara",
-    "brands": ["sushimaster"],
-    "orgIds": { "sushimaster": "f5cb901f-bff1-4b6a-b3a0-8d5b7b3cd5e3" },
+    "brands": [
+      "sushimaster",
+      "welovesushi"
+    ],
+    "orgIds": {
+      "sushimaster": "f5cb901f-bff1-4b6a-b3a0-8d5b7b3cd5e3",
+      "welovesushi": "f5cb901f-bff1-4b6a-b3a0-8d5b7b3cd5e3"
+    },
     "kiosks": [],
     "tables": 12,
-    "active": true
+    "active": true,
+    "isMultiBrand": true
   },
   {
     "id": "sm-oradea",
     "name": "SM Oradea",
     "brands": [
       "sushimaster",
-      "ikura"
+      "ikura",
+      "welovesushi"
     ],
     "orgIds": {
       "sushimaster": "f4742901-905f-4b4c-86ea-ce85dc09a041",
-      "ikura": "d1cb5d9d-6aeb-4b0c-adf9-5ce8648ce4e1"
+      "ikura": "d1cb5d9d-6aeb-4b0c-adf9-5ce8648ce4e1",
+      "welovesushi": "f4742901-905f-4b4c-86ea-ce85dc09a041"
     },
     "kiosks": [],
     "tables": 12,
@@ -224,14 +370,17 @@
     "id": "sm-tulcea",
     "name": "SM Tulcea",
     "brands": [
-      "sushimaster"
+      "sushimaster",
+      "welovesushi"
     ],
     "orgIds": {
-      "sushimaster": "5989edaa-038d-4407-8d98-be180b5b5b65"
+      "sushimaster": "5989edaa-038d-4407-8d98-be180b5b5b65",
+      "welovesushi": "5989edaa-038d-4407-8d98-be180b5b5b65"
     },
     "kiosks": [],
     "tables": 8,
-    "active": true
+    "active": true,
+    "isMultiBrand": true
   },
   {
     "id": "smashme-constanta",
