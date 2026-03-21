@@ -146,7 +146,7 @@ export const SUSHIMASTER_PRODUCTS = [
     name: 'Philadelphia Roll',
     price: 46,
     description: '8 buc — Somon afumat, cream cheese, castravete, avocado',
-    image: '',
+    image: 'https://sushimaster.ro/_next/image?url=https%3A%2F%2Fbackend.sushimaster.ro%2Fuploads%2Fproducts%2Fphiladelphia-classic.jpg&w=640&q=75',
     badge: 'Best Seller',
     allergens: ['pește', 'lactate', 'gluten'],
     modifiers: [
@@ -161,7 +161,7 @@ export const SUSHIMASTER_PRODUCTS = [
     name: 'Dragon Roll',
     price: 52,
     description: '8 buc — Creveți tempura, avocado, sos unagi, tobiko portocaliu',
-    image: '',
+    image: 'https://sushimaster.ro/_next/image?url=https%3A%2F%2Fbackend.sushimaster.ro%2Fuploads%2Fproducts%2Fdragon-roll.jpg&w=640&q=75',
     badge: 'Premium',
     allergens: ['crustacee', 'gluten', 'ou'],
     modifiers: [],
@@ -171,7 +171,7 @@ export const SUSHIMASTER_PRODUCTS = [
     name: 'Spicy Tuna Roll',
     price: 48,
     description: '8 buc — Ton proaspăt, sos picant sriracha, avocado, sesam',
-    image: '',
+    image: 'https://sushimaster.ro/_next/image?url=https%3A%2F%2Fbackend.sushimaster.ro%2Fuploads%2Fproducts%2Fspicy-tuna-roll.jpg&w=640&q=75',
     badge: 'Hot 🌶',
     allergens: ['pește', 'soia', 'sesam'],
     modifiers: [

@@ -173,9 +173,9 @@ export default function MenuScreen() {
       {/* ─── TOP BAR ──────────────────────────────── */}
       <header className="menu-header">
         <div className="menu-header-left">
-          {brand.logoImg
-            ? <img src={brand.logoImg} alt={brand.name} className="menu-logo" />
-            : <span className="menu-brand-name">{brand.name}</span>
+          {BRANDS[activeBrand]?.logoImg
+            ? <img src={BRANDS[activeBrand].logoImg} alt={BRANDS[activeBrand]?.name} className="menu-logo" />
+            : <span className="menu-brand-name">{BRANDS[activeBrand]?.name || brand.name}</span>
           }
         </div>
 
@@ -205,15 +205,19 @@ export default function MenuScreen() {
         <div className="brand-tabs">
           {locationBrands.map(bId => {
             const info = BRAND_TAB_INFO[bId] || { label: bId, color: '#6b7a99', emoji: '' };
+            const brandConfig = BRANDS[bId];
             const isActive = activeBrand === bId;
             return (
               <button
                 key={bId}
                 className={`brand-tab ${isActive ? 'brand-tab--active' : ''}`}
-                style={{ '--brand-color': info.color }}
+                style={{ '--brand-color': info.color, flex: `1 1 ${100 / locationBrands.length}%` }}
                 onClick={() => { setActiveBrand(bId); setSearch(''); }}
               >
-                <span className="brand-tab-emoji">{info.emoji}</span>
+                {brandConfig?.logoImg
+                  ? <img src={brandConfig.logoImg} alt={info.label} className="brand-tab-logo" />
+                  : <span className="brand-tab-emoji">{info.emoji}</span>
+                }
                 <span className="brand-tab-label">{info.label}</span>
               </button>
             );

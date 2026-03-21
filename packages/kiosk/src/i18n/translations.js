@@ -255,6 +255,21 @@ export const T = {
     hu: 'Érintse meg a képernyőt',
     ru: 'Коснитесь экрана',
   },
+  // ── Brand Select ─────────────────────────────────────────────
+  choose_brand: {
+    ro: 'Alege restaurantul',
+    en: 'Choose restaurant',
+    fr: 'Choisissez le restaurant',
+    hu: 'Válasszon éttermet',
+    ru: 'Выберите ресторан',
+  },
+  choose_brand_sub: {
+    ro: 'Poți comanda de la mai multe restaurante',
+    en: 'You can order from multiple restaurants',
+    fr: 'Vous pouvez commander dans plusieurs restaurants',
+    hu: 'Több étteremből is rendelhet',
+    ru: 'Вы можете заказать из нескольких ресторанов',
+  },
   // ── General ─────────────────────────────────────────────────
   cancel: {
     ro: 'Anulează',

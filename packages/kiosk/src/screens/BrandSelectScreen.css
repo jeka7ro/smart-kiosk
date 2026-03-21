@@ -60,7 +60,19 @@
 }
 
 .bss-emoji {
-  font-size: 4rem; line-height: 1;
+  font-size: 4rem; line-height: 1; margin-bottom: 10px;
+}
+.bss-logo-wrapper {
+  height: 64px; margin-bottom: 10px;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.25s;
+}
+.bss-logo {
+  max-width: 140px; max-height: 100%;
+  object-fit: contain;
+}
+.bss-card:hover .bss-logo-wrapper {
+  transform: scale(1.1) rotate(-2deg);
 }
 .bss-label {
   font-size: 1.4rem; font-weight: 800;

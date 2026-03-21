@@ -1,5 +1,6 @@
 import { useKioskStore } from '../store/kioskStore';
 import { t, LANGUAGES, LANGUAGE_NAMES, LANGUAGE_FLAGS } from '../i18n/translations.js';
+import { BRANDS } from '../config/brands.js';
 import './BrandSelectScreen.css';
 
 const BRAND_INFO = {
@@ -46,6 +47,7 @@ export default function BrandSelectScreen() {
       <div className="bss-grid">
         {brands.map(bId => {
           const info = BRAND_INFO[bId] || { label: bId, color: '#6b7a99', emoji: '🍽', desc: '' };
+          const brandConfig = BRANDS[bId];
           return (
             <button
               key={bId}
@@ -53,7 +55,10 @@ export default function BrandSelectScreen() {
               style={{ '--brand-c': info.color }}
               onClick={() => selectBrand(bId)}
             >
-              <span className="bss-emoji">{info.emoji}</span>
+              {brandConfig?.logoImg
+                ? <div className="bss-logo-wrapper"><img src={brandConfig.logoImg} alt={info.label} className="bss-logo" /></div>
+                : <span className="bss-emoji">{info.emoji}</span>
+              }
               <span className="bss-label">{info.label}</span>
               <span className="bss-desc">{info.desc}</span>
             </button>
