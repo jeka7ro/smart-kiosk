@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useKioskStore } from '../store/kioskStore';
 import { useBrand } from '../App';
+import { BRANDS } from '../config/brands.js';
 import { t } from '../i18n/translations.js';
 import { getMenuData } from '../data/mockMenu.js';
 import { useInactivityTimeout } from '../hooks/useInactivityTimeout.js';
@@ -8,10 +9,18 @@ import './MenuScreen.css';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 
-// Map brand id → Syrve org ID
+// Fallback org ID map (used when no location is loaded)
 const BRAND_ORG_MAP = {
   smashme:     '9c63cff6-1d66-442d-a98d-2302656e3943',
-  sushimaster: 'adddb5a0-26e5-4d50-b472-1c74726c3f72', // SM BRASOV
+  sushimaster: 'adddb5a0-26e5-4d50-b472-1c74726c3f72',
+};
+
+// Brand display info for tabs
+const BRAND_TAB_INFO = {
+  smashme:     { label: 'SmashMe',      color: '#EE3B24', emoji: '🍔' },
+  sushimaster: { label: 'Sushi Master', color: '#E31E24', emoji: '🍣' },
+  ikura:       { label: 'Ikura',        color: '#8b5cf6', emoji: '🍱' },
+  welovesushi: { label: 'WeLoveSushi',  color: '#ec4899', emoji: '🍣' },
 };
 
 export default function MenuScreen() {
@@ -32,24 +41,47 @@ export default function MenuScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
   const [search, setSearch]   = useState('');
-  const [flyAnim, setFlyAnim] = useState(null); // { id, x, y, img } for fly animation
+  const [flyAnim, setFlyAnim] = useState(null);
   const cartBarRef = useRef(null);
 
-  // Fetch menu — Syrve API for brands with org ID, mock data for others
+  // Multi-brand state
+  const [locationBrands, setLocationBrands] = useState([brand.id]); // brands at this location
+  const [activeBrand, setActiveBrand]       = useState(brand.id);   // currently viewed brand
+  const [locationOrgIds, setLocationOrgIds]  = useState({});         // brandId → orgId from location
+
+  // Fetch location to discover multi-brand capability
+  useEffect(() => {
+    const locId = new URLSearchParams(window.location.search).get('loc');
+    if (!locId) return; // no location → single brand mode
+    fetch(`${BACKEND}/api/locations/${locId}`)
+      .then(r => r.json())
+      .then(loc => {
+        if (loc.brands && loc.brands.length > 0) {
+          setLocationBrands(loc.brands);
+          setLocationOrgIds(loc.orgIds || {});
+          // Keep active brand if it's in the list, otherwise pick first
+          if (!loc.brands.includes(activeBrand)) {
+            setActiveBrand(loc.brands[0]);
+          }
+        }
+      })
+      .catch(() => {}); // silently fail — use single brand mode
+  }, []);
+
+  // Fetch menu for active brand
   useEffect(() => {
     setLoading(true);
     setError(null);
-    const orgId = BRAND_ORG_MAP[brand.id];
+    // Prefer location's orgId, fallback to hardcoded map
+    const orgId = locationOrgIds[activeBrand] || BRAND_ORG_MAP[activeBrand];
 
     const pickDefault = (cats) => {
-      // Prefer "Smashed Burgers" or any category with "burger" in name
       const burger = cats.find(c => /burger/i.test(c.name));
       return burger?.id || cats[0]?.id || null;
     };
 
     if (!orgId) {
-      // No Syrve org yet — use local mock data
-      const { categories: cats, products: prods } = getMenuData(brand.id);
+      const { categories: cats, products: prods } = getMenuData(activeBrand);
       setCategories(cats);
       setProducts(prods);
       setActiveCategory(pickDefault(cats));
@@ -57,7 +89,7 @@ export default function MenuScreen() {
       return;
     }
 
-    fetch(`${BACKEND}/api/menu?brandId=${brand.id}&orgId=${orgId}`)
+    fetch(`${BACKEND}/api/menu?brandId=${activeBrand}&orgId=${orgId}`)
       .then(r => r.json())
       .then(data => {
         if (data.error) throw new Error(data.error);
@@ -69,13 +101,13 @@ export default function MenuScreen() {
       })
       .catch(err => {
         console.error('[MenuScreen] API fetch failed, falling back to mock:', err);
-        const { categories: cats, products: prods } = getMenuData(brand.id);
+        const { categories: cats, products: prods } = getMenuData(activeBrand);
         setCategories(cats);
         setProducts(prods);
         setActiveCategory(pickDefault(cats));
         setLoading(false);
       });
-  }, [brand.id]);
+  }, [activeBrand, locationOrgIds]);
 
   // Build category → first product image map
   const catImages = useMemo(() => {
@@ -96,7 +128,7 @@ export default function MenuScreen() {
 
   // Quick add to cart with fly animation
   const handleQuickAdd = useCallback((product, cardEl) => {
-    addToCart(product, 1, [], product.price, brand.id);
+    addToCart(product, 1, [], product.price, activeBrand);
 
     // Fly animation: get card position and cart bar position
     if (cardEl && cartBarRef.current) {
@@ -112,7 +144,7 @@ export default function MenuScreen() {
       });
       setTimeout(() => setFlyAnim(null), 850);
     }
-  }, [addToCart, brand.id]);
+  }, [addToCart, activeBrand]);
 
   if (loading) {
     return (
@@ -167,6 +199,27 @@ export default function MenuScreen() {
           }
         </div>
       </header>
+
+      {/* ─── BRAND TABS (multi-brand locations only) ─── */}
+      {locationBrands.length > 1 && (
+        <div className="brand-tabs">
+          {locationBrands.map(bId => {
+            const info = BRAND_TAB_INFO[bId] || { label: bId, color: '#6b7a99', emoji: '' };
+            const isActive = activeBrand === bId;
+            return (
+              <button
+                key={bId}
+                className={`brand-tab ${isActive ? 'brand-tab--active' : ''}`}
+                style={{ '--brand-color': info.color }}
+                onClick={() => { setActiveBrand(bId); setSearch(''); }}
+              >
+                <span className="brand-tab-emoji">{info.emoji}</span>
+                <span className="brand-tab-label">{info.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <div className="menu-body">
         {/* ─── SIDEBAR CATEGORIES ────────────────────── */}

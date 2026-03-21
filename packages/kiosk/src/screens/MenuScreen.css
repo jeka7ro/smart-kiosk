@@ -51,6 +51,45 @@
   font-weight: 600;
 }
 
+/* ─── BRAND TABS (multi-brand) ─── */
+.brand-tabs {
+  display: flex;
+  gap: 0;
+  padding: 0 16px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+.brand-tabs::-webkit-scrollbar { display: none; }
+.brand-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.brand-tab:hover {
+  color: var(--text);
+  background: rgba(0,0,0,0.02);
+}
+.brand-tab--active {
+  color: var(--brand-color);
+  border-bottom-color: var(--brand-color);
+  background: color-mix(in srgb, var(--brand-color) 6%, transparent);
+}
+.brand-tab-emoji { font-size: 1.2rem; }
+.brand-tab-label { font-weight: 700; }
+
 /* ─── BODY: SIDEBAR + PRODUCTS ─── */
 .menu-body {
   display: flex;
