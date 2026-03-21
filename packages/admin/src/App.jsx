@@ -13,7 +13,7 @@ function BrandLogo({ brandId, size = 18 }) {
   };
   const src = logos[brandId];
   if (src) return <img src={src} alt={brandId} style={{ height: size, maxWidth: '80px', objectFit: 'contain', verticalAlign: 'middle', flexShrink: 0 }} />;
-  return null; // pure text fallback if no logo
+  return <span style={{ fontSize: size * 0.8, fontWeight: 700, opacity: 0.6, letterSpacing: '0.5px', textTransform: 'uppercase' }}>{brandId}</span>;
 }
 
 const STATUS_LABELS = {
@@ -461,18 +461,16 @@ function KioskLocationList({ backend }) {
     welovesushi: { name: 'WeLoveSushi',   color: '#ec4899' },
   };
 
-  // Unique brands from locations
-  const brandIds = [...new Set(locations.map(l => l.brandId))];
+  const allBrandIds = new Set();
+  locations.forEach(l => {
+     if (l.brands && Array.isArray(l.brands)) l.brands.forEach(b => allBrandIds.add(b));
+     else if (l.brandId) allBrandIds.add(l.brandId);
+  });
+  const brandIds = [...allBrandIds];
 
-  // Filter locations by selected brand
-  const filtered = brandFilter === 'all' ? locations : locations.filter(l => l.brandId === brandFilter);
-
-  // Group filtered locations by brandId
-  const grouped = {};
-  for (const loc of filtered) {
-    if (!grouped[loc.brandId]) grouped[loc.brandId] = [];
-    grouped[loc.brandId].push(loc);
-  }
+  const filtered = brandFilter === 'all' 
+    ? locations 
+    : locations.filter(l => (l.brands && l.brands.includes(brandFilter)) || l.brandId === brandFilter);
 
   return (
     <div className="kiosk-location-list">
@@ -486,7 +484,7 @@ function KioskLocationList({ backend }) {
         </button>
         {brandIds.map(bid => {
           const m = brandMeta[bid] || { name: bid, color: '#6b7a99' };
-          const count = locations.filter(l => l.brandId === bid).length;
+          const count = locations.filter(l => (l.brands && l.brands.includes(bid)) || l.brandId === bid).length;
           return (
             <button
               key={bid}
@@ -500,76 +498,63 @@ function KioskLocationList({ backend }) {
         })}
       </div>
 
-      {Object.entries(grouped).map(([brandId, locs]) => {
-        const meta = brandMeta[brandId] || { name: brandId, color: '#6b7a99' };
-        const isExpanded = expandedBrand === brandId;
-
-        return (
-          <div key={brandId} className="kl-brand-group">
-            <button
-              className="kl-brand-header"
-              style={{ '--bc': meta.color }}
-              onClick={() => setExpandedBrand(isExpanded ? null : brandId)}
-            >
-              <span className="kl-brand-name" style={{display:'flex', alignItems:'center', gap:'8px'}}><BrandLogo brandId={brandId} size={20} /> {meta.name}</span>
-              <span className="kl-brand-count">{locs.length} locații</span>
-              <span className="kl-expand">{isExpanded ? '▼' : '▶'}</span>
-            </button>
-
-            {isExpanded && (
-              <div className="kl-locations">
-                {locs.map(loc => (
-                  <div key={loc.id} className="kl-location-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 12 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                      <div className="kl-loc-info">
-                        <span className={`kl-status ${loc.active ? 'kl-online' : 'kl-offline'}`} />
-                        <span className="kl-loc-name">{loc.name}</span>
-                        <span className="kl-loc-id">{loc.id}</span>
+      <div className="kl-brand-group">
+        <div className="kl-locations" style={{ borderTop: 'none' }}>
+           {filtered.map(loc => {
+             const locBrand = (loc.brands?.[0]) || loc.brandId || 'smashme';
+             return (
+               <div key={loc.id} className="kl-location-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 12 }}>
+                 <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                    <div className="kl-loc-info" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span className={`kl-status ${loc.active ? 'kl-online' : 'kl-offline'}`} />
+                      <span className="kl-loc-name" style={{fontSize: '1.05rem', fontWeight: 600}}>{loc.name}</span>
+                      <span className="kl-loc-id" style={{opacity: 0.4, fontSize: '0.8rem'}}>({loc.id})</span>
+                      <div style={{display: 'flex', gap: '6px', alignItems: 'center', marginLeft: '6px'}}>
+                        {(loc.brands && loc.brands.length > 0 ? loc.brands : [locBrand]).map(b => b ? <BrandLogo key={b} brandId={b} size={20} /> : null)}
                       </div>
-                      <button
-                        className="kl-poster-btn"
-                        onClick={() => setSelectedLoc(selectedLoc?.id === loc.id ? null : loc)}
-                      >
-                        📺 Screensaver
-                      </button>
                     </div>
-                    {/* Link Display */}
-                    <div style={{ width: '100%', background: 'rgba(0,0,0,0.15)', padding: '8px 12px', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem' }}>
-                      <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Link Tabletă:</span>
-                      <input 
-                        type="text" 
-                        readOnly 
-                        value={loc.kioskUrl || `https://kiosk-smashme.netlify.app/?brand=${loc.brands?.[0] || 'smashme'}&loc=${loc.id}`}
-                        style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--primary)', outline: 'none' }}
-                      />
-                      <button 
-                        style={{ background: 'var(--primary)', border: 'none', padding: '4px 12px', borderRadius: 6, color: 'white', cursor: 'pointer', fontSize: '0.8rem' }}
-                        onClick={() => {
-                          navigator.clipboard.writeText(loc.kioskUrl || `https://kiosk-smashme.netlify.app/?brand=${loc.brands?.[0] || 'smashme'}&loc=${loc.id}`);
-                          alert('Link-ul a fost copiat!');
-                        }}
-                      >
-                        Copiază
-                      </button>
-                    </div>
-                  </div>
-                ))}
-
-                {selectedLoc && grouped[brandId]?.some(l => l.id === selectedLoc.id) && (
-                  <div className="kl-poster-panel">
-                    <KioskPosterCard
-                      brandId={selectedLoc.id}
-                      brandName={selectedLoc.name}
-                      emoji={meta.emoji}
-                      backend={backend}
+                    <button
+                      className="kl-poster-btn"
+                      onClick={() => setSelectedLoc(selectedLoc?.id === loc.id ? null : loc)}
+                    >
+                      📺 Screensaver
+                    </button>
+                 </div>
+                 
+                 <div style={{ width: '100%', background: 'rgba(0,0,0,0.15)', padding: '8px 12px', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem' }}>
+                    <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Link Tabletă:</span>
+                    <input 
+                      type="text" 
+                      readOnly 
+                      value={loc.kioskUrl || `https://kiosk-smashme.netlify.app/?brand=${locBrand}&loc=${loc.id}`}
+                      style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--primary)', outline: 'none' }}
                     />
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        );
-      })}
+                    <button 
+                      style={{ background: 'var(--primary)', border: 'none', padding: '4px 12px', borderRadius: 6, color: 'white', cursor: 'pointer', fontSize: '0.8rem' }}
+                      onClick={() => {
+                        navigator.clipboard.writeText(loc.kioskUrl || `https://kiosk-smashme.netlify.app/?brand=${locBrand}&loc=${loc.id}`);
+                        alert('Link-ul a fost copiat!');
+                      }}
+                    >
+                      Copiază
+                    </button>
+                 </div>
+
+                 {selectedLoc?.id === loc.id && (
+                   <div className="kl-poster-panel" style={{ width: '100%', marginTop: '8px' }}>
+                     <KioskPosterCard
+                       brandId={selectedLoc.id}
+                       brandName={selectedLoc.name}
+                       emoji=""
+                       backend={backend}
+                     />
+                   </div>
+                 )}
+               </div>
+             )
+           })}
+        </div>
+      </div>
     </div>
   );
 }
@@ -758,10 +743,10 @@ function LocationsManager({ backend }) {
               <button
                 key={k}
                 className={`loc-filter-btn ${filter === k ? 'active' : ''}`}
-                style={{ '--pill-color': BRAND_PILL_COLORS[k] }}
+                style={{ '--pill-color': BRAND_PILL_COLORS[k], display: 'flex', alignItems: 'center', gap: '6px' }}
                 onClick={() => setFilter(k)}
               >
-                {v} ({count})
+                <BrandLogo brandId={k} size={14} /> {v} ({count})
               </button>
             );
           })}
@@ -784,9 +769,9 @@ function LocationsManager({ backend }) {
               <button
                 key={k}
                 className={`loc-brand-pill ${newBrands.includes(k) ? 'active' : ''}`}
-                style={{ '--pill-color': BRAND_PILL_COLORS[k] }}
+                style={{ '--pill-color': BRAND_PILL_COLORS[k], display: 'flex', alignItems: 'center', gap: '6px' }}
                 onClick={() => toggleBrand(k)}
-              >{v}</button>
+              ><BrandLogo brandId={k} size={14} /> {v}</button>
             ))}
           </div>
           <input
@@ -821,13 +806,10 @@ function LocationsManager({ backend }) {
                 <button className="loc-del" onClick={() => deleteLoc(loc.id)} title="Sterge">x</button>
               </div>
             </div>
-            <div className="loc-card-brands" onClick={() => setEditingLoc(loc)} style={{cursor: 'pointer'}}>
+            <div className="loc-card-brands" onClick={() => setEditingLoc(loc)} style={{cursor: 'pointer', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap'}}>
               {(loc.brands || []).map(b => (
-                <span key={b} className="loc-pill" style={{ background: BRAND_PILL_COLORS[b] || '#6b7a99' }}>
-                  {BRAND_LABELS[b] || b}
-                </span>
+                <BrandLogo key={b} brandId={b} size={28} />
               ))}
-              {loc.isMultiBrand && <span className="loc-multi">Multi-brand</span>}
             </div>
             <div className="loc-card-stats" onClick={() => setEditingLoc(loc)} style={{cursor: 'pointer'}}>
               <span>{loc.tables || 0} mese</span>
