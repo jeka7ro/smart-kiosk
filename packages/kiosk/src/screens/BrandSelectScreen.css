@@ -6,7 +6,21 @@
   align-items: center; justify-content: center;
   gap: 24px;
   padding: 40px 20px;
+  position: relative;
 }
+
+.bss-langs {
+  position: absolute; top: 20px; right: 20px;
+  display: flex; gap: 8px; z-index: 10;
+}
+.bss-lang-btn {
+  background: rgba(0,0,0,0.06); border: 1.5px solid var(--border);
+  color: var(--text-muted); font-family: 'Outfit',sans-serif; font-size: 0.85rem;
+  font-weight: 700; padding: 7px 14px; border-radius: 10px;
+  cursor: pointer; transition: all 0.2s;
+}
+.bss-lang-btn.active { border-color: var(--primary); color: var(--primary); background: color-mix(in srgb, var(--primary) 10%, transparent); }
+.bss-lang-btn:hover:not(.active) { border-color: var(--text-muted); color: var(--text); }
 
 .bss-title {
   font-size: 2rem; font-weight: 800;

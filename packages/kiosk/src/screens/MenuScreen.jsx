@@ -95,7 +95,7 @@ export default function MenuScreen() {
         if (data.error) throw new Error(data.error);
         const cats = data.categories || [];
         setCategories(cats);
-        setProducts(data.products || []);
+        setProducts((data.products || []).filter(p => p.price > 0));
         setActiveCategory(pickDefault(cats));
         setLoading(false);
       })

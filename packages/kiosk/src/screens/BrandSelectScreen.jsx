@@ -1,5 +1,5 @@
 import { useKioskStore } from '../store/kioskStore';
-import { t } from '../i18n/translations.js';
+import { t, LANGUAGES, LANGUAGE_NAMES, LANGUAGE_FLAGS } from '../i18n/translations.js';
 import './BrandSelectScreen.css';
 
 const BRAND_INFO = {
@@ -12,20 +12,34 @@ const BRAND_INFO = {
 export default function BrandSelectScreen() {
   const goTo = useKioskStore((s) => s.goTo);
   const lang = useKioskStore((s) => s.lang);
+  const setLang = useKioskStore((s) => s.setLang);
   const locationData = useKioskStore((s) => s.locationData);
 
   const brands = locationData?.brands || [];
 
   const selectBrand = (brandId) => {
-    // Store selected brand in URL and go to menu
+    // Update brand in URL and go to orderType
     const url = new URL(window.location);
     url.searchParams.set('brand', brandId);
     window.history.replaceState({}, '', url);
-    goTo('menu');
+    goTo('orderType');
   };
 
   return (
     <div className="brand-select-screen screen">
+      {/* Language selector top-right */}
+      <div className="bss-langs" onClick={(e) => e.stopPropagation()}>
+        {LANGUAGES.map(l => (
+          <button
+            key={l}
+            className={`bss-lang-btn ${lang === l ? 'active' : ''}`}
+            onClick={() => setLang(l)}
+          >
+            {LANGUAGE_FLAGS[l]} {LANGUAGE_NAMES[l]}
+          </button>
+        ))}
+      </div>
+
       <h1 className="bss-title">{t('choose_brand', lang) || 'Alege restaurantul'}</h1>
       <p className="bss-subtitle">{t('choose_brand_sub', lang) || 'Poți comanda de la mai multe restaurante'}</p>
 
@@ -47,7 +61,7 @@ export default function BrandSelectScreen() {
         })}
       </div>
 
-      <button className="bss-back" onClick={() => goTo('orderType')}>
+      <button className="bss-back" onClick={() => goTo('welcome')}>
         ← {t('back', lang) || 'Înapoi'}
       </button>
     </div>

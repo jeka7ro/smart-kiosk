@@ -22,14 +22,20 @@ export const useKioskStore = create((set, get) => ({
   // ─── Navigation ───────────────────────────────────────────
   goTo: (screen) => set({ screen }),
 
-  setOrderType: (type, table = null) => {
+  setOrderType: (type, table = null) => set({
+    orderType: type,
+    tableNumber: table,
+    screen: 'menu',
+  }),
+
+  // After welcome: go to brand select if multi-brand, otherwise orderType
+  goAfterWelcome: () => {
     const loc = get().locationData;
-    const nextScreen = (loc && loc.brands && loc.brands.length > 1) ? 'brandSelect' : 'menu';
-    set({
-      orderType: type,
-      tableNumber: table,
-      screen: nextScreen,
-    });
+    if (loc && loc.brands && loc.brands.length > 1) {
+      set({ screen: 'brandSelect' });
+    } else {
+      set({ screen: 'orderType' });
+    }
   },
 
   // Skip order type selection — default is pickup at cashier (takeaway)

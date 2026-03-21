@@ -11,6 +11,7 @@ const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 export default function WelcomeScreen() {
   const goTo    = useKioskStore((s) => s.goTo);
   const goToMenu= useKioskStore((s) => s.goToMenu);
+  const goAfterWelcome = useKioskStore((s) => s.goAfterWelcome);
   const lang    = useKioskStore((s) => s.lang);
   const setLang = useKioskStore((s) => s.setLang);
   const brand   = useBrand();
@@ -86,11 +87,11 @@ export default function WelcomeScreen() {
   // Handle tap on poster — dismiss poster and go to orderType
   const handlePosterTap = () => {
     setPosterVisible(false);
-    goTo('orderType');
+    goAfterWelcome();
   };
 
   return (
-    <div className="welcome-screen" onClick={() => goTo('orderType')}>
+    <div className="welcome-screen" onClick={() => goAfterWelcome()}>
       {/* ─── POSTER SCREENSAVER (fullscreen overlay) ─── */}
       {posterVisible && poster && (
         <div className="poster-overlay" onClick={(e) => { e.stopPropagation(); handlePosterTap(); }}>
