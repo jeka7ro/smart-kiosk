@@ -52,6 +52,10 @@ export default function WelcomeScreen() {
               });
               setPosterVisible(true);
               return;
+            } else {
+              // Location exists but has NO screensaver configured — stop here,
+              // do NOT fall back to brand-level config (prevents SmashMe showing at Oradea)
+              return;
             }
           } catch (e) {
             console.warn('[Poster] Location fetch failed:', e.message);

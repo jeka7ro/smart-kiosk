@@ -34,9 +34,14 @@ export default function ProductScreen() {
 
   const suggestions = useMemo(() => {
     if (!product) return [];
-    const others = menuProducts.filter(p => p.id !== product.id && p.image);
-    const shuffled = [...others].sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, 6);
+    const COMPLEMENT_KEYWORDS = /sos|sauce|bautur|drink|desert|dessert|cartof|fries|soup|supă|salat|miso|ceai|tea/i;
+    const others = menuProducts.filter(p => p.id !== product.id && p.price > 0);
+    const scored = others.map(p => ({
+      ...p,
+      _score: (COMPLEMENT_KEYWORDS.test(p.name) ? 2 : 0) + (p.image ? 1 : 0)
+    }));
+    scored.sort((a, b) => b._score - a._score);
+    return scored.slice(0, 6);
   }, [product, menuProducts]);
 
   if (!product) { goTo('menu'); return null; }
