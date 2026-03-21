@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useKioskStore } from '../store/kioskStore';
 import { useBrand } from '../App';
 import { t } from '../i18n/translations.js';
@@ -34,18 +34,36 @@ export default function MenuScreen() {
   const [search, setSearch]   = useState('');
   const [addedId, setAddedId] = useState(null); // for added-to-cart animation
 
+  // Auto-fullscreen on first interaction (kiosk mode)
+  useEffect(() => {
+    const goFull = () => {
+      if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+      document.removeEventListener('click', goFull);
+    };
+    document.addEventListener('click', goFull);
+    return () => document.removeEventListener('click', goFull);
+  }, []);
+
   // Fetch menu — Syrve API for brands with org ID, mock data for others
   useEffect(() => {
     setLoading(true);
     setError(null);
     const orgId = BRAND_ORG_MAP[brand.id];
 
+    const pickDefault = (cats) => {
+      // Prefer "Smashed Burgers" or any category with "burger" in name
+      const burger = cats.find(c => /burger/i.test(c.name));
+      return burger?.id || cats[0]?.id || null;
+    };
+
     if (!orgId) {
       // No Syrve org yet — use local mock data
       const { categories: cats, products: prods } = getMenuData(brand.id);
       setCategories(cats);
       setProducts(prods);
-      setActiveCategory(cats[0]?.id || null);
+      setActiveCategory(pickDefault(cats));
       setLoading(false);
       return;
     }
@@ -57,7 +75,7 @@ export default function MenuScreen() {
         const cats = data.categories || [];
         setCategories(cats);
         setProducts(data.products || []);
-        setActiveCategory(cats[0]?.id || null);
+        setActiveCategory(pickDefault(cats));
         setLoading(false);
       })
       .catch(err => {
@@ -65,10 +83,20 @@ export default function MenuScreen() {
         const { categories: cats, products: prods } = getMenuData(brand.id);
         setCategories(cats);
         setProducts(prods);
-        setActiveCategory(cats[0]?.id || null);
+        setActiveCategory(pickDefault(cats));
         setLoading(false);
       });
   }, [brand.id]);
+
+  // Build category → first product image map
+  const catImages = useMemo(() => {
+    const map = {};
+    categories.forEach(cat => {
+      const prod = products.find(p => p.categoryId === cat.id && p.image);
+      if (prod) map[cat.id] = prod.image;
+    });
+    return map;
+  }, [categories, products]);
 
   // Filter products by category + search
   const filteredProducts = products.filter(p => {
@@ -147,7 +175,7 @@ export default function MenuScreen() {
               className={`cat-btn ${activeCategory === cat.id ? 'cat-btn--active' : ''}`}
               onClick={() => { setActiveCategory(cat.id); setSearch(''); }}
             >
-              {cat.image && <img src={cat.image} alt="" className="cat-btn-img" />}
+              {(cat.image || catImages[cat.id]) && <img src={cat.image || catImages[cat.id]} alt="" className="cat-btn-img" />}
               <span className="cat-btn-label">{cat.name}</span>
             </button>
           ))}
