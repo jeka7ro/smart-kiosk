@@ -13,7 +13,7 @@ export const SMASHME_PRODUCTS = [
     name: 'Classic Smash',
     price: 42,
     description: 'Cotlet de vită smash 180g, cheddar topit, salată, roșie, murături, sos special Smash Me',
-    image: 'https://smashme.ro/_next/image?url=https%3A%2F%2Fbackend.smashme.ro%2Fuploads%2Fproducts%2Fclassic-smash.jpg&w=640&q=75',
+    image: 'https://backend.smashme.ro/uploads/products/classic-smash.jpg',
     badge: 'Best Seller',
     allergens: ['gluten', 'lactate', 'ou'],
     modifiers: [
@@ -34,7 +34,7 @@ export const SMASHME_PRODUCTS = [
     name: 'BBQ Bacon Smash',
     price: 48,
     description: 'Cotlet de vită 180g, bacon crispy, sos BBQ, ceapă caramelizată, cheddar, castraveți murați',
-    image: 'https://smashme.ro/_next/image?url=https%3A%2F%2Fbackend.smashme.ro%2Fuploads%2Fproducts%2Fbbq-bacon-smash.jpg&w=640&q=75',
+    image: 'https://backend.smashme.ro/uploads/products/bbq-bacon-smash.jpg',
     badge: 'Nou',
     allergens: ['gluten', 'lactate'],
     modifiers: [
@@ -131,7 +131,7 @@ export const SUSHIMASTER_PRODUCTS = [
     name: 'California Roll',
     price: 38,
     description: '8 buc — Surimi, avocado, castravete, tobiko, maioneză japoneză',
-    image: 'https://sushimaster.ro/_next/image?url=https%3A%2F%2Fbackend.sushimaster.ro%2Fuploads%2Fproducts%2Fcalifornia-roll.jpg&w=640&q=75',
+    image: 'https://backend.sushimaster.ro/uploads/products/california-roll.jpg',
     badge: 'Popular',
     allergens: ['crustacee', 'ou', 'soia'],
     modifiers: [
@@ -146,7 +146,7 @@ export const SUSHIMASTER_PRODUCTS = [
     name: 'Philadelphia Roll',
     price: 46,
     description: '8 buc — Somon afumat, cream cheese, castravete, avocado',
-    image: 'https://sushimaster.ro/_next/image?url=https%3A%2F%2Fbackend.sushimaster.ro%2Fuploads%2Fproducts%2Fphiladelphia-classic.jpg&w=640&q=75',
+    image: 'https://backend.sushimaster.ro/uploads/products/philadelphia-classic.jpg',
     badge: 'Best Seller',
     allergens: ['pește', 'lactate', 'gluten'],
     modifiers: [
@@ -161,7 +161,7 @@ export const SUSHIMASTER_PRODUCTS = [
     name: 'Dragon Roll',
     price: 52,
     description: '8 buc — Creveți tempura, avocado, sos unagi, tobiko portocaliu',
-    image: 'https://sushimaster.ro/_next/image?url=https%3A%2F%2Fbackend.sushimaster.ro%2Fuploads%2Fproducts%2Fdragon-roll.jpg&w=640&q=75',
+    image: 'https://backend.sushimaster.ro/uploads/products/dragon-roll.jpg',
     badge: 'Premium',
     allergens: ['crustacee', 'gluten', 'ou'],
     modifiers: [],
@@ -171,7 +171,7 @@ export const SUSHIMASTER_PRODUCTS = [
     name: 'Spicy Tuna Roll',
     price: 48,
     description: '8 buc — Ton proaspăt, sos picant sriracha, avocado, sesam',
-    image: 'https://sushimaster.ro/_next/image?url=https%3A%2F%2Fbackend.sushimaster.ro%2Fuploads%2Fproducts%2Fspicy-tuna-roll.jpg&w=640&q=75',
+    image: 'https://backend.sushimaster.ro/uploads/products/spicy-tuna-roll.jpg',
     badge: 'Hot 🌶',
     allergens: ['pește', 'soia', 'sesam'],
     modifiers: [
