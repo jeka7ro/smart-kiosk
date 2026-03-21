@@ -5,7 +5,16 @@ import './App.css';
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 
 const BRAND_COLORS = { smashme: '#ef4444', sushimaster: '#3b82f6' };
-const BRAND_EMOJI  = { smashme: '🍔', sushimaster: '🍣' };
+
+function BrandLogo({ brandId, size = 18 }) {
+  const logos = {
+    smashme: '/brands/smashme-logo.png',
+    sushimaster: '/brands/sushimaster-logo.png'
+  };
+  const src = logos[brandId];
+  if (src) return <img src={src} alt={brandId} style={{ height: size, maxWidth: '80px', objectFit: 'contain', verticalAlign: 'middle', flexShrink: 0 }} />;
+  return null; // pure text fallback if no logo
+}
 
 const STATUS_LABELS = {
   pending:   { label: 'Nou',       color: '#f59e0b' },
@@ -159,8 +168,8 @@ export default function AdminApp() {
               <StatCard icon="🔵" label="În pregătire"   value={stats.preparing} color="var(--cyan)" />
               <StatCard icon="🟢" label="Gata ridicare"  value={stats.ready}     color="var(--success)" />
               <StatCard icon="💰" label="Venituri"        value={`${stats.revenue.toFixed(0)} lei`} color="var(--success)" large />
-              <StatCard icon={BRAND_EMOJI.smashme} label="SmashMe comenzi"   value={stats.smashme} color={BRAND_COLORS.smashme} />
-              <StatCard icon={BRAND_EMOJI.sushimaster} label="SushiMaster comenzi" value={stats.sushimaster} color={BRAND_COLORS.sushimaster} />
+              <StatCard icon={<BrandLogo brandId="smashme" size={32} />} label="SmashMe comenzi"   value={stats.smashme} color={BRAND_COLORS.smashme} />
+              <StatCard icon={<BrandLogo brandId="sushimaster" size={32} />} label="SushiMaster comenzi" value={stats.sushimaster} color={BRAND_COLORS.sushimaster} />
             </div>
 
             <h3 className="sub-title">Ultimele 10 comenzi</h3>
@@ -178,10 +187,10 @@ export default function AdminApp() {
                   <button
                     key={b}
                     className={`brand-tab ${brandFilter === b ? 'active' : ''}`}
-                    style={b !== 'all' ? { '--bc': BRAND_COLORS[b] } : {}}
+                    style={{ ...(b !== 'all' ? { '--bc': BRAND_COLORS[b] } : {}), display: 'flex', alignItems: 'center', gap: '6px' }}
                     onClick={() => setBrandFilter(b)}
                   >
-                    {b === 'all' ? 'Toate' : `${BRAND_EMOJI[b]} ${b === 'smashme' ? 'SmashMe' : 'SushiMaster'}`}
+                    {b === 'all' ? 'Toate' : <><BrandLogo brandId={b} size={14} /> {b === 'smashme' ? 'SmashMe' : 'SushiMaster'}</>}
                   </button>
                 ))}
               </div>
@@ -207,7 +216,7 @@ export default function AdminApp() {
                   <div key={b.brandId} className="menu-status-card"
                        style={{ '--bc': BRAND_COLORS[b.brandId] || 'var(--primary)' }}>
                     <div className="ms-header">
-                      <span className="ms-brand">{BRAND_EMOJI[b.brandId]} {b.name || b.brandId}</span>
+                      <span className="ms-brand" style={{display:'flex', alignItems:'center', gap:'8px'}}><BrandLogo brandId={b.brandId} size={20} /> {b.name || b.brandId}</span>
                       <span className="ms-badge">{b.source}</span>
                     </div>
                     <div className="ms-stats">
@@ -289,8 +298,8 @@ function OrdersTable({ orders, full }) {
               <tr key={o._id}>
                 <td><strong>#{o.orderNumber}</strong></td>
                 <td>
-                  <span style={{ color: BRAND_COLORS[o.brand] }}>
-                    {BRAND_EMOJI[o.brand]} {o.brand}
+                  <span style={{ color: BRAND_COLORS[o.brand], display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <BrandLogo brandId={o.brand} size={16} /> {o.brand}
                   </span>
                 </td>
                 <td><span className="tag">{o.channel}</span></td>
@@ -370,7 +379,7 @@ function KioskPosterCard({ brandId, brandName, emoji, backend }) {
   return (
     <div className="poster-card" style={{ '--bc': brandId === 'smashme' ? '#ef4444' : '#3b82f6' }}>
       <div className="pc-header">
-        <span className="pc-brand">{emoji} {brandName}</span>
+        <span className="pc-brand" style={{display:'flex', alignItems:'center', gap:'8px'}}><BrandLogo brandId={brandId} size={20} /> {brandName}</span>
         <label className="pc-toggle">
           <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
           <span className="toggle-slider" />
@@ -446,10 +455,10 @@ function KioskLocationList({ backend }) {
   if (loading) return <p className="loading-text">Se încarcă locațiile...</p>;
 
   const brandMeta = {
-    smashme:     { name: 'SmashMe',       emoji: '🍔', color: '#ef4444' },
-    sushimaster: { name: 'Sushi Master',  emoji: '🍣', color: '#3b82f6' },
-    ikura:       { name: 'Ikura',         emoji: '🍣', color: '#d4af37' },
-    welovesushi: { name: 'WeLoveSushi',   emoji: '❤️', color: '#ec4899' },
+    smashme:     { name: 'SmashMe',       color: '#ef4444' },
+    sushimaster: { name: 'Sushi Master',  color: '#3b82f6' },
+    ikura:       { name: 'Ikura',         color: '#d4af37' },
+    welovesushi: { name: 'WeLoveSushi',   color: '#ec4899' },
   };
 
   // Unique brands from locations
@@ -476,23 +485,23 @@ function KioskLocationList({ backend }) {
           Toate ({locations.length})
         </button>
         {brandIds.map(bid => {
-          const m = brandMeta[bid] || { name: bid, emoji: '📍', color: '#6b7a99' };
+          const m = brandMeta[bid] || { name: bid, color: '#6b7a99' };
           const count = locations.filter(l => l.brandId === bid).length;
           return (
             <button
               key={bid}
               className={`kl-filter-btn ${brandFilter === bid ? 'active' : ''}`}
-              style={{ '--bc': m.color }}
+              style={{ '--bc': m.color, display: 'flex', alignItems: 'center', gap: '6px' }}
               onClick={() => setBrandFilter(bid)}
             >
-              {m.emoji} {m.name} ({count})
+              <BrandLogo brandId={bid} size={14} /> {m.name} ({count})
             </button>
           );
         })}
       </div>
 
       {Object.entries(grouped).map(([brandId, locs]) => {
-        const meta = brandMeta[brandId] || { name: brandId, emoji: '📍', color: '#6b7a99' };
+        const meta = brandMeta[brandId] || { name: brandId, color: '#6b7a99' };
         const isExpanded = expandedBrand === brandId;
 
         return (
@@ -502,7 +511,7 @@ function KioskLocationList({ backend }) {
               style={{ '--bc': meta.color }}
               onClick={() => setExpandedBrand(isExpanded ? null : brandId)}
             >
-              <span className="kl-brand-name">{meta.emoji} {meta.name}</span>
+              <span className="kl-brand-name" style={{display:'flex', alignItems:'center', gap:'8px'}}><BrandLogo brandId={brandId} size={20} /> {meta.name}</span>
               <span className="kl-brand-count">{locs.length} locații</span>
               <span className="kl-expand">{isExpanded ? '▼' : '▶'}</span>
             </button>
@@ -576,10 +585,10 @@ function QrGenerator({ backend }) {
   const QR_WEB_BASE = 'https://loquacious-madeleine-ed11d3.netlify.app';
 
   const brands = [
-    { id: 'smashme', name: 'SmashMe', emoji: '🍔', color: '#ef4444' },
-    { id: 'sushimaster', name: 'Sushi Master', emoji: '🍣', color: '#3b82f6' },
-    { id: 'ikura', name: 'Ikura', emoji: '🥢', color: '#f97316' },
-    { id: 'welovesushi', name: 'We Love Sushi', emoji: '🍱', color: '#8b5cf6' },
+    { id: 'smashme', name: 'SmashMe', color: '#ef4444' },
+    { id: 'sushimaster', name: 'Sushi Master', color: '#3b82f6' },
+    { id: 'ikura', name: 'Ikura', color: '#f97316' },
+    { id: 'welovesushi', name: 'We Love Sushi', color: '#8b5cf6' },
   ];
 
   const generate = async () => {
@@ -621,10 +630,10 @@ function QrGenerator({ backend }) {
               <button
                 key={b.id}
                 className={`qr-brand-pill ${brand === b.id ? 'active' : ''}`}
-                style={brand === b.id ? { background: b.color, borderColor: b.color } : {}}
+                style={{ ...(brand === b.id ? { background: b.color, borderColor: b.color } : {}), display: 'flex', alignItems: 'center', gap: '6px' }}
                 onClick={() => setBrand(b.id)}
               >
-                {b.emoji} {b.name}
+                <BrandLogo brandId={b.id} size={14} /> {b.name}
               </button>
             ))}
           </div>
