@@ -7,6 +7,16 @@ import UsersManager from './screens/UsersManager';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 
+// ─── Keep-alive: prevent Render.com free tier from sleeping ───────────────────
+function useKeepAlive() {
+  useEffect(() => {
+    const ping = () => fetch(`${BACKEND}/api/health`, { method: 'GET' }).catch(() => {});
+    ping(); // immediate ping on load
+    const id = setInterval(ping, 4 * 60 * 1000); // every 4 minutes
+    return () => clearInterval(id);
+  }, []);
+}
+
 const BRAND_COLORS = { smashme: '#ef4444', sushimaster: '#3b82f6' };
 
 function BrandLogo({ brandId, size = 18 }) {
@@ -40,6 +50,7 @@ export default function AdminApp() {
     return localStorage.getItem('admin-theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
   });
   const socketRef = useRef(null);
+  useKeepAlive(); // prevent Render backend from sleeping
 
   /* ─── Theme Sync ─────────────────────────────────── */
   useEffect(() => {
