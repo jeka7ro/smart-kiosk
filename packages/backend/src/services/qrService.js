@@ -7,14 +7,14 @@ const QRCode = require('qrcode');
 const path = require('path');
 const fs   = require('fs');
 
-const BASE_URL = process.env.QR_BASE_URL || 'http://localhost:3012';
+const BASE_URL = process.env.QR_BASE_URL || 'https://loquacious-madeleine-ed11d3.netlify.app';
 
 /**
  * Generate a QR code as a data URL (base64 PNG).
  * Use this for displaying in admin panel.
  */
 async function generateQrDataUrl({ brandId, tableNumber, locationId }) {
-  const url = `${BASE_URL}/order?brand=${brandId}&table=${tableNumber}&loc=${locationId}`;
+  const url = `${BASE_URL}/?brand=${brandId}&table=${tableNumber}&loc=${locationId}`;
   return QRCode.toDataURL(url, {
     errorCorrectionLevel: 'H',
     margin: 2,
@@ -27,7 +27,7 @@ async function generateQrDataUrl({ brandId, tableNumber, locationId }) {
  * Generate a QR code as a buffer (for saving as PNG file or PDF).
  */
 async function generateQrBuffer({ brandId, tableNumber, locationId }) {
-  const url = `${BASE_URL}/order?brand=${brandId}&table=${tableNumber}&loc=${locationId}`;
+  const url = `${BASE_URL}/?brand=${brandId}&table=${tableNumber}&loc=${locationId}`;
   return QRCode.toBuffer(url, {
     errorCorrectionLevel: 'H',
     margin: 2,
@@ -44,7 +44,7 @@ async function generateAllForLocation({ brandId, locationId, tableCount, outputD
   fs.mkdirSync(outputDir, { recursive: true });
 
   for (let table = 1; table <= tableCount; table++) {
-    const url = `${BASE_URL}/order?brand=${brandId}&table=${table}&loc=${locationId}`;
+    const url = `${BASE_URL}/?brand=${brandId}&table=${table}&loc=${locationId}`;
     const filePath = path.join(outputDir, `qr_${locationId}_table${table}.png`);
     await QRCode.toFile(filePath, url, {
       errorCorrectionLevel: 'H',
