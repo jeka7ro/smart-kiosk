@@ -532,7 +532,4 @@ export function getMenuData(brandId) {
     return { categories: SUSHIMASTER_CATEGORIES, products: SUSHIMASTER_PRODUCTS };
   }
   return { categories: SMASHME_CATEGORIES, products: SMASHME_PRODUCTS };
-};
-  }
-  return { categories: SMASHME_CATEGORIES, products: SMASHME_PRODUCTS };
 }
