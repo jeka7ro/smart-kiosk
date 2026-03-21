@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react';
 
 export default function ProductCard({ product, delay, lang, activeBrand, onQuickAdd, onInfo }) {
-  const [imgError, setImgError] = useState(false);
   const cardRef = useRef(null);
 
   // Stop propagation on Info button so it doesn't trigger Add to Cart
@@ -21,13 +20,12 @@ export default function ProductCard({ product, delay, lang, activeBrand, onQuick
 
       {/* Main card — click = add to cart */}
       <div className="product-card-body" onClick={() => onQuickAdd(product, cardRef.current)}>
-        <div className="product-img" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface)' }}>
-          {product.image && !imgError ? (
+        <div className="product-img" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
+          {product.image ? (
             <img
               src={product.image}
               alt={product.name}
               className="product-photo"
-              onError={() => setImgError(true)}
             />
           ) : (
             <div style={{ opacity: 0.1, fontSize: '3rem' }}>🍽️</div>
@@ -39,7 +37,6 @@ export default function ProductCard({ product, delay, lang, activeBrand, onQuick
           <p className="product-desc">{product.description}</p>
           <div className="product-footer">
             <span className="price price-lg">{product.price} lei</span>
-            <span className="add-icon">➕</span>
           </div>
         </div>
       </div>
