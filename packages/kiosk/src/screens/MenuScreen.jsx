@@ -110,7 +110,7 @@ export default function MenuScreen() {
         endX: cartRect.left + cartRect.width / 2,
         endY: cartRect.top,
       });
-      setTimeout(() => setFlyAnim(null), 600);
+      setTimeout(() => setFlyAnim(null), 850);
     }
   }, [addToCart, brand.id]);
 
@@ -226,7 +226,7 @@ export default function MenuScreen() {
       {cartCount > 0 && (
         <div className="cart-bar" ref={cartBarRef} onClick={() => goTo('cart')}>
           <span className="cart-bar-count">{cartCount} {cartCount > 1 ? t('items_many', lang) : t('item_one', lang)}</span>
-          <span className="cart-bar-label">{t('my_cart', lang)}</span>
+          <span className="cart-bar-label">🛒 {t('my_cart', lang)}</span>
           <span className="cart-bar-total">{cartTotal.toFixed(0)} {t('lei', lang)}</span>
         </div>
       )}

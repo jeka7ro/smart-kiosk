@@ -259,12 +259,13 @@
   position: fixed;
   z-index: 100;
   pointer-events: none;
-  width: 60px;
-  height: 60px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
-  animation: flyToCart 0.5s cubic-bezier(0.2, 0.6, 0.3, 1) forwards;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.3);
+  border: 3px solid #fff;
+  animation: flyToCart 0.85s cubic-bezier(0.22, 0.68, 0.35, 1.0) forwards;
   left: var(--fly-sx);
   top: var(--fly-sy);
 }
@@ -275,18 +276,23 @@
 }
 @keyframes flyToCart {
   0% {
-    transform: translate(-50%, -50%) scale(1);
+    transform: translate(-50%, -50%) scale(1) rotate(0deg);
     opacity: 1;
     left: var(--fly-sx);
     top: var(--fly-sy);
   }
-  50% {
-    transform: translate(-50%, -50%) scale(0.6);
-    opacity: 0.9;
-    top: calc(var(--fly-sy) - 40px);
+  30% {
+    transform: translate(-50%, -50%) scale(0.7) rotate(-8deg);
+    opacity: 1;
+    top: calc(var(--fly-sy) - 60px);
+  }
+  70% {
+    transform: translate(-50%, -50%) scale(0.4) rotate(5deg);
+    opacity: 0.8;
+    left: var(--fly-ex);
   }
   100% {
-    transform: translate(-50%, -50%) scale(0.2);
+    transform: translate(-50%, -50%) scale(0.15) rotate(0deg);
     opacity: 0;
     left: var(--fly-ex);
     top: var(--fly-ey);
@@ -301,14 +307,14 @@
   transform: translateX(-50%);
   background: linear-gradient(135deg, #10b981, #059669);
   color: #fff;
-  border-radius: 20px;
-  padding: 18px 32px;
+  border-radius: 24px;
+  padding: 22px 40px;
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 24px;
   cursor: pointer;
-  box-shadow: 0 6px 28px rgba(16, 185, 129, 0.4);
-  min-width: 360px;
+  box-shadow: 0 8px 32px rgba(16, 185, 129, 0.45);
+  min-width: 420px;
   justify-content: space-between;
   z-index: 20;
   transition: transform 0.2s, box-shadow 0.2s;
@@ -316,10 +322,10 @@
 }
 .cart-bar:hover {
   transform: translateX(-50%) translateY(-3px);
-  box-shadow: 0 8px 36px rgba(16, 185, 129, 0.5);
+  box-shadow: 0 10px 40px rgba(16, 185, 129, 0.55);
 }
 .cart-bar:active {
-  transform: translateX(-50%) scale(0.98);
+  transform: translateX(-50%) scale(0.97);
 }
 @keyframes slideUpBar {
   from { transform: translateX(-50%) translateY(60px); opacity: 0; }
@@ -327,19 +333,19 @@
 }
 .cart-bar-count {
   background: rgba(255,255,255,0.25);
-  padding: 6px 14px;
-  border-radius: 10px;
+  padding: 8px 16px;
+  border-radius: 12px;
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 1rem;
 }
 .cart-bar-label {
-  font-weight: 600;
-  font-size: 1.05rem;
+  font-weight: 700;
+  font-size: 1.15rem;
   letter-spacing: 0.3px;
 }
 .cart-bar-total {
   font-weight: 800;
-  font-size: 1.25rem;
+  font-size: 1.4rem;
 }
 
 /* ─── LOADING ─── */
