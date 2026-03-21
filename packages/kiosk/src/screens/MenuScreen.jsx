@@ -214,11 +214,14 @@ export default function MenuScreen() {
                 style={{ '--brand-color': info.color, flex: `1 1 ${100 / locationBrands.length}%` }}
                 onClick={() => { setActiveBrand(bId); setSearch(''); }}
               >
-                {brandConfig?.logoImg
-                  ? <img src={brandConfig.logoImg} alt={info.label} className="brand-tab-logo" />
-                  : <span className="brand-tab-emoji">{info.emoji}</span>
-                }
-                <span className="brand-tab-label">{info.label}</span>
+                <img 
+                  src={`/brands/${bId}-logo.png`} 
+                  alt={info.label} 
+                  className="brand-tab-logo" 
+                  style={{ maxHeight: '34px', objectFit: 'contain' }}
+                  onError={(e) => { e.target.style.display='none'; e.target.nextSibling.style.display='block'; }} 
+                />
+                <span className="brand-tab-label" style={{display: 'none'}}>{info.label}</span>
               </button>
             );
           })}
@@ -234,7 +237,14 @@ export default function MenuScreen() {
               className={`cat-btn ${activeCategory === cat.id ? 'cat-btn--active' : ''}`}
               onClick={() => { setActiveCategory(cat.id); setSearch(''); }}
             >
-              {(cat.image || catImages[cat.id]) && <img src={cat.image || catImages[cat.id]} alt="" className="cat-btn-img" />}
+              {(cat.image || catImages[cat.id]) && (
+                <img 
+                  src={cat.image || catImages[cat.id]} 
+                  alt="" 
+                  className="cat-btn-img" 
+                  onError={(e) => { e.target.style.display='none'; }} 
+                />
+              )}
               <span className="cat-btn-label">{cat.name}</span>
             </button>
           ))}
@@ -254,6 +264,7 @@ export default function MenuScreen() {
                   product={product}
                   delay={i * 0.03}
                   lang={lang}
+                  activeBrand={activeBrand}
                   onQuickAdd={handleQuickAdd}
                   onInfo={() => setSelectedProduct(product)}
                 />
@@ -293,7 +304,7 @@ export default function MenuScreen() {
   );
 }
 
-function ProductCard({ product, delay, lang, onQuickAdd, onInfo }) {
+function ProductCard({ product, delay, lang, activeBrand, onQuickAdd, onInfo }) {
   const [imgError, setImgError] = useState(false);
   const cardRef = useRef(null);
 
@@ -310,7 +321,7 @@ function ProductCard({ product, delay, lang, onQuickAdd, onInfo }) {
 
       {/* Main card — click = add to cart */}
       <div className="product-card-body" onClick={() => onQuickAdd(product, cardRef.current)}>
-        <div className="product-img">
+        <div className="product-img" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface)' }}>
           {product.image && !imgError ? (
             <img
               src={product.image}
@@ -319,7 +330,7 @@ function ProductCard({ product, delay, lang, onQuickAdd, onInfo }) {
               onError={() => setImgError(true)}
             />
           ) : (
-            <span className="product-emoji-placeholder"></span>
+            <img src={`/brands/${activeBrand}-logo.png`} alt="Fără imagine" style={{ opacity: 0.15, maxWidth: '60%', maxHeight: '60%', objectFit: 'contain', filter: 'grayscale(100%)' }} />
           )}
         </div>
         <div className="product-info">

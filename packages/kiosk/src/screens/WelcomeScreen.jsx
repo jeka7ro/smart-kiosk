@@ -150,18 +150,6 @@ export default function WelcomeScreen() {
             <span className="poster-cta-label">{t('start_order', lang)}</span>
             <span className="poster-tap-hint">{t('touch_anywhere', lang)}</span>
           </div>
-          {/* Language on poster */}
-          <div className="poster-langs" onClick={(e) => e.stopPropagation()}>
-            {LANGUAGES.map(l => (
-              <button
-                key={l}
-                className={`poster-lang-btn ${lang === l ? 'active' : ''}`}
-                onClick={(e) => { e.stopPropagation(); setLang(l); }}
-              >
-                {LANGUAGE_FLAGS[l]} {LANGUAGE_NAMES[l]}
-              </button>
-            ))}
-          </div>
         </div>
       )}
 
@@ -215,19 +203,6 @@ export default function WelcomeScreen() {
         <button className="cta-button">
           {t('tap_to_order', lang)}
         </button>
-      </div>
-
-      {/* Language selector — top right, always visible */}
-      <div className="welcome-langs" onClick={(e) => e.stopPropagation()}>
-        {LANGUAGES.map(l => (
-          <button
-            key={l}
-            className={`lang-btn ${lang === l ? 'active' : ''}`}
-            onClick={(e) => { e.stopPropagation(); setLang(l); }}
-          >
-            {LANGUAGE_FLAGS[l]} {LANGUAGE_NAMES[l]}
-          </button>
-        ))}
       </div>
 
       {/* Dev brand switcher — DEMO ONLY */}

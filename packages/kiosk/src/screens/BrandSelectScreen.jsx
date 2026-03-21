@@ -55,12 +55,15 @@ export default function BrandSelectScreen() {
               style={{ '--brand-c': info.color }}
               onClick={() => selectBrand(bId)}
             >
-              {brandConfig?.logoImg
-                ? <div className="bss-logo-wrapper"><img src={brandConfig.logoImg} alt={info.label} className="bss-logo" /></div>
-                : <span className="bss-emoji">{info.emoji}</span>
-              }
-              <span className="bss-label">{info.label}</span>
-              <span className="bss-desc">{info.desc}</span>
+              <div className="bss-logo-wrapper" style={{ height: '120px' }}>
+                <img 
+                  src={`/brands/${bId}-logo.png`} 
+                  alt={info.label} 
+                  className="bss-logo" 
+                  style={{ maxHeight: '100%', maxWidth: '200px' }}
+                  onError={(e) => { e.target.style.display='none'; }}
+                />
+              </div>
             </button>
           );
         })}
