@@ -211,11 +211,11 @@ export default function AdminApp() {
           </div>
         )}
 
-        {/* ─── KIOSKS / POSTER ─── */}
+        {/* ─── KIOSKS / SCREENSAVER ─── */}
         {tab === 'kiosks' && (
           <div className="admin-section">
-            <h2 className="section-title">📺 Kioskuri — Poster Promo</h2>
-            <p style={{color:'var(--text-muted)',marginBottom:16,fontSize:'0.9rem'}}>Setează o imagine, video sau link care apare pe ecranul kiosk-ului când e inactiv. Când clientul atinge ecranul, intră în modul de comandă.</p>
+            <h2 className="section-title">📺 Kioskuri — Link-uri și Screensaver</h2>
+            <p style={{color:'var(--text-muted)',marginBottom:16,fontSize:'0.9rem'}}>Copiază link-ul necesar pentru tabletă sau setează screensaver-ul (imagine/video completă care rulează înainte de comandă).</p>
             <KioskLocationList backend={BACKEND} />
           </div>
         )}
@@ -490,18 +490,39 @@ function KioskLocationList({ backend }) {
             {isExpanded && (
               <div className="kl-locations">
                 {locs.map(loc => (
-                  <div key={loc.id} className="kl-location-row">
-                    <div className="kl-loc-info">
-                      <span className={`kl-status ${loc.active ? 'kl-online' : 'kl-offline'}`} />
-                      <span className="kl-loc-name">{loc.name}</span>
-                      <span className="kl-loc-id">{loc.id}</span>
+                  <div key={loc.id} className="kl-location-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 12 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                      <div className="kl-loc-info">
+                        <span className={`kl-status ${loc.active ? 'kl-online' : 'kl-offline'}`} />
+                        <span className="kl-loc-name">{loc.name}</span>
+                        <span className="kl-loc-id">{loc.id}</span>
+                      </div>
+                      <button
+                        className="kl-poster-btn"
+                        onClick={() => setSelectedLoc(selectedLoc?.id === loc.id ? null : loc)}
+                      >
+                        📺 Screensaver
+                      </button>
                     </div>
-                    <button
-                      className="kl-poster-btn"
-                      onClick={() => setSelectedLoc(selectedLoc?.id === loc.id ? null : loc)}
-                    >
-                      🖼 Poster
-                    </button>
+                    {/* Link Display */}
+                    <div style={{ width: '100%', background: 'rgba(0,0,0,0.15)', padding: '8px 12px', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem' }}>
+                      <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Link Tabletă:</span>
+                      <input 
+                        type="text" 
+                        readOnly 
+                        value={loc.kioskUrl || `https://kiosk-smashme.netlify.app/?brand=${loc.brands?.[0] || 'smashme'}&loc=${loc.id}`}
+                        style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--primary)', outline: 'none' }}
+                      />
+                      <button 
+                        style={{ background: 'var(--primary)', border: 'none', padding: '4px 12px', borderRadius: 6, color: 'white', cursor: 'pointer', fontSize: '0.8rem' }}
+                        onClick={() => {
+                          navigator.clipboard.writeText(loc.kioskUrl || `https://kiosk-smashme.netlify.app/?brand=${loc.brands?.[0] || 'smashme'}&loc=${loc.id}`);
+                          alert('Link-ul a fost copiat!');
+                        }}
+                      >
+                        Copiază
+                      </button>
+                    </div>
                   </div>
                 ))}
 
