@@ -17,6 +17,7 @@ const locationRoutes = require('./routes/locations');
 const adminRoutes = require('./routes/admin');
 const qrRoutes = require('./routes/qr');
 const authRoutes = require('./routes/auth');
+const usersRoutes = require('./routes/users');
 
 const app = express();
 const server = http.createServer(app);
@@ -56,6 +57,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/locations', locationRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/users', usersRoutes);
 app.use('/api/qr', qrRoutes);
 
 // Health check

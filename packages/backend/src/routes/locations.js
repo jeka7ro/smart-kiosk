@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs');
 const path = require('path');
+const { protect } = require('../middleware/authMiddleware');
 
 const DATA_FILE = path.join(__dirname, '../../data/locations.json');
 
@@ -37,7 +38,7 @@ router.get('/:id', (req, res) => {
 });
 
 // POST /api/locations — create new location
-router.post('/', (req, res) => {
+router.post('/', protect, (req, res) => {
   const locs = readLocations();
   const { name, brands, orgIds, tables, kiosks } = req.body;
   if (!name) return res.status(400).json({ error: 'Name is required' });
@@ -62,7 +63,7 @@ router.post('/', (req, res) => {
 });
 
 // PUT /api/locations/:id — update location
-router.put('/:id', (req, res) => {
+router.put('/:id', protect, (req, res) => {
   const locs = readLocations();
   const idx = locs.findIndex(l => l.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: 'Location not found' });
@@ -73,7 +74,7 @@ router.put('/:id', (req, res) => {
 });
 
 // DELETE /api/locations/:id
-router.delete('/:id', (req, res) => {
+router.delete('/:id', protect, (req, res) => {
   let locs = readLocations();
   const before = locs.length;
   locs = locs.filter(l => l.id !== req.params.id);
@@ -83,7 +84,7 @@ router.delete('/:id', (req, res) => {
 });
 
 // POST /api/locations/:id/kiosks — add kiosk to location
-router.post('/:id/kiosks', (req, res) => {
+router.post('/:id/kiosks', protect, (req, res) => {
   const locs = readLocations();
   const loc = locs.find(l => l.id === req.params.id);
   if (!loc) return res.status(404).json({ error: 'Location not found' });
@@ -98,7 +99,7 @@ router.post('/:id/kiosks', (req, res) => {
 });
 
 // DELETE /api/locations/:id/kiosks/:kioskId — remove kiosk from location
-router.delete('/:id/kiosks/:kioskId', (req, res) => {
+router.delete('/:id/kiosks/:kioskId', protect, (req, res) => {
   const locs = readLocations();
   const loc = locs.find(l => l.id === req.params.id);
   if (!loc) return res.status(404).json({ error: 'Location not found' });

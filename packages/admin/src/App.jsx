@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { io } from 'socket.io-client';
 import './App.css';
+import { useAuth } from './context/AuthProvider';
+import LoginScreen from './screens/LoginScreen';
+import UsersManager from './screens/UsersManager';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 
@@ -26,6 +29,7 @@ const STATUS_LABELS = {
 };
 
 export default function AdminApp() {
+  const { token, user, fetchWithAuth, logout } = useAuth();
   const [tab,       setTab]       = useState('orders'); // orders | menu | kiosks | stats
   const [orders,    setOrders]    = useState([]);
   const [menuStatus,setMenuStatus]= useState(null);
@@ -59,12 +63,14 @@ export default function AdminApp() {
     socket.on('order_status_updated', ({ orderId, status }) => {
       setOrders(prev => prev.map(o => o._id === orderId ? { ...o, status } : o));
     });
-    return () => socket.disconnect();
+      if (!token) return <LoginScreen />;
+
+  return () => socket.disconnect();
   }, []);
 
   /* ─── Load initial orders ────────────────────────── */
   useEffect(() => {
-    fetch(`${BACKEND}/api/orders?limit=100`)
+    fetchWithAuth(`${BACKEND}/api/orders?limit=100`)
       .then(r => r.json())
       .then(d => setOrders(d.orders || []))
       .catch(() => {});
@@ -72,7 +78,7 @@ export default function AdminApp() {
 
   /* ─── Load menu status ───────────────────────────── */
   const fetchMenuStatus = useCallback(() => {
-    fetch(`${BACKEND}/api/menu/status`)
+    fetchWithAuth(`${BACKEND}/api/menu/status`)
       .then(r => r.json())
       .then(d => setMenuStatus(d))
       .catch(() => {});
@@ -116,6 +122,7 @@ export default function AdminApp() {
             { id: 'kiosks',    icon: '📺', label: 'Kioskuri' },
             { id: 'qrcodes',   icon: '📱', label: 'QR Coduri' },
             { id: 'menu',      icon: '🍽',  label: 'Meniu / Syrve' },
+            ...(user?.role === 'admin' ? [{ id: 'users', icon: '👥', label: 'Echipă' }] : []),
           ].map(item => (
             <button
               key={item.id}
@@ -145,6 +152,7 @@ export default function AdminApp() {
         </div>
 
         <div className="admin-links">
+          <button onClick={logout} style={{background:'rgba(239,68,68,0.1)', color:'#ef4444', border:'none', padding:'8px 12px', borderRadius:'8px', cursor:'pointer', marginBottom:'10px', width:'100%'}}>🚪 Deconectare</button>
           <a href="http://localhost:4012" target="_blank" rel="noreferrer">📺 Kitchen Display</a>
           <a href="http://localhost:4010/?brand=smashme" target="_blank" rel="noreferrer">🍔 Kiosk SmashMe</a>
           <a href="http://localhost:4010/?brand=sushimaster" target="_blank" rel="noreferrer">🍣 Kiosk Sushi</a>
@@ -259,6 +267,8 @@ export default function AdminApp() {
             <QrGenerator backend={BACKEND} />
           </div>
         )}
+        {/* ─── USERS MANAGER ─── */}
+        {tab === 'users' && <UsersManager />}
       </main>
     </div>
   );
@@ -319,7 +329,8 @@ function OrdersTable({ orders, full }) {
   );
 }
 
-function KioskPosterCard({ brandId, brandName, emoji, backend }) {
+function KioskPosterCard({ brandId, brandName, emoji, backend }) { 
+  const { fetchWithAuth } = useAuth();
   const [url, setUrl]         = useState('');
   const [type, setType]       = useState('image');
   const [enabled, setEnabled] = useState(false);
@@ -328,7 +339,7 @@ function KioskPosterCard({ brandId, brandName, emoji, backend }) {
 
   // Load existing config
   useEffect(() => {
-    fetch(`${backend}/api/admin/kiosk-config/${brandId}`)
+    fetchWithAuth(`${backend}/api/admin/kiosk-config/${brandId}`)
       .then(r => r.json())
       .then(d => {
         if (d.poster) {
@@ -343,7 +354,7 @@ function KioskPosterCard({ brandId, brandName, emoji, backend }) {
 
   const save = async () => {
     try {
-      await fetch(`${backend}/api/admin/kiosk-config/${brandId}`, {
+      await fetchWithAuth(`${backend}/api/admin/kiosk-config/${brandId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url, type, enabled }),
@@ -356,7 +367,7 @@ function KioskPosterCard({ brandId, brandName, emoji, backend }) {
   };
 
   const remove = async () => {
-    await fetch(`${backend}/api/admin/kiosk-config/${brandId}`, { method: 'DELETE' });
+    await fetchWithAuth(`${backend}/api/admin/kiosk-config/${brandId}`, { method: 'DELETE' });
     setUrl('');
     setType('image');
     setEnabled(false);
@@ -437,7 +448,8 @@ function KioskPosterCard({ brandId, brandName, emoji, backend }) {
   );
 }
 
-function KioskLocationList({ backend }) {
+function KioskLocationList({ backend }) { 
+  const { fetchWithAuth } = useAuth();
   const [locations, setLocations] = useState([]);
   const [loading, setLoading]     = useState(true);
   const [expandedBrand, setExpandedBrand] = useState(null);
@@ -445,7 +457,7 @@ function KioskLocationList({ backend }) {
   const [brandFilter, setBrandFilter]     = useState('all');
 
   useEffect(() => {
-    fetch(`${backend}/api/locations`)
+    fetchWithAuth(`${backend}/api/locations`)
       .then(r => r.json())
       .then(d => {
         setLocations(d.locations || []);
@@ -562,7 +574,8 @@ function KioskLocationList({ backend }) {
 }
 
 /* ─── QR GENERATOR ──────────────────────────────────────────────────── */
-function QrGenerator({ backend }) {
+function QrGenerator({ backend }) { 
+  const { fetchWithAuth } = useAuth();
   const [brand, setBrand] = useState('smashme');
   const [loc, setLoc] = useState('1');
   const [tableCount, setTableCount] = useState(10);
@@ -581,7 +594,7 @@ function QrGenerator({ backend }) {
   const generate = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${backend}/api/qr/location/${loc}?brand=${brand}&tables=${tableCount}`);
+      const res = await fetchWithAuth(`${backend}/api/qr/location/${loc}?brand=${brand}&tables=${tableCount}`);
       const data = await res.json();
       setQrs(data.qrs || []);
     } catch (err) {
@@ -674,7 +687,8 @@ function QrGenerator({ backend }) {
 const BRAND_LABELS = { smashme: 'SmashMe', sushimaster: 'Sushi Master', ikura: 'Ikura', welovesushi: 'WeLoveSushi' };
 const BRAND_PILL_COLORS = { smashme: '#ef4444', sushimaster: '#3b82f6', ikura: '#8b5cf6', welovesushi: '#ec4899' };
 
-function LocationsManager({ backend }) {
+function LocationsManager({ backend }) { 
+  const { fetchWithAuth } = useAuth();
   const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -686,7 +700,7 @@ function LocationsManager({ backend }) {
 
   const fetchLocs = () => {
     setLoading(true);
-    fetch(`${backend}/api/locations`)
+    fetchWithAuth(`${backend}/api/locations`)
       .then(r => r.json())
       .then(d => { setLocations(d.locations || []); setLoading(false); })
       .catch(() => setLoading(false));
@@ -699,7 +713,7 @@ function LocationsManager({ backend }) {
 
   const createLocation = () => {
     if (!newName.trim()) return;
-    fetch(`${backend}/api/locations`, {
+    fetchWithAuth(`${backend}/api/locations`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: newName, brands: newBrands, tables: newTables }),
@@ -709,7 +723,7 @@ function LocationsManager({ backend }) {
   };
 
   const toggleActive = (loc) => {
-    fetch(`${backend}/api/locations/${loc.id}`, {
+    fetchWithAuth(`${backend}/api/locations/${loc.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ active: !loc.active }),
@@ -718,7 +732,7 @@ function LocationsManager({ backend }) {
 
   const deleteLoc = (id) => {
     if (!confirm('Stergi aceasta locatie?')) return;
-    fetch(`${backend}/api/locations/${id}`, { method: 'DELETE' })
+    fetchWithAuth(`${backend}/api/locations/${id}`, { method: 'DELETE' })
       .then(() => fetchLocs());
   };
 
@@ -858,7 +872,7 @@ function LocationEditForm({ loc, backend, onBack, onSave }) {
   };
 
   const saveLoc = async () => {
-    await fetch(`${backend}/api/locations/${loc.id}`, {
+    await fetchWithAuth(`${backend}/api/locations/${loc.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(formData)

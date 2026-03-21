@@ -2,6 +2,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const router = express.Router();
+const { protect } = require('../middleware/authMiddleware');
 
 // ─── Kiosk Config Persistence (JSON file) ─────────────────────────
 const CONFIG_PATH = path.join(__dirname, '../../data/kiosk-config.json');
@@ -21,7 +22,7 @@ function saveConfig(config) {
 
 // Admin routes — require JWT auth in production
 // GET /api/admin/dashboard
-router.get('/dashboard', async (req, res) => {
+router.get('/dashboard', protect, async (req, res) => {
   res.json({
     ordersToday: 0,
     revenueToday: 0,
@@ -31,7 +32,7 @@ router.get('/dashboard', async (req, res) => {
 });
 
 // GET /api/admin/orders?date=&locationId=&status=
-router.get('/orders', async (req, res) => {
+router.get('/orders', protect, async (req, res) => {
   res.json({ orders: [], total: 0 });
 });
 
@@ -51,7 +52,7 @@ router.get('/kiosk-config/:brandId', (req, res) => {
 });
 
 // POST /api/admin/kiosk-config/:brandId — set poster for a brand
-router.post('/kiosk-config/:brandId', (req, res) => {
+router.post('/kiosk-config/:brandId', protect, (req, res) => {
   const { brandId } = req.params;
   const { url, type, enabled } = req.body; // type: 'image' | 'video' | 'iframe'
   const config = loadConfig();
@@ -75,7 +76,7 @@ router.post('/kiosk-config/:brandId', (req, res) => {
 });
 
 // DELETE /api/admin/kiosk-config/:brandId — remove poster for a brand
-router.delete('/kiosk-config/:brandId', (req, res) => {
+router.delete('/kiosk-config/:brandId', protect, (req, res) => {
   const config = loadConfig();
   delete config.posters[req.params.brandId];
   saveConfig(config);

@@ -1,0 +1,18 @@
+[
+  {
+    "id": "u-admin",
+    "email": "admin@kiosk.ro",
+    "password": "admin",
+    "role": "admin",
+    "name": "Super Admin",
+    "locations": []
+  },
+  {
+    "id": "u-demo",
+    "email": "demo@kiosk.ro",
+    "password": "demo",
+    "role": "demo",
+    "name": "Demo User",
+    "locations": []
+  }
+]
