@@ -116,10 +116,22 @@ export default function WelcomeScreen() {
           )}
           <div className="poster-cta-center">
             <button className="poster-cta-round" onClick={(e) => { e.stopPropagation(); handlePosterTap(); }}>
-              <span className="poster-burger-icon">🍔</span>
+              <img src="https://smashme.ro/_next/image?url=https%3A%2F%2Fbackend.smashme.ro%2Fuploads%2Fproducts%2Fclassic-smash.jpg&w=640&q=75" alt="" className="poster-cta-img" />
             </button>
-            <span className="poster-cta-label">Începe comanda</span>
-            <span className="poster-tap-hint">Atinge oriunde pe ecran</span>
+            <span className="poster-cta-label">{t('start_order', lang)}</span>
+            <span className="poster-tap-hint">{t('touch_anywhere', lang)}</span>
+          </div>
+          {/* Language on poster */}
+          <div className="poster-langs" onClick={(e) => e.stopPropagation()}>
+            {LANGUAGES.map(l => (
+              <button
+                key={l}
+                className={`poster-lang-btn ${lang === l ? 'active' : ''}`}
+                onClick={(e) => { e.stopPropagation(); setLang(l); }}
+              >
+                {LANGUAGE_NAMES[l]}
+              </button>
+            ))}
           </div>
         </div>
       )}
@@ -176,8 +188,8 @@ export default function WelcomeScreen() {
         </button>
       </div>
 
-      {/* Language selector */}
-      <div className="welcome-langs">
+      {/* Language selector — top right, always visible */}
+      <div className="welcome-langs" onClick={(e) => e.stopPropagation()}>
         {LANGUAGES.map(l => (
           <button
             key={l}
