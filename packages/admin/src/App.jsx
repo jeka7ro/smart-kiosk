@@ -21,7 +21,16 @@ export default function AdminApp() {
   const [connected, setConnected] = useState(false);
   const [brandFilter, setBrandFilter] = useState('all');
   const [notifications, setNotifs]= useState([]);
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('admin-theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  });
   const socketRef = useRef(null);
+
+  /* ─── Theme Sync ─────────────────────────────────── */
+  useEffect(() => {
+    document.body.setAttribute('data-theme', theme);
+    localStorage.setItem('admin-theme', theme);
+  }, [theme]);
 
   /* ─── Socket.IO ─────────────────────────────────── */
   useEffect(() => {
@@ -111,6 +120,17 @@ export default function AdminApp() {
         <div className={`admin-conn ${connected ? 'conn--ok' : 'conn--off'}`}>
           <span className="conn-dot" />
           {connected ? 'Live' : 'Offline'}
+        </div>
+
+        {/* Theme Toggle */}
+        <div style={{ padding: '0 10px', marginTop: 'auto' }}>
+          <button 
+            className="anav-btn"
+            style={{ justifyContent: 'center', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)' }}
+            onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
+          >
+            {theme === 'dark' ? '☀️ Mod Luminos' : '🌙 Mod Întunecat'}
+          </button>
         </div>
 
         <div className="admin-links">

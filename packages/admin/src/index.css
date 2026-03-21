@@ -1,19 +1,74 @@
 /* Admin Panel Global Styles */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
 :root {
-  --bg: #0a0d15;
-  --bg-card: #111827;
-  --bg-surface: #1a2035;
-  --border: #1e2d45;
+  /* Dynamic Mesh Gradient Base Colors */
+  --mesh-color-1: #0a0d15;
+  --mesh-color-2: #1e1b4b;
+  --mesh-color-3: #172554;
+  --mesh-color-4: #083344;
+  
+  /* Glass Variables */
+  --glass-bg: rgba(17, 24, 39, 0.55);
+  --glass-bg-hover: rgba(26, 32, 53, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  
+  --bg: #0a0d15; /* Fallback */
   --text: #e8eaf0;
-  --text-muted: #6b7a99;
+  --text-muted: #94a3b8;
   --primary: #3b82f6;
   --success: #10b981;
   --warning: #f59e0b;
   --danger: #ef4444;
   --purple: #8b5cf6;
   --cyan: #06b6d4;
+  
+  --scrollbar-thumb: rgba(255, 255, 255, 0.2);
 }
-body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+[data-theme='light'] {
+  --mesh-color-1: #f8fafc;
+  --mesh-color-2: #e0e7ff;
+  --mesh-color-3: #dcfce7;
+  --mesh-color-4: #f3e8ff;
+  
+  /* Glass Variables Light Mode */
+  --glass-bg: rgba(255, 255, 255, 0.65);
+  --glass-bg-hover: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.5);
+  --glass-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+
+  --bg: #f8fafc;
+  --text: #1e293b;
+  --text-muted: #64748b;
+  
+  --scrollbar-thumb: rgba(0, 0, 0, 0.2);
+}
+
+body { 
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Outfit', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color: var(--text); 
+  min-height: 100vh;
+  margin: 0;
+  background-color: var(--mesh-color-1);
+  /* Mesh Gradient Animation */
+  background-image: 
+    radial-gradient(at 0% 0%, var(--mesh-color-2) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, var(--mesh-color-3) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, var(--mesh-color-4) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, var(--mesh-color-2) 0px, transparent 50%);
+  background-attachment: fixed;
+  background-size: 100% 100%;
+  transition: color 0.3s ease, background-color 0.5s ease;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(128, 128, 128, 0.5); }
+
 button { cursor: pointer; border: none; font-family: inherit; }
 a { text-decoration: none; color: inherit; }
