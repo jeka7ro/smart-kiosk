@@ -12,6 +12,10 @@ export const useKioskStore = create((set, get) => ({
   setLang: (lang) => set({ lang }),
   setLocationData: (data) => set({ locationData: data }),
 
+  // ─── Menu Data ─────────────────────────────────────────────
+  menuProducts: [],
+  setMenuProducts: (products) => set({ menuProducts: products }),
+
 
   // ─── Cart ─────────────────────────────────────────────────
   cartItems: [],

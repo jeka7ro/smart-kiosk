@@ -1,20 +1,27 @@
-import { useState } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useKioskStore } from '../store/kioskStore';
 import { t } from '../i18n/translations.js';
+import { useBrand } from '../hooks/useBrand';
+import ProductCard from '../components/ProductCard.jsx';
 import './ProductScreen.css';
 
 export default function ProductScreen() {
-  const product     = useKioskStore((s) => s.selectedProduct);
-  const addToCart   = useKioskStore((s) => s.addToCart);
-  const goTo        = useKioskStore((s) => s.goTo);
-  const lang        = useKioskStore((s) => s.lang);
+  const product       = useKioskStore((s) => s.selectedProduct);
+  const addToCart     = useKioskStore((s) => s.addToCart);
+  const goTo          = useKioskStore((s) => s.goTo);
+  const lang          = useKioskStore((s) => s.lang);
+  const menuProducts  = useKioskStore((s) => s.menuProducts);
+  const setSelectedProduct = useKioskStore((s) => s.setSelectedProduct);
+  const brand = useBrand();
 
-  // Normalize data — supports both Syrve API fields and mock data fields
   const modifiers = product?.modifierGroups || product?.modifiers || [];
   const allergens = product?.allergenGroups || product?.allergens || [];
 
   const [quantity, setQuantity] = useState(1);
   const [imgError, setImgError] = useState(false);
+  const [flyAnim, setFlyAnim]   = useState(null);
+  const cartIconRef = useRef(null);
+
   const [selected, setSelected] = useState(() => {
     const init = {};
     const mods = product?.modifierGroups || product?.modifiers || [];
@@ -25,9 +32,15 @@ export default function ProductScreen() {
     return init;
   });
 
+  const suggestions = useMemo(() => {
+    if (!product) return [];
+    const others = menuProducts.filter(p => p.id !== product.id && p.image);
+    const shuffled = [...others].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, 6);
+  }, [product, menuProducts]);
+
   if (!product) { goTo('menu'); return null; }
 
-  // Calculate price adjustments from modifiers
   const selectedOptionsDiff = modifiers.reduce((sum, mod) => {
     const opts = mod.options || mod.items || [];
     const optionId = selected[mod.id];
@@ -38,7 +51,6 @@ export default function ProductScreen() {
   const unitPrice  = product.price + selectedOptionsDiff;
   const totalPrice = unitPrice * quantity;
 
-  // Only check required modifiers that actually have options to select
   const allRequiredSelected = modifiers
     .filter(m => m.required && (m.options?.length > 0 || m.items?.length > 0))
     .every(m => selected[m.id]);
@@ -54,25 +66,39 @@ export default function ProductScreen() {
       };
     }).filter(m => m.optionName);
 
-    addToCart(product, quantity, selectedModifiers, unitPrice);
+    addToCart(product, quantity, selectedModifiers, unitPrice, brand?.id);
     goTo('menu');
   };
 
-  // Normalize allergen display
+  const handleQuickAddSug = (sugProd, refElem) => {
+    addToCart(sugProd, 1, [], sugProd.price, brand?.id);
+    if (!refElem || !cartIconRef.current) return;
+    const fromRect = refElem.getBoundingClientRect();
+    const toRect = cartIconRef.current.getBoundingClientRect();
+    setFlyAnim({
+      img: sugProd.image,
+      startX: fromRect.left + fromRect.width / 2,
+      startY: fromRect.top + fromRect.height / 2,
+      endX: toRect.left + toRect.width / 2,
+      endY: toRect.top + toRect.height / 2,
+    });
+    setTimeout(() => { setFlyAnim(null); }, 850);
+  };
+
   const allergenLabels = allergens.map(a =>
     typeof a === 'string' ? a : (a.name || a.id || '')
   ).filter(Boolean);
 
   return (
     <div className="product-screen screen">
-      <button className="back-btn-abs" onClick={() => goTo('menu')}>
-        ← {t('back', lang)} 
-      </button>
+      {/* ─── LEFT PANEL (1/3) ─── */}
+      <div className="ps-left">
+        <button className="back-btn-ps" onClick={() => goTo('menu')}>
+          ← {t('back', lang)} 
+        </button>
 
-      <div className="product-detail scroll-y">
-        {/* ─── Hero ─────────────────────────────── */}
-        <div className="pd-hero">
-          <div className="pd-hero-img">
+        <div className="ps-left-content scroll-y">
+          <div className="pd-hero-img" style={imgError || !product.image ? {background: 'var(--surface)'} : {}}>
             {product.image && !imgError ? (
               <img
                 src={product.image}
@@ -81,7 +107,7 @@ export default function ProductScreen() {
                 onError={() => setImgError(true)}
               />
             ) : (
-              <span className="pd-emoji">🍽️</span>
+              <img src={`/brands/${brand?.id || 'smashme'}-logo.png`} style={{ opacity: 0.15, filter: 'grayscale(100%)', width: '50%', objectFit: 'contain' }} alt="" />
             )}
           </div>
 
@@ -89,74 +115,103 @@ export default function ProductScreen() {
             {product.badge && <span className="product-badge">{product.badge}</span>}
             <h1 className="pd-name">{product.name}</h1>
             <p className="pd-desc">{product.description}</p>
-
-            {product.weight && (
-              <span className="pd-weight">⚖️ {product.weight}g</span>
-            )}
-            {product.energyAmount && (
-              <span className="pd-calories">🔥 {Math.round(product.energyAmount)} kcal</span>
-            )}
-
+            {product.weight && <span className="pd-weight">⚖️ {product.weight}g</span>}
+            {product.energyAmount && <span className="pd-calories">🔥 {Math.round(product.energyAmount)} kcal</span>}
             {allergenLabels.length > 0 && (
               <div className="pd-allergens">
                 <span className="pd-allergen-label">⚠️ Alergeni:</span>
-                {allergenLabels.map(a => (
-                  <span key={a} className="allergen-tag">{a}</span>
-                ))}
+                {allergenLabels.map(a => (<span key={a} className="allergen-tag">{a}</span>))}
               </div>
             )}
           </div>
+
+          {modifiers.map(mod => {
+            const opts = mod.options || mod.items || [];
+            if (opts.length === 0) return null;
+            return (
+              <div key={mod.id} className="pd-modifier">
+                <div className="pd-mod-header">
+                  <h3>{mod.name}</h3>
+                  {mod.required && <span className="req-badge">Obligatoriu</span>}
+                </div>
+                <div className="pd-mod-options">
+                  {opts.map(opt => (
+                    <button
+                      key={opt.id}
+                      className={`mod-option ${selected[mod.id] === opt.id ? 'mod-option--selected' : ''}`}
+                      onClick={() => handleSelect(mod.id, opt.id)}
+                    >
+                      <span className="mod-opt-name">{opt.name}</span>
+                      {(opt.priceDiff > 0 || opt.price > 0) && (
+                        <span className="mod-opt-price">
+                          +{(opt.priceDiff || opt.price || 0).toFixed(0)} lei
+                        </span>
+                      )}
+                      {selected[mod.id] === opt.id && <span className="mod-check">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        {/* ─── Modifiers ────────────────────────── */}
-        {modifiers.map(mod => {
-          const opts = mod.options || mod.items || [];
-          if (opts.length === 0) return null;
-          return (
-            <div key={mod.id} className="pd-modifier">
-              <div className="pd-mod-header">
-                <h3>{mod.name}</h3>
-                {mod.required && <span className="req-badge">Obligatoriu</span>}
-              </div>
-              <div className="pd-mod-options">
-                {opts.map(opt => (
-                  <button
-                    key={opt.id}
-                    className={`mod-option ${selected[mod.id] === opt.id ? 'mod-option--selected' : ''}`}
-                    onClick={() => handleSelect(mod.id, opt.id)}
-                  >
-                    <span className="mod-opt-name">{opt.name}</span>
-                    {(opt.priceDiff > 0 || opt.price > 0) && (
-                      <span className="mod-opt-price">
-                        +{(opt.priceDiff || opt.price || 0).toFixed(0)} lei
-                      </span>
-                    )}
-                    {selected[mod.id] === opt.id && <span className="mod-check">✓</span>}
-                  </button>
-                ))}
-              </div>
-            </div>
-          );
-        })}
+        <div className="pd-footer">
+          <div className="qty-control">
+            <button className="qty-btn" onClick={() => setQuantity(q => Math.max(1, q - 1))}>−</button>
+            <span className="qty-num">{quantity}</span>
+            <button className="qty-btn" onClick={() => setQuantity(q => Math.min(20, q + 1))}>+</button>
+          </div>
+          <button
+            className="btn btn-primary btn-xl"
+            style={{ flex: 1 }}
+            disabled={!allRequiredSelected}
+            onClick={handleAdd}
+          >
+            <span>{t('add_to_cart', lang)}</span>
+            <span className="pd-total">{totalPrice.toFixed(0)} {t('lei', lang)}</span>
+          </button>
+        </div>
       </div>
 
-      {/* ─── Footer sticky ────────────────────── */}
-      <div className="pd-footer">
-        <div className="qty-control">
-          <button className="qty-btn" onClick={() => setQuantity(q => Math.max(1, q - 1))}>−</button>
-          <span className="qty-num">{quantity}</span>
-          <button className="qty-btn" onClick={() => setQuantity(q => Math.min(20, q + 1))}>+</button>
+      {/* ─── RIGHT PANEL (2/3) ─── */}
+      <div className="ps-right scroll-y">
+        <div className="suggestions-header">
+           <h2>Recomandări pentru tine</h2>
+           <p>Ce s-ar mai potrivi cu comanda ta de astăzi?</p>
         </div>
-        <button
-          className="btn btn-primary btn-xl"
-          style={{ flex: 1 }}
-          disabled={!allRequiredSelected}
-          onClick={handleAdd}
+        <div className="suggestions-grid">
+          {suggestions.map((sug, i) => (
+             <ProductCard 
+               key={sug.id} 
+               product={sug} 
+               delay={i * 0.05} 
+               lang={lang} 
+               activeBrand={brand?.id || 'smashme'} 
+               onQuickAdd={(p, ref) => handleQuickAddSug(p, ref)}
+               onInfo={() => setSelectedProduct(sug)} 
+             />
+          ))}
+        </div>
+      </div>
+
+      {/* Invisible cart target for animations in right panel */}
+      <div ref={cartIconRef} style={{ position: 'fixed', bottom: 16, right: 16, opacity: 0, pointerEvents: 'none' }} />
+
+      {/* FLY ANIMATION */}
+      {flyAnim && (
+        <div 
+          className="fly-thumb"
+          style={{
+            '--fly-sx': `${flyAnim.startX}px`,
+            '--fly-sy': `${flyAnim.startY}px`,
+            '--fly-ex': `${flyAnim.endX}px`,
+            '--fly-ey': `${flyAnim.endY}px`,
+          }}
         >
-          <span>{t('add_to_cart', lang)}</span>
-          <span className="pd-total">{totalPrice.toFixed(0)} {t('lei', lang)}</span>
-        </button>
-      </div>
+          {flyAnim.img && <img src={flyAnim.img} alt="" />}
+        </div>
+      )}
     </div>
   );
 }
