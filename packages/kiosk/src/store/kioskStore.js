@@ -2,13 +2,15 @@ import { create } from 'zustand';
 
 export const useKioskStore = create((set, get) => ({
   // ─── App state ────────────────────────────────────────────
-  screen: 'welcome', // welcome | orderType | menu | product | cart | payment | confirmation
+  screen: 'welcome', // welcome | orderType | brandSelect | menu | product | cart | payment | confirmation
   orderType: null,   // 'dine-in' | 'takeaway'
   tableNumber: null,
-  lang: 'ro',        // 'ro' | 'en' | 'ru' (questionnaire: toate 3 limbi)
+  lang: 'ro',
+  locationData: null, // { id, brands, orgIds } from backend
 
   // ─── Language ──────────────────────────────────────────────
   setLang: (lang) => set({ lang }),
+  setLocationData: (data) => set({ locationData: data }),
 
 
   // ─── Cart ─────────────────────────────────────────────────
@@ -20,11 +22,15 @@ export const useKioskStore = create((set, get) => ({
   // ─── Navigation ───────────────────────────────────────────
   goTo: (screen) => set({ screen }),
 
-  setOrderType: (type, table = null) => set({
-    orderType: type,
-    tableNumber: table,
-    screen: 'menu',
-  }),
+  setOrderType: (type, table = null) => {
+    const loc = get().locationData;
+    const nextScreen = (loc && loc.brands && loc.brands.length > 1) ? 'brandSelect' : 'menu';
+    set({
+      orderType: type,
+      tableNumber: table,
+      screen: nextScreen,
+    });
+  },
 
   // Skip order type selection — default is pickup at cashier (takeaway)
   goToMenu: () => set({

@@ -1,0 +1,69 @@
+/* ─── BRAND SELECT SCREEN ─── */
+.brand-select-screen {
+  width: 100vw; height: 100vh;
+  background: var(--bg-dark);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 24px;
+  padding: 40px 20px;
+}
+
+.bss-title {
+  font-size: 2rem; font-weight: 800;
+  color: var(--text);
+  text-align: center; margin: 0;
+}
+.bss-subtitle {
+  font-size: 1rem; color: var(--text-muted);
+  text-align: center; margin: 0 0 12px;
+}
+
+.bss-grid {
+  display: flex; gap: 20px;
+  flex-wrap: wrap; justify-content: center;
+  max-width: 700px;
+}
+
+.bss-card {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 12px;
+  padding: 32px 40px;
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: 24px;
+  cursor: pointer;
+  transition: all 0.25s;
+  min-width: 200px;
+  font-family: 'Outfit', sans-serif;
+}
+.bss-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--brand-c);
+  box-shadow: 0 8px 32px color-mix(in srgb, var(--brand-c) 30%, transparent);
+}
+.bss-card:active {
+  transform: scale(0.97);
+}
+
+.bss-emoji {
+  font-size: 4rem; line-height: 1;
+}
+.bss-label {
+  font-size: 1.4rem; font-weight: 800;
+  color: var(--brand-c);
+}
+.bss-desc {
+  font-size: 0.85rem; color: var(--text-muted);
+  text-align: center; font-weight: 500;
+}
+
+.bss-back {
+  margin-top: 12px; padding: 10px 24px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: transparent; color: var(--text-muted);
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.9rem; font-weight: 600;
+  cursor: pointer; transition: all 0.2s;
+}
+.bss-back:hover { color: var(--text); border-color: var(--text); }

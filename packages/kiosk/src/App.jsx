@@ -3,21 +3,39 @@ import { useKioskStore } from './store/kioskStore';
 import { useInactivityTimeout } from './hooks/useInactivityTimeout';
 import { getBrand } from './config/brands.js';
 
-import WelcomeScreen      from './screens/WelcomeScreen';
-import OrderTypeScreen    from './screens/OrderTypeScreen';
-import MenuScreen         from './screens/MenuScreen';
-import ProductScreen      from './screens/ProductScreen';
-import CartScreen         from './screens/CartScreen';
-import PaymentScreen      from './screens/PaymentScreen';
-import ConfirmationScreen from './screens/ConfirmationScreen';
+import WelcomeScreen       from './screens/WelcomeScreen';
+import OrderTypeScreen     from './screens/OrderTypeScreen';
+import BrandSelectScreen   from './screens/BrandSelectScreen';
+import MenuScreen          from './screens/MenuScreen';
+import ProductScreen       from './screens/ProductScreen';
+import CartScreen          from './screens/CartScreen';
+import PaymentScreen       from './screens/PaymentScreen';
+import ConfirmationScreen  from './screens/ConfirmationScreen';
+
+const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 
 export const BrandContext = createContext(null);
 export const useBrand = () => useContext(BrandContext);
 
 export default function App({ brandId }) {
   const screen = useKioskStore((s) => s.screen);
+  const setLocationData = useKioskStore((s) => s.setLocationData);
   const brand  = getBrand(brandId);
   useInactivityTimeout();
+
+  // Fetch location data at boot (for multi-brand detection)
+  useEffect(() => {
+    const locId = new URLSearchParams(window.location.search).get('loc');
+    if (!locId) return;
+    fetch(`${BACKEND}/api/locations/${locId}`)
+      .then(r => r.json())
+      .then(loc => {
+        if (loc && loc.brands) {
+          setLocationData(loc);
+        }
+      })
+      .catch(() => {});
+  }, [setLocationData]);
 
   // Auto-fullscreen on first user interaction (for kiosk/tablet mode)
   useEffect(() => {
@@ -42,6 +60,7 @@ export default function App({ brandId }) {
     <BrandContext.Provider value={brand}>
       {screen === 'welcome'      && <WelcomeScreen />}
       {screen === 'orderType'    && <OrderTypeScreen />}
+      {screen === 'brandSelect'  && <BrandSelectScreen />}
       {screen === 'menu'         && <MenuScreen />}
       {screen === 'product'      && <ProductScreen />}
       {screen === 'cart'         && <CartScreen />}
