@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useKioskStore } from '../store/kioskStore';
 import { useBrand } from '../App';
 import { BRANDS, applyBrandTheme } from '../config/brands.js';
-import { t, LANGUAGES, LANGUAGE_NAMES } from '../i18n/translations.js';
+import { t, LANGUAGES, LANGUAGE_NAMES, LANGUAGE_FLAGS } from '../i18n/translations.js';
 import { io } from 'socket.io-client';
 import './WelcomeScreen.css';
 
@@ -116,7 +116,7 @@ export default function WelcomeScreen() {
           )}
           <div className="poster-cta-center">
             <button className="poster-cta-round" onClick={(e) => { e.stopPropagation(); handlePosterTap(); }}>
-              <img src="https://smashme.ro/_next/image?url=https%3A%2F%2Fbackend.smashme.ro%2Fuploads%2Fproducts%2Fclassic-smash.jpg&w=640&q=75" alt="" className="poster-cta-img" />
+              <img src={brand.logoImg || '/brands/smashme-logo.png'} alt="" className="poster-cta-img" />
             </button>
             <span className="poster-cta-label">{t('start_order', lang)}</span>
             <span className="poster-tap-hint">{t('touch_anywhere', lang)}</span>
@@ -129,7 +129,7 @@ export default function WelcomeScreen() {
                 className={`poster-lang-btn ${lang === l ? 'active' : ''}`}
                 onClick={(e) => { e.stopPropagation(); setLang(l); }}
               >
-                {LANGUAGE_NAMES[l]}
+                {LANGUAGE_FLAGS[l]} {LANGUAGE_NAMES[l]}
               </button>
             ))}
           </div>
@@ -196,7 +196,7 @@ export default function WelcomeScreen() {
             className={`lang-btn ${lang === l ? 'active' : ''}`}
             onClick={(e) => { e.stopPropagation(); setLang(l); }}
           >
-            {LANGUAGE_NAMES[l]}
+            {LANGUAGE_FLAGS[l]} {LANGUAGE_NAMES[l]}
           </button>
         ))}
       </div>
