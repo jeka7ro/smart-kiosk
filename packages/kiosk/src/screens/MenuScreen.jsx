@@ -78,16 +78,17 @@ export default function MenuScreen() {
     // Prefer location's orgId, fallback to hardcoded map
     const orgId = locationOrgIds[activeBrand] || BRAND_ORG_MAP[activeBrand];
 
-    const pickDefault = (cats) => {
-      const burger = cats.find(c => /burger/i.test(c.name));
-      return burger?.id || cats[0]?.id || null;
+    const pickDefault = (cats, prods) => {
+      // Pick first category that actually HAS products in it
+      const catWithProds = cats.find(c => prods.some(p => p.categoryId === c.id));
+      return catWithProds?.id || cats[0]?.id || null;
     };
 
     if (!orgId) {
       const { categories: cats, products: prods } = getMenuData(activeBrand);
       setCategories(cats);
       setProducts(prods);
-      setActiveCategory(pickDefault(cats));
+      setActiveCategory(pickDefault(cats, prods));
       setLoading(false);
       return;
     }
@@ -101,7 +102,7 @@ export default function MenuScreen() {
         const prods = (data.products || []).filter(p => p.price > 0);
         setProducts(prods);
         setMenuProducts(prods);
-        setActiveCategory(pickDefault(cats));
+        setActiveCategory(pickDefault(cats, prods));
         setLoading(false);
       })
       .catch(err => {
@@ -110,7 +111,7 @@ export default function MenuScreen() {
         setCategories(cats);
         setProducts(prods);
         setMenuProducts(prods);
-        setActiveCategory(pickDefault(cats));
+        setActiveCategory(pickDefault(cats, prods));
         setLoading(false);
       });
   }, [activeBrand, locationOrgIds]);

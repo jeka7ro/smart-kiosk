@@ -37,9 +37,9 @@ export const BRANDS = {
 
     // Welcome screen
     welcomeSlides: [
-      { headline: 'Burgeri smash,', sub: 'suculenți și memorabili', heroImage: 'https://smashme.ro/_next/image?url=https%3A%2F%2Fbackend.smashme.ro%2Fuploads%2Fproducts%2Fclassic-smash.jpg&w=640&q=75' },
-      { headline: 'Ingrediente fresh,', sub: 'gătite la comandă', heroImage: 'https://smashme.ro/_next/image?url=https%3A%2F%2Fbackend.smashme.ro%2Fuploads%2Fproducts%2Fbbq-bacon-smash.jpg&w=640&q=75' },
-      { headline: 'Plată rapidă', sub: 'cu cardul sau contactless', heroImage: 'https://smashme.ro/_next/image?url=https%3A%2F%2Fbackend.smashme.ro%2Fuploads%2Fproducts%2Fclassic-smash.jpg&w=640&q=75' },
+      { headline: 'Burgeri smash,', sub: 'suculenți și memorabili', emoji: '🍔' },
+      { headline: 'Ingrediente fresh,', sub: 'gătite la comandă', emoji: '🥩' },
+      { headline: 'Plată rapidă', sub: 'cu cardul sau contactless', emoji: '💳' },
     ],
 
     // Category style
@@ -84,9 +84,9 @@ export const BRANDS = {
 
     // Welcome screen
     welcomeSlides: [
-      { headline: 'Sushi proaspăt,', sub: 'pregătit la comandă', heroImage: 'https://sushimaster.ro/_next/image?url=https%3A%2F%2Fbackend.sushimaster.ro%2Fuploads%2Fproducts%2Fcalifornia-roll.jpg&w=640&q=75' },
-      { headline: 'Rețete japoneze', sub: 'autentice și rafinate', heroImage: 'https://sushimaster.ro/_next/image?url=https%3A%2F%2Fbackend.sushimaster.ro%2Fuploads%2Fproducts%2Fcalifornia-roll.jpg&w=640&q=75' },
-      { headline: 'Plată rapidă', sub: 'cu cardul sau contactless', heroImage: 'https://sushimaster.ro/_next/image?url=https%3A%2F%2Fbackend.sushimaster.ro%2Fuploads%2Fproducts%2Fcalifornia-roll.jpg&w=640&q=75' },
+      { headline: 'Sushi proaspăt,', sub: 'pregătit la comandă', emoji: '🍣' },
+      { headline: 'Rețete japoneze', sub: 'autentice și rafinate', emoji: '🌸' },
+      { headline: 'Plată rapidă', sub: 'cu cardul sau contactless', emoji: '💳' },
     ],
 
     categoryEmojis: {
@@ -97,6 +97,68 @@ export const BRANDS = {
       drinks:  '🍵',
       desserts:'🍡',
     },
+  },
+
+  welovesushi: {
+    id: 'welovesushi',
+    name: 'WeLoveSushi',
+    tagline: 'Iubim sushi-ul, la fel ca tine',
+    emoji: '🍣',
+    url: 'welovesushi.ro',
+    logoImg:    '/brands/welovesushi-logo.png',
+    logoHeight: 80,
+    colors: {
+      primary:      '#E31E24',
+      primaryDark:  '#B81219',
+      primaryLight: '#FF3038',
+      accent:       '#D4AF37',
+      bgDark:       '#F5F5F5',
+      bgCard:       '#FFFFFF',
+      bgCard2:      '#F9F9F9',
+      surface:      '#F2F2F2',
+      textMain:     '#1A1A1A',
+      textMuted:    '#6E6F84',
+      borderColor:  '#E8E8E8',
+    },
+    font: "'Outfit', sans-serif",
+    fontWeight: 700,
+    welcomeSlides: [
+      { headline: 'We Love Sushi!', sub: 'Sushi proaspăt, pregătit cu pasiune', emoji: '🍣' },
+      { headline: 'Rețete autentice', sub: 'din bucătăria japoneză', emoji: '🌸' },
+      { headline: 'Plată rapidă', sub: 'cu cardul sau contactless', emoji: '💳' },
+    ],
+    categoryEmojis: { rolls: '🌀', nigiri: '🍣', sashimi: '🐟', soups: '🍜', drinks: '🍵', desserts: '🍡' },
+  },
+
+  ikura: {
+    id: 'ikura',
+    name: 'Ikura',
+    tagline: 'Sushi premium în inima Oradiei',
+    emoji: '🍱',
+    url: 'ikura.ro',
+    logoImg:    '/brands/ikura-logo.png',
+    logoHeight: 80,
+    colors: {
+      primary:      '#8b5cf6',
+      primaryDark:  '#6d28d9',
+      primaryLight: '#a78bfa',
+      accent:       '#f59e0b',
+      bgDark:       '#F5F5F5',
+      bgCard:       '#FFFFFF',
+      bgCard2:      '#F9F9F9',
+      surface:      '#F2F2F2',
+      textMain:     '#1A1A1A',
+      textMuted:    '#6E6F84',
+      borderColor:  '#E8E8E8',
+    },
+    font: "'Outfit', sans-serif",
+    fontWeight: 700,
+    welcomeSlides: [
+      { headline: 'Ikura Oradea', sub: 'Sushi premium, ingrediente proaspete', emoji: '🍱' },
+      { headline: 'Rulouri artizanale', sub: 'preparate cu măiestrie', emoji: '🌸' },
+      { headline: 'Plată rapidă', sub: 'cu cardul sau contactless', emoji: '💳' },
+    ],
+    categoryEmojis: { rolls: '🌀', nigiri: '🍣', sashimi: '🐟', soups: '🍜', drinks: '🍵', desserts: '🍡' },
   },
 };
 
