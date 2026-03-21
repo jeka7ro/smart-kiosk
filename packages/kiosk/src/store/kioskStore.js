@@ -39,12 +39,13 @@ export const useKioskStore = create((set, get) => ({
   }),
 
   // ─── Cart actions ─────────────────────────────────────────
-  addToCart: (product, quantity, selectedModifiers, totalPrice) => {
+  addToCart: (product, quantity, selectedModifiers, totalPrice, brandId) => {
     const cartItem = {
       id: `${product.id}_${Date.now()}`,
       productId: product.id,
       name: product.name,
       image: product.image || null,
+      brandId: brandId || null,
       quantity,
       selectedModifiers,
       unitPrice: totalPrice,

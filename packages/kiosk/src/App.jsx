@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useEffect } from 'react';
 import { useKioskStore } from './store/kioskStore';
 import { useInactivityTimeout } from './hooks/useInactivityTimeout';
 import { getBrand } from './config/brands.js';
@@ -18,6 +18,25 @@ export default function App({ brandId }) {
   const screen = useKioskStore((s) => s.screen);
   const brand  = getBrand(brandId);
   useInactivityTimeout();
+
+  // Auto-fullscreen on first user interaction (for kiosk/tablet mode)
+  useEffect(() => {
+    const goFull = () => {
+      const el = document.documentElement;
+      const rfs = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+      if (rfs && !document.fullscreenElement && !document.webkitFullscreenElement) {
+        rfs.call(el).catch(() => {});
+      }
+      document.removeEventListener('touchstart', goFull);
+      document.removeEventListener('click', goFull);
+    };
+    document.addEventListener('touchstart', goFull, { once: true });
+    document.addEventListener('click', goFull, { once: true });
+    return () => {
+      document.removeEventListener('touchstart', goFull);
+      document.removeEventListener('click', goFull);
+    };
+  }, []);
 
   return (
     <BrandContext.Provider value={brand}>

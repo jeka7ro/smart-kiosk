@@ -34,18 +34,6 @@ export default function MenuScreen() {
   const [search, setSearch]   = useState('');
   const [addedId, setAddedId] = useState(null); // for added-to-cart animation
 
-  // Auto-fullscreen on first interaction (kiosk mode)
-  useEffect(() => {
-    const goFull = () => {
-      if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
-        document.documentElement.requestFullscreen().catch(() => {});
-      }
-      document.removeEventListener('click', goFull);
-    };
-    document.addEventListener('click', goFull);
-    return () => document.removeEventListener('click', goFull);
-  }, []);
-
   // Fetch menu — Syrve API for brands with org ID, mock data for others
   useEffect(() => {
     setLoading(true);
@@ -107,7 +95,7 @@ export default function MenuScreen() {
 
   // Quick add to cart
   const handleQuickAdd = (product) => {
-    addToCart(product, 1, [], product.price);
+    addToCart(product, 1, [], product.price, brand.id);
     setAddedId(product.id);
     setTimeout(() => setAddedId(null), 800);
   };
