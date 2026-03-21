@@ -9,7 +9,9 @@ const BRAND_COLORS = { smashme: '#ef4444', sushimaster: '#3b82f6' };
 function BrandLogo({ brandId, size = 18 }) {
   const logos = {
     smashme: '/brands/smashme-logo.png',
-    sushimaster: '/brands/sushimaster-logo.png'
+    sushimaster: '/brands/sushimaster-logo.png',
+    welovesushi: '/brands/welovesushi-logo.png',
+    ikura: '/brands/ikura-logo.png'
   };
   const src = logos[brandId];
   if (src) return <img src={src} alt={brandId} style={{ height: size, maxWidth: '80px', objectFit: 'contain', verticalAlign: 'middle', flexShrink: 0 }} />;
