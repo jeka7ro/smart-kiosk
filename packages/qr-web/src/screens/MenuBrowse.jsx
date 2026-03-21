@@ -127,30 +127,63 @@ export default function MenuBrowse({ brand }) {
       {/* Products list */}
       {!loading && !error && (
         <main className="mb-products">
-          {filtered.map((p, i) => (
-            <button
+          {filtered.map((p, i) => {
+            const cartEntry = cartItems.find(item => item.productId === p.id);
+            const cartQty = cartEntry ? cartEntry.quantity : 0;
+            
+            return (
+            <div
               key={p.id}
               className="mb-product-card fade-up"
-              style={{ animationDelay: `${i * 0.04}s` }}
-              onClick={() => setSelectedProduct(p)}
+              style={{ animationDelay: `${i * 0.04}s`, display: 'flex', flexDirection: 'column', padding: 16, background: '#fff', borderRadius: 16, border: '1px solid #f3f4f6', boxShadow: '0 2px 10px rgba(0,0,0,0.02)', margin: 0, textAlign: 'left' }}
             >
-              <div className="mb-prod-img">
-                {p.image && !imgErrors[p.id]
-                  ? <img src={p.image} alt={p.name} onError={() => setImgErrors(e => ({...e, [p.id]: true}))} />
-                  : <span>{p.categoryEmoji || '🍽️'}</span>
-                }
+              {/* Header: Name and Price */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }} onClick={() => setSelectedProduct(p)}>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 600, color: '#111827', width: '70%', lineHeight: 1.2 }}>{p.name}</h3>
+                <span style={{ color: '#ef4444', fontWeight: 700, fontSize: '1.05rem' }}>{p.price}RON</span>
               </div>
-              <div className="mb-prod-info">
-                <h3>{p.name}</h3>
-                <p className="mb-desc">{p.description}</p>
-                {p.weight && <p className="mb-weight">{p.weight}g</p>}
-                <div className="mb-prod-footer">
-                  <span className="price price-md">{p.price} lei</span>
-                  <span className="mb-add">+ Adaugă</span>
+
+              {/* Image & Description */}
+              <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => cartQty === 0 ? useQrStore.getState().addToCart(p, 1, [], p.price) : null}>
+                <div style={{ width: '100%', aspectRatio: '16/9', borderRadius: 12, overflow: 'hidden', background: '#f9fafb', marginBottom: 12, position: 'relative' }}>
+                  <button onClick={(e) => { e.stopPropagation(); setSelectedProduct(p); }} style={{ position: 'absolute', top: 8, right: 8, width: 32, height: 32, background: 'rgba(255,255,255,0.9)', border: 'none', borderRadius: '50%', color: '#374151', fontSize: '1rem', fontWeight: 'bold', fontStyle: 'italic', fontFamily: 'serif', zIndex: 10 }}>i</button>
+                  {p.image && !imgErrors[p.id] ? (
+                    <img src={p.image} alt={p.name} onError={() => setImgErrors(e => ({...e, [p.id]: true}))} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.1, fontSize: '3rem' }}>{p.categoryEmoji || '🍽️'}</div>
+                  )}
                 </div>
+                {p.description && (
+                  <p style={{ margin: '0 0 12px 0', fontSize: '0.8rem', color: '#6b7280', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.4 }}>{p.description}</p>
+                )}
               </div>
-            </button>
-          ))}
+
+              {/* Action Bar (Footer) */}
+              <div style={{ display: 'flex', gap: 12, marginTop: 'auto' }}>
+                <button 
+                  style={{ width: 44, height: 44, borderRadius: 10, border: '1px solid #e5e7eb', background: '#fff', color: '#9ca3af', fontSize: '1.4rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+                >
+                  ♡
+                </button>
+
+                {cartQty === 0 ? (
+                  <button 
+                    style={{ flex: 1, height: 44, borderRadius: 10, border: '1px solid #e5e7eb', background: '#fff', color: '#374151', fontSize: '0.95rem', fontWeight: 600, cursor: 'pointer' }}
+                    onClick={(e) => { e.stopPropagation(); useQrStore.getState().addToCart(p, 1, [], p.price); }}
+                  >
+                    Vreau
+                  </button>
+                ) : (
+                  <div style={{ flex: 1, height: 44, borderRadius: 10, border: '1px solid #fca5a5', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }} onClick={e => e.stopPropagation()}>
+                    <button style={{ width: 40, height: '100%', background: 'transparent', border: 'none', color: '#ef4444', fontSize: '1.4rem', fontWeight: 600, cursor: 'pointer' }} onClick={() => { if (cartQty <= 1) { useQrStore.getState().removeFromCart(cartEntry.id); } else { useQrStore.getState().updateCartItem(cartEntry.id, cartQty - 1); } }}>−</button>
+                    <span style={{ color: '#ef4444', fontWeight: 600, fontSize: '0.9rem' }}>{cartQty} buc.</span>
+                    <button style={{ width: 40, height: '100%', background: 'transparent', border: 'none', color: '#ef4444', fontSize: '1.4rem', fontWeight: 600, cursor: 'pointer' }} onClick={() => useQrStore.getState().updateCartItem(cartEntry.id, cartQty + 1)}>+</button>
+                  </div>
+                )}
+              </div>
+            </div>
+            );
+          })}
           {filtered.length === 0 && !loading && (
             <div style={{ textAlign:'center', padding:'40px 20px', color:'var(--text-muted)' }}>
               <p>🍽️ Niciun produs în această categorie</p>

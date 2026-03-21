@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useKioskStore } from '../store/kioskStore';
 
 export default function ProductCard({ product, delay, lang, activeBrand, onQuickAdd, onInfo }) {
@@ -42,49 +42,64 @@ export default function ProductCard({ product, delay, lang, activeBrand, onQuick
     <div
       ref={cardRef}
       className={`product-card fade-in`}
-      style={{ animationDelay: `${delay}s` }}
+      style={{ animationDelay: `${delay}s`, display: 'flex', flexDirection: 'column', background: '#fff', borderRadius: 16, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.04)', padding: 16, overflow: 'visible' }}
     >
-      {/* Info button (absolute top-right) */}
-      <button className="product-info-btn" onClick={handleInfoClick}>i</button>
+      {/* Top Header: Name and Price */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+        <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 500, color: '#111827', width: '70%', lineHeight: 1.2 }}>
+          {product.name}
+        </h3>
+        <span style={{ color: '#ef4444', fontWeight: 700, fontSize: '1.05rem' }}>
+          {product.price}RON
+        </span>
+      </div>
 
-      {/* Product image — click = open detail if no cart entry, else just add */}
-      <div
-        className="product-card-body"
+      {/* Image / Content body */}
+      <div 
+        className="product-card-body" 
+        style={{ flex: 1, display: 'flex', flexDirection: 'column', cursor: 'pointer' }}
         onClick={() => cartQty === 0 ? onQuickAdd(product, cardRef.current) : null}
       >
-        <div className="product-img" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
+        <div style={{ width: '100%', aspectRatio: '4/3', borderRadius: 12, overflow: 'hidden', background: '#f3f4f6', marginBottom: 12, position: 'relative' }}>
+          <button className="product-info-btn" onClick={handleInfoClick} style={{ position: 'absolute', top: 8, right: 8, width: 32, height: 32, background: 'rgba(255,255,255,0.9)', border: 'none', borderRadius: '50%', color: '#374151', fontSize: '1rem', fontWeight: 'bold', fontStyle: 'italic', fontFamily: 'serif', zIndex: 10 }}>i</button>
+          
           {product.image ? (
-            <img
-              src={product.image}
-              alt={product.name}
-              className="product-photo"
-            />
+            <img src={product.image} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : (
-            <div style={{ opacity: 0.1, fontSize: '3rem' }}>🍽️</div>
+            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.1, fontSize: '3rem' }}>🍽️</div>
           )}
         </div>
-        <div className="product-info">
-          {product.badge && <span className="product-badge">{product.badge}</span>}
-          <h3 className="product-name">{product.name}</h3>
-          <p className="product-desc">{product.description}</p>
-          <div className="product-footer">
-            <span className="price price-lg">{product.price} lei</span>
 
-            {/* ─── Inline add-to-cart counter ─── */}
-            {cartQty === 0 ? (
-              <button
-                className={`pc-add-btn ${justAdded ? 'pc-add-btn--pop' : ''}`}
-                onClick={handleAdd}
-              >+</button>
-            ) : (
-              <div className="pc-qty-control" onClick={e => e.stopPropagation()}>
-                <button className="pc-qty-btn" onClick={handleMinus}>−</button>
-                <span className="pc-qty-num">{cartQty}</span>
-                <button className="pc-qty-btn" onClick={handleAdd}>+</button>
-              </div>
-            )}
+        {product.description && (
+           <p style={{ margin: '0 0 12px 0', fontSize: '0.8rem', color: '#6b7280', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.4 }}>
+             {product.description}
+           </p>
+        )}
+      </div>
+
+      {/* Footer: [ ♡ ] [ Vreau / - N buc. + ] */}
+      <div style={{ display: 'flex', gap: 12, marginTop: 'auto' }}>
+        <button 
+          style={{ width: 44, height: 44, borderRadius: 10, border: '1px solid #e5e7eb', background: '#fff', color: '#9ca3af', fontSize: '1.4rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+          onClick={(e) => { e.stopPropagation(); /* no-op for now */ }}
+        >
+          ♡
+        </button>
+
+        {cartQty === 0 ? (
+          <button 
+            style={{ flex: 1, height: 44, borderRadius: 10, border: '1px solid #e5e7eb', background: '#fff', color: '#374151', fontSize: '0.95rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }}
+            onClick={handleAdd}
+          >
+            Vreau
+          </button>
+        ) : (
+          <div style={{ flex: 1, height: 44, borderRadius: 10, border: '1px solid #fca5a5', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }} onClick={e => e.stopPropagation()}>
+            <button style={{ width: 40, height: '100%', background: 'transparent', border: 'none', color: '#ef4444', fontSize: '1.4rem', fontWeight: 600, cursor: 'pointer' }} onClick={handleMinus}>−</button>
+            <span style={{ color: '#ef4444', fontWeight: 600, fontSize: '0.9rem' }}>{cartQty} buc.</span>
+            <button style={{ width: 40, height: '100%', background: 'transparent', border: 'none', color: '#ef4444', fontSize: '1.4rem', fontWeight: 600, cursor: 'pointer' }} onClick={handleAdd}>+</button>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
