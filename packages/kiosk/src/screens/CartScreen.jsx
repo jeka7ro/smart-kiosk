@@ -18,6 +18,13 @@ export default function CartScreen() {
   const VAT_RATE = 0.09;
   const vatAmount = subtotal * VAT_RATE / (1 + VAT_RATE);
 
+  const groupedCart = cartItems.reduce((acc, item) => {
+    const bId = item.brandId || 'smashme';
+    if (!acc[bId]) acc[bId] = [];
+    acc[bId].push(item);
+    return acc;
+  }, {});
+
   if (cartItems.length === 0) {
     return (
       <div className="cart-screen screen">
@@ -42,31 +49,39 @@ export default function CartScreen() {
       <div className="cart-body">
         {/* Items */}
         <div className="cart-items scroll-y">
-          {cartItems.map((item, i) => (
-            <div key={item.id} className="cart-item fade-in" style={{ animationDelay: `${i * 0.05}s` }}>
-              {/* Thumbnail */}
-              <div className="ci-thumb">
-                {item.image && !imgErrors[item.id]
-                  ? <img src={item.image} alt={item.name}
-                      onError={() => setImgErrors(e => ({ ...e, [item.id]: true }))} />
-                  : <span>🍽️</span>
-                }
+          {Object.entries(groupedCart).map(([bId, items]) => (
+            <div key={bId} className="cart-brand-group" style={{ marginBottom: '24px', background: 'var(--card, #ffffff)', borderRadius: '20px', padding: '16px', border: '1px solid var(--border)' }}>
+              <div className="cart-brand-header" style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px dashed var(--border)' }}>
+                <img src={`/brands/${bId}-logo.png`} alt={bId} style={{ height: '44px', objectFit: 'contain', maxWidth: '220px' }} onError={(e) => e.target.style.display = 'none'} />
               </div>
-              <div className="ci-info">
-                <h3 className="ci-name">{item.name}</h3>
-                {item.selectedModifiers?.length > 0 && (
-                  <p className="ci-mods">{item.selectedModifiers.map(m => m.optionName).join(' • ')}</p>
-                )}
-                <span className="ci-unit">{item.unitPrice} {t('lei', lang)}</span>
-              </div>
-              <div className="ci-controls">
-                <div className="ci-qty">
-                  <button className="ci-btn" onClick={() => updateCartItem(item.id, item.quantity - 1)}>−</button>
-                  <span>{item.quantity}</span>
-                  <button className="ci-btn" onClick={() => updateCartItem(item.id, item.quantity + 1)}>+</button>
-                </div>
-                <span className="ci-total">{item.totalPrice.toFixed(0)} {t('lei', lang)}</span>
-                <button className="ci-remove" onClick={() => removeFromCart(item.id)}>🗑️</button>
+              <div className="cart-brand-items" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {items.map((item, i) => (
+                  <div key={item.id} className="cart-item fade-in" style={{ animationDelay: `${i * 0.05}s` }}>
+                    {/* Thumbnail */}
+                    <div className="ci-thumb" style={(imgErrors[item.id] || !item.image) ? {background: 'var(--surface)', display:'flex', alignItems:'center', justifyContent:'center'} : {}}>
+                      {item.image && !imgErrors[item.id]
+                        ? <img src={item.image} alt={item.name} onError={() => setImgErrors(e => ({ ...e, [item.id]: true }))} />
+                        : <img src={`/brands/${bId}-logo.png`} style={{ width: '65%', opacity: 0.15, filter: 'grayscale(100%)', objectFit: 'contain' }} alt="" />
+                      }
+                    </div>
+                    <div className="ci-info">
+                      <h3 className="ci-name">{item.name}</h3>
+                      {item.selectedModifiers?.length > 0 && (
+                        <p className="ci-mods">{item.selectedModifiers.map(m => m.optionName).join(' • ')}</p>
+                      )}
+                      <span className="ci-unit">{item.unitPrice} {t('lei', lang)}</span>
+                    </div>
+                    <div className="ci-controls">
+                      <div className="ci-qty">
+                        <button className="ci-btn" onClick={() => updateCartItem(item.id, item.quantity - 1)}>−</button>
+                        <span>{item.quantity}</span>
+                        <button className="ci-btn" onClick={() => updateCartItem(item.id, item.quantity + 1)}>+</button>
+                      </div>
+                      <span className="ci-total">{item.totalPrice.toFixed(0)} {t('lei', lang)}</span>
+                      <button className="ci-remove" onClick={() => removeFromCart(item.id)}>🗑️</button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           ))}
