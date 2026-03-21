@@ -77,3 +77,16 @@
   box-shadow: var(--shadow-card);
 }
 .back-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+/* GREEN PAY BUTTON */
+.btn-pay {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  color: #fff !important;
+  box-shadow: 0 8px 32px rgba(16, 185, 129, 0.45) !important;
+  border: none !important;
+  transition: all 0.2s;
+}
+.btn-pay:hover {
+  box-shadow: 0 10px 40px rgba(16, 185, 129, 0.55) !important;
+  transform: translateY(-2px);
+}

@@ -105,7 +105,7 @@ export default function CartScreen() {
               <span className="price price-xl">{subtotal.toFixed(2)} {t('lei', lang)}</span>
             </div>
           </div>
-          <button className="btn btn-primary btn-xl" style={{ width: '100%' }} onClick={() => goTo('payment')}>
+          <button className="btn btn-pay btn-xl" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={() => goTo('payment')}>
             {t('pay', lang)} {subtotal.toFixed(0)} {t('lei', lang)} →
           </button>
           <button className="btn btn-ghost btn-lg" style={{ width: '100%', marginTop: 10 }} onClick={() => goTo('menu')}>
