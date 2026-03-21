@@ -205,19 +205,6 @@ export default function WelcomeScreen() {
         </button>
       </div>
 
-      {/* Dev brand switcher — DEMO ONLY */}
-      <div className="brand-switcher" onClick={(e) => e.stopPropagation()}>
-        <span className="bs-label">Demo brand:</span>
-        {Object.values(BRANDS).map(b => (
-          <button
-            key={b.id}
-            className={`bs-btn ${brand.id === b.id ? 'bs-btn--active' : ''}`}
-            onClick={() => switchBrand(b.id)}
-          >
-            {b.emoji} {b.name}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }
