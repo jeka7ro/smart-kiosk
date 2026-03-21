@@ -155,11 +155,18 @@
   {
     "id": "sm-constanta",
     "name": "SM Constanta",
-    "brands": ["sushimaster"],
-    "orgIds": { "sushimaster": "8ed15b53-e788-411b-8a06-96d0f9ee005a" },
+    "brands": [
+      "sushimaster",
+      "welovesushi"
+    ],
+    "orgIds": {
+      "sushimaster": "8ed15b53-e788-411b-8a06-96d0f9ee005a",
+      "welovesushi": "8ed15b53-e788-411b-8a06-96d0f9ee005a"
+    },
     "kiosks": [],
     "tables": 15,
-    "active": true
+    "active": true,
+    "isMultiBrand": true
   },
   {
     "id": "sm-botosani",
@@ -202,13 +209,11 @@
     "name": "SM Oradea",
     "brands": [
       "sushimaster",
-      "ikura",
-      "welovesushi"
+      "ikura"
     ],
     "orgIds": {
       "sushimaster": "f4742901-905f-4b4c-86ea-ce85dc09a041",
-      "ikura": "d1cb5d9d-6aeb-4b0c-adf9-5ce8648ce4e1",
-      "welovesushi": ""
+      "ikura": "d1cb5d9d-6aeb-4b0c-adf9-5ce8648ce4e1"
     },
     "kiosks": [],
     "tables": 12,
