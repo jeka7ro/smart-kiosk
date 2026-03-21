@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useKioskStore } from '../store/kioskStore';
+import { t } from '../i18n/translations.js';
 import { useInactivityTimeout } from '../hooks/useInactivityTimeout.js';
 import './PaymentScreen.css';
 
@@ -8,10 +9,8 @@ const DEFAULT_BRAND = import.meta.env.VITE_BRAND       || 'smashme';
 const DEFAULT_ORG   = import.meta.env.VITE_ORG_ID      || '';
 const LOCATION_NAME = import.meta.env.VITE_LOCATION_NAME || '';
 
-const STEPS = ['Inițializare POS...', 'Așteptăm plata...', 'Se procesează...'];
-
 export default function PaymentScreen() {
-  useInactivityTimeout(120); // 2 min on payment screen
+  useInactivityTimeout(120);
   const goTo        = useKioskStore((s) => s.goTo);
   const getCartTotal= useKioskStore((s) => s.getCartTotal);
   const cartItems   = useKioskStore((s) => s.cartItems);
@@ -26,7 +25,8 @@ export default function PaymentScreen() {
 
   const timersRef = useRef([]);
 
-  // Send order to Syrve + backend when payment completes
+  const STEPS = [t('pos_init', lang), t('waiting_payment', lang), t('processing_payment', lang)];
+
   const sendOrderToBackend = async () => {
     try {
       const urlBrand = new URLSearchParams(window.location.search).get('brand');
@@ -81,7 +81,7 @@ export default function PaymentScreen() {
 
   return (
     <div className="payment-screen screen">
-      <button className="back-btn-abs" onClick={() => goTo('cart')}>← Înapoi la coș</button>
+      <button className="back-btn-abs" onClick={() => goTo('cart')}>{t('back_to_cart', lang)}</button>
 
       <div className="payment-content fade-in">
         <div className="payment-pos-icon">
@@ -91,12 +91,12 @@ export default function PaymentScreen() {
           </div>
         </div>
 
-        <h1 className="payment-title">Plată cu cardul</h1>
-        <p className="payment-subtitle">Apropiați sau introduceți cardul în terminal</p>
+        <h1 className="payment-title">{t('payment_card_title', lang)}</h1>
+        <p className="payment-subtitle">{t('payment_card_subtitle', lang)}</p>
 
         <div className="payment-amount">
-          <span className="pa-label">Total de plată</span>
-          <span className="pa-amount">{total.toFixed(2)} lei</span>
+          <span className="pa-label">{t('total_to_pay', lang)}</span>
+          <span className="pa-amount">{total.toFixed(2)} {t('lei', lang)}</span>
         </div>
 
         {!simulating ? (
@@ -104,23 +104,22 @@ export default function PaymentScreen() {
             <div className="payment-instruction">
               <div className="pi-step">
                 <span className="pi-num">1</span>
-                <span>Apropiați cardul sau telefonul (contactless)</span>
+                <span>{t('payment_step_1', lang)}</span>
               </div>
               <div className="pi-step">
                 <span className="pi-num">2</span>
-                <span>Sau introduceți cardul și introduceți PIN-ul</span>
+                <span>{t('payment_step_2', lang)}</span>
               </div>
               <div className="pi-step">
                 <span className="pi-num">3</span>
-                <span>Așteptați confirmarea pe ecranul terminalului</span>
+                <span>{t('payment_step_3', lang)}</span>
               </div>
             </div>
-            {/* Demo button — în producție activat automat prin POS webhook */}
             <button className="btn btn-success btn-xl" style={{ width: '100%' }} onClick={handleSimulatePayment}>
-              ✅ Simulează plată (DEMO)
+              {t('simulate_payment', lang)}
             </button>
             <button className="btn btn-ghost btn-sm" style={{ marginTop: 8 }} onClick={() => goTo('cart')}>
-              Anulează
+              {t('cancel', lang)}
             </button>
           </div>
         ) : (
