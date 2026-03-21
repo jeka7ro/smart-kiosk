@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef } from 'react';
 import { useKioskStore } from '../store/kioskStore';
 import { t } from '../i18n/translations.js';
-import { useBrand } from '../hooks/useBrand';
+import { useBrand } from '../App.jsx';
 import ProductCard from '../components/ProductCard.jsx';
 import './ProductScreen.css';
 
