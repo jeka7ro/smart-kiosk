@@ -24,7 +24,7 @@ export default function CartScreen() {
         <div className="cart-empty">
           <span className="cart-empty-icon">🛒</span>
           <h2>{t('cart_empty', lang)}</h2>
-          <p>Adaugă produse din meniu pentru a continua</p>
+          <p>{t('add_more', lang)}</p>
           <button className="btn btn-primary btn-xl" onClick={() => goTo('menu')}>← {t('menu', lang)}</button>
         </div>
       </div>
@@ -36,7 +36,7 @@ export default function CartScreen() {
       <header className="cart-header">
         <button className="back-btn" onClick={() => goTo('menu')}>← {t('menu', lang)}</button>
         <h1>{t('my_cart', lang)}</h1>
-        <span className="cart-count-badge">{cartItems.length} produse</span>
+        <span className="cart-count-badge">{cartItems.length} {cartItems.length > 1 ? t('items_many', lang) : t('item_one', lang)}</span>
       </header>
 
       <div className="cart-body">
@@ -57,7 +57,7 @@ export default function CartScreen() {
                 {item.selectedModifiers?.length > 0 && (
                   <p className="ci-mods">{item.selectedModifiers.map(m => m.optionName).join(' • ')}</p>
                 )}
-                <span className="ci-unit">{item.unitPrice} lei / buc</span>
+                <span className="ci-unit">{item.unitPrice} {t('lei', lang)}</span>
               </div>
               <div className="ci-controls">
                 <div className="ci-qty">
@@ -65,7 +65,7 @@ export default function CartScreen() {
                   <span>{item.quantity}</span>
                   <button className="ci-btn" onClick={() => updateCartItem(item.id, item.quantity + 1)}>+</button>
                 </div>
-                <span className="ci-total">{item.totalPrice.toFixed(0)} lei</span>
+                <span className="ci-total">{item.totalPrice.toFixed(0)} {t('lei', lang)}</span>
                 <button className="ci-remove" onClick={() => removeFromCart(item.id)}>🗑️</button>
               </div>
             </div>
@@ -81,7 +81,7 @@ export default function CartScreen() {
               <span>{subtotal.toFixed(2)} {t('lei', lang)}</span>
             </div>
             <div className="summary-row">
-              <span>{t('tva', lang)} inclus</span>
+              <span>{t('tva', lang)} {t('tva_included', lang)}</span>
               <span>{vatAmount.toFixed(2)} {t('lei', lang)}</span>
             </div>
             <div className="summary-divider" />

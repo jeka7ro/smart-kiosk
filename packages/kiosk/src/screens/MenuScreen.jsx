@@ -113,7 +113,7 @@ export default function MenuScreen() {
         <button className="cart-fab" onClick={() => goTo('cart')} disabled={cartCount === 0}>
           <span className="cart-fab-icon">🛒</span>
           <span className="cart-fab-text">
-            {cartCount > 0 ? `${cartCount} produs${cartCount > 1 ? 'e' : ''}` : t('cart_empty', lang)}
+            {cartCount > 0 ? `${cartCount} ${cartCount > 1 ? t('items_many', lang) : t('item_one', lang)}` : t('cart_empty', lang)}
           </span>
           {cartCount > 0 && (
             <span className="cart-fab-total">{cartTotal.toFixed(0)} {t('lei', lang)}</span>
@@ -143,7 +143,7 @@ export default function MenuScreen() {
         {filteredProducts.length === 0 ? (
           <div className="empty-cat">
             <span style={{fontSize:'3rem'}}>🍽️</span>
-            <p>Niciun produs în această categorie</p>
+            <p>{t('cart_empty', lang)}</p>
           </div>
         ) : (
           <div className="products-list">
