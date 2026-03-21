@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useKioskStore } from '../store/kioskStore';
 import { useBrand } from '../App';
 import { t } from '../i18n/translations.js';
@@ -32,7 +32,8 @@ export default function MenuScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
   const [search, setSearch]   = useState('');
-  const [addedId, setAddedId] = useState(null); // for added-to-cart animation
+  const [flyAnim, setFlyAnim] = useState(null); // { id, x, y, img } for fly animation
+  const cartBarRef = useRef(null);
 
   // Fetch menu — Syrve API for brands with org ID, mock data for others
   useEffect(() => {
@@ -93,12 +94,25 @@ export default function MenuScreen() {
     return matchesCat && matchesSearch;
   });
 
-  // Quick add to cart
-  const handleQuickAdd = (product) => {
+  // Quick add to cart with fly animation
+  const handleQuickAdd = useCallback((product, cardEl) => {
     addToCart(product, 1, [], product.price, brand.id);
-    setAddedId(product.id);
-    setTimeout(() => setAddedId(null), 800);
-  };
+
+    // Fly animation: get card position and cart bar position
+    if (cardEl && cartBarRef.current) {
+      const cardRect = cardEl.getBoundingClientRect();
+      const cartRect = cartBarRef.current.getBoundingClientRect();
+      setFlyAnim({
+        id: Date.now(),
+        img: product.image,
+        startX: cardRect.left + cardRect.width / 2,
+        startY: cardRect.top + cardRect.height / 3,
+        endX: cartRect.left + cartRect.width / 2,
+        endY: cartRect.top,
+      });
+      setTimeout(() => setFlyAnim(null), 600);
+    }
+  }, [addToCart, brand.id]);
 
   if (loading) {
     return (
@@ -183,8 +197,7 @@ export default function MenuScreen() {
                   product={product}
                   delay={i * 0.03}
                   lang={lang}
-                  isAdded={addedId === product.id}
-                  onQuickAdd={() => handleQuickAdd(product)}
+                  onQuickAdd={handleQuickAdd}
                   onInfo={() => setSelectedProduct(product)}
                 />
               ))}
@@ -193,24 +206,44 @@ export default function MenuScreen() {
         </main>
       </div>
 
+      {/* ─── FLY ANIMATION ──────────────────────────── */}
+      {flyAnim && (
+        <div
+          className="fly-thumb"
+          key={flyAnim.id}
+          style={{
+            '--fly-sx': `${flyAnim.startX}px`,
+            '--fly-sy': `${flyAnim.startY}px`,
+            '--fly-ex': `${flyAnim.endX}px`,
+            '--fly-ey': `${flyAnim.endY}px`,
+          }}
+        >
+          {flyAnim.img && <img src={flyAnim.img} alt="" />}
+        </div>
+      )}
+
       {/* ─── FLOATING CART BAR ──────────────────────── */}
       {cartCount > 0 && (
-        <div className="cart-bar" onClick={() => goTo('cart')}>
+        <div className="cart-bar" ref={cartBarRef} onClick={() => goTo('cart')}>
           <span className="cart-bar-count">{cartCount} {cartCount > 1 ? t('items_many', lang) : t('item_one', lang)}</span>
           <span className="cart-bar-label">{t('my_cart', lang)}</span>
           <span className="cart-bar-total">{cartTotal.toFixed(0)} {t('lei', lang)}</span>
         </div>
       )}
+      {/* invisible cart ref when cart is empty (for fly target) */}
+      {cartCount === 0 && <div ref={cartBarRef} style={{position:'fixed',bottom:16,left:'50%'}} />}
     </div>
   );
 }
 
-function ProductCard({ product, delay, lang, isAdded, onQuickAdd, onInfo }) {
+function ProductCard({ product, delay, lang, onQuickAdd, onInfo }) {
   const [imgError, setImgError] = useState(false);
+  const cardRef = useRef(null);
 
   return (
     <div
-      className={`product-card fade-in ${isAdded ? 'product-card--added' : ''}`}
+      ref={cardRef}
+      className="product-card fade-in"
       style={{ animationDelay: `${delay}s` }}
     >
       {/* Info button */}
@@ -219,7 +252,7 @@ function ProductCard({ product, delay, lang, isAdded, onQuickAdd, onInfo }) {
       </button>
 
       {/* Main card — click = add to cart */}
-      <div className="product-card-body" onClick={onQuickAdd}>
+      <div className="product-card-body" onClick={() => onQuickAdd(product, cardRef.current)}>
         <div className="product-img">
           {product.image && !imgError ? (
             <img
@@ -240,13 +273,6 @@ function ProductCard({ product, delay, lang, isAdded, onQuickAdd, onInfo }) {
           </div>
         </div>
       </div>
-
-      {/* Added feedback overlay */}
-      {isAdded && (
-        <div className="product-added-overlay">
-          <span>{t('added_to_cart', lang)}</span>
-        </div>
-      )}
     </div>
   );
 }
