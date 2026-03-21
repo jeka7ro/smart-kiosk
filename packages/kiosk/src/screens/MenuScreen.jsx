@@ -224,10 +224,10 @@ export default function MenuScreen() {
                   src={`/brands/${bId}-logo.png`} 
                   alt={info.label} 
                   className="brand-tab-logo" 
-                  style={{ maxHeight: '34px', objectFit: 'contain' }}
-                  onError={(e) => { e.target.style.display='none'; e.target.nextSibling.style.display='block'; }} 
+                  style={{ maxHeight: '28px', objectFit: 'contain' }}
+                  onError={(e) => { e.target.style.display='none'; }} 
                 />
-                <span className="brand-tab-label" style={{display: 'none'}}>{info.label}</span>
+                <span className="brand-tab-label" style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text)' }}>{info.label}</span>
               </button>
             );
           })}

@@ -30,7 +30,7 @@ export default function ProductCard({ product, delay, lang, activeBrand, onQuick
               onError={() => setImgError(true)}
             />
           ) : (
-            <img src={`/brands/${activeBrand}-logo.png`} alt="Fără imagine" style={{ opacity: 0.15, maxWidth: '60%', maxHeight: '60%', objectFit: 'contain', filter: 'grayscale(100%)' }} />
+            <div style={{ opacity: 0.1, fontSize: '3rem' }}>🍽️</div>
           )}
         </div>
         <div className="product-info">
