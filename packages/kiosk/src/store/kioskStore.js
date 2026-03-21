@@ -13,8 +13,13 @@ export const useKioskStore = create((set, get) => ({
   setLocationData: (data) => set({ locationData: data }),
 
   // ─── Menu Data ─────────────────────────────────────────────
-  menuProducts: [],
-  setMenuProducts: (products) => set({ menuProducts: products }),
+  menuProducts: (() => {
+    try { return JSON.parse(localStorage.getItem('kiosk_menuProducts') || '[]'); } catch { return []; }
+  })(),
+  setMenuProducts: (products) => {
+    try { localStorage.setItem('kiosk_menuProducts', JSON.stringify(products)); } catch {}
+    set({ menuProducts: products });
+  },
 
 
   // ─── Cart ─────────────────────────────────────────────────
