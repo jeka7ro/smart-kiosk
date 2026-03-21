@@ -92,6 +92,7 @@ export default function AdminApp() {
           {[
             { id: 'dashboard', icon: '📊', label: 'Dashboard' },
             { id: 'orders',    icon: '📋', label: 'Comenzi' },
+            { id: 'locations', icon: '📍', label: 'Locatii' },
             { id: 'kiosks',    icon: '📺', label: 'Kioskuri' },
             { id: 'qrcodes',   icon: '📱', label: 'QR Coduri' },
             { id: 'menu',      icon: '🍽',  label: 'Meniu / Syrve' },
@@ -198,6 +199,15 @@ export default function AdminApp() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* ─── LOCATIONS ─── */}
+        {tab === 'locations' && (
+          <div className="admin-section">
+            <h2 className="section-title">Locatii</h2>
+            <p style={{color:'var(--text-muted)',marginBottom:16,fontSize:'0.9rem'}}>Gestioneaza locatiile si kioskurile alocate. Locatiile cu mai multe branduri permit comenzi mixte.</p>
+            <LocationsManager backend={BACKEND} />
           </div>
         )}
 
@@ -619,6 +629,153 @@ function QrGenerator({ backend }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ─── LOCATIONS MANAGER ──────────────────────────────────── */
+const BRAND_LABELS = { smashme: 'SmashMe', sushimaster: 'Sushi Master', ikura: 'Ikura', welovesushi: 'WeLoveSushi' };
+const BRAND_PILL_COLORS = { smashme: '#ef4444', sushimaster: '#3b82f6', ikura: '#8b5cf6', welovesushi: '#ec4899' };
+
+function LocationsManager({ backend }) {
+  const [locations, setLocations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showAdd, setShowAdd] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newBrands, setNewBrands] = useState([]);
+  const [newTables, setNewTables] = useState(10);
+  const [filter, setFilter] = useState('all');
+
+  const fetchLocs = () => {
+    setLoading(true);
+    fetch(`${backend}/api/locations`)
+      .then(r => r.json())
+      .then(d => { setLocations(d.locations || []); setLoading(false); })
+      .catch(() => setLoading(false));
+  };
+  useEffect(fetchLocs, [backend]);
+
+  const toggleBrand = (b) => {
+    setNewBrands(prev => prev.includes(b) ? prev.filter(x => x !== b) : [...prev, b]);
+  };
+
+  const createLocation = () => {
+    if (!newName.trim()) return;
+    fetch(`${backend}/api/locations`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newName, brands: newBrands, tables: newTables }),
+    })
+      .then(r => r.json())
+      .then(() => { setNewName(''); setNewBrands([]); setNewTables(10); setShowAdd(false); fetchLocs(); });
+  };
+
+  const toggleActive = (loc) => {
+    fetch(`${backend}/api/locations/${loc.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active: !loc.active }),
+    }).then(() => fetchLocs());
+  };
+
+  const deleteLoc = (id) => {
+    if (!confirm('Stergi aceasta locatie?')) return;
+    fetch(`${backend}/api/locations/${id}`, { method: 'DELETE' })
+      .then(() => fetchLocs());
+  };
+
+  const filtered = filter === 'all' ? locations : locations.filter(l => l.brands?.includes(filter));
+
+  if (loading) return <p style={{color:'var(--text-muted)'}}>Se incarca...</p>;
+
+  return (
+    <div className="loc-manager">
+      {/* Filters + Add button */}
+      <div className="loc-controls">
+        <div className="loc-filters">
+          <button className={`loc-filter-btn ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>
+            Toate ({locations.length})
+          </button>
+          {Object.entries(BRAND_LABELS).map(([k, v]) => {
+            const count = locations.filter(l => l.brands?.includes(k)).length;
+            if (!count) return null;
+            return (
+              <button
+                key={k}
+                className={`loc-filter-btn ${filter === k ? 'active' : ''}`}
+                style={{ '--pill-color': BRAND_PILL_COLORS[k] }}
+                onClick={() => setFilter(k)}
+              >
+                {v} ({count})
+              </button>
+            );
+          })}
+        </div>
+        <button className="loc-add-btn" onClick={() => setShowAdd(!showAdd)}>+ Adauga locatie</button>
+      </div>
+
+      {/* Add form */}
+      {showAdd && (
+        <div className="loc-add-form">
+          <input
+            type="text"
+            placeholder="Nume locatie (ex: SM Brasov)"
+            value={newName}
+            onChange={e => setNewName(e.target.value)}
+            className="loc-input"
+          />
+          <div className="loc-brand-select">
+            {Object.entries(BRAND_LABELS).map(([k, v]) => (
+              <button
+                key={k}
+                className={`loc-brand-pill ${newBrands.includes(k) ? 'active' : ''}`}
+                style={{ '--pill-color': BRAND_PILL_COLORS[k] }}
+                onClick={() => toggleBrand(k)}
+              >{v}</button>
+            ))}
+          </div>
+          <input
+            type="number"
+            min="1" max="100"
+            value={newTables}
+            onChange={e => setNewTables(Number(e.target.value))}
+            className="loc-input loc-input-sm"
+            placeholder="Nr. mese"
+          />
+          <button className="loc-save-btn" onClick={createLocation}>Salveaza</button>
+        </div>
+      )}
+
+      {/* Locations table */}
+      <div className="loc-grid">
+        {filtered.map(loc => (
+          <div key={loc.id} className={`loc-card ${!loc.active ? 'loc-card--inactive' : ''}`}>
+            <div className="loc-card-header">
+              <h3 className="loc-card-name">{loc.name}</h3>
+              <div className="loc-card-actions">
+                <button
+                  className={`loc-toggle ${loc.active ? 'loc-toggle--on' : ''}`}
+                  onClick={() => toggleActive(loc)}
+                  title={loc.active ? 'Dezactiveaza' : 'Activeaza'}
+                >{loc.active ? 'ON' : 'OFF'}</button>
+                <button className="loc-del" onClick={() => deleteLoc(loc.id)} title="Sterge">x</button>
+              </div>
+            </div>
+            <div className="loc-card-brands">
+              {(loc.brands || []).map(b => (
+                <span key={b} className="loc-pill" style={{ background: BRAND_PILL_COLORS[b] || '#6b7a99' }}>
+                  {BRAND_LABELS[b] || b}
+                </span>
+              ))}
+              {loc.brands?.length > 1 && <span className="loc-multi">Multi-brand</span>}
+            </div>
+            <div className="loc-card-stats">
+              <span>{loc.tables || 0} mese</span>
+              <span>{(loc.kiosks || []).length} kioskuri</span>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
