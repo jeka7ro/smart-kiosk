@@ -30,7 +30,35 @@ export default function WelcomeScreen() {
     // Try location-specific first, then brand-level
     const fetchPoster = async () => {
       try {
-        // Try all possible keys: location ID, brand-specific location, brand ID
+        const locId = new URLSearchParams(window.location.search).get('loc');
+        let locData = null;
+
+        // 1. Check specific location settings first
+        if (locId) {
+          try {
+            const rLoc = await fetch(`${BACKEND}/api/locations/${locId}`);
+            locData = await rLoc.json();
+            if (locData && locData.screensaverUrl) {
+              const detectType = (u) => {
+                if (/\.(mp4|webm|mov)(\?|$)/i.test(u)) return 'video';
+                if (/youtube|vimeo|dailymotion/i.test(u)) return 'iframe';
+                return 'image';
+              };
+              setPoster({
+                url: locData.screensaverUrl,
+                type: detectType(locData.screensaverUrl),
+                enabled: true,
+                showLogo: locData.showLogoOnScreensaver !== false
+              });
+              setPosterVisible(true);
+              return;
+            }
+          } catch (e) {
+            console.warn('[Poster] Location fetch failed:', e.message);
+          }
+        }
+
+        // 2. Fallback to generic brand kiosk config
         const keys = [
           import.meta.env.VITE_LOCATION_ID,    // specific kiosk
           `${brandId}-main`,                     // brand main location
@@ -41,7 +69,7 @@ export default function WelcomeScreen() {
           const res = await fetch(`${BACKEND}/api/admin/kiosk-config/${key}`);
           const data = await res.json();
           if (data.poster && data.poster.enabled && data.poster.url) {
-            setPoster(data.poster);
+            setPoster({ ...data.poster, showLogo: true });
             setPosterVisible(true);
             return;
           }
@@ -61,7 +89,7 @@ export default function WelcomeScreen() {
         const myBrand = brand.id || import.meta.env.VITE_BRAND || 'smashme';
         if (bid === myBrand || bid === `${myBrand}-main` || bid === import.meta.env.VITE_LOCATION_ID) {
           if (newPoster && newPoster.enabled && newPoster.url) {
-            setPoster(newPoster);
+            setPoster({ ...newPoster, showLogo: true });
             setPosterVisible(true);
           } else {
             setPoster(null);
@@ -117,7 +145,7 @@ export default function WelcomeScreen() {
           )}
           <div className="poster-cta-center">
             <button className="poster-cta-round" onClick={(e) => { e.stopPropagation(); handlePosterTap(); }}>
-              <img src={brand.logoImg || '/brands/smashme-logo.png'} alt="" className="poster-cta-img" />
+              {poster.showLogo && <img src={brand.logoImg || '/brands/smashme-logo.png'} alt="" className="poster-cta-img" />}
             </button>
             <span className="poster-cta-label">{t('start_order', lang)}</span>
             <span className="poster-tap-hint">{t('touch_anywhere', lang)}</span>

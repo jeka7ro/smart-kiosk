@@ -431,3 +431,53 @@
 .loc-card-stats {
   display: flex; gap: 12px; font-size: 0.8rem; color: var(--text-muted); font-weight: 500;
 }
+
+/* ─── LOCATIONS EDIT FORM ─── */
+.loc-edit-form {
+  display: flex; flex-direction: column; gap: 24px;
+}
+.loc-edit-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-bottom: 16px; border-bottom: 1px solid var(--border);
+}
+.loc-edit-header h2 { margin: 0; font-size: 1.5rem; color: var(--text); }
+.loc-back-btn {
+  background: transparent; border: 1px solid var(--border);
+  color: var(--text-muted); padding: 8px 16px; border-radius: 8px;
+  cursor: pointer; transition: all 0.2s;
+}
+.loc-back-btn:hover { color: var(--text); border-color: var(--text); }
+.loc-save-btn {
+  background: var(--primary); color: #fff; border: none;
+  padding: 8px 20px; border-radius: 8px; font-weight: 600;
+  cursor: pointer; transition: all 0.2s;
+}
+.loc-save-btn:hover { filter: brightness(1.1); }
+
+.loc-edit-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;
+}
+.loc-edit-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 16px; padding: 24px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.loc-edit-card h3 { margin: 0 0 8px 0; font-size: 1.2rem; color: var(--text); }
+.loc-edit-card label { font-size: 0.9rem; font-weight: 600; color: var(--text-muted); display: block; }
+.org-input-group {
+  background: rgba(0,0,0,0.02); padding: 12px; border-radius: 8px; border: 1px solid var(--border);
+}
+.org-input-group label { margin-bottom: 8px; color: var(--text); }
+.btn-secondary {
+  background: var(--card); border: 1px solid var(--border);
+  color: var(--text); padding: 0 16px; border-radius: 8px;
+  cursor: pointer; font-weight: 600; transition: all 0.2s;
+}
+.btn-secondary:hover { background: rgba(0,0,0,0.03); border-color: var(--text-muted); }
+
+.loc-pill { cursor: pointer; }
+.loc-edit {
+  background: transparent; border: none; font-size: 1.1rem;
+  cursor: pointer; transition: transform 0.2s; opacity: 0.7;
+}
+.loc-edit:hover { transform: scale(1.1); opacity: 1; }

@@ -200,22 +200,45 @@
   {
     "id": "sm-oradea",
     "name": "SM Oradea",
-    "brands": ["sushimaster", "ikura"],
+    "brands": [
+      "sushimaster",
+      "ikura",
+      "welovesushi"
+    ],
     "orgIds": {
       "sushimaster": "f4742901-905f-4b4c-86ea-ce85dc09a041",
-      "ikura": "d1cb5d9d-6aeb-4b0c-adf9-5ce8648ce4e1"
+      "ikura": "d1cb5d9d-6aeb-4b0c-adf9-5ce8648ce4e1",
+      "welovesushi": ""
     },
     "kiosks": [],
     "tables": 12,
-    "active": true
+    "active": true,
+    "isMultiBrand": true
   },
   {
     "id": "sm-tulcea",
     "name": "SM Tulcea",
-    "brands": ["sushimaster"],
-    "orgIds": { "sushimaster": "5989edaa-038d-4407-8d98-be180b5b5b65" },
+    "brands": [
+      "sushimaster"
+    ],
+    "orgIds": {
+      "sushimaster": "5989edaa-038d-4407-8d98-be180b5b5b65"
+    },
     "kiosks": [],
     "tables": 8,
+    "active": true
+  },
+  {
+    "id": "smashme-constanta",
+    "name": "SmashMe Constanta",
+    "brands": [
+      "smashme"
+    ],
+    "orgIds": {
+      "smashme": ""
+    },
+    "kiosks": [],
+    "tables": 10,
     "active": true
   }
 ]

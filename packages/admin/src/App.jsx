@@ -641,6 +641,7 @@ function LocationsManager({ backend }) {
   const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
+  const [editingLoc, setEditingLoc] = useState(null);
   const [newName, setNewName] = useState('');
   const [newBrands, setNewBrands] = useState([]);
   const [newTables, setNewTables] = useState(10);
@@ -687,6 +688,10 @@ function LocationsManager({ backend }) {
   const filtered = filter === 'all' ? locations : locations.filter(l => l.brands?.includes(filter));
 
   if (loading) return <p style={{color:'var(--text-muted)'}}>Se incarca...</p>;
+
+  if (editingLoc) {
+    return <LocationEditForm loc={editingLoc} backend={backend} onBack={() => setEditingLoc(null)} onSave={fetchLocs} />;
+  }
 
   return (
     <div className="loc-manager">
@@ -751,8 +756,13 @@ function LocationsManager({ backend }) {
         {filtered.map(loc => (
           <div key={loc.id} className={`loc-card ${!loc.active ? 'loc-card--inactive' : ''}`}>
             <div className="loc-card-header">
-              <h3 className="loc-card-name">{loc.name}</h3>
+              <h3 className="loc-card-name" style={{cursor: 'pointer'}} onClick={() => setEditingLoc(loc)}>{loc.name}</h3>
               <div className="loc-card-actions">
+                <button
+                  className="loc-edit"
+                  onClick={() => setEditingLoc(loc)}
+                  title="Editeaza setarile"
+                >✏️</button>
                 <button
                   className={`loc-toggle ${loc.active ? 'loc-toggle--on' : ''}`}
                   onClick={() => toggleActive(loc)}
@@ -761,15 +771,15 @@ function LocationsManager({ backend }) {
                 <button className="loc-del" onClick={() => deleteLoc(loc.id)} title="Sterge">x</button>
               </div>
             </div>
-            <div className="loc-card-brands">
+            <div className="loc-card-brands" onClick={() => setEditingLoc(loc)} style={{cursor: 'pointer'}}>
               {(loc.brands || []).map(b => (
                 <span key={b} className="loc-pill" style={{ background: BRAND_PILL_COLORS[b] || '#6b7a99' }}>
                   {BRAND_LABELS[b] || b}
                 </span>
               ))}
-              {loc.brands?.length > 1 && <span className="loc-multi">Multi-brand</span>}
+              {loc.isMultiBrand && <span className="loc-multi">Multi-brand</span>}
             </div>
-            <div className="loc-card-stats">
+            <div className="loc-card-stats" onClick={() => setEditingLoc(loc)} style={{cursor: 'pointer'}}>
               <span>{loc.tables || 0} mese</span>
               <span>{(loc.kiosks || []).length} kioskuri</span>
             </div>
@@ -779,3 +789,130 @@ function LocationsManager({ backend }) {
     </div>
   );
 }
+
+function LocationEditForm({ loc, backend, onBack, onSave }) {
+  const [formData, setFormData] = useState({
+    name: loc.name || '',
+    brands: loc.brands || [],
+    isMultiBrand: loc.isMultiBrand || false,
+    kioskUrl: loc.kioskUrl || '',
+    screensaverUrl: loc.screensaverUrl || '',
+    showLogoOnScreensaver: loc.showLogoOnScreensaver !== false,
+    orgIds: loc.orgIds || {},
+    tables: loc.tables || 0
+  });
+
+  const handleChange = (field, val) => setFormData(prev => ({ ...prev, [field]: val }));
+  
+  const handleOrgChange = (brandId, val) => {
+    setFormData(prev => ({ ...prev, orgIds: { ...prev.orgIds, [brandId]: val } }));
+  };
+
+  const toggleBrand = (b) => {
+    setFormData(prev => {
+      const newBrands = prev.brands.includes(b) ? prev.brands.filter(x => x !== b) : [...prev.brands, b];
+      return { ...prev, brands: newBrands };
+    });
+  };
+
+  const generateLink = () => {
+    if (formData.brands.length === 0) return;
+    const base = 'https://kiosk-smashme.netlify.app';
+    const activeBrand = formData.brands[0];
+    const newUrl = `${base}/?brand=${activeBrand}&loc=${loc.id}`;
+    handleChange('kioskUrl', newUrl);
+  };
+
+  const saveLoc = async () => {
+    await fetch(`${backend}/api/locations/${loc.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData)
+    });
+    onSave();
+    onBack();
+  };
+
+  return (
+    <div className="loc-edit-form">
+      <div className="loc-edit-header">
+        <button className="loc-back-btn" onClick={onBack}>← Inapoi</button>
+        <h2>Editare Locatie: {loc.id}</h2>
+        <button className="loc-save-btn" onClick={saveLoc}>💾 Salvează Toate</button>
+      </div>
+
+      <div className="loc-edit-grid">
+        {/* Generaly Config */}
+        <div className="loc-edit-card">
+          <h3>Setări Generale</h3>
+          <label>Nume Locație</label>
+          <input type="text" value={formData.name} onChange={e => handleChange('name', e.target.value)} className="pc-input" />
+          
+          <label>Număr Mese</label>
+          <input type="number" value={formData.tables} onChange={e => handleChange('tables', Number(e.target.value))} className="pc-input" />
+
+          <label>Branduri Active</label>
+          <div className="loc-brand-select">
+            {Object.entries(BRAND_LABELS).map(([k, v]) => (
+              <button
+                key={k} className={`loc-brand-pill ${formData.brands.includes(k) ? 'active' : ''}`}
+                style={{ '--pill-color': BRAND_PILL_COLORS[k] }}
+                onClick={() => toggleBrand(k)}
+              >{v}</button>
+            ))}
+          </div>
+
+          <label className="pc-toggle" style={{marginTop: 15}}>
+            <input type="checkbox" checked={formData.isMultiBrand} onChange={e => handleChange('isMultiBrand', e.target.checked)} />
+            <span className="toggle-slider" />
+            <span>Multi-brand mode (afișare tab-uri restaurant)</span>
+          </label>
+        </div>
+
+        {/* Syrve / Org ID */}
+        <div className="loc-edit-card">
+          <h3>Integrare Syrve (API)</h3>
+          <p style={{fontSize: '0.85rem', color: 'var(--text-muted)'}}>Completează Organization ID (orgId) de la Syrve pentru fiecare brand activ în această locație.</p>
+          {formData.brands.length === 0 && <p className="empty-text">Selectează un brand mai întâi.</p>}
+          {formData.brands.map(b => (
+            <div key={b} className="org-input-group">
+              <label>{BRAND_LABELS[b]} orgId</label>
+              <input type="text" value={formData.orgIds[b] || ''} onChange={e => handleOrgChange(b, e.target.value)} className="pc-input" placeholder="ex: f4742901-..." />
+            </div>
+          ))}
+        </div>
+
+        {/* Kiosk URL & Screensaver */}
+        <div className="loc-edit-card">
+          <h3>Afișaj Kiosk</h3>
+          
+          <label>Link Acces Kiosk (pentru browsere)</label>
+          <div style={{display:'flex', gap: 10, marginBottom: 20}}>
+            <input type="text" value={formData.kioskUrl} onChange={e => handleChange('kioskUrl', e.target.value)} className="pc-input" style={{marginBottom:0}} placeholder="https://..." />
+            <button className="btn-secondary" onClick={generateLink} style={{whiteSpace:'nowrap'}}>🔄 Generează</button>
+            <button className="btn-secondary" onClick={() => navigator.clipboard.writeText(formData.kioskUrl)} style={{whiteSpace:'nowrap'}}>📋 Copiază</button>
+          </div>
+
+          <label>Screensaver URL (Imagine mp4/jpg inactivitate)</label>
+          <input type="url" value={formData.screensaverUrl} onChange={e => handleChange('screensaverUrl', e.target.value)} className="pc-input" placeholder="https://...mp4" />
+          
+          <label className="pc-toggle" style={{marginTop: 15, marginBottom: 15}}>
+            <input type="checkbox" checked={formData.showLogoOnScreensaver} onChange={e => handleChange('showLogoOnScreensaver', e.target.checked)} />
+            <span className="toggle-slider" />
+            <span>Afișează logo brand pe butonul "Începe comanda"</span>
+          </label>
+
+          {formData.screensaverUrl && (
+            <div className="pc-preview-box" style={{height: 150}}>
+              {/\.(mp4|webm)(\?|$)/i.test(formData.screensaverUrl)
+                ? <video src={formData.screensaverUrl} autoPlay muted loop />
+                : <img src={formData.screensaverUrl} alt="Screensaver" />
+              }
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+

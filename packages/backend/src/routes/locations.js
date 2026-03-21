@@ -47,9 +47,13 @@ router.post('/', (req, res) => {
     id,
     name,
     brands: brands || [],
+    isMultiBrand: Array.isArray(brands) && brands.length > 1,
     orgIds: orgIds || {},
     kiosks: kiosks || [],
     tables: tables || 0,
+    kioskUrl: req.body.kioskUrl || '',
+    screensaverUrl: req.body.screensaverUrl || '',
+    showLogoOnScreensaver: req.body.showLogoOnScreensaver !== undefined ? req.body.showLogoOnScreensaver : true,
     active: true,
   };
   locs.push(newLoc);
