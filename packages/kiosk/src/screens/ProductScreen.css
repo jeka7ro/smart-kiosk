@@ -34,6 +34,7 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
+  overflow-y: auto; /* CRITICAL FIX: allow scrolling inside content */
 }
 
 .ps-left-content::-webkit-scrollbar { width: 4px; }
@@ -93,19 +94,20 @@
 
 /* FOOTER */
 .pd-footer {
-  display: flex; align-items: center; gap: 14px; padding: 18px 24px;
-  border-top: 1.5px solid var(--border); background: var(--bg-card);
-  flex-shrink: 0; box-shadow: 0 -4px 12px rgba(0,0,0,0.03);
+  display: flex; align-items: center; gap: 14px; padding: 24px;
+  border-top: 1px solid var(--border); background: var(--bg-card);
+  flex-shrink: 0; box-shadow: 0 -10px 30px rgba(0,0,0,0.06);
+  position: relative; z-index: 20;
 }
-.qty-control { display: flex; align-items: center; border-radius: 14px; overflow: hidden; border: 1.5px solid var(--border); }
+.qty-control { display: flex; align-items: center; border-radius: 16px; overflow: hidden; border: 2px solid var(--primary); background: var(--surface); }
 .qty-btn {
-  width: 50px; height: 50px; background: var(--surface); border: none;
-  color: var(--text); font-size: 1.4rem; cursor: pointer; transition: background 0.15s;
+  width: 60px; height: 60px; background: color-mix(in srgb, var(--primary) 10%, transparent); border: none;
+  color: var(--primary); font-size: 1.8rem; cursor: pointer; transition: all 0.2s;
   font-family: 'Outfit',sans-serif;
 }
 .qty-btn:hover { background: var(--primary); color: #fff; }
-.qty-num { width: 50px; text-align: center; font-size: 1.1rem; font-weight: 700; color: var(--text); background: var(--bg-card); height: 50px; display: flex; align-items: center; justify-content: center; }
-.pd-total { font-size: 1.05rem; font-weight: 800; margin-left: auto; }
+.qty-num { width: 50px; text-align: center; font-size: 1.3rem; font-weight: 800; color: var(--text); background: transparent; height: 60px; display: flex; align-items: center; justify-content: center; }
+.pd-total { font-size: 1.2rem; font-weight: 800; margin-left: auto; }
 
 
 /* ─── RIGHT PANEL (2/3) ─── */
@@ -121,16 +123,18 @@
 
 .suggestions-header {
   margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
 }
 .suggestions-header h2 {
   font-size: 2.2rem;
   font-weight: 800;
-  color: var(--text);
+  color: #111827; /* Fallback direct pentru claritate */
   margin-bottom: 8px;
 }
 .suggestions-header p {
   font-size: 1.1rem;
-  color: var(--text-muted);
+  color: #4b5563; /* Fallback text-muted */
 }
 
 .suggestions-grid {
