@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useKioskStore } from '../store/kioskStore';
 import { useBrand } from '../App';
 import { t } from '../i18n/translations.js';
@@ -18,6 +18,7 @@ export default function MenuScreen() {
   useInactivityTimeout(90);
   const goTo              = useKioskStore((s) => s.goTo);
   const setSelectedProduct= useKioskStore((s) => s.setSelectedProduct);
+  const addToCart          = useKioskStore((s) => s.addToCart);
   const cartCount         = useKioskStore((s) => s.getCartCount());
   const cartTotal         = useKioskStore((s) => s.getCartTotal());
   const orderType         = useKioskStore((s) => s.orderType);
@@ -30,6 +31,8 @@ export default function MenuScreen() {
   const [activeCategory, setActiveCategory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
+  const [search, setSearch]   = useState('');
+  const [addedId, setAddedId] = useState(null); // for added-to-cart animation
 
   // Fetch menu — Syrve API for brands with org ID, mock data for others
   useEffect(() => {
@@ -67,16 +70,26 @@ export default function MenuScreen() {
       });
   }, [brand.id]);
 
-  const filteredProducts = activeCategory
-    ? products.filter(p => p.categoryId === activeCategory)
-    : products;
+  // Filter products by category + search
+  const filteredProducts = products.filter(p => {
+    const matchesCat = !activeCategory || p.categoryId === activeCategory;
+    const matchesSearch = !search || p.name.toLowerCase().includes(search.toLowerCase());
+    return matchesCat && matchesSearch;
+  });
+
+  // Quick add to cart
+  const handleQuickAdd = (product) => {
+    addToCart(product, 1, [], product.price);
+    setAddedId(product.id);
+    setTimeout(() => setAddedId(null), 800);
+  };
 
   if (loading) {
     return (
       <div className="menu-screen screen">
-        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'100vh', gap:16 }}>
-          <div className="spinner" style={{ width:56, height:56, border:'5px solid var(--border)', borderTopColor:'var(--primary)', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />
-          <p style={{ color:'var(--text-muted)', fontFamily:'Outfit,sans-serif' }}>Se încarcă meniul...</p>
+        <div className="menu-loading">
+          <div className="spinner" />
+          <p>{t('loading', lang)}</p>
         </div>
       </div>
     );
@@ -85,10 +98,9 @@ export default function MenuScreen() {
   if (error) {
     return (
       <div className="menu-screen screen">
-        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'100vh', gap:16 }}>
-          <span style={{ fontSize:'3rem' }}>⚠️</span>
-          <p style={{ color:'var(--text)', fontFamily:'Outfit,sans-serif', textAlign:'center' }}>{error}</p>
-          <button className="btn btn-primary" onClick={() => window.location.reload()}>Reîncearcă</button>
+        <div className="menu-loading">
+          <p>{t('error_loading', lang)}</p>
+          <button className="btn btn-primary" onClick={() => window.location.reload()}>{t('retry', lang)}</button>
         </div>
       </div>
     );
@@ -104,102 +116,121 @@ export default function MenuScreen() {
             : <span className="menu-brand-name">{brand.name}</span>
           }
         </div>
+
+        <div className="menu-search">
+          <input
+            type="text"
+            placeholder={t('search', lang) + '...'}
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="menu-search-input"
+          />
+          {search && (
+            <button className="menu-search-clear" onClick={() => setSearch('')}>x</button>
+          )}
+        </div>
+
         <div className="menu-order-info">
           {orderType === 'dine-in'
-            ? <span>🪑 {t('table', lang)} #{tableNumber}</span>
-            : <span>🛍️ {t('takeaway', lang)}</span>
+            ? <span>{t('table', lang)} #{tableNumber}</span>
+            : <span>{t('takeaway', lang)}</span>
           }
         </div>
-        <button className="cart-fab" onClick={() => goTo('cart')} disabled={cartCount === 0}>
-          <span className="cart-fab-icon">🛒</span>
-          <span className="cart-fab-text">
-            {cartCount > 0 ? `${cartCount} ${cartCount > 1 ? t('items_many', lang) : t('item_one', lang)}` : t('cart_empty', lang)}
-          </span>
-          {cartCount > 0 && (
-            <span className="cart-fab-total">{cartTotal.toFixed(0)} {t('lei', lang)}</span>
-          )}
-          {cartCount > 0 && <span className="badge">{cartCount}</span>}
-        </button>
       </header>
 
-      {/* ─── CATEGORY TABS ────────────────────────── */}
-      <nav className="category-nav">
-        <div className="category-tabs">
+      <div className="menu-body">
+        {/* ─── SIDEBAR CATEGORIES ────────────────────── */}
+        <aside className="category-sidebar">
           {categories.map(cat => (
             <button
               key={cat.id}
-              className={`cat-tab ${activeCategory === cat.id ? 'cat-tab--active' : ''}`}
-              onClick={() => setActiveCategory(cat.id)}
+              className={`cat-btn ${activeCategory === cat.id ? 'cat-btn--active' : ''}`}
+              onClick={() => { setActiveCategory(cat.id); setSearch(''); }}
             >
-              <span className="cat-icon">{cat.emoji || '🍽️'}</span>
-              <span className="cat-name">{cat.name}</span>
+              {cat.image && <img src={cat.image} alt="" className="cat-btn-img" />}
+              <span className="cat-btn-label">{cat.name}</span>
             </button>
           ))}
-        </div>
-      </nav>
+        </aside>
 
-      {/* ─── PRODUCTS GRID ───────────────────────── */}
-      <main className="products-grid scroll-y">
-        {filteredProducts.length === 0 ? (
-          <div className="empty-cat">
-            <span style={{fontSize:'3rem'}}>🍽️</span>
-            <p>{t('cart_empty', lang)}</p>
-          </div>
-        ) : (
-          <div className="products-list">
-            {filteredProducts.map((product, i) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                delay={i * 0.04}
-                lang={lang}
-                onClick={() => setSelectedProduct(product)}
-              />
-            ))}
-          </div>
-        )}
-      </main>
+        {/* ─── PRODUCTS GRID ───────────────────────── */}
+        <main className="products-area">
+          {filteredProducts.length === 0 ? (
+            <div className="empty-cat">
+              <p>{t('cart_empty', lang)}</p>
+            </div>
+          ) : (
+            <div className="products-grid">
+              {filteredProducts.map((product, i) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  delay={i * 0.03}
+                  lang={lang}
+                  isAdded={addedId === product.id}
+                  onQuickAdd={() => handleQuickAdd(product)}
+                  onInfo={() => setSelectedProduct(product)}
+                />
+              ))}
+            </div>
+          )}
+        </main>
+      </div>
+
+      {/* ─── FLOATING CART BAR ──────────────────────── */}
+      {cartCount > 0 && (
+        <div className="cart-bar" onClick={() => goTo('cart')}>
+          <span className="cart-bar-count">{cartCount} {cartCount > 1 ? t('items_many', lang) : t('item_one', lang)}</span>
+          <span className="cart-bar-label">{t('my_cart', lang)}</span>
+          <span className="cart-bar-total">{cartTotal.toFixed(0)} {t('lei', lang)}</span>
+        </div>
+      )}
     </div>
   );
 }
 
-function ProductCard({ product, delay, onClick, lang }) {
+function ProductCard({ product, delay, lang, isAdded, onQuickAdd, onInfo }) {
   const [imgError, setImgError] = useState(false);
 
   return (
-    <button
-      className="product-card fade-in"
+    <div
+      className={`product-card fade-in ${isAdded ? 'product-card--added' : ''}`}
       style={{ animationDelay: `${delay}s` }}
-      onClick={onClick}
     >
-      <div className="product-img">
-        {product.image && !imgError ? (
-          <img
-            src={product.image}
-            alt={product.name}
-            className="product-photo"
-            onError={() => setImgError(true)}
-          />
-        ) : (
-          <span className="product-emoji">🍽️</span>
-        )}
-      </div>
-      <div className="product-info">
-        {product.badge && <span className="product-badge">{product.badge}</span>}
-        <h3 className="product-name">{product.name}</h3>
-        <p className="product-desc">{product.description}</p>
-        {product.allergenGroups?.length > 0 && (
-          <div className="product-allergens">
-            {product.allergenGroups.map(a => (
-              <span key={a.id || a} className="allergen-tag">{a.name || a}</span>
-            ))}
+      {/* Info button */}
+      <button className="product-info-btn" onClick={(e) => { e.stopPropagation(); onInfo(); }} title="Info">
+        i
+      </button>
+
+      {/* Main card — click = add to cart */}
+      <div className="product-card-body" onClick={onQuickAdd}>
+        <div className="product-img">
+          {product.image && !imgError ? (
+            <img
+              src={product.image}
+              alt={product.name}
+              className="product-photo"
+              onError={() => setImgError(true)}
+            />
+          ) : (
+            <span className="product-emoji-placeholder"></span>
+          )}
+        </div>
+        <div className="product-info">
+          {product.badge && <span className="product-badge">{product.badge}</span>}
+          <h3 className="product-name">{product.name}</h3>
+          <div className="product-footer">
+            <span className="price price-lg">{product.price} {t('lei', lang)}</span>
           </div>
-        )}
-        <div className="product-footer">
-          <span className="price price-lg">{product.price} {t('lei', lang)}</span>
-          <span className="add-btn">+ {t('add_to_cart', lang)}</span>
         </div>
       </div>
-    </button>
+
+      {/* Added feedback overlay */}
+      {isAdded && (
+        <div className="product-added-overlay">
+          <span>{t('added_to_cart', lang)}</span>
+        </div>
+      )}
+    </div>
   );
 }
