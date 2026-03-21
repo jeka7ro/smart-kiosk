@@ -842,12 +842,13 @@ function LocationEditForm({ loc, backend, onBack, onSave }) {
   const [formData, setFormData] = useState({
     name: loc.name || '',
     brands: loc.brands || [],
-    isMultiBrand: loc.isMultiBrand || false,
+    isMultiBrand: loc.isMultiBrand || (loc.brands?.length > 1),
     kioskUrl: loc.kioskUrl || '',
     screensaverUrl: loc.screensaverUrl || '',
     showLogoOnScreensaver: loc.showLogoOnScreensaver !== false,
     orgIds: loc.orgIds || {},
-    tables: loc.tables || 0
+    tables: loc.tables || 0,
+    note: loc.note || '',
   });
 
   const handleChange = (field, val) => setFormData(prev => ({ ...prev, [field]: val }));
@@ -859,7 +860,7 @@ function LocationEditForm({ loc, backend, onBack, onSave }) {
   const toggleBrand = (b) => {
     setFormData(prev => {
       const newBrands = prev.brands.includes(b) ? prev.brands.filter(x => x !== b) : [...prev.brands, b];
-      return { ...prev, brands: newBrands };
+      return { ...prev, brands: newBrands, isMultiBrand: newBrands.length > 1 };
     });
   };
 
@@ -896,10 +897,19 @@ function LocationEditForm({ loc, backend, onBack, onSave }) {
           <label>Nume Locație</label>
           <input type="text" value={formData.name} onChange={e => handleChange('name', e.target.value)} className="pc-input" />
           
+          <label>Notă internă (opțional)</label>
+          <textarea
+            className="pc-input"
+            style={{ minHeight: 80, resize: 'vertical' }}
+            placeholder="ex: Kiosk la intrare, lângă casa 2. Tableta Samsung."
+            value={formData.note}
+            onChange={e => handleChange('note', e.target.value)}
+          />
+
           <label>Număr Mese</label>
           <input type="number" value={formData.tables} onChange={e => handleChange('tables', Number(e.target.value))} className="pc-input" />
 
-          <label>Branduri Active</label>
+          <label>Branduri Active <span style={{fontWeight:400, opacity:0.6, fontSize:'0.82rem'}}>(selectează manual — 2+ branduri = Multi-Brand tab-uri)</span></label>
           <div className="loc-brand-select">
             {Object.entries(BRAND_LABELS).map(([k, v]) => (
               <button
