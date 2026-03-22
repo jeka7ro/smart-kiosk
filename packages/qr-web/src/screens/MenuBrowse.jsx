@@ -168,10 +168,16 @@ export default function MenuBrowse({ brand }) {
 
                 {cartQty === 0 ? (
                   <button 
-                    style={{ flex: 1, height: 44, borderRadius: 10, border: '1px solid #e5e7eb', background: '#fff', color: '#ef4444', fontSize: '0.95rem', fontWeight: 700, cursor: 'pointer' }}
+                    style={{ 
+                      flex: 1, height: 44, borderRadius: 22, border: 'none', background: '#d32f2f', 
+                      color: '#fff', fontSize: '1rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s',
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px',
+                      boxShadow: '0 4px 12px rgba(211, 47, 47, 0.3)'
+                    }}
                     onClick={(e) => { e.stopPropagation(); useQrStore.getState().addToCart(p, 1, [], p.price); }}
                   >
-                    + Adaugă
+                    <span>+ Adaugă</span>
+                    <span>{p.price} lei</span>
                   </button>
                 ) : (
                   <div style={{ flex: 1, height: 44, borderRadius: 10, border: '1px solid #fca5a5', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }} onClick={e => e.stopPropagation()}>
