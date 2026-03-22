@@ -95,7 +95,7 @@ export default function ProductScreen() {
   ).filter(Boolean);
 
   return (
-    <div className="product-screen screen">
+    <div className="product-screen">
       {/* ─── LEFT PANEL (1/3) ─── */}
       <div className="ps-left">
         <button className="back-btn-ps" onClick={() => goTo('menu')}>
@@ -180,7 +180,7 @@ export default function ProductScreen() {
       </div>
 
       {/* ─── RIGHT PANEL (2/3) ─── */}
-      <div className="ps-right scroll-y" style={{ background: 'var(--bg)', flex: 1, padding: '40px', overflowY: 'auto' }}>
+      <div className="ps-right scroll-y">
         <div className="suggestions-header" style={{ marginBottom: '30px', paddingBottom: '20px', borderBottom: '2px solid var(--border)' }}>
            <h2 style={{ fontSize: '2.4rem', fontWeight: 800, color: '#111827', margin: '0 0 8px 0' }}>Recomandări Pentru Tine 🔥</h2>
            <p style={{ fontSize: '1.2rem', color: '#4b5563', margin: 0 }}>Ce s-ar mai potrivi cu comanda ta de astăzi?</p>
