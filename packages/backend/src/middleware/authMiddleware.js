@@ -36,4 +36,25 @@ const restrictTo = (...roles) => {
   };
 };
 
-module.exports = { protect, restrictTo };
+const requireApiKey = (req, res, next) => {
+  if (req.method === 'OPTIONS') return next();
+
+  const apiKey = req.headers['x-api-key'] || req.query.apikey;
+  const validKey = process.env.VITE_API_KEY || 'sk-live-2024-secure';
+
+  if (apiKey === validKey) {
+    return next();
+  }
+  
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    try {
+      const token = req.headers.authorization.split(' ')[1];
+      jwt.verify(token, process.env.JWT_SECRET || 'dev-secret');
+      return next(); 
+    } catch (e) {}
+  }
+
+  res.status(401).json({ error: 'Unauthorized API Access. Missing or invalid API Key.' });
+};
+
+module.exports = { protect, restrictTo, requireApiKey };

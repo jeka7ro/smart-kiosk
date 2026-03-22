@@ -59,7 +59,11 @@ export default function MenuBrowse({ brand }) {
       return;
     }
 
-    fetch(`${BACKEND}/api/menu?brandId=${brand.id}&orgId=${orgId}`)
+    fetch(`${BACKEND}/api/menu?brandId=${brand.id}&orgId=${orgId}&t=${Date.now()}`, {
+      headers: {
+        'x-api-key': import.meta.env.VITE_API_KEY || 'sk-live-2024-secure'
+      }
+    })
       .then(r => r.json())
       .then(data => {
         if (data.error) throw new Error(data.error);

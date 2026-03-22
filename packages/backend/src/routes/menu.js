@@ -1,13 +1,14 @@
 const express = require('express');
 const router  = express.Router();
 const { getCachedMenu, getAllCachedMenus, fetchMenu } = require('../services/iikoService');
+const { requireApiKey } = require('../middleware/authMiddleware');
 
 const ORG_IDS = (process.env.SYRVE_ORG_IDS || '').split(',').map(s => s.trim()).filter(Boolean);
 const DEFAULT_ORG = ORG_IDS[0] || '9c63cff6-1d66-442d-a98d-2302656e3943';
 
 // GET /api/menu?orgId=xxx&brandId=smashme
 // Returns cached menu (populated on startup by iikoService.syncAllMenus)
-router.get('/', async (req, res) => {
+router.get('/', requireApiKey, async (req, res) => {
   const { orgId = DEFAULT_ORG, brandId } = req.query;
 
   let menu = getCachedMenu(orgId);
@@ -36,7 +37,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/menu/categories?orgId=xxx
-router.get('/categories', async (req, res) => {
+router.get('/categories', requireApiKey, async (req, res) => {
   const { orgId = DEFAULT_ORG } = req.query;
   const menu = getCachedMenu(orgId);
   if (!menu) return res.json({ categories: [], source: 'not-synced' });
@@ -44,7 +45,7 @@ router.get('/categories', async (req, res) => {
 });
 
 // GET /api/menu/products?orgId=xxx&categoryId=yyy
-router.get('/products', async (req, res) => {
+router.get('/products', requireApiKey, async (req, res) => {
   const { orgId = DEFAULT_ORG, categoryId } = req.query;
   const menu = getCachedMenu(orgId);
   if (!menu) return res.json({ products: [], source: 'not-synced' });

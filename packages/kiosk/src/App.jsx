@@ -18,18 +18,20 @@ const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 export const BrandContext = createContext(null);
 export const useBrand = () => useContext(BrandContext);
 
-export default function App({ brandId }) {
+export default function App() {
   const screen = useKioskStore((s) => s.screen);
   const setLocationData = useKioskStore((s) => s.setLocationData);
   const setKioskData = useKioskStore((s) => s.setKioskData);
   const locationData = useKioskStore((s) => s.locationData);
-  const brand  = getBrand(brandId);
+  
+  const [activeBrandId, setActiveBrandId] = useState('smashme');
+  const brand = getBrand(activeBrandId);
   const [isLocked, setIsLocked] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useInactivityTimeout();
 
-  // Fetch location data at boot (for multi-brand detection and security PIN)
+  // Fetch location data at boot (for multi-brand detection, security PIN, and styling)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const locId = params.get('loc');
@@ -37,11 +39,23 @@ export default function App({ brandId }) {
        setLoading(false);
        return;
     }
-    fetch(`${BACKEND}/api/locations/${locId}`)
+    
+    fetch(`${BACKEND}/api/locations/${locId}?t=${Date.now()}`, {
+      headers: { 'x-api-key': import.meta.env.VITE_API_KEY || 'sk-live-2024-secure' }
+    })
       .then(r => r.json())
-      .then(loc => {
+      .then(async loc => {
         if (loc && !loc.error) {
           setLocationData(loc);
+          
+          // Determine the Main Brand natively from Database payload
+          const bId = (loc.brands && loc.brands.length > 0) ? loc.brands[0] : 'smashme';
+          setActiveBrandId(bId);
+          
+          // Dynamically apply brand theme colors
+          const { applyBrandTheme } = await import('./config/brands.js');
+          applyBrandTheme(bId);
+
           if (loc.kioskPin) {
              const unlocked = localStorage.getItem(`kiosk_unlocked_${loc.id}_${loc.kioskPin}`);
              setIsLocked(unlocked !== 'true');
@@ -49,7 +63,10 @@ export default function App({ brandId }) {
         }
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch((e) => {
+        console.error('Failed to load location:', e);
+        setLoading(false);
+      });
   }, [setLocationData]);
 
   // Auto-fullscreen on first user interaction (for kiosk/tablet mode)

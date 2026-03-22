@@ -2,7 +2,15 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs');
 const path = require('path');
-const { protect } = require('../middleware/authMiddleware');
+const { protect, requireApiKey } = require('../middleware/authMiddleware');
+
+// Force bypass browser caching for all location updates!
+router.use((req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  next();
+});
 
 const DATA_FILE = path.join(__dirname, '../../data/locations.json');
 
@@ -20,7 +28,7 @@ function writeLocations(locs) {
 }
 
 // GET /api/locations — all locations (optionally filter by brand)
-router.get('/', (req, res) => {
+router.get('/', requireApiKey, (req, res) => {
   const locs = readLocations();
   const { brandId } = req.query;
   const result = brandId
@@ -30,7 +38,7 @@ router.get('/', (req, res) => {
 });
 
 // GET /api/locations/:id
-router.get('/:id', (req, res) => {
+router.get('/:id', requireApiKey, (req, res) => {
   const locs = readLocations();
   const loc = locs.find(l => l.id === req.params.id);
   if (!loc) return res.status(404).json({ error: 'Location not found' });

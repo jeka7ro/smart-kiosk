@@ -545,10 +545,7 @@ function KiosksManager({ backend }) {
       <div className="kl-brand-group">
         <div className="kl-locations" style={{ borderTop: 'none' }}>
            {filtered.map(loc => {
-             const currentBrands = loc.brands || [];
-             const locBrand = currentBrands[0] || loc.brandId || 'smashme';
-             const isMulti = currentBrands.length > 1;
-             const finalKioskUrl = loc.kioskUrl || `https://kiosk-smashme.netlify.app/?loc=${loc.id}&brand=${locBrand}${isMulti ? '&multibrand=true' : ''}`;
+             const finalKioskUrl = loc.kioskUrl || `https://kiosk-smashme.netlify.app/?loc=${loc.id}`;
 
              return (
                <div key={loc.id} className="kl-location-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 12 }}>
@@ -643,9 +640,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
     }
   };
 
-  const locBrand = formData.brands[0] || 'smashme';
-  const isMulti = formData.brands.length > 1;
-  const finalKioskUrl = formData.kioskUrl || `https://kiosk-smashme.netlify.app/?loc=${loc.id}&brand=${locBrand}${isMulti ? '&multibrand=true' : ''}`;
+  const finalKioskUrl = formData.kioskUrl || `https://kiosk-smashme.netlify.app/?loc=${loc.id}`;
 
   return (
     <div className="loc-edit-form">
