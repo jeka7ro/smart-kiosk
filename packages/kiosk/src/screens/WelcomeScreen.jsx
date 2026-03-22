@@ -26,9 +26,9 @@ export default function WelcomeScreen() {
   useEffect(() => {
     if (locationData && locationData.posterUrl) {
       const detectType = (u) => {
-        if (/\.(mp4|webm|mov)(\?|$)/i.test(u)) return 'video';
-        if (/youtube|vimeo|dailymotion/i.test(u)) return 'iframe';
-        return 'image';
+        if (/\.(mp4|webm|mov|mkv|avi)(\?|$)/i.test(u)) return 'video';
+        if (/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i.test(u)) return 'image';
+        return 'iframe';
       };
       
       setPoster({

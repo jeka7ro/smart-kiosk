@@ -704,11 +704,16 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
           
           {formData.posterUrl && (
             <div style={{ marginTop: 16, height: 200, borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.1)', background: '#000' }}>
-              {/\.(mp4|webm)(\?|$)/i.test(formData.posterUrl) ? (
-                <video src={formData.posterUrl} autoPlay muted loop style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-              ) : (
-                <img src={formData.posterUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-              )}
+              {(() => {
+                const u = formData.posterUrl;
+                if (/\.(mp4|webm|mov)(\?|$)/i.test(u)) {
+                  return <video src={u} autoPlay muted loop style={{ width: '100%', height: '100%', objectFit: 'contain' }} />;
+                } else if (/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i.test(u)) {
+                  return <img src={u} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />;
+                } else {
+                  return <iframe src={u} title="Preview" style={{ width: '100%', height: '100%', border: 'none' }} />;
+                }
+              })()}
             </div>
           )}
         </div>
