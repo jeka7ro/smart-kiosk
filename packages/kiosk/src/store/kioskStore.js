@@ -41,10 +41,13 @@ export const useKioskStore = create((set, get) => ({
 
   // After welcome: go to brand select if multi-brand, otherwise orderType
   goAfterWelcome: () => {
-    const k = get().kioskData;
+    const params = new URLSearchParams(window.location.search);
+    const isMultiParam = params.get('multibrand') === 'true';
+    
     const loc = get().locationData;
-    // Fallback to location config if no kiosk config
-    const isMulti = k ? k.isMultiBrand : (loc && loc.brands && loc.brands.length > 1);
+    // Multi-brand active if URL forces it, or if location has multiple brands
+    const isMulti = isMultiParam || (loc && loc.brands && loc.brands.length > 1);
+    
     if (isMulti) {
       set({ screen: 'brandSelect' });
     } else {

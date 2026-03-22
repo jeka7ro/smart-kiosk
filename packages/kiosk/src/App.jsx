@@ -28,21 +28,16 @@ export default function App({ brandId }) {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const locId = params.get('loc');
-    const kioskId = params.get('kiosk');
     if (!locId) return;
     fetch(`${BACKEND}/api/locations/${locId}`)
       .then(r => r.json())
       .then(loc => {
         if (loc) {
           setLocationData(loc);
-          if (loc.kiosks && kioskId) {
-             const kConfig = loc.kiosks.find(k => k.id === kioskId);
-             if (kConfig) setKioskData(kConfig);
-          }
         }
       })
       .catch(() => {});
-  }, [setLocationData, setKioskData]);
+  }, [setLocationData]);
 
   // Auto-fullscreen on first user interaction (for kiosk/tablet mode)
   useEffect(() => {

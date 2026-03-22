@@ -19,12 +19,12 @@ export default function WelcomeScreen() {
   const slides = brand.welcomeSlides;
 
   // ─── Poster / Screensaver ────────────────────────────────
-  const kioskData = useKioskStore((s) => s.kioskData);
+  const locationData = useKioskStore((s) => s.locationData);
   const [poster, setPoster] = useState(null);   // { url, type, showLogo }
   const [posterVisible, setPosterVisible] = useState(false);
 
   useEffect(() => {
-    if (kioskData && kioskData.screensaverUrl) {
+    if (locationData && locationData.posterUrl) {
       const detectType = (u) => {
         if (/\.(mp4|webm|mov)(\?|$)/i.test(u)) return 'video';
         if (/youtube|vimeo|dailymotion/i.test(u)) return 'iframe';
@@ -32,8 +32,8 @@ export default function WelcomeScreen() {
       };
       
       setPoster({
-        url: kioskData.screensaverUrl,
-        type: detectType(kioskData.screensaverUrl),
+        url: locationData.posterUrl,
+        type: detectType(locationData.posterUrl),
         showLogo: true // Always show logo based on user requirements for now
       });
       setPosterVisible(true);
@@ -41,7 +41,7 @@ export default function WelcomeScreen() {
       setPoster(null);
       setPosterVisible(false);
     }
-  }, [kioskData]);
+  }, [locationData]);
 
   // Slide timer
   useEffect(() => {
