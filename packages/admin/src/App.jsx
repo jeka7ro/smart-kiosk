@@ -266,7 +266,7 @@ export default function AdminApp() {
           <div className="admin-section">
             <h2 className="section-title">📺 Kioskuri — Link-uri și Screensaver</h2>
             <p style={{color:'var(--text-muted)',marginBottom:16,fontSize:'0.9rem'}}>Copiază link-ul necesar pentru tabletă sau setează screensaver-ul (imagine/video completă care rulează înainte de comandă).</p>
-            <KioskLocationList backend={BACKEND} />
+            <KiosksManager backend={BACKEND} />
           </div>
         )}
 
@@ -459,125 +459,194 @@ function KioskPosterCard({ brandId, brandName, emoji, backend }) {
   );
 }
 
-function KioskLocationList({ backend }) { 
+function KiosksManager({ backend }) {
   const { fetchWithAuth } = useAuth();
   const [locations, setLocations] = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [expandedBrand, setExpandedBrand] = useState(null);
-  const [selectedLoc, setSelectedLoc]     = useState(null);
-  const [brandFilter, setBrandFilter]     = useState('all');
+  const [loading, setLoading] = useState(true);
+  const [editingLocKiosk, setEditingLocKiosk] = useState(null);
 
-  useEffect(() => {
+  const fetchLocs = () => {
+    setLoading(true);
     fetchWithAuth(`${backend}/api/locations`)
       .then(r => r.json())
-      .then(d => {
-        setLocations(d.locations || []);
-        setLoading(false);
-      })
+      .then(d => { setLocations(d.locations || []); setLoading(false); })
       .catch(() => setLoading(false));
-  }, [backend]);
-
-  if (loading) return <p className="loading-text">Se încarcă locațiile...</p>;
-
-  const brandMeta = {
-    smashme:     { name: 'SmashMe',       color: '#ef4444' },
-    sushimaster: { name: 'Sushi Master',  color: '#3b82f6' },
-    ikura:       { name: 'Ikura',         color: '#d4af37' },
-    welovesushi: { name: 'WeLoveSushi',   color: '#ec4899' },
   };
+  useEffect(fetchLocs, [backend]);
 
-  const allBrandIds = new Set();
-  locations.forEach(l => {
-     if (l.brands && Array.isArray(l.brands)) l.brands.forEach(b => allBrandIds.add(b));
-     else if (l.brandId) allBrandIds.add(l.brandId);
-  });
-  const brandIds = [...allBrandIds];
+  if (loading) return <p className="loading-text">Se încarcă kioskurile...</p>;
 
-  const filtered = brandFilter === 'all' 
-    ? locations 
-    : locations.filter(l => (l.brands && l.brands.includes(brandFilter)) || l.brandId === brandFilter);
+  if (editingLocKiosk) {
+    const loc = locations.find(l => l.id === editingLocKiosk.locId);
+    return (
+      <KioskEditForm 
+        loc={loc} 
+        kioskProp={editingLocKiosk.isNew ? null : loc.kiosks[editingLocKiosk.kioskIndex]} 
+        kioskIndex={editingLocKiosk.kioskIndex}
+        backend={backend} 
+        onBack={() => setEditingLocKiosk(null)} 
+        onSave={fetchLocs} 
+      />
+    );
+  }
 
   return (
-    <div className="kiosk-location-list">
-      {/* Brand filter */}
-      <div className="kl-brand-filter">
-        <button
-          className={`kl-filter-btn ${brandFilter === 'all' ? 'active' : ''}`}
-          onClick={() => setBrandFilter('all')}
-        >
-          Toate ({locations.length})
-        </button>
-        {brandIds.map(bid => {
-          const m = brandMeta[bid] || { name: bid, color: '#6b7a99' };
-          const count = locations.filter(l => (l.brands && l.brands.includes(bid)) || l.brandId === bid).length;
-          return (
-            <button
-              key={bid}
-              className={`kl-filter-btn ${brandFilter === bid ? 'active' : ''}`}
-              style={{ '--bc': m.color, display: 'flex', alignItems: 'center', gap: '6px' }}
-              onClick={() => setBrandFilter(bid)}
-            >
-              <BrandLogo brandId={bid} size={14} /> {m.name} ({count})
-            </button>
-          );
-        })}
+    <div className="kiosks-manager">
+      <div className="loc-grid">
+        {locations.map(loc => (
+          <div key={loc.id} className="loc-card" style={{ padding: 20 }}>
+            <div className="loc-card-header" style={{ borderBottom: '1px solid #eee', paddingBottom: 10, marginBottom: 15 }}>
+              <h3 className="loc-card-name" style={{margin:0}}>{loc.name} <span style={{fontSize:'0.85rem', color:'#888', fontWeight:400}}>({loc.id})</span></h3>
+              <button className="btn-secondary" style={{padding:'6px 12px', fontSize:'0.85rem'}} onClick={() => setEditingLocKiosk({ locId: loc.id, isNew: true })}>+ Adaugă Tabletă</button>
+            </div>
+            
+            {(loc.kiosks && loc.kiosks.length > 0) ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {loc.kiosks.map((k, idx) => {
+                  const url = `https://kiosk-smashme.netlify.app/?loc=${loc.id}&kiosk=${k.id}&brand=${k.defaultBrand || (loc.brands?.[0] || 'smashme')}`;
+                  return (
+                    <div key={k.id || idx} style={{ background: '#f9fafb', padding: '12px 16px', borderRadius: 8, border: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{flex:1, overflow:'hidden'}}>
+                        <div style={{ fontWeight: 600, color: '#111', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+                           {k.name}
+                           {k.isMultiBrand && <span className="tag" style={{background:'#dbeafe', color:'#1d4ed8', fontSize:'0.7rem'}}>Multi-Brand</span>}
+                        </div>
+                        <div style={{ display:'flex', gap: 10, alignItems: 'center', marginTop: 8 }}>
+                          <input readOnly value={url} style={{flex: 1, padding: '4px 8px', fontSize: '0.8rem', border: '1px solid #ddd', borderRadius: 4, background: '#fff', color: '#666', outline: 'none'}} />
+                          <button style={{background:'white', border:'1px solid #ccc', borderRadius:4, padding:'4px 8px', fontSize:'0.8rem', cursor:'pointer'}} onClick={() => navigator.clipboard.writeText(url)}>Copiază</button>
+                        </div>
+                      </div>
+                      <button className="loc-edit" style={{marginLeft:16}} onClick={() => setEditingLocKiosk({ locId: loc.id, kioskIndex: idx })} title="Editează Tabletă">✏️</button>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="empty-text" style={{margin:0, textAlign:'left'}}>Nicio tabletă Kiosk creată în această locație.</p>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function KioskEditForm({ loc, kioskProp, kioskIndex, backend, onBack, onSave }) {
+  const { fetchWithAuth } = useAuth();
+  const [formData, setFormData] = useState({
+    id: kioskProp?.id || `kiosk_${Math.random().toString(36).substring(2, 7)}`,
+    name: kioskProp?.name || 'Kiosk Nou',
+    defaultBrand: kioskProp?.defaultBrand || loc.brands?.[0] || 'smashme',
+    brands: kioskProp?.brands || (loc.brands || []),
+    isMultiBrand: kioskProp !== undefined ? !!kioskProp?.isMultiBrand : false,
+    screensaverUrl: kioskProp?.screensaverUrl || '',
+  });
+
+  const handleChange = (field, val) => setFormData(prev => ({ ...prev, [field]: val }));
+
+  const toggleBrand = (b) => {
+    setFormData(prev => {
+      const newBrands = prev.brands.includes(b) ? prev.brands.filter(x => x !== b) : [...prev.brands, b];
+      return { ...prev, brands: newBrands };
+    });
+  };
+
+  const saveKiosk = async () => {
+    // We update the location document's kiosks array directly
+    const newKiosks = [...(loc.kiosks || [])];
+    if (kioskProp !== null) {
+      newKiosks[kioskIndex] = formData;
+    } else {
+      newKiosks.push(formData);
+    }
+    
+    await fetchWithAuth(`${backend}/api/locations/${loc.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kiosks: newKiosks })
+    });
+    
+    onSave();
+    onBack();
+  };
+
+  const deleteKiosk = async () => {
+    if (!confirm('Sigur ștergi această tabletă?')) return;
+    const newKiosks = [...(loc.kiosks || [])];
+    newKiosks.splice(kioskIndex, 1);
+    
+    await fetchWithAuth(`${backend}/api/locations/${loc.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kiosks: newKiosks })
+    });
+    
+    onSave();
+    onBack();
+  };
+
+  return (
+    <div className="loc-edit-form">
+      <div className="loc-edit-header">
+        <button className="loc-back-btn" onClick={onBack}>← Inapoi</button>
+        <h2>{kioskProp ? 'Editare' : 'Adăugare'} Tabletă: {formData.name} ({loc.name})</h2>
+        <button className="loc-save-btn" onClick={saveKiosk}>💾 Salvează Tabletă</button>
       </div>
 
-      <div className="kl-brand-group">
-        <div className="kl-locations" style={{ borderTop: 'none' }}>
-           {filtered.map(loc => {
-             const locBrand = (loc.brands?.[0]) || loc.brandId || 'smashme';
-             return (
-               <div key={loc.id} className="kl-location-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 12 }}>
-                 <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                    <div className="kl-loc-info" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span className={`kl-status ${loc.active ? 'kl-online' : 'kl-offline'}`} />
-                      <span className="kl-loc-name" style={{fontSize: '1.05rem', fontWeight: 600}}>{loc.name}</span>
-                      <span className="kl-loc-id" style={{opacity: 0.4, fontSize: '0.8rem'}}>({loc.id})</span>
-                      <div style={{display: 'flex', gap: '6px', alignItems: 'center', marginLeft: '6px'}}>
-                        {(loc.brands && loc.brands.length > 0 ? loc.brands : [locBrand]).map(b => b ? <BrandLogo key={b} brandId={b} size={20} /> : null)}
-                      </div>
-                    </div>
-                    <button
-                      className="kl-poster-btn"
-                      onClick={() => setSelectedLoc(selectedLoc?.id === loc.id ? null : loc)}
-                    >
-                      📺 Screensaver
-                    </button>
-                 </div>
-                 
-                 <div style={{ width: '100%', background: 'rgba(0,0,0,0.15)', padding: '8px 12px', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem' }}>
-                    <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Link Tabletă:</span>
-                    <input 
-                      type="text" 
-                      readOnly 
-                      value={loc.kioskUrl || `https://kiosk-smashme.netlify.app/?brand=${locBrand}&loc=${loc.id}`}
-                      style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--primary)', outline: 'none' }}
-                    />
-                    <button 
-                      style={{ background: 'var(--primary)', border: 'none', padding: '4px 12px', borderRadius: 6, color: 'white', cursor: 'pointer', fontSize: '0.8rem' }}
-                      onClick={() => {
-                        navigator.clipboard.writeText(loc.kioskUrl || `https://kiosk-smashme.netlify.app/?brand=${locBrand}&loc=${loc.id}`);
-                        alert('Link-ul a fost copiat!');
-                      }}
-                    >
-                      Copiază
-                    </button>
-                 </div>
+      <div className="loc-edit-grid">
+        <div className="loc-edit-card">
+          <h3>Setări Generale Kiosk</h3>
+          <label>ID Sistem Kiosk (Unic)</label>
+          <input type="text" value={formData.id} readOnly className="pc-input" style={{opacity: 0.6, background: '#eee'}} />
+          
+          <label>Nume Tabletă (ex: Kiosk Intrare 1)</label>
+          <input type="text" value={formData.name} onChange={e => handleChange('name', e.target.value)} className="pc-input" />
 
-                 {selectedLoc?.id === loc.id && (
-                   <div className="kl-poster-panel" style={{ width: '100%', marginTop: '8px' }}>
-                     <KioskPosterCard
-                       brandId={selectedLoc.id}
-                       brandName={selectedLoc.name}
-                       emoji=""
-                       backend={backend}
-                     />
-                   </div>
-                 )}
-               </div>
-             )
-           })}
+          <label>Brand Default (pornește automat direct pe acest brand)</label>
+          <select className="pc-input" value={formData.defaultBrand} onChange={e => handleChange('defaultBrand', e.target.value)}>
+            {(loc.brands || []).map(b => (
+              <option key={b} value={b}>{BRAND_LABELS[b] || b}</option>
+            ))}
+          </select>
+          
+          <label>Branduri Active (permise pe această tabletă)</label>
+          <div className="loc-brand-select">
+            {(loc.brands || []).map(b => (
+              <button
+                key={b} className={`loc-brand-pill ${formData.brands.includes(b) ? 'active' : ''}`}
+                style={{ '--pill-color': BRAND_PILL_COLORS[b] || '#777' }}
+                onClick={() => toggleBrand(b)}
+              >{BRAND_LABELS[b] || b}</button>
+            ))}
+          </div>
+
+          <label className="pc-toggle" style={{marginTop: 15}}>
+            <input type="checkbox" checked={formData.isMultiBrand} onChange={e => handleChange('isMultiBrand', e.target.checked)} />
+            <span className="toggle-slider" />
+            <span>Multi-brand mode (afișare taburi cu restaurantele de mai sus)</span>
+          </label>
+        </div>
+
+        <div className="loc-edit-card">
+          <h3>Media / Screensaver</h3>
+          
+          <label>Screensaver URL (Imagine/Video mp4 la inactivitate)</label>
+          <input type="url" value={formData.screensaverUrl} onChange={e => handleChange('screensaverUrl', e.target.value)} className="pc-input" placeholder="https://..." />
+          
+          {formData.screensaverUrl && (
+            <div className="pc-preview-box" style={{height: 150, marginTop: 10}}>
+              {/\.(mp4|webm)(\?|$)/i.test(formData.screensaverUrl)
+                ? <video src={formData.screensaverUrl} autoPlay muted loop />
+                : <img src={formData.screensaverUrl} alt="Screensaver" />
+              }
+            </div>
+          )}
+          
+          {kioskProp !== null && (
+             <div style={{marginTop: 'auto', paddingTop: 30}}>
+               <button className="loc-del" style={{width: '100%', borderRadius: 8}} onClick={deleteKiosk}>🗑 Șterge Tabletă Definitiv</button>
+             </div>
+          )}
         </div>
       </div>
     </div>
@@ -853,10 +922,6 @@ function LocationEditForm({ loc, backend, onBack, onSave }) {
   const [formData, setFormData] = useState({
     name: loc.name || '',
     brands: loc.brands || [],
-    isMultiBrand: loc.isMultiBrand || (loc.brands?.length > 1),
-    kioskUrl: loc.kioskUrl || '',
-    screensaverUrl: loc.screensaverUrl || '',
-    showLogoOnScreensaver: loc.showLogoOnScreensaver !== false,
     orgIds: loc.orgIds || {},
     tables: loc.tables || 0,
     note: loc.note || '',
@@ -871,16 +936,8 @@ function LocationEditForm({ loc, backend, onBack, onSave }) {
   const toggleBrand = (b) => {
     setFormData(prev => {
       const newBrands = prev.brands.includes(b) ? prev.brands.filter(x => x !== b) : [...prev.brands, b];
-      return { ...prev, brands: newBrands, isMultiBrand: newBrands.length > 1 };
+      return { ...prev, brands: newBrands };
     });
-  };
-
-  const generateLink = () => {
-    if (formData.brands.length === 0) return;
-    const base = 'https://kiosk-smashme.netlify.app';
-    const activeBrand = formData.brands[0];
-    const newUrl = `${base}/?brand=${activeBrand}&loc=${loc.id}`;
-    handleChange('kioskUrl', newUrl);
   };
 
   const saveLoc = async () => {
@@ -920,7 +977,7 @@ function LocationEditForm({ loc, backend, onBack, onSave }) {
           <label>Număr Mese</label>
           <input type="number" value={formData.tables} onChange={e => handleChange('tables', Number(e.target.value))} className="pc-input" />
 
-          <label>Branduri Active <span style={{fontWeight:400, opacity:0.6, fontSize:'0.82rem'}}>(selectează manual — 2+ branduri = Multi-Brand tab-uri)</span></label>
+          <label>Branduri Active (restaurante disponibile fizic în locație)</label>
           <div className="loc-brand-select">
             {Object.entries(BRAND_LABELS).map(([k, v]) => (
               <button
@@ -930,12 +987,6 @@ function LocationEditForm({ loc, backend, onBack, onSave }) {
               >{v}</button>
             ))}
           </div>
-
-          <label className="pc-toggle" style={{marginTop: 15}}>
-            <input type="checkbox" checked={formData.isMultiBrand} onChange={e => handleChange('isMultiBrand', e.target.checked)} />
-            <span className="toggle-slider" />
-            <span>Multi-brand mode (afișare tab-uri restaurant)</span>
-          </label>
         </div>
 
         {/* Syrve / Org ID */}
@@ -951,35 +1002,6 @@ function LocationEditForm({ loc, backend, onBack, onSave }) {
           ))}
         </div>
 
-        {/* Kiosk URL & Screensaver */}
-        <div className="loc-edit-card">
-          <h3>Afișaj Kiosk</h3>
-          
-          <label>Link Acces Kiosk (pentru browsere)</label>
-          <div style={{display:'flex', gap: 10, marginBottom: 20}}>
-            <input type="text" value={formData.kioskUrl} onChange={e => handleChange('kioskUrl', e.target.value)} className="pc-input" style={{marginBottom:0}} placeholder="https://..." />
-            <button className="btn-secondary" onClick={generateLink} style={{whiteSpace:'nowrap'}}>🔄 Generează</button>
-            <button className="btn-secondary" onClick={() => navigator.clipboard.writeText(formData.kioskUrl)} style={{whiteSpace:'nowrap'}}>📋 Copiază</button>
-          </div>
-
-          <label>Screensaver URL (Imagine mp4/jpg inactivitate)</label>
-          <input type="url" value={formData.screensaverUrl} onChange={e => handleChange('screensaverUrl', e.target.value)} className="pc-input" placeholder="https://...mp4" />
-          
-          <label className="pc-toggle" style={{marginTop: 15, marginBottom: 15}}>
-            <input type="checkbox" checked={formData.showLogoOnScreensaver} onChange={e => handleChange('showLogoOnScreensaver', e.target.checked)} />
-            <span className="toggle-slider" />
-            <span>Afișează logo brand pe butonul "Începe comanda"</span>
-          </label>
-
-          {formData.screensaverUrl && (
-            <div className="pc-preview-box" style={{height: 150}}>
-              {/\.(mp4|webm)(\?|$)/i.test(formData.screensaverUrl)
-                ? <video src={formData.screensaverUrl} autoPlay muted loop />
-                : <img src={formData.screensaverUrl} alt="Screensaver" />
-              }
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );

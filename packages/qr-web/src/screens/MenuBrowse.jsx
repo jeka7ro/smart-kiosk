@@ -168,10 +168,10 @@ export default function MenuBrowse({ brand }) {
 
                 {cartQty === 0 ? (
                   <button 
-                    style={{ flex: 1, height: 44, borderRadius: 10, border: '1px solid #e5e7eb', background: '#fff', color: '#374151', fontSize: '0.95rem', fontWeight: 600, cursor: 'pointer' }}
+                    style={{ flex: 1, height: 44, borderRadius: 10, border: '1px solid #e5e7eb', background: '#fff', color: '#ef4444', fontSize: '0.95rem', fontWeight: 700, cursor: 'pointer' }}
                     onClick={(e) => { e.stopPropagation(); useQrStore.getState().addToCart(p, 1, [], p.price); }}
                   >
-                    Vreau
+                    + Adaugă
                   </button>
                 ) : (
                   <div style={{ flex: 1, height: 44, borderRadius: 10, border: '1px solid #fca5a5', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }} onClick={e => e.stopPropagation()}>

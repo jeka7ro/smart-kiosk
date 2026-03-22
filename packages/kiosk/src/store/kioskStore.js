@@ -7,10 +7,12 @@ export const useKioskStore = create((set, get) => ({
   tableNumber: null,
   lang: 'ro',
   locationData: null, // { id, brands, orgIds } from backend
+  kioskData: null, // Specific config for this tablet
 
   // ─── Language ──────────────────────────────────────────────
   setLang: (lang) => set({ lang }),
   setLocationData: (data) => set({ locationData: data }),
+  setKioskData: (data) => set({ kioskData: data }),
 
   // ─── Menu Data ─────────────────────────────────────────────
   menuProducts: (() => {
@@ -39,8 +41,11 @@ export const useKioskStore = create((set, get) => ({
 
   // After welcome: go to brand select if multi-brand, otherwise orderType
   goAfterWelcome: () => {
+    const k = get().kioskData;
     const loc = get().locationData;
-    if (loc && loc.brands && loc.brands.length > 1) {
+    // Fallback to location config if no kiosk config
+    const isMulti = k ? k.isMultiBrand : (loc && loc.brands && loc.brands.length > 1);
+    if (isMulti) {
       set({ screen: 'brandSelect' });
     } else {
       set({ screen: 'orderType' });
@@ -61,21 +66,44 @@ export const useKioskStore = create((set, get) => ({
 
   // ─── Cart actions ─────────────────────────────────────────
   addToCart: (product, quantity, selectedModifiers, totalPrice, brandId) => {
-    const cartItem = {
-      id: `${product.id}_${Date.now()}`,
-      productId: product.id,
-      name: product.name,
-      image: product.image || null,
-      brandId: brandId || null,
-      quantity,
-      selectedModifiers,
-      unitPrice: totalPrice,
-      totalPrice: totalPrice * quantity,
-    };
-    set((state) => ({
-      cartItems: [...state.cartItems, cartItem],
-      screen: 'menu',
-    }));
+    set((state) => {
+      const existingItemIndex = state.cartItems.findIndex(i => {
+        if (i.productId !== product.id || i.brandId !== brandId) return false;
+        const modsA = i.selectedModifiers || [];
+        const modsB = selectedModifiers || [];
+        if (modsA.length !== modsB.length) return false;
+        
+        // Deep compare sorted modifiers
+        const strA = JSON.stringify([...modsA].sort((a,b) => (a.modId || '').localeCompare(b.modId || '')));
+        const strB = JSON.stringify([...modsB].sort((a,b) => (a.modId || '').localeCompare(b.modId || '')));
+        return strA === strB;
+      });
+
+      if (existingItemIndex > -1) {
+        const newCart = [...state.cartItems];
+        const item = newCart[existingItemIndex];
+        item.quantity += quantity;
+        item.totalPrice += (totalPrice * quantity);
+        return { cartItems: newCart, screen: 'menu' };
+      }
+
+      const cartItem = {
+        id: `${product.id}_${Date.now()}`,
+        productId: product.id,
+        name: product.name,
+        image: product.image || null,
+        brandId: brandId || null,
+        quantity,
+        selectedModifiers,
+        unitPrice: totalPrice,
+        totalPrice: totalPrice * quantity,
+      };
+      
+      return {
+        cartItems: [...state.cartItems, cartItem],
+        screen: 'menu',
+      };
+    });
   },
 
   updateCartItem: (itemId, quantity) => {

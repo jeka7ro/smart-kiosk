@@ -20,22 +20,29 @@ export const useBrand = () => useContext(BrandContext);
 export default function App({ brandId }) {
   const screen = useKioskStore((s) => s.screen);
   const setLocationData = useKioskStore((s) => s.setLocationData);
+  const setKioskData = useKioskStore((s) => s.setKioskData);
   const brand  = getBrand(brandId);
   useInactivityTimeout();
 
   // Fetch location data at boot (for multi-brand detection)
   useEffect(() => {
-    const locId = new URLSearchParams(window.location.search).get('loc');
+    const params = new URLSearchParams(window.location.search);
+    const locId = params.get('loc');
+    const kioskId = params.get('kiosk');
     if (!locId) return;
     fetch(`${BACKEND}/api/locations/${locId}`)
       .then(r => r.json())
       .then(loc => {
-        if (loc && loc.brands) {
+        if (loc) {
           setLocationData(loc);
+          if (loc.kiosks && kioskId) {
+             const kConfig = loc.kiosks.find(k => k.id === kioskId);
+             if (kConfig) setKioskData(kConfig);
+          }
         }
       })
       .catch(() => {});
-  }, [setLocationData]);
+  }, [setLocationData, setKioskData]);
 
   // Auto-fullscreen on first user interaction (for kiosk/tablet mode)
   useEffect(() => {

@@ -88,10 +88,10 @@ export default function ProductCard({ product, delay, lang, activeBrand, onQuick
 
         {cartQty === 0 ? (
           <button 
-            style={{ flex: 1, height: 44, borderRadius: 10, border: '1px solid #e5e7eb', background: '#fff', color: '#374151', fontSize: '0.95rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }}
+            style={{ flex: 1, height: 44, borderRadius: 10, border: '1px solid #e5e7eb', background: '#fff', color: '#ef4444', fontSize: '0.95rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s' }}
             onClick={handleAdd}
           >
-            Vreau
+            + Adaugă
           </button>
         ) : (
           <div style={{ flex: 1, height: 44, borderRadius: 10, border: '1px solid #fca5a5', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }} onClick={e => e.stopPropagation()}>

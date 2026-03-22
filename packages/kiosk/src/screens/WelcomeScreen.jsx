@@ -19,91 +19,29 @@ export default function WelcomeScreen() {
   const slides = brand.welcomeSlides;
 
   // ─── Poster / Screensaver ────────────────────────────────
-  const [poster, setPoster] = useState(null);   // { url, type, enabled }
+  const kioskData = useKioskStore((s) => s.kioskData);
+  const [poster, setPoster] = useState(null);   // { url, type, showLogo }
   const [posterVisible, setPosterVisible] = useState(false);
-  const socketRef = useRef(null);
 
-  // Fetch poster config from backend
   useEffect(() => {
-    const brandId = brand.id || import.meta.env.VITE_BRAND || 'smashme';
-
-    // Try location-specific first, then brand-level
-    const fetchPoster = async () => {
-      try {
-        const locId = new URLSearchParams(window.location.search).get('loc');
-        let locData = null;
-
-        // 1. Check specific location settings first
-        if (locId) {
-          try {
-            const rLoc = await fetch(`${BACKEND}/api/locations/${locId}`);
-            locData = await rLoc.json();
-            if (locData && locData.screensaverUrl) {
-              const detectType = (u) => {
-                if (/\.(mp4|webm|mov)(\?|$)/i.test(u)) return 'video';
-                if (/youtube|vimeo|dailymotion/i.test(u)) return 'iframe';
-                return 'image';
-              };
-              setPoster({
-                url: locData.screensaverUrl,
-                type: detectType(locData.screensaverUrl),
-                enabled: true,
-                showLogo: locData.showLogoOnScreensaver !== false
-              });
-              setPosterVisible(true);
-              return;
-            } else {
-              // Location exists but has NO screensaver configured — stop here,
-              // do NOT fall back to brand-level config (prevents SmashMe showing at Oradea)
-              return;
-            }
-          } catch (e) {
-            console.warn('[Poster] Location fetch failed:', e.message);
-          }
-        }
-
-        // 2. Fallback to generic brand kiosk config
-        const keys = [
-          import.meta.env.VITE_LOCATION_ID,    // specific kiosk
-          `${brandId}-main`,                     // brand main location
-          brandId,                               // brand level
-        ].filter(Boolean);
-
-        for (const key of keys) {
-          const res = await fetch(`${BACKEND}/api/admin/kiosk-config/${key}`);
-          const data = await res.json();
-          if (data.poster && data.poster.enabled && data.poster.url) {
-            setPoster({ ...data.poster, showLogo: true });
-            setPosterVisible(true);
-            return;
-          }
-        }
-      } catch (e) {
-        console.warn('[Poster] Fetch failed:', e.message);
-      }
-    };
-
-    fetchPoster();
-
-    // Listen for real-time poster updates via Socket.IO
-    try {
-      const socket = io(BACKEND, { reconnectionAttempts: 3, timeout: 5000 });
-      socketRef.current = socket;
-      socket.on('poster_updated', ({ brandId: bid, poster: newPoster }) => {
-        const myBrand = brand.id || import.meta.env.VITE_BRAND || 'smashme';
-        if (bid === myBrand || bid === `${myBrand}-main` || bid === import.meta.env.VITE_LOCATION_ID) {
-          if (newPoster && newPoster.enabled && newPoster.url) {
-            setPoster({ ...newPoster, showLogo: true });
-            setPosterVisible(true);
-          } else {
-            setPoster(null);
-            setPosterVisible(false);
-          }
-        }
+    if (kioskData && kioskData.screensaverUrl) {
+      const detectType = (u) => {
+        if (/\.(mp4|webm|mov)(\?|$)/i.test(u)) return 'video';
+        if (/youtube|vimeo|dailymotion/i.test(u)) return 'iframe';
+        return 'image';
+      };
+      
+      setPoster({
+        url: kioskData.screensaverUrl,
+        type: detectType(kioskData.screensaverUrl),
+        showLogo: true // Always show logo based on user requirements for now
       });
-      return () => socket.disconnect();
-    } catch (e) {}
-  }, [brand.id]);
+      setPosterVisible(true);
+    } else {
+      setPoster(null);
+      setPosterVisible(false);
+    }
+  }, [kioskData]);
 
   // Slide timer
   useEffect(() => {
@@ -204,8 +142,16 @@ export default function WelcomeScreen() {
 
       {/* CTA */}
       <div className="welcome-cta">
-        <button className="cta-button">
-          {t('tap_to_order', lang)}
+        <button className="cta-button" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+          {poster?.showLogo !== false && (
+            <img 
+              src={`/brands/${brand.id}-logo.png`} 
+              alt="" 
+              style={{ height: 38, objectFit: 'contain', background: '#fff', borderRadius: 8, padding: '2px 8px' }} 
+              onError={(e) => { e.target.style.display='none'; }}
+            />
+          )}
+          <span>{t('tap_to_order', lang)}</span>
         </button>
       </div>
 

@@ -20,17 +20,38 @@ export const useQrStore = create((set, get) => ({
 
   // Cart
   addToCart: (product, quantity, mods, unitPrice) => {
-    const item = {
-      id: `${product.id}-${Date.now()}`,
-      productId: product.id,
-      name: product.name,
-      image: product.image || null,
-      quantity,
-      unitPrice,
-      totalPrice: unitPrice * quantity,
-      selectedModifiers: mods,
-    };
-    set(s => ({ cartItems: [...s.cartItems, item] }));
+    set(s => {
+      const existingItemIndex = s.cartItems.findIndex(i => {
+        if (i.productId !== product.id) return false;
+        const modsA = i.selectedModifiers || [];
+        const modsB = mods || [];
+        if (modsA.length !== modsB.length) return false;
+        
+        const strA = JSON.stringify([...modsA].sort((a,b) => (a.modId || '').localeCompare(b.modId || '')));
+        const strB = JSON.stringify([...modsB].sort((a,b) => (a.modId || '').localeCompare(b.modId || '')));
+        return strA === strB;
+      });
+
+      if (existingItemIndex > -1) {
+        const newCart = [...s.cartItems];
+        const item = newCart[existingItemIndex];
+        item.quantity += quantity;
+        item.totalPrice += (unitPrice * quantity);
+        return { cartItems: newCart };
+      }
+
+      const item = {
+        id: `${product.id}-${Date.now()}`,
+        productId: product.id,
+        name: product.name,
+        image: product.image || null,
+        quantity,
+        unitPrice,
+        totalPrice: unitPrice * quantity,
+        selectedModifiers: mods,
+      };
+      return { cartItems: [...s.cartItems, item] };
+    });
   },
 
   updateCartItem: (id, qty) => {

@@ -38,11 +38,11 @@
     "lang": "ro",
     "channel": "kiosk",
     "paymentMethod": "card",
-    "status": "preparing",
+    "status": "ready",
     "syrveOrderId": null,
     "arrivedAt": 1774001625190,
     "createdAt": "2026-03-20T10:13:45.190Z",
-    "updatedAt": "2026-03-21T10:31:52.550Z"
+    "updatedAt": "2026-03-21T12:56:26.582Z"
   },
   {
     "_id": "ORD-1773999916765",

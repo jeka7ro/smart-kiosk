@@ -15,8 +15,9 @@ export default function BrandSelectScreen() {
   const lang = useKioskStore((s) => s.lang);
   const setLang = useKioskStore((s) => s.setLang);
   const locationData = useKioskStore((s) => s.locationData);
+  const kioskData = useKioskStore((s) => s.kioskData);
 
-  const brands = locationData?.brands || [];
+  const brands = kioskData?.brands || locationData?.brands || [];
 
   const selectBrand = (brandId) => {
     // Update brand in URL and go to orderType
