@@ -103,6 +103,7 @@ export default function App() {
   }
 
   const showBanner = screen !== 'welcome' && locationData?.topBannerUrl;
+  const showBottomBanner = screen !== 'welcome' && locationData?.bottomBannerContent;
 
   const renderPromoMedia = (u) => {
     if (!u) return null;
@@ -113,6 +114,20 @@ export default function App() {
     } else {
       return <iframe src={u} title="Promo" style={{ width: '100%', height: '100%', border: 'none', pointerEvents: 'none' }} />;
     }
+  };
+
+  const renderBottomBanner = (content) => {
+    if (!content) return null;
+    if (content.startsWith('http')) {
+      return renderPromoMedia(content);
+    }
+    return (
+      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 24px', boxSizing: 'border-box' }}>
+        <marquee scrollamount="6" style={{ fontSize: '1.4rem', fontWeight: 700, color: '#fff', letterSpacing: '1px' }}>
+          {content}
+        </marquee>
+      </div>
+    );
   };
 
   return (
@@ -139,8 +154,11 @@ export default function App() {
           width: '100%', 
           position: 'relative', 
           overflow: 'hidden',
-          borderRadius: showBanner ? '0 0 24px 24px' : '24px',
-          boxShadow: showBanner ? '0 8px 32px rgba(0,0,0,0.05)' : 'none',
+          borderRadius: (showBanner && showBottomBanner) ? '0' 
+                      : showBanner ? '0 0 24px 24px' 
+                      : showBottomBanner ? '24px 24px 0 0' 
+                      : '24px',
+          boxShadow: (showBanner || showBottomBanner) ? '0 8px 32px rgba(0,0,0,0.05)' : 'none',
           background: '#fff'
         }}>
           {screen === 'welcome'      && <WelcomeScreen />}
@@ -152,6 +170,21 @@ export default function App() {
           {screen === 'payment'      && <PaymentScreen />}
           {screen === 'confirmation' && <ConfirmationScreen />}
         </div>
+        
+        {showBottomBanner && (
+          <div style={{ 
+            height: '10vh', 
+            borderRadius: '0 0 24px 24px',
+            background: locationData.bottomBannerContent.startsWith('http') ? '#000' : '#1e293b', 
+            flexShrink: 0, 
+            position: 'relative', 
+            zIndex: 100, 
+            overflow: 'hidden',
+            boxShadow: '0 -8px 32px rgba(0,0,0,0.15)' 
+          }}>
+            {renderBottomBanner(locationData.bottomBannerContent)}
+          </div>
+        )}
         
       </div>
     </BrandContext.Provider>

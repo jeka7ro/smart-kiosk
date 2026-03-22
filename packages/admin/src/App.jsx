@@ -604,6 +604,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
     kioskUrl: loc.kioskUrl || '',
     posterUrl: loc.posterUrl || '',
     topBannerUrl: loc.topBannerUrl || '',
+    bottomBannerContent: loc.bottomBannerContent || '',
     kioskPin: loc.kioskPin || '',
     brands: loc.brands || [],
   });
@@ -613,6 +614,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
   // Toggles for optional sections
   const [usePin, setUsePin] = useState(!!loc.kioskPin);
   const [useBanner, setUseBanner] = useState(!!loc.topBannerUrl);
+  const [useBottomBanner, setUseBottomBanner] = useState(!!loc.bottomBannerContent);
 
   const handleChange = (field, val) => setFormData(p => ({ ...p, [field]: val }));
 
@@ -630,6 +632,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
     const finalData = { ...formData };
     if (!usePin) finalData.kioskPin = '';
     if (!useBanner) finalData.topBannerUrl = '';
+    if (!useBottomBanner) finalData.bottomBannerContent = '';
 
     try {
       await fetchWithAuth(`${backend}/api/locations/${loc.id}`, {
@@ -791,6 +794,42 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                   </div>
                 ) : (
                    <div style={{ height: 80, borderRadius: 12, border: '2px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.9rem', fontWeight: 500 }}>Introdu url-ul campaniei.</div>
+                )}
+             </div>
+          )}
+        </div>
+
+        {/* Card: Banner Promo (Footer) */}
+        <div className="loc-edit-card" style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: 8 }}>📣 Banner Promo (Footer / Jos)</h3>
+            <label className="pc-toggle" style={{ margin: 0 }}>
+              <input type="checkbox" checked={useBottomBanner} onChange={e => setUseBottomBanner(e.target.checked)} />
+              <span className="toggle-slider" />
+            </label>
+          </div>
+          <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: 20 }}>Apare în partea de jos a ecranului (sub meniu). Suportă Link Video/Imagine sau Text lung editabil.</p>
+          
+          {useBottomBanner && (
+             <div style={{ animation: 'fadeIn 0.3s ease' }}>
+                <textarea 
+                  className="pc-input" 
+                  placeholder="Introdu text promoțional SAU url... (ex: Super Ofertă Burgeri!)"
+                  value={formData.bottomBannerContent}
+                  onChange={e => handleChange('bottomBannerContent', e.target.value)}
+                  style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid #cbd5e1', width: '100%', marginBottom: 16, boxSizing: 'border-box', minHeight: 80, resize: 'vertical' }}
+                />
+                
+                {formData.bottomBannerContent && formData.bottomBannerContent.startsWith('http') ? (
+                  <div style={{ height: 80, borderRadius: 12, overflow: 'hidden', border: '1px solid #e2e8f0', background: '#f1f5f9' }}>
+                     {renderPreview(formData.bottomBannerContent)}
+                  </div>
+                ) : formData.bottomBannerContent ? (
+                  <div style={{ padding: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.95rem', color: '#334155', fontWeight: 600 }}>
+                    "{formData.bottomBannerContent}"
+                  </div>
+                ) : (
+                   <div style={{ height: 80, borderRadius: 12, border: '2px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.9rem', fontWeight: 500 }}>Fără conținut pentru subsol.</div>
                 )}
              </div>
           )}
