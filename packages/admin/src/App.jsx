@@ -708,13 +708,17 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                     padding: '8px 16px', borderRadius: '10px', 
                     display: 'flex', alignItems: 'center', gap: '8px', 
                     background: isActive ? pillColor : '#f8fafc', 
-                    color: isActive ? '#fff' : '#475569', 
-                    border: isActive ? `2px solid ${pillColor}` : '2px solid transparent',
+                    color: isActive ? '#fff' : '#64748b', 
+                    border: isActive ? `2px solid ${pillColor}` : '2px solid #e2e8f0',
                     boxShadow: isActive ? `0 4px 12px ${pillColor}40` : 'none',
-                    fontWeight: 600, transition: 'all 0.2s'
+                    fontWeight: 600, transition: 'all 0.2s', filter: isActive ? 'none' : 'grayscale(100%) opacity(0.7)'
                   }}
                   onClick={() => toggleBrand(k)}
                 >
+                  {isActive 
+                    ? <span style={{display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, background: 'rgba(255,255,255,0.2)', borderRadius: '50%', fontSize: '0.8rem'}}>✓</span> 
+                    : <span style={{display: 'block', width: 16, height: 16, border: '2px solid #cbd5e1', borderRadius: '50%'}}></span>
+                  }
                   <BrandLogo brandId={k} size={16} /> {v}
                 </button>
               );

@@ -33,13 +33,26 @@ export default function ProductScreen() {
   });
 
   const suggestions = useMemo(() => {
-    if (!product) return [];
-    const COMPLEMENT_KEYWORDS = /sos|sauce|bautur|drink|desert|dessert|cartof|fries|soup|supă|salat|miso|ceai|tea/i;
-    const others = menuProducts.filter(p => p.id !== product.id && p.price > 0);
-    const scored = others.map(p => ({
-      ...p,
-      _score: (COMPLEMENT_KEYWORDS.test(p.name) ? 2 : 0) + (p.image ? 1 : 0)
-    }));
+    if (!product || !menuProducts.length) return [];
+    
+    // Expanded keywords for standard upsell items
+    const ADDONS_REGEX = /sos|sauce|bautur|drink|desert|dessert|cartof|fries|potato|wedges|soup|supă|salat|miso|ceai|tea|mochi|ketchup|mayo|maionez/i;
+    
+    // Filter out the product itself
+    const candidates = menuProducts.filter(p => p.id !== product.id && p.price > 0);
+    
+    const scored = candidates.map(p => {
+      let score = 0;
+      // Bonus: Add-ons / sides are excellent cross-sells
+      if (ADDONS_REGEX.test(p.name)) score += 10;
+      // Bonus: Visuals sell
+      if (p.image) score += 2;
+      // PENALTY: Never suggest from the exact same category as the product the user is currently viewing
+      if (p.categoryId === product.categoryId) score -= 20;
+      
+      return { ...p, _score: score };
+    });
+    
     scored.sort((a, b) => b._score - a._score);
     return scored.slice(0, 6);
   }, [product, menuProducts]);

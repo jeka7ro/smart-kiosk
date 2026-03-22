@@ -26,27 +26,36 @@ export default function CartScreen() {
   // IDs already in cart
   const cartProductIds = new Set(cartItems.map(i => i.productId));
 
-  // Smart suggestions: products NOT already in cart, prefer ones with images
-  // Prioritize categories that complement cart (sauces, drinks, desserts, sides)
+  // Smart suggestions: products NOT already in cart, prefer addons/sides
+  // Crucially: never suggest items from categories the user already bought (e.g. no sets if set is in cart)
   const suggestions = useMemo(() => {
     if (!menuProducts.length) return [];
-    const COMPLEMENT_KEYWORDS = /sos|sauce|bautur|drink|desert|dessert|cartof|fries|soup|supă|salat|miso|ceai|tea/i;
     
-    const cartNames = cartItems.map(i => i.name.toLowerCase());
+    // Expanded keywords for standard upsell items across all brands
+    const ADDONS_REGEX = /sos|sauce|bautur|drink|desert|dessert|cartof|fries|potato|wedges|soup|supă|salat|miso|ceai|tea|mochi|ketchup|mayo|maionez/i;
     
-    const candidates = menuProducts.filter(p =>
-      !cartProductIds.has(p.id) && p.price > 0
-    );
+    const cartCategoryIds = new Set(cartItems.map(i => {
+      const p = menuProducts.find(prod => prod.id === i.productId);
+      return p ? p.categoryId : null;
+    }).filter(Boolean));
     
-    // Score: complementary > has image > everything else
-    const scored = candidates.map(p => ({
-      ...p,
-      _score: (COMPLEMENT_KEYWORDS.test(p.name) ? 2 : 0) + (p.image ? 1 : 0)
-    }));
+    const candidates = menuProducts.filter(p => !cartProductIds.has(p.id) && p.price > 0);
+    
+    const scored = candidates.map(p => {
+      let score = 0;
+      // Bonus: Add-ons / sides are excellent cross-sells
+      if (ADDONS_REGEX.test(p.name)) score += 10;
+      // Bonus: Visuals sell
+      if (p.image) score += 2;
+      // PENALTY: Heavily penalize categories the user already bought from
+      if (cartCategoryIds.has(p.categoryId)) score -= 20;
+      
+      return { ...p, _score: score };
+    });
     
     scored.sort((a, b) => b._score - a._score);
     return scored.slice(0, 4);
-  }, [menuProducts, cartProductIds]);
+  }, [menuProducts, cartItems]);
 
   const handleQuickAdd = (prod) => {
     addToCart(prod, 1, [], prod.price, brand?.id);

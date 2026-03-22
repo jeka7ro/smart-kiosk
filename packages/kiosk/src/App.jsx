@@ -117,15 +117,25 @@ export default function App() {
 
   return (
     <BrandContext.Provider value={brand}>
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', overflow: 'hidden', background: 'var(--bg, #f8fafc)' }}>
         
         {showBanner && (
-          <div style={{ height: '12vh', width: '100%', background: '#000', flexShrink: 0, position: 'relative', zIndex: 100, boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}>
+          <div style={{ 
+            height: '18vh', 
+            margin: '16px 16px 0 16px',
+            borderRadius: '24px',
+            background: '#000', 
+            flexShrink: 0, 
+            position: 'relative', 
+            zIndex: 100, 
+            overflow: 'hidden',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.15)' 
+          }}>
             {renderPromoMedia(locationData.topBannerUrl)}
           </div>
         )}
 
-        <div style={{ height: showBanner ? '88vh' : '100vh', width: '100%', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ flex: 1, width: '100%', position: 'relative', overflow: 'hidden', marginTop: showBanner ? '16px' : '0' }}>
           {screen === 'welcome'      && <WelcomeScreen />}
           {screen === 'orderType'    && <OrderTypeScreen />}
           {screen === 'brandSelect'  && <BrandSelectScreen />}
