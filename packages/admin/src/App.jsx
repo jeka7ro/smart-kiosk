@@ -493,7 +493,7 @@ function KiosksManager({ backend }) {
         setLocations(d.locations || []); 
         const obj = {};
         (d.locations || []).forEach(l => {
-          obj[l.id] = { kioskUrl: l.kioskUrl || '', posterUrl: l.posterUrl || '' };
+          obj[l.id] = { kioskUrl: l.kioskUrl || '', posterUrl: l.posterUrl || '', brands: l.brands || [] };
         });
         setFormData(obj);
         setLoading(false); 
@@ -506,6 +506,14 @@ function KiosksManager({ backend }) {
     setFormData(p => ({ ...p, [id]: { ...p[id], [field]: value } }));
   };
 
+  const toggleKioskBrand = (locId, b) => {
+    setFormData(prev => {
+      const oldBrands = prev[locId].brands || [];
+      const newBrands = oldBrands.includes(b) ? oldBrands.filter(x => x !== b) : [...oldBrands, b];
+      return { ...prev, [locId]: { ...prev[locId], brands: newBrands } };
+    });
+  };
+
   const saveLocSettings = async (id, locName) => {
     const data = formData[id];
     if (!data) return;
@@ -513,7 +521,7 @@ function KiosksManager({ backend }) {
       await fetchWithAuth(`${backend}/api/locations/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kioskUrl: data.kioskUrl, posterUrl: data.posterUrl })
+        body: JSON.stringify({ kioskUrl: data.kioskUrl, posterUrl: data.posterUrl, brands: data.brands })
       });
       alert(`Setări salvate pentru ${locName}!`);
       fetchLocs();
@@ -570,9 +578,11 @@ function KiosksManager({ backend }) {
       <div className="kl-brand-group">
         <div className="kl-locations" style={{ borderTop: 'none' }}>
            {filtered.map(loc => {
-             const locBrand = (loc.brands?.[0]) || loc.brandId || 'smashme';
+             const currentBrands = formData[loc.id]?.brands || loc.brands || [];
+             const locBrand = currentBrands[0] || loc.brandId || 'smashme';
+             const isMulti = currentBrands.length > 1;
              const isExpanded = expandedLocId === loc.id;
-             const finalKioskUrl = loc.kioskUrl || `https://kiosk-smashme.netlify.app/?loc=${loc.id}&brand=${locBrand}`;
+             const finalKioskUrl = loc.kioskUrl || `https://kiosk-smashme.netlify.app/?loc=${loc.id}&brand=${locBrand}${isMulti ? '&multibrand=true' : ''}`;
 
              return (
                <div key={loc.id} className="kl-location-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 12 }}>
@@ -617,10 +627,31 @@ function KiosksManager({ backend }) {
                  </div>
                  
                  {isExpanded && (
-                   <div style={{ width: '100%', marginTop: '8px', borderTop: '1px dashed #e2e8f0', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                   <div style={{ width: '100%', marginTop: '8px', borderTop: '1px dashed #e2e8f0', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
                      
                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                       <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Suprascrie Link Kiosk (Opțional)</label>
+                       <label style={{ fontSize: '0.9rem', fontWeight: 600, color: '#0f172a' }}>Bifează brandurile disponibile pe acest Kiosk</label>
+                       <div className="loc-brand-select">
+                         {Object.entries(BRAND_LABELS || {smashme:'SmashMe',sushimaster:'Sushi Master',welovesushi:'WeLoveSushi',ikura:'Ikura'}).map(([k, v]) => {
+                           const isActive = (formData[loc.id]?.brands || []).includes(k);
+                           const pillColor = BRAND_COLORS ? BRAND_COLORS[k] : '#3b82f6';
+                           return (
+                             <button
+                               key={k}
+                               className={`loc-brand-pill ${isActive ? 'active' : ''}`}
+                               style={{ '--pill-color': pillColor || '#3b82f6', display: 'flex', alignItems: 'center', gap: '6px', background: isActive ? pillColor : 'transparent', color: isActive ? '#fff' : '#0f172a', border: `2px solid ${pillColor}` }}
+                               onClick={() => toggleKioskBrand(loc.id, k)}
+                             >
+                               <BrandLogo brandId={k} size={14} /> {v}
+                             </button>
+                           );
+                         })}
+                       </div>
+                       <span style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 4 }}>Dacă bifezi mai multe, se va activa opțiunea Multibrand automat pe Link Universal. Primul bifat va fi brandul principal.</span>
+                     </div>
+
+                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                       <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Suprascrie Link Kiosk Custom (Opțional)</label>
                        <input 
                          type="url" 
                          className="pc-input" 
@@ -914,13 +945,13 @@ function LocationsManager({ backend }) {
                   className="loc-edit"
                   onClick={() => setEditingLoc(loc)}
                   title="Editeaza setarile"
-                >✏️</button>
+                >Modifică</button>
                 <button
                   className={`loc-toggle ${loc.active ? 'loc-toggle--on' : ''}`}
                   onClick={() => toggleActive(loc)}
                   title={loc.active ? 'Dezactiveaza' : 'Activeaza'}
                 >{loc.active ? 'ON' : 'OFF'}</button>
-                <button className="loc-del" onClick={() => deleteLoc(loc.id)} title="Sterge">x</button>
+                <button className="loc-del" onClick={() => deleteLoc(loc.id)} title="Sterge" style={{padding: '0 8px', fontSize: '0.85rem', fontWeight: 600}}>Șterge</button>
               </div>
             </div>
             <div className="loc-card-brands" onClick={() => setEditingLoc(loc)} style={{cursor: 'pointer', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap'}}>
@@ -975,8 +1006,8 @@ function LocationEditForm({ loc, backend, onBack, onSave }) {
     <div className="loc-edit-form">
       <div className="loc-edit-header">
         <button className="loc-back-btn" onClick={onBack}>← Inapoi</button>
-        <h2>Editare Locatie: {loc.id}</h2>
-        <button className="loc-save-btn" onClick={saveLoc}>💾 Salvează Toate</button>
+        <h2>Editare Locatie: {loc.name}</h2>
+        <button className="loc-save-btn" onClick={saveLoc}>Salvează Toate</button>
       </div>
 
       <div className="loc-edit-grid">
