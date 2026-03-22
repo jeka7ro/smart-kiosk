@@ -69,7 +69,7 @@ export default function AdminApp() {
     socket.on('disconnect', () => setConnected(false));
     socket.on('new_order', order => {
       setOrders(prev => [order, ...prev]);
-      addNotif(`🆕 Comandă #${order.orderNumber} — ${order.brand} — ${(order.totalAmount||0).toFixed(0)} lei`);
+      addNotif(`Comandă nouă #${order.orderNumber} — ${order.brand} — ${(order.totalAmount||0).toFixed(0)} lei`);
     });
     socket.on('order_status_updated', ({ orderId, status }) => {
       setOrders(prev => prev.map(o => o._id === orderId ? { ...o, status } : o));
@@ -122,26 +122,24 @@ export default function AdminApp() {
       {/* ─── Sidebar ─── */}
       <aside className="admin-sidebar">
         <div className="admin-logo">
-          <span className="al-icon">⚙️</span>
-          <span className="al-text">Smart Kiosk<br/><small>Admin Panel</small></span>
+          <span className="al-text" style={{ fontSize: '1.2rem', fontWeight: 600, letterSpacing: '-0.5px' }}>Smart Kiosk<br/><small style={{ fontWeight: 400, opacity: 0.7, fontSize: '0.8rem' }}>Admin Panel</small></span>
         </div>
         <nav className="admin-nav">
           {[
-            { id: 'dashboard', icon: '📊', label: 'Dashboard' },
-            { id: 'orders',    icon: '📋', label: 'Comenzi' },
-            { id: 'locations', icon: '📍', label: 'Locatii' },
-            { id: 'kiosks',    icon: '📺', label: 'Kioskuri' },
-            { id: 'qrcodes',   icon: '📱', label: 'QR Coduri' },
-            { id: 'menu',      icon: '🍽',  label: 'Meniu / Syrve' },
-            ...(user?.role === 'admin' ? [{ id: 'users', icon: '👥', label: 'Echipă' }] : []),
+            { id: 'dashboard', label: 'Dashboard' },
+            { id: 'orders',    label: 'Comenzi' },
+            { id: 'locations', label: 'Locații' },
+            { id: 'kiosks',    label: 'Kioskuri' },
+            { id: 'qrcodes',   label: 'QR Coduri' },
+            { id: 'menu',      label: 'Meniu / Syrve' },
+            ...(user?.role === 'admin' ? [{ id: 'users', label: 'Echipă' }] : []),
           ].map(item => (
             <button
               key={item.id}
               className={`anav-btn ${tab === item.id ? 'active' : ''}`}
               onClick={() => setTab(item.id)}
             >
-              <span className="anav-icon">{item.icon}</span>
-              <span>{item.label}</span>
+              <span style={{ fontWeight: tab === item.id ? 600 : 400 }}>{item.label}</span>
             </button>
           ))}
         </nav>
@@ -158,15 +156,15 @@ export default function AdminApp() {
             style={{ justifyContent: 'center', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)' }}
             onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
           >
-            {theme === 'dark' ? '☀️ Mod Luminos' : '🌙 Mod Întunecat'}
+            {theme === 'dark' ? 'Mod Luminos' : 'Mod Întunecat'}
           </button>
         </div>
 
         <div className="admin-links">
-          <button onClick={logout} style={{background:'rgba(239,68,68,0.1)', color:'#ef4444', border:'none', padding:'8px 12px', borderRadius:'8px', cursor:'pointer', marginBottom:'10px', width:'100%'}}>🚪 Deconectare</button>
-          <a href="http://localhost:4012" target="_blank" rel="noreferrer">📺 Kitchen Display</a>
-          <a href="http://localhost:4010/?brand=smashme" target="_blank" rel="noreferrer">🍔 Kiosk SmashMe</a>
-          <a href="http://localhost:4010/?brand=sushimaster" target="_blank" rel="noreferrer">🍣 Kiosk Sushi</a>
+          <button onClick={logout} style={{background:'rgba(239,68,68,0.1)', color:'#ef4444', border:'none', padding:'8px 12px', borderRadius:'8px', cursor:'pointer', marginBottom:'10px', width:'100%', fontWeight: 500}}>Deconectare</button>
+          <a href="http://localhost:4012" target="_blank" rel="noreferrer">Kitchen Display</a>
+          <a href="http://localhost:4010/?brand=smashme" target="_blank" rel="noreferrer">Kiosk SmashMe</a>
+          <a href="http://localhost:4010/?brand=sushimaster" target="_blank" rel="noreferrer">Kiosk Sushi</a>
         </div>
       </aside>
 
@@ -182,15 +180,15 @@ export default function AdminApp() {
         {/* ─── DASHBOARD ─── */}
         {tab === 'dashboard' && (
           <div className="admin-section">
-            <h2 className="section-title">📊 Dashboard — Azi</h2>
+            <h2 className="section-title">Dashboard — Azi</h2>
             <div className="stat-grid">
-              <StatCard icon="📋" label="Total comenzi" value={stats.total} color="var(--primary)" />
-              <StatCard icon="🟡" label="Noi / Așteptare" value={stats.pending}   color="var(--warning)" />
-              <StatCard icon="🔵" label="În pregătire"   value={stats.preparing} color="var(--cyan)" />
-              <StatCard icon="🟢" label="Gata ridicare"  value={stats.ready}     color="var(--success)" />
-              <StatCard icon="💰" label="Venituri"        value={`${stats.revenue.toFixed(0)} lei`} color="var(--success)" large />
-              <StatCard icon={<BrandLogo brandId="smashme" size={32} />} label="SmashMe comenzi"   value={stats.smashme} color={BRAND_COLORS.smashme} />
-              <StatCard icon={<BrandLogo brandId="sushimaster" size={32} />} label="SushiMaster comenzi" value={stats.sushimaster} color={BRAND_COLORS.sushimaster} />
+              <StatCard label="Total comenzi" value={stats.total} color="var(--primary)" />
+              <StatCard label="Noi / Așteptare" value={stats.pending}   color="var(--warning)" />
+              <StatCard label="În pregătire"   value={stats.preparing} color="var(--cyan)" />
+              <StatCard label="Gata ridicare"  value={stats.ready}     color="var(--success)" />
+              <StatCard label="Venituri"        value={`${stats.revenue.toFixed(0)} lei`} color="var(--success)" large />
+              <StatCard label="SmashMe"   value={stats.smashme} color={BRAND_COLORS.smashme} />
+              <StatCard label="SushiMaster" value={stats.sushimaster} color={BRAND_COLORS.sushimaster} />
             </div>
 
             <h3 className="sub-title">Ultimele 10 comenzi</h3>
@@ -202,7 +200,7 @@ export default function AdminApp() {
         {tab === 'orders' && (
           <div className="admin-section">
             <div className="section-header">
-              <h2 className="section-title">📋 Comenzi</h2>
+              <h2 className="section-title">Comenzi</h2>
               <div className="brand-tabs">
                 {['all','smashme','sushimaster'].map(b => (
                   <button
@@ -224,8 +222,8 @@ export default function AdminApp() {
         {tab === 'menu' && (
           <div className="admin-section">
             <div className="section-header">
-              <h2 className="section-title">🍽 Meniu din Syrve</h2>
-              <button className="btn-refresh" onClick={fetchMenuStatus}>🔄 Refresh</button>
+              <h2 className="section-title">Meniu din Syrve</h2>
+              <button className="btn-refresh" onClick={fetchMenuStatus}>Refresh</button>
             </div>
             {!menuStatus ? (
               <p className="loading-text">Se încarcă...</p>
@@ -285,12 +283,11 @@ export default function AdminApp() {
   );
 }
 
-function StatCard({ icon, label, value, color, large }) {
+function StatCard({ label, value, color, large }) {
   return (
     <div className={`stat-card ${large ? 'stat-card--large' : ''}`} style={{ '--sc': color }}>
-      <span className="sc-icon">{icon}</span>
       <span className="sc-value">{value}</span>
-      <span className="sc-label">{label}</span>
+      <span className="sc-label" style={{ opacity: 0.7, fontSize: '0.9rem' }}>{label}</span>
     </div>
   );
 }
@@ -326,7 +323,7 @@ function OrdersTable({ orders, full }) {
                   </span>
                 </td>
                 <td><span className="tag">{o.channel}</span></td>
-                <td>{o.orderType === 'dine-in' ? `🪑 Masa ${o.tableNumber}` : '🛍 Caserie'}</td>
+                <td>{o.orderType === 'dine-in' ? `Masa ${o.tableNumber}` : 'Caserie'}</td>
                 <td>{(o.items || []).map(i => `${i.quantity}x ${i.name}`).join(', ').slice(0, 40)}...</td>
                 <td><strong>{(o.totalAmount || 0).toFixed(0)} lei</strong></td>
                 <td><span className="status-pill" style={{ background: sc.color + '22', color: sc.color }}>● {sc.label}</span></td>

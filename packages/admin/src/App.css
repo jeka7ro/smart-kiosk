@@ -498,18 +498,69 @@
   border-radius: 16px; padding: 24px;
   display: flex; flex-direction: column; gap: 12px;
 }
-.loc-edit-card h3 { margin: 0 0 8px 0; font-size: 1.2rem; color: var(--text); }
-.loc-edit-card label { font-size: 0.9rem; font-weight: 600; color: var(--text-muted); display: block; }
+.loc-edit-card h3 { margin: 0 0 16px 0; font-size: 1.25rem; font-weight: 600; color: var(--text); letter-spacing: -0.3px; }
+.loc-edit-card label { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px; }
+
+/* macOS Tahoe Glass Effect Inputs */
+.pc-input {
+  width: 100%; box-sizing: border-box;
+  padding: 10px 14px; border-radius: 10px;
+  border: 1px solid rgba(0,0,0,0.1);
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--text); font-size: 0.95rem;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.2s;
+  margin-bottom: 20px;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
+}
+.pc-input:focus {
+  background: #fff; border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+/* Fix CSS Toggle */
+.pc-toggle {
+  display: flex !important;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.95rem !important;
+  color: var(--text) !important;
+  font-weight: 500 !important;
+  margin-top: 10px;
+}
+.pc-toggle input { display: none; }
+.pc-toggle .toggle-slider {
+  position: relative;
+  width: 44px; height: 24px;
+  background: rgba(0,0,0,0.1);
+  border-radius: 20px;
+  transition: background 0.3s;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+  flex-shrink: 0;
+}
+.pc-toggle .toggle-slider::after {
+  content: ''; position: absolute;
+  top: 2px; left: 2px; width: 20px; height: 20px;
+  background: #fff; border-radius: 50%;
+  transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+.pc-toggle input:checked + .toggle-slider { background: #10b981; }
+.pc-toggle input:checked + .toggle-slider::after { transform: translateX(20px); }
+
 .org-input-group {
-  background: rgba(0,0,0,0.02); padding: 12px; border-radius: 8px; border: 1px solid var(--border);
+  background: rgba(0,0,0,0.02); padding: 12px; border-radius: 10px; border: 1px solid var(--border);
 }
 .org-input-group label { margin-bottom: 8px; color: var(--text); }
 .btn-secondary {
-  background: var(--card); border: 1px solid var(--border);
+  background: rgba(255,255,255,0.8); border: 1px solid rgba(0,0,0,0.1);
   color: var(--text); padding: 0 16px; border-radius: 8px;
   cursor: pointer; font-weight: 600; transition: all 0.2s;
+  backdrop-filter: blur(10px); box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
-.btn-secondary:hover { background: rgba(0,0,0,0.03); border-color: var(--text-muted); }
+.btn-secondary:hover { background: #fff; transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
 
 .loc-pill { cursor: pointer; }
 .loc-edit {
