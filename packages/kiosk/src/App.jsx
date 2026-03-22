@@ -117,13 +117,12 @@ export default function App() {
 
   return (
     <BrandContext.Provider value={brand}>
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', overflow: 'hidden', background: 'var(--bg, #f8fafc)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', overflow: 'hidden', background: 'var(--bg, #f8fafc)', padding: '16px' }}>
         
         {showBanner && (
           <div style={{ 
-            height: '18vh', 
-            margin: '16px 16px 0 16px',
-            borderRadius: '24px',
+            height: '25vh', 
+            borderRadius: '24px 24px 0 0',
             background: '#000', 
             flexShrink: 0, 
             position: 'relative', 
@@ -135,7 +134,15 @@ export default function App() {
           </div>
         )}
 
-        <div style={{ flex: 1, width: '100%', position: 'relative', overflow: 'hidden', marginTop: showBanner ? '16px' : '0' }}>
+        <div style={{ 
+          flex: 1, 
+          width: '100%', 
+          position: 'relative', 
+          overflow: 'hidden',
+          borderRadius: showBanner ? '0 0 24px 24px' : '24px',
+          boxShadow: showBanner ? '0 8px 32px rgba(0,0,0,0.05)' : 'none',
+          background: '#fff'
+        }}>
           {screen === 'welcome'      && <WelcomeScreen />}
           {screen === 'orderType'    && <OrderTypeScreen />}
           {screen === 'brandSelect'  && <BrandSelectScreen />}
