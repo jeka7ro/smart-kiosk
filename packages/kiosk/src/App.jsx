@@ -24,7 +24,8 @@ export default function App() {
   const setKioskData = useKioskStore((s) => s.setKioskData);
   const locationData = useKioskStore((s) => s.locationData);
   
-  const [activeBrandId, setActiveBrandId] = useState('smashme');
+  const activeBrandId = useKioskStore((s) => s.activeBrandId);
+  const setActiveBrandId = useKioskStore((s) => s.setActiveBrandId);
   const brand = getBrand(activeBrandId);
   const [isLocked, setIsLocked] = useState(false);
   const [loading, setLoading] = useState(true);

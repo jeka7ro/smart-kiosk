@@ -48,8 +48,9 @@ export default function MenuScreen() {
   const cartBarRef = useRef(null);
 
   // Multi-brand state
+  const activeBrandId = useKioskStore(s => s.activeBrandId);
+  const setActiveBrandId = useKioskStore(s => s.setActiveBrandId);
   const [locationBrands, setLocationBrands] = useState([brand.id]); // brands at this location
-  const [activeBrand, setActiveBrand]       = useState(brand.id);   // currently viewed brand
   const [locationOrgIds, setLocationOrgIds]  = useState({});         // brandId → orgId from location
 
   // Fetch location to discover multi-brand capability
@@ -63,8 +64,8 @@ export default function MenuScreen() {
           setLocationBrands(loc.brands);
           setLocationOrgIds(loc.orgIds || {});
           // Keep active brand if it's in the list, otherwise pick first
-          if (!loc.brands.includes(activeBrand)) {
-            setActiveBrand(loc.brands[0]);
+          if (!loc.brands.includes(activeBrandId)) {
+            setActiveBrandId(loc.brands[0]);
           }
         }
       })
@@ -76,7 +77,7 @@ export default function MenuScreen() {
     setLoading(true);
     setError(null);
     // Prefer location's orgId, fallback to hardcoded map
-    const orgId = locationOrgIds[activeBrand] || BRAND_ORG_MAP[activeBrand];
+    const orgId = locationOrgIds[activeBrandId] || BRAND_ORG_MAP[activeBrandId];
 
     const pickDefault = (cats, prods) => {
       // Pick first category that actually HAS products in it
@@ -85,7 +86,7 @@ export default function MenuScreen() {
     };
 
     if (!orgId) {
-      const { categories: cats, products: prods } = getMenuData(activeBrand);
+      const { categories: cats, products: prods } = getMenuData(activeBrandId);
       setCategories(cats);
       setProducts(prods);
       setActiveCategory(pickDefault(cats, prods));
@@ -93,7 +94,7 @@ export default function MenuScreen() {
       return;
     }
 
-    fetch(`${BACKEND}/api/menu?brandId=${activeBrand}&orgId=${orgId}`)
+    fetch(`${BACKEND}/api/menu?brandId=${activeBrandId}&orgId=${orgId}`)
       .then(r => r.json())
       .then(data => {
         if (data.error) throw new Error(data.error);
@@ -107,14 +108,14 @@ export default function MenuScreen() {
       })
       .catch(err => {
         console.error('[MenuScreen] API fetch failed, falling back to mock:', err);
-        const { categories: cats, products: prods } = getMenuData(activeBrand);
+        const { categories: cats, products: prods } = getMenuData(activeBrandId);
         setCategories(cats);
         setProducts(prods);
         setMenuProducts(prods);
         setActiveCategory(pickDefault(cats, prods));
         setLoading(false);
       });
-  }, [activeBrand, locationOrgIds]);
+  }, [activeBrandId, locationOrgIds]);
 
   // Build category → first product image map
   const catImages = useMemo(() => {
@@ -135,7 +136,7 @@ export default function MenuScreen() {
 
   // Quick add to cart with fly animation
   const handleQuickAdd = useCallback((product, cardEl) => {
-    addToCart(product, 1, [], product.price, activeBrand);
+    addToCart(product, 1, [], product.price, activeBrandId);
 
     // Fly animation: get card position and cart bar position
     if (cardEl && cartBarRef.current) {
@@ -151,7 +152,7 @@ export default function MenuScreen() {
       });
       setTimeout(() => setFlyAnim(null), 850);
     }
-  }, [addToCart, activeBrand]);
+  }, [addToCart, activeBrandId]);
 
   if (loading) {
     return (
@@ -180,9 +181,9 @@ export default function MenuScreen() {
       {/* ─── TOP BAR ──────────────────────────────── */}
       <header className="menu-header">
         <div className="menu-header-left">
-          {BRANDS[activeBrand]?.logoImg
-            ? <img src={BRANDS[activeBrand].logoImg} alt={BRANDS[activeBrand]?.name} className="menu-logo" />
-            : <span className="menu-brand-name">{BRANDS[activeBrand]?.name || brand.name}</span>
+          {BRANDS[activeBrandId]?.logoImg
+            ? <img src={BRANDS[activeBrandId].logoImg} alt={BRANDS[activeBrandId]?.name} className="menu-logo" />
+            : <span className="menu-brand-name">{BRANDS[activeBrandId]?.name || brand.name}</span>
           }
         </div>
 
@@ -213,7 +214,7 @@ export default function MenuScreen() {
           {locationBrands.map(bId => {
             const info = BRAND_TAB_INFO[bId] || { label: bId, color: '#6b7a99', emoji: '' };
             const brandConfig = BRANDS[bId];
-            const isActive = activeBrand === bId;
+            const isActive = activeBrandId === bId;
             return (
               <button
                 key={bId}
@@ -271,7 +272,7 @@ export default function MenuScreen() {
                   product={product}
                   delay={i * 0.03}
                   lang={lang}
-                  activeBrand={activeBrand}
+                  activeBrand={activeBrandId}
                   onQuickAdd={handleQuickAdd}
                   onInfo={() => setSelectedProduct(product)}
                 />
@@ -299,10 +300,15 @@ export default function MenuScreen() {
 
       {/* ─── FLOATING CART BAR ──────────────────────── */}
       {cartCount > 0 && (
-        <div className="cart-bar" ref={cartBarRef} onClick={() => goTo('cart')}>
-          <span className="cart-bar-count">{cartCount} {cartCount > 1 ? t('items_many', lang) : t('item_one', lang)}</span>
-          <span className="cart-bar-label">🛒 {t('my_cart', lang)}</span>
-          <span className="cart-bar-total">{cartTotal.toFixed(0)} {t('lei', lang)}</span>
+        <div className="cart-bar" ref={cartBarRef} onClick={() => goTo('cart')} style={{ display: 'flex', alignItems: 'center', padding: '16px 24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+              <path d="M7 18C5.9 18 5.01 18.9 5.01 20C5.01 21.1 5.9 22 7 22C8.1 22 9 21.1 9 20C9 18.9 8.1 18 7 18ZM1 2V4H3L6.6 11.59L5.24 14.04C5.09 14.32 5 14.65 5 15C5 16.1 5.9 17 7 17H19V15H7.42C7.28 15 7.17 14.89 7.17 14.75L7.2 14.63L8.1 13H15.55C16.3 13 16.96 12.59 17.3 11.97L20.88 5.48C20.96 5.34 21 5.17 21 5C21 4.45 20.55 4 20 4H5.21L4.27 2H1ZM17 18C15.9 18 15.01 18.9 15.01 20C15.01 21.1 15.9 22 17 22C18.1 22 19 21.1 19 20C19 18.9 18.1 18 17 18Z"/>
+            </svg>
+            <span className="cart-bar-count" style={{ background: 'rgba(255,255,255,0.2)', padding: '4px 10px', borderRadius: '16px', fontSize: '0.9rem', fontWeight: 600 }}>{cartCount} {cartCount > 1 ? t('items_many', lang) : t('item_one', lang)}</span>
+          </div>
+          <span className="cart-bar-label" style={{ flex: 1, textAlign: 'center', fontSize: '1.2rem', fontWeight: 700 }}>{t('my_cart', lang)}</span>
+          <span className="cart-bar-total" style={{ fontSize: '1.4rem', fontWeight: 800 }}>{cartTotal.toFixed(0)} {t('lei', lang)}</span>
         </div>
       )}
       {/* invisible cart ref when cart is empty (for fly target) */}

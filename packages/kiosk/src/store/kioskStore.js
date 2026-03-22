@@ -9,6 +9,10 @@ export const useKioskStore = create((set, get) => ({
   locationData: null, // { id, brands, orgIds } from backend
   kioskData: null, // Specific config for this tablet
 
+  // ─── Active Brand ──────────────────────────────────────────
+  activeBrandId: 'smashme',
+  setActiveBrandId: (id) => set({ activeBrandId: id }),
+
   // ─── Language ──────────────────────────────────────────────
   setLang: (lang) => set({ lang }),
   setLocationData: (data) => set({ locationData: data }),

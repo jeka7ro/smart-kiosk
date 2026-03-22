@@ -19,11 +19,10 @@ export default function BrandSelectScreen() {
 
   const brands = kioskData?.brands || locationData?.brands || [];
 
+  const setActiveBrandId = useKioskStore(s => s.setActiveBrandId);
+
   const selectBrand = (brandId) => {
-    // Update brand in URL and go to orderType
-    const url = new URL(window.location);
-    url.searchParams.set('brand', brandId);
-    window.history.replaceState({}, '', url);
+    setActiveBrandId(brandId);
     goTo('orderType');
   };
 

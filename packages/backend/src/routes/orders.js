@@ -91,23 +91,70 @@ router.post('/', async (req, res) => {
     // Respond immediately to kiosk (don't block on Syrve)
     res.json({ success: true, order });
 
-    // ── Send to Syrve async (fire-and-forget) ──────────────────
+    // ── Send to Syrve async (fire-and-forget, Split by Brand) ──
     setImmediate(async () => {
       try {
-        const syrveResult = await syrveCreateOrder({
-          brandId: brandName,
-          orgId:   orgId || null,  // pass specific restaurant org ID
-          order,
-        });
-        if (syrveResult?.orderInfo?.id || syrveResult?.id) {
-          const syrveId = syrveResult?.orderInfo?.id || syrveResult?.id;
-          order.syrveOrderId = syrveId;
+        // Read locations to find orgIds dictionary
+        const locsPath = path.join(__dirname, '../../data/locations.json');
+        let orgIdsDict = {};
+        if (fs.existsSync(locsPath)) {
+           try {
+             const locs = JSON.parse(fs.readFileSync(locsPath, 'utf8'));
+             const locData = locs.find(l => l.id === locId);
+             if (locData?.orgIds) orgIdsDict = locData.orgIds;
+           } catch(e) {}
+        }
+
+        // Group order items by their actual brandId
+        const brandsMap = {};
+        for (const item of order.items) {
+           const bId = item.brandId || brandName;
+           if (!brandsMap[bId]) brandsMap[bId] = { items: [], totalAmount: 0 };
+           brandsMap[bId].items.push(item);
+           brandsMap[bId].totalAmount += (item.totalPrice || 0);
+        }
+        
+        const syrveIds = [];
+        
+        // Fire Syrve order creation for EACH brand separately
+        for (const [bId, brandData] of Object.entries(brandsMap)) {
+           const specificOrgId = orgIdsDict[bId] || orgId || null;
+           
+           const splitOrder = {
+              ...order,
+              brand: bId,
+              orgId: specificOrgId,
+              items: brandData.items,
+              totalAmount: Math.round(brandData.totalAmount * 100) / 100
+           };
+           
+           try {
+             console.log(`[Syrve] Pushing sub-order for brand: ${bId} / orgId: ${specificOrgId}`);
+             const syrveResult = await syrveCreateOrder({
+               brandId: bId,
+               orgId:   specificOrgId,
+               order:   splitOrder,
+             });
+             
+             if (syrveResult?.orderInfo?.id || syrveResult?.id) {
+               syrveIds.push(syrveResult?.orderInfo?.id || syrveResult?.id);
+             }
+           } catch (e) {
+             console.error(`[Syrve] Failed to push sub-order for brand ${bId}:`, e.message);
+           }
+        }
+        
+        // Link Syracuse IDs back to main order for tracking
+        if (syrveIds.length > 0) {
+          order.syrveOrderId = syrveIds.join(',');
+          saveOrders(); // Save the fact that it is now synced
           if (io) {
-            io.emit('order_syrve_confirmed', { orderId: order._id, syrveOrderId: syrveId });
+            io.emit('order_syrve_confirmed', { orderId: order._id, syrveOrderId: order.syrveOrderId });
           }
         }
+        
       } catch (err) {
-        console.error(`[Syrve] Failed to push order #${orderNumber} to Syrve:`, err.message);
+        console.error(`[Syrve] Grouping logic failed for order #${orderNumber}:`, err.message);
       }
     });
 

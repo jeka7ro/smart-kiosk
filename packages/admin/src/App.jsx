@@ -543,56 +543,75 @@ function KiosksManager({ backend }) {
         })}
       </div>
 
-      <div className="kl-brand-group">
-        <div className="kl-locations" style={{ borderTop: 'none' }}>
-           {filtered.map(loc => {
-             const finalKioskUrl = loc.kioskUrl || `https://kiosk-smashme.netlify.app/?loc=${loc.id}`;
-
-             return (
-               <div key={loc.id} className="kl-location-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 12 }}>
-                 <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                    <div className="kl-loc-info" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span className={`kl-status ${loc.active ? 'kl-online' : 'kl-offline'}`} />
-                      <span className="kl-loc-name" style={{fontSize: '1.05rem', fontWeight: 600, marginRight: 8}}>{loc.name} <span style={{opacity: 0.4, fontSize: '0.8rem', fontWeight: 400}}>({loc.id})</span></span>
-                      
-                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', paddingLeft: 8, borderLeft: '1px solid rgba(0,0,0,0.1)' }}>
-                        {(loc.brands || (loc.brandId ? [loc.brandId] : [])).map(b => (
-                          <BrandLogo key={b} brandId={b} size={22} />
-                        ))}
-                      </div>
+      {/* Tabel Business */}
+      <div className="loc-list-container" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 14px rgba(0,0,0,0.03)', marginTop: '24px' }}>
+        <table className="loc-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+          <thead style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+            <tr>
+              <th style={{ padding: '16px 24px', color: '#64748b', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Denumire & ID</th>
+              <th style={{ padding: '16px 24px', color: '#64748b', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Branduri Admise</th>
+              <th style={{ padding: '16px 24px', color: '#64748b', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Stare</th>
+              <th style={{ padding: '16px 24px', color: '#64748b', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: 'right' }}>Acțiuni</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[...filtered]
+              .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+              .map(loc => {
+              const finalKioskUrl = loc.kioskUrl || `https://kiosk-smashme.netlify.app/?loc=${loc.id}`;
+              const brandsArr = loc.brands || (loc.brandId ? [loc.brandId] : []);
+              
+              return (
+                <tr key={loc.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }}>
+                  <td style={{ padding: '16px 24px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <span style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a' }}>{loc.name}</span>
+                      <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontFamily: 'monospace' }}>{loc.id}</span>
                     </div>
-                    
-                    <button
-                      className="kl-poster-btn"
-                      style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.1)', background: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontWeight: 600, color: '#334155' }}
-                      onClick={() => setEditingLoc(loc)}
-                    >
-                      Editează Screensaver & Link Custom →
-                    </button>
-                 </div>
-                 
-                 <div style={{ width: '100%', background: 'rgba(255,255,255,0.4)', backdropFilter: 'blur(10px)', border: '1px solid rgba(0,0,0,0.05)', padding: '8px 12px', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', marginTop: 4 }}>
-                    <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap', fontWeight: 500 }}>Link Universal:</span>
-                    <input 
-                      type="text" 
-                      readOnly 
-                      value={finalKioskUrl}
-                      style={{ flex: 1, background: 'transparent', border: 'none', color: '#0f172a', outline: 'none', fontFamily: 'monospace' }}
-                    />
-                    <button 
-                      style={{ background: '#fff', border: '1px solid #e2e8f0', padding: '6px 14px', borderRadius: 6, color: '#334155', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
-                      onClick={() => {
-                        navigator.clipboard.writeText(finalKioskUrl);
-                        alert('Link-ul a fost copiat!');
-                      }}
-                    >
-                      Copiază Link
-                    </button>
-                 </div>
-               </div>
-             )
-           })}
-        </div>
+                  </td>
+                  <td style={{ padding: '16px 24px' }}>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      {brandsArr.map(b => (
+                        <BrandLogo key={b} brandId={b} size={28} />
+                      ))}
+                    </div>
+                  </td>
+                  <td style={{ padding: '16px 24px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: loc.active ? '#22c55e' : '#ef4444', display: 'inline-block' }} />
+                      <span style={{ fontSize: '0.9rem', fontWeight: 600, color: loc.active ? '#15803d' : '#b91c1c' }}>{loc.active ? 'Online' : 'Inactiv'}</span>
+                    </div>
+                  </td>
+                  <td style={{ padding: '16px 24px', textAlign: 'right' }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                      <button 
+                        title="Copiază Link Universal (Părere tăcută)"
+                        className="btn-business-icon"
+                        style={{ background: '#f8fafc', border: '1px solid #e2e8f0', cursor: 'pointer', fontSize: '1.1rem', padding: '8px 12px', borderRadius: '8px', transition: 'all 0.2s', color: '#475569', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}
+                        onClick={(e) => {
+                          const btn = e.currentTarget;
+                          navigator.clipboard.writeText(finalKioskUrl);
+                          btn.innerHTML = '✅ Copiat';
+                          setTimeout(() => btn.innerHTML = '🔗 Link', 2000);
+                        }}
+                      >
+                        🔗 Link
+                      </button>
+                      <button 
+                        title="Setări și Screensaver"
+                        className="btn-business-icon"
+                        style={{ background: '#fff', border: '1px solid #cbd5e1', cursor: 'pointer', fontSize: '1.1rem', padding: '8px 12px', borderRadius: '8px', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', color: '#0f172a', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}
+                        onClick={() => setEditingLoc(loc)}
+                      >
+                        ✏️ Config
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   );
@@ -708,27 +727,29 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
           <div className="loc-brand-select" style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 24 }}>
             {Object.entries({smashme:'SmashMe',sushimaster:'Sushi Master',welovesushi:'WeLoveSushi',ikura:'Ikura'}).map(([k, v]) => {
               const isActive = formData.brands.includes(k);
-              const pillColor = BRAND_COLORS ? BRAND_COLORS[k] : '#3b82f6';
+              const pillColor = (BRAND_COLORS && BRAND_COLORS[k]) ? BRAND_COLORS[k] : '#64748b'; // proper fallback
               return (
                 <button
                   key={k}
                   className={`loc-brand-pill ${isActive ? 'active' : ''}`}
                   style={{ 
-                    padding: '8px 16px', borderRadius: '10px', 
-                    display: 'flex', alignItems: 'center', gap: '8px', 
-                    background: isActive ? pillColor : '#f8fafc', 
-                    color: isActive ? '#fff' : '#64748b', 
-                    border: isActive ? `2px solid ${pillColor}` : '2px solid #e2e8f0',
-                    boxShadow: isActive ? `0 4px 12px ${pillColor}40` : 'none',
-                    fontWeight: 600, transition: 'all 0.2s', filter: isActive ? 'none' : 'grayscale(100%) opacity(0.7)'
+                    padding: '10px 18px', borderRadius: '12px', 
+                    display: 'flex', alignItems: 'center', gap: '10px', 
+                    background: isActive ? pillColor : '#ffffff', 
+                    color: isActive ? '#fff' : '#334155', 
+                    border: isActive ? `2px solid ${pillColor}` : '2px solid #cbd5e1',
+                    boxShadow: isActive ? `0 4px 12px ${pillColor}50` : '0 2px 4px rgba(0,0,0,0.02)',
+                    fontWeight: 600, transition: 'all 0.2s', 
+                    filter: isActive ? 'none' : 'grayscale(100%) opacity(0.8)',
+                     cursor: 'pointer'
                   }}
                   onClick={() => toggleBrand(k)}
                 >
                   {isActive 
-                    ? <span style={{display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, background: 'rgba(255,255,255,0.2)', borderRadius: '50%', fontSize: '0.8rem'}}>✓</span> 
-                    : <span style={{display: 'block', width: 16, height: 16, border: '2px solid #cbd5e1', borderRadius: '50%'}}></span>
+                    ? <span style={{display: 'flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, background: 'rgba(255,255,255,0.3)', borderRadius: '50%', fontSize: '0.85rem'}}>✓</span> 
+                    : <span style={{display: 'block', width: 20, height: 20, border: '2px solid #94a3b8', borderRadius: '50%'}}></span>
                   }
-                  <BrandLogo brandId={k} size={16} /> {v}
+                  <BrandLogo brandId={k} size={18} /> {v}
                 </button>
               );
             })}
