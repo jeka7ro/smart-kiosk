@@ -46,15 +46,21 @@ const requireApiKey = (req, res, next) => {
     return next();
   }
   
+  let jwtError = null;
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     try {
       const token = req.headers.authorization.split(' ')[1];
       jwt.verify(token, process.env.JWT_SECRET || 'dev-secret');
       return next(); 
-    } catch (e) {}
+    } catch (e) {
+      jwtError = e.message;
+    }
   }
 
-  res.status(401).json({ error: 'Unauthorized API Access. Missing or invalid API Key.' });
+  res.status(401).json({ 
+    error: 'Unauthorized API Access. Missing or invalid API Key.', 
+    jwtDetail: jwtError 
+  });
 };
 
 module.exports = { protect, restrictTo, requireApiKey };

@@ -43,7 +43,18 @@ app.use(express.urlencoded({ extended: true }));
 
 // ─── SOCKET.IO ──────────────────────────────────────────────────────────────
 const io = new Server(server, {
-  cors: { origin: allowedOrigins, methods: ['GET', 'POST'] },
+  cors: {
+    origin: (origin, cb) => {
+      if (!origin 
+          || allowedOrigins.includes(origin) 
+          || origin.endsWith('.netlify.app')) {
+        return cb(null, true);
+      }
+      cb(new Error(`Socket CORS blocked: ${origin}`));
+    },
+    methods: ['GET', 'POST'],
+    credentials: true
+  },
 });
 initSocket(io);
 

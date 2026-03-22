@@ -95,9 +95,8 @@ export default function AdminApp() {
     socket.on('order_status_updated', ({ orderId, status }) => {
       setOrders(prev => prev.map(o => o._id === orderId ? { ...o, status } : o));
     });
-      if (!token) return <LoginScreen />;
 
-  return () => socket.disconnect();
+    return () => socket.disconnect();
   }, []);
 
   /* ─── Load initial orders ────────────────────────── */
@@ -137,6 +136,8 @@ export default function AdminApp() {
   const filteredOrders = brandFilter === 'all'
     ? orders
     : orders.filter(o => o.brand === brandFilter);
+
+  if (!token) return <LoginScreen />;
 
   return (
     <div className="admin-app">
