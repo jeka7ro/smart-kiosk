@@ -102,16 +102,41 @@ export default function App() {
     );
   }
 
+  const showBanner = screen !== 'welcome' && locationData?.topBannerUrl;
+
+  const renderPromoMedia = (u) => {
+    if (!u) return null;
+    if (/\.(mp4|webm|mov)(\?|$)/i.test(u)) {
+      return <video src={u} autoPlay muted loop playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
+    } else if (/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i.test(u)) {
+      return <img src={u} alt="Promo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
+    } else {
+      return <iframe src={u} title="Promo" style={{ width: '100%', height: '100%', border: 'none', pointerEvents: 'none' }} />;
+    }
+  };
+
   return (
     <BrandContext.Provider value={brand}>
-      {screen === 'welcome'      && <WelcomeScreen />}
-      {screen === 'orderType'    && <OrderTypeScreen />}
-      {screen === 'brandSelect'  && <BrandSelectScreen />}
-      {screen === 'menu'         && <MenuScreen />}
-      {screen === 'product'      && <ProductScreen />}
-      {screen === 'cart'         && <CartScreen />}
-      {screen === 'payment'      && <PaymentScreen />}
-      {screen === 'confirmation' && <ConfirmationScreen />}
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', overflow: 'hidden' }}>
+        
+        {showBanner && (
+          <div style={{ height: '12vh', width: '100%', background: '#000', flexShrink: 0, position: 'relative', zIndex: 100, boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}>
+            {renderPromoMedia(locationData.topBannerUrl)}
+          </div>
+        )}
+
+        <div style={{ height: showBanner ? '88vh' : '100vh', width: '100%', position: 'relative', overflow: 'hidden' }}>
+          {screen === 'welcome'      && <WelcomeScreen />}
+          {screen === 'orderType'    && <OrderTypeScreen />}
+          {screen === 'brandSelect'  && <BrandSelectScreen />}
+          {screen === 'menu'         && <MenuScreen />}
+          {screen === 'product'      && <ProductScreen />}
+          {screen === 'cart'         && <CartScreen />}
+          {screen === 'payment'      && <PaymentScreen />}
+          {screen === 'confirmation' && <ConfirmationScreen />}
+        </div>
+        
+      </div>
     </BrandContext.Provider>
   );
 }
