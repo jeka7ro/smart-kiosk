@@ -464,6 +464,8 @@ function KiosksManager({ backend }) {
   const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingLocKiosk, setEditingLocKiosk] = useState(null);
+  const [brandFilter, setBrandFilter] = useState('all');
+  const [expandedLocId, setExpandedLocId] = useState(null);
 
   const fetchLocs = () => {
     setLoading(true);
@@ -490,42 +492,110 @@ function KiosksManager({ backend }) {
     );
   }
 
+  const brandMeta = {
+    smashme:     { name: 'SmashMe',       color: '#ef4444' },
+    sushimaster: { name: 'Sushi Master',  color: '#3b82f6' },
+    ikura:       { name: 'Ikura',         color: '#d4af37' },
+    welovesushi: { name: 'WeLoveSushi',   color: '#ec4899' },
+  };
+
+  const allBrandIds = new Set();
+  locations.forEach(l => {
+     if (l.brands && Array.isArray(l.brands)) l.brands.forEach(b => allBrandIds.add(b));
+     else if (l.brandId) allBrandIds.add(l.brandId);
+  });
+  const brandIds = [...allBrandIds];
+
+  const filtered = brandFilter === 'all' 
+    ? locations 
+    : locations.filter(l => (l.brands && l.brands.includes(brandFilter)) || l.brandId === brandFilter);
+
   return (
-    <div className="kiosks-manager">
-      <div className="loc-grid">
-        {locations.map(loc => (
-          <div key={loc.id} className="loc-card" style={{ padding: 20 }}>
-            <div className="loc-card-header" style={{ borderBottom: '1px solid #eee', paddingBottom: 10, marginBottom: 15 }}>
-              <h3 className="loc-card-name" style={{margin:0}}>{loc.name} <span style={{fontSize:'0.85rem', color:'#888', fontWeight:400}}>({loc.id})</span></h3>
-              <button className="btn-secondary" style={{padding:'6px 12px', fontSize:'0.85rem'}} onClick={() => setEditingLocKiosk({ locId: loc.id, isNew: true })}>+ Adaugă Tabletă</button>
-            </div>
-            
-            {(loc.kiosks && loc.kiosks.length > 0) ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {loc.kiosks.map((k, idx) => {
-                  const url = `https://kiosk-smashme.netlify.app/?loc=${loc.id}&kiosk=${k.id}&brand=${k.defaultBrand || (loc.brands?.[0] || 'smashme')}`;
-                  return (
-                    <div key={k.id || idx} style={{ background: '#f9fafb', padding: '12px 16px', borderRadius: 8, border: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{flex:1, overflow:'hidden'}}>
-                        <div style={{ fontWeight: 600, color: '#111', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-                           {k.name}
-                           {k.isMultiBrand && <span className="tag" style={{background:'#dbeafe', color:'#1d4ed8', fontSize:'0.7rem'}}>Multi-Brand</span>}
-                        </div>
-                        <div style={{ display:'flex', gap: 10, alignItems: 'center', marginTop: 8 }}>
-                          <input readOnly value={url} style={{flex: 1, padding: '4px 8px', fontSize: '0.8rem', border: '1px solid #ddd', borderRadius: 4, background: '#fff', color: '#666', outline: 'none'}} />
-                          <button style={{background:'white', border:'1px solid #ccc', borderRadius:4, padding:'4px 8px', fontSize:'0.8rem', cursor:'pointer'}} onClick={() => navigator.clipboard.writeText(url)}>Copiază</button>
-                        </div>
-                      </div>
-                      <button className="loc-edit" style={{marginLeft:16}} onClick={() => setEditingLocKiosk({ locId: loc.id, kioskIndex: idx })} title="Editează Tabletă">✏️</button>
+    <div className="kiosk-location-list">
+      <div className="kl-brand-filter">
+        <button
+          className={`kl-filter-btn ${brandFilter === 'all' ? 'active' : ''}`}
+          onClick={() => setBrandFilter('all')}
+        >
+          Toate ({locations.length})
+        </button>
+        {brandIds.map(bid => {
+          const m = brandMeta[bid] || { name: bid, color: '#6b7a99' };
+          const count = locations.filter(l => (l.brands && l.brands.includes(bid)) || l.brandId === bid).length;
+          return (
+            <button
+              key={bid}
+              className={`kl-filter-btn ${brandFilter === bid ? 'active' : ''}`}
+              style={{ '--bc': m.color, display: 'flex', alignItems: 'center', gap: '6px' }}
+              onClick={() => setBrandFilter(bid)}
+            >
+              <BrandLogo brandId={bid} size={14} /> {m.name} ({count})
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="kl-brand-group">
+        <div className="kl-locations" style={{ borderTop: 'none' }}>
+           {filtered.map(loc => {
+             const locBrand = (loc.brands?.[0]) || loc.brandId || 'smashme';
+             const isExpanded = expandedLocId === loc.id;
+             const kioskCount = loc.kiosks?.length || 0;
+
+             return (
+               <div key={loc.id} className="kl-location-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 12 }}>
+                 <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                    <div className="kl-loc-info" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span className={`kl-status ${loc.active ? 'kl-online' : 'kl-offline'}`} />
+                      <span className="kl-loc-name" style={{fontSize: '1.05rem', fontWeight: 600}}>{loc.name}</span>
+                      <span className="kl-loc-id" style={{opacity: 0.4, fontSize: '0.8rem'}}>({loc.id})</span>
+                      <span style={{background: '#f1f5f9', color: '#475569', fontSize: '0.75rem', padding: '2px 8px', borderRadius: 12, fontWeight: 600, marginLeft: 8}}>{kioskCount} tablete</span>
                     </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="empty-text" style={{margin:0, textAlign:'left'}}>Nicio tabletă Kiosk creată în această locație.</p>
-            )}
-          </div>
-        ))}
+                    
+                    <div style={{display:'flex', gap: 8, alignItems: 'center'}}>
+                      <button className="btn-secondary" style={{padding:'6px 12px', fontSize:'0.85rem', margin: 0}} onClick={() => setEditingLocKiosk({ locId: loc.id, isNew: true })}>+ Adaugă</button>
+                      <button
+                        className="kl-poster-btn"
+                        onClick={() => setExpandedLocId(isExpanded ? null : loc.id)}
+                      >
+                        {isExpanded ? 'Ascunde ▲' : 'Tabletele din locație ▼'}
+                      </button>
+                    </div>
+                 </div>
+                 
+                 {isExpanded && (
+                   <div style={{ width: '100%', marginTop: '8px', borderTop: '1px dashed #e2e8f0', paddingTop: '12px' }}>
+                     {(loc.kiosks && loc.kiosks.length > 0) ? (
+                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                         {loc.kiosks.map((k, idx) => {
+                           const url = `https://kiosk-smashme.netlify.app/?loc=${loc.id}&kiosk=${k.id}&brand=${k.defaultBrand || (loc.brands?.[0] || 'smashme')}`;
+                           return (
+                             <div key={k.id || idx} style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: 8, border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                               <div style={{flex:1, overflow:'hidden'}}>
+                                 <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    {k.name}
+                                    {k.isMultiBrand && <span className="tag" style={{background:'#dbeafe', color:'#1d4ed8', fontSize:'0.7rem'}}>Multi</span>}
+                                    <span style={{fontSize:'0.75rem', color: '#64748b'}}>ID: {k.id}</span>
+                                 </div>
+                                 <div style={{ display:'flex', gap: 10, alignItems: 'center', marginTop: 8 }}>
+                                   <input readOnly value={url} style={{flex: 1, padding: '6px 10px', fontSize: '0.8rem', border: '1px solid #cbd5e1', borderRadius: 4, background: '#fff', color: '#334155', outline: 'none'}} />
+                                   <button style={{background:'white', border:'1px solid #cbd5e1', borderRadius:4, padding:'6px 12px', fontSize:'0.8rem', cursor:'pointer', fontWeight: 500, color:'#0f172a'}} onClick={() => navigator.clipboard.writeText(url)}>Copiază Link</button>
+                                 </div>
+                               </div>
+                               <button style={{marginLeft:16, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '1.2rem', opacity: 0.6, transition: '0.2s', padding: 8}} onClick={() => setEditingLocKiosk({ locId: loc.id, kioskIndex: idx })} title="Editează Tabletă">✏️</button>
+                             </div>
+                           );
+                         })}
+                       </div>
+                     ) : (
+                       <p style={{margin:0, textAlign:'center', color: '#94a3b8', padding: '12px 0', fontSize: '0.9rem'}}>Nicio tabletă Kiosk creată în această locație.</p>
+                     )}
+                   </div>
+                 )}
+               </div>
+             )
+           })}
+        </div>
       </div>
     </div>
   );
