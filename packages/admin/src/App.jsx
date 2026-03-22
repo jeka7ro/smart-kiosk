@@ -812,10 +812,22 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
           
           {useBottomBanner && (
              <div style={{ animation: 'fadeIn 0.3s ease' }}>
+                
+                <h4 style={{ margin: '0 0 8px 0', fontSize: '0.85rem', color: '#334155' }}>1. Afișare Reclamă (Video/Imagine)</h4>
+                <input 
+                  type="url" 
+                  className="pc-input" 
+                  placeholder="URL Video MP4 sau Imagine (Lasă gol pt. text)"
+                  value={formData.bottomBannerContent.startsWith('http') ? formData.bottomBannerContent : ''}
+                  onChange={e => handleChange('bottomBannerContent', e.target.value)}
+                  style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid #cbd5e1', width: '100%', marginBottom: 16, boxSizing: 'border-box' }}
+                />
+
+                <h4 style={{ margin: '0 0 8px 0', fontSize: '0.85rem', color: '#334155' }}>2. SAU Afișare Text Derulant</h4>
                 <textarea 
                   className="pc-input" 
-                  placeholder="Introdu text promoțional SAU url... (ex: Super Ofertă Burgeri!)"
-                  value={formData.bottomBannerContent}
+                  placeholder="Introdu mesajul ofertei... (Lasă gol pt. media)"
+                  value={!formData.bottomBannerContent.startsWith('http') ? formData.bottomBannerContent : ''}
                   onChange={e => handleChange('bottomBannerContent', e.target.value)}
                   style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid #cbd5e1', width: '100%', marginBottom: 16, boxSizing: 'border-box', minHeight: 80, resize: 'vertical' }}
                 />
