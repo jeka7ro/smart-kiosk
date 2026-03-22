@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { useKioskStore } from './store/kioskStore';
 import { useInactivityTimeout } from './hooks/useInactivityTimeout';
 import { getBrand } from './config/brands.js';
@@ -11,6 +11,7 @@ import ProductScreen       from './screens/ProductScreen';
 import CartScreen          from './screens/CartScreen';
 import PaymentScreen       from './screens/PaymentScreen';
 import ConfirmationScreen  from './screens/ConfirmationScreen';
+import PinScreen           from './screens/PinScreen';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 
@@ -21,22 +22,34 @@ export default function App({ brandId }) {
   const screen = useKioskStore((s) => s.screen);
   const setLocationData = useKioskStore((s) => s.setLocationData);
   const setKioskData = useKioskStore((s) => s.setKioskData);
+  const locationData = useKioskStore((s) => s.locationData);
   const brand  = getBrand(brandId);
+  const [isLocked, setIsLocked] = useState(false);
+  const [loading, setLoading] = useState(true);
+
   useInactivityTimeout();
 
-  // Fetch location data at boot (for multi-brand detection)
+  // Fetch location data at boot (for multi-brand detection and security PIN)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const locId = params.get('loc');
-    if (!locId) return;
+    if (!locId) {
+       setLoading(false);
+       return;
+    }
     fetch(`${BACKEND}/api/locations/${locId}`)
       .then(r => r.json())
       .then(loc => {
-        if (loc) {
+        if (loc && !loc.error) {
           setLocationData(loc);
+          if (loc.kioskPin) {
+             const unlocked = localStorage.getItem(`kiosk_unlocked_${loc.id}_${loc.kioskPin}`);
+             setIsLocked(unlocked !== 'true');
+          }
         }
+        setLoading(false);
       })
-      .catch(() => {});
+      .catch(() => setLoading(false));
   }, [setLocationData]);
 
   // Auto-fullscreen on first user interaction (for kiosk/tablet mode)
@@ -57,6 +70,20 @@ export default function App({ brandId }) {
       document.removeEventListener('click', goFull);
     };
   }, []);
+
+  if (loading) return null;
+
+  if (isLocked) {
+    return (
+      <PinScreen 
+        loc={locationData} 
+        onUnlock={() => {
+          localStorage.setItem(`kiosk_unlocked_${locationData.id}_${locationData.kioskPin}`, 'true');
+          setIsLocked(false);
+        }} 
+      />
+    );
+  }
 
   return (
     <BrandContext.Provider value={brand}>

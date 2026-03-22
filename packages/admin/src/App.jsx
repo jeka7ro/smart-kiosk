@@ -605,8 +605,11 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
   const [formData, setFormData] = useState({
     kioskUrl: loc.kioskUrl || '',
     posterUrl: loc.posterUrl || '',
+    kioskPin: loc.kioskPin || '',
     brands: loc.brands || [],
   });
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   const handleChange = (field, val) => setFormData(p => ({ ...p, [field]: val }));
 
@@ -619,17 +622,24 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
   };
 
   const saveSettings = async () => {
+    setIsSaving(true);
     try {
       await fetchWithAuth(`${backend}/api/locations/${loc.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
-      alert(`Setări salvate pentru ${loc.name}!`);
+      setSaveSuccess(true);
       onSave();
-      onBack();
+      
+      // Așteaptă 1 secundă pentru a vedea utilizatorul că s-a salvat cu succes, apoi închide
+      setTimeout(() => {
+        onBack();
+      }, 1200);
+      
     } catch(e) {
       alert('Eroare la salvare.');
+      setIsSaving(false);
     }
   };
 
@@ -642,7 +652,14 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
       <div className="loc-edit-header">
         <button className="loc-back-btn" onClick={onBack}>← Înapoi la Lista Kioskuri</button>
         <h2>Setări Kiosk pentru: {loc.name}</h2>
-        <button className="loc-save-btn" onClick={saveSettings}>Salvează Setările</button>
+        <button 
+          className="loc-save-btn" 
+          onClick={saveSettings} 
+          disabled={isSaving || saveSuccess}
+          style={{ background: saveSuccess ? '#22c55e' : '#3b82f6', transition: 'all 0.3s' }}
+        >
+          {saveSuccess ? '✅ Salvat' : isSaving ? '⏳ Se salvează...' : '💾 Salvează Setările'}
+        </button>
       </div>
 
       <div className="loc-edit-grid" style={{ gridTemplateColumns: 'minmax(400px, 1fr) 1fr' }}>
@@ -716,6 +733,23 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
               })()}
             </div>
           )}
+        </div>
+
+        <div className="loc-edit-card" style={{ gridColumn: '1 / -1' }}>
+          <h3>Securitate & Acces Tabletă</h3>
+          <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: 16 }}>Setați un cod PIN pentru a preveni accesul neautorizat pe link-ul Kiosk-ului.</p>
+          
+          <label>PIN Deblocare (Alege 4-6 cifre)</label>
+          <input 
+            type="text" 
+            maxLength="6"
+            className="pc-input" 
+            placeholder="ex: 1234"
+            style={{ maxWidth: 200 }}
+            value={formData.kioskPin}
+            onChange={e => handleChange('kioskPin', e.target.value.replace(/\D/g, ''))}
+          />
+          <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Dacă adaugi un PIN, aplicația Kiosk o va cere O SINGURĂ DATĂ la prima deschidere a link-ului pe tabletă. Lasă gol dacă nu dorești securizare extra.</span>
         </div>
       </div>
     </div>
