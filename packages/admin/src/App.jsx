@@ -40,7 +40,28 @@ const STATUS_LABELS = {
 
 export default function AdminApp() {
   const { token, user, fetchWithAuth, logout } = useAuth();
-  const [tab,       setTab]       = useState('orders'); // orders | menu | kiosks | stats
+  
+  const [tab, setTabState] = useState(() => {
+    const hash = window.location.hash.replace('#', '');
+    const validTabs = ['dashboard', 'orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'users'];
+    return validTabs.includes(hash) ? hash : 'orders';
+  });
+
+  const setTab = (newTab) => {
+    window.location.hash = newTab;
+    setTabState(newTab);
+  };
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '');
+      const validTabs = ['dashboard', 'orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'users'];
+      if (validTabs.includes(hash)) setTabState(hash);
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
   const [orders,    setOrders]    = useState([]);
   const [menuStatus,setMenuStatus]= useState(null);
   const [connected, setConnected] = useState(false);
