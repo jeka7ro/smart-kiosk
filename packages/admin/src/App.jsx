@@ -558,8 +558,13 @@ function KiosksManager({ backend }) {
                  <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
                     <div className="kl-loc-info" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <span className={`kl-status ${loc.active ? 'kl-online' : 'kl-offline'}`} />
-                      <span className="kl-loc-name" style={{fontSize: '1.05rem', fontWeight: 600}}>{loc.name}</span>
-                      <span className="kl-loc-id" style={{opacity: 0.4, fontSize: '0.8rem'}}>({loc.id})</span>
+                      <span className="kl-loc-name" style={{fontSize: '1.05rem', fontWeight: 600, marginRight: 8}}>{loc.name} <span style={{opacity: 0.4, fontSize: '0.8rem', fontWeight: 400}}>({loc.id})</span></span>
+                      
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', paddingLeft: 8, borderLeft: '1px solid rgba(0,0,0,0.1)' }}>
+                        {(loc.brands || (loc.brandId ? [loc.brandId] : [])).map(b => (
+                          <BrandLogo key={b} brandId={b} size={22} />
+                        ))}
+                      </div>
                     </div>
                     
                     <button
