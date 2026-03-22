@@ -571,3 +571,60 @@
   cursor: pointer; transition: transform 0.2s; opacity: 0.7;
 }
 .loc-edit:hover { transform: scale(1.1); opacity: 1; }
+
+/* ─── MOBILE RESPONSIVE ─── */
+.mobile-top-bar { display: none; }
+.mobile-close-btn { display: none; }
+
+@media (max-width: 768px) {
+  .admin-app { flex-direction: column; overflow-x: hidden; }
+  
+  /* Top Bar Header */
+  .mobile-top-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 20px;
+    background: var(--glass-bg);
+    border-bottom: 1px solid var(--glass-border);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    z-index: 90;
+    position: sticky; top: 0;
+  }
+  .mobile-menu-btn {
+    background: transparent; color: var(--text);
+    display: flex; align-items: center; justify-content: center;
+    padding: 6px; border-radius: 8px; border: 1px solid var(--glass-border); cursor: pointer;
+  }
+  
+  /* Sidebar Overlay */
+  .admin-sidebar {
+    position: fixed;
+    top: 0; left: -100%;
+    height: 100vh; width: 280px;
+    z-index: 100;
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+    background: color-mix(in srgb, var(--mesh-color-1) 85%, transparent);
+    backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
+  }
+  .admin-sidebar.open {
+    left: 0;
+  }
+  
+  .mobile-close-btn {
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.1); width: 32px; height: 32px;
+    border-radius: 50%; font-size: 1.5rem; color: var(--text); border: none; cursor: pointer;
+  }
+  
+  .admin-main { width: 100%; }
+  .admin-section { padding: 16px; min-height: calc(100vh - 70px); }
+  .stat-grid { grid-template-columns: 1fr 1fr; }
+  .stat-card--large { grid-column: span 2; }
+  .loc-table th, .loc-table td { padding: 12px; font-size: 0.8rem; }
+  .loc-table { display: block; overflow-x: auto; white-space: nowrap; }
+  .orders-table { display: block; overflow-x: auto; white-space: nowrap; }
+  /* Admin forms resize */
+  .ksf-grid { grid-template-columns: 1fr; }
+  .ksf-panel { padding: 20px 16px; }
+  .ksf-banner-grid { grid-template-columns: 1fr; }
+}

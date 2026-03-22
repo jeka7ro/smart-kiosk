@@ -139,12 +139,15 @@ export default function AdminApp() {
 
   if (!token) return <LoginScreen />;
 
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   return (
     <div className="admin-app">
       {/* ─── Sidebar ─── */}
-      <aside className="admin-sidebar">
-        <div className="admin-logo">
+      <aside className={`admin-sidebar ${isSidebarOpen ? 'open' : ''}`}>
+        <div className="admin-logo" style={{justifyContent: 'space-between'}}>
           <span className="al-text" style={{ fontSize: '1.2rem', fontWeight: 600, letterSpacing: '-0.5px' }}>Smart Kiosk<br/><small style={{ fontWeight: 400, opacity: 0.7, fontSize: '0.8rem' }}>Admin Panel</small></span>
+          <button className="mobile-close-btn" onClick={() => setIsSidebarOpen(false)}>×</button>
         </div>
         <nav className="admin-nav">
           {[
@@ -192,6 +195,14 @@ export default function AdminApp() {
 
       {/* ─── Main ─── */}
       <main className="admin-main">
+        {/* Bara Navigare Mobile (Invizibila pe Desktop) */}
+        <div className="mobile-top-bar">
+          <span style={{ fontWeight: 800, fontSize: '1.1rem' }}>Smart Kiosk</span>
+          <button className="mobile-menu-btn" onClick={() => setIsSidebarOpen(true)}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          </button>
+        </div>
+
         {/* Notifications */}
         <div className="notif-stack">
           {notifications.map(n => (
@@ -694,27 +705,43 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
 
   return (
     <div className="loc-edit-form" style={{ maxWidth: '1000px', margin: '0 auto' }}>
-      <div className="loc-edit-header" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)', paddingBottom: 16, marginBottom: 24 }}>
+      <div className="loc-edit-header" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)', paddingBottom: 16, marginBottom: 24, display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
            <button className="loc-back-btn" onClick={onBack} style={{ padding: 0, color: '#64748b', fontWeight: 600, border: 'none', background: 'none' }}>← Înapoi</button>
            <h2 style={{ margin: '8px 0 0 0', fontSize: '1.5rem', color: '#0f172a' }}>Configurare Kiosk: <span style={{color:'#3b82f6'}}>{loc.name}</span></h2>
         </div>
-        <button 
-          className="loc-save-btn" 
-          onClick={saveSettings} 
-          disabled={isSaving || saveSuccess}
-          style={{ 
-            background: saveSuccess ? '#10b981' : '#0f172a', 
-            color: '#fff',
-            padding: '10px 24px', 
-            borderRadius: '12px',
-            fontSize: '0.95rem',
-            boxShadow: saveSuccess ? '0 4px 14px rgba(16, 185, 129, 0.4)' : '0 4px 14px rgba(15, 23, 42, 0.2)',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)' 
-          }}
-        >
-          {saveSuccess ? '✅ Configurație Salvată' : isSaving ? '⏳ Se procesează...' : '💾 Salvează Schimbările'}
-        </button>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <a
+            href={finalKioskUrl}
+            target="_blank" rel="noreferrer"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              background: '#f8fafc', border: '1px solid #cbd5e1', color: '#334155',
+              padding: '10px 16px', borderRadius: '12px', fontSize: '0.9rem', fontWeight: 600,
+              textDecoration: 'none', transition: 'all 0.2s'
+            }}
+          >
+            👁️ Preview Live
+          </a>
+          <button 
+            className="loc-save-btn" 
+            onClick={saveSettings} 
+            disabled={isSaving || saveSuccess}
+            style={{ 
+              background: saveSuccess ? '#10b981' : '#0f172a', 
+              color: '#fff',
+              padding: '10px 24px', 
+              borderRadius: '12px',
+              fontSize: '0.95rem',
+              border: 'none',
+              cursor: (isSaving || saveSuccess) ? 'default' : 'pointer',
+              boxShadow: saveSuccess ? '0 4px 14px rgba(16, 185, 129, 0.4)' : '0 4px 14px rgba(15, 23, 42, 0.2)',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)' 
+            }}
+          >
+            {saveSuccess ? '✅ Configurație Salvată' : isSaving ? '⏳ Se procesează...' : '💾 Salvează Schimbările'}
+          </button>
+        </div>
       </div>
 
       <div className="loc-edit-grid" style={{ gridTemplateColumns: 'minmax(400px, 1fr) 1fr', gap: '24px' }}>
@@ -816,7 +843,12 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                 />
                 
                 {formData.topBannerUrl ? (
-                  <div style={{ height: 80, borderRadius: 12, overflow: 'hidden', border: '1px solid #e2e8f0', background: '#f1f5f9' }}>
+                  <div style={{ 
+                    height: 80, 
+                    borderRadius: `${formData.topBannerRadiusTop ? '12px' : '0'} ${formData.topBannerRadiusTop ? '12px' : '0'} ${formData.topBannerRadiusBottom ? '12px' : '0'} ${formData.topBannerRadiusBottom ? '12px' : '0'}`,
+                    transition: 'border-radius 0.3s ease',
+                    overflow: 'hidden', border: '1px solid #e2e8f0', background: '#f1f5f9' 
+                  }}>
                      {renderPreview(formData.topBannerUrl)}
                   </div>
                 ) : (
@@ -899,11 +931,21 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                 />
                 
                 {formData.bottomBannerContent && formData.bottomBannerContent.startsWith('http') ? (
-                  <div style={{ height: 80, borderRadius: 12, overflow: 'hidden', border: '1px solid #e2e8f0', background: '#f1f5f9' }}>
+                  <div style={{ 
+                    height: 80, 
+                    borderRadius: `${formData.bottomBannerRadiusTop ? '12px' : '0'} ${formData.bottomBannerRadiusTop ? '12px' : '0'} ${formData.bottomBannerRadiusBottom ? '12px' : '0'} ${formData.bottomBannerRadiusBottom ? '12px' : '0'}`,
+                    transition: 'border-radius 0.3s ease',
+                    overflow: 'hidden', border: '1px solid #e2e8f0', background: '#f1f5f9' 
+                  }}>
                      {renderPreview(formData.bottomBannerContent)}
                   </div>
                 ) : formData.bottomBannerContent ? (
-                  <div style={{ padding: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.95rem', color: '#334155', fontWeight: 600 }}>
+                  <div style={{ 
+                    padding: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', 
+                    borderRadius: `${formData.bottomBannerRadiusTop ? '8px' : '0'} ${formData.bottomBannerRadiusTop ? '8px' : '0'} ${formData.bottomBannerRadiusBottom ? '8px' : '0'} ${formData.bottomBannerRadiusBottom ? '8px' : '0'}`,
+                    transition: 'border-radius 0.3s ease',
+                    fontSize: '0.95rem', color: '#334155', fontWeight: 600 
+                  }}>
                     "{formData.bottomBannerContent}"
                   </div>
                 ) : (

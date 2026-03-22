@@ -13,6 +13,10 @@ export const useQrStore = create((set, get) => ({
   goTo: (screen) => set({ screen }),
 
   // Init from URL
+  locationData: null,
+  setLocationData: (data) => set({ locationData: data }),
+  isIdle: false,
+  setIdle: (val) => set({ isIdle: val }),
   init: (brandId, tableNum, locationId) => set({ brandId, tableNum, locationId, screen: 'menu' }),
 
   // Selected product
