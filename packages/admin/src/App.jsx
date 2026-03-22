@@ -604,7 +604,13 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
     kioskUrl: loc.kioskUrl || '',
     posterUrl: loc.posterUrl || '',
     topBannerUrl: loc.topBannerUrl || '',
+    topBannerHeight: loc.topBannerHeight || 3,
+    topBannerRadiusTop: loc.topBannerRadiusTop !== undefined ? loc.topBannerRadiusTop : true,
+    topBannerRadiusBottom: loc.topBannerRadiusBottom !== undefined ? loc.topBannerRadiusBottom : false,
     bottomBannerContent: loc.bottomBannerContent || '',
+    bottomBannerHeight: loc.bottomBannerHeight || 2,
+    bottomBannerRadiusTop: loc.bottomBannerRadiusTop !== undefined ? loc.bottomBannerRadiusTop : false,
+    bottomBannerRadiusBottom: loc.bottomBannerRadiusBottom !== undefined ? loc.bottomBannerRadiusBottom : true,
     kioskPin: loc.kioskPin || '',
     brands: loc.brands || [],
   });
@@ -795,6 +801,45 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                 ) : (
                    <div style={{ height: 80, borderRadius: 12, border: '2px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.9rem', fontWeight: 500 }}>Introdu url-ul campaniei.</div>
                 )}
+
+                <div style={{ marginTop: 24, padding: 20, background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0' }}>
+                  <h4 style={{ margin: '0 0 16px 0', fontSize: '0.95rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: 8 }}>⚙️ Configurare Vizuală (Design)</h4>
+                  
+                  <div style={{ marginBottom: 20 }}>
+                    <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: 12 }}>
+                      <span>Înălțime Banner</span>
+                      <span style={{ color: '#0f172a' }}>Nivel {formData.topBannerHeight} (din 5)</span>
+                    </label>
+                    <input 
+                      type="range" min="1" max="5" step="1"
+                      value={formData.topBannerHeight} 
+                      onChange={e => handleChange('topBannerHeight', parseInt(e.target.value))}
+                      style={{ width: '100%', cursor: 'pointer' }}
+                    />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#94a3b8', marginTop: 8 }}>
+                      <span>Subțire (10%)</span>
+                      <span>Lat (30%)</span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 16 }}>
+                    <label className="pc-toggle" style={{ margin: 0, flex: 1, background: '#fff', padding: '12px 16px', borderRadius: 10, border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>Colțuri Sus Rotunde</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <input type="checkbox" checked={formData.topBannerRadiusTop} onChange={e => handleChange('topBannerRadiusTop', e.target.checked)} />
+                        <span className="toggle-slider" style={{ position: 'relative', display: 'inline-block' }} />
+                      </div>
+                    </label>
+                    <label className="pc-toggle" style={{ margin: 0, flex: 1, background: '#fff', padding: '12px 16px', borderRadius: 10, border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>Colțuri Jos Rotunde</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <input type="checkbox" checked={formData.topBannerRadiusBottom} onChange={e => handleChange('topBannerRadiusBottom', e.target.checked)} />
+                        <span className="toggle-slider" style={{ position: 'relative', display: 'inline-block' }} />
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
              </div>
           )}
         </div>
@@ -843,6 +888,45 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                 ) : (
                    <div style={{ height: 80, borderRadius: 12, border: '2px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.9rem', fontWeight: 500 }}>Fără conținut pentru subsol.</div>
                 )}
+
+                <div style={{ marginTop: 24, padding: 20, background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0' }}>
+                  <h4 style={{ margin: '0 0 16px 0', fontSize: '0.95rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: 8 }}>⚙️ Configurare Vizuală (Design)</h4>
+                  
+                  <div style={{ marginBottom: 20 }}>
+                    <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: 12 }}>
+                      <span>Înălțime Banner</span>
+                      <span style={{ color: '#0f172a' }}>Nivel {formData.bottomBannerHeight} (din 5)</span>
+                    </label>
+                    <input 
+                      type="range" min="1" max="5" step="1"
+                      value={formData.bottomBannerHeight} 
+                      onChange={e => handleChange('bottomBannerHeight', parseInt(e.target.value))}
+                      style={{ width: '100%', cursor: 'pointer' }}
+                    />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#94a3b8', marginTop: 8 }}>
+                      <span>Subțire (10%)</span>
+                      <span>Lat (30%)</span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 16 }}>
+                    <label className="pc-toggle" style={{ margin: 0, flex: 1, background: '#fff', padding: '12px 16px', borderRadius: 10, border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>Colțuri Sus Rotunde</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <input type="checkbox" checked={formData.bottomBannerRadiusTop} onChange={e => handleChange('bottomBannerRadiusTop', e.target.checked)} />
+                        <span className="toggle-slider" style={{ position: 'relative', display: 'inline-block' }} />
+                      </div>
+                    </label>
+                    <label className="pc-toggle" style={{ margin: 0, flex: 1, background: '#fff', padding: '12px 16px', borderRadius: 10, border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>Colțuri Jos Rotunde</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <input type="checkbox" checked={formData.bottomBannerRadiusBottom} onChange={e => handleChange('bottomBannerRadiusBottom', e.target.checked)} />
+                        <span className="toggle-slider" style={{ position: 'relative', display: 'inline-block' }} />
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
              </div>
           )}
         </div>
@@ -1108,36 +1192,66 @@ function LocationsManager({ backend }) {
       )}
 
       {/* Locations table */}
-      <div className="loc-grid">
-        {filtered.map(loc => (
-          <div key={loc.id} className={`loc-card ${!loc.active ? 'loc-card--inactive' : ''}`}>
-            <div className="loc-card-header">
-              <h3 className="loc-card-name" style={{cursor: 'pointer'}} onClick={() => setEditingLoc(loc)}>{loc.name}</h3>
-              <div className="loc-card-actions">
-                <button
-                  className="loc-edit"
-                  onClick={() => setEditingLoc(loc)}
-                  title="Editeaza setarile"
-                >Modifică</button>
-                <button
-                  className={`loc-toggle ${loc.active ? 'loc-toggle--on' : ''}`}
-                  onClick={() => toggleActive(loc)}
-                  title={loc.active ? 'Dezactiveaza' : 'Activeaza'}
-                >{loc.active ? 'ON' : 'OFF'}</button>
-                <button className="loc-del" onClick={() => deleteLoc(loc.id)} title="Sterge" style={{padding: '0 8px', fontSize: '0.85rem', fontWeight: 600}}>Șterge</button>
-              </div>
-            </div>
-            <div className="loc-card-brands" onClick={() => setEditingLoc(loc)} style={{cursor: 'pointer', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap'}}>
-              {(loc.brands || []).map(b => (
-                <BrandLogo key={b} brandId={b} size={28} />
-              ))}
-            </div>
-            <div className="loc-card-stats" onClick={() => setEditingLoc(loc)} style={{cursor: 'pointer'}}>
-              <span>{loc.tables || 0} mese</span>
-              <span>{(loc.kiosks || []).length} kioskuri</span>
-            </div>
-          </div>
-        ))}
+      {/* Locations table (List View) */}
+      <div className="loc-list-container" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 14px rgba(0,0,0,0.03)', marginTop: '24px' }}>
+        <table className="loc-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+          <thead>
+            <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.85rem' }}>
+              <th style={{ padding: '14px 16px', fontWeight: 600 }}>Nume Locație</th>
+              <th style={{ padding: '14px 16px', fontWeight: 600 }}>Branduri Active</th>
+              <th style={{ padding: '14px 16px', fontWeight: 600 }}>Statistici</th>
+              <th style={{ padding: '14px 16px', fontWeight: 600 }}>Stare</th>
+              <th style={{ padding: '14px 16px', fontWeight: 600, textAlign: 'right' }}>Acțiuni</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map(loc => (
+              <tr key={loc.id} style={{ borderBottom: '1px solid #f1f5f9', opacity: loc.active ? 1 : 0.6, cursor: 'pointer' }} onClick={() => setEditingLoc(loc)} className="loc-list-row">
+                <td style={{ padding: '16px', fontWeight: 600, color: '#0f172a', fontSize: '1rem' }}>
+                  {loc.name}
+                  <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 400, marginTop: 4 }}>ID: {loc.id}</div>
+                </td>
+                <td style={{ padding: '16px' }}>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {(loc.brands || []).map(b => <BrandLogo key={b} brandId={b} size={24} />)}
+                  </div>
+                </td>
+                <td style={{ padding: '16px', color: '#64748b', fontSize: '0.9rem' }}>
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    <span style={{ background: '#f1f5f9', padding: '4px 8px', borderRadius: 6 }}>🪑 {loc.tables || 0}</span>
+                    <span style={{ background: '#f1f5f9', padding: '4px 8px', borderRadius: 6 }}>📱 {(loc.kiosks || []).length}</span>
+                  </div>
+                </td>
+                <td style={{ padding: '16px' }} onClick={(e) => e.stopPropagation()}>
+                   <button
+                    className={`loc-toggle ${loc.active ? 'loc-toggle--on' : ''}`}
+                    onClick={() => toggleActive(loc)}
+                    title={loc.active ? 'Dezactivează locația' : 'Activează locația'}
+                    style={{ margin: 0, padding: '6px 14px', fontSize: '0.8rem' }}
+                  >{loc.active ? 'LIVE' : 'OFF'}</button>
+                </td>
+                <td style={{ padding: '16px', textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
+                  <button 
+                    className="loc-edit" 
+                    onClick={() => setEditingLoc(loc)} 
+                    style={{ marginRight: 8, padding: '8px 16px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', color: '#334155', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', fontSize: '0.85rem' }}
+                  >
+                    ✏️ Configurare
+                  </button>
+                  <button 
+                    className="loc-del" 
+                    onClick={() => deleteLoc(loc.id)} 
+                    style={{ padding: '8px 12px', background: '#fee2e2', color: '#ef4444', border: '1px solid #fca5a5', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
+                    title="Șterge definitiv"
+                  >
+                    🗑️
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {filtered.length === 0 && <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', fontWeight: 500 }}>Nu există locații care să corespundă filtrelor.</div>}
       </div>
     </div>
   );

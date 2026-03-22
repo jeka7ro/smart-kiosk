@@ -130,14 +130,26 @@ export default function App() {
     );
   };
 
+  // Design Config
+  const tH = locationData?.topBannerHeight || 3;
+  const tRadTop = locationData?.topBannerRadiusTop !== false; // defaults true
+  const tRadBot = locationData?.topBannerRadiusBottom === true; // defaults false
+
+  const bH = locationData?.bottomBannerHeight || 2;
+  const bRadTop = locationData?.bottomBannerRadiusTop === true; // defaults false
+  const bRadBot = locationData?.bottomBannerRadiusBottom !== false; // defaults true
+
+  const mainRadTop = (showBanner && !tRadBot) ? '0' : '24px';
+  const mainRadBot = (showBottomBanner && !bRadTop) ? '0' : '24px';
+
   return (
     <BrandContext.Provider value={brand}>
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', overflow: 'hidden', background: 'var(--bg, #f8fafc)', padding: '16px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', overflow: 'hidden', background: 'var(--bg, #f8fafc)', padding: '16px', boxSizing: 'border-box' }}>
         
         {showBanner && (
           <div style={{ 
-            height: '25vh', 
-            borderRadius: '24px 24px 0 0',
+            height: `${tH * 5 + 5}vh`, 
+            borderRadius: `${tRadTop ? '24px' : '0'} ${tRadTop ? '24px' : '0'} ${tRadBot ? '24px' : '0'} ${tRadBot ? '24px' : '0'}`,
             background: '#000', 
             flexShrink: 0, 
             position: 'relative', 
@@ -154,10 +166,7 @@ export default function App() {
           width: '100%', 
           position: 'relative', 
           overflow: 'hidden',
-          borderRadius: (showBanner && showBottomBanner) ? '0' 
-                      : showBanner ? '0 0 24px 24px' 
-                      : showBottomBanner ? '24px 24px 0 0' 
-                      : '24px',
+          borderRadius: `${mainRadTop} ${mainRadTop} ${mainRadBot} ${mainRadBot}`,
           boxShadow: (showBanner || showBottomBanner) ? '0 8px 32px rgba(0,0,0,0.05)' : 'none',
           background: '#fff'
         }}>
@@ -173,10 +182,11 @@ export default function App() {
         
         {showBottomBanner && (
           <div style={{ 
-            height: '10vh', 
-            borderRadius: '0 0 24px 24px',
+            height: `${bH * 5 + 5}vh`, 
+            borderRadius: `${bRadTop ? '24px' : '0'} ${bRadTop ? '24px' : '0'} ${bRadBot ? '24px' : '0'} ${bRadBot ? '24px' : '0'}`,
             background: locationData.bottomBannerContent.startsWith('http') ? '#000' : '#1e293b', 
             flexShrink: 0, 
+            marginTop: (!bRadTop && showBottomBanner) ? 0 : '16px',
             position: 'relative', 
             zIndex: 100, 
             overflow: 'hidden',
