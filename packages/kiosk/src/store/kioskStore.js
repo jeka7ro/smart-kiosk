@@ -59,7 +59,7 @@ export const useKioskStore = create((set, get) => ({
     // Remove WelcomeScreen entirely after CSS slide up completes
     setTimeout(() => {
       set({ isUnlocking: false });
-    }, 550);
+    }, 850);
   },
 
   // Skip order type selection — default is pickup at cashier (takeaway)
