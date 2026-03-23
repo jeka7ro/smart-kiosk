@@ -103,6 +103,37 @@ export default function App() {
 
   if (loading) return null;
 
+  if (!locationData) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', alignItems: 'center', justifyContent: 'center', background: '#111827', color: '#fff', gap: '24px', fontFamily: 'Outfit' }}>
+        <h1 style={{ fontSize: '2.5rem', marginBottom: '16px' }}>⚙️ Kiosk Setup</h1>
+        <p style={{ fontSize: '1.2rem', opacity: 0.8, marginBottom: '32px' }}>Alege locația pentru această tabletă (salvare integrată PWA):</p>
+        
+        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center', maxWidth: '600px' }}>
+          <button 
+            style={{ padding: '20px 40px', fontSize: '1.5rem', borderRadius: '16px', background: '#ef4444', color: '#fff', border: 'none', cursor: 'pointer', boxShadow: '0 4px 12px rgba(239,68,68,0.4)' }}
+            onClick={() => {
+              localStorage.setItem('kiosk_loc_id', 'sm-brasov');
+              window.location.href = '/?loc=sm-brasov';
+            }}
+          >
+            📍 Brașov
+          </button>
+          
+          <button 
+            style={{ padding: '20px 40px', fontSize: '1.5rem', borderRadius: '16px', background: '#3b82f6', color: '#fff', border: 'none', cursor: 'pointer', boxShadow: '0 4px 12px rgba(59,130,246,0.4)' }}
+            onClick={() => {
+              localStorage.setItem('kiosk_loc_id', 'sm-bucuresti');
+              window.location.href = '/?loc=sm-bucuresti';
+            }}
+          >
+            📍 București
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (isLocked) {
     return (
       <PinScreen 
