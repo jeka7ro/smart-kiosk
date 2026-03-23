@@ -6,6 +6,7 @@ import { t } from '../i18n/translations.js';
 import { getMenuData } from '../data/mockMenu.js';
 import { useInactivityTimeout } from '../hooks/useInactivityTimeout.js';
 import ProductCard from '../components/ProductCard.jsx';
+import { proxySyrveImage } from '../utils/imageUtils.js';
 import './MenuScreen.css';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
