@@ -17,7 +17,9 @@
   position: relative;
   box-shadow: 4px 0 24px rgba(0,0,0,0.05);
   z-index: 10;
-  overflow: hidden; /* Fix for tall content pushing footer off-screen */
+  height: 100vh;      /* Fill full viewport height */
+  min-height: 0;      /* Allow shrinking in flex */
+  overflow: hidden;
 }
 
 .back-btn-ps {
@@ -31,11 +33,13 @@
 
 .ps-left-content {
   flex: 1;
+  min-height: 0;      /* CRITICAL: allow flex child to shrink below content size */
   padding: 80px 24px 20px;
   display: flex;
   flex-direction: column;
   gap: 20px;
-  overflow-y: auto; /* CRITICAL FIX: allow scrolling inside content */
+  overflow-y: auto;   /* Scroll when content is taller than available space */
+  -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS/kiosk */
 }
 
 .ps-left-content::-webkit-scrollbar { width: 4px; }
@@ -95,9 +99,10 @@
 
 /* FOOTER */
 .pd-footer {
-  display: flex; align-items: center; gap: 14px; padding: 24px;
-  border-top: 1px solid var(--border); background: var(--bg-card);
-  flex-shrink: 0; box-shadow: 0 -10px 30px rgba(0,0,0,0.06);
+  display: flex; align-items: center; gap: 14px; padding: 20px 24px;
+  border-top: 2px solid var(--border); background: var(--bg-card);
+  flex-shrink: 0;            /* NEVER shrink — always visible at bottom */
+  box-shadow: 0 -8px 24px rgba(0,0,0,0.08);
   position: relative; z-index: 20;
 }
 .qty-control { display: flex; align-items: center; border-radius: 16px; overflow: hidden; border: 2px solid var(--primary); background: var(--surface); }
