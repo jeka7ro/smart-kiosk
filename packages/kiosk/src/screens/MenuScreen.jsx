@@ -49,6 +49,12 @@ export default function MenuScreen() {
   const [favorites, setFavorites] = useState([]); // ♡ wishlist bar
   const cartBarRef = useRef(null);
 
+  // Multi-brand state
+  const activeBrandId = useKioskStore(s => s.activeBrandId);
+  const setActiveBrandId = useKioskStore(s => s.setActiveBrandId);
+  const [locationBrands, setLocationBrands] = useState([brand.id]); // brands at this location
+  const [locationOrgIds, setLocationOrgIds]  = useState({});         // brandId → orgId from location
+
   const toggleFavorite = useCallback((product) => {
     setFavorites(prev =>
       prev.find(p => p.id === product.id)
@@ -61,12 +67,6 @@ export default function MenuScreen() {
     addToCart(product, 1, [], product.price, activeBrandId);
     setFavorites(prev => prev.filter(p => p.id !== product.id)); // auto-remove from wishlist
   }, [addToCart, activeBrandId]);
-
-  // Multi-brand state
-  const activeBrandId = useKioskStore(s => s.activeBrandId);
-  const setActiveBrandId = useKioskStore(s => s.setActiveBrandId);
-  const [locationBrands, setLocationBrands] = useState([brand.id]); // brands at this location
-  const [locationOrgIds, setLocationOrgIds]  = useState({});         // brandId → orgId from location
 
   // Fetch location to discover multi-brand capability
   useEffect(() => {
