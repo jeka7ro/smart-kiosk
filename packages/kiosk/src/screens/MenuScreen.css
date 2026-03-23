@@ -68,7 +68,7 @@
   justify-content: center;
   flex: 1; /* evenly divide space */
   gap: 8px;
-  padding: 12px 20px;
+  padding: 18px 24px;
   border: none;
   background: transparent;
   cursor: pointer;
@@ -90,7 +90,7 @@
   background: color-mix(in srgb, var(--brand-color) 6%, transparent);
 }
 .brand-tab-emoji { font-size: 1.2rem; }
-.brand-tab-logo { height: 20px; object-fit: contain; }
+.brand-tab-logo { height: 32px; object-fit: contain; }
 .brand-tab-label { font-weight: 700; }
 
 /* ─── BODY: SIDEBAR + PRODUCTS ─── */
