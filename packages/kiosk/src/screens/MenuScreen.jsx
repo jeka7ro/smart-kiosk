@@ -6,6 +6,7 @@ import { t } from '../i18n/translations.js';
 import { getMenuData } from '../data/mockMenu.js';
 import { useInactivityTimeout } from '../hooks/useInactivityTimeout.js';
 import ProductCard from '../components/ProductCard.jsx';
+import ModifierModal from '../components/ModifierModal.jsx';
 import { proxySyrveImage } from '../utils/imageUtils.js';
 import './MenuScreen.css';
 
@@ -48,6 +49,7 @@ export default function MenuScreen() {
   const [search, setSearch]   = useState('');
   const [flyAnim, setFlyAnim] = useState(null);
   const [favorites, setFavorites] = useState([]); // ♡ wishlist bar
+  const [modifierModalProduct, setModifierModalProduct] = useState(null);
   const cartBarRef = useRef(null);
 
   // Multi-brand state
@@ -189,6 +191,12 @@ export default function MenuScreen() {
 
   // Quick add to cart with fly animation
   const handleQuickAdd = useCallback((product, cardEl) => {
+    // If product has required modifier groups, show the modifier selection modal
+    const hasRequiredModifiers = (product.modifierGroups || []).some(gm => gm.required && gm.options?.length > 0);
+    if (hasRequiredModifiers) {
+      setModifierModalProduct(product);
+      return;
+    }
     // Fix: Use product._brand for cross-brand search results
     const actualBrandId = product._brand || activeBrandId;
     addToCart(product, 1, [], product.price, actualBrandId);
@@ -400,6 +408,32 @@ export default function MenuScreen() {
       )}
       {/* invisible cart ref when cart is empty (for fly target) */}
       {cartCount === 0 && <div ref={cartBarRef} style={{position:'fixed',bottom:16,left:'50%'}} />}
+
+      {/* ─── MODIFIER MODAL (bottom-sheet for required options) ─── */}
+      {modifierModalProduct && (
+        <ModifierModal
+          product={modifierModalProduct}
+          activeBrandId={modifierModalProduct._brand || activeBrandId}
+          onConfirm={(product, qty, mods, unitPrice, brandId) => {
+            addToCart(product, qty, mods, unitPrice, brandId);
+            // Fly animation from center screen to cart
+            if (cartBarRef.current) {
+              const cartRect = cartBarRef.current.getBoundingClientRect();
+              setFlyAnim({
+                id: Date.now(),
+                img: product.image,
+                startX: window.innerWidth / 2,
+                startY: window.innerHeight / 2,
+                endX: cartRect.left + cartRect.width / 2,
+                endY: cartRect.top,
+              });
+              setTimeout(() => setFlyAnim(null), 850);
+            }
+            setModifierModalProduct(null);
+          }}
+          onClose={() => setModifierModalProduct(null)}
+        />
+      )}
     </div>
   );
 }
