@@ -93,6 +93,83 @@
 .brand-tab-logo { height: 32px; object-fit: contain; }
 .brand-tab-label { font-weight: 700; }
 
+/* ─── FAVORITES / WISHLIST BAR ─── */
+.favorites-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #fff5f5;
+  border-bottom: 1.5px solid #fecaca;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.fav-bar-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #ef4444;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.fav-bar-items {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  flex: 1;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+}
+.fav-bar-items::-webkit-scrollbar { height: 3px; }
+.fav-bar-items::-webkit-scrollbar-thumb { background: #fca5a5; border-radius: 4px; }
+
+.fav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border: 1.5px solid #fca5a5;
+  border-radius: 12px;
+  padding: 6px 10px 6px 6px;
+  flex-shrink: 0;
+  max-width: 220px;
+  animation: fadeIn 0.25s ease;
+}
+.fav-item-img {
+  width: 40px; height: 40px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f3f4f6;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.fav-item-img img { width: 100%; height: 100%; object-fit: cover; }
+.fav-item-info {
+  display: flex; flex-direction: column; gap: 1px;
+  min-width: 0;
+}
+.fav-item-name {
+  font-size: 0.78rem; font-weight: 700; color: #111827;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 90px;
+}
+.fav-item-price { font-size: 0.72rem; color: #ef4444; font-weight: 600; }
+.fav-item-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.fav-add-btn {
+  background: #ef4444; color: #fff; border: none;
+  border-radius: 8px; padding: 4px 8px;
+  font-size: 0.72rem; font-weight: 700; cursor: pointer;
+  transition: background 0.15s;
+}
+.fav-add-btn:hover { background: #dc2626; }
+.fav-del-btn {
+  background: transparent; color: #9ca3af; border: none;
+  border-radius: 8px; padding: 4px 6px;
+  font-size: 0.8rem; font-weight: 700; cursor: pointer;
+  transition: color 0.15s;
+}
+.fav-del-btn:hover { color: #ef4444; }
+
+
 /* ─── BODY: SIDEBAR + PRODUCTS ─── */
 .menu-body {
   display: flex;

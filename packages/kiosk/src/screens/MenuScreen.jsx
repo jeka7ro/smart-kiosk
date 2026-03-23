@@ -46,7 +46,21 @@ export default function MenuScreen() {
   const [error, setError]     = useState(null);
   const [search, setSearch]   = useState('');
   const [flyAnim, setFlyAnim] = useState(null);
+  const [favorites, setFavorites] = useState([]); // ♡ wishlist bar
   const cartBarRef = useRef(null);
+
+  const toggleFavorite = useCallback((product) => {
+    setFavorites(prev =>
+      prev.find(p => p.id === product.id)
+        ? prev.filter(p => p.id !== product.id)
+        : [...prev, product]
+    );
+  }, []);
+
+  const handleFavQuickAdd = useCallback((product) => {
+    addToCart(product, 1, [], product.price, activeBrandId);
+    setFavorites(prev => prev.filter(p => p.id !== product.id)); // auto-remove from wishlist
+  }, [addToCart, activeBrandId]);
 
   // Multi-brand state
   const activeBrandId = useKioskStore(s => s.activeBrandId);
@@ -270,6 +284,35 @@ export default function MenuScreen() {
         </div>
       )}
 
+
+      {/* ─── FAVORITES / WISHLIST BAR ─── */}
+      {favorites.length > 0 && (
+        <div className="favorites-bar">
+          <span className="fav-bar-label">❤️ Salvate</span>
+          <div className="fav-bar-items">
+            {favorites.map(fav => (
+              <div key={fav.id} className="fav-item">
+                <div className="fav-item-img">
+                  {fav.image
+                    ? <img src={`${BACKEND}/api/image-proxy?url=${encodeURIComponent(fav.image)}`} alt={fav.name} onError={e => e.target.style.display='none'} />
+                    : <span style={{fontSize:'1.2rem'}}>🍽️</span>
+                  }
+                </div>
+                <div className="fav-item-info">
+                  <span className="fav-item-name">{fav.name}</span>
+                  <span className="fav-item-price">{fav.price} lei</span>
+                </div>
+                <div className="fav-item-actions">
+                  <button className="fav-add-btn" title="Adaugă în coș" onClick={() => handleFavQuickAdd(fav)}>+ Coș</button>
+                  <button className="fav-del-btn" title="Șterge" onClick={() => toggleFavorite(fav)}>✕</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+
       <div className="menu-body">
         {/* ─── SIDEBAR CATEGORIES ────────────────────── */}
         <aside className="category-sidebar">
@@ -301,6 +344,8 @@ export default function MenuScreen() {
                   activeBrand={activeBrandId}
                   onQuickAdd={handleQuickAdd}
                   onInfo={() => setSelectedProduct(product)}
+                  isFavorited={favorites.some(f => f.id === product.id)}
+                  onToggleFavorite={toggleFavorite}
                 />
               ))}
             </div>

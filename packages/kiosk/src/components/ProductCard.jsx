@@ -13,7 +13,7 @@ export function proxySyrveImage(url) {
 }
 
 
-export default function ProductCard({ product, delay, lang, activeBrand, onQuickAdd, onInfo }) {
+export default function ProductCard({ product, delay, lang, activeBrand, onQuickAdd, onInfo, isFavorited, onToggleFavorite }) {
   const cardRef = useRef(null);
   const cartItems = useKioskStore((s) => s.cartItems);
   const updateCartItem = useKioskStore((s) => s.updateCartItem);
@@ -97,10 +97,11 @@ export default function ProductCard({ product, delay, lang, activeBrand, onQuick
       {/* Footer: [ ♡ ] [ Vreau / - N buc. + ] */}
       <div style={{ display: 'flex', gap: 12, marginTop: 'auto' }}>
         <button 
-          style={{ width: 44, height: 44, borderRadius: 10, border: '1px solid #e5e7eb', background: '#fff', color: '#9ca3af', fontSize: '1.4rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
-          onClick={(e) => { e.stopPropagation(); /* no-op for now */ }}
+          style={{ width: 44, height: 44, borderRadius: 10, border: '1px solid #e5e7eb', background: isFavorited ? '#fff0f0' : '#fff', color: isFavorited ? '#ef4444' : '#9ca3af', fontSize: '1.4rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, transition: 'all 0.2s' }}
+          onClick={(e) => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(product); }}
+          title={isFavorited ? 'Scoate din favorite' : 'Salvează'}
         >
-          ♡
+          {isFavorited ? '❤️' : '♡'}
         </button>
 
         {cartQty === 0 ? (
