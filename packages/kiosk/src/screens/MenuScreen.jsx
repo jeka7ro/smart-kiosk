@@ -57,7 +57,9 @@ export default function MenuScreen() {
   useEffect(() => {
     const locId = new URLSearchParams(window.location.search).get('loc');
     if (!locId) return; // no location → single brand mode
-    fetch(`${BACKEND}/api/locations/${locId}`)
+    fetch(`${BACKEND}/api/locations/${locId}`, {
+      headers: { 'x-api-key': import.meta.env.VITE_API_KEY || 'sk-live-2024-secure' },
+    })
       .then(r => r.json())
       .then(loc => {
         if (loc.brands && loc.brands.length > 0) {
@@ -94,7 +96,9 @@ export default function MenuScreen() {
       return;
     }
 
-    fetch(`${BACKEND}/api/menu?brandId=${activeBrandId}&orgId=${orgId}`)
+    fetch(`${BACKEND}/api/menu?brandId=${activeBrandId}&orgId=${orgId}`, {
+      headers: { 'x-api-key': import.meta.env.VITE_API_KEY || 'sk-live-2024-secure' },
+    })
       .then(r => r.json())
       .then(data => {
         if (data.error) throw new Error(data.error);

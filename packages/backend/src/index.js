@@ -75,6 +75,26 @@ app.use('/api/qr', qrRoutes);
 app.get('/health', (req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));
 app.get('/api/health', (req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));
 
+// ─── IMAGE PROXY (for Syrve CDN — bypasses browser CORS) ──────────────────
+app.get('/api/image-proxy', async (req, res) => {
+  const { url } = req.query;
+  if (!url || !url.startsWith('https://storage.cdneu.syrve.com/')) {
+    return res.status(400).json({ error: 'Invalid image URL' });
+  }
+  try {
+    const upstream = await fetch(url, { headers: { 'User-Agent': 'SmartKiosk/1.0' } });
+    if (!upstream.ok) return res.status(upstream.status).end();
+    const contentType = upstream.headers.get('content-type') || 'image/jpeg';
+    res.set('Content-Type', contentType);
+    res.set('Cache-Control', 'public, max-age=86400'); // cache 1 day
+    const buf = await upstream.arrayBuffer();
+    res.send(Buffer.from(buf));
+  } catch (e) {
+    res.status(502).json({ error: 'Image proxy failed' });
+  }
+});
+
+
 // ─── ERROR HANDLER ───────────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
   console.error('[ERROR]', err.message);

@@ -1,6 +1,18 @@
 import { useState, useRef } from 'react';
 import { useKioskStore } from '../store/kioskStore';
 
+const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
+
+// Proxy Syrve CDN images through our backend to avoid CORS
+function proxySyrveImage(url) {
+  if (!url) return null;
+  if (url.includes('storage.cdneu.syrve.com')) {
+    return `${BACKEND}/api/image-proxy?url=${encodeURIComponent(url)}`;
+  }
+  return url;
+}
+
+
 export default function ProductCard({ product, delay, lang, activeBrand, onQuickAdd, onInfo }) {
   const cardRef = useRef(null);
   const cartItems = useKioskStore((s) => s.cartItems);
@@ -65,10 +77,8 @@ export default function ProductCard({ product, delay, lang, activeBrand, onQuick
           
           {product.image ? (
             <img
-              src={product.image}
+              src={proxySyrveImage(product.image)}
               alt={product.name}
-              referrerPolicy="no-referrer"
-              crossOrigin="anonymous"
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               onError={(e) => { e.target.style.display = 'none'; e.target.parentNode.querySelector('.img-fallback').style.display = 'flex'; }}
             />
