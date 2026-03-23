@@ -1,7 +1,8 @@
 .product-screen {
   display: flex;
   flex-direction: row;
-  height: 100vh;
+  height: 100%;
+  min-height: 100vh;
   background: var(--bg-dark);
   overflow: hidden;
 }
@@ -17,8 +18,9 @@
   position: relative;
   box-shadow: 4px 0 24px rgba(0,0,0,0.05);
   z-index: 10;
-  height: 100vh;      /* Fill full viewport height */
-  min-height: 0;      /* Allow shrinking in flex */
+  height: 100vh;      /* Fallback */
+  height: 100dvh;     /* Dynamic viewport height for kiosks/tablets */
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -33,13 +35,13 @@
 
 .ps-left-content {
   flex: 1;
-  min-height: 0;      /* CRITICAL: allow flex child to shrink below content size */
+  min-height: 0;
   padding: 80px 24px 20px;
   display: flex;
   flex-direction: column;
   gap: 20px;
-  overflow-y: auto;   /* Scroll when content is taller than available space */
-  -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS/kiosk */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .ps-left-content::-webkit-scrollbar { width: 4px; }
@@ -101,7 +103,7 @@
 .pd-footer {
   display: flex; align-items: center; gap: 14px; padding: 20px 24px;
   border-top: 2px solid var(--border); background: var(--bg-card);
-  flex-shrink: 0;            /* NEVER shrink — always visible at bottom */
+  flex-shrink: 0;
   box-shadow: 0 -8px 24px rgba(0,0,0,0.08);
   position: relative; z-index: 20;
 }
@@ -115,13 +117,13 @@
 .qty-num { width: 50px; text-align: center; font-size: 1.3rem; font-weight: 800; color: var(--text); background: transparent; height: 60px; display: flex; align-items: center; justify-content: center; }
 .pd-total { font-size: 1.2rem; font-weight: 800; margin-left: auto; }
 
-
 /* ─── RIGHT PANEL (2/3) ─── */
 .ps-right {
   flex: 1;
   background: var(--bg);
   padding: 40px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch; /* FIX: Enable momentum scrolling on tablets */
 }
 
 .ps-right::-webkit-scrollbar { width: 6px; }

@@ -64,7 +64,9 @@ export default function MenuScreen() {
   }, []);
 
   const handleFavQuickAdd = useCallback((product) => {
-    addToCart(product, 1, [], product.price, activeBrandId);
+    // Fix: Use product._brand if it came from cross-brand wishlist
+    const actualBrandId = product._brand || activeBrandId;
+    addToCart(product, 1, [], product.price, actualBrandId);
     setFavorites(prev => prev.filter(p => p.id !== product.id)); // auto-remove from wishlist
   }, [addToCart, activeBrandId]);
 
@@ -194,7 +196,9 @@ export default function MenuScreen() {
 
   // Quick add to cart with fly animation
   const handleQuickAdd = useCallback((product, cardEl) => {
-    addToCart(product, 1, [], product.price, activeBrandId);
+    // Fix: Use product._brand for cross-brand search results
+    const actualBrandId = product._brand || activeBrandId;
+    addToCart(product, 1, [], product.price, actualBrandId);
 
     // Fly animation: get card position and cart bar position
     if (cardEl && cartBarRef.current) {

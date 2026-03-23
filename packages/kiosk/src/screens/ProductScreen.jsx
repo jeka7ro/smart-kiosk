@@ -85,12 +85,16 @@ export default function ProductScreen() {
       };
     }).filter(m => m.optionName);
 
-    addToCart(product, quantity, selectedModifiers, unitPrice, brand?.id);
+    // Fix: Use product._brand if it came from cross-brand search/favorites
+    const actualBrandId = product._brand || brand?.id;
+    addToCart(product, quantity, selectedModifiers, unitPrice, actualBrandId);
     goTo('menu');
   };
 
   const handleQuickAddSug = (sugProd, refElem) => {
-    addToCart(sugProd, 1, [], sugProd.price, brand?.id);
+    // Fix: Use sugProd._brand if available
+    const sugBrandId = sugProd._brand || brand?.id;
+    addToCart(sugProd, 1, [], sugProd.price, sugBrandId);
     if (!refElem || !cartIconRef.current) return;
     const fromRect = refElem.getBoundingClientRect();
     const toRect = cartIconRef.current.getBoundingClientRect();
