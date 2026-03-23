@@ -189,7 +189,7 @@ export default function App() {
   return (
     <BrandContext.Provider value={brand}>
       <div style={{ 
-        display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', 
+        display: 'flex', flexDirection: 'column', height: '100dvh', width: '100vw', 
         overflow: 'hidden', background: 'var(--bg, #f8fafc)', 
         padding: screen === 'welcome' ? '0' : '16px', 
         boxSizing: 'border-box' 
