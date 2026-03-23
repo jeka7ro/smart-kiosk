@@ -495,6 +495,10 @@ function KiosksManager({ backend }) {
   const [loading, setLoading] = useState(true);
   const [brandFilter, setBrandFilter] = useState('all');
   const [editingLoc, setEditingLoc] = useState(null);
+  
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
 
   const fetchLocs = () => {
     setLoading(true);
@@ -529,12 +533,21 @@ function KiosksManager({ backend }) {
     ? locations 
     : locations.filter(l => (l.brands && l.brands.includes(brandFilter)) || l.brandId === brandFilter);
 
+  const sorted = [...filtered].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  const totalPages = Math.ceil(sorted.length / itemsPerPage) || 1;
+  const paginated = sorted.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const handleFilterClick = (filter) => {
+    setBrandFilter(filter);
+    setCurrentPage(1);
+  };
+
   return (
     <div className="kiosk-location-list">
       <div className="kl-brand-filter">
         <button
           className={`kl-filter-btn ${brandFilter === 'all' ? 'active' : ''}`}
-          onClick={() => setBrandFilter('all')}
+          onClick={() => handleFilterClick('all')}
         >
           Toate ({locations.length})
         </button>
@@ -546,7 +559,7 @@ function KiosksManager({ backend }) {
               key={bid}
               className={`kl-filter-btn ${brandFilter === bid ? 'active' : ''}`}
               style={{ '--bc': m.color, display: 'flex', alignItems: 'center', gap: '6px' }}
-              onClick={() => setBrandFilter(bid)}
+              onClick={() => handleFilterClick(bid)}
             >
               <BrandLogo brandId={bid} size={14} /> {m.name} ({count})
             </button>
@@ -556,9 +569,10 @@ function KiosksManager({ backend }) {
 
       {/* Tabel Business */}
       <div className="loc-list-container" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 14px rgba(0,0,0,0.03)', marginTop: '24px' }}>
-        <table className="loc-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+        <table className="loc-table hoverable-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
             <tr>
+              <th style={{ padding: '16px 24px', width: '50px', color: '#64748b', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>#</th>
               <th style={{ padding: '16px 24px', color: '#64748b', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Denumire & ID</th>
               <th style={{ padding: '16px 24px', color: '#64748b', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Branduri Admise</th>
               <th style={{ padding: '16px 24px', color: '#64748b', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Stare</th>
@@ -566,14 +580,15 @@ function KiosksManager({ backend }) {
             </tr>
           </thead>
           <tbody>
-            {[...filtered]
-              .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
-              .map(loc => {
+            {paginated.map((loc, index) => {
               const finalKioskUrl = loc.kioskUrl || `https://kiosk-smashme.netlify.app/?loc=${loc.id}`;
               const brandsArr = loc.brands || (loc.brandId ? [loc.brandId] : []);
               
               return (
-                <tr key={loc.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }}>
+                <tr key={loc.id} className="loc-table-row">
+                  <td style={{ padding: '16px 24px', color: '#94a3b8', fontWeight: 600, fontSize: '0.9rem' }}>
+                    {(currentPage - 1) * itemsPerPage + index + 1}
+                  </td>
                   <td style={{ padding: '16px 24px' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       <span style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a' }}>{loc.name}</span>
@@ -583,38 +598,55 @@ function KiosksManager({ backend }) {
                   <td style={{ padding: '16px 24px' }}>
                     <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                       {brandsArr.map(b => (
-                        <BrandLogo key={b} brandId={b} size={28} />
+                         <BrandLogo key={b} brandId={b} size={28} />
                       ))}
                     </div>
                   </td>
                   <td style={{ padding: '16px 24px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: loc.active ? '#22c55e' : '#ef4444', display: 'inline-block' }} />
-                      <span style={{ fontSize: '0.9rem', fontWeight: 600, color: loc.active ? '#15803d' : '#b91c1c' }}>{loc.active ? 'Online' : 'Inactiv'}</span>
+                       <span style={{ width: 10, height: 10, borderRadius: '50%', background: loc.active ? '#22c55e' : '#ef4444', display: 'inline-block' }} />
+                       <span style={{ fontSize: '0.9rem', fontWeight: 600, color: loc.active ? '#15803d' : '#b91c1c' }}>{loc.active ? 'Online' : 'Inactiv'}</span>
                     </div>
                   </td>
                   <td style={{ padding: '16px 24px', textAlign: 'right' }}>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                      <button 
-                        title="Copiază Link Universal (Părere tăcută)"
+                      <a 
+                        title="Vizualizare Kiosk direct"
+                        href={finalKioskUrl} target="_blank" rel="noreferrer"
                         className="btn-business-icon"
-                        style={{ background: '#f8fafc', border: '1px solid #e2e8f0', cursor: 'pointer', fontSize: '1.1rem', padding: '8px 12px', borderRadius: '8px', transition: 'all 0.2s', color: '#475569', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}
+                        style={{ textDecoration: 'none', background: '#f8fafc', border: '1px solid #e2e8f0', cursor: 'pointer', fontSize: '0.9rem', padding: '8px 14px', borderRadius: '8px', transition: 'all 0.2s', color: '#334155', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        Preview
+                      </a>
+                      <button 
+                        title="Copiază Link Universal"
+                        className="btn-business-icon"
+                        style={{ background: '#f8fafc', border: '1px solid #e2e8f0', cursor: 'pointer', fontSize: '0.9rem', padding: '8px 14px', borderRadius: '8px', transition: 'all 0.2s', color: '#334155', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                         onClick={(e) => {
                           const btn = e.currentTarget;
+                          const txtSpan = btn.querySelector('.c-text');
+                          const svg = btn.querySelector('svg');
                           navigator.clipboard.writeText(finalKioskUrl);
-                          btn.innerHTML = '✅ Copiat';
-                          setTimeout(() => btn.innerHTML = '🔗 Link', 2000);
+                          txtSpan.innerText = 'Copiat';
+                          svg.innerHTML = '<polyline points="20 6 9 17 4 12"></polyline>';
+                          setTimeout(() => {
+                             txtSpan.innerText = 'Copiază';
+                             svg.innerHTML = '<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>';
+                          }, 2000);
                         }}
                       >
-                        🔗 Link
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        <span className="c-text">Copiază</span>
                       </button>
                       <button 
                         title="Setări și Screensaver"
                         className="btn-business-icon"
-                        style={{ background: '#fff', border: '1px solid #cbd5e1', cursor: 'pointer', fontSize: '1.1rem', padding: '8px 12px', borderRadius: '8px', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', color: '#0f172a', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}
+                        style={{ background: '#fff', border: '1px solid #cbd5e1', cursor: 'pointer', fontSize: '0.9rem', padding: '8px 14px', borderRadius: '8px', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', color: '#0f172a', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                         onClick={() => setEditingLoc(loc)}
                       >
-                        ✏️ Config
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                        Config
                       </button>
                     </div>
                   </td>
@@ -623,6 +655,31 @@ function KiosksManager({ backend }) {
             })}
           </tbody>
         </table>
+        
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', background: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
+            <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500 }}>
+              Afișare {Math.min(sorted.length, (currentPage - 1) * itemsPerPage + 1)} - {Math.min(sorted.length, currentPage * itemsPerPage)} din {sorted.length}
+            </span>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button 
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(p => p - 1)}
+                style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid #cbd5e1', background: currentPage === 1 ? '#f1f5f9' : '#fff', color: currentPage === 1 ? '#94a3b8' : '#334155', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: '0.85rem', transition: 'all 0.2s' }}
+              >
+                Start
+              </button>
+              <button 
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(p => p + 1)}
+                style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid #cbd5e1', background: currentPage === totalPages ? '#f1f5f9' : '#fff', color: currentPage === totalPages ? '#94a3b8' : '#334155', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: '0.85rem', transition: 'all 0.2s' }}
+              >
+                Următoarea
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
