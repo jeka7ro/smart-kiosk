@@ -172,15 +172,25 @@ export default function MenuScreen() {
   const filteredProducts = useMemo(() => {
     if (search) {
       const q = search.toLowerCase();
-      return allProducts.filter(p =>
+      const matched = allProducts.filter(p =>
         p.name.toLowerCase().includes(q) ||
         (p.description || '').toLowerCase().includes(q)
       );
+      // Sort: current brand + current category first → current brand other cats → other brands
+      return matched.sort((a, b) => {
+        const scoreA =
+          (a._brand === activeBrandId && a.categoryId === activeCategory) ? 3 :
+          (a._brand === activeBrandId) ? 2 : 1;
+        const scoreB =
+          (b._brand === activeBrandId && b.categoryId === activeCategory) ? 3 :
+          (b._brand === activeBrandId) ? 2 : 1;
+        return scoreB - scoreA;
+      });
     }
     return products.filter(p =>
       !activeCategory || p.categoryId === activeCategory
     );
-  }, [search, products, allProducts, activeCategory]);
+  }, [search, products, allProducts, activeCategory, activeBrandId]);
 
   // Quick add to cart with fly animation
   const handleQuickAdd = useCallback((product, cardEl) => {
