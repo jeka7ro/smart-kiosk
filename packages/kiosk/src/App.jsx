@@ -2,6 +2,10 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { useKioskStore } from './store/kioskStore';
 import { useInactivityTimeout } from './hooks/useInactivityTimeout';
 import { getBrand } from './config/brands.js';
+import { BrandContext, useBrand } from './context/BrandContext.js';
+
+// Re-export so existing imports from App.jsx still work
+export { BrandContext, useBrand };
 
 import WelcomeScreen       from './screens/WelcomeScreen';
 import OrderTypeScreen     from './screens/OrderTypeScreen';
@@ -15,8 +19,7 @@ import PinScreen           from './screens/PinScreen';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 
-export const BrandContext = createContext(null);
-export const useBrand = () => useContext(BrandContext);
+
 
 export default function App() {
   const screen = useKioskStore((s) => s.screen);
