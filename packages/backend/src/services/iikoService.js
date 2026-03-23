@@ -212,6 +212,7 @@ function transformMenu(raw) {
               id: child.id,
               name: childProduct.name,
               price: Math.round(childPrice * 100) / 100,
+              image: childProduct.imageLinks?.[0] || childProduct.imagePaths?.[0] || null,
               minAmount: child.minAmount ?? 0,
               maxAmount: child.maxAmount ?? 1,
               defaultAmount: child.defaultAmount ?? 0,

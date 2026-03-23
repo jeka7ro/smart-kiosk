@@ -38,7 +38,13 @@ export default function ProductCard({ product, delay, lang, activeBrand, onQuick
 
   const handleInfoClick = (e) => {
     e.stopPropagation();
-    if (onInfo) onInfo();
+    // If product has required modifiers → open modifier selection modal instead of info
+    const hasRequired = (product.modifierGroups || []).some(gm => gm.required && gm.options?.length > 0);
+    if (hasRequired) {
+      onQuickAdd(product, cardRef.current);
+    } else {
+      if (onInfo) onInfo();
+    }
   };
 
   return (
