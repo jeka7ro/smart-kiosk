@@ -337,10 +337,9 @@ export default function MenuScreen() {
               className={`cat-btn ${activeCategory === cat.id ? 'cat-btn--active' : ''}`}
               onClick={() => { setActiveCategory(cat.id); setSearch(''); }}
             >
-              {cat.image 
-                ? <img src={proxySyrveImage(cat.image)} alt={cat.name} className="cat-btn-img" onError={(e) => { e.target.style.display = 'none'; }} />
-                : <span style={{ fontSize: '1.8rem', lineHeight: 1 }}>{cat.emoji || '🍽️'}</span>
-              }
+              {cat.image && (
+                <img src={proxySyrveImage(cat.image)} alt={cat.name} className="cat-btn-img" onError={(e) => { e.target.style.display = 'none'; }} />
+              )}
               <span className="cat-btn-label">{cat.name}</span>
             </button>
           ))}
