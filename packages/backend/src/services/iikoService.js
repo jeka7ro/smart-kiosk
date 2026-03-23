@@ -169,6 +169,7 @@ function transformMenu(raw) {
     id: cat.id,
     name: cat.name,
     emoji: getEmoji(cat.name),
+    image: cat.imageLinks?.[0] || cat.imagePaths?.[0] || null,
     parentGroupId: cat.parentGroup,
   }));
 
