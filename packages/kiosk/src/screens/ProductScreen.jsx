@@ -3,6 +3,7 @@ import { useKioskStore } from '../store/kioskStore';
 import { t } from '../i18n/translations.js';
 import { useBrand } from '../App.jsx';
 import ProductCard from '../components/ProductCard.jsx';
+import { proxySyrveImage } from '../components/ProductCard.jsx';
 import './ProductScreen.css';
 
 export default function ProductScreen() {
@@ -70,7 +71,7 @@ export default function ProductScreen() {
   const totalPrice = unitPrice * quantity;
 
   const allRequiredSelected = modifiers
-    .filter(m => m.required && (m.options?.length > 0 || m.items?.length > 0))
+    .filter(m => m.required && ((m.options?.length > 0) || (m.items?.length > 0)))
     .every(m => selected[m.id]);
 
   const handleSelect = (modId, optId) => setSelected(s => ({ ...s, [modId]: optId }));
@@ -119,7 +120,7 @@ export default function ProductScreen() {
           <div className="pd-hero-img" style={imgError || !product.image ? {background: 'var(--surface)'} : {}}>
             {product.image && !imgError ? (
               <img
-                src={product.image}
+                src={proxySyrveImage(product.image)}
                 alt={product.name}
                 className="pd-photo"
                 onError={() => setImgError(true)}

@@ -109,6 +109,14 @@ export default function MenuScreen() {
         setMenuProducts(prods);
         setActiveCategory(pickDefault(cats, prods));
         setLoading(false);
+        // ─── Preload all product images in the background ───────────────
+        prods.forEach(p => {
+          if (p.image && p.image.includes('storage.cdneu.syrve.com')) {
+            const proxyUrl = `${BACKEND}/api/image-proxy?url=${encodeURIComponent(p.image)}`;
+            const img = new window.Image();
+            img.src = proxyUrl;
+          }
+        });
       })
       .catch(err => {
         console.error('[MenuScreen] API fetch failed, falling back to mock:', err);
