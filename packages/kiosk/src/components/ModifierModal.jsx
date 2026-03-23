@@ -88,6 +88,7 @@ export default function ModifierModal({ product, onConfirm, onClose, activeBrand
               <div className="mm-options">
                 {(gm.options || []).map(opt => {
                   const isSelected = selected[gm.id] === opt.id;
+                  const isFree = !opt.price || opt.price === 0;
                   return (
                     <button
                       key={opt.id}
@@ -103,9 +104,9 @@ export default function ModifierModal({ product, onConfirm, onClose, activeBrand
                         />
                       )}
                       <span className="mm-opt-name">{opt.name}</span>
-                      {opt.price > 0 && (
-                        <span className="mm-opt-price">+{opt.price.toFixed(2)} lei</span>
-                      )}
+                      <span className={`mm-opt-price ${isFree ? 'mm-opt-price--free' : ''}`}>
+                        {isFree ? 'Inclus' : `+${opt.price.toFixed(2)} lei`}
+                      </span>
                       <div className={`mm-opt-check ${isSelected ? 'checked' : ''}`}>
                         {isSelected && <span>✓</span>}
                       </div>
