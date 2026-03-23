@@ -73,6 +73,7 @@ app.use('/api/qr', qrRoutes);
 
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));
+app.get('/api/health', (req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));
 
 // ─── ERROR HANDLER ───────────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
