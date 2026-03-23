@@ -38,7 +38,12 @@ export default function ProductCard({ product, delay, lang, activeBrand, onQuick
 
   const handleInfoClick = (e) => {
     e.stopPropagation();
-    // If product has required modifiers → open modifier selection modal instead of info
+    // 'i' button always opens the full info screen with description + modifiers
+    if (onInfo) onInfo();
+  };
+
+  // Tapping the card body/image: open modifier modal for products with required options, otherwise info screen
+  const handleCardBodyClick = () => {
     const hasRequired = (product.modifierGroups || []).some(gm => gm.required && gm.options?.length > 0);
     if (hasRequired) {
       onQuickAdd(product, cardRef.current);
@@ -67,7 +72,7 @@ export default function ProductCard({ product, delay, lang, activeBrand, onQuick
       <div 
         className="product-card-body" 
         style={{ flex: 1, display: 'flex', flexDirection: 'column', cursor: 'pointer' }}
-        onClick={handleInfoClick}
+        onClick={handleCardBodyClick}
       >
         <div style={{ width: '100%', aspectRatio: '4/3', borderRadius: 12, overflow: 'hidden', background: '#f3f4f6', marginBottom: 12, position: 'relative' }}>
           <button className="product-info-btn" onClick={handleInfoClick} style={{ position: 'absolute', top: 8, right: 8, width: 32, height: 32, background: 'rgba(255,255,255,0.9)', border: 'none', borderRadius: '50%', color: '#374151', fontSize: '1rem', fontWeight: 'bold', fontStyle: 'italic', fontFamily: 'serif', zIndex: 10 }}>i</button>
