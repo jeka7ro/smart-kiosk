@@ -257,14 +257,6 @@ export default function MenuScreen() {
               className={`cat-btn ${activeCategory === cat.id ? 'cat-btn--active' : ''}`}
               onClick={() => { setActiveCategory(cat.id); setSearch(''); }}
             >
-              {(cat.image || catImages[cat.id]) && (
-                <img 
-                  src={cat.image || catImages[cat.id]} 
-                  alt="" 
-                  className="cat-btn-img" 
-                  onError={(e) => { e.target.style.display='none'; }} 
-                />
-              )}
               <span className="cat-btn-label">{cat.name}</span>
             </button>
           ))}
