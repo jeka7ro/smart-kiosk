@@ -3,7 +3,7 @@ import { useKioskStore } from '../store/kioskStore';
 import { t } from '../i18n/translations.js';
 import { useBrand } from '../App.jsx';
 import ProductCard from '../components/ProductCard.jsx';
-import { proxySyrveImage } from '../components/ProductCard.jsx';
+import { proxySyrveImage } from '../utils/imageUtils.js';
 import './ProductScreen.css';
 
 export default function ProductScreen() {

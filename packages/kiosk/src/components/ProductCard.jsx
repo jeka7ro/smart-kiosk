@@ -1,17 +1,8 @@
 import { useState, useRef } from 'react';
 import { useKioskStore } from '../store/kioskStore';
+import { proxySyrveImage } from '../utils/imageUtils.js';
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
-
-// Proxy Syrve CDN images through our backend to avoid CORS
-export function proxySyrveImage(url) {
-  if (!url) return null;
-  if (url.includes('storage.cdneu.syrve.com')) {
-    return `${BACKEND}/api/image-proxy?url=${encodeURIComponent(url)}`;
-  }
-  return url;
-}
-
+export { proxySyrveImage }; // re-export for backward compat
 
 export default function ProductCard({ product, delay, lang, activeBrand, onQuickAdd, onInfo, isFavorited, onToggleFavorite }) {
   const cardRef = useRef(null);
