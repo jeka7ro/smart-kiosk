@@ -87,7 +87,15 @@ export default function WelcomeScreen() {
           )}
           <div className="poster-cta-center">
             <button className="poster-cta-round" onClick={(e) => { e.stopPropagation(); handlePosterTap(); }}>
-              {poster.showLogo && <img src={brand.logoImg || '/brands/smashme-logo.png'} alt="" className="poster-cta-img" />}
+              {/* Show all brand logos for multibrand locations */}
+              {(locationData?.brands?.length > 1 ? locationData.brands : null)?.map(bId => (
+                <img key={bId} src={`/brands/${bId}-logo.png`} alt={bId} className="poster-cta-img"
+                  style={{ height: 40, objectFit: 'contain', margin: '0 4px' }}
+                  onError={(e) => { e.target.style.display='none'; }}
+                />
+              )) ?? (
+                poster.showLogo && <img src={brand.logoImg || '/brands/smashme-logo.png'} alt="" className="poster-cta-img" />
+              )}
             </button>
             <span className="poster-cta-label">{t('start_order', lang)}</span>
             <span className="poster-tap-hint">{t('touch_anywhere', lang)}</span>
@@ -100,19 +108,22 @@ export default function WelcomeScreen() {
       <div className="orb orb-2" />
       <div className="orb orb-3" />
 
-      {/* Logo */}
+      {/* Logo — single or multi-brand */}
       <div className="welcome-logo">
-        {brand.logoImg ? (
+        {(locationData?.brands?.length > 1 ? locationData.brands : [brand.id]).map((bId, idx) => (
           <img
-            src={brand.logoImg}
-            alt={brand.name}
+            key={bId}
+            src={`/brands/${bId}-logo.png`}
+            alt={bId}
             className="logo-img"
-            style={{ height: brand.logoHeight || 72 }}
+            style={{
+              height: brand.logoHeight || 72,
+              marginLeft: idx > 0 ? 12 : 0,
+              filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.15))'
+            }}
             onError={(e) => { e.target.style.display='none'; }}
           />
-        ) : (
-          <div className="logo-icon">{brand.emoji}</div>
-        )}
+        ))}
       </div>
 
       {/* Promo slides — crossfade */}
@@ -143,14 +154,15 @@ export default function WelcomeScreen() {
       {/* CTA */}
       <div className="welcome-cta">
         <button className="cta-button" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-          {poster?.showLogo !== false && (
-            <img 
-              src={`/brands/${brand.id}-logo.png`} 
-              alt="" 
-              style={{ height: 38, objectFit: 'contain', background: '#fff', borderRadius: 8, padding: '2px 8px' }} 
+          {(locationData?.brands?.length > 1 ? locationData.brands : [brand.id]).map((bId) => (
+            <img
+              key={bId}
+              src={`/brands/${bId}-logo.png`}
+              alt={bId}
+              style={{ height: 38, objectFit: 'contain', background: '#fff', borderRadius: 8, padding: '2px 8px' }}
               onError={(e) => { e.target.style.display='none'; }}
             />
-          )}
+          ))}
           <span>{t('tap_to_order', lang)}</span>
         </button>
       </div>
