@@ -5,6 +5,15 @@
   align-items: center; justify-content: center;
   position: relative; overflow: hidden;
   cursor: pointer; user-select: none;
+  transition: opacity 0.4s cubic-bezier(0.32, 0.72, 0, 1), transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* iOS iPhone Unlock Animation */
+.welcome-screen.unlocking {
+  opacity: 0;
+  transform: scale(1.05); /* Slight zoom-in towards the user as it fades out */
+  pointer-events: none;
+  filter: blur(8px); /* Optional: add a slight blur for authenticity */
 }
 
 /* ─── POSTER / SCREENSAVER OVERLAY ──────────────────────── */
