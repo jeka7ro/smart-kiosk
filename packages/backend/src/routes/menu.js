@@ -1,6 +1,10 @@
 const express = require('express');
 const router  = express.Router();
-const { getCachedMenu, getAllCachedMenus, fetchMenu, getOrgIdForBrand } = require('../services/iikoService');
+const { getCachedMenu, getAllCachedMenus, fetchMenu, getOrgIdForBrand, clearMenuCache } = require('../services/iikoService');
+
+// Clear stale cache on startup so the new groupModifiers mapping takes effect immediately
+clearMenuCache();
+
 const { requireApiKey } = require('../middleware/authMiddleware');
 
 const ORG_IDS = (process.env.SYRVE_ORG_IDS || '').split(',').map(s => s.trim()).filter(Boolean);

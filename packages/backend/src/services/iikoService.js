@@ -175,11 +175,22 @@ function transformMenu(raw) {
 
   const categoryIds = new Set(mappedCategories.map(c => c.id));
 
+  // Build a flat lookup map of ALL products (including modifiers) by ID
+  // This is needed to resolve group modifier children's names and prices
+  const productMap = {};
+  for (const p of products) {
+    productMap[p.id] = p;
+  }
+
   const mappedProducts = products
     .filter(p => {
-      return categoryIds.has(p.parentGroup) &&
-             !p.isDeleted &&
-             p.type !== 'Modifier';
+      if (!categoryIds.has(p.parentGroup)) return false;
+      if (p.isDeleted) return false;
+      if (p.type === 'Modifier') return false;
+      // Filter by isIncludedInMenu (each sizePrices entry must have this flag = true to show it)
+      const sp = (p.sizePrices || [])[0];
+      if (sp && sp.price && sp.price.isIncludedInMenu === false) return false;
+      return true;
     })
     .map(p => {
       const sizePrices = p.sizePrices || [];
@@ -187,18 +198,36 @@ function transformMenu(raw) {
         ? (sizePrices[0]?.price?.currentPrice || 0)
         : 0;
 
-      const modifierGroups = (p.groupModifiers || []).map(gm => ({
-        id: gm.id,
-        name: gm.name || 'Opțiuni',
-        required: gm.required || false,
-        minAmount: gm.minAmount || 0,
-        maxAmount: gm.maxAmount || 1,
-        options: (gm.items || []).map(item => ({
-          id: item.id,
-          name: item.name,
-          price: item.price || 0,
-        })),
-      }));
+      // --- groupModifiers: resolve childModifiers using the productMap ---
+      const modifierGroups = (p.groupModifiers || []).map(gm => {
+        const children = (gm.childModifiers || []);
+        const options = children
+          .map(child => {
+            const childProduct = productMap[child.id];
+            if (!childProduct) return null;
+            // Price for modifier: sizePrice - product base price (priceDiff)
+            const childSp = (childProduct.sizePrices || [])[0];
+            const childPrice = childSp?.price?.currentPrice || 0;
+            return {
+              id: child.id,
+              name: childProduct.name,
+              price: Math.round(childPrice * 100) / 100,
+              minAmount: child.minAmount ?? 0,
+              maxAmount: child.maxAmount ?? 1,
+              defaultAmount: child.defaultAmount ?? 0,
+            };
+          })
+          .filter(Boolean);
+
+        return {
+          id: gm.id,
+          name: gm.name || null, // May be null — will try to resolve group name below
+          required: gm.required || false,
+          minAmount: gm.minAmount ?? 0,
+          maxAmount: gm.maxAmount ?? 1,
+          options,
+        };
+      }).filter(gm => gm.options.length > 0);
 
       return {
         id: p.id,
@@ -288,6 +317,16 @@ function getCachedMenu(orgId) {
  */
 function getAllCachedMenus() {
   return _menuCache;
+}
+
+/**
+ * Clear the entire in-memory menu cache (force re-fetch on next request)
+ */
+function clearMenuCache() {
+  for (const key of Object.keys(_menuCache)) {
+    delete _menuCache[key];
+  }
+  console.log('[Syrve] 🗑️  Menu cache cleared — will re-fetch from Syrve API on next request');
 }
 
 /**
@@ -392,4 +431,5 @@ module.exports = {
   fetchMenuForBrand,
   getCachedMenu,
   getAllCachedMenus,
+  clearMenuCache,
 };

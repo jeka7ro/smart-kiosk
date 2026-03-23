@@ -151,11 +151,16 @@ export default function ProductScreen() {
           {modifiers.map(mod => {
             const opts = mod.options || mod.items || [];
             if (opts.length === 0) return null;
+            const groupLabel = mod.name ? mod.name.toUpperCase() : 'OPȚIUNI';
             return (
               <div key={mod.id} className="pd-modifier">
                 <div className="pd-mod-header">
-                  <h3>{mod.name}</h3>
-                  {mod.required && <span className="req-badge">Obligatoriu</span>}
+                  <h3>{groupLabel}</h3>
+                  {mod.required && (
+                    <span className="req-badge">
+                      Poți selecta minim {mod.minAmount ?? 1} maxim {mod.maxAmount ?? 1}
+                    </span>
+                  )}
                 </div>
                 <div className="pd-mod-options">
                   {opts.map(opt => (
@@ -167,7 +172,7 @@ export default function ProductScreen() {
                       <span className="mod-opt-name">{opt.name}</span>
                       {(opt.priceDiff > 0 || opt.price > 0) && (
                         <span className="mod-opt-price">
-                          +{(opt.priceDiff || opt.price || 0).toFixed(0)} lei
+                          +{(opt.priceDiff || opt.price || 0).toFixed(2)} lei
                         </span>
                       )}
                       {selected[mod.id] === opt.id && <span className="mod-check">✓</span>}
