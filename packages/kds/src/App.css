@@ -55,11 +55,59 @@
 .kds-connection.connected { color: var(--success); }
 .kds-connection.disconnected { color: var(--danger); }
 
-/* Brand filter */
+/* Brand filter (old dropdown — kept for backwards compat) */
 .kds-brand-filter {
   background: var(--bg); border: 1.5px solid var(--border); color: var(--text);
   font-family: 'Outfit', sans-serif; font-size: 0.85rem; font-weight: 600;
   padding: 7px 14px; border-radius: 8px; cursor: pointer;
+  display: none; /* hidden — replaced by logo tabs */
+}
+
+/* ─── Brand Logo Tabs ─── */
+.kds-brand-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.kds-brand-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px;
+  border-radius: 9px;
+  border: 2px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  font-family: 'Outfit', sans-serif;
+  color: var(--text-muted);
+  min-width: 60px;
+  min-height: 40px;
+}
+
+.kds-brand-tab:hover {
+  background: color-mix(in srgb, var(--tab-accent, var(--primary)) 12%, transparent);
+  border-color: color-mix(in srgb, var(--tab-accent, var(--primary)) 30%, transparent);
+}
+
+.kds-brand-tab.active {
+  background: color-mix(in srgb, var(--tab-accent, var(--primary)) 15%, transparent);
+  border-color: var(--tab-accent, var(--primary));
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--tab-accent, var(--primary)) 25%, transparent);
+}
+
+.kds-brand-tab img {
+  filter: grayscale(40%) opacity(0.7);
+  transition: filter 0.18s;
+}
+.kds-brand-tab.active img,
+.kds-brand-tab:hover img {
+  filter: grayscale(0%) opacity(1);
 }
 
 /* Filters */

@@ -123,15 +123,49 @@ export default function App() {
         </div>
 
         <div className="kds-header-right">
+          {/* Brand logo tabs */}
+          <div className="kds-brand-tabs">
+            <button
+              className={`kds-brand-tab ${brand === 'all' ? 'active' : ''}`}
+              onClick={() => setBrand('all')}
+              title="Toate brandurile"
+            >
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'inherit' }}>TOATE</span>
+            </button>
+            <button
+              className={`kds-brand-tab ${brand === 'smashme' ? 'active' : ''}`}
+              onClick={() => setBrand('smashme')}
+              title="SmashMe"
+              style={{ '--tab-accent': '#EE3B24' }}
+            >
+              <img src="/brands/smashme-logo.png" alt="SmashMe"
+                   style={{ height: '28px', objectFit: 'contain', maxWidth: '90px' }} />
+            </button>
+            <button
+              className={`kds-brand-tab ${brand === 'sushimaster' ? 'active' : ''}`}
+              onClick={() => setBrand('sushimaster')}
+              title="SushiMaster"
+              style={{ '--tab-accent': '#E31E24' }}
+            >
+              <img src="/brands/sushimaster-logo.png" alt="SushiMaster"
+                   style={{ height: '28px', objectFit: 'contain', maxWidth: '90px' }} />
+            </button>
+            <button
+              className={`kds-brand-tab ${brand === 'ikura' ? 'active' : ''}`}
+              onClick={() => setBrand('ikura')}
+              title="Ikura"
+              style={{ '--tab-accent': '#8b5cf6' }}
+            >
+              <img src="/brands/ikura-logo.png" alt="Ikura"
+                   style={{ height: '28px', objectFit: 'contain', maxWidth: '90px' }} />
+            </button>
+          </div>
+
           <div className={`kds-connection ${connected ? 'connected' : 'disconnected'}`}>
             <span className="conn-dot" />
             {connected ? 'Live' : 'Reconectare...'}
           </div>
-          <select className="kds-brand-filter" value={brand} onChange={e => setBrand(e.target.value)}>
-            <option value="all">Toate brandurile</option>
-            <option value="smashme">SmashMe</option>
-            <option value="sushimaster">SushiMaster</option>
-          </select>
+
           <div className="kds-filters">
             {['all','pending','preparing','ready','delivered'].map(f => (
               <button
