@@ -1346,29 +1346,33 @@ function LocationsManager({ backend }) {
                   </div>
                 </td>
                 <td style={{ padding: '16px' }} onClick={(e) => e.stopPropagation()}>
-                   <button
-                    className={`loc-toggle ${loc.active ? 'loc-toggle--on' : ''}`}
-                    onClick={() => toggleActive(loc)}
-                    title={loc.active ? 'Dezactivează locația' : 'Activează locația'}
-                    style={{ margin: 0, padding: '6px 14px', fontSize: '0.8rem' }}
-                  >{loc.active ? 'LIVE' : 'OFF'}</button>
+                  <div 
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '4px 6px' }} 
+                    onClick={() => toggleActive(loc)} 
+                    title={loc.active ? 'Acum e LIVE (Apasă pentru dezactivare)' : 'Inactiv (Apasă pentru activare)'}
+                  >
+                     <span style={{ width: 10, height: 10, borderRadius: '50%', background: loc.active ? '#22c55e' : '#ef4444', display: 'inline-block' }} />
+                  </div>
                 </td>
                 <td style={{ padding: '16px', textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
-                  <button 
-                    className="loc-edit" 
-                    onClick={() => setEditingLoc(loc)} 
-                    style={{ marginRight: 8, padding: '8px 16px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', color: '#334155', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', fontSize: '0.85rem' }}
-                  >
-                    ✏️ Configurare
-                  </button>
-                  <button 
-                    className="loc-del" 
-                    onClick={() => deleteLoc(loc.id)} 
-                    style={{ padding: '8px 12px', background: '#fee2e2', color: '#ef4444', border: '1px solid #fca5a5', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
-                    title="Șterge definitiv"
-                  >
-                    🗑️
-                  </button>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                    <button 
+                      title="Configurare locație"
+                      className="btn-business-icon"
+                      style={{ background: '#fff', border: '1px solid #cbd5e1', cursor: 'pointer', padding: '8px', borderRadius: '8px', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', color: '#0f172a', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                      onClick={() => setEditingLoc(loc)}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                    </button>
+                    <button 
+                      title="Șterge definitiv locația"
+                      className="btn-business-icon"
+                      style={{ background: '#fee2e2', border: '1px solid #fca5a5', cursor: 'pointer', padding: '8px', borderRadius: '8px', transition: 'all 0.2s', color: '#ef4444', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                      onClick={() => deleteLoc(loc.id)}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
