@@ -129,29 +129,21 @@ export default function MenuScreen() {
         if (data.error) throw new Error(data.error);
         const cats = data.categories || [];
         setCategories(cats);
-        const prods = (data.products || []).filter(p => p.price > 0);
+        const prods = (data.products || []).filter(p => p.price > 0).map(p => ({ ...p, _brand: activeBrandId }));
         setProducts(prods);
         setMenuProducts(prods);
         setActiveCategory(pickDefault(cats, prods));
         // Merge into allProducts for cross-brand global search
         setAllProducts(prev => {
           const existingIds = new Set(prev.filter(p => p._brand !== activeBrandId).map(p => p.id));
-          const tagged = prods.map(p => ({ ...p, _brand: activeBrandId }));
-          return [...prev.filter(p => p._brand !== activeBrandId), ...tagged];
+          return [...prev.filter(p => p._brand !== activeBrandId), ...prods];
         });
         setLoading(false);
-        // ─── Preload all product images in the background ───────────────
-        prods.forEach(p => {
-          if (p.image && p.image.includes('storage.cdneu.syrve.com')) {
-            const proxyUrl = `${BACKEND}/api/image-proxy?url=${encodeURIComponent(p.image)}`;
-            const img = new window.Image();
-            img.src = proxyUrl;
-          }
-        });
       })
       .catch(err => {
         console.error('[MenuScreen] API fetch failed, falling back to mock:', err);
-        const { categories: cats, products: prods } = getMenuData(activeBrandId);
+        const { categories: cats, products: rawProds } = getMenuData(activeBrandId);
+        const prods = rawProds.map(p => ({ ...p, _brand: activeBrandId }));
         setCategories(cats);
         setProducts(prods);
         setMenuProducts(prods);
