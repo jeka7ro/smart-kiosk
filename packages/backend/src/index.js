@@ -76,6 +76,8 @@ app.get('/health', (req, res) => res.json({ status: 'ok', ts: new Date().toISOSt
 app.get('/api/health', (req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));
 
 // ─── IMAGE PROXY (for Syrve CDN — bypasses browser CORS) ──────────────────
+const { Readable } = require('stream');
+
 app.get('/api/image-proxy', async (req, res) => {
   const { url } = req.query;
   if (!url || !url.startsWith('https://storage.cdneu.syrve.com/')) {
@@ -84,12 +86,15 @@ app.get('/api/image-proxy', async (req, res) => {
   try {
     const upstream = await fetch(url, { headers: { 'User-Agent': 'SmartKiosk/1.0' } });
     if (!upstream.ok) return res.status(upstream.status).end();
+    
     const contentType = upstream.headers.get('content-type') || 'image/jpeg';
     res.set('Content-Type', contentType);
-    res.set('Cache-Control', 'public, max-age=86400'); // cache 1 day
-    const buf = await upstream.arrayBuffer();
-    res.send(Buffer.from(buf));
+    res.set('Cache-Control', 'public, max-age=86400, s-maxage=86400'); // cache 1 day
+    
+    // CRITICAL: Stream directly to client instead of buffering into RAM!
+    Readable.fromWeb(upstream.body).pipe(res);
   } catch (e) {
+    console.error('[ImageProxy] Error:', url, e.message);
     res.status(502).json({ error: 'Image proxy failed' });
   }
 });

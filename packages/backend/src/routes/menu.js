@@ -1,6 +1,6 @@
 const express = require('express');
 const router  = express.Router();
-const { getCachedMenu, getAllCachedMenus, fetchMenu } = require('../services/iikoService');
+const { getCachedMenu, getAllCachedMenus, fetchMenu, getOrgIdForBrand } = require('../services/iikoService');
 const { requireApiKey } = require('../middleware/authMiddleware');
 
 const ORG_IDS = (process.env.SYRVE_ORG_IDS || '').split(',').map(s => s.trim()).filter(Boolean);
@@ -9,9 +9,15 @@ const DEFAULT_ORG = ORG_IDS[0] || '9c63cff6-1d66-442d-a98d-2302656e3943';
 // GET /api/menu?orgId=xxx&brandId=smashme
 // Returns cached menu (populated on startup by iikoService.syncAllMenus)
 router.get('/', requireApiKey, async (req, res) => {
-  const { orgId = DEFAULT_ORG, brandId } = req.query;
+  const { brandId = 'smashme' } = req.query;
+  let orgId = req.query.orgId;
+  
+  // FIX: Frontend sends 'undefined' as string if locationOrgIds is empty
+  if (!orgId || orgId === 'undefined' || orgId === 'null') {
+    orgId = getOrgIdForBrand(brandId) || DEFAULT_ORG;
+  }
 
-  let menu = getCachedMenu(orgId);
+  let menu = getCachedMenu(orgId) || getCachedMenu(brandId);
 
   if (!menu) {
     // Not cached yet — fetch on-demand
@@ -46,7 +52,10 @@ router.get('/categories', requireApiKey, async (req, res) => {
 
 // GET /api/menu/products?orgId=xxx&categoryId=yyy
 router.get('/products', requireApiKey, async (req, res) => {
-  const { orgId = DEFAULT_ORG, categoryId } = req.query;
+  let orgId = req.query.orgId;
+  if (!orgId || orgId === 'undefined' || orgId === 'null') orgId = DEFAULT_ORG;
+  
+  const categoryId = req.query.categoryId;
   const menu = getCachedMenu(orgId);
   if (!menu) return res.json({ products: [], source: 'not-synced' });
 
