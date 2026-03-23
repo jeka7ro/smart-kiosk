@@ -93,8 +93,7 @@ export default function UsersManager() {
 
   return (
     <div className="users-manager">
-      <div className="um-header">
-        <h2 className="section-title">Echipă & Permisiuni</h2>
+      <div className="um-header" style={{ justifyContent: 'flex-end' }}>
         <button className="btn-save" onClick={() => { setForm({id:null,email:'',password:'',role:'demo',name:'',locations:[]}); setShowAdd(!showAdd); }}>
           {showAdd ? 'Inapoi' : '+ Adaugă Utilizator'}
         </button>

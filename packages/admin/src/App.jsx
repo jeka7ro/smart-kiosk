@@ -151,19 +151,21 @@ export default function AdminApp() {
         </div>
         <nav className="admin-nav">
           {[
-            { id: 'dashboard', label: 'Dashboard' },
-            { id: 'orders',    label: 'Comenzi' },
-            { id: 'locations', label: 'Locații' },
-            { id: 'kiosks',    label: 'Kioskuri' },
-            { id: 'qrcodes',   label: 'QR Coduri' },
-            { id: 'menu',      label: 'Meniu / Syrve' },
-            ...(user?.role === 'admin' ? [{ id: 'users', label: 'Echipă' }] : []),
+            { id: 'dashboard', label: 'Dashboard', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg> },
+            { id: 'orders',    label: 'Comenzi', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> },
+            { id: 'locations', label: 'Locații', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> },
+            { id: 'kiosks',    label: 'Kioskuri', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg> },
+            { id: 'qrcodes',   label: 'QR Coduri', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><rect x="7" y="7" width="3" height="3"></rect><rect x="14" y="7" width="3" height="3"></rect><rect x="7" y="14" width="3" height="3"></rect><rect x="14" y="14" width="3" height="3"></rect></svg> },
+            { id: 'menu',      label: 'Meniu / Syrve', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg> },
+            ...(user?.role === 'admin' ? [{ id: 'users', label: 'Echipă', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> }] : []),
           ].map(item => (
             <button
               key={item.id}
               className={`anav-btn ${tab === item.id ? 'active' : ''}`}
               onClick={() => setTab(item.id)}
+              style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
             >
+              <span style={{ display: 'flex', opacity: tab === item.id ? 1 : 0.5 }}>{item.icon}</span>
               <span style={{ fontWeight: tab === item.id ? 600 : 400 }}>{item.label}</span>
             </button>
           ))}
@@ -203,6 +205,19 @@ export default function AdminApp() {
           </button>
         </div>
 
+        {/* TOP HEADER BAR */}
+        <div className="main-header-bar" style={{ padding: '0 24px', height: '64px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', background: 'var(--surface)', position: 'sticky', top: 0, zIndex: 10 }}>
+           <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text)' }}>
+              {tab === 'dashboard' && 'Dashboard Overview'}
+              {tab === 'orders' && 'Gestionare Comenzi'}
+              {tab === 'locations' && 'Locațiile Noastre'}
+              {tab === 'kiosks' && 'Kioskuri'}
+              {tab === 'qrcodes' && 'Coduri QR'}
+              {tab === 'menu' && 'Sincronizare Syrve'}
+              {tab === 'users' && 'Echipă'}
+           </h2>
+        </div>
+
         {/* Notifications */}
         <div className="notif-stack">
           {notifications.map(n => (
@@ -213,7 +228,6 @@ export default function AdminApp() {
         {/* ─── DASHBOARD ─── */}
         {tab === 'dashboard' && (
           <div className="admin-section">
-            <h2 className="section-title">Dashboard — Azi</h2>
             <div className="stat-grid">
               <StatCard label="Total comenzi" value={stats.total} color="var(--primary)" />
               <StatCard label="Noi / Așteptare" value={stats.pending}   color="var(--warning)" />
@@ -233,7 +247,6 @@ export default function AdminApp() {
         {tab === 'orders' && (
           <div className="admin-section">
             <div className="section-header">
-              <h2 className="section-title">Comenzi</h2>
               <div className="brand-tabs">
                 {['all','smashme','sushimaster'].map(b => (
                   <button
@@ -254,8 +267,7 @@ export default function AdminApp() {
         {/* ─── MENU ─── */}
         {tab === 'menu' && (
           <div className="admin-section">
-            <div className="section-header">
-              <h2 className="section-title">Meniu din Syrve</h2>
+            <div className="section-header" style={{ justifyContent: 'flex-end' }}>
               <button className="btn-refresh" onClick={fetchMenuStatus}>Refresh</button>
             </div>
             {!menuStatus ? (
@@ -286,7 +298,6 @@ export default function AdminApp() {
         {/* ─── LOCATIONS ─── */}
         {tab === 'locations' && (
           <div className="admin-section">
-            <h2 className="section-title">Locatii</h2>
             <p style={{color:'var(--text-muted)',marginBottom:16,fontSize:'0.9rem'}}>Gestioneaza locatiile si kioskurile alocate. Locatiile cu mai multe branduri permit comenzi mixte.</p>
             <LocationsManager backend={BACKEND} />
           </div>
@@ -295,7 +306,6 @@ export default function AdminApp() {
         {/* ─── KIOSKS / SCREENSAVER ─── */}
         {tab === 'kiosks' && (
           <div className="admin-section">
-            <h2 className="section-title">📺 Kioskuri — Link-uri și Screensaver</h2>
             <p style={{color:'var(--text-muted)',marginBottom:16,fontSize:'0.9rem'}}>Copiază link-ul necesar pentru tabletă sau setează screensaver-ul (imagine/video completă care rulează înainte de comandă).</p>
             <KiosksManager backend={BACKEND} />
           </div>
@@ -304,7 +314,6 @@ export default function AdminApp() {
         {/* ─── QR CODE GENERATOR ─── */}
         {tab === 'qrcodes' && (
           <div className="admin-section">
-            <h2 className="section-title">📱 Generator QR Coduri</h2>
             <p style={{color:'var(--text-muted)',marginBottom:16,fontSize:'0.9rem'}}>Generează coduri QR pentru mese. Clienții scanează QR-ul și comandă direct de pe telefon.</p>
             <QrGenerator backend={BACKEND} />
           </div>
@@ -604,8 +613,7 @@ function KiosksManager({ backend }) {
                   </td>
                   <td style={{ padding: '16px 24px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                       <span style={{ width: 10, height: 10, borderRadius: '50%', background: loc.active ? '#22c55e' : '#ef4444', display: 'inline-block' }} />
-                       <span style={{ fontSize: '0.9rem', fontWeight: 600, color: loc.active ? '#15803d' : '#b91c1c' }}>{loc.active ? 'Online' : 'Inactiv'}</span>
+                       <span style={{ width: 10, height: 10, borderRadius: '50%', background: loc.active ? '#22c55e' : '#ef4444', display: 'inline-block' }} title={loc.active ? 'Online' : 'Inactiv'} />
                     </div>
                   </td>
                   <td style={{ padding: '16px 24px', textAlign: 'right' }}>
@@ -614,39 +622,33 @@ function KiosksManager({ backend }) {
                         title="Vizualizare Kiosk direct"
                         href={finalKioskUrl} target="_blank" rel="noreferrer"
                         className="btn-business-icon"
-                        style={{ textDecoration: 'none', background: '#f8fafc', border: '1px solid #e2e8f0', cursor: 'pointer', fontSize: '0.9rem', padding: '8px 14px', borderRadius: '8px', transition: 'all 0.2s', color: '#334155', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                        style={{ textDecoration: 'none', background: '#f8fafc', border: '1px solid #e2e8f0', cursor: 'pointer', padding: '8px', borderRadius: '8px', transition: 'all 0.2s', color: '#334155', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                       >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                        Preview
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                       </a>
                       <button 
                         title="Copiază Link Universal"
                         className="btn-business-icon"
-                        style={{ background: '#f8fafc', border: '1px solid #e2e8f0', cursor: 'pointer', fontSize: '0.9rem', padding: '8px 14px', borderRadius: '8px', transition: 'all 0.2s', color: '#334155', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                        style={{ background: '#f8fafc', border: '1px solid #e2e8f0', cursor: 'pointer', padding: '8px', borderRadius: '8px', transition: 'all 0.2s', color: '#334155', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                         onClick={(e) => {
                           const btn = e.currentTarget;
-                          const txtSpan = btn.querySelector('.c-text');
                           const svg = btn.querySelector('svg');
                           navigator.clipboard.writeText(finalKioskUrl);
-                          txtSpan.innerText = 'Copiat';
                           svg.innerHTML = '<polyline points="20 6 9 17 4 12"></polyline>';
                           setTimeout(() => {
-                             txtSpan.innerText = 'Copiază';
                              svg.innerHTML = '<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>';
                           }, 2000);
                         }}
                       >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                        <span className="c-text">Copiază</span>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                       </button>
                       <button 
                         title="Setări și Screensaver"
                         className="btn-business-icon"
-                        style={{ background: '#fff', border: '1px solid #cbd5e1', cursor: 'pointer', fontSize: '0.9rem', padding: '8px 14px', borderRadius: '8px', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', color: '#0f172a', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                        style={{ background: '#fff', border: '1px solid #cbd5e1', cursor: 'pointer', padding: '8px', borderRadius: '8px', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', color: '#0f172a', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                         onClick={() => setEditingLoc(loc)}
                       >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-                        Config
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
                       </button>
                     </div>
                   </td>
