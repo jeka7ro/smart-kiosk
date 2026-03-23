@@ -86,18 +86,26 @@ export default function WelcomeScreen() {
             />
           )}
           <div className="poster-cta-center">
-            <button className="poster-cta-round" onClick={(e) => { e.stopPropagation(); handlePosterTap(); }}>
+            
+            <div className="poster-brands-glass" onClick={(e) => { e.stopPropagation(); handlePosterTap(); }}>
               {/* Show all brand logos for multibrand locations */}
               {(locationData?.brands?.length > 1 ? locationData.brands : null)?.map(bId => (
-                <img key={bId} src={`/brands/${bId}-logo.png`} alt={bId} className="poster-cta-img"
-                  style={{ height: 40, objectFit: 'contain', margin: '0 4px' }}
-                  onError={(e) => { e.target.style.display='none'; }}
-                />
+                <div key={bId} className="brand-logo-wrapper">
+                  <img src={`/brands/${bId}-logo.png`} alt={bId} className="brand-logo-img" onError={(e) => { e.target.style.display='none'; }} />
+                </div>
               )) ?? (
-                poster.showLogo && <img src={brand.logoImg || '/brands/smashme-logo.png'} alt="" className="poster-cta-img" />
+                poster.showLogo && (
+                  <div className="brand-logo-wrapper">
+                    <img src={brand.logoImg || '/brands/smashme-logo.png'} alt="" className="brand-logo-img" />
+                  </div>
+                )
               )}
+            </div>
+
+            <button className="poster-cta-btn-glass" onClick={(e) => { e.stopPropagation(); handlePosterTap(); }}>
+              <span className="poster-cta-label">{t('start_order', lang)}</span>
             </button>
-            <span className="poster-cta-label">{t('start_order', lang)}</span>
+
             <span className="poster-tap-hint">{t('touch_anywhere', lang)}</span>
           </div>
         </div>
