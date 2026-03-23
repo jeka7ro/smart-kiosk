@@ -162,7 +162,7 @@ export default function AdminApp() {
             <button
               key={item.id}
               className={`anav-btn ${tab === item.id ? 'active' : ''}`}
-              onClick={() => setTab(item.id)}
+              onClick={() => { setTab(item.id); setIsSidebarOpen(false); }}
               style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
             >
               <span style={{ display: 'flex', opacity: tab === item.id ? 1 : 0.5 }}>{item.icon}</span>
@@ -206,7 +206,8 @@ export default function AdminApp() {
         </div>
 
         {/* TOP HEADER BAR */}
-        <div className="main-header-bar" style={{ padding: '0 24px', height: '64px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', background: 'var(--surface)', position: 'sticky', top: 0, zIndex: 10 }}>
+        <div className="main-header-bar" style={{ padding: '0 24px', height: '64px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--surface)', position: 'sticky', top: 0, zIndex: 10 }}>
+           <img src="/logo_getapp.png" alt="GetApp" style={{ height: '28px' }} />
            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text)' }}>
               {tab === 'dashboard' && 'Dashboard Overview'}
               {tab === 'orders' && 'Gestionare Comenzi'}
