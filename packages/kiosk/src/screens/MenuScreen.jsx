@@ -331,18 +331,24 @@ export default function MenuScreen() {
       <div className="menu-body">
         {/* ─── SIDEBAR CATEGORIES ────────────────────── */}
         <aside className="category-sidebar">
-          {categories.map(cat => (
-            <button
-              key={cat.id}
-              className={`cat-btn ${activeCategory === cat.id ? 'cat-btn--active' : ''}`}
-              onClick={() => { setActiveCategory(cat.id); setSearch(''); }}
-            >
-              {cat.image && (
-                <img src={proxySyrveImage(cat.image)} alt={cat.name} className="cat-btn-img" onError={(e) => { e.target.style.display = 'none'; }} />
-              )}
-              <span className="cat-btn-label">{cat.name}</span>
-            </button>
-          ))}
+          {categories.map(cat => {
+            // Caută imaginea primului produs din această categorie dacă categoria nu are poză
+            const firstProdWithImage = allProducts.find(p => p.categoryId === cat.id && p.image);
+            const displayImage = cat.image || firstProdWithImage?.image;
+
+            return (
+              <button
+                key={cat.id}
+                className={`cat-btn ${activeCategory === cat.id ? 'cat-btn--active' : ''}`}
+                onClick={() => { setActiveCategory(cat.id); setSearch(''); }}
+              >
+                {displayImage && (
+                  <img src={proxySyrveImage(displayImage)} alt={cat.name} className="cat-btn-img" onError={(e) => { e.target.style.display = 'none'; }} />
+                )}
+                <span className="cat-btn-label">{cat.name}</span>
+              </button>
+            );
+          })}
         </aside>
 
         {/* ─── PRODUCTS GRID ───────────────────────── */}
