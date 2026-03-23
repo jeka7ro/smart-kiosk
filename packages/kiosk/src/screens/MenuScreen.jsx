@@ -220,7 +220,7 @@ export default function MenuScreen() {
                 key={bId}
                 className={`brand-tab ${isActive ? 'brand-tab--active' : ''}`}
                 style={{ '--brand-color': info.color, flex: `1 1 ${100 / locationBrands.length}%` }}
-                onClick={() => { setActiveBrand(bId); setSearch(''); }}
+                onClick={() => { setActiveBrandId(bId); setSearch(''); import('../config/brands.js').then(m => m.applyBrandTheme(bId)); }}
               >
                 <img 
                   src={`/brands/${bId}-logo.png`} 
