@@ -40,6 +40,7 @@ export default function MenuScreen() {
 
   const [categories, setCategories] = useState([]);
   const [products,   setProducts]   = useState([]);
+  const [allProducts, setAllProducts] = useState([]); // all brands combined (for global search)
   const [activeCategory, setActiveCategory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
@@ -82,7 +83,14 @@ export default function MenuScreen() {
     const orgId = locationOrgIds[activeBrandId] || BRAND_ORG_MAP[activeBrandId];
 
     const pickDefault = (cats, prods) => {
-      // Pick first category that actually HAS products in it
+      // For SmashMe: prefer a category named 'New', 'Noi', 'Nou', 'Noutăți' etc.
+      if (activeBrandId === 'smashme') {
+        const newCat = cats.find(c =>
+          /^(new|noi|nou|nout[ăa]|nout[ăa][tț]i)/i.test(c.name.trim())
+        );
+        if (newCat && prods.some(p => p.categoryId === newCat.id)) return newCat.id;
+      }
+      // Default: first category that actually HAS products in it
       const catWithProds = cats.find(c => prods.some(p => p.categoryId === c.id));
       return catWithProds?.id || cats[0]?.id || null;
     };
@@ -108,6 +116,12 @@ export default function MenuScreen() {
         setProducts(prods);
         setMenuProducts(prods);
         setActiveCategory(pickDefault(cats, prods));
+        // Merge into allProducts for cross-brand global search
+        setAllProducts(prev => {
+          const existingIds = new Set(prev.filter(p => p._brand !== activeBrandId).map(p => p.id));
+          const tagged = prods.map(p => ({ ...p, _brand: activeBrandId }));
+          return [...prev.filter(p => p._brand !== activeBrandId), ...tagged];
+        });
         setLoading(false);
         // ─── Preload all product images in the background ───────────────
         prods.forEach(p => {
@@ -140,11 +154,19 @@ export default function MenuScreen() {
   }, [categories, products]);
 
   // Filter products by category + search
-  const filteredProducts = products.filter(p => {
-    const matchesCat = !activeCategory || p.categoryId === activeCategory;
-    const matchesSearch = !search || p.name.toLowerCase().includes(search.toLowerCase());
-    return matchesCat && matchesSearch;
-  });
+  // When searching: search globally across ALL brands, ignore active category
+  const filteredProducts = useMemo(() => {
+    if (search) {
+      const q = search.toLowerCase();
+      return allProducts.filter(p =>
+        p.name.toLowerCase().includes(q) ||
+        (p.description || '').toLowerCase().includes(q)
+      );
+    }
+    return products.filter(p =>
+      !activeCategory || p.categoryId === activeCategory
+    );
+  }, [search, products, allProducts, activeCategory]);
 
   // Quick add to cart with fly animation
   const handleQuickAdd = useCallback((product, cardEl) => {
