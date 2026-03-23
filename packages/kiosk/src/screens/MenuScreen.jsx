@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useKioskStore } from '../store/kioskStore';
-import { useBrand } from '../App';
+import { useBrand } from '../context/BrandContext.js';
 import { BRANDS } from '../config/brands.js';
 import { t } from '../i18n/translations.js';
 import { getMenuData } from '../data/mockMenu.js';

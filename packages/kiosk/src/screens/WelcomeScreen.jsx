@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useKioskStore } from '../store/kioskStore';
-import { useBrand } from '../App';
+import { useBrand } from '../context/BrandContext.js';
 import { BRANDS, applyBrandTheme } from '../config/brands.js';
 import { t, LANGUAGES, LANGUAGE_NAMES, LANGUAGE_FLAGS } from '../i18n/translations.js';
 import { io } from 'socket.io-client';

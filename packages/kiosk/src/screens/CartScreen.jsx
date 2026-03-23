@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useKioskStore } from '../store/kioskStore';
 import { t } from '../i18n/translations.js';
-import { useBrand } from '../App.jsx';
+import { useBrand } from '../context/BrandContext.js';
 import { useInactivityTimeout } from '../hooks/useInactivityTimeout.js';
 import './CartScreen.css';
 
