@@ -137,9 +137,9 @@ export default function AdminApp() {
     ? orders
     : orders.filter(o => o.brand === brandFilter);
 
-  if (!token) return <LoginScreen />;
-
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  if (!token) return <LoginScreen />;
 
   return (
     <div className="admin-app">
