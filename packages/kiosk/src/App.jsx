@@ -38,7 +38,16 @@ export default function App() {
   // Fetch location data at boot (for multi-brand detection, security PIN, and styling)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const locId = params.get('loc');
+    let locId = params.get('loc');
+    
+    // Fix iOS PWA (Home Screen) bug: Apple strips query parameters because of manifest `start_url: "/"`.
+    // We must permanently save and restore the last known location.
+    if (locId) {
+      localStorage.setItem('kiosk_loc_id', locId);
+    } else {
+      locId = localStorage.getItem('kiosk_loc_id');
+    }
+
     if (!locId) {
        setLoading(false);
        return;
