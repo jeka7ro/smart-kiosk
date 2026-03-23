@@ -145,8 +145,11 @@ export default function AdminApp() {
     <div className="admin-app">
       {/* ─── Sidebar ─── */}
       <aside className={`admin-sidebar ${isSidebarOpen ? 'open' : ''}`}>
-        <div className="admin-logo" style={{justifyContent: 'space-between'}}>
-          <span className="al-text" style={{ fontSize: '1.2rem', fontWeight: 600, letterSpacing: '-0.5px' }}>Smart Kiosk<br/><small style={{ fontWeight: 400, opacity: 0.7, fontSize: '0.8rem' }}>Admin Panel</small></span>
+        <div className="admin-logo" style={{justifyContent: 'space-between', alignItems: 'center'}}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <img src="/logo_getapp.png" alt="GetApp" style={{ height: '32px' }} />
+            <span className="al-text" style={{ fontSize: '1.2rem', fontWeight: 600, letterSpacing: '-0.5px', lineHeight: '1.2' }}>Smart Kiosk<br/><small style={{ fontWeight: 400, opacity: 0.7, fontSize: '0.8rem' }}>Admin Panel</small></span>
+          </div>
           <button className="mobile-close-btn" onClick={() => setIsSidebarOpen(false)}>×</button>
         </div>
         <nav className="admin-nav">
@@ -206,8 +209,7 @@ export default function AdminApp() {
         </div>
 
         {/* TOP HEADER BAR */}
-        <div className="main-header-bar" style={{ padding: '0 24px', height: '64px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--surface)', position: 'sticky', top: 0, zIndex: 10 }}>
-           <img src="/logo_getapp.png" alt="GetApp" style={{ height: '28px' }} />
+        <div className="main-header-bar" style={{ padding: '0 24px', height: '64px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', background: 'var(--surface)', position: 'sticky', top: 0, zIndex: 10 }}>
            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text)' }}>
               {tab === 'dashboard' && 'Dashboard Overview'}
               {tab === 'orders' && 'Gestionare Comenzi'}
