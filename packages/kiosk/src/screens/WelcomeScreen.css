@@ -1,19 +1,18 @@
 .welcome-screen {
   width: 100vw; height: 100vh;
+  position: absolute; top: 0; left: 0; z-index: 9999;
   background: var(--bg-dark);
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
-  position: relative; overflow: hidden;
+  overflow: hidden;
   cursor: pointer; user-select: none;
-  transition: opacity 0.4s cubic-bezier(0.32, 0.72, 0, 1), transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+  transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.4s ease-out;
 }
 
-/* iOS iPhone Unlock Animation */
+/* iOS iPhone Unlock Animation - Slide Up */
 .welcome-screen.unlocking {
-  opacity: 0;
-  transform: scale(1.05); /* Slight zoom-in towards the user as it fades out */
+  transform: translateY(-100%);
   pointer-events: none;
-  filter: blur(8px); /* Optional: add a slight blur for authenticity */
 }
 
 /* ─── POSTER / SCREENSAVER OVERLAY ──────────────────────── */

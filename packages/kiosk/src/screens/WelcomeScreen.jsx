@@ -14,10 +14,10 @@ export default function WelcomeScreen() {
   const goAfterWelcome = useKioskStore((s) => s.goAfterWelcome);
   const lang    = useKioskStore((s) => s.lang);
   const setLang = useKioskStore((s) => s.setLang);
+  const isUnlocking = useKioskStore((s) => s.isUnlocking);
   const brand   = useBrand();
   const [slide, setSlide] = useState(0);
   const slides = brand.welcomeSlides;
-  const [unlocking, setUnlocking] = useState(false);
 
   // ─── Poster / Screensaver ────────────────────────────────
   const locationData = useKioskStore((s) => s.locationData);
@@ -56,21 +56,13 @@ export default function WelcomeScreen() {
   };
 
   // Handle tap on poster — dismiss poster and go to orderType
-  const handleStart = () => {
-    if (unlocking) return;
-    setUnlocking(true);
-    setTimeout(() => {
-      setPosterVisible(false);
-      goAfterWelcome();
-    }, 400); // Wait for the CSS transition to complete
-  };
-
   const handlePosterTap = () => {
-    handleStart();
+    setPosterVisible(false);
+    goAfterWelcome();
   };
 
   return (
-    <div className={`welcome-screen ${unlocking ? 'unlocking' : ''}`} onClick={handleStart}>
+    <div className={`welcome-screen ${isUnlocking ? 'unlocking' : ''}`} onClick={() => goAfterWelcome()}>
       {/* ─── POSTER SCREENSAVER (fullscreen overlay) ─── */}
       {posterVisible && poster && (
         <div className="poster-overlay" onClick={(e) => { e.stopPropagation(); handlePosterTap(); }}>

@@ -24,6 +24,7 @@ const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 
 export default function App() {
   const screen = useKioskStore((s) => s.screen);
+  const isUnlocking = useKioskStore((s) => s.isUnlocking);
   const setLocationData = useKioskStore((s) => s.setLocationData);
   const setKioskData = useKioskStore((s) => s.setKioskData);
   const locationData = useKioskStore((s) => s.locationData);
@@ -230,11 +231,10 @@ export default function App() {
           width: '100%', 
           position: 'relative', 
           overflow: 'hidden',
-          borderRadius: screen === 'welcome' ? '0' : `${mainRadTop} ${mainRadTop} ${mainRadBot} ${mainRadBot}`,
+          borderRadius: screen === 'welcome' && !isUnlocking ? '0' : `${mainRadTop} ${mainRadTop} ${mainRadBot} ${mainRadBot}`,
           boxShadow: (showBanner || showBottomBanner) ? '0 8px 32px rgba(0,0,0,0.05)' : 'none',
-          background: screen === 'welcome' ? 'transparent' : '#fff'
+          background: screen === 'welcome' && !isUnlocking ? 'transparent' : '#fff'
         }}>
-          {screen === 'welcome'      && <WelcomeScreen />}
           {screen === 'orderType'    && <OrderTypeScreen />}
           {screen === 'brandSelect'  && <BrandSelectScreen />}
           {screen === 'menu'         && <MenuScreen />}
@@ -242,6 +242,8 @@ export default function App() {
           {screen === 'cart'         && <CartScreen />}
           {screen === 'payment'      && <PaymentScreen />}
           {screen === 'confirmation' && <ConfirmationScreen />}
+          
+          {(screen === 'welcome' || isUnlocking) && <WelcomeScreen />}
         </div>
         
         {showBottomBanner && (

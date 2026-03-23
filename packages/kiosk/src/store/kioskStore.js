@@ -43,16 +43,23 @@ export const useKioskStore = create((set, get) => ({
     screen: 'menu',
   }),
 
-  // After welcome: go to brand select if multi-brand, otherwise orderType
+  isUnlocking: false,
+
+  // After welcome: slide up screensaver over half a second
   goAfterWelcome: () => {
     const loc = get().locationData;
     const isMulti = loc && loc.brands && loc.brands.length > 1;
     
-    if (isMulti) {
-      set({ screen: 'brandSelect' });
-    } else {
-      set({ screen: 'orderType' });
-    }
+    // Start iOS unlock sequence (start slide up CSS but instantly mount next route behind it)
+    set({ 
+      isUnlocking: true,
+      screen: isMulti ? 'brandSelect' : 'orderType' 
+    });
+
+    // Remove WelcomeScreen entirely after CSS slide up completes
+    setTimeout(() => {
+      set({ isUnlocking: false });
+    }, 550);
   },
 
   // Skip order type selection — default is pickup at cashier (takeaway)
