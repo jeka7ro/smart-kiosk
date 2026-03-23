@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const fs = require('fs');
-const path = require('path');
+const { pool } = require('../db');
 const { protect, requireApiKey } = require('../middleware/authMiddleware');
 
 // Force bypass browser caching for all location updates!
@@ -12,109 +11,154 @@ router.use((req, res, next) => {
   next();
 });
 
-const DATA_FILE = path.join(__dirname, '../../data/locations.json');
-
 // ── Helpers ─────────────────────────────────────────────────
-function readLocations() {
-  try {
-    return JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
-  } catch {
-    return [];
-  }
-}
-
-function writeLocations(locs) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(locs, null, 2), 'utf-8');
+// Flatten a DB row (id + data JSONB) back to the flat object the frontend expects
+function rowToLoc(row) {
+  return { id: row.id, active: row.active, ...row.data };
 }
 
 // GET /api/locations — all locations (optionally filter by brand)
-router.get('/', requireApiKey, (req, res) => {
-  const locs = readLocations();
-  const { brandId } = req.query;
-  const result = brandId
-    ? locs.filter(l => l.brands && l.brands.includes(brandId))
-    : locs;
-  res.json({ locations: result, total: result.length });
+router.get('/', requireApiKey, async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM locations ORDER BY created_at ASC');
+    let locs = rows.map(rowToLoc);
+    const { brandId } = req.query;
+    if (brandId) locs = locs.filter(l => l.brands && l.brands.includes(brandId));
+    res.json({ locations: locs, total: locs.length });
+  } catch (e) {
+    console.error('[Locations GET /]', e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // GET /api/locations/:id
-router.get('/:id', requireApiKey, (req, res) => {
-  const locs = readLocations();
-  const loc = locs.find(l => l.id === req.params.id);
-  if (!loc) return res.status(404).json({ error: 'Location not found' });
-  res.json(loc);
+router.get('/:id', requireApiKey, async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM locations WHERE id = $1', [req.params.id]);
+    if (!rows.length) return res.status(404).json({ error: 'Location not found' });
+    res.json(rowToLoc(rows[0]));
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // POST /api/locations — create new location
-router.post('/', protect, (req, res) => {
-  const locs = readLocations();
-  const { name, brands, orgIds, tables, kiosks } = req.body;
-  if (!name) return res.status(400).json({ error: 'Name is required' });
+router.post('/', protect, async (req, res) => {
+  try {
+    const { name, brands, orgIds, tables, kiosks } = req.body;
+    if (!name) return res.status(400).json({ error: 'Name is required' });
 
-  const id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '');
-  const newLoc = {
-    id,
-    name,
-    brands: brands || [],
-    isMultiBrand: Array.isArray(brands) && brands.length > 1,
-    orgIds: orgIds || {},
-    kiosks: kiosks || [],
-    tables: tables || 0,
-    kioskUrl: req.body.kioskUrl || '',
-    screensaverUrl: req.body.screensaverUrl || '',
-    showLogoOnScreensaver: req.body.showLogoOnScreensaver !== undefined ? req.body.showLogoOnScreensaver : true,
-    active: true,
-  };
-  locs.push(newLoc);
-  writeLocations(locs);
-  res.status(201).json(newLoc);
+    const id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '');
+
+    const data = {
+      name,
+      brands: brands || [],
+      isMultiBrand: Array.isArray(brands) && brands.length > 1,
+      orgIds: orgIds || {},
+      kiosks: kiosks || [],
+      tables: tables || 0,
+      kioskUrl: req.body.kioskUrl || '',
+      screensaverUrl: req.body.screensaverUrl || '',
+      showLogoOnScreensaver: req.body.showLogoOnScreensaver !== undefined ? req.body.showLogoOnScreensaver : true,
+      topBanner: req.body.topBanner || null,
+      bottomBanner: req.body.bottomBanner || null,
+    };
+
+    const { rows } = await pool.query(
+      `INSERT INTO locations (id, name, data, active) VALUES ($1, $2, $3, true)
+       ON CONFLICT (id) DO NOTHING
+       RETURNING *`,
+      [id, name, JSON.stringify(data)]
+    );
+
+    res.status(201).json(rowToLoc(rows[0]));
+  } catch (e) {
+    console.error('[Locations POST]', e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // PUT /api/locations/:id — update location
-router.put('/:id', protect, (req, res) => {
-  const locs = readLocations();
-  const idx = locs.findIndex(l => l.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'Location not found' });
+router.put('/:id', protect, async (req, res) => {
+  try {
+    // Merge existing data with new data
+    const existing = await pool.query('SELECT * FROM locations WHERE id = $1', [req.params.id]);
+    if (!existing.rows.length) return res.status(404).json({ error: 'Location not found' });
 
-  locs[idx] = { ...locs[idx], ...req.body, id: locs[idx].id };
-  writeLocations(locs);
-  res.json(locs[idx]);
+    const current = existing.rows[0];
+    const { active, ...bodyRest } = req.body; // separate active from data fields
+
+    const merged = { ...current.data, ...bodyRest };
+    const newActive = active !== undefined ? active : current.active;
+
+    const { rows } = await pool.query(
+      `UPDATE locations SET data = $1, active = $2, updated_at = NOW()
+       WHERE id = $3 RETURNING *`,
+      [JSON.stringify(merged), newActive, req.params.id]
+    );
+
+    res.json(rowToLoc(rows[0]));
+  } catch (e) {
+    console.error('[Locations PUT]', e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // DELETE /api/locations/:id
-router.delete('/:id', protect, (req, res) => {
-  let locs = readLocations();
-  const before = locs.length;
-  locs = locs.filter(l => l.id !== req.params.id);
-  if (locs.length === before) return res.status(404).json({ error: 'Location not found' });
-  writeLocations(locs);
-  res.json({ ok: true });
+router.delete('/:id', protect, async (req, res) => {
+  try {
+    const result = await pool.query('DELETE FROM locations WHERE id = $1', [req.params.id]);
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Location not found' });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // POST /api/locations/:id/kiosks — add kiosk to location
-router.post('/:id/kiosks', protect, (req, res) => {
-  const locs = readLocations();
-  const loc = locs.find(l => l.id === req.params.id);
-  if (!loc) return res.status(404).json({ error: 'Location not found' });
+router.post('/:id/kiosks', protect, async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM locations WHERE id = $1', [req.params.id]);
+    if (!rows.length) return res.status(404).json({ error: 'Location not found' });
 
-  const { kioskId, name } = req.body;
-  if (!kioskId) return res.status(400).json({ error: 'kioskId is required' });
+    const { kioskId, name } = req.body;
+    if (!kioskId) return res.status(400).json({ error: 'kioskId is required' });
 
-  if (!loc.kiosks) loc.kiosks = [];
-  loc.kiosks.push({ kioskId, name: name || kioskId, addedAt: new Date().toISOString() });
-  writeLocations(locs);
-  res.status(201).json(loc);
+    const data = rows[0].data;
+    if (!data.kiosks) data.kiosks = [];
+    if (!data.kiosks.find(k => k.kioskId === kioskId)) {
+      data.kiosks.push({ kioskId, name: name || kioskId, addedAt: new Date().toISOString() });
+    }
+
+    const updated = await pool.query(
+      `UPDATE locations SET data = $1, updated_at = NOW() WHERE id = $2 RETURNING *`,
+      [JSON.stringify(data), req.params.id]
+    );
+
+    res.status(201).json(rowToLoc(updated.rows[0]));
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // DELETE /api/locations/:id/kiosks/:kioskId — remove kiosk from location
-router.delete('/:id/kiosks/:kioskId', protect, (req, res) => {
-  const locs = readLocations();
-  const loc = locs.find(l => l.id === req.params.id);
-  if (!loc) return res.status(404).json({ error: 'Location not found' });
+router.delete('/:id/kiosks/:kioskId', protect, async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM locations WHERE id = $1', [req.params.id]);
+    if (!rows.length) return res.status(404).json({ error: 'Location not found' });
 
-  loc.kiosks = (loc.kiosks || []).filter(k => k.kioskId !== req.params.kioskId);
-  writeLocations(locs);
-  res.json(loc);
+    const data = rows[0].data;
+    data.kiosks = (data.kiosks || []).filter(k => k.kioskId !== req.params.kioskId);
+
+    const updated = await pool.query(
+      `UPDATE locations SET data = $1, updated_at = NOW() WHERE id = $2 RETURNING *`,
+      [JSON.stringify(data), req.params.id]
+    );
+
+    res.json(rowToLoc(updated.rows[0]));
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 module.exports = router;

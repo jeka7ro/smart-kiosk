@@ -1,24 +1,7 @@
 const express = require('express');
-const fs = require('fs');
-const path = require('path');
 const router = express.Router();
+const { pool } = require('../db');
 const { protect } = require('../middleware/authMiddleware');
-
-// ─── Kiosk Config Persistence (JSON file) ─────────────────────────
-const CONFIG_PATH = path.join(__dirname, '../../data/kiosk-config.json');
-
-function loadConfig() {
-  try {
-    if (fs.existsSync(CONFIG_PATH)) return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
-  } catch (e) { console.warn('[Admin] Failed to load kiosk config:', e.message); }
-  return { posters: {} };
-}
-
-function saveConfig(config) {
-  const dir = path.dirname(CONFIG_PATH);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
-}
 
 // Admin routes — require JWT auth in production
 // GET /api/admin/dashboard
@@ -36,57 +19,110 @@ router.get('/orders', protect, async (req, res) => {
   res.json({ orders: [], total: 0 });
 });
 
-// ─── POSTER / SCREENSAVER CONFIG ──────────────────────────────────
+// ─── POSTER / SCREENSAVER CONFIG (Supabase) ────────────────────────────────
 
 // GET /api/admin/kiosk-config — get all poster configs
-router.get('/kiosk-config', (req, res) => {
-  const config = loadConfig();
-  res.json(config);
+router.get('/kiosk-config', async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT brand_id, data FROM kiosk_configs');
+    const posters = {};
+    rows.forEach(row => { posters[row.brand_id] = row.data; });
+    res.json({ posters });
+  } catch (e) {
+    console.error('[Admin] kiosk-config GET:', e.message);
+    res.json({ posters: {} }); // graceful fallback
+  }
 });
 
 // GET /api/admin/kiosk-config/:brandId — get poster for a specific brand
-router.get('/kiosk-config/:brandId', (req, res) => {
-  const config = loadConfig();
-  const poster = config.posters[req.params.brandId] || null;
-  res.json({ poster });
+router.get('/kiosk-config/:brandId', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT data FROM kiosk_configs WHERE brand_id = $1',
+      [req.params.brandId]
+    );
+    res.json({ poster: rows[0]?.data || null });
+  } catch (e) {
+    res.json({ poster: null });
+  }
 });
 
 // POST /api/admin/kiosk-config/:brandId — set poster for a brand
-router.post('/kiosk-config/:brandId', protect, (req, res) => {
-  const { brandId } = req.params;
-  const { url, type, enabled } = req.body; // type: 'image' | 'video' | 'iframe'
-  const config = loadConfig();
+router.post('/kiosk-config/:brandId', protect, async (req, res) => {
+  try {
+    const { brandId } = req.params;
+    const { url, type, enabled } = req.body;
 
-  config.posters[brandId] = {
-    url: url || '',
-    type: type || 'image',
-    enabled: enabled !== false,
-    updatedAt: new Date().toISOString(),
-  };
+    const data = {
+      url: url || '',
+      type: type || 'image',
+      enabled: enabled !== false,
+      updatedAt: new Date().toISOString(),
+    };
 
-  saveConfig(config);
+    await pool.query(
+      `INSERT INTO kiosk_configs (brand_id, data, updated_at)
+       VALUES ($1, $2, NOW())
+       ON CONFLICT (brand_id) DO UPDATE SET data = $2, updated_at = NOW()`,
+      [brandId, JSON.stringify(data)]
+    );
 
-  // Notify kiosks via Socket.IO if available
-  const io = req.app.get('io');
-  if (io) {
-    io.emit('poster_updated', { brandId, poster: config.posters[brandId] });
+    // Notify kiosks via Socket.IO if available
+    const io = req.app.get('io');
+    if (io) io.emit('poster_updated', { brandId, poster: data });
+
+    res.json({ ok: true, poster: data });
+  } catch (e) {
+    console.error('[Admin] kiosk-config POST:', e.message);
+    res.status(500).json({ error: e.message });
   }
+});
 
-  res.json({ ok: true, poster: config.posters[brandId] });
+// POST /api/admin/kiosk-config/:brandId/location — save full location-level config
+// (screensaver, topBanner, bottomBanner, cornerRadius, etc.)
+router.post('/kiosk-config/:brandId/location', protect, async (req, res) => {
+  try {
+    const { brandId } = req.params;
+    const { locationId, ...configData } = req.body;
+
+    const key = locationId ? `${brandId}__${locationId}` : brandId;
+
+    const data = {
+      ...configData,
+      brandId,
+      locationId: locationId || null,
+      updatedAt: new Date().toISOString(),
+    };
+
+    await pool.query(
+      `INSERT INTO kiosk_configs (brand_id, data, updated_at)
+       VALUES ($1, $2, NOW())
+       ON CONFLICT (brand_id) DO UPDATE SET data = $2, updated_at = NOW()`,
+      [key, JSON.stringify(data)]
+    );
+
+    const io = req.app.get('io');
+    if (io) io.emit('kiosk_config_updated', { brandId, locationId, config: data });
+
+    res.json({ ok: true, config: data });
+  } catch (e) {
+    console.error('[Admin] kiosk-config location POST:', e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // DELETE /api/admin/kiosk-config/:brandId — remove poster for a brand
-router.delete('/kiosk-config/:brandId', protect, (req, res) => {
-  const config = loadConfig();
-  delete config.posters[req.params.brandId];
-  saveConfig(config);
+router.delete('/kiosk-config/:brandId', protect, async (req, res) => {
+  try {
+    await pool.query('DELETE FROM kiosk_configs WHERE brand_id = $1', [req.params.brandId]);
 
-  const io = req.app.get('io');
-  if (io) {
-    io.emit('poster_updated', { brandId: req.params.brandId, poster: null });
+    const io = req.app.get('io');
+    if (io) io.emit('poster_updated', { brandId: req.params.brandId, poster: null });
+
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
-
-  res.json({ ok: true });
 });
 
 module.exports = router;
