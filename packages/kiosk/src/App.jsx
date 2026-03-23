@@ -16,6 +16,7 @@ import CartScreen          from './screens/CartScreen';
 import PaymentScreen       from './screens/PaymentScreen';
 import ConfirmationScreen  from './screens/ConfirmationScreen';
 import PinScreen           from './screens/PinScreen';
+import { proxySyrveImage } from './utils/imageUtils.js';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 
@@ -34,6 +35,20 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useInactivityTimeout();
+
+  // Pre-load all product images silently into iOS Safari Local Cache while idling on screensaver
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const savedProducts = useKioskStore.getState().menuProducts || [];
+      savedProducts.forEach(p => {
+        if (p.image) {
+          const img = new Image();
+          img.src = proxySyrveImage(p.image);
+        }
+      });
+    }, 4000); // 4 seconds after boot
+    return () => clearTimeout(timer);
+  }, []);
 
   // Fetch location data at boot (for multi-brand detection, security PIN, and styling)
   useEffect(() => {

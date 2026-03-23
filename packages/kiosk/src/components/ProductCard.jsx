@@ -61,7 +61,7 @@ export default function ProductCard({ product, delay, lang, activeBrand, onQuick
       <div 
         className="product-card-body" 
         style={{ flex: 1, display: 'flex', flexDirection: 'column', cursor: 'pointer' }}
-        onClick={() => cartQty === 0 ? onQuickAdd(product, cardRef.current) : null}
+        onClick={handleInfoClick}
       >
         <div style={{ width: '100%', aspectRatio: '4/3', borderRadius: 12, overflow: 'hidden', background: '#f3f4f6', marginBottom: 12, position: 'relative' }}>
           <button className="product-info-btn" onClick={handleInfoClick} style={{ position: 'absolute', top: 8, right: 8, width: 32, height: 32, background: 'rgba(255,255,255,0.9)', border: 'none', borderRadius: '50%', color: '#374151', fontSize: '1rem', fontWeight: 'bold', fontStyle: 'italic', fontFamily: 'serif', zIndex: 10 }}>i</button>
