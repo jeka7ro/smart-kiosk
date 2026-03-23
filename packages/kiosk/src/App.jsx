@@ -148,7 +148,12 @@ export default function App() {
 
   return (
     <BrandContext.Provider value={brand}>
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', overflow: 'hidden', background: 'var(--bg, #f8fafc)', padding: '16px', boxSizing: 'border-box' }}>
+      <div style={{ 
+        display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', 
+        overflow: 'hidden', background: 'var(--bg, #f8fafc)', 
+        padding: screen === 'welcome' ? '0' : '16px', 
+        boxSizing: 'border-box' 
+      }}>
         
         {showBanner && (
           <div style={{ 
@@ -170,9 +175,9 @@ export default function App() {
           width: '100%', 
           position: 'relative', 
           overflow: 'hidden',
-          borderRadius: `${mainRadTop} ${mainRadTop} ${mainRadBot} ${mainRadBot}`,
+          borderRadius: screen === 'welcome' ? '0' : `${mainRadTop} ${mainRadTop} ${mainRadBot} ${mainRadBot}`,
           boxShadow: (showBanner || showBottomBanner) ? '0 8px 32px rgba(0,0,0,0.05)' : 'none',
-          background: '#fff'
+          background: screen === 'welcome' ? 'transparent' : '#fff'
         }}>
           {screen === 'welcome'      && <WelcomeScreen />}
           {screen === 'orderType'    && <OrderTypeScreen />}
