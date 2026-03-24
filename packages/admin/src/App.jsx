@@ -1035,13 +1035,24 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                 />
                 
                 {formData.topBannerUrl ? (
-                  <div style={{ 
-                    height: 80, 
-                    borderRadius: `${formData.topBannerRadiusTop ? '12px' : '0'} ${formData.topBannerRadiusTop ? '12px' : '0'} ${formData.topBannerRadiusBottom ? '12px' : '0'} ${formData.topBannerRadiusBottom ? '12px' : '0'}`,
-                    transition: 'border-radius 0.3s ease',
-                    overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--bg-surface)' 
-                  }}>
-                     {renderPreview(formData.topBannerUrl)}
+                  <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16, marginBottom: 16 }}>
+                    <div style={{ width: 135, height: 240, borderRadius: 12, overflow: 'hidden', border: '6px solid #1e293b', background: '#e2e8f0', position: 'relative', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}>
+                      <div style={{ position: 'absolute', inset: 0, padding: '4px' }}>
+                        <div style={{ width: '100%', height: '30%', background: '#cbd5e1', borderRadius: '4px', marginBottom: '4px' }} />
+                        <div style={{ width: '100%', height: '30%', background: '#cbd5e1', borderRadius: '4px', marginBottom: '4px' }} />
+                        <div style={{ width: '100%', height: '30%', background: '#cbd5e1', borderRadius: '4px' }} />
+                      </div>
+                      
+                      <div style={{ 
+                        position: 'absolute', top: 0, left: 0, right: 0,
+                        height: `${10 + ((formData.topBannerHeight || 1) - 1) * 5}%`, 
+                        borderRadius: `${formData.topBannerRadiusTop ? '6px' : '0'} ${formData.topBannerRadiusTop ? '6px' : '0'} ${formData.topBannerRadiusBottom ? '6px' : '0'} ${formData.topBannerRadiusBottom ? '6px' : '0'}`,
+                        transition: 'all 0.3s ease',
+                        overflow: 'hidden', background: '#000', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' 
+                      }}>
+                         {renderPreview(formData.topBannerUrl)}
+                      </div>
+                    </div>
                   </div>
                 ) : (
                    <div style={{ height: 80, borderRadius: 12, border: '2px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 500 }}>Introdu url-ul campaniei.</div>
@@ -1113,11 +1124,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                   onChange={e => handleChange('bottomBannerUrl', e.target.value)}
                   style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', width: '100%', marginBottom: formData.bottomBannerUrl ? 12 : 20, boxSizing: 'border-box' }}
                 />
-                {formData.bottomBannerUrl && (
-                  <div style={{ height: 72, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--bg-surface)', marginBottom: 20 }}>
-                    {renderPreview(formData.bottomBannerUrl)}
-                  </div>
-                )}
+
 
                 <h4 style={{ margin: '0 0 6px 0', fontSize: '0.85rem', color: 'var(--text)', fontWeight: 700 }}>2. Text Derulant</h4>
                 <p style={{ margin: '0 0 10px', fontSize: '0.78rem', color: 'var(--text-muted)' }}>Apare deasupra reclamei (overlay) sau singur dacă nu e reclamă</p>
@@ -1190,27 +1197,45 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                   </div>
                 )}
                 
-                {formData.bottomBannerContent && formData.bottomBannerContent.startsWith('http') ? (
-                  <div style={{ 
-                    height: 80, 
-                    borderRadius: `${formData.bottomBannerRadiusTop ? '12px' : '0'} ${formData.bottomBannerRadiusTop ? '12px' : '0'} ${formData.bottomBannerRadiusBottom ? '12px' : '0'} ${formData.bottomBannerRadiusBottom ? '12px' : '0'}`,
-                    transition: 'border-radius 0.3s ease',
-                    overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--bg-surface)' 
-                  }}>
-                     {renderPreview(formData.bottomBannerContent)}
+                {/* BOTTOM BANNER SIMULATOR */}
+                <div style={{ display: 'flex', justifyContent: 'center', marginTop: 24, marginBottom: 8, flexDirection: 'column', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 12, textTransform: 'uppercase' }}>PREVIEW KIOSK DISPLAY (9:16)</span>
+                  <div style={{ width: 135, height: 240, borderRadius: 12, overflow: 'hidden', border: '6px solid #1e293b', background: '#e2e8f0', position: 'relative', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}>
+                    <div style={{ position: 'absolute', inset: 0, padding: '4px' }}>
+                      <div style={{ width: '100%', height: '30%', background: '#cbd5e1', borderRadius: '4px', marginBottom: '4px' }} />
+                      <div style={{ width: '100%', height: '30%', background: '#cbd5e1', borderRadius: '4px', marginBottom: '4px' }} />
+                    </div>
+                    
+                    <div style={{ 
+                      position: 'absolute', bottom: 0, left: 0, right: 0,
+                      height: `${10 + ((formData.bottomBannerHeight || 1) - 1) * 5}%`, 
+                      borderRadius: `${formData.bottomBannerRadiusTop ? '6px' : '0'} ${formData.bottomBannerRadiusTop ? '6px' : '0'} ${formData.bottomBannerRadiusBottom ? '6px' : '0'} ${formData.bottomBannerRadiusBottom ? '6px' : '0'}`,
+                      transition: 'all 0.3s ease',
+                      overflow: 'hidden', background: formData.bottomBannerBg || '#000', boxShadow: '0 -4px 12px rgba(0,0,0,0.2)',
+                      display: 'flex', flexDirection: 'column', justifyContent: 'center'
+                    }}>
+                       {formData.bottomBannerUrl && (
+                         <div style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
+                           {renderPreview(formData.bottomBannerUrl)}
+                         </div>
+                       )}
+                       {formData.bottomBannerText && (
+                         <div style={{ 
+                           position: 'relative', zIndex: 2, padding: '4px 6px', 
+                           display: 'flex', alignItems: 'center', gap: '4px',
+                           justifyContent: formData.bottomBannerTextAlign === 'center' ? 'center' : formData.bottomBannerTextAlign === 'right' ? 'flex-end' : 'flex-start',
+                           background: formData.bottomBannerUrl ? 'rgba(0,0,0,0.45)' : 'transparent',
+                           height: '100%', width: '100%', boxSizing: 'border-box'
+                         }}>
+                           {formData.bottomBannerLogoUrl && <img src={formData.bottomBannerLogoUrl} style={{ height: '60%', objectFit: 'contain' }} alt="Logo" />}
+                           <div style={{ color: ['#ffffff', '#f8fafc'].includes(formData.bottomBannerBg) && !formData.bottomBannerUrl ? '#0f172a' : '#fff', fontSize: '5px', fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                              {formData.bottomBannerText}
+                           </div>
+                         </div>
+                       )}
+                    </div>
                   </div>
-                ) : formData.bottomBannerContent ? (
-                  <div style={{ 
-                    padding: '12px', background: 'var(--bg-surface)', border: '1px solid var(--border)', 
-                    borderRadius: `${formData.bottomBannerRadiusTop ? '8px' : '0'} ${formData.bottomBannerRadiusTop ? '8px' : '0'} ${formData.bottomBannerRadiusBottom ? '8px' : '0'} ${formData.bottomBannerRadiusBottom ? '8px' : '0'}`,
-                    transition: 'border-radius 0.3s ease',
-                    fontSize: '0.95rem', color: 'var(--text)', fontWeight: 600 
-                  }}>
-                    "{formData.bottomBannerContent}"
-                  </div>
-                ) : (
-                   <div style={{ height: 80, borderRadius: 12, border: '2px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 500 }}>Fără conținut pentru subsol.</div>
-                )}
+                </div>
 
                 <div style={{ marginTop: 24, padding: 20, background: 'var(--bg-surface)', borderRadius: 12, border: '1px solid var(--border)' }}>
                   <h4 style={{ margin: '0 0 16px 0', fontSize: '0.95rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>Configurare Vizuală (Design)</h4>
