@@ -26,6 +26,7 @@ export default function LoginScreen() {
     <div className="login-screen">
       <div className="login-glass-panel">
         <div className="login-header">
+          <img src="/logo_getapp.png" alt="GetApp" style={{ height: '56px', marginBottom: '12px', mixBlendMode: 'multiply' }} />
           <h2>Kiosk Gateway</h2>
           <p>Autentificare Securizată</p>
         </div>
