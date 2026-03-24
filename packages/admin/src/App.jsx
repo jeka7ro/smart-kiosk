@@ -7,6 +7,7 @@ import UsersManager from './screens/UsersManager';
 import ModifierImages from './screens/ModifierImages';
 import Integrations   from './screens/Integrations';
 import Promotions     from './screens/Promotions';
+import FortuneWheelPreview from './components/FortuneWheelPreview';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 
@@ -102,6 +103,15 @@ export default function AdminApp() {
     return () => socket.disconnect();
   }, []);
 
+  /* ─── Load promotions configs for UI Previews ───── */
+  const [promosData, setPromosData] = useState({});
+  useEffect(() => {
+    fetchWithAuth(`${BACKEND}/api/promotions`)
+      .then(r => r.json())
+      .then(d => setPromosData(d || {}))
+      .catch(() => {});
+  }, [fetchWithAuth]);
+
   /* ─── Load initial orders ────────────────────────── */
   useEffect(() => {
     fetchWithAuth(`${BACKEND}/api/orders?limit=100`)
@@ -166,7 +176,7 @@ export default function AdminApp() {
             { id: 'modifiers', label: 'Imagini Opțiuni', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg> },
             ...(user?.role === 'admin' ? [{ id: 'users', label: 'Echipă', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> }] : []),
             ...(user?.role === 'admin' ? [{ id: 'integrations', label: 'Integrări POS', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg> }] : []),
-            ...(user?.role === 'admin' ? [{ id: 'promotions', label: 'Promoții 🎉', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 2L12 22"></path><path d="M2 12L22 12"></path><path d="M5 5l14 14"></path><path d="M19 5L5 19"></path></svg> }] : []),
+            ...(user?.role === 'admin' ? [{ id: 'promotions', label: 'Promoții ', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 2L12 22"></path><path d="M2 12L22 12"></path><path d="M5 5l14 14"></path><path d="M19 5L5 19"></path></svg> }] : []),
           ].map(item => (
             <button
               key={item.id}
@@ -527,7 +537,7 @@ function KioskPosterCard({ brandId, brandName, emoji, backend }) {
 
       <div className="pc-actions">
         <button className="btn-save" onClick={save}>
-          {saved ? '✅ Salvat!' : '💾 Salvează'}
+          {saved ? ' Salvat!' : ' Salvează'}
         </button>
         {url && <button className="btn-delete" onClick={remove}>🗑 Șterge</button>}
       </div>
@@ -848,7 +858,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
               transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)' 
             }}
           >
-            {saveSuccess ? '✅ Configurație Salvată' : isSaving ? '⏳ Se procesează...' : '💾 Salvează Schimbările'}
+            {saveSuccess ? ' Configurație Salvată' : isSaving ? ' Se procesează...' : ' Salvează Schimbările'}
           </button>
         </div>
       </div>
@@ -937,7 +947,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
         {/* Card: Promoție (Roată Kiosk) */}
         <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>🎁 Promoție Kiosk (Roată Noroc)</h3>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>Promoție Kiosk (Roată Noroc)</h3>
             <label className="pc-toggle" style={{ margin: 0 }}>
               <input type="checkbox" checked={formData.promoActive || false} onChange={e => handleChange('promoActive', e.target.checked)} />
               <span className="toggle-slider" />
@@ -1008,6 +1018,27 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                    </div>
                  )}
                </div>
+
+               {/* Previzualizare Roată */}
+               {formData.promoBrandId && promosData[formData.promoBrandId] ? (
+                 <div style={{ width: '100%', marginTop: 24, padding: 20, background: 'var(--bg-surface)', borderRadius: 12, border: '1px solid var(--border)', textAlign: 'center' }}>
+                   <h4 style={{ margin: '0 0 16px 0', fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1 }}>Previzualizare Roată Live</h4>
+                   {promosData[formData.promoBrandId].active ? (
+                     <div style={{ height: 400, overflow: 'hidden', position: 'relative', background: '#0f172a', borderRadius: 16 }}>
+                       <FortuneWheelPreview config={promosData[formData.promoBrandId].config} brandId={formData.promoBrandId} />
+                     </div>
+                   ) : (
+                     <div style={{ padding: 20, background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderRadius: 8, fontSize: '0.9rem', fontWeight: 600 }}>
+                       Roata este OPRITĂ din modulul global de Promoții pentru acest brand. Activați-o de acolo mai întâi!
+                     </div>
+                   )}
+                 </div>
+               ) : formData.promoBrandId ? (
+                 <div style={{ width: '100%', marginTop: 24, padding: 20, color: 'var(--text-muted)', fontSize: '0.9rem', textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 12 }}>
+                   Nu există date de promoție salvate pentru {formData.promoBrandId}. Adăugați feliile în pagina Promoții.
+                 </div>
+               ) : null}
+
              </div>
           )}
         </div>
@@ -1103,7 +1134,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
         {/* Card: Banner Promo (Footer) */}
         <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>📣 Banner Promo (Footer / Jos)</h3>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>Banner Promo (Footer / Jos)</h3>
             <label className="pc-toggle" style={{ margin: 0 }}>
               <input type="checkbox" checked={useBottomBanner} onChange={e => setUseBottomBanner(e.target.checked)} />
               <span className="toggle-slider" />
@@ -1388,7 +1419,7 @@ function QrGenerator({ backend }) {
         </div>
 
         <button className="qr-gen-btn" onClick={generate} disabled={loading} style={{ background: selectedBrand.color }}>
-          {loading ? '⏳ Generez...' : `${selectedBrand.emoji} Generează ${tableCount} QR Coduri`}
+          {loading ? ' Generez...' : `${selectedBrand.emoji} Generează ${tableCount} QR Coduri`}
         </button>
       </div>
 

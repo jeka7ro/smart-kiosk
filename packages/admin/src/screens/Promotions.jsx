@@ -43,7 +43,7 @@ export default function Promotions() {
       const data = await res.json();
       setConfigList(data || {});
     } catch (e) {
-      showToast('❌ Eoare fetch', 'err');
+      showToast(' Eoare fetch', 'err');
     } finally {
       setLoading(false);
     }
@@ -71,7 +71,7 @@ export default function Promotions() {
     // Validate probabilities
     const sum = (localConfig.slices || []).reduce((acc, s) => acc + (s.probability || 0), 0);
     if (sum !== 100 && localConfig.slices?.length > 0) {
-      return showToast(`❌ Total procente trebuie să fie 100% (curent: ${sum}%)`, 'err');
+      return showToast(` Total procente trebuie să fie 100% (curent: ${sum}%)`, 'err');
     }
 
     setSaving(true);
@@ -82,10 +82,10 @@ export default function Promotions() {
         body: JSON.stringify({ active: localActive, config: localConfig })
       });
       if (!res.ok) throw new Error('Failed to save');
-      showToast('✅ Salvat cu succes');
+      showToast(' Salvat cu succes');
       await fetchPromos();
     } catch (e) {
-      showToast('❌ Eroare la salvare', 'err');
+      showToast(' Eroare la salvare', 'err');
     } finally {
       setSaving(false);
     }
