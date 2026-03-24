@@ -13,9 +13,9 @@
   box-shadow: 4px 0 24px rgba(0,0,0,0.05);
 }
 .admin-logo {
-  display: flex; align-items: center; gap: 10px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
   height: 80px; box-sizing: border-box; padding: 0 18px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 2px solid #0f766e;
   font-weight: 800; font-size: 1rem; color: var(--text);
 }
 .al-icon { font-size: 1.6rem; }
