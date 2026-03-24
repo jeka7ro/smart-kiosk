@@ -244,10 +244,10 @@ export default function MenuScreen() {
       {/* ─── TOP BAR ──────────────────────────────── */}
       <header className="menu-header">
         <div className="menu-header-left">
-          {BRANDS[activeBrandId]?.logoImg
+          {locationBrands.length <= 1 && (BRANDS[activeBrandId]?.logoImg
             ? <img src={BRANDS[activeBrandId].logoImg} alt={BRANDS[activeBrandId]?.name} className="menu-logo" />
             : <span className="menu-brand-name">{BRANDS[activeBrandId]?.name || brand.name}</span>
-          }
+          )}
         </div>
 
         <div className="menu-search">

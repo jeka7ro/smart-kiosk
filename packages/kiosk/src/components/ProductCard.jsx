@@ -42,14 +42,10 @@ export default function ProductCard({ product, delay, lang, activeBrand, onQuick
     if (onInfo) onInfo();
   };
 
-  // Tapping the card body/image: open modifier modal for products with required options, otherwise info screen
+  // Tapping the card body/image: always quick-add (modifier modal if needed, direct add otherwise)
+  // Info screen is ONLY opened via the 'i' button — never from image click
   const handleCardBodyClick = () => {
-    const hasRequired = (product.modifierGroups || []).some(gm => gm.required && gm.options?.length > 0);
-    if (hasRequired) {
-      onQuickAdd(product, cardRef.current);
-    } else {
-      if (onInfo) onInfo();
-    }
+    onQuickAdd(product, cardRef.current);
   };
 
   return (
