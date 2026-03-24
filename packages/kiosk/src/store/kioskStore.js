@@ -56,6 +56,8 @@ export const useKioskStore = create((set, get) => ({
   setShowWheel: (val) => set({ showWheel: val }),
   promoIntendedRoute: null,
   setPromoIntendedRoute: (route) => set({ promoIntendedRoute: route }),
+  wonPrize: null,
+  setWonPrize: (p) => set({ wonPrize: p }),
 
   // After welcome: slide up screensaver over half a second
   goAfterWelcome: () => {

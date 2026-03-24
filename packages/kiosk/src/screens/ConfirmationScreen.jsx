@@ -10,15 +10,52 @@ export default function ConfirmationScreen() {
   const tableNumber = useKioskStore((s) => s.tableNumber);
   const resetOrder = useKioskStore((s) => s.resetOrder);
   const lang = useKioskStore((s) => s.lang);
+  const setShowWheel = useKioskStore((s) => s.setShowWheel);
+  const wonPrize = useKioskStore((s) => s.wonPrize);
   const [countdown, setCountdown] = useState(15);
   const [orderNum] = useState(() => Math.floor(1000 + Math.random() * 9000));
   const total = getCartTotal();
+
+  useEffect(() => {
+    // Dacă am câștigat ceva, oferim mult mai mult timp (ex 60s) ca să apuce să arate casierului.
+    if (wonPrize && countdown < 45) {
+      setCountdown(45);
+    }
+  }, [wonPrize]);
 
   useEffect(() => {
     const timer = setInterval(() => setCountdown((c) => {
       if (c <= 1) { clearInterval(timer); resetOrder(); }
       return c - 1;
     }), 1000);
+
+    // Evaluare Afișare Roată Noroc după succes comandă
+    (async () => {
+      try {
+        const locId = new URLSearchParams(window.location.search).get('loc') || localStorage.getItem('kiosk_loc_id');
+        if (!locId) return;
+        
+        const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
+        const res = await fetch(`${BACKEND}/api/promotions/kiosk/${locId}`);
+        const pData = await res.json();
+        
+        if (pData && pData.available && pData.rules) {
+          const minVal = pData.rules.minOrderValue || 0;
+          const ordersToAppear = pData.rules.ordersToAppear || 1;
+          const ordersFinished = parseInt(localStorage.getItem('kiosk_orders_count') || '0', 10);
+          
+          // isRightFreq trebuie să evalueze momentul terminării actualei comenzi
+          const isRightFreq = ((ordersFinished) % ordersToAppear) === 0;
+
+          if (total >= minVal && isRightFreq) {
+             setShowWheel(true);
+          }
+        }
+      } catch (e) {
+        console.error("Promo eval failed on Confirmation:", e);
+      }
+    })();
+
     return () => clearInterval(timer);
   }, []);
 
@@ -41,6 +78,17 @@ export default function ConfirmationScreen() {
           <span className="on-number">#{orderNum}</span>
           <span className="on-info">{t('pickup_at_counter', lang)}</span>
         </div>
+
+        {/* Won Prize Section */}
+        {wonPrize && (
+          <div style={{ marginTop: 24, padding: 16, border: '2px solid #10b981', borderRadius: '16px', background: 'rgba(16, 185, 129, 0.1)' }}>
+            <h3 style={{ margin: '0 0 8px 0', color: '#047857', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <span>🎁</span> {t('prize_won', lang) || 'Ai primit un Cadou!'}
+            </h3>
+            <p style={{ margin: 0, fontWeight: 700, fontSize: '1.2rem', color: '#10b981' }}>{wonPrize.name}</p>
+            <p style={{ margin: '8px 0 0 0', fontSize: '0.9rem', color: '#047857' }}>Arată acest ecran cu numărul #{(orderNum)} The casierie pentru validare.</p>
+          </div>
+        )}
 
         {/* Summary */}
         <div className="confirm-summary">

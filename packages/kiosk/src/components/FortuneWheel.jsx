@@ -190,7 +190,7 @@ export default function FortuneWheel({ config, onClose, onWin }) {
             const lines = [];
             let cur = '';
             words.forEach(w => {
-              if (cur.length + w.length > 12 && cur !== '') { lines.push(cur); cur = w; }
+              if (cur.length + w.length > 16 && cur !== '') { lines.push(cur); cur = w; }
               else { cur += (cur ? ' ' : '') + w; }
             });
             if (cur) lines.push(cur);
@@ -223,10 +223,10 @@ export default function FortuneWheel({ config, onClose, onWin }) {
                   x={tx} y={ty} 
                   transform={`rotate(${textRot} ${tx} ${ty})`} 
                   textAnchor="middle" 
-                  style={{ fontSize: '3px', fontWeight: 800, fill: '#fff' }}
+                  style={{ fontSize: '1.6px', fontWeight: 700, fill: '#fff' }}
                 >
                   {displayLines.map((ln, idx) => (
-                    <tspan key={idx} x={tx} dy={idx === 0 ? (displayLines.length === 1 ? '1px' : '-2px') : '1.2em'}>{ln}</tspan>
+                    <tspan key={idx} x={tx} dy={idx === 0 ? (displayLines.length === 1 ? '1px' : '-2px') : '1.3em'}>{ln}</tspan>
                   ))}
                 </text>
               </g>
