@@ -592,11 +592,11 @@ function KiosksManager({ backend }) {
         <table className="loc-table hoverable-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead style={{ background: 'var(--bg-surface)', borderBottom: '2px solid var(--border)' }}>
             <tr>
-              <th style={{ padding: '16px 24px', width: '50px', color: '#64748b', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>#</th>
-              <th style={{ padding: '16px 24px', color: '#64748b', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Denumire & ID</th>
-              <th style={{ padding: '16px 24px', color: '#64748b', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Branduri Admise</th>
-              <th style={{ padding: '16px 24px', color: '#64748b', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Stare</th>
-              <th style={{ padding: '16px 24px', color: '#64748b', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: 'right' }}>Acțiuni</th>
+              <th style={{ padding: '16px 24px', width: '50px', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>#</th>
+              <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Denumire & ID</th>
+              <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Branduri Admise</th>
+              <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Stare</th>
+              <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: 'right' }}>Acțiuni</th>
             </tr>
           </thead>
           <tbody>
@@ -606,13 +606,13 @@ function KiosksManager({ backend }) {
               
               return (
                 <tr key={loc.id} className="loc-table-row">
-                  <td style={{ padding: '16px 24px', color: '#94a3b8', fontWeight: 600, fontSize: '0.9rem' }}>
+                  <td style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.9rem' }}>
                     {(currentPage - 1) * itemsPerPage + index + 1}
                   </td>
                   <td style={{ padding: '16px 24px' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <span style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a' }}>{loc.name}</span>
-                      <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontFamily: 'monospace' }}>{loc.id}</span>
+                      <span style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text)' }}>{loc.name}</span>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{loc.id}</span>
                     </div>
                   </td>
                   <td style={{ padding: '16px 24px' }}>
@@ -633,14 +633,14 @@ function KiosksManager({ backend }) {
                         title="Vizualizare Kiosk direct"
                         href={finalKioskUrl} target="_blank" rel="noreferrer"
                         className="btn-business-icon"
-                        style={{ textDecoration: 'none', background: '#f8fafc', border: '1px solid #e2e8f0', cursor: 'pointer', padding: '8px', borderRadius: '8px', transition: 'all 0.2s', color: '#334155', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                        style={{ textDecoration: 'none', background: 'var(--bg-surface)', border: '1px solid var(--border)', cursor: 'pointer', padding: '8px', borderRadius: '8px', transition: 'all 0.2s', color: 'var(--text)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                       >
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                       </a>
                       <button 
                         title="Copiază Link Universal"
                         className="btn-business-icon"
-                        style={{ background: '#f8fafc', border: '1px solid #e2e8f0', cursor: 'pointer', padding: '8px', borderRadius: '8px', transition: 'all 0.2s', color: '#334155', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', cursor: 'pointer', padding: '8px', borderRadius: '8px', transition: 'all 0.2s', color: 'var(--text)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                         onClick={(e) => {
                           const btn = e.currentTarget;
                           const svg = btn.querySelector('svg');
@@ -656,7 +656,7 @@ function KiosksManager({ backend }) {
                       <button 
                         title="Setări și Screensaver"
                         className="btn-business-icon"
-                        style={{ background: '#fff', border: '1px solid #cbd5e1', cursor: 'pointer', padding: '8px', borderRadius: '8px', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', color: '#0f172a', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                        style={{ background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer', padding: '8px', borderRadius: '8px', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', color: 'var(--text)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                         onClick={() => setEditingLoc(loc)}
                       >
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
@@ -672,15 +672,15 @@ function KiosksManager({ backend }) {
         {/* Pagination Controls */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 24px', background: 'var(--bg-surface)', borderTop: '1px solid var(--border)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: '0.82rem', color: '#64748b' }}>Rânduri pe pagină:</span>
+            <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Rânduri pe pagină:</span>
             <select
               value={itemsPerPage}
               onChange={e => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-              style={{ fontSize: '0.82rem', border: '1px solid #cbd5e1', borderRadius: 6, padding: '4px 8px', background: '#fff', color: '#334155', cursor: 'pointer' }}
+              style={{ fontSize: '0.82rem', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px', background: 'var(--surface)', color: 'var(--text)', cursor: 'pointer' }}
             >
               {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
             </select>
-            <span style={{ fontSize: '0.82rem', color: '#64748b', marginLeft: 8 }}>
+            <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginLeft: 8 }}>
               {(currentPage - 1) * itemsPerPage + 1}–{Math.min(sorted.length, currentPage * itemsPerPage)} din {sorted.length}
             </span>
           </div>
@@ -692,7 +692,7 @@ function KiosksManager({ backend }) {
               { label: '»', action: () => setCurrentPage(totalPages),  disabled: currentPage === totalPages, title: 'Ultima pagină' },
             ].map(btn => (
               <button key={btn.label} onClick={btn.action} disabled={btn.disabled} title={btn.title}
-                style={{ width: 32, height: 32, borderRadius: 6, border: '1px solid #cbd5e1', background: btn.disabled ? '#f1f5f9' : '#fff', color: btn.disabled ? '#cbd5e1' : '#334155', cursor: btn.disabled ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: '1rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}
+                style={{ width: 32, height: 32, borderRadius: 6, border: '1px solid var(--border)', background: btn.disabled ? '#f1f5f9' : '#fff', color: btn.disabled ? '#cbd5e1' : '#334155', cursor: btn.disabled ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: '1rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}
               >{btn.label}</button>
             ))}
           </div>
@@ -786,8 +786,8 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
     <div className="loc-edit-form" style={{ maxWidth: '1000px', margin: '0 auto' }}>
       <div className="loc-edit-header" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)', paddingBottom: 16, marginBottom: 24, display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-           <button className="loc-back-btn" onClick={onBack} style={{ padding: 0, color: '#64748b', fontWeight: 600, border: 'none', background: 'none' }}>← Înapoi</button>
-           <h2 style={{ margin: '8px 0 0 0', fontSize: '1.5rem', color: '#0f172a' }}>Configurare Kiosk: <span style={{color:'#3b82f6'}}>{loc.name}</span></h2>
+           <button className="loc-back-btn" onClick={onBack} style={{ padding: 0, color: 'var(--text-muted)', fontWeight: 600, border: 'none', background: 'none' }}>← Înapoi</button>
+           <h2 style={{ margin: '8px 0 0 0', fontSize: '1.5rem', color: 'var(--text)' }}>Configurare Kiosk: <span style={{color:'#3b82f6'}}>{loc.name}</span></h2>
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <a
@@ -795,7 +795,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
             target="_blank" rel="noreferrer"
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
-              background: '#f8fafc', border: '1px solid #cbd5e1', color: '#334155',
+              background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text)',
               padding: '10px 16px', borderRadius: '12px', fontSize: '0.9rem', fontWeight: 600,
               textDecoration: 'none', transition: 'all 0.2s'
             }}
@@ -826,9 +826,9 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
       <div className="loc-edit-grid" style={{ gridTemplateColumns: 'minmax(400px, 1fr) 1fr', gap: '24px' }}>
         
         {/* Card: Comportament */}
-        <div className="loc-edit-card" style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
-          <h3 style={{ marginTop: 0, fontSize: '1.1rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: 8 }}>📱 Conținut Kiosk</h3>
-          <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: 20 }}>Selectează restaurantele pe care clienții le pot explora din această tabletă.</p>
+        <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
+          <h3 style={{ marginTop: 0, fontSize: '1.1rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>📱 Conținut Kiosk</h3>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>Selectează restaurantele pe care clienții le pot explora din această tabletă.</p>
           
           <div className="loc-brand-select" style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 24 }}>
             {Object.entries({smashme:'SmashMe',sushimaster:'Sushi Master',welovesushi:'WeLoveSushi',ikura:'Ikura'}).map(([k, v]) => {
@@ -861,11 +861,11 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
             })}
           </div>
           
-          <label style={{ fontSize: '0.9rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: 8 }}>🔗 Link Universal (Aplică-l pe tabletă)</label>
-          <div style={{ display: 'flex', gap: 8, background: '#f8fafc', padding: 4, borderRadius: 12, border: '1px solid #e2e8f0' }}>
-            <input type="text" readOnly value={finalKioskUrl} style={{ background: 'transparent', border: 'none', flex: 1, padding: '0 12px', fontFamily: 'monospace', fontSize: '0.85rem', color: '#0f172a', outline: 'none' }} />
+          <label style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: 8 }}>🔗 Link Universal (Aplică-l pe tabletă)</label>
+          <div style={{ display: 'flex', gap: 8, background: 'var(--bg-surface)', padding: 4, borderRadius: 12, border: '1px solid var(--border)' }}>
+            <input type="text" readOnly value={finalKioskUrl} style={{ background: 'transparent', border: 'none', flex: 1, padding: '0 12px', fontFamily: 'monospace', fontSize: '0.85rem', color: 'var(--text)', outline: 'none' }} />
             <button 
-              style={{ padding: '8px 16px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, color: '#0f172a', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
+              style={{ padding: '8px 16px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text)', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
               onClick={() => {
                 navigator.clipboard.writeText(finalKioskUrl);
                 alert('Copiat!');
@@ -877,9 +877,9 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
         </div>
 
         {/* Card: Screensaver */}
-        <div className="loc-edit-card" style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
-          <h3 style={{ marginTop: 0, fontSize: '1.1rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: 8 }}>🎬 Screensaver Standby</h3>
-          <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: 20 }}>Rulare automată reclamă full-screen dacă tableta stă neatinsă 30s.</p>
+        <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
+          <h3 style={{ marginTop: 0, fontSize: '1.1rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>🎬 Screensaver Standby</h3>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>Rulare automată reclamă full-screen dacă tableta stă neatinsă 30s.</p>
           
           <input 
             type="url" 
@@ -887,28 +887,28 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
             placeholder="URL Video MP4 sau Imagine..."
             value={formData.posterUrl}
             onChange={e => handleChange('posterUrl', e.target.value)}
-            style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid #cbd5e1', width: '100%', marginBottom: 16, boxSizing: 'border-box' }}
+            style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', width: '100%', marginBottom: 16, boxSizing: 'border-box' }}
           />
           
           {formData.posterUrl ? (
-            <div style={{ height: 160, borderRadius: 12, overflow: 'hidden', border: '1px solid #e2e8f0', background: '#f1f5f9' }}>
+            <div style={{ height: 160, borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--bg-surface)' }}>
                {renderPreview(formData.posterUrl)}
             </div>
           ) : (
-             <div style={{ height: 160, borderRadius: 12, border: '2px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.9rem', fontWeight: 500 }}>Fără screensaver.</div>
+             <div style={{ height: 160, borderRadius: 12, border: '2px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 500 }}>Fără screensaver.</div>
           )}
         </div>
 
         {/* Card: Banner Promo (10% Top) */}
-        <div className="loc-edit-card" style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
+        <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: 8 }}>📢 Banner Promo Persistent (Top)</h3>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>📢 Banner Promo Persistent (Top)</h3>
             <label className="pc-toggle" style={{ margin: 0 }}>
               <input type="checkbox" checked={useBanner} onChange={e => setUseBanner(e.target.checked)} />
               <span className="toggle-slider" />
             </label>
           </div>
-          <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: 20 }}>Ocupă deasupra interfeței cu o bandă îngustă (10%) reclamă video/imagine la reducere.</p>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>Ocupă deasupra interfeței cu o bandă îngustă (10%) reclamă video/imagine la reducere.</p>
           
           {useBanner && (
              <div style={{ animation: 'fadeIn 0.3s ease' }}>
@@ -918,7 +918,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                   placeholder="URL Video MP4 sau Imagine..."
                   value={formData.topBannerUrl}
                   onChange={e => handleChange('topBannerUrl', e.target.value)}
-                  style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid #cbd5e1', width: '100%', marginBottom: 16, boxSizing: 'border-box' }}
+                  style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', width: '100%', marginBottom: 16, boxSizing: 'border-box' }}
                 />
                 
                 {formData.topBannerUrl ? (
@@ -926,21 +926,21 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                     height: 80, 
                     borderRadius: `${formData.topBannerRadiusTop ? '12px' : '0'} ${formData.topBannerRadiusTop ? '12px' : '0'} ${formData.topBannerRadiusBottom ? '12px' : '0'} ${formData.topBannerRadiusBottom ? '12px' : '0'}`,
                     transition: 'border-radius 0.3s ease',
-                    overflow: 'hidden', border: '1px solid #e2e8f0', background: '#f1f5f9' 
+                    overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--bg-surface)' 
                   }}>
                      {renderPreview(formData.topBannerUrl)}
                   </div>
                 ) : (
-                   <div style={{ height: 80, borderRadius: 12, border: '2px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.9rem', fontWeight: 500 }}>Introdu url-ul campaniei.</div>
+                   <div style={{ height: 80, borderRadius: 12, border: '2px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 500 }}>Introdu url-ul campaniei.</div>
                 )}
 
-                <div style={{ marginTop: 24, padding: 20, background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0' }}>
-                  <h4 style={{ margin: '0 0 16px 0', fontSize: '0.95rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: 8 }}>⚙️ Configurare Vizuală (Design)</h4>
+                <div style={{ marginTop: 24, padding: 20, background: 'var(--bg-surface)', borderRadius: 12, border: '1px solid var(--border)' }}>
+                  <h4 style={{ margin: '0 0 16px 0', fontSize: '0.95rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>⚙️ Configurare Vizuală (Design)</h4>
                   
                   <div style={{ marginBottom: 20 }}>
-                    <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: 12 }}>
+                    <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 12 }}>
                       <span>Înălțime Banner</span>
-                      <span style={{ color: '#0f172a' }}>Nivel {formData.topBannerHeight} (din 5)</span>
+                      <span style={{ color: 'var(--text)' }}>Nivel {formData.topBannerHeight} (din 5)</span>
                     </label>
                     <input 
                       type="range" min="1" max="5" step="1"
@@ -948,22 +948,22 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                       onChange={e => handleChange('topBannerHeight', parseInt(e.target.value))}
                       style={{ width: '100%', cursor: 'pointer' }}
                     />
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#94a3b8', marginTop: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 8 }}>
                       <span>Subțire (10%)</span>
                       <span>Lat (30%)</span>
                     </div>
                   </div>
 
                   <div style={{ display: 'flex', gap: 16 }}>
-                    <label className="pc-toggle" style={{ margin: 0, flex: 1, background: '#fff', padding: '12px 16px', borderRadius: 10, border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>Colțuri Sus Rotunde</span>
+                    <label className="pc-toggle" style={{ margin: 0, flex: 1, background: 'var(--surface)', padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)' }}>Colțuri Sus Rotunde</span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <input type="checkbox" checked={formData.topBannerRadiusTop} onChange={e => handleChange('topBannerRadiusTop', e.target.checked)} />
                         <span className="toggle-slider" style={{ position: 'relative', display: 'inline-block' }} />
                       </div>
                     </label>
-                    <label className="pc-toggle" style={{ margin: 0, flex: 1, background: '#fff', padding: '12px 16px', borderRadius: 10, border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>Colțuri Jos Rotunde</span>
+                    <label className="pc-toggle" style={{ margin: 0, flex: 1, background: 'var(--surface)', padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)' }}>Colțuri Jos Rotunde</span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <input type="checkbox" checked={formData.topBannerRadiusBottom} onChange={e => handleChange('topBannerRadiusBottom', e.target.checked)} />
                         <span className="toggle-slider" style={{ position: 'relative', display: 'inline-block' }} />
@@ -977,48 +977,48 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
         </div>
 
         {/* Card: Banner Promo (Footer) */}
-        <div className="loc-edit-card" style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
+        <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: 8 }}>📣 Banner Promo (Footer / Jos)</h3>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>📣 Banner Promo (Footer / Jos)</h3>
             <label className="pc-toggle" style={{ margin: 0 }}>
               <input type="checkbox" checked={useBottomBanner} onChange={e => setUseBottomBanner(e.target.checked)} />
               <span className="toggle-slider" />
             </label>
           </div>
-          <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: 20 }}>Apare în partea de jos a ecranului (sub meniu). Suportă Link Video/Imagine sau Text lung editabil.</p>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>Apare în partea de jos a ecranului (sub meniu). Suportă Link Video/Imagine sau Text lung editabil.</p>
           
           {useBottomBanner && (
              <div style={{ animation: 'fadeIn 0.3s ease' }}>
                 
-                <h4 style={{ margin: '0 0 6px 0', fontSize: '0.85rem', color: '#334155', fontWeight: 700 }}>1. Reclamă (Video / Imagine)</h4>
-                <p style={{ margin: '0 0 10px', fontSize: '0.78rem', color: '#64748b' }}>MP4, WebM, imagine — se afișează pe toată înălțimea banerului de jos</p>
+                <h4 style={{ margin: '0 0 6px 0', fontSize: '0.85rem', color: 'var(--text)', fontWeight: 700 }}>1. Reclamă (Video / Imagine)</h4>
+                <p style={{ margin: '0 0 10px', fontSize: '0.78rem', color: 'var(--text-muted)' }}>MP4, WebM, imagine — se afișează pe toată înălțimea banerului de jos</p>
                 <input 
                   type="url" 
                   className="pc-input" 
                   placeholder="https://... URL video MP4 sau imagine"
                   value={formData.bottomBannerUrl || ''}
                   onChange={e => handleChange('bottomBannerUrl', e.target.value)}
-                  style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid #cbd5e1', width: '100%', marginBottom: formData.bottomBannerUrl ? 12 : 20, boxSizing: 'border-box' }}
+                  style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', width: '100%', marginBottom: formData.bottomBannerUrl ? 12 : 20, boxSizing: 'border-box' }}
                 />
                 {formData.bottomBannerUrl && (
-                  <div style={{ height: 72, borderRadius: 8, overflow: 'hidden', border: '1px solid #e2e8f0', background: '#f1f5f9', marginBottom: 20 }}>
+                  <div style={{ height: 72, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--bg-surface)', marginBottom: 20 }}>
                     {renderPreview(formData.bottomBannerUrl)}
                   </div>
                 )}
 
-                <h4 style={{ margin: '0 0 6px 0', fontSize: '0.85rem', color: '#334155', fontWeight: 700 }}>2. Text Derulant</h4>
-                <p style={{ margin: '0 0 10px', fontSize: '0.78rem', color: '#64748b' }}>Apare deasupra reclamei (overlay) sau singur dacă nu e reclamă</p>
+                <h4 style={{ margin: '0 0 6px 0', fontSize: '0.85rem', color: 'var(--text)', fontWeight: 700 }}>2. Text Derulant</h4>
+                <p style={{ margin: '0 0 10px', fontSize: '0.78rem', color: 'var(--text-muted)' }}>Apare deasupra reclamei (overlay) sau singur dacă nu e reclamă</p>
                 <textarea 
                   className="pc-input" 
                   placeholder="Ex: Burger SmashMe -20% azi! Gratis cartofi la orice combo!"
                   value={formData.bottomBannerText || ''}
                   onChange={e => handleChange('bottomBannerText', e.target.value)}
-                  style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid #cbd5e1', width: '100%', marginBottom: 12, boxSizing: 'border-box', minHeight: 70, resize: 'vertical' }}
+                  style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', width: '100%', marginBottom: 12, boxSizing: 'border-box', minHeight: 70, resize: 'vertical' }}
                 />
 
                 {/* Text appearance options */}
                 {(formData.bottomBannerText || '').length > 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 16, padding: 16, background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 16, padding: 16, background: 'var(--bg-surface)', borderRadius: 10, border: '1px solid var(--border)' }}>
                     
                     {/* Mode: Fix / Rulant */}
                     <div>
@@ -1038,7 +1038,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
 
                     {/* Position */}
                     <div>
-                      <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: 8 }}>POZIȚIE TEXT</label>
+                      <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 8 }}>POZIȚIE TEXT</label>
                       <div style={{ display: 'flex', gap: 6 }}>
                         {[['left', '⬅ Stânga'], ['center', '⬌ Centru'], ['right', 'Dreapta ➡']].map(([val, lbl]) => (
                           <button key={val} type="button"
@@ -1051,27 +1051,27 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
 
                     {/* Background color */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>CULOARE FUNDAL</label>
+                      <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>CULOARE FUNDAL</label>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
                         <input type="color" value={formData.bottomBannerBg} onChange={e => handleChange('bottomBannerBg', e.target.value)}
-                          style={{ width: 44, height: 36, borderRadius: 8, border: '1px solid #cbd5e1', cursor: 'pointer', padding: 2 }} />
+                          style={{ width: 44, height: 36, borderRadius: 8, border: '1px solid var(--border)', cursor: 'pointer', padding: 2 }} />
                         {['#1e293b','#d32f2f','#1a237e','#004d40','#4a148c','#e65100','#212121','#ffffff'].map(c => (
                           <button key={c} type="button" onClick={() => handleChange('bottomBannerBg', c)}
                             style={{ width: 26, height: 26, borderRadius: 6, background: c, border: formData.bottomBannerBg === c ? '3px solid #0f172a' : '2px solid #e2e8f0', cursor: 'pointer', flexShrink: 0 }} />
                         ))}
                         <input type="text" value={formData.bottomBannerBg} onChange={e => handleChange('bottomBannerBg', e.target.value)}
-                          style={{ width: 80, fontSize: '0.8rem', border: '1px solid #cbd5e1', borderRadius: 6, padding: '4px 8px', fontFamily: 'monospace' }} />
+                          style={{ width: 80, fontSize: '0.8rem', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px', fontFamily: 'monospace' }} />
                       </div>
                     </div>
 
                     {/* Logo URL */}
                     <div>
-                      <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: 6 }}>LOGO PNG (opțional, se afișează alături de text)</label>
+                      <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>LOGO PNG (opțional, se afișează alături de text)</label>
                       <input type="url" value={formData.bottomBannerLogoUrl} onChange={e => handleChange('bottomBannerLogoUrl', e.target.value)}
                         placeholder="https://... URL imagine PNG/SVG"
-                        style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                        style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', fontSize: '0.85rem', boxSizing: 'border-box' }} />
                       {formData.bottomBannerLogoUrl && (
-                        <img src={formData.bottomBannerLogoUrl} alt="logo preview" style={{ height: 32, marginTop: 8, borderRadius: 4, objectFit: 'contain', border: '1px solid #e2e8f0', background: formData.bottomBannerBg, padding: '4px 8px' }} />
+                        <img src={formData.bottomBannerLogoUrl} alt="logo preview" style={{ height: 32, marginTop: 8, borderRadius: 4, objectFit: 'contain', border: '1px solid var(--border)', background: formData.bottomBannerBg, padding: '4px 8px' }} />
                       )}
                     </div>
                   </div>
@@ -1082,30 +1082,30 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                     height: 80, 
                     borderRadius: `${formData.bottomBannerRadiusTop ? '12px' : '0'} ${formData.bottomBannerRadiusTop ? '12px' : '0'} ${formData.bottomBannerRadiusBottom ? '12px' : '0'} ${formData.bottomBannerRadiusBottom ? '12px' : '0'}`,
                     transition: 'border-radius 0.3s ease',
-                    overflow: 'hidden', border: '1px solid #e2e8f0', background: '#f1f5f9' 
+                    overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--bg-surface)' 
                   }}>
                      {renderPreview(formData.bottomBannerContent)}
                   </div>
                 ) : formData.bottomBannerContent ? (
                   <div style={{ 
-                    padding: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', 
+                    padding: '12px', background: 'var(--bg-surface)', border: '1px solid var(--border)', 
                     borderRadius: `${formData.bottomBannerRadiusTop ? '8px' : '0'} ${formData.bottomBannerRadiusTop ? '8px' : '0'} ${formData.bottomBannerRadiusBottom ? '8px' : '0'} ${formData.bottomBannerRadiusBottom ? '8px' : '0'}`,
                     transition: 'border-radius 0.3s ease',
-                    fontSize: '0.95rem', color: '#334155', fontWeight: 600 
+                    fontSize: '0.95rem', color: 'var(--text)', fontWeight: 600 
                   }}>
                     "{formData.bottomBannerContent}"
                   </div>
                 ) : (
-                   <div style={{ height: 80, borderRadius: 12, border: '2px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.9rem', fontWeight: 500 }}>Fără conținut pentru subsol.</div>
+                   <div style={{ height: 80, borderRadius: 12, border: '2px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 500 }}>Fără conținut pentru subsol.</div>
                 )}
 
-                <div style={{ marginTop: 24, padding: 20, background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0' }}>
-                  <h4 style={{ margin: '0 0 16px 0', fontSize: '0.95rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: 8 }}>⚙️ Configurare Vizuală (Design)</h4>
+                <div style={{ marginTop: 24, padding: 20, background: 'var(--bg-surface)', borderRadius: 12, border: '1px solid var(--border)' }}>
+                  <h4 style={{ margin: '0 0 16px 0', fontSize: '0.95rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>⚙️ Configurare Vizuală (Design)</h4>
                   
                   <div style={{ marginBottom: 20 }}>
-                    <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: 12 }}>
+                    <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 12 }}>
                       <span>Înălțime Banner</span>
-                      <span style={{ color: '#0f172a' }}>Nivel {formData.bottomBannerHeight} (din 5)</span>
+                      <span style={{ color: 'var(--text)' }}>Nivel {formData.bottomBannerHeight} (din 5)</span>
                     </label>
                     <input 
                       type="range" min="1" max="5" step="1"
@@ -1113,22 +1113,22 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                       onChange={e => handleChange('bottomBannerHeight', parseInt(e.target.value))}
                       style={{ width: '100%', cursor: 'pointer' }}
                     />
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#94a3b8', marginTop: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 8 }}>
                       <span>Subțire (10%)</span>
                       <span>Lat (30%)</span>
                     </div>
                   </div>
 
                   <div style={{ display: 'flex', gap: 16 }}>
-                    <label className="pc-toggle" style={{ margin: 0, flex: 1, background: '#fff', padding: '12px 16px', borderRadius: 10, border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>Colțuri Sus Rotunde</span>
+                    <label className="pc-toggle" style={{ margin: 0, flex: 1, background: 'var(--surface)', padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)' }}>Colțuri Sus Rotunde</span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <input type="checkbox" checked={formData.bottomBannerRadiusTop} onChange={e => handleChange('bottomBannerRadiusTop', e.target.checked)} />
                         <span className="toggle-slider" style={{ position: 'relative', display: 'inline-block' }} />
                       </div>
                     </label>
-                    <label className="pc-toggle" style={{ margin: 0, flex: 1, background: '#fff', padding: '12px 16px', borderRadius: 10, border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>Colțuri Jos Rotunde</span>
+                    <label className="pc-toggle" style={{ margin: 0, flex: 1, background: 'var(--surface)', padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)' }}>Colțuri Jos Rotunde</span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <input type="checkbox" checked={formData.bottomBannerRadiusBottom} onChange={e => handleChange('bottomBannerRadiusBottom', e.target.checked)} />
                         <span className="toggle-slider" style={{ position: 'relative', display: 'inline-block' }} />
@@ -1142,15 +1142,15 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
         </div>
 
         {/* Card: Security */}
-        <div className="loc-edit-card" style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
+        <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: 8 }}>🔒 Securitate PIN</h3>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>🔒 Securitate PIN</h3>
             <label className="pc-toggle" style={{ margin: 0 }}>
               <input type="checkbox" checked={usePin} onChange={e => setUsePin(e.target.checked)} />
               <span className="toggle-slider" />
             </label>
           </div>
-          <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: 20 }}>Blochează tableta până la introducerea primei parole de angajat.</p>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>Blochează tableta până la introducerea primei parole de angajat.</p>
           
           {usePin && (
             <div style={{ animation: 'fadeIn 0.3s ease' }}>
@@ -1161,7 +1161,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                 placeholder="Introdu PIN (ex: 1234)"
                 value={formData.kioskPin}
                 onChange={e => handleChange('kioskPin', e.target.value.replace(/\D/g, ''))}
-                style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid #cbd5e1', width: '100%', maxWidth: '200px', fontSize: '1.1rem', letterSpacing: '2px', boxSizing: 'border-box' }}
+                style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', width: '100%', maxWidth: '200px', fontSize: '1.1rem', letterSpacing: '2px', boxSizing: 'border-box' }}
               />
             </div>
           )}
@@ -1416,20 +1416,20 @@ function LocationsManager({ backend }) {
           </thead>
           <tbody>
             {filtered.map(loc => (
-              <tr key={loc.id} style={{ borderBottom: '1px solid #f1f5f9', opacity: loc.active ? 1 : 0.6, cursor: 'pointer' }} onClick={() => setEditingLoc(loc)} className="loc-list-row">
-                <td style={{ padding: '16px', fontWeight: 600, color: '#0f172a', fontSize: '1rem' }}>
+              <tr key={loc.id} style={{ borderBottom: '1px solid var(--border)', opacity: loc.active ? 1 : 0.6, cursor: 'pointer' }} onClick={() => setEditingLoc(loc)} className="loc-list-row">
+                <td style={{ padding: '16px', fontWeight: 600, color: 'var(--text)', fontSize: '1rem' }}>
                   {loc.name}
-                  <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 400, marginTop: 4 }}>ID: {loc.id}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400, marginTop: 4 }}>ID: {loc.id}</div>
                 </td>
                 <td style={{ padding: '16px' }}>
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     {(loc.brands || []).map(b => <BrandLogo key={b} brandId={b} size={24} />)}
                   </div>
                 </td>
-                <td style={{ padding: '16px', color: '#64748b', fontSize: '0.9rem' }}>
+                <td style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
                   <div style={{ display: 'flex', gap: 12 }}>
-                    <span style={{ background: '#f1f5f9', padding: '4px 8px', borderRadius: 6 }}>🪑 {loc.tables || 0}</span>
-                    <span style={{ background: '#f1f5f9', padding: '4px 8px', borderRadius: 6 }}>📱 {(loc.kiosks || []).length}</span>
+                    <span style={{ background: 'var(--bg-surface)', padding: '4px 8px', borderRadius: 6 }}>🪑 {loc.tables || 0}</span>
+                    <span style={{ background: 'var(--bg-surface)', padding: '4px 8px', borderRadius: 6 }}>📱 {(loc.kiosks || []).length}</span>
                   </div>
                 </td>
                 <td style={{ padding: '16px' }} onClick={(e) => e.stopPropagation()}>
@@ -1446,7 +1446,7 @@ function LocationsManager({ backend }) {
                     <button 
                       title="Configurare locație"
                       className="btn-business-icon"
-                      style={{ background: '#fff', border: '1px solid #cbd5e1', cursor: 'pointer', padding: '8px', borderRadius: '8px', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', color: '#0f172a', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                      style={{ background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer', padding: '8px', borderRadius: '8px', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', color: 'var(--text)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                       onClick={() => setEditingLoc(loc)}
                     >
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
@@ -1465,7 +1465,7 @@ function LocationsManager({ backend }) {
             ))}
           </tbody>
         </table>
-        {filtered.length === 0 && <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', fontWeight: 500 }}>Nu există locații care să corespundă filtrelor.</div>}
+        {filtered.length === 0 && <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)', fontWeight: 500 }}>Nu există locații care să corespundă filtrelor.</div>}
       </div>
     </div>
   );
