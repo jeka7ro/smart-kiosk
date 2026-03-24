@@ -11,7 +11,7 @@ const BRANDS = [
   { id: 'ikura',       label: 'Ikura',       color: '#10b981' }
 ];
 
-const EMPTY_SLICE = { id: '', name: '', type: 'nada', probability: 10, bg: '#f1f5f9', image: '' };
+const EMPTY_SLICE = { id: '', name: '', type: 'nada', probability: 10, bg: '#f1f5f9', image: '', productId: '' };
 const DEFAULT_WHEEL = { title: 'Învârte Roata Norocului!', slices: [] };
 
 export default function Promotions() {
@@ -22,6 +22,9 @@ export default function Promotions() {
   const [loading, setLoading]         = useState(true);
   const [saving, setSaving]           = useState(false);
   const [toast, setToast]             = useState(null);
+  
+  // Products from iiko Menu
+  const [menuProducts, setMenuProducts] = useState([]);
 
   // Edit State
   const [localActive, setLocalActive] = useState(false);
@@ -54,6 +57,15 @@ export default function Promotions() {
     setLocalActive(actData?.active || false);
     setLocalConfig(actData?.config?.slices ? actData.config : { ...DEFAULT_WHEEL });
   }, [activeBrand, configList]);
+
+  // Fetch menu products for active brand
+  useEffect(() => {
+    if (!activeBrand) return;
+    fetchWithAuth(`${BACKEND}/api/menu/items?brand=${activeBrand}&limit=1500`)
+      .then(res => res.json())
+      .then(data => setMenuProducts(data.items || data || []))
+      .catch(() => setMenuProducts([]));
+  }, [activeBrand]);
 
   const handleSaveAll = async () => {
     // Validate probabilities
@@ -238,17 +250,46 @@ export default function Promotions() {
             <h3 className="um-modal-title" style={{ marginTop: 0 }}>{editingSlice.id.length > 10 ? 'Adaugă' : 'Editează'} Felie</h3>
             
             <div className="um-form-group">
-              <label>Nume Premiu (ex: Burger Gratis)</label>
-              <input type="text" value={editingSlice.name} onChange={e => setEditingSlice({...editingSlice, name: e.target.value})} className="um-input" />
-            </div>
-
-            <div className="um-form-group">
               <label>Tip Premiu</label>
               <select value={editingSlice.type} onChange={e => setEditingSlice({...editingSlice, type: e.target.value})} className="um-input">
-                <option value="product">Produs Gratuit / Avatar</option>
+                <option value="product">Produs din Meniu (iiko)</option>
                 <option value="discount">Discount / Cod Promo</option>
                 <option value="nada">Necâștigător (Mai încearcă)</option>
               </select>
+            </div>
+
+            {editingSlice.type === 'product' && menuProducts.length > 0 && (
+              <div className="um-form-group">
+                <label>Alege Produsul Reale (iiko)</label>
+                <select 
+                  className="um-input" 
+                  value={editingSlice.productId || ''}
+                  onChange={e => {
+                    const prodId = e.target.value;
+                    const prod = menuProducts.find(p => p.id === prodId);
+                    if (prod) {
+                      setEditingSlice({
+                        ...editingSlice,
+                        productId: prod.id,
+                        name: prod.name,
+                        image: (prod.imageLinks && prod.imageLinks[0]) || prod.image || ''
+                      });
+                    } else {
+                      setEditingSlice({ ...editingSlice, productId: '' });
+                    }
+                  }}
+                >
+                  <option value="">-- Caută/Alege produs --</option>
+                  {menuProducts.map(p => (
+                    <option key={p.id} value={p.id}>{p.name} ({p.price ? p.price + ' RON' : '-'})</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div className="um-form-group">
+              <label>Nume Afișat pe Roată {editingSlice.type === 'product' && '(completat automat)'}</label>
+              <input type="text" value={editingSlice.name} onChange={e => setEditingSlice({...editingSlice, name: e.target.value})} className="um-input" />
             </div>
 
             <div className="um-form-group">

@@ -325,7 +325,12 @@ export default function App() {
             onWin={(prize) => {
               if (prize && prize.type !== 'nada') {
                 useKioskStore.getState().addToCart(
-                  { id: `promo_${Date.now()}`, name: `🎁 ${prize.name}`, image: prize.image || '', isPromo: true },
+                  { 
+                    id: prize.productId || `promo_${Date.now()}`, 
+                    name: `🎁 ${prize.name}`, 
+                    image: prize.image || '', 
+                    isPromo: true 
+                  },
                   1,
                   [],
                   0, // totalPrice per unit

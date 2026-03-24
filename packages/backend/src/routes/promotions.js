@@ -36,32 +36,32 @@ function createSeed() {
   
   const smashSlices = [
     { id: 'sm1', name: 'Burger Simplu', type: 'product', probability: 5 },
-    { id: 'sm2', name: 'Mai încearcă', type: 'nada', probability: 15 },
+    { id: 'sm2', name: 'Mai încearcă altă dată', type: 'nada', probability: 15 },
     { id: 'sm3', name: 'Cartofi Prăjiți', type: 'product', probability: 10 },
-    { id: 'sm4', name: 'Ghinion', type: 'nada', probability: 10 },
+    { id: 'sm4', name: 'Mai încearcă altă dată', type: 'nada', probability: 10 },
     { id: 'sm5', name: 'Cola Zero', type: 'product', probability: 10 },
-    { id: 'sm6', name: 'Aproape!', type: 'nada', probability: 10 },
+    { id: 'sm6', name: 'Mai încearcă altă dată', type: 'nada', probability: 10 },
     { id: 'sm7', name: 'Sos de Usturoi', type: 'product', probability: 10 },
-    { id: 'sm8', name: 'Mai trage o dată', type: 'nada', probability: 10 },
+    { id: 'sm8', name: 'Mai încearcă altă dată', type: 'nada', probability: 10 },
     { id: 'sm9', name: 'SmashBurger', type: 'product', probability: 2 },
-    { id: 'sm10', name: 'Nimic azi', type: 'nada', probability: 8 },
+    { id: 'sm10', name: 'Mai încearcă altă dată', type: 'nada', probability: 8 },
     { id: 'sm11', name: 'Gogoașă', type: 'product', probability: 5 },
-    { id: 'sm12', name: 'Încearcă mâine', type: 'nada', probability: 5 }
+    { id: 'sm12', name: 'Mai încearcă altă dată', type: 'nada', probability: 5 }
   ];
 
   const sushiSlices = [
     { id: 'su1', name: 'Sushi Roll', type: 'product', probability: 5 },
-    { id: 'su2', name: 'Pe aproape!', type: 'nada', probability: 10 },
+    { id: 'su2', name: 'Mai încearcă altă dată', type: 'nada', probability: 10 },
     { id: 'su3', name: 'Sos Soia', type: 'product', probability: 10 },
-    { id: 'su4', name: 'Mai încearcă', type: 'nada', probability: 10 },
+    { id: 'su4', name: 'Mai încearcă altă dată', type: 'nada', probability: 10 },
     { id: 'su5', name: 'Orez', type: 'product', probability: 10 },
-    { id: 'su6', name: 'Ghinion', type: 'nada', probability: 10 },
+    { id: 'su6', name: 'Mai încearcă altă dată', type: 'nada', probability: 10 },
     { id: 'su7', name: 'Mochi', type: 'product', probability: 10 },
-    { id: 'su8', name: 'Data viitoare', type: 'nada', probability: 10 },
+    { id: 'su8', name: 'Mai încearcă altă dată', type: 'nada', probability: 10 },
     { id: 'su9', name: 'Platou 30 Piese', type: 'product', probability: 2 },
-    { id: 'su10', name: 'Încearcă iar', type: 'nada', probability: 8 },
+    { id: 'su10', name: 'Mai încearcă altă dată', type: 'nada', probability: 8 },
     { id: 'su11', name: 'Edamame', type: 'product', probability: 5 },
-    { id: 'su12', name: 'Nimic azi', type: 'nada', probability: 10 }
+    { id: 'su12', name: 'Mai încearcă altă dată', type: 'nada', probability: 10 }
   ];
 
   const colors = getColors();
