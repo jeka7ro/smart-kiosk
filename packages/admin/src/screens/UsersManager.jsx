@@ -1,18 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthProvider';
+import './UsersManager.css';
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
+const BACKEND   = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
+const PAGE_SIZE = 25;
 
 const ROLES = [
-  { value: 'admin',   label: 'Admin',   desc: 'Acces complet' },
+  { value: 'admin',   label: 'Admin',   desc: 'Acces complet la tot' },
   { value: 'manager', label: 'Manager', desc: 'Locații selectate' },
   { value: 'demo',    label: 'Demo',    desc: 'Read-only' },
 ];
 
-const EMPTY_FORM = {
-  id: null, name: '', email: '', phone: '', role: 'demo',
-  password: '', confirmPassword: '', locations: [],
-};
+const EMPTY_FORM = { id: null, name: '', email: '', phone: '', role: 'demo', password: '', confirmPassword: '', locations: [] };
 
 export default function UsersManager() {
   const { fetchWithAuth, user: loggedUser } = useAuth();
@@ -24,6 +23,11 @@ export default function UsersManager() {
   const [form,      setForm]      = useState(EMPTY_FORM);
   const [saving,    setSaving]    = useState(false);
   const [toast,     setToast]     = useState(null);
+
+  // Table state
+  const [selected, setSelected] = useState(new Set());
+  const [page,     setPage]     = useState(1);
+  const [search,   setSearch]   = useState('');
 
   const showToast = (msg, type = 'ok') => {
     setToast({ msg, type });
@@ -39,112 +43,111 @@ export default function UsersManager() {
       ]);
       if (!uRes.ok) throw new Error('Nu se pot aduce utilizatorii');
       setUsers(await uRes.json());
-      if (lRes.ok) {
-        const lData = await lRes.json();
-        setLocations(lData.locations || []);
-      }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+      if (lRes.ok) { const d = await lRes.json(); setLocations(d.locations || []); }
+    } catch (err) { setError(err.message); }
+    finally { setLoading(false); }
   };
 
   useEffect(() => { fetchData(); }, []);
 
-  const openAdd = () => {
-    setForm(EMPTY_FORM);
-    setModal(true);
-  };
+  // Filtered + paginated
+  const filtered = useMemo(() =>
+    users.filter(u =>
+      u.name?.toLowerCase().includes(search.toLowerCase()) ||
+      u.email?.toLowerCase().includes(search.toLowerCase()) ||
+      u.role?.toLowerCase().includes(search.toLowerCase())
+    ), [users, search]);
 
-  const openEdit = (u) => {
-    setForm({
-      id: u.id,
-      name: u.name || '',
-      email: u.email || '',
-      phone: u.phone || '',
-      role: u.role || 'demo',
-      password: '',
-      confirmPassword: '',
-      locations: u.locations || [],
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageUsers  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  // Select all on current page
+  const allPageSelected = pageUsers.length > 0 && pageUsers.every(u => selected.has(u.id));
+  const toggleSelectAll = () => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (allPageSelected) pageUsers.forEach(u => next.delete(u.id));
+      else pageUsers.forEach(u => next.add(u.id));
+      return next;
     });
+  };
+  const toggleOne = (id) => setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+
+  const openAdd = () => { setForm(EMPTY_FORM); setModal(true); };
+  const openEdit = (u) => {
+    setForm({ id: u.id, name: u.name || '', email: u.email || '', phone: u.phone || '', role: u.role || 'demo', password: '', confirmPassword: '', locations: u.locations || [] });
     setModal(true);
   };
-
   const closeModal = () => { setModal(false); setForm(EMPTY_FORM); };
 
-  const handleToggleLoc = (locId) => {
-    setForm(prev => ({
-      ...prev,
-      locations: prev.locations.includes(locId)
-        ? prev.locations.filter(id => id !== locId)
-        : [...prev.locations, locId],
-    }));
-  };
+  const handleToggleLoc = (locId) =>
+    setForm(prev => ({ ...prev, locations: prev.locations.includes(locId) ? prev.locations.filter(id => id !== locId) : [...prev.locations, locId] }));
 
   const saveUser = async () => {
-    if (!form.email) return showToast('Email-ul este obligatoriu', 'err');
-    if (!form.id && !form.password) return showToast('Parola este obligatorie la adăugare', 'err');
-    if (form.password && form.password !== form.confirmPassword)
-      return showToast('Parolele nu coincid!', 'err');
-
+    if (!form.email) return showToast('Email obligatoriu', 'err');
+    if (!form.id && !form.password) return showToast('Parola obligatorie la adăugare', 'err');
+    if (form.password && form.password !== form.confirmPassword) return showToast('Parolele nu coincid!', 'err');
     setSaving(true);
     try {
-      const payload = {
-        name: form.name,
-        email: form.email,
-        phone: form.phone,
-        role: form.role,
-        locations: form.locations,
-        ...(form.password ? { password: form.password } : {}),
-      };
-      const url    = form.id ? `${BACKEND}/api/users/${form.id}` : `${BACKEND}/api/users`;
-      const method = form.id ? 'PUT' : 'POST';
-      const res    = await fetchWithAuth(url, { method, body: JSON.stringify(payload) });
-      const data   = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      showToast(form.id ? '✅ Utilizator actualizat!' : '✅ Utilizator adăugat!');
-      closeModal();
-      fetchData();
-    } catch (err) {
-      showToast('❌ ' + err.message, 'err');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const deleteUser = async (u) => {
-    if (!confirm(`Ești sigur că vrei să ștergi utilizatorul „${u.name || u.email}"?`)) return;
-    try {
-      const res  = await fetchWithAuth(`${BACKEND}/api/users/${u.id}`, { method: 'DELETE' });
+      const payload = { name: form.name, email: form.email, phone: form.phone, role: form.role, locations: form.locations, ...(form.password ? { password: form.password } : {}) };
+      const res = await fetchWithAuth(form.id ? `${BACKEND}/api/users/${form.id}` : `${BACKEND}/api/users`, { method: form.id ? 'PUT' : 'POST', body: JSON.stringify(payload) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      showToast('🗑 Utilizator șters');
-      fetchData();
-    } catch (err) {
-      showToast('❌ ' + err.message, 'err');
-    }
+      showToast(form.id ? '✅ Actualizat!' : '✅ Adăugat!');
+      closeModal(); fetchData();
+    } catch (err) { showToast('❌ ' + err.message, 'err'); }
+    finally { setSaving(false); }
+  };
+
+  const deleteOne = async (u) => {
+    if (!confirm(`Ștergi „${u.name || u.email}"?`)) return;
+    try {
+      const res = await fetchWithAuth(`${BACKEND}/api/users/${u.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error((await res.json()).error);
+      showToast('🗑 Șters'); fetchData();
+    } catch (err) { showToast('❌ ' + err.message, 'err'); }
+  };
+
+  const bulkDelete = async () => {
+    const ids = [...selected].filter(id => id !== 'env-admin' && id !== 'u-admin');
+    if (!ids.length) return;
+    if (!confirm(`Ștergi ${ids.length} utilizatori selectați?`)) return;
+    try {
+      await Promise.all(ids.map(id => fetchWithAuth(`${BACKEND}/api/users/${id}`, { method: 'DELETE' })));
+      setSelected(new Set()); showToast(`🗑 ${ids.length} utilizatori șterși`); fetchData();
+    } catch (err) { showToast('❌ ' + err.message, 'err'); }
   };
 
   const locName = (id) => locations.find(l => l.id === id)?.name || id;
 
-  if (loggedUser?.role !== 'admin')
-    return <div style={{ padding: 40 }}>Doar administratorii au acces.</div>;
-  if (loading) return <div style={{ padding: 40 }}>Se încarcă...</div>;
+  if (loggedUser?.role !== 'admin') return <div style={{ padding: 40 }}>Doar administratorii au acces.</div>;
+  if (loading) return <div style={{ padding: 40, opacity: 0.5 }}>Se încarcă...</div>;
   if (error)   return <div style={{ padding: 40, color: 'red' }}>{error}</div>;
 
   return (
-    <div style={{ padding: '28px 32px' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
-        <button className="btn-save" onClick={openAdd}>+ Adaugă Utilizator</button>
+    <div className="um-page">
+      {/* ── Toolbar ─────────────────────────────────────────────── */}
+      <div className="um-toolbar">
+        <input className="um-search" placeholder="🔍 Caută utilizator..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); setSelected(new Set()); }} />
+
+        {selected.size > 0 ? (
+          <div className="um-bulk-actions">
+            <span className="um-bulk-label">{selected.size} selectați</span>
+            <button className="um-btn um-btn--danger" onClick={bulkDelete}>🗑 Șterge ({selected.size})</button>
+            <button className="um-btn um-btn--ghost" onClick={() => setSelected(new Set())}>Deselectează</button>
+          </div>
+        ) : (
+          <button className="um-btn um-btn--primary" onClick={openAdd}>+ Adaugă Utilizator</button>
+        )}
       </div>
 
-      {/* Table */}
-      <div style={{ overflowX: 'auto' }}>
-        <table className="orders-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+      {/* ── Table ───────────────────────────────────────────────── */}
+      <div className="um-table-wrap">
+        <table className="um-table">
           <thead>
             <tr>
+              <th style={{ width: 40 }}><input type="checkbox" checked={allPageSelected} onChange={toggleSelectAll} /></th>
+              <th style={{ width: 48 }}>#</th>
               <th>Nume</th>
               <th>Email</th>
               <th>Telefon</th>
@@ -154,138 +157,119 @@ export default function UsersManager() {
             </tr>
           </thead>
           <tbody>
-            {users.map(u => (
-              <tr key={u.id}>
+            {pageUsers.map((u, i) => (
+              <tr key={u.id} className={selected.has(u.id) ? 'um-row--selected' : ''}>
+                <td><input type="checkbox" checked={selected.has(u.id)} onChange={() => toggleOne(u.id)} /></td>
+                <td className="um-cell--muted">{(page - 1) * PAGE_SIZE + i + 1}</td>
                 <td><strong>{u.name || '—'}</strong></td>
-                <td style={{ opacity: 0.75 }}>{u.email}</td>
-                <td style={{ opacity: 0.75 }}>{u.phone || '—'}</td>
+                <td className="um-cell--muted">{u.email}</td>
+                <td className="um-cell--muted">{u.phone || '—'}</td>
                 <td>
-                  <span className={`tag role-${u.role}`} style={{ textTransform: 'uppercase', fontWeight: 700, fontSize: '0.75rem', padding: '3px 10px', borderRadius: 20 }}>
-                    {u.role}
-                  </span>
+                  <span className={`um-badge um-badge--${u.role}`}>{u.role.toUpperCase()}</span>
                 </td>
-                <td style={{ opacity: 0.8, fontSize: '0.88rem' }}>
-                  {u.role === 'admin'
-                    ? 'Toate locațiile'
-                    : u.locations?.length
-                      ? u.locations.map(locName).join(', ')
-                      : '—'}
+                <td className="um-cell--muted um-cell--sm">
+                  {u.role === 'admin' ? 'Toate locațiile' : u.locations?.length ? u.locations.map(locName).join(', ') : '—'}
                 </td>
                 <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                  <button
-                    onClick={() => openEdit(u)}
-                    style={{ marginRight: 8, background: 'var(--surface)', border: '1px solid var(--border)', padding: '6px 16px', borderRadius: 8, cursor: 'pointer', fontWeight: 500 }}
-                  >
-                    Editează
-                  </button>
+                  <button className="um-btn um-btn--ghost" onClick={() => openEdit(u)}>Editează</button>
                   {u.id !== 'env-admin' && u.id !== 'u-admin' && (
-                    <button
-                      onClick={() => deleteUser(u)}
-                      style={{ background: 'var(--surface)', border: '1px solid #ef4444', color: '#ef4444', padding: '6px 16px', borderRadius: 8, cursor: 'pointer', fontWeight: 500 }}
-                    >
-                      Șterge
-                    </button>
+                    <button className="um-btn um-btn--danger um-btn--sm" style={{ marginLeft: 8 }} onClick={() => deleteOne(u)}>Șterge</button>
                   )}
                 </td>
               </tr>
             ))}
+            {pageUsers.length === 0 && (
+              <tr><td colSpan={8} style={{ textAlign: 'center', padding: '40px', opacity: 0.4 }}>Niciun utilizator găsit.</td></tr>
+            )}
           </tbody>
         </table>
       </div>
 
-      {/* Modal */}
-      {modal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
-          onClick={closeModal}>
-          <div style={{ background: 'var(--surface, #fff)', borderRadius: 20, padding: 32, width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}
-            onClick={e => e.stopPropagation()}>
-            <h3 style={{ margin: '0 0 24px', fontSize: '1.2rem', fontWeight: 700 }}>
-              {form.id ? 'Editează Utilizator' : 'Adaugă Utilizator Nou'}
-            </h3>
+      {/* ── Pagination ──────────────────────────────────────────── */}
+      {totalPages > 1 && (
+        <div className="um-pagination">
+          <span className="um-page-info">
+            {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} din {filtered.length}
+          </span>
+          <div className="um-page-btns">
+            <button className="um-btn um-btn--ghost" disabled={page === 1} onClick={() => setPage(1)}>«</button>
+            <button className="um-btn um-btn--ghost" disabled={page === 1} onClick={() => setPage(p => p - 1)}>‹</button>
+            {Array.from({ length: totalPages }, (_, k) => k + 1)
+              .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
+              .map((p, idx, arr) => (
+                <>
+                  {idx > 0 && arr[idx - 1] !== p - 1 && <span key={`ellipsis-${p}`} className="um-page-ellipsis">…</span>}
+                  <button key={p} className={`um-btn ${p === page ? 'um-btn--active' : 'um-btn--ghost'}`} onClick={() => setPage(p)}>{p}</button>
+                </>
+              ))
+            }
+            <button className="um-btn um-btn--ghost" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>›</button>
+            <button className="um-btn um-btn--ghost" disabled={page === totalPages} onClick={() => setPage(totalPages)}>»</button>
+          </div>
+        </div>
+      )}
 
-            {/* Fields grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px 20px', marginBottom: 20 }}>
+      {/* ── Edit Modal ──────────────────────────────────────────── */}
+      {modal && (
+        <div className="um-modal-overlay" onClick={closeModal}>
+          <div className="um-modal" onClick={e => e.stopPropagation()}>
+            <h3 className="um-modal-title">{form.id ? 'Editează Utilizator' : 'Utilizator Nou'}</h3>
+
+            <div className="um-modal-grid">
               {[
                 { label: 'Nume Complet', key: 'name', type: 'text', placeholder: 'Ion Popescu' },
                 { label: 'Email *', key: 'email', type: 'email', placeholder: 'ion@firma.ro' },
                 { label: 'Telefon', key: 'phone', type: 'tel', placeholder: '+40 700 000 000' },
               ].map(f => (
-                <label key={f.key} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 600, opacity: 0.6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{f.label}</span>
-                  <input
-                    type={f.type}
-                    value={form[f.key]}
-                    onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
-                    placeholder={f.placeholder}
-                    style={{ padding: '10px 14px', border: '1.5px solid var(--border, #e5e7eb)', borderRadius: 10, fontSize: '0.95rem', background: 'var(--bg, #f9fafb)', color: 'var(--text)', outline: 'none' }}
-                  />
+                <label key={f.key} className="um-field">
+                  <span className="um-field-label">{f.label}</span>
+                  <input type={f.type} value={form[f.key]} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))} placeholder={f.placeholder} className="um-input" />
                 </label>
               ))}
-
-              {/* Role */}
-              <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 600, opacity: 0.6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Rol</span>
-                <select
-                  value={form.role}
-                  onChange={e => setForm(prev => ({ ...prev, role: e.target.value }))}
-                  style={{ padding: '10px 14px', border: '1.5px solid var(--border, #e5e7eb)', borderRadius: 10, fontSize: '0.95rem', background: 'var(--bg, #f9fafb)', color: 'var(--text)', outline: 'none' }}
-                >
-                  {ROLES.map(r => (
-                    <option key={r.value} value={r.value}>{r.label} — {r.desc}</option>
-                  ))}
+              <label className="um-field">
+                <span className="um-field-label">Rol</span>
+                <select value={form.role} onChange={e => setForm(p => ({ ...p, role: e.target.value }))} className="um-input">
+                  {ROLES.map(r => <option key={r.value} value={r.value}>{r.label} — {r.desc}</option>)}
                 </select>
               </label>
             </div>
 
-            {/* Password section */}
-            <div style={{ borderTop: '1px solid var(--border, #e5e7eb)', paddingTop: 16, marginBottom: 20 }}>
-              <p style={{ fontSize: '0.82rem', fontWeight: 600, opacity: 0.5, textTransform: 'uppercase', letterSpacing: '0.04em', margin: '0 0 12px' }}>
-                {form.id ? 'Schimbare Parolă (lasă gol pentru a nu schimba)' : 'Parolă *'}
-              </p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px 20px' }}>
-                {[
-                  { label: 'Parolă Nouă', key: 'password' },
-                  { label: 'Confirmare Parolă', key: 'confirmPassword' },
-                ].map(f => (
-                  <label key={f.key} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 600, opacity: 0.6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{f.label}</span>
-                    <input
-                      type="password"
-                      value={form[f.key]}
-                      onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
-                      placeholder="••••••••"
-                      style={{ padding: '10px 14px', border: `1.5px solid ${form.password && form.confirmPassword && form.password !== form.confirmPassword ? '#ef4444' : 'var(--border, #e5e7eb)'}`, borderRadius: 10, fontSize: '0.95rem', background: 'var(--bg, #f9fafb)', color: 'var(--text)', outline: 'none' }}
-                    />
-                  </label>
-                ))}
-              </div>
-              {form.password && form.confirmPassword && form.password !== form.confirmPassword && (
-                <p style={{ color: '#ef4444', fontSize: '0.82rem', marginTop: 6 }}>⚠️ Parolele nu coincid</p>
-              )}
+            <div className="um-section-divider">
+              <span>{form.id ? 'Schimbare Parolă (opțional)' : 'Parolă *'}</span>
             </div>
+            <div className="um-modal-grid">
+              <label className="um-field">
+                <span className="um-field-label">Parolă Nouă</span>
+                <input type="password" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} placeholder="••••••••" className="um-input" />
+              </label>
+              <label className="um-field">
+                <span className="um-field-label">Confirmare Parolă</span>
+                <input type="password" value={form.confirmPassword} onChange={e => setForm(p => ({ ...p, confirmPassword: e.target.value }))} placeholder="••••••••"
+                  className={`um-input ${form.password && form.confirmPassword && form.password !== form.confirmPassword ? 'um-input--error' : ''}`} />
+              </label>
+            </div>
+            {form.password && form.confirmPassword && form.password !== form.confirmPassword && (
+              <p style={{ color: '#ef4444', fontSize: '0.82rem', marginTop: 4 }}>⚠️ Parolele nu coincid</p>
+            )}
 
-            {/* Locations (only for manager) */}
             {form.role === 'manager' && (
-              <div style={{ marginBottom: 20 }}>
-                <p style={{ fontSize: '0.82rem', fontWeight: 600, opacity: 0.5, textTransform: 'uppercase', marginBottom: 10 }}>Locații Alocate</p>
+              <>
+                <div className="um-section-divider"><span>Locații Alocate</span></div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {locations.map(l => (
-                    <label key={l.id} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '6px 12px', border: `1.5px solid ${form.locations.includes(l.id) ? '#0f766e' : 'var(--border, #e5e7eb)'}`, borderRadius: 20, fontSize: '0.88rem', background: form.locations.includes(l.id) ? 'rgba(15,118,110,0.1)' : 'transparent' }}>
-                      <input type="checkbox" checked={form.locations.includes(l.id)} onChange={() => handleToggleLoc(l.id)} style={{ accentColor: '#0f766e' }} />
+                    <label key={l.id} className={`um-loc-pill ${form.locations.includes(l.id) ? 'um-loc-pill--active' : ''}`}>
+                      <input type="checkbox" checked={form.locations.includes(l.id)} onChange={() => handleToggleLoc(l.id)} style={{ display: 'none' }} />
                       {l.name}
                     </label>
                   ))}
                 </div>
-              </div>
+              </>
             )}
 
-            {/* Actions */}
-            <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
-              <button onClick={closeModal} style={{ flex: 1, padding: '12px', border: '1.5px solid var(--border, #e5e7eb)', borderRadius: 12, background: 'transparent', cursor: 'pointer', fontWeight: 500 }}>
-                Anulează
-              </button>
-              <button onClick={saveUser} disabled={saving} style={{ flex: 2, padding: '12px', border: 'none', borderRadius: 12, background: '#0f766e', color: '#fff', fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}>
-                {saving ? 'Se salvează...' : (form.id ? '💾 Salvează Modificările' : '+ Adaugă Utilizator')}
+            <div className="um-modal-footer">
+              <button className="um-btn um-btn--ghost" onClick={closeModal}>Anulează</button>
+              <button className="um-btn um-btn--primary" onClick={saveUser} disabled={saving}>
+                {saving ? 'Se salvează...' : form.id ? '💾 Salvează' : '+ Adaugă'}
               </button>
             </div>
           </div>
@@ -294,9 +278,7 @@ export default function UsersManager() {
 
       {/* Toast */}
       {toast && (
-        <div style={{ position: 'fixed', bottom: 28, left: '50%', transform: 'translateX(-50%)', background: toast.type === 'err' ? '#dc2626' : '#111827', color: '#fff', padding: '12px 24px', borderRadius: 20, fontWeight: 500, zIndex: 9999, boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>
-          {toast.msg}
-        </div>
+        <div className={`um-toast ${toast.type === 'err' ? 'um-toast--err' : ''}`}>{toast.msg}</div>
       )}
     </div>
   );

@@ -1,47 +1,59 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthProvider';
-import { proxySyrveImage } from '../utils/imageUtils.js';// adjust path if needed
+import './UsersManager.css'; // reuse same table CSS
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
+const BACKEND   = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
+const PAGE_SIZE = 25;
 
 export default function ModifierImages() {
   const { fetchWithAuth } = useAuth();
-  const [modifiers,    setModifiers]    = useState([]);
-  const [suggestions,  setSuggestions]  = useState([]);
-  const [loading,      setLoading]      = useState(true);
-  const [sugLoading,   setSugLoading]   = useState(true);
-  const [search,       setSearch]       = useState('');
-  const [editingId,    setEditingId]    = useState(null);
-  const [editUrl,      setEditUrl]      = useState('');
-  const [saving,       setSaving]       = useState(null);
-  const [toast,        setToast]        = useState(null);
+  const [modifiers,   setModifiers]   = useState([]);
+  const [suggestions, setSuggestions] = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [selected,    setSelected]    = useState(new Set());
+  const [page,        setPage]        = useState(1);
+  const [search,      setSearch]      = useState('');
+  const [editingId,   setEditingId]   = useState(null);
+  const [editUrl,     setEditUrl]     = useState('');
+  const [saving,      setSaving]      = useState(null);
+  const [toast,       setToast]       = useState(null);
 
-  const showToast = (msg, type = 'ok') => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
-  };
+  const showToast = (msg, type = 'ok') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000); };
 
-  const fetchModifiers = async () => {
+  const fetchAll = async () => {
     setLoading(true);
     try {
-      const res  = await fetchWithAuth(`${BACKEND}/api/admin/modifier-images`);
-      const data = await res.json();
-      setModifiers(data.modifiers || []);
+      const [mRes, sRes] = await Promise.all([
+        fetchWithAuth(`${BACKEND}/api/admin/modifier-images`),
+        fetchWithAuth(`${BACKEND}/api/admin/modifier-suggestions`),
+      ]);
+      const mData = await mRes.json();
+      const sData = await sRes.json();
+      setModifiers(mData.modifiers || []);
+      setSuggestions(sData.suggestions || []);
     } catch (e) { showToast('❌ ' + e.message, 'err'); }
     finally { setLoading(false); }
   };
 
-  const fetchSuggestions = async () => {
-    setSugLoading(true);
-    try {
-      const res  = await fetchWithAuth(`${BACKEND}/api/admin/modifier-suggestions`);
-      const data = await res.json();
-      setSuggestions(data.suggestions || []);
-    } catch (_) { setSuggestions([]); }
-    finally { setSugLoading(false); }
-  };
+  useEffect(() => { fetchAll(); }, []);
 
-  useEffect(() => { fetchModifiers(); fetchSuggestions(); }, []);
+  const filtered = useMemo(() =>
+    modifiers.filter(m =>
+      m.name?.toLowerCase().includes(search.toLowerCase()) ||
+      m.groupName?.toLowerCase().includes(search.toLowerCase()) ||
+      m.brandId?.toLowerCase().includes(search.toLowerCase())
+    ), [modifiers, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageItems  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const allPageSelected = pageItems.length > 0 && pageItems.every(m => selected.has(m.id));
+
+  const toggleAll = () => setSelected(prev => {
+    const n = new Set(prev);
+    allPageSelected ? pageItems.forEach(m => n.delete(m.id)) : pageItems.forEach(m => n.add(m.id));
+    return n;
+  });
+  const toggleOne = (id) => setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   const saveImage = async (modId, modName, brandId, url) => {
     if (!url?.trim()) return showToast('URL invalid', 'err');
@@ -54,8 +66,7 @@ export default function ModifierImages() {
       if (!res.ok) throw new Error('Salvare eșuată');
       showToast('✅ Imagine salvată!');
       setEditingId(null);
-      fetchModifiers();
-      fetchSuggestions();
+      fetchAll();
     } catch (e) { showToast('❌ ' + e.message, 'err'); }
     finally { setSaving(null); }
   };
@@ -64,213 +75,198 @@ export default function ModifierImages() {
     if (!confirm('Ștergi imaginea?')) return;
     try {
       await fetchWithAuth(`${BACKEND}/api/admin/modifier-images/${modId}`, { method: 'DELETE' });
-      showToast('🗑 Șters');
-      fetchModifiers();
-      fetchSuggestions();
+      showToast('🗑 Șters'); fetchAll();
     } catch (e) { showToast('❌ ' + e.message, 'err'); }
   };
 
-  const acceptSuggestion = (sug) => {
-    saveImage(sug.modifier.id, sug.modifier.name, sug.modifier.brandId, sug.suggestedProduct.image);
+  const bulkDelete = async () => {
+    const ids = [...selected];
+    if (!ids.length || !confirm(`Ștergi imaginile la ${ids.length} modificatori?`)) return;
+    try {
+      await Promise.all(ids.map(id => fetchWithAuth(`${BACKEND}/api/admin/modifier-images/${id}`, { method: 'DELETE' })));
+      setSelected(new Set()); showToast(`🗑 ${ids.length} imagini șterse`); fetchAll();
+    } catch (e) { showToast('❌ ' + e.message, 'err'); }
   };
 
-  const dismissSuggestion = (modId) => {
-    setSuggestions(prev => prev.filter(s => s.modifier.id !== modId));
-  };
+  const acceptSuggestion = (sug) => saveImage(sug.modifier.id, sug.modifier.name, sug.modifier.brandId, sug.suggestedProduct.image);
+  const dismissSuggestion = (id) => setSuggestions(prev => prev.filter(s => s.modifier.id !== id));
 
-  const filtered = modifiers.filter(m =>
-    m.name?.toLowerCase().includes(search.toLowerCase()) ||
-    m.groupName?.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const th = { padding: '10px 16px', textAlign: 'left', fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.5, borderBottom: '1px solid var(--border, #e5e7eb)', whiteSpace: 'nowrap' };
-  const td = { padding: '12px 16px', fontSize: '0.9rem', verticalAlign: 'middle', borderBottom: '1px solid var(--border, #e5e7eb)' };
+  const th = 'um-th';
 
   return (
-    <div style={{ padding: '28px 32px' }}>
+    <div className="um-page">
 
-      {/* ─── SUGGESTIONS ─────────────────────────────────────────────── */}
-      {!sugLoading && suggestions.length > 0 && (
-        <div style={{ marginBottom: 36 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-            <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>
-              ✨ Sugestii Automate
-            </h2>
-            <span style={{ background: '#fef3c7', color: '#92400e', fontSize: '0.78rem', fontWeight: 600, padding: '2px 10px', borderRadius: 20, border: '1px solid #fcd34d' }}>
-              {suggestions.length} detectate
-            </span>
-            <span style={{ fontSize: '0.82rem', opacity: 0.5 }}>
-              — produse existente din meniu cu imagini pot fi asociate modificatorilor cu același nume
-            </span>
+      {/* ── Sugestii Automate ────────────────────────────────── */}
+      {suggestions.length > 0 && (
+        <div style={{ marginBottom: 32 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+            <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>✨ Sugestii Automate</h2>
+            <span style={{ background: '#fef3c7', color: '#92400e', fontSize: '0.72rem', fontWeight: 700, padding: '2px 10px', borderRadius: 20, border: '1px solid #fcd34d' }}>{suggestions.length}</span>
+            <span style={{ fontSize: '0.8rem', opacity: 0.5 }}>— produse din meniu cu imagini sugerate pentru modificatori cu același nume</span>
           </div>
 
-          <table style={{ width: '100%', borderCollapse: 'collapse', background: 'var(--surface, #fff)', borderRadius: 14, overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: '1.5px solid #fbbf24' }}>
-            <thead style={{ background: '#fffbeb' }}>
+          <div className="um-table-wrap" style={{ border: '1.5px solid #fbbf24' }}>
+            <table className="um-table">
+              <thead style={{ background: '#fffbeb' }}>
+                <tr>
+                  <th>#</th>
+                  <th>Modificator</th>
+                  <th>Grup</th>
+                  <th>Produs Sugerat</th>
+                  <th>Imagine</th>
+                  <th>Potrivire</th>
+                  <th>Acțiuni</th>
+                </tr>
+              </thead>
+              <tbody>
+                {suggestions.map((sug, i) => (
+                  <tr key={sug.modifier.id}>
+                    <td className="um-cell--muted">{i + 1}</td>
+                    <td><strong>{sug.modifier.name}</strong><br /><small className="um-cell--muted">{sug.modifier.brandId}</small></td>
+                    <td className="um-cell--muted">{sug.modifier.groupName}</td>
+                    <td className="um-cell--muted">{sug.suggestedProduct.name}</td>
+                    <td>
+                      <img src={sug.suggestedProduct.image} alt="" style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 10 }} onError={e => { e.target.style.display='none'; }} />
+                    </td>
+                    <td>
+                      <span style={{ background: sug.confidence >= 70 ? '#dcfce7' : '#fef9c3', color: sug.confidence >= 70 ? '#166534' : '#854d0e', padding: '3px 10px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 700 }}>
+                        {sug.confidence}%
+                      </span>
+                    </td>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      <button className="um-btn um-btn--primary um-btn--sm" onClick={() => acceptSuggestion(sug)} disabled={saving === sug.modifier.id}>
+                        {saving === sug.modifier.id ? '...' : '✓ Acceptă'}
+                      </button>
+                      <button className="um-btn um-btn--ghost um-btn--sm" style={{ marginLeft: 6 }} onClick={() => dismissSuggestion(sug.modifier.id)}>Ignoră</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ── Toolbar ──────────────────────────────────────────── */}
+      <div className="um-toolbar">
+        <input className="um-search" placeholder="🔍 Caută modificator..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); setSelected(new Set()); }} />
+        {selected.size > 0 ? (
+          <div className="um-bulk-actions">
+            <span className="um-bulk-label">{selected.size} selectați</span>
+            <button className="um-btn um-btn--danger" onClick={bulkDelete}>🗑 Șterge imagini ({selected.size})</button>
+            <button className="um-btn um-btn--ghost" onClick={() => setSelected(new Set())}>Deselectează</button>
+          </div>
+        ) : (
+          <span style={{ fontSize: '0.85rem', opacity: 0.5 }}>
+            {filtered.filter(m => m.imageUrl).length}/{filtered.length} cu imagini
+          </span>
+        )}
+      </div>
+
+      {/* ── Main Table ───────────────────────────────────────── */}
+      {loading ? (
+        <p style={{ textAlign: 'center', padding: '40px', opacity: 0.4 }}>Se încarcă modificatorii...</p>
+      ) : (
+        <div className="um-table-wrap">
+          <table className="um-table">
+            <thead>
               <tr>
-                <th style={th}>Modificator</th>
-                <th style={th}>Grup</th>
-                <th style={th}>Sugestie Detectată</th>
-                <th style={th}>Imagine</th>
-                <th style={th}>Potrivire</th>
-                <th style={th}>Acțiuni</th>
+                <th style={{ width: 40 }}><input type="checkbox" checked={allPageSelected} onChange={toggleAll} /></th>
+                <th style={{ width: 48 }}>#</th>
+                <th style={{ width: 72 }}>Imagine</th>
+                <th>Modificator</th>
+                <th>Grup</th>
+                <th>Brand</th>
+                <th>Preț Extra</th>
+                <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Acțiuni</th>
               </tr>
             </thead>
             <tbody>
-              {suggestions.map(sug => (
-                <tr key={sug.modifier.id} style={{ transition: 'background 0.15s' }}>
-                  <td style={td}>
-                    <strong>{sug.modifier.name}</strong>
-                    <div style={{ fontSize: '0.76rem', opacity: 0.5 }}>{sug.modifier.brandId}</div>
+              {pageItems.map((mod, i) => (
+                <tr key={mod.id} className={selected.has(mod.id) ? 'um-row--selected' : ''}>
+                  <td><input type="checkbox" checked={selected.has(mod.id)} onChange={() => toggleOne(mod.id)} /></td>
+                  <td className="um-cell--muted">{(page - 1) * PAGE_SIZE + i + 1}</td>
+                  <td>
+                    {mod.imageUrl
+                      ? <img src={mod.imageUrl} alt="" style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 8 }} onError={e => { e.target.style.display='none'; }} />
+                      : <div style={{ width: 48, height: 48, borderRadius: 8, background: 'var(--bg,#f3f4f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.3, fontSize: '1.2rem' }}>?</div>
+                    }
                   </td>
-                  <td style={{ ...td, opacity: 0.65 }}>{sug.modifier.groupName}</td>
-                  <td style={td}>
-                    <span style={{ opacity: 0.8 }}>{sug.suggestedProduct.name}</span>
+                  <td><strong>{mod.name}</strong></td>
+                  <td className="um-cell--muted">{mod.groupName}</td>
+                  <td className="um-cell--muted um-cell--sm" style={{ textTransform: 'uppercase', letterSpacing: '0.04em' }}>{mod.brandId}</td>
+                  <td>
+                    {mod.price > 0
+                      ? <span style={{ color: '#d32f2f', fontWeight: 600 }}>+{mod.price.toFixed(2)} lei</span>
+                      : <span className="um-cell--muted">Inclus</span>}
                   </td>
-                  <td style={td}>
-                    <img
-                      src={sug.suggestedProduct.image}
-                      alt={sug.suggestedProduct.name}
-                      style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 10 }}
-                      onError={e => { e.target.style.display = 'none'; }}
-                    />
-                  </td>
-                  <td style={td}>
-                    <span style={{ background: sug.confidence >= 70 ? '#dcfce7' : '#fef9c3', color: sug.confidence >= 70 ? '#166534' : '#854d0e', padding: '3px 10px', borderRadius: 20, fontSize: '0.78rem', fontWeight: 700 }}>
-                      {sug.confidence}%
+                  <td>
+                    <span className={`um-badge ${mod.imageUrl ? 'um-badge--manager' : 'um-badge--demo'}`} style={mod.imageUrl ? { background: '#dcfce7', color: '#166534' } : { background: '#fef2f2', color: '#991b1b' }}>
+                      {mod.imageUrl ? 'Cu imagine' : 'Fără imagine'}
                     </span>
                   </td>
-                  <td style={{ ...td, whiteSpace: 'nowrap' }}>
-                    <button
-                      onClick={() => acceptSuggestion(sug)}
-                      disabled={saving === sug.modifier.id}
-                      style={{ marginRight: 8, padding: '6px 16px', background: '#0f766e', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem' }}
-                    >
-                      {saving === sug.modifier.id ? '...' : '✓ Acceptă'}
-                    </button>
-                    <button
-                      onClick={() => dismissSuggestion(sug.modifier.id)}
-                      style={{ padding: '6px 12px', background: 'transparent', border: '1px solid var(--border, #e5e7eb)', borderRadius: 8, cursor: 'pointer', fontSize: '0.85rem', opacity: 0.6 }}
-                    >
-                      Ignoră
-                    </button>
+                  <td style={{ textAlign: 'right' }}>
+                    {editingId === mod.id ? (
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'flex-end', minWidth: 280 }}>
+                        <input
+                          autoFocus
+                          value={editUrl}
+                          onChange={e => setEditUrl(e.target.value)}
+                          onKeyDown={e => e.key === 'Enter' && saveImage(mod.id, mod.name, mod.brandId, editUrl)}
+                          placeholder="https://..."
+                          className="um-input"
+                          style={{ flex: 1, padding: '6px 10px', borderColor: '#0f766e' }}
+                        />
+                        <button className="um-btn um-btn--primary um-btn--sm" onClick={() => saveImage(mod.id, mod.name, mod.brandId, editUrl)} disabled={saving === mod.id}>
+                          {saving === mod.id ? '...' : 'OK'}
+                        </button>
+                        <button className="um-btn um-btn--ghost um-btn--sm" onClick={() => setEditingId(null)}>✕</button>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                        <button className="um-btn um-btn--ghost um-btn--sm" onClick={() => { setEditingId(mod.id); setEditUrl(mod.imageUrl || ''); }}>
+                          {mod.imageUrl ? 'Schimbă' : '+ URL'}
+                        </button>
+                        {mod.imageUrl && (
+                          <button className="um-btn um-btn--danger um-btn--sm" onClick={() => deleteImage(mod.id)}>Șterge</button>
+                        )}
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}
+              {pageItems.length === 0 && (
+                <tr><td colSpan={9} style={{ textAlign: 'center', padding: '40px', opacity: 0.4 }}>Niciun modificator găsit.</td></tr>
+              )}
             </tbody>
           </table>
         </div>
       )}
 
-      {/* ─── ALL MODIFIERS TABLE ──────────────────────────────────────── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
-        <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>Toți Modificatorii</h2>
-        <input
-          placeholder="🔍 Caută modificator..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          style={{ padding: '9px 14px', border: '1.5px solid var(--border, #e5e7eb)', borderRadius: 10, fontSize: '0.9rem', background: 'var(--surface, #fff)', color: 'var(--text)', outline: 'none', minWidth: 240 }}
-        />
-        <span style={{ fontSize: '0.82rem', opacity: 0.45 }}>
-          {filtered.filter(m => m.imageUrl).length}/{filtered.length} cu imagini
-        </span>
-      </div>
-
-      {loading ? (
-        <p style={{ opacity: 0.5, padding: '40px 0', textAlign: 'center' }}>Se încarcă...</p>
-      ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', background: 'var(--surface, #fff)', borderRadius: 14, overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: '1px solid var(--border, #e5e7eb)' }}>
-          <thead>
-            <tr style={{ background: 'var(--bg, #f9fafb)' }}>
-              <th style={th}>Imagine</th>
-              <th style={th}>Modificator</th>
-              <th style={th}>Grup</th>
-              <th style={th}>Brand</th>
-              <th style={th}>Preț Extra</th>
-              <th style={th}>Status</th>
-              <th style={th}>Acțiuni</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map(mod => (
-              <tr key={mod.id} style={{ transition: 'background 0.12s' }}>
-                {/* Imagine */}
-                <td style={{ ...td, width: 72 }}>
-                  {mod.imageUrl ? (
-                    <img src={mod.imageUrl} alt={mod.name} style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 10 }} onError={e => { e.target.style.display='none'; }} />
-                  ) : (
-                    <div style={{ width: 52, height: 52, borderRadius: 10, background: 'var(--bg, #f3f4f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem', opacity: 0.4 }}>?</div>
-                  )}
-                </td>
-                {/* Name */}
-                <td style={td}><strong>{mod.name}</strong></td>
-                {/* Group */}
-                <td style={{ ...td, opacity: 0.65 }}>{mod.groupName}</td>
-                {/* Brand */}
-                <td style={{ ...td, opacity: 0.65, fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{mod.brandId}</td>
-                {/* Price */}
-                <td style={td}>{mod.price > 0 ? <span style={{ color: '#d32f2f', fontWeight: 600 }}>+{mod.price.toFixed(2)} lei</span> : <span style={{ opacity: 0.4 }}>Inclus</span>}</td>
-                {/* Status */}
-                <td style={td}>
-                  {mod.imageUrl
-                    ? <span style={{ background: '#dcfce7', color: '#166534', padding: '3px 10px', borderRadius: 20, fontSize: '0.76rem', fontWeight: 600 }}>Cu imagine</span>
-                    : <span style={{ background: '#fef2f2', color: '#991b1b', padding: '3px 10px', borderRadius: 20, fontSize: '0.76rem', fontWeight: 600 }}>Fără imagine</span>
-                  }
-                </td>
-                {/* Actions */}
-                <td style={{ ...td, whiteSpace: 'nowrap' }}>
-                  {editingId === mod.id ? (
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', minWidth: 320 }}>
-                      <input
-                        autoFocus
-                        value={editUrl}
-                        onChange={e => setEditUrl(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && saveImage(mod.id, mod.name, mod.brandId, editUrl)}
-                        placeholder="https://..."
-                        style={{ flex: 1, padding: '6px 12px', border: '1.5px solid #0f766e', borderRadius: 8, fontSize: '0.85rem', background: 'var(--surface, #fff)', color: 'var(--text)', outline: 'none' }}
-                      />
-                      <button
-                        onClick={() => saveImage(mod.id, mod.name, mod.brandId, editUrl)}
-                        disabled={saving === mod.id}
-                        style={{ padding: '6px 14px', background: '#0f766e', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem' }}
-                      >
-                        {saving === mod.id ? '...' : 'OK'}
-                      </button>
-                      <button onClick={() => setEditingId(null)} style={{ padding: '6px 10px', border: '1px solid var(--border, #e5e7eb)', borderRadius: 8, background: 'transparent', cursor: 'pointer' }}>✕</button>
-                    </div>
-                  ) : (
-                    <>
-                      <button
-                        onClick={() => { setEditingId(mod.id); setEditUrl(mod.imageUrl || ''); }}
-                        style={{ marginRight: 8, padding: '6px 14px', background: 'var(--surface, #fff)', border: '1.5px solid var(--border, #e5e7eb)', borderRadius: 8, cursor: 'pointer', fontWeight: 500, fontSize: '0.85rem' }}
-                      >
-                        {mod.imageUrl ? 'Schimbă' : '+ Adaugă URL'}
-                      </button>
-                      {mod.imageUrl && (
-                        <button
-                          onClick={() => deleteImage(mod.id)}
-                          style={{ padding: '6px 12px', background: 'transparent', border: '1px solid #ef4444', color: '#ef4444', borderRadius: 8, cursor: 'pointer', fontSize: '0.85rem' }}
-                        >
-                          Șterge
-                        </button>
-                      )}
-                    </>
-                  )}
-                </td>
-              </tr>
-            ))}
-            {filtered.length === 0 && (
-              <tr><td colSpan={7} style={{ textAlign: 'center', padding: '40px', opacity: 0.4 }}>Niciun modificator găsit.</td></tr>
-            )}
-          </tbody>
-        </table>
+      {/* ── Pagination ───────────────────────────────────────── */}
+      {totalPages > 1 && (
+        <div className="um-pagination">
+          <span className="um-page-info">{(page-1)*PAGE_SIZE+1}–{Math.min(page*PAGE_SIZE, filtered.length)} din {filtered.length}</span>
+          <div className="um-page-btns">
+            <button className="um-btn um-btn--ghost" disabled={page===1} onClick={() => setPage(1)}>«</button>
+            <button className="um-btn um-btn--ghost" disabled={page===1} onClick={() => setPage(p => p-1)}>‹</button>
+            {Array.from({ length: totalPages }, (_, k) => k+1)
+              .filter(p => p===1 || p===totalPages || Math.abs(p-page)<=2)
+              .map((p, idx, arr) => (
+                <>
+                  {idx>0 && arr[idx-1]!==p-1 && <span key={`e${p}`} className="um-page-ellipsis">…</span>}
+                  <button key={p} className={`um-btn ${p===page?'um-btn--active':'um-btn--ghost'}`} onClick={() => setPage(p)}>{p}</button>
+                </>
+              ))}
+            <button className="um-btn um-btn--ghost" disabled={page===totalPages} onClick={() => setPage(p => p+1)}>›</button>
+            <button className="um-btn um-btn--ghost" disabled={page===totalPages} onClick={() => setPage(totalPages)}>»</button>
+          </div>
+        </div>
       )}
 
       {/* Toast */}
-      {toast && (
-        <div style={{ position: 'fixed', bottom: 28, left: '50%', transform: 'translateX(-50%)', background: toast.type === 'err' ? '#dc2626' : '#111827', color: '#fff', padding: '12px 24px', borderRadius: 20, fontWeight: 500, zIndex: 9999, boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>
-          {toast.msg}
-        </div>
-      )}
+      {toast && <div className={`um-toast ${toast.type==='err'?'um-toast--err':''}`}>{toast.msg}</div>}
     </div>
   );
 }
