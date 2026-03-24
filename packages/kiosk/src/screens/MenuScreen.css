@@ -454,7 +454,7 @@
 /* ─── FLOATING CART BAR (GREEN, BIGGER) ─── */
 .cart-bar {
   position: fixed;
-  bottom: 20px;
+  bottom: calc(var(--kiosk-banner-bottom, 0px) + 20px);
   left: 50%;
   transform: translateX(-50%);
   background: linear-gradient(135deg, #10b981, #059669);
@@ -468,7 +468,7 @@
   box-shadow: 0 8px 32px rgba(16, 185, 129, 0.45);
   min-width: 420px;
   justify-content: space-between;
-  z-index: 20;
+  z-index: 70;
   transition: transform 0.2s, box-shadow 0.2s;
   animation: slideUpBar 0.3s ease;
 }

@@ -192,12 +192,16 @@ export default function App() {
 
   // Design Config
   const tH = locationData?.topBannerHeight || 3;
-  const tRadTop = locationData?.topBannerRadiusTop !== false; // defaults true
-  const tRadBot = locationData?.topBannerRadiusBottom === true; // defaults false
+  const tRadTop = locationData?.topBannerRadiusTop !== false;
+  const tRadBot = locationData?.topBannerRadiusBottom === true;
 
   const bH = locationData?.bottomBannerHeight || 2;
-  const bRadTop = locationData?.bottomBannerRadiusTop === true; // defaults false
-  const bRadBot = locationData?.bottomBannerRadiusBottom !== false; // defaults true
+  const bRadTop = locationData?.bottomBannerRadiusTop === true;
+  const bRadBot = locationData?.bottomBannerRadiusBottom !== false;
+
+  // Banner height formulas — starts small (size 1 = 5vh, size 5 = 17vh)
+  const tBannerVh = tH * 3 + 2;
+  const bBannerVh = bH * 3 + 2;
 
   const mainRadTop = (showBanner && !tRadBot) ? '0' : '24px';
   const mainRadBot = (showBottomBanner && !bRadTop) ? '0' : '24px';
@@ -208,12 +212,13 @@ export default function App() {
         display: 'flex', flexDirection: 'column', height: '100dvh', width: '100vw', 
         overflow: 'hidden', background: 'var(--bg, #f8fafc)', 
         padding: screen === 'welcome' ? '0' : '16px', 
-        boxSizing: 'border-box' 
+        boxSizing: 'border-box',
+        '--kiosk-banner-bottom': showBottomBanner ? `${bBannerVh}vh` : '0px',
       }}>
         
         {showBanner && (
           <div style={{ 
-            height: `${tH * 5 + 5}vh`, 
+            height: `${tBannerVh}vh`, 
             borderRadius: `${tRadTop ? '24px' : '0'} ${tRadTop ? '24px' : '0'} ${tRadBot ? '24px' : '0'} ${tRadBot ? '24px' : '0'}`,
             background: '#000', 
             flexShrink: 0, 
@@ -234,7 +239,7 @@ export default function App() {
           borderRadius: screen === 'welcome' && !isUnlocking ? '0' : `${mainRadTop} ${mainRadTop} ${mainRadBot} ${mainRadBot}`,
           boxShadow: (showBanner || showBottomBanner) ? '0 8px 32px rgba(0,0,0,0.05)' : 'none',
           background: screen === 'welcome' && !isUnlocking ? 'transparent' : '#fff',
-          paddingBottom: showBottomBanner ? `${bH * 5 + 5 + 2}vh` : 0,
+          paddingBottom: showBottomBanner ? `${bBannerVh + 2}vh` : 0,
         }}>
           {screen === 'orderType'    && <OrderTypeScreen />}
           {screen === 'brandSelect'  && <BrandSelectScreen />}
@@ -253,7 +258,7 @@ export default function App() {
             bottom: 0,
             left: 0,
             right: 0,
-            height: `${bH * 5 + 5}vh`, 
+            height: `${bBannerVh}vh`, 
             borderRadius: `${bRadTop ? '24px' : '0'} ${bRadTop ? '24px' : '0'} ${bRadBot ? '24px' : '0'} ${bRadBot ? '24px' : '0'}`,
             background: locationData.bottomBannerContent.startsWith('http') ? '#000' : '#1e293b', 
             zIndex: 50,
