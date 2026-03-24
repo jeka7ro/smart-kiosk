@@ -215,7 +215,7 @@ export default function AdminApp() {
         </div>
 
         {/* TOP HEADER BAR */}
-        <div className="main-header-bar" style={{ padding: '0 28px', height: '70px', borderBottom: '2px solid #0f766e', display: 'flex', alignItems: 'center', background: 'var(--surface)', position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+        <div className="main-header-bar" style={{ padding: '0 28px', height: '80px', boxSizing: 'border-box', borderBottom: '2px solid #0f766e', display: 'flex', alignItems: 'center', background: 'var(--surface)', position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: '#0f766e', letterSpacing: '-0.3px' }}>
               {tab === 'dashboard' && 'Dashboard Overview'}
               {tab === 'orders' && 'Gestionare Comenzi'}
