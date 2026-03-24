@@ -104,13 +104,7 @@ export default function AdminApp() {
   }, []);
 
   /* ─── Load promotions configs for UI Previews ───── */
-  const [promosData, setPromosData] = useState({});
-  useEffect(() => {
-    fetchWithAuth(`${BACKEND}/api/promotions`)
-      .then(r => r.json())
-      .then(d => setPromosData(d || {}))
-      .catch(() => {});
-  }, [fetchWithAuth]);
+  // promosData moved to KioskSettingsForm
 
   /* ─── Load initial orders ────────────────────────── */
   useEffect(() => {
@@ -766,6 +760,14 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  const [promosData, setPromosData] = useState({});
+  useEffect(() => {
+    fetchWithAuth(`${backend}/api/promotions`)
+      .then(r => r.json())
+      .then(d => setPromosData(d || {}))
+      .catch(() => {});
+  }, [backend, fetchWithAuth]);
+
   // Toggles for optional sections
   const [usePin, setUsePin] = useState(!!loc.kioskPin);
   const [useBanner, setUseBanner] = useState(!!loc.topBannerUrl);
@@ -927,7 +929,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
             placeholder="URL Video MP4 sau Imagine..."
             value={formData.posterUrl}
             onChange={e => handleChange('posterUrl', e.target.value)}
-            style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', width: '100%', marginBottom: 16, boxSizing: 'border-box' }}
+            style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', width: '100%', marginBottom: 16, boxSizing: 'border-box' }}
           />
           
           {formData.posterUrl ? (
@@ -956,8 +958,8 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>Configurează condițiile specifice acestui kiosk pentru afișarea roții.</p>
           
           {formData.promoActive && (
-             <div style={{ animation: 'fadeIn 0.3s ease', display: 'flex', flexWrap: 'wrap', gap: 16 }}>
-               <div style={{ flex: 1, minWidth: 200 }}>
+             <div style={{ animation: 'fadeIn 0.3s ease', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '16px 20px' }}>
+               <div>
                  <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: 8 }}>Alege Roata</label>
                  <select 
                    value={formData.promoBrandId || ''} 
@@ -970,7 +972,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                  </select>
                </div>
                
-               <div style={{ flex: 1, minWidth: 150 }}>
+               <div>
                  <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: 8 }}>Moment Apariție Roată</label>
                  <select 
                    value={formData.promoTriggerMoment || 'after_payment'} 
@@ -982,7 +984,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                  </select>
                </div>
                
-               <div style={{ flex: 1, minWidth: 150 }}>
+               <div>
                  <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: 8 }}>Sumă Minimă Coș (RON)</label>
                  <input 
                    type="number" 
@@ -993,7 +995,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                  />
                </div>
 
-               <div style={{ flex: 1, minWidth: 200 }}>
+               <div>
                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                    <label style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)' }}>Limitare Frecvență</label>
                    <label className="pc-toggle" style={{ margin: 0, transform: 'scale(0.8)' }}>
@@ -1203,7 +1205,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                     {/* Background color */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>CULOARE FUNDAL</label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, flexWrap: 'wrap' }}>
                         <input type="color" value={formData.bottomBannerBg} onChange={e => handleChange('bottomBannerBg', e.target.value)}
                           style={{ width: 44, height: 36, borderRadius: 8, border: '1px solid var(--border)', cursor: 'pointer', padding: 2 }} />
                         {['#1e293b','#d32f2f','#1a237e','#004d40','#4a148c','#e65100','#212121','#ffffff'].map(c => (
@@ -1313,7 +1315,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
         {/* Card: Security */}
         <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>🔒 Securitate PIN</h3>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>Securitate PIN</h3>
             <label className="pc-toggle" style={{ margin: 0 }}>
               <input type="checkbox" checked={usePin} onChange={e => setUsePin(e.target.checked)} />
               <span className="toggle-slider" />
@@ -1327,10 +1329,10 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                 type="password" 
                 maxLength="6"
                 className="pc-input" 
-                placeholder="Introdu PIN (ex: 1234)"
+                placeholder="Ex: 1234"
                 value={formData.kioskPin}
                 onChange={e => handleChange('kioskPin', e.target.value.replace(/\D/g, ''))}
-                style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', width: '100%', maxWidth: '200px', fontSize: '1.1rem', letterSpacing: '2px', boxSizing: 'border-box' }}
+                style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', width: '100%', maxWidth: '140px', fontSize: '1.1rem', letterSpacing: '2px', boxSizing: 'border-box' }}
               />
             </div>
           )}
