@@ -233,7 +233,8 @@ export default function App() {
           overflow: 'hidden',
           borderRadius: screen === 'welcome' && !isUnlocking ? '0' : `${mainRadTop} ${mainRadTop} ${mainRadBot} ${mainRadBot}`,
           boxShadow: (showBanner || showBottomBanner) ? '0 8px 32px rgba(0,0,0,0.05)' : 'none',
-          background: screen === 'welcome' && !isUnlocking ? 'transparent' : '#fff'
+          background: screen === 'welcome' && !isUnlocking ? 'transparent' : '#fff',
+          paddingBottom: showBottomBanner ? `${bH * 5 + 5 + 2}vh` : 0,
         }}>
           {screen === 'orderType'    && <OrderTypeScreen />}
           {screen === 'brandSelect'  && <BrandSelectScreen />}
@@ -248,13 +249,14 @@ export default function App() {
         
         {showBottomBanner && (
           <div style={{ 
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
             height: `${bH * 5 + 5}vh`, 
             borderRadius: `${bRadTop ? '24px' : '0'} ${bRadTop ? '24px' : '0'} ${bRadBot ? '24px' : '0'} ${bRadBot ? '24px' : '0'}`,
             background: locationData.bottomBannerContent.startsWith('http') ? '#000' : '#1e293b', 
-            flexShrink: 0, 
-            marginTop: (!bRadTop && showBottomBanner) ? 0 : '16px',
-            position: 'relative', 
-            zIndex: 100, 
+            zIndex: 50,
             overflow: 'hidden',
             boxShadow: '0 -8px 32px rgba(0,0,0,0.15)' 
           }}>
