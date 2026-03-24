@@ -26,7 +26,7 @@ style.innerHTML = `
   @keyframes fadeInGlass { to { opacity: 1; } }
   
   .fortune-slice-text {
-    font-size: 4.5px; font-weight: 900; fill: #fff; letter-spacing: -0.1px;
+    font-size: 3px; font-weight: 800; fill: #fff; letter-spacing: -0.1px;
     text-shadow: 0 1px 4px rgba(0,0,0,0.9);
   }
 `;
@@ -150,6 +150,9 @@ export default function FortuneWheel({ config, onClose, onWin }) {
               <stop offset="80%" stopColor="#ca8a04" />
               <stop offset="100%" stopColor="#713f12" />
             </radialGradient>
+            <clipPath id="centerClip">
+              <circle cx="50" cy="50" r="12" />
+            </clipPath>
           </defs>
           <circle cx="50" cy="50" r="54" fill="url(#goldRim)" stroke="#451a03" strokeWidth="0.5" />
           <circle cx="50" cy="50" r="50" fill="#0f172a" />
@@ -193,12 +196,12 @@ export default function FortuneWheel({ config, onClose, onWin }) {
               const displayLines = lines.slice(0, 3);
 
               const rad = (midAngle * Math.PI) / 180;
-              const imgRadius = 40;
+              const imgRadius = 36;
               const imgX = 50 + imgRadius * Math.cos(rad);
               const imgY = 50 + imgRadius * Math.sin(rad);
 
               const hasImage = slice.type !== 'nada' && slice.image;
-              const txtRadius = hasImage ? 25 : 32;
+              const txtRadius = hasImage ? 21 : 27;
               const tx = 50 + txtRadius * Math.cos(rad);
               const ty = 50 + txtRadius * Math.sin(rad);
 
@@ -222,16 +225,16 @@ export default function FortuneWheel({ config, onClose, onWin }) {
         </div>
 
         {/* 3. LAYER STATIC: CENTER OVERLAY & POINTER */}
-        <svg viewBox={V_BOX} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 3 }}>
+        <svg viewBox={V_BOX} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 3, pointerEvents: 'none' }}>
           {/* Centrul Roții cu Border și umbră (Premium Setup) */}
-          <circle cx="50" cy="50" r="13" fill="#ffffff" stroke="url(#goldCenter)" strokeWidth="1.5" filter="drop-shadow(0 4px 10px rgba(0,0,0,0.6))" />
+          <circle cx="50" cy="50" r="13.5" fill="#ffffff" stroke="url(#goldCenter)" strokeWidth="1.5" filter="drop-shadow(0 4px 10px rgba(0,0,0,0.6))" />
           
           {/* Logo Brand dinamic în miezul roții */}
-          <image href={`/brands/${brandId}-logo.png`} x="39" y="39" width="22" height="22" preserveAspectRatio="xMidYMid meet" />
+          <image href={`/brands/${brandId}-logo.png`} x="36" y="36" width="28" height="28" preserveAspectRatio="xMidYMid slice" clipPath="url(#centerClip)" />
           
           {/* Săgeata Indicator - Poziționată în Dreapta (axa X 100) */}
           <g filter="drop-shadow(-4px 4px 6px rgba(0,0,0,0.6))">
-            <path d="M 100 44 L 109 46 L 109 54 L 100 56 L 86 50 Z" fill="url(#goldRim)" stroke="#713f12" strokeWidth="0.5" />
+            <path d="M 100 44 L 109 46 L 109 54 L 100 56 L 93 50 Z" fill="url(#goldRim)" stroke="#713f12" strokeWidth="0.5" />
             <circle cx="104" cy="50" r="2.5" fill="#ef4444" stroke="#450a0a" strokeWidth="0.3" />
             {/* Strălucire micuță pe "dioda" roșie */}
             <circle cx="103.5" cy="49" r="0.6" fill="#fca5a5" />
