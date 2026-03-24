@@ -506,7 +506,7 @@ function KioskPosterCard({ brandId, brandName, emoji, backend }) {
                 className={`pc-type-btn ${type === t ? 'active' : ''}`}
                 onClick={() => setType(t)}
               >
-                {t === 'image' ? '🖼 Imagine' : t === 'video' ? '🎬 Video' : '🌐 Pagină web'}
+                {t === 'image' ? 'Imagine' : t === 'video' ? 'Video' : 'Pagină web'}
               </button>
             ))}
           </div>
@@ -857,7 +857,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
         
         {/* Card: Comportament */}
         <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
-          <h3 style={{ marginTop: 0, fontSize: '1.1rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>📱 Conținut Kiosk</h3>
+          <h3 style={{ marginTop: 0, fontSize: '1.1rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>Conținut Kiosk</h3>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>Selectează restaurantele pe care clienții le pot explora din această tabletă.</p>
           
           <div className="loc-brand-select" style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 24 }}>
@@ -908,7 +908,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
 
         {/* Card: Screensaver */}
         <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
-          <h3 style={{ marginTop: 0, fontSize: '1.1rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>🎬 Screensaver Standby</h3>
+          <h3 style={{ marginTop: 0, fontSize: '1.1rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>Screensaver Standby</h3>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>Rulare automată reclamă full-screen dacă tableta stă neatinsă 30s.</p>
           
           <input 
@@ -1015,7 +1015,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
         {/* Card: Banner Promo (10% Top) */}
         <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>📢 Banner Promo Persistent (Top)</h3>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>Banner Promo Persistent (Top)</h3>
             <label className="pc-toggle" style={{ margin: 0 }}>
               <input type="checkbox" checked={useBanner} onChange={e => setUseBanner(e.target.checked)} />
               <span className="toggle-slider" />
@@ -1048,7 +1048,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                 )}
 
                 <div style={{ marginTop: 24, padding: 20, background: 'var(--bg-surface)', borderRadius: 12, border: '1px solid var(--border)' }}>
-                  <h4 style={{ margin: '0 0 16px 0', fontSize: '0.95rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>⚙️ Configurare Vizuală (Design)</h4>
+                  <h4 style={{ margin: '0 0 16px 0', fontSize: '0.95rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>Configurare Vizuală (Design)</h4>
                   
                   <div style={{ marginBottom: 20 }}>
                     <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 12 }}>
@@ -1213,7 +1213,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                 )}
 
                 <div style={{ marginTop: 24, padding: 20, background: 'var(--bg-surface)', borderRadius: 12, border: '1px solid var(--border)' }}>
-                  <h4 style={{ margin: '0 0 16px 0', fontSize: '0.95rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>⚙️ Configurare Vizuală (Design)</h4>
+                  <h4 style={{ margin: '0 0 16px 0', fontSize: '0.95rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>Configurare Vizuală (Design)</h4>
                   
                   <div style={{ marginBottom: 20 }}>
                     <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 12 }}>
@@ -1541,8 +1541,8 @@ function LocationsManager({ backend }) {
                 </td>
                 <td style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
                   <div style={{ display: 'flex', gap: 12 }}>
-                    <span style={{ background: 'var(--bg-surface)', padding: '4px 8px', borderRadius: 6 }}>🪑 {loc.tables || 0}</span>
-                    <span style={{ background: 'var(--bg-surface)', padding: '4px 8px', borderRadius: 6 }}>📱 {(loc.kiosks || []).length}</span>
+                    <span style={{ background: 'var(--bg-surface)', padding: '4px 8px', borderRadius: 6 }}>Mese: {loc.tables || 0}</span>
+                    <span style={{ background: 'var(--bg-surface)', padding: '4px 8px', borderRadius: 6 }}>Kiosk-uri: {(loc.kiosks || []).length}</span>
                   </div>
                 </td>
                 <td style={{ padding: '16px' }} onClick={(e) => e.stopPropagation()}>

@@ -213,7 +213,7 @@ export default function Promotions() {
                   </td>
                   <td style={{ padding: '14px 16px', color: 'var(--text)' }}>
                     <span style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '2px 8px', borderRadius: 6, fontSize: '0.8rem' }}>
-                      {slice.type === 'product' ? 'Produs Gratuit' : slice.type === 'discount' ? 'Reducere' : 'Ghinion'}
+                      {slice.type === 'product' ? 'Produs Gratuit' : slice.type === 'discount' ? 'Reducere' : 'Necâștigător'}
                     </span>
                   </td>
                   <td style={{ padding: '14px 16px' }}>
@@ -253,7 +253,10 @@ export default function Promotions() {
             
             <div className="um-form-group">
               <label>Tip Premiu</label>
-              <select value={editingSlice.type} onChange={e => setEditingSlice({...editingSlice, type: e.target.value})} className="um-input">
+              <select value={editingSlice.type} onChange={e => {
+                const t = e.target.value;
+                setEditingSlice({...editingSlice, type: t, ...(t === 'nada' ? { name: 'Necâștigător', image: '', productId: '' } : {})});
+              }} className="um-input">
                 <option value="product">Produs din Meniu (iiko)</option>
                 <option value="discount">Discount / Cod Promo</option>
                 <option value="nada">Necâștigător (Mai încearcă)</option>

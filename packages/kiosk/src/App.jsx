@@ -141,7 +141,7 @@ export default function App() {
   if (!locationData) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', alignItems: 'center', justifyContent: 'center', background: '#111827', color: '#fff', gap: '24px', fontFamily: 'Outfit' }}>
-        <h1 style={{ fontSize: '2.5rem', marginBottom: '16px' }}>⚙️ Kiosk Setup</h1>
+        <h1 style={{ fontSize: '2.5rem', marginBottom: '16px' }}>Kiosk Setup</h1>
         <p style={{ fontSize: '1.2rem', opacity: 0.8, marginBottom: '32px' }}>Alege locația pentru această tabletă (salvare integrată PWA):</p>
         
         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center', maxWidth: '600px' }}>

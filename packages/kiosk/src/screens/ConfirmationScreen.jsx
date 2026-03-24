@@ -87,7 +87,14 @@ export default function ConfirmationScreen() {
         {wonPrize && (
           <div style={{ marginTop: 24, padding: 16, border: '2px solid #10b981', borderRadius: '16px', background: 'rgba(16, 185, 129, 0.1)' }}>
             <h3 style={{ margin: '0 0 8px 0', color: '#047857', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              <span>🎁</span> {t('prize_won', lang) || 'Ai primit un Cadou!'}
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 12 20 22 4 22 4 12"></polyline>
+                <rect x="2" y="7" width="20" height="5"></rect>
+                <line x1="12" y1="22" x2="12" y2="7"></line>
+                <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path>
+                <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path>
+              </svg>
+              {t('prize_won', lang) || 'Ai primit un Cadou!'}
             </h3>
             <p style={{ margin: 0, fontWeight: 700, fontSize: '1.2rem', color: '#10b981' }}>{wonPrize.name}</p>
             <p style={{ margin: '8px 0 0 0', fontSize: '0.9rem', color: '#047857' }}>Arată acest ecran cu numărul #{(orderNum)} The casierie pentru validare.</p>
