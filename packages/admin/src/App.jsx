@@ -759,6 +759,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [showWheelPreviewFull, setShowWheelPreviewFull] = useState(false);
 
   const [promosData, setPromosData] = useState({});
   useEffect(() => {
@@ -1026,9 +1027,43 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                  <div style={{ width: '100%', marginTop: 24, padding: 20, background: 'var(--bg-surface)', borderRadius: 12, border: '1px solid var(--border)', textAlign: 'center' }}>
                    <h4 style={{ margin: '0 0 16px 0', fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1 }}>Previzualizare Roată Live</h4>
                    {promosData[formData.promoBrandId].active ? (
-                     <div style={{ height: 400, overflow: 'hidden', position: 'relative', background: '#0f172a', borderRadius: 16 }}>
+                     <>
+                     <div 
+                       style={{ height: 400, overflow: 'hidden', position: 'relative', background: '#0f172a', borderRadius: 16, cursor: 'pointer', transition: 'transform 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                       onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
+                       onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                       onClick={() => setShowWheelPreviewFull(true)}
+                     >
                        <FortuneWheelPreview config={promosData[formData.promoBrandId].config} brandId={formData.promoBrandId} />
+                       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(15,23,42,0.9) 0%, transparent 40%)', zIndex: 10, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 20, color: '#fef08a', fontWeight: 800, fontSize: '0.9rem', letterSpacing: 1, textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
+                         🔍 APASĂ PENTRU PREVIEW FULLSCREEN
+                       </div>
                      </div>
+                     
+                     {/* OVERLAY FULLSCREEN */}
+                     {showWheelPreviewFull && (
+                       <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(15,23,42,0.95)', backdropFilter: 'blur(12px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', animation: 'fadeIn 0.3s ease' }}>
+                         
+                         {/* Close Button top-right */}
+                         <button 
+                           onClick={() => setShowWheelPreviewFull(false)}
+                           style={{ position: 'absolute', top: 30, right: 40, width: 48, height: 48, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', fontSize: '1.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100000, transition: 'all 0.2s' }}
+                           onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.2)'; e.currentTarget.style.transform = 'scale(1.1)'; }}
+                           onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.transform = 'scale(1)'; }}
+                         >
+                           ✕
+                         </button>
+
+                         <h2 style={{ color: '#fff', fontSize: '2rem', fontWeight: 800, marginBottom: 40, marginTop: -60, textShadow: '0 4px 12px rgba(0,0,0,0.5)', zIndex: 100000 }}>
+                           Așa se vede pe Kiosk!
+                         </h2>
+                         
+                         <div style={{ width: 800, height: 800, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                           <FortuneWheelPreview config={promosData[formData.promoBrandId].config} brandId={formData.promoBrandId} scale={1.2} />
+                         </div>
+                       </div>
+                     )}
+                     </>
                    ) : (
                      <div style={{ padding: 20, background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderRadius: 8, fontSize: '0.9rem', fontWeight: 600 }}>
                        Roata este OPRITĂ din modulul global de Promoții pentru acest brand. Activați-o de acolo mai întâi!

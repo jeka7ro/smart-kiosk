@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 // CSS IN JS for Keyframes & Blur
 const style = document.createElement('style');
@@ -13,9 +13,9 @@ style.innerHTML = `
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     font-family: 'Inter', system-ui, sans-serif;
     color: #fff;
-    transform: scale(0.65); /* Scaled down for Admin UI */
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     transform-origin: top center;
-    margin-bottom: -180px; /* offset the scale */
+    
   }
   
   .fortune-slice-text {
@@ -25,8 +25,25 @@ style.innerHTML = `
 `;
 document.head.appendChild(style);
 
-export default function FortuneWheelPreview({ config, brandId }) {
+export default function FortuneWheelPreview({ config, brandId, scale = 0.65, hideTitle = false }) {
   const slices = config?.slices || [];
+  const [isSpinning, setIsSpinning] = useState(false);
+  const [wheelRotation, setWheelRotation] = useState(0);
+
+  const spin = (e) => {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    if (isSpinning) return;
+    setIsSpinning(true);
+    
+    // Spin randomly like the actual wheel (minimum 5 full spins + random remainder)
+    const extraSpins = 5 * 360;
+    const finalRot = wheelRotation + extraSpins + Math.floor(Math.random() * 360);
+    setWheelRotation(finalRot);
+    
+    setTimeout(() => {
+      setIsSpinning(false);
+    }, 5000);
+  };
   
   if (slices.length === 0) {
     return (
@@ -64,18 +81,19 @@ export default function FortuneWheelPreview({ config, brandId }) {
   };
 
   const V_BOX = "-15 -15 130 130";
-  const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
-  const logoUrl = `${backendUrl}/brands/${brandId}-logo.png`;
+  const logoUrl = `/brands/${brandId}-logo.png`;
 
   return (
-    <div className="preview-fortune-wheel">
+    <div className="preview-fortune-wheel" style={{ transform: `scale(${scale})`, marginBottom: scale < 1 ? -180 : 0 }}>
       
       {/* Header Text */}
+      {!hideTitle && (
       <div style={{ textAlign: 'center', marginBottom: 20 }}>
         <h1 style={{ fontSize: '3rem', fontWeight: 900, textTransform: 'uppercase', margin: 0, textShadow: '0 4px 12px rgba(0,0,0,0.3)', color: 'var(--text)' }}>
           {config?.title || 'Roata Norocului'}
         </h1>
       </div>
+      )}
 
       {/* Wheel Area */}
       <div style={{ position: 'relative', width: 640, height: 640 }}>
@@ -116,8 +134,8 @@ export default function FortuneWheelPreview({ config, brandId }) {
           })}
         </svg>
 
-        {/* 2. LAYER STATIC: SLICES */}
-        <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 2 }}>
+        {/* 2. LAYER ANIMAT: ROTATING SLICES */}
+        <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 2, transformOrigin: '50% 50%', transform: `rotate(${wheelRotation}deg)`, transition: isSpinning ? 'transform 5s cubic-bezier(0.25, 1, 0.1, 1)' : 'none' }}>
           <svg viewBox={V_BOX} style={{ width: '100%', height: '100%' }}>
             {slices.map((slice, i) => (
               <path key={slice.id} d={getSlicePath(i)} fill={slice.bg || '#ccc'} stroke="#ffffff44" strokeWidth="0.8" />
@@ -182,6 +200,32 @@ export default function FortuneWheelPreview({ config, brandId }) {
         </svg>
 
       </div>
+
+      {/* Controls / Spin Button */}
+      <div style={{ marginTop: 60, zIndex: 10, display: 'flex', justifyContent: 'center' }}>
+        <button 
+          onClick={spin}
+          disabled={isSpinning}
+          style={{ 
+            padding: '12px 28px', 
+            borderRadius: 16, 
+            background: isSpinning ? '#475569' : '#eab308', 
+            color: isSpinning ? '#94a3b8' : '#000', 
+            fontWeight: 900, 
+            fontSize: '1.2rem', 
+            border: 'none', 
+            cursor: isSpinning ? 'not-allowed' : 'pointer',
+            boxShadow: isSpinning ? 'none' : '0 4px 12px rgba(234,179,8,0.4)',
+            transition: 'all 0.2s',
+            textTransform: 'uppercase'
+          }}
+          onMouseEnter={e => { if(!isSpinning) e.currentTarget.style.transform = 'scale(1.05)' }}
+          onMouseLeave={e => { if(!isSpinning) e.currentTarget.style.transform = 'scale(1)' }}
+        >
+          {isSpinning ? 'Se învârte...' : 'Simulează Rotirea'}
+        </button>
+      </div>
+
     </div>
   );
 }
