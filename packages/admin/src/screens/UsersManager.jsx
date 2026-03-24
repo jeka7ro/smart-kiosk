@@ -171,9 +171,13 @@ export default function UsersManager() {
                   {u.role === 'admin' ? 'Toate locațiile' : u.locations?.length ? u.locations.map(locName).join(', ') : '—'}
                 </td>
                 <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                  <button className="um-btn um-btn--ghost" onClick={() => openEdit(u)}>Editează</button>
+                  <button className="btn-business-icon" title="Editează" onClick={() => openEdit(u)}
+                    style={{ background: '#f8fafc', border: '1px solid #e2e8f0', cursor: 'pointer', padding: '8px', borderRadius: '8px', color: '#334155', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}
+                  ><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
                   {u.id !== 'env-admin' && u.id !== 'u-admin' && (
-                    <button className="um-btn um-btn--danger um-btn--sm" style={{ marginLeft: 8 }} onClick={() => deleteOne(u)}>Șterge</button>
+                    <button className="btn-business-icon" title="Șterge" style={{ marginLeft: 6, background: '#fff5f5', border: '1px solid #fecaca', cursor: 'pointer', padding: '8px', borderRadius: '8px', color: '#ef4444', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }} onClick={() => deleteOne(u)}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                    </button>
                   )}
                 </td>
               </tr>

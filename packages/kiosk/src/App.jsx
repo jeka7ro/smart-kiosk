@@ -163,7 +163,10 @@ export default function App() {
   }
 
   const showBanner = screen !== 'welcome' && locationData?.topBannerUrl;
-  const showBottomBanner = screen !== 'welcome' && locationData?.bottomBannerContent;
+  // Support new split fields AND legacy bottomBannerContent
+  const _bbUrl  = locationData?.bottomBannerUrl  || (locationData?.bottomBannerContent?.startsWith('http') ? locationData.bottomBannerContent : '') || '';
+  const _bbText = locationData?.bottomBannerText  || (!locationData?.bottomBannerContent?.startsWith('http') ? locationData?.bottomBannerContent || '' : '') || '';
+  const showBottomBanner = screen !== 'welcome' && (_bbUrl || _bbText);
 
   const renderPromoMedia = (u) => {
     if (!u) return null;
@@ -176,20 +179,23 @@ export default function App() {
     }
   };
 
-  const renderBottomBanner = (content) => {
-    if (!content) return null;
-    if (content.startsWith('http')) {
-      return renderPromoMedia(content);
-    }
+  const renderBottomBanner = () => {
     const align = locationData?.bottomBannerTextAlign || 'center';
     const logoUrl = locationData?.bottomBannerLogoUrl || '';
     const justifyMap = { left: 'flex-start', center: 'center', right: 'flex-end' };
     return (
-      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: justifyMap[align] || 'center', padding: '0 32px', boxSizing: 'border-box', gap: 16 }}>
-        {logoUrl && <img src={logoUrl} alt="" style={{ height: '60%', maxHeight: 48, objectFit: 'contain', flexShrink: 0 }} />}
-        <marquee scrollamount="6" style={{ fontSize: '1.4rem', fontWeight: 700, color: '#fff', letterSpacing: '1px' }}>
-          {content}
-        </marquee>
+      <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+        {/* Media layer (full height) */}
+        {_bbUrl && renderPromoMedia(_bbUrl)}
+        {/* Text overlay strip at bottom */}
+        {_bbText && (
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '8px 28px', background: _bbUrl ? 'linear-gradient(0deg,rgba(0,0,0,0.75) 0%,transparent 100%)' : (locationData?.bottomBannerBg || '#1e293b'), display: 'flex', alignItems: 'center', justifyContent: justifyMap[align] || 'center', gap: 12, minHeight: '40%' }}>
+            {logoUrl && <img src={logoUrl} alt="" style={{ height: 36, objectFit: 'contain', flexShrink: 0 }} />}
+            <marquee scrollamount="6" style={{ fontSize: '1.35rem', fontWeight: 700, color: '#fff', letterSpacing: '0.5px' }}>
+              {_bbText}
+            </marquee>
+          </div>
+        )}
       </div>
     );
   };
@@ -269,7 +275,7 @@ export default function App() {
             overflow: 'hidden',
             boxShadow: '0 -8px 32px rgba(0,0,0,0.15)' 
           }}>
-            {renderBottomBanner(locationData.bottomBannerContent)}
+            {renderBottomBanner()}
           </div>
         )}
         

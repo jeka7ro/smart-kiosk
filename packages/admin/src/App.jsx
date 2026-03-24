@@ -711,7 +711,8 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
     topBannerHeight: loc.topBannerHeight || 3,
     topBannerRadiusTop: loc.topBannerRadiusTop !== undefined ? loc.topBannerRadiusTop : true,
     topBannerRadiusBottom: loc.topBannerRadiusBottom !== undefined ? loc.topBannerRadiusBottom : false,
-    bottomBannerContent: loc.bottomBannerContent || '',
+    bottomBannerUrl: loc.bottomBannerUrl || (loc.bottomBannerContent?.startsWith('http') ? loc.bottomBannerContent : '') || '',
+    bottomBannerText: loc.bottomBannerText || (!loc.bottomBannerContent?.startsWith('http') ? loc.bottomBannerContent || '' : '') || '',
     bottomBannerHeight: loc.bottomBannerHeight || 2,
     bottomBannerRadiusTop: loc.bottomBannerRadiusTop !== undefined ? loc.bottomBannerRadiusTop : false,
     bottomBannerRadiusBottom: loc.bottomBannerRadiusBottom !== undefined ? loc.bottomBannerRadiusBottom : true,
@@ -745,7 +746,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
     const finalData = { ...formData };
     if (!usePin) finalData.kioskPin = '';
     if (!useBanner) finalData.topBannerUrl = '';
-    if (!useBottomBanner) finalData.bottomBannerContent = '';
+    if (!useBottomBanner) { finalData.bottomBannerUrl = ''; finalData.bottomBannerText = ''; finalData.bottomBannerContent = ''; }
 
     try {
       await fetchWithAuth(`${backend}/api/locations/${loc.id}`, {
@@ -988,27 +989,34 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
           {useBottomBanner && (
              <div style={{ animation: 'fadeIn 0.3s ease' }}>
                 
-                <h4 style={{ margin: '0 0 8px 0', fontSize: '0.85rem', color: '#334155' }}>1. Afișare Reclamă (Video/Imagine)</h4>
+                <h4 style={{ margin: '0 0 6px 0', fontSize: '0.85rem', color: '#334155', fontWeight: 700 }}>1. Reclamă (Video / Imagine)</h4>
+                <p style={{ margin: '0 0 10px', fontSize: '0.78rem', color: '#64748b' }}>MP4, WebM, imagine — se afișează pe toată înălțimea banerului de jos</p>
                 <input 
                   type="url" 
                   className="pc-input" 
-                  placeholder="URL Video MP4 sau Imagine (Lasă gol pt. text)"
-                  value={formData.bottomBannerContent.startsWith('http') ? formData.bottomBannerContent : ''}
-                  onChange={e => handleChange('bottomBannerContent', e.target.value)}
-                  style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid #cbd5e1', width: '100%', marginBottom: 16, boxSizing: 'border-box' }}
+                  placeholder="https://... URL video MP4 sau imagine"
+                  value={formData.bottomBannerUrl || ''}
+                  onChange={e => handleChange('bottomBannerUrl', e.target.value)}
+                  style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid #cbd5e1', width: '100%', marginBottom: formData.bottomBannerUrl ? 12 : 20, boxSizing: 'border-box' }}
                 />
+                {formData.bottomBannerUrl && (
+                  <div style={{ height: 72, borderRadius: 8, overflow: 'hidden', border: '1px solid #e2e8f0', background: '#f1f5f9', marginBottom: 20 }}>
+                    {renderPreview(formData.bottomBannerUrl)}
+                  </div>
+                )}
 
-                <h4 style={{ margin: '0 0 8px 0', fontSize: '0.85rem', color: '#334155' }}>2. SAU Afișare Text Derulant</h4>
+                <h4 style={{ margin: '0 0 6px 0', fontSize: '0.85rem', color: '#334155', fontWeight: 700 }}>2. Text Derulant</h4>
+                <p style={{ margin: '0 0 10px', fontSize: '0.78rem', color: '#64748b' }}>Apare deasupra reclamei (overlay) sau singur dacă nu e reclamă</p>
                 <textarea 
                   className="pc-input" 
-                  placeholder="Introdu mesajul ofertei... (Lasă gol pt. media)"
-                  value={!formData.bottomBannerContent.startsWith('http') ? formData.bottomBannerContent : ''}
-                  onChange={e => handleChange('bottomBannerContent', e.target.value)}
-                  style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid #cbd5e1', width: '100%', marginBottom: 16, boxSizing: 'border-box', minHeight: 80, resize: 'vertical' }}
+                  placeholder="Ex: Burger SmashMe -20% azi! Gratis cartofi la orice combo!"
+                  value={formData.bottomBannerText || ''}
+                  onChange={e => handleChange('bottomBannerText', e.target.value)}
+                  style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid #cbd5e1', width: '100%', marginBottom: 12, boxSizing: 'border-box', minHeight: 70, resize: 'vertical' }}
                 />
 
                 {/* Text appearance options */}
-                {!formData.bottomBannerContent.startsWith('http') && (
+                {(formData.bottomBannerText || '').length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 16, padding: 16, background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0' }}>
                     
                     {/* Position */}
