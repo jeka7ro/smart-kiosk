@@ -2,192 +2,48 @@
   "smashme": {
     "active": true,
     "config": {
-      "title": "Roata Norocului",
+      "title": "Învârte roata și câștigă!",
       "rules": {
         "minOrderValue": 45,
         "maxSpinsPerOrder": 1
       },
       "slices": [
-        {
-          "id": "smashme_n_extra_0",
-          "name": "Mai încearcă altă dată",
-          "type": "nada",
-          "probability": 10,
-          "bg": "#ef4444"
-        },
-        {
-          "id": "smashme_n_extra_1",
-          "name": "Mai încearcă altă dată",
-          "type": "nada",
-          "probability": -10,
-          "bg": "#3b82f6"
-        },
-        {
-          "id": "smashme_n_extra_2",
-          "name": "Mai încearcă altă dată",
-          "type": "nada",
-          "probability": 10,
-          "bg": "#10b981"
-        },
-        {
-          "id": "smashme_n_extra_3",
-          "name": "Mai încearcă altă dată",
-          "type": "nada",
-          "probability": 10,
-          "bg": "#f59e0b"
-        },
-        {
-          "id": "smashme_n_extra_4",
-          "name": "Mai încearcă altă dată",
-          "type": "nada",
-          "probability": 10,
-          "bg": "#8b5cf6"
-        },
-        {
-          "id": "smashme_n_extra_5",
-          "name": "Mai încearcă altă dată",
-          "type": "nada",
-          "probability": 10,
-          "bg": "#ec4899"
-        },
-        {
-          "id": "smashme_n_extra_6",
-          "name": "Mai încearcă altă dată",
-          "type": "nada",
-          "probability": 10,
-          "bg": "#06b6d4"
-        },
-        {
-          "id": "smashme_n_extra_7",
-          "name": "Mai încearcă altă dată",
-          "type": "nada",
-          "probability": 10,
-          "bg": "#84cc16"
-        },
-        {
-          "id": "smashme_n_extra_8",
-          "name": "Mai încearcă altă dată",
-          "type": "nada",
-          "probability": 10,
-          "bg": "#6366f1"
-        },
-        {
-          "id": "smashme_n_extra_9",
-          "name": "Mai încearcă altă dată",
-          "type": "nada",
-          "probability": 10,
-          "bg": "#f43f5e"
-        },
-        {
-          "id": "smashme_n_extra_10",
-          "name": "Mai încearcă altă dată",
-          "type": "nada",
-          "probability": 10,
-          "bg": "#14b8a6"
-        },
-        {
-          "id": "smashme_n_extra_11",
-          "name": "Mai încearcă altă dată",
-          "type": "nada",
-          "probability": 10,
-          "bg": "#d946ef"
-        }
+        { "id": "sm1", "name": "Burger Simplu", "type": "product", "probability": 5, "bg": "#ef4444", "image": "https://cdn-icons-png.flaticon.com/512/3075/3075977.png" },
+        { "id": "sm2", "name": "Mai încearcă altă dată", "type": "nada", "probability": 15, "bg": "#3b82f6" },
+        { "id": "sm3", "name": "Cartofi Prăjiți", "type": "product", "probability": 10, "bg": "#10b981", "image": "https://cdn-icons-png.flaticon.com/512/114/114322.png" },
+        { "id": "sm4", "name": "Mai încearcă altă dată", "type": "nada", "probability": 10, "bg": "#f59e0b" },
+        { "id": "sm5", "name": "Cola Zero", "type": "product", "probability": 10, "bg": "#8b5cf6", "image": "https://cdn-icons-png.flaticon.com/512/2405/2405461.png" },
+        { "id": "sm6", "name": "Mai încearcă altă dată", "type": "nada", "probability": 10, "bg": "#ec4899" },
+        { "id": "sm7", "name": "Sos de Usturoi", "type": "product", "probability": 10, "bg": "#06b6d4", "image": "https://cdn-icons-png.flaticon.com/512/1206/1206240.png" },
+        { "id": "sm8", "name": "Mai încearcă altă dată", "type": "nada", "probability": 10, "bg": "#84cc16" },
+        { "id": "sm9", "name": "SmashBurger", "type": "product", "probability": 2, "bg": "#6366f1", "image": "https://cdn-icons-png.flaticon.com/512/3075/3075977.png" },
+        { "id": "sm10", "name": "Mai încearcă altă dată", "type": "nada", "probability": 8, "bg": "#f43f5e" },
+        { "id": "sm11", "name": "Fries", "type": "product", "probability": 5, "bg": "#14b8a6", "image": "https://cdn-icons-png.flaticon.com/512/114/114322.png" },
+        { "id": "sm12", "name": "Mai încearcă altă dată", "type": "nada", "probability": 5, "bg": "#d946ef" }
       ]
     }
   },
   "welovesushi": {
     "active": true,
     "config": {
-      "title": "Roata Norocului",
+      "title": "Învârte roata și câștigă!",
       "rules": {
-        "minOrderValue": 100,
+        "minOrderValue": 80,
         "maxSpinsPerOrder": 1
       },
       "slices": [
-        {
-          "id": "welovesushi_n_extra_0",
-          "name": "Mai încearcă altă dată",
-          "type": "nada",
-          "probability": 10,
-          "bg": "#ef4444"
-        },
-        {
-          "id": "welovesushi_n_extra_1",
-          "name": "Mai încearcă altă dată",
-          "type": "nada",
-          "probability": -10,
-          "bg": "#3b82f6"
-        },
-        {
-          "id": "welovesushi_n_extra_2",
-          "name": "Mai încearcă altă dată",
-          "type": "nada",
-          "probability": 10,
-          "bg": "#10b981"
-        },
-        {
-          "id": "welovesushi_n_extra_3",
-          "name": "Mai încearcă altă dată",
-          "type": "nada",
-          "probability": 10,
-          "bg": "#f59e0b"
-        },
-        {
-          "id": "welovesushi_n_extra_4",
-          "name": "Mai încearcă altă dată",
-          "type": "nada",
-          "probability": 10,
-          "bg": "#8b5cf6"
-        },
-        {
-          "id": "welovesushi_n_extra_5",
-          "name": "Mai încearcă altă dată",
-          "type": "nada",
-          "probability": 10,
-          "bg": "#ec4899"
-        },
-        {
-          "id": "welovesushi_n_extra_6",
-          "name": "Mai încearcă altă dată",
-          "type": "nada",
-          "probability": 10,
-          "bg": "#06b6d4"
-        },
-        {
-          "id": "welovesushi_n_extra_7",
-          "name": "Mai încearcă altă dată",
-          "type": "nada",
-          "probability": 10,
-          "bg": "#84cc16"
-        },
-        {
-          "id": "welovesushi_n_extra_8",
-          "name": "Mai încearcă altă dată",
-          "type": "nada",
-          "probability": 10,
-          "bg": "#6366f1"
-        },
-        {
-          "id": "welovesushi_n_extra_9",
-          "name": "Mai încearcă altă dată",
-          "type": "nada",
-          "probability": 10,
-          "bg": "#f43f5e"
-        },
-        {
-          "id": "welovesushi_n_extra_10",
-          "name": "Mai încearcă altă dată",
-          "type": "nada",
-          "probability": 10,
-          "bg": "#14b8a6"
-        },
-        {
-          "id": "welovesushi_n_extra_11",
-          "name": "Mai încearcă altă dată",
-          "type": "nada",
-          "probability": 10,
-          "bg": "#d946ef"
-        }
+        { "id": "ws1", "name": "Soba cu fructe de mare in sos Chinezesc", "type": "product", "probability": 5, "bg": "#ef4444", "image": "https://cdn-icons-png.flaticon.com/512/3173/3173369.png" },
+        { "id": "ws2", "name": "Mai încearcă altă dată", "type": "nada", "probability": 20, "bg": "#3b82f6" },
+        { "id": "ws3", "name": "Soba cu pui in Sos Teriyaki", "type": "product", "probability": 5, "bg": "#10b981", "image": "https://cdn-icons-png.flaticon.com/512/3173/3173369.png" },
+        { "id": "ws4", "name": "Mai încearcă altă dată", "type": "nada", "probability": 20, "bg": "#f59e0b" },
+        { "id": "ws5", "name": "Soba Vegan in sos Sweet Sour", "type": "product", "probability": 5, "bg": "#8b5cf6", "image": "https://cdn-icons-png.flaticon.com/512/3173/3173356.png" },
+        { "id": "ws6", "name": "Mai încearcă altă dată", "type": "nada", "probability": 20, "bg": "#ec4899" },
+        { "id": "ws7", "name": "Wok orez cu fructe de mare in Sos Stridii", "type": "product", "probability": 5, "bg": "#06b6d4", "image": "https://cdn-icons-png.flaticon.com/512/3173/3173356.png" },
+        { "id": "ws8", "name": "Mai încearcă altă dată", "type": "nada", "probability": 20, "bg": "#84cc16" },
+        { "id": "ws9", "name": "Mai încearcă altă dată", "type": "nada", "probability": 0, "bg": "#6366f1" },
+        { "id": "ws10", "name": "Mai încearcă altă dată", "type": "nada", "probability": 0, "bg": "#f43f5e" },
+        { "id": "ws11", "name": "Mai încearcă altă dată", "type": "nada", "probability": 0, "bg": "#14b8a6" },
+        { "id": "ws12", "name": "Mai încearcă altă dată", "type": "nada", "probability": 0, "bg": "#d946ef" }
       ]
     }
   }

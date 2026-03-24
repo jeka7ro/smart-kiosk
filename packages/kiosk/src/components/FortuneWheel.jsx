@@ -183,32 +183,30 @@ export default function FortuneWheel({ config, onClose, onWin }) {
           {/* Textele și Imaginile */}
           {slices.map((slice, i) => {
             const midAngle = getSliceMidAngle(i);
-            const words = slice.name.split(' ');
-            const isLong = words.length > 1;
-            const line1 = isLong ? words[0] : slice.name;
-            const line2 = isLong ? words.slice(1).join(' ') : '';
+            const isLeft = midAngle > 90 && midAngle < 270;
 
             return (
-              <g key={`text-${slice.id}`} transform={`translate(50, 50) rotate(${midAngle}) translate(34, 0)`}>
-                {slice.image ? (
-                  <g transform="rotate(90)">
-                    <image href={slice.image} x="-10" y="-18" width="20" height="20" clipPath="circle(10px at 10px 10px)" preserveAspectRatio="xMidYMid slice" />
-                    <text className="fortune-slice-text" style={{ fontSize: '3.2px' }} textAnchor="middle" y="6">
-                      {slice.name.substring(0, 16)}
-                    </text>
-                  </g>
-                ) : (
-                  <g transform="rotate(90)">
-                    <text className="fortune-slice-text" textAnchor="middle" y={line2 ? "-1.5" : "1.5"}>
-                      {line1}
-                    </text>
-                    {line2 && (
-                      <text className="fortune-slice-text" style={{ fontSize: '3.2px', fontWeight: 700 }} textAnchor="middle" y="2.5">
-                        {line2.substring(0, 18)}
+              <g key={`text-${slice.id}`} transform={`translate(50, 50) rotate(${midAngle}) translate(43, 0)`}>
+                <g transform={`rotate(${isLeft ? 180 : 0})`}>
+                  {slice.image ? (
+                    <>
+                      <image 
+                        href={slice.image} 
+                        x={isLeft ? -4 : -8} 
+                        y="-6" width="12" height="12" 
+                        clipPath="circle(6px at 6px 6px)" 
+                        preserveAspectRatio="xMidYMid slice"
+                      />
+                      <text className="fortune-slice-text" style={{ fontSize: '3.4px' }} textAnchor={isLeft ? "start" : "end"} x={isLeft ? 10 : -10} y="1.2">
+                        {slice.name.substring(0, 18)}
                       </text>
-                    )}
-                  </g>
-                )}
+                    </>
+                  ) : (
+                    <text className="fortune-slice-text" style={{ fontSize: '3.8px' }} textAnchor={isLeft ? "start" : "end"} x="0" y="1.2">
+                      {slice.name.substring(0, 22)}
+                    </text>
+                  )}
+                </g>
               </g>
             );
           })}
