@@ -174,6 +174,81 @@ router.get('/modifier-images', async (req, res) => {
   }
 });
 
+// GET /api/admin/modifier-suggestions — auto-match modifier options to existing product images
+router.get('/modifier-suggestions', async (req, res) => {
+  try {
+    const allMenus = getAllCachedMenus();
+
+    // Collect all modifier options (need images)
+    const modifierMap = {};
+    // Collect all regular products WITH images (source of images)
+    const productsWithImages = [];
+
+    for (const [, entry] of Object.entries(allMenus)) {
+      if (!entry?.menu?.products) continue;
+      const brandId = entry.brandId;
+
+      for (const product of entry.menu.products) {
+        // Regular products with images
+        if (product.image) {
+          productsWithImages.push({ id: product.id, name: product.name, image: product.image, brandId });
+        }
+        // Modifier options
+        for (const group of (product.modifierGroups || [])) {
+          for (const opt of (group.options || [])) {
+            if (!modifierMap[opt.id]) {
+              modifierMap[opt.id] = { id: opt.id, name: opt.name, brandId, groupName: group.name || 'Opțiuni', price: opt.price };
+            }
+          }
+        }
+      }
+    }
+
+    // Fetch already-saved images (skip these from suggestions)
+    const { rows } = await pool.query('SELECT modifier_id FROM modifier_images');
+    const alreadySaved = new Set(rows.map(r => r.modifier_id));
+
+    // Name normalization helper
+    const normalize = (s) => (s || '')
+      .toLowerCase()
+      .replace(/[*]/g, '')
+      .replace(/[\u0103\u00e2\u00ee\u015f\u0163]/g, c => ({ '\u0103': 'a', '\u00e2': 'a', '\u00ee': 'i', '\u015f': 's', '\u0163': 't' }[c] || c))
+      .replace(/[^a-z0-9 ]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    // Similarity: count matching words
+    const similarity = (a, b) => {
+      const wa = new Set(normalize(a).split(' ').filter(w => w.length > 2));
+      const wb = new Set(normalize(b).split(' ').filter(w => w.length > 2));
+      if (!wa.size || !wb.size) return 0;
+      let matches = 0;
+      wa.forEach(w => { if (wb.has(w)) matches++; });
+      return matches / Math.max(wa.size, wb.size);
+    };
+
+    const suggestions = [];
+    for (const mod of Object.values(modifierMap)) {
+      if (alreadySaved.has(mod.id)) continue; // already has image
+      let bestMatch = null, bestScore = 0;
+      for (const prod of productsWithImages) {
+        const score = similarity(mod.name, prod.name);
+        if (score > bestScore) { bestScore = score; bestMatch = prod; }
+      }
+      if (bestScore >= 0.4 && bestMatch) { // only show confident matches
+        suggestions.push({ modifier: mod, suggestedProduct: bestMatch, confidence: Math.round(bestScore * 100) });
+      }
+    }
+
+    // Sort by confidence descending
+    suggestions.sort((a, b) => b.confidence - a.confidence);
+    res.json({ suggestions });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+
 // PUT /api/admin/modifier-images/:id — save/update image URL for a modifier
 router.put('/modifier-images/:id', async (req, res) => {
   const { id } = req.params;
