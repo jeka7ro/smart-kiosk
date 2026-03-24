@@ -345,9 +345,7 @@ export default function MenuScreen() {
                 {displayImage ? (
                   <img src={proxySyrveImage(displayImage)} alt={cat.name} className="cat-btn-img" onError={(e) => { e.target.style.display = 'none'; }} />
                 ) : (
-                  <div className="cat-btn-img" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', fontWeight: 700, background: 'var(--surface)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
-                    {cat.name.substring(0,2).toUpperCase()}
-                  </div>
+                  <div className="cat-btn-img" style={{ background: 'transparent', border: 'none', boxShadow: 'none' }} />
                 )}
                 <span className="cat-btn-label">{cat.name}</span>
               </button>
