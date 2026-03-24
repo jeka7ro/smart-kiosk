@@ -27,6 +27,15 @@
   margin-bottom: 30px;
 }
 
+.login-logo {
+  height: 68px;
+  margin-bottom: 14px;
+  mix-blend-mode: screen; /* removes the grey background on dark panel */
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .login-header h2 {
   font-size: 2rem;
   font-weight: 800;
@@ -78,6 +87,49 @@
   border-color: rgba(0, 206, 209, 0.5);
   background: rgba(0, 206, 209, 0.05);
   box-shadow: 0 0 0 4px rgba(0, 206, 209, 0.1);
+}
+
+/* ─── Password Wrapper ─────────────────────────── */
+.pass-wrap {
+  position: relative;
+}
+.pass-wrap input {
+  width: 100%;
+  padding-right: 48px;
+  box-sizing: border-box;
+}
+.pass-eye {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.4);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 0;
+  transition: color 0.15s;
+}
+.pass-eye:hover { color: #00ced1; }
+
+/* ─── Remember Me ──────────────────────────────── */
+.remember-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text-muted, #94a3b8);
+  user-select: none;
+  margin-top: -6px;
+}
+.remember-row input[type=checkbox] {
+  width: 16px;
+  height: 16px;
+  accent-color: #00ced1;
+  cursor: pointer;
 }
 
 .login-error {
