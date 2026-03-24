@@ -185,23 +185,7 @@ export default function AdminApp() {
           {connected ? 'Live' : 'Offline'}
         </div>
 
-        {/* Theme Toggle */}
-        <div style={{ padding: '0 10px', marginTop: 'auto' }}>
-          <button 
-            className="anav-btn"
-            style={{ justifyContent: 'center', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)' }}
-            onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
-          >
-            {theme === 'dark' ? 'Mod Luminos' : 'Mod Întunecat'}
-          </button>
-        </div>
 
-        <div className="admin-links">
-          <button onClick={logout} style={{background:'rgba(239,68,68,0.1)', color:'#ef4444', border:'none', padding:'8px 12px', borderRadius:'8px', cursor:'pointer', marginBottom:'10px', width:'100%', fontWeight: 500}}>Deconectare</button>
-          <a href="http://localhost:4012" target="_blank" rel="noreferrer">Kitchen Display</a>
-          <a href="http://localhost:4010/?brand=smashme" target="_blank" rel="noreferrer">Kiosk SmashMe</a>
-          <a href="http://localhost:4010/?brand=sushimaster" target="_blank" rel="noreferrer">Kiosk Sushi</a>
-        </div>
       </aside>
 
       {/* ─── Main ─── */}
@@ -215,18 +199,40 @@ export default function AdminApp() {
         </div>
 
         {/* TOP HEADER BAR */}
-        <div className="main-header-bar" style={{ padding: '0 28px', height: '80px', boxSizing: 'border-box', borderBottom: '2px solid #0f766e', display: 'flex', alignItems: 'center', background: 'var(--surface)', position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
-           <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: '#0f766e', letterSpacing: '-0.3px' }}>
+        <div className="main-header-bar" style={{ padding: '0 28px', height: '80px', boxSizing: 'border-box', borderBottom: '2px solid #0f766e', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', background: 'var(--surface)', position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <button 
+                title={theme === 'dark' ? 'Mod Luminos' : 'Mod Întunecat'}
+                onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
+                style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text)', width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', fontSize: '1.2rem', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
+              >
+                {theme === 'dark' ? '☀️' : '🌙'}
+              </button>
+              
+              <button 
+                title="Deconectare"
+                onClick={logout} 
+                className="btn-business-icon"
+                style={{ background: '#fee2e2', border: '1px solid #fca5a5', color: '#ef4444', width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+              </button>
+           </div>
+        </div>
+
+        {/* PAGE TITLE (Moved from Header to Page Content) */}
+        <div style={{ padding: '32px 28px 0 28px', flexShrink: 0 }}>
+           <h2 style={{ fontSize: '2rem', fontWeight: 800, margin: 0, color: 'var(--text)', letterSpacing: '-0.5px' }}>
               {tab === 'dashboard' && 'Dashboard Overview'}
               {tab === 'orders' && 'Gestionare Comenzi'}
               {tab === 'locations' && 'Locațiile Noastre'}
               {tab === 'kiosks' && 'Kioskuri'}
               {tab === 'qrcodes' && 'Coduri QR'}
               {tab === 'menu' && 'Sincronizare Syrve'}
-              {tab === 'modifiers' && '🖼 Imagini Modificatori Opțiuni'}
-              {tab === 'integrations' && '🔌 Integrări POS'}
+              {tab === 'modifiers' && 'Imagini Modificatori Opțiuni'}
+              {tab === 'integrations' && 'Integrări POS'}
               {tab === 'users' && 'Echipă'}
-              {tab === 'promotions' && '🎉 Roata Norocului (Promoții)'}
+              {tab === 'promotions' && 'Roata Norocului'}
            </h2>
         </div>
 
