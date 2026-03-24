@@ -6,6 +6,7 @@ import LoginScreen from './screens/LoginScreen';
 import UsersManager from './screens/UsersManager';
 import ModifierImages from './screens/ModifierImages';
 import Integrations   from './screens/Integrations';
+import Promotions     from './screens/Promotions';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 
@@ -45,7 +46,7 @@ export default function AdminApp() {
   
   const [tab, setTabState] = useState(() => {
     const hash = window.location.hash.replace('#', '');
-    const validTabs = ['dashboard', 'orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'modifiers', 'users', 'integrations'];
+    const validTabs = ['dashboard', 'orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'modifiers', 'users', 'integrations', 'promotions'];
     return validTabs.includes(hash) ? hash : 'orders';
   });
 
@@ -57,7 +58,7 @@ export default function AdminApp() {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '');
-      const validTabs = ['dashboard', 'orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'modifiers', 'users', 'integrations'];
+      const validTabs = ['dashboard', 'orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'modifiers', 'users', 'integrations', 'promotions'];
       if (validTabs.includes(hash)) setTabState(hash);
     };
     window.addEventListener('hashchange', handleHashChange);
@@ -165,6 +166,7 @@ export default function AdminApp() {
             { id: 'modifiers', label: 'Imagini Opțiuni', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg> },
             ...(user?.role === 'admin' ? [{ id: 'users', label: 'Echipă', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> }] : []),
             ...(user?.role === 'admin' ? [{ id: 'integrations', label: 'Integrări POS', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg> }] : []),
+            ...(user?.role === 'admin' ? [{ id: 'promotions', label: 'Promoții 🎉', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 2L12 22"></path><path d="M2 12L22 12"></path><path d="M5 5l14 14"></path><path d="M19 5L5 19"></path></svg> }] : []),
           ].map(item => (
             <button
               key={item.id}
@@ -224,6 +226,7 @@ export default function AdminApp() {
               {tab === 'modifiers' && '🖼 Imagini Modificatori Opțiuni'}
               {tab === 'integrations' && '🔌 Integrări POS'}
               {tab === 'users' && 'Echipă'}
+              {tab === 'promotions' && '🎉 Roata Norocului (Promoții)'}
            </h2>
         </div>
 
@@ -330,6 +333,7 @@ export default function AdminApp() {
         {/* ─── USERS MANAGER ─── */}
         {tab === 'modifiers' && <ModifierImages />}
         {tab === 'integrations' && <Integrations />}
+        {tab === 'promotions' && <Promotions />}
         {tab === 'users' && <UsersManager />}
       </main>
     </div>

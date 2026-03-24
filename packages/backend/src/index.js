@@ -19,6 +19,7 @@ const qrRoutes = require('./routes/qr');
 const authRoutes = require('./routes/auth');
 const usersRoutes        = require('./routes/users');
 const integrationsRoutes = require('./routes/integrations');
+const promotionsRoutes = require('./routes/promotions');
 
 const app = express();
 const server = http.createServer(app);
@@ -72,6 +73,7 @@ app.use('/api/admin',        adminRoutes);
 app.use('/api/users',        usersRoutes);
 app.use('/api/qr',           qrRoutes);
 app.use('/api/integrations', integrationsRoutes);
+app.use('/api/promotions',   promotionsRoutes);
 
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));

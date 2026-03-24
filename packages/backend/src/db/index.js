@@ -34,6 +34,16 @@ async function initDb() {
     );
   `);
 
+  // ─── Promotions (Wheel of Fortune) ────────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS promotions (
+      brand_id    TEXT PRIMARY KEY,
+      active      BOOLEAN DEFAULT false,
+      config      JSONB NOT NULL DEFAULT '{}',
+      updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
   // ─── Users ───────────────────────────────────────────────────────────────
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (

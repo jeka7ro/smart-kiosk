@@ -16,6 +16,7 @@ import CartScreen          from './screens/CartScreen';
 import PaymentScreen       from './screens/PaymentScreen';
 import ConfirmationScreen  from './screens/ConfirmationScreen';
 import PinScreen           from './screens/PinScreen';
+import FortuneWheel        from './components/FortuneWheel';
 import { proxySyrveImage } from './utils/imageUtils.js';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
@@ -34,6 +35,10 @@ export default function App() {
   const brand = getBrand(activeBrandId);
   const [isLocked, setIsLocked] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Promoții Roată Noroc
+  const [promoData, setPromoData] = useState(null);
+  const [showWheel, setShowWheel] = useState(false);
 
   useInactivityTimeout();
 
@@ -97,6 +102,18 @@ export default function App() {
         setLoading(false);
       });
   }, [setLocationData]);
+
+  // Fetch Promo (Wheel) after location is loaded
+  useEffect(() => {
+    if (locationData && locationData.id) {
+      fetch(`${BACKEND}/api/promotions/kiosk/${locationData.id}?t=${Date.now()}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data && data.available) setPromoData(data);
+        })
+        .catch(console.error);
+    }
+  }, [locationData]);
 
   // Auto-fullscreen on first user interaction (for kiosk/tablet mode)
   useEffect(() => {
@@ -282,9 +299,46 @@ export default function App() {
             {renderBottomBanner()}
           </div>
         )}
+
+        {/* ─── Fortune Wheel Floating Button ─── */}
+        {promoData && promoData.available && !['welcome', 'payment', 'confirmation', 'pin'].includes(screen) && !isUnlocking && (
+          <button
+            onClick={() => setShowWheel(true)}
+            style={{
+              position: 'fixed', right: 28, bottom: showBottomBanner ? `calc(${bBannerVh}vh + 28px)` : 28, zIndex: 90,
+              background: 'linear-gradient(135deg, #f59e0b, #ef4444)', padding: '16px 28px', borderRadius: '40px',
+              border: '2px solid rgba(255,255,255,0.4)', color: '#fff', fontSize: '1.2rem', fontWeight: 800, cursor: 'pointer',
+              boxShadow: '0 8px 32px rgba(239,68,68,0.4), inset 0 2px 0 rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', gap: 10,
+              animation: 'floatWheelBtn 3s infinite ease-in-out', textShadow: '0 2px 4px rgba(0,0,0,0.2)'
+            }}
+          >
+            <span style={{ fontSize: '1.8rem', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}>🎁</span>
+            Pachet Surpriză!
+          </button>
+        )}
+
+        {/* ─── Fortune Wheel Modal ─── */}
+        {showWheel && promoData && (
+          <FortuneWheel 
+            config={promoData} 
+            onClose={() => setShowWheel(false)}
+            onWin={(prize) => {
+              if (prize && prize.type !== 'nada') {
+                useKioskStore.getState().addToCart(
+                  { id: `promo_${Date.now()}`, name: `🎁 ${prize.name}`, image: prize.image || '', isPromo: true },
+                  1,
+                  [],
+                  0, // totalPrice per unit
+                  prize.brand_id || activeBrandId // if multi-brand wheel, use slice's brand. Fallback to active
+                );
+                // Optional delay before jumping to cart or just stay where it is
+                setTimeout(() => useKioskStore.getState().goTo('cart'), 1200);
+              }
+            }}
+          />
+        )}
         
       </div>
     </BrandContext.Provider>
   );
 }
-
