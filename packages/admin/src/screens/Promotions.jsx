@@ -166,15 +166,39 @@ export default function Promotions() {
         </div>
 
         {/* Global Settings */}
-        <div style={{ marginBottom: 32 }}>
-          <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: 8 }}>Titlu Modal Roată</label>
-          <input 
-            type="text" 
-            value={localConfig.title || ''} 
-            onChange={e => setLocalConfig({...localConfig, title: e.target.value})} 
-            style={{ width: '100%', maxWidth: 400, padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text)', fontSize: '0.95rem', outline: 'none' }}
-            placeholder="Învârte roata și câștigă!"
-          />
+        <div style={{ marginBottom: 32, display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 250 }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: 8 }}>Titlu Modal Roată</label>
+            <input 
+              type="text" 
+              value={localConfig.title || ''} 
+              onChange={e => setLocalConfig({...localConfig, title: e.target.value})} 
+              style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text)', fontSize: '0.95rem', outline: 'none' }}
+              placeholder="Învârte roata și câștigă!"
+            />
+          </div>
+
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: 8 }}>Sumă Minimă Coș (RON)</label>
+            <input 
+              type="number" 
+              value={localConfig.rules?.minOrderValue || 0} 
+              onChange={e => setLocalConfig({...localConfig, rules: { ...(localConfig.rules || {}), minOrderValue: Number(e.target.value) }})} 
+              style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text)', fontSize: '0.95rem', outline: 'none' }}
+              placeholder="Ex: 50"
+            />
+          </div>
+
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: 8 }}>Rotiri Permise / Comandă</label>
+            <input 
+              type="number" min="1"
+              value={localConfig.rules?.maxSpinsPerOrder || 1} 
+              onChange={e => setLocalConfig({...localConfig, rules: { ...(localConfig.rules || {}), maxSpinsPerOrder: Number(e.target.value) }})} 
+              style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text)', fontSize: '0.95rem', outline: 'none' }}
+              placeholder="Ex: 1"
+            />
+          </div>
         </div>
 
         {/* Slices List */}

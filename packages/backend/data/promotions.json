@@ -2,90 +2,94 @@
   "smashme": {
     "active": true,
     "config": {
-      "title": "Roata SmashMe",
+      "title": "Roata Norocului",
+      "rules": {
+        "minOrderValue": 45,
+        "maxSpinsPerOrder": 1
+      },
       "slices": [
         {
-          "id": "sm1",
-          "name": "Burger Simplu",
-          "type": "product",
-          "probability": 5,
+          "id": "smashme_n_extra_0",
+          "name": "Mai încearcă altă dată",
+          "type": "nada",
+          "probability": 10,
           "bg": "#ef4444"
         },
         {
-          "id": "sm2",
-          "name": "Mai încearcă",
+          "id": "smashme_n_extra_1",
+          "name": "Mai încearcă altă dată",
           "type": "nada",
-          "probability": 15,
+          "probability": -10,
           "bg": "#3b82f6"
         },
         {
-          "id": "sm3",
-          "name": "Cartofi Prăjiți",
-          "type": "product",
+          "id": "smashme_n_extra_2",
+          "name": "Mai încearcă altă dată",
+          "type": "nada",
           "probability": 10,
           "bg": "#10b981"
         },
         {
-          "id": "sm4",
-          "name": "Ghinion",
+          "id": "smashme_n_extra_3",
+          "name": "Mai încearcă altă dată",
           "type": "nada",
           "probability": 10,
           "bg": "#f59e0b"
         },
         {
-          "id": "sm5",
-          "name": "Cola Zero",
-          "type": "product",
+          "id": "smashme_n_extra_4",
+          "name": "Mai încearcă altă dată",
+          "type": "nada",
           "probability": 10,
           "bg": "#8b5cf6"
         },
         {
-          "id": "sm6",
-          "name": "Aproape!",
+          "id": "smashme_n_extra_5",
+          "name": "Mai încearcă altă dată",
           "type": "nada",
           "probability": 10,
           "bg": "#ec4899"
         },
         {
-          "id": "sm7",
-          "name": "Sos de Usturoi",
-          "type": "product",
+          "id": "smashme_n_extra_6",
+          "name": "Mai încearcă altă dată",
+          "type": "nada",
           "probability": 10,
           "bg": "#06b6d4"
         },
         {
-          "id": "sm8",
-          "name": "Mai trage o dată",
+          "id": "smashme_n_extra_7",
+          "name": "Mai încearcă altă dată",
           "type": "nada",
           "probability": 10,
           "bg": "#84cc16"
         },
         {
-          "id": "sm9",
-          "name": "SmashBurger",
-          "type": "product",
-          "probability": 2,
+          "id": "smashme_n_extra_8",
+          "name": "Mai încearcă altă dată",
+          "type": "nada",
+          "probability": 10,
           "bg": "#6366f1"
         },
         {
-          "id": "sm10",
-          "name": "Nimic azi",
+          "id": "smashme_n_extra_9",
+          "name": "Mai încearcă altă dată",
           "type": "nada",
-          "probability": 8,
+          "probability": 10,
           "bg": "#f43f5e"
         },
         {
-          "id": "sm11",
-          "name": "Gogoașă",
-          "type": "product",
-          "probability": 5,
+          "id": "smashme_n_extra_10",
+          "name": "Mai încearcă altă dată",
+          "type": "nada",
+          "probability": 10,
           "bg": "#14b8a6"
         },
         {
-          "id": "sm12",
-          "name": "Încearcă mâine",
+          "id": "smashme_n_extra_11",
+          "name": "Mai încearcă altă dată",
           "type": "nada",
-          "probability": 5,
+          "probability": 10,
           "bg": "#d946ef"
         }
       ]
@@ -94,91 +98,95 @@
   "welovesushi": {
     "active": true,
     "config": {
-      "title": "Roata WeLoveSushi",
+      "title": "Roata Norocului",
+      "rules": {
+        "minOrderValue": 100,
+        "maxSpinsPerOrder": 1
+      },
       "slices": [
         {
-          "id": "su1",
-          "name": "Sushi Roll",
-          "type": "product",
-          "probability": 5,
-          "bg": "#d946ef"
-        },
-        {
-          "id": "su2",
-          "name": "Pe aproape!",
+          "id": "welovesushi_n_extra_0",
+          "name": "Mai încearcă altă dată",
           "type": "nada",
           "probability": 10,
-          "bg": "#14b8a6"
+          "bg": "#ef4444"
         },
         {
-          "id": "su3",
-          "name": "Sos Soia",
-          "type": "product",
-          "probability": 10,
-          "bg": "#f43f5e"
+          "id": "welovesushi_n_extra_1",
+          "name": "Mai încearcă altă dată",
+          "type": "nada",
+          "probability": -10,
+          "bg": "#3b82f6"
         },
         {
-          "id": "su4",
-          "name": "Mai încearcă",
+          "id": "welovesushi_n_extra_2",
+          "name": "Mai încearcă altă dată",
           "type": "nada",
           "probability": 10,
-          "bg": "#6366f1"
+          "bg": "#10b981"
         },
         {
-          "id": "su5",
-          "name": "Orez",
-          "type": "product",
-          "probability": 10,
-          "bg": "#84cc16"
-        },
-        {
-          "id": "su6",
-          "name": "Ghinion",
+          "id": "welovesushi_n_extra_3",
+          "name": "Mai încearcă altă dată",
           "type": "nada",
           "probability": 10,
-          "bg": "#06b6d4"
+          "bg": "#f59e0b"
         },
         {
-          "id": "su7",
-          "name": "Mochi",
-          "type": "product",
-          "probability": 10,
-          "bg": "#ec4899"
-        },
-        {
-          "id": "su8",
-          "name": "Data viitoare",
+          "id": "welovesushi_n_extra_4",
+          "name": "Mai încearcă altă dată",
           "type": "nada",
           "probability": 10,
           "bg": "#8b5cf6"
         },
         {
-          "id": "su9",
-          "name": "Platou 30 Piese",
-          "type": "product",
-          "probability": 2,
-          "bg": "#f59e0b"
-        },
-        {
-          "id": "su10",
-          "name": "Încearcă iar",
-          "type": "nada",
-          "probability": 8,
-          "bg": "#10b981"
-        },
-        {
-          "id": "su11",
-          "name": "Edamame",
-          "type": "product",
-          "probability": 5,
-          "bg": "#3b82f6"
-        },
-        {
-          "id": "su12",
-          "name": "Nimic azi",
+          "id": "welovesushi_n_extra_5",
+          "name": "Mai încearcă altă dată",
           "type": "nada",
           "probability": 10,
-          "bg": "#ef4444"
+          "bg": "#ec4899"
+        },
+        {
+          "id": "welovesushi_n_extra_6",
+          "name": "Mai încearcă altă dată",
+          "type": "nada",
+          "probability": 10,
+          "bg": "#06b6d4"
+        },
+        {
+          "id": "welovesushi_n_extra_7",
+          "name": "Mai încearcă altă dată",
+          "type": "nada",
+          "probability": 10,
+          "bg": "#84cc16"
+        },
+        {
+          "id": "welovesushi_n_extra_8",
+          "name": "Mai încearcă altă dată",
+          "type": "nada",
+          "probability": 10,
+          "bg": "#6366f1"
+        },
+        {
+          "id": "welovesushi_n_extra_9",
+          "name": "Mai încearcă altă dată",
+          "type": "nada",
+          "probability": 10,
+          "bg": "#f43f5e"
+        },
+        {
+          "id": "welovesushi_n_extra_10",
+          "name": "Mai încearcă altă dată",
+          "type": "nada",
+          "probability": 10,
+          "bg": "#14b8a6"
+        },
+        {
+          "id": "welovesushi_n_extra_11",
+          "name": "Mai încearcă altă dată",
+          "type": "nada",
+          "probability": 10,
+          "bg": "#d946ef"
         }
       ]
     }

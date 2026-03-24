@@ -25,6 +25,7 @@ const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 
 export default function App() {
   const screen = useKioskStore((s) => s.screen);
+  const cartItems = useKioskStore((s) => s.cartItems);
   const isUnlocking = useKioskStore((s) => s.isUnlocking);
   const setLocationData = useKioskStore((s) => s.setLocationData);
   const setKioskData = useKioskStore((s) => s.setKioskData);
@@ -301,7 +302,16 @@ export default function App() {
         )}
 
         {/* ─── Fortune Wheel Floating Button ─── */}
-        {promoData && promoData.available && !['welcome', 'payment', 'confirmation', 'pin'].includes(screen) && !isUnlocking && (
+        {(() => {
+          const canShowPromo = promoData && promoData.available && !['welcome', 'payment', 'confirmation', 'pin'].includes(screen) && !isUnlocking;
+          const cartTotal = cartItems.reduce((sum, it) => sum + (it.totalPrice * it.qty), 0);
+          const minOrderValue = promoData?.config?.rules?.minOrderValue || 0;
+          const maxSpins = promoData?.config?.rules?.maxSpinsPerOrder || 1;
+          const hasSpunTooMany = cartItems.filter(i => i.isPromo).length >= maxSpins;
+          
+          if (!canShowPromo || cartTotal < minOrderValue || hasSpunTooMany) return null;
+
+          return (
           <button
             onClick={() => setShowWheel(true)}
             style={{
@@ -315,7 +325,8 @@ export default function App() {
             <span style={{ fontSize: '1.8rem', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}>🎁</span>
             Pachet Surpriză!
           </button>
-        )}
+          );
+        })()}
 
         {/* ─── Fortune Wheel Modal ─── */}
         {showWheel && promoData && (
