@@ -1024,7 +1024,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
 
                {/* Previzualizare Roată */}
                {formData.promoBrandId && promosData[formData.promoBrandId] ? (
-                 <div style={{ width: '100%', marginTop: 24, padding: 20, background: 'var(--bg-surface)', borderRadius: 12, border: '1px solid var(--border)', textAlign: 'center' }}>
+                 <div style={{ gridColumn: '1 / -1', width: '100%', marginTop: 24, padding: 20, background: 'var(--bg-surface)', borderRadius: 12, border: '1px solid var(--border)', textAlign: 'center', boxSizing: 'border-box' }}>
                    <h4 style={{ margin: '0 0 16px 0', fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1 }}>Previzualizare Roată Live</h4>
                    {promosData[formData.promoBrandId].active ? (
                      <>
@@ -1036,7 +1036,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                      >
                        <FortuneWheelPreview config={promosData[formData.promoBrandId].config} brandId={formData.promoBrandId} />
                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(15,23,42,0.9) 0%, transparent 40%)', zIndex: 10, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 20, color: '#fef08a', fontWeight: 800, fontSize: '0.9rem', letterSpacing: 1, textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
-                         🔍 APASĂ PENTRU PREVIEW FULLSCREEN
+                         Apasă pentru simulare
                        </div>
                      </div>
                      
