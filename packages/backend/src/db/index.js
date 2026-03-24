@@ -74,6 +74,23 @@ async function initDb() {
     );
   `);
 
+  // ── POS Integrations (multi-provider: syrve / freya / boogit / ebriza / custom) ───
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS pos_integrations (
+      id            TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
+      location_id   TEXT,
+      name          TEXT NOT NULL,                -- display name e.g. "SmashMe Syrve"
+      provider      TEXT NOT NULL,               -- syrve | freya | boogit | ebriza | custom
+      credentials   JSONB NOT NULL DEFAULT '{}', -- provider-specific API credentials
+      brand_id      TEXT,                         -- kiosk brand mapping
+      status        TEXT    DEFAULT 'pending',    -- active | error | pending
+      last_error    TEXT,
+      last_sync_at  TIMESTAMPTZ,
+      created_at    TIMESTAMPTZ DEFAULT NOW(),
+      updated_at    TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+
   console.log('[DB] Tables initialized (Supabase/PostgreSQL)');
 }
 

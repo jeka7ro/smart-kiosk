@@ -17,7 +17,8 @@ const locationRoutes = require('./routes/locations');
 const adminRoutes = require('./routes/admin');
 const qrRoutes = require('./routes/qr');
 const authRoutes = require('./routes/auth');
-const usersRoutes = require('./routes/users');
+const usersRoutes        = require('./routes/users');
+const integrationsRoutes = require('./routes/integrations');
 
 const app = express();
 const server = http.createServer(app);
@@ -62,14 +63,15 @@ initSocket(io);
 app.set('io', io);
 
 // ─── ROUTES ─────────────────────────────────────────────────────────────────
-app.use('/api/auth', authRoutes);
-app.use('/api/menu', menuRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/payment', paymentRoutes);
-app.use('/api/locations', locationRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/users', usersRoutes);
-app.use('/api/qr', qrRoutes);
+app.use('/api/auth',         authRoutes);
+app.use('/api/menu',         menuRoutes);
+app.use('/api/orders',       orderRoutes);
+app.use('/api/payment',      paymentRoutes);
+app.use('/api/locations',    locationRoutes);
+app.use('/api/admin',        adminRoutes);
+app.use('/api/users',        usersRoutes);
+app.use('/api/qr',           qrRoutes);
+app.use('/api/integrations', integrationsRoutes);
 
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));
