@@ -26,7 +26,7 @@ style.innerHTML = `
   @keyframes fadeInGlass { to { opacity: 1; } }
   
   .fortune-slice-text {
-    font-size: 3px; font-weight: 800; fill: #fff; letter-spacing: -0.1px;
+    font-size: 2.1px; font-weight: 800; fill: #fff; letter-spacing: -0.1px;
     text-shadow: 0 1px 4px rgba(0,0,0,0.9);
   }
 `;
@@ -151,7 +151,7 @@ export default function FortuneWheel({ config, onClose, onWin }) {
               <stop offset="100%" stopColor="#713f12" />
             </radialGradient>
             <clipPath id="centerClip">
-              <circle cx="50" cy="50" r="12" />
+              <circle cx="50" cy="50" r="10" />
             </clipPath>
           </defs>
           <circle cx="50" cy="50" r="54" fill="url(#goldRim)" stroke="#451a03" strokeWidth="0.5" />
@@ -189,7 +189,7 @@ export default function FortuneWheel({ config, onClose, onWin }) {
               const lines = [];
               let cur = '';
               words.forEach(w => {
-                if (cur.length + w.length > 14 && cur !== '') { lines.push(cur); cur = w; }
+                if (cur.length + w.length > 20 && cur !== '') { lines.push(cur); cur = w; }
                 else { cur += (cur ? ' ' : '') + w; }
               });
               if (cur) lines.push(cur);
@@ -230,7 +230,7 @@ export default function FortuneWheel({ config, onClose, onWin }) {
           <circle cx="50" cy="50" r="13.5" fill="#ffffff" stroke="url(#goldCenter)" strokeWidth="1.5" filter="drop-shadow(0 4px 10px rgba(0,0,0,0.6))" />
           
           {/* Logo Brand dinamic în miezul roții */}
-          <image href={`/brands/${brandId}-logo.png`} x="36" y="36" width="28" height="28" preserveAspectRatio="xMidYMid slice" clipPath="url(#centerClip)" />
+          <image href={`/brands/${brandId}-logo.png`} x="40" y="40" width="20" height="20" preserveAspectRatio="xMidYMid meet" clipPath="url(#centerClip)" />
           
           {/* Săgeata Indicator - Poziționată în Dreapta (axa X 100) */}
           <g filter="drop-shadow(-4px 4px 6px rgba(0,0,0,0.6))">
