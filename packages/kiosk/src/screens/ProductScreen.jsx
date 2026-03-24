@@ -169,6 +169,14 @@ export default function ProductScreen() {
                       className={`mod-option ${selected[mod.id] === opt.id ? 'mod-option--selected' : ''}`}
                       onClick={() => handleSelect(mod.id, opt.id)}
                     >
+                      {opt.image && (
+                        <img
+                          src={proxySyrveImage(opt.image)}
+                          alt={opt.name}
+                          className="mod-opt-img"
+                          onError={e => { e.target.style.display = 'none'; }}
+                        />
+                      )}
                       <span className="mod-opt-name">{opt.name}</span>
                       {(opt.priceDiff > 0 || opt.price > 0) && (
                         <span className="mod-opt-price">
@@ -210,7 +218,7 @@ export default function ProductScreen() {
         </div>
         
         {suggestions.length > 0 ? (
-          <div className="suggestions-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px' }}>
+          <div className="suggestions-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
             {suggestions.map((sug, i) => (
                <ProductCard 
                  key={sug.id} 
