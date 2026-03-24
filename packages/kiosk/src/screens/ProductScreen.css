@@ -104,7 +104,7 @@
   border-top: 2px solid var(--border); background: var(--bg-card);
   flex-shrink: 0;
   box-shadow: 0 -8px 24px rgba(0,0,0,0.08);
-  position: relative; z-index: 20;
+  position: relative; z-index: 60;
 }
 .qty-control { display: flex; align-items: center; border-radius: 16px; overflow: hidden; border: 2px solid var(--primary); background: var(--surface); }
 .qty-btn {

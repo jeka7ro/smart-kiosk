@@ -13,6 +13,16 @@ const STATUS_STYLE = {
 
 const EMPTY_FORM = { name: '', provider: '', brand_id: '', location_id: '', credentials: {} };
 
+// Real logos via Google Favicon API (uses each POS system's official domain)
+const PROVIDER_LOGOS = {
+  syrve:   'https://www.google.com/s2/favicons?domain=syrve.com&sz=128',
+  freya:   'https://www.google.com/s2/favicons?domain=freyapos.ro&sz=128',
+  boogit:  'https://www.google.com/s2/favicons?domain=boogit.ro&sz=128',
+  ebriza:  'https://www.google.com/s2/favicons?domain=ebriza.com&sz=128',
+  posnet:  'https://www.google.com/s2/favicons?domain=posnet.ro&sz=128',
+  custom:  null, // no logo for generic
+};
+
 export default function Integrations() {
   const { fetchWithAuth } = useAuth();
   const [integrations, setIntegrations] = useState([]);
@@ -191,7 +201,10 @@ export default function Integrations() {
                     <td><strong>{integ.name}</strong></td>
                     <td>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: pm.color, flexShrink: 0 }} />
+                        {PROVIDER_LOGOS[integ.provider]
+                          ? <img src={PROVIDER_LOGOS[integ.provider]} alt={pm.label} style={{ width: 16, height: 16, borderRadius: 3, objectFit: 'contain', flexShrink: 0 }} onError={e => { e.target.style.display='none'; }} />
+                          : <span style={{ width: 8, height: 8, borderRadius: '50%', background: pm.color, flexShrink: 0 }} />
+                        }
                         {pm.label}
                       </span>
                     </td>
@@ -291,14 +304,18 @@ export default function Integrations() {
                       type="button"
                       onClick={() => setForm(prev => ({ ...prev, provider: p.key, credentials: {} }))}
                       style={{
-                        padding: '8px 16px', borderRadius: 10, cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem',
+                        padding: '10px 16px', borderRadius: 12, cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem',
                         border: `2px solid ${form.provider === p.key ? p.color : 'var(--border, #e5e7eb)'}`,
                         background: form.provider === p.key ? `${p.color}15` : 'transparent',
                         color: form.provider === p.key ? p.color : 'var(--text, #374151)',
                         transition: 'all 0.15s',
+                        display: 'flex', alignItems: 'center', gap: 8,
                       }}
                     >
-                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: p.color, display: 'inline-block', marginRight: 6 }} />
+                      {PROVIDER_LOGOS[p.key]
+                        ? <img src={PROVIDER_LOGOS[p.key]} alt={p.label} style={{ width: 20, height: 20, borderRadius: 4, objectFit: 'contain' }} onError={e => { e.target.style.display='none'; }} />
+                        : <span style={{ width: 20, height: 20, borderRadius: 4, background: p.color, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', color: '#fff', fontWeight: 800 }}>?</span>
+                      }
                       {p.label}
                     </button>
                   ))}
