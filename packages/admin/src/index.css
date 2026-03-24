@@ -24,6 +24,12 @@
   --purple: #8b5cf6;
   --cyan: #06b6d4;
   
+  /* Semantic surface vars used by tables, cards, modals */
+  --surface: rgba(17, 24, 39, 0.75);
+  --card:    rgba(26, 32, 53, 0.6);
+  --border:  rgba(255, 255, 255, 0.1);
+  --bg-surface: rgba(26, 32, 53, 0.4);
+
   --scrollbar-thumb: rgba(255, 255, 255, 0.2);
 }
 
@@ -43,6 +49,12 @@
   --text: #1e293b;
   --text-muted: #64748b;
   
+  /* Semantic surface vars — light overrides */
+  --surface: rgba(255, 255, 255, 0.92);
+  --card:    rgba(255, 255, 255, 0.8);
+  --border:  rgba(0, 0, 0, 0.08);
+  --bg-surface: rgba(248, 250, 252, 0.9);
+
   --scrollbar-thumb: rgba(0, 0, 0, 0.2);
 }
 

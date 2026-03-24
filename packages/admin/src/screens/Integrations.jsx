@@ -153,6 +153,15 @@ export default function Integrations() {
     } catch (e) { showToast('❌ ' + e.message, 'err'); }
   };
 
+  const importSyrve = async () => {
+    try {
+      const res  = await fetchWithAuth(`${BACKEND}/api/integrations/import-from-env`, { method: 'POST' });
+      const data = await res.json();
+      if (data.ok) { showToast(`✅ ${data.detail}`); fetchAll(); }
+      else showToast('❌ ' + (data.error || 'Eroare import'), 'err');
+    } catch (e) { showToast('❌ ' + e.message, 'err'); }
+  };
+
   const providerMeta = (key) => providers.find(p => p.key === key) || { label: key, color: '#6b7280' };
 
   return (
@@ -168,7 +177,10 @@ export default function Integrations() {
             <button className="um-btn um-btn--ghost" onClick={() => setSelected(new Set())}>Deselectează</button>
           </div>
         ) : (
-          <button className="um-btn um-btn--primary" onClick={openAdd}>+ Adaugă Integrare</button>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button className="um-btn um-btn--ghost" onClick={importSyrve} title="Import Syrve" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>⬇ Import Syrve</button>
+            <button className="um-btn um-btn--primary" onClick={openAdd}>+ Adaugă Integrare</button>
+          </div>
         )}
       </div>
 

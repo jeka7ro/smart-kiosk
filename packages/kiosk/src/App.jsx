@@ -188,14 +188,18 @@ export default function App() {
         {/* Media layer (full height) */}
         {_bbUrl && renderPromoMedia(_bbUrl)}
         {/* Text overlay strip at bottom */}
-        {_bbText && (
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '8px 28px', background: _bbUrl ? 'linear-gradient(0deg,rgba(0,0,0,0.75) 0%,transparent 100%)' : (locationData?.bottomBannerBg || '#1e293b'), display: 'flex', alignItems: 'center', justifyContent: justifyMap[align] || 'center', gap: 12, minHeight: '40%' }}>
-            {logoUrl && <img src={logoUrl} alt="" style={{ height: 36, objectFit: 'contain', flexShrink: 0 }} />}
-            <marquee scrollamount="6" style={{ fontSize: '1.35rem', fontWeight: 700, color: '#fff', letterSpacing: '0.5px' }}>
-              {_bbText}
-            </marquee>
-          </div>
-        )}
+        {_bbText && (() => {
+          const isFixed = locationData?.bottomBannerTextFixed === true;
+          return (
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '8px 28px', background: _bbUrl ? 'linear-gradient(0deg,rgba(0,0,0,0.75) 0%,transparent 100%)' : (locationData?.bottomBannerBg || '#1e293b'), display: 'flex', alignItems: 'center', justifyContent: justifyMap[align] || 'center', gap: 12, minHeight: '40%', overflow: 'hidden' }}>
+              {logoUrl && <img src={logoUrl} alt="" style={{ height: 36, objectFit: 'contain', flexShrink: 0 }} />}
+              {isFixed
+                ? <span style={{ fontSize: '1.35rem', fontWeight: 700, color: '#fff', letterSpacing: '0.5px', textAlign: align }}>{_bbText}</span>
+                : <marquee scrollamount="6" style={{ fontSize: '1.35rem', fontWeight: 700, color: '#fff', letterSpacing: '0.5px' }}>{_bbText}</marquee>
+              }
+            </div>
+          );
+        })()}
       </div>
     );
   };

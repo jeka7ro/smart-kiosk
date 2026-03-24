@@ -588,9 +588,9 @@ function KiosksManager({ backend }) {
       </div>
 
       {/* Tabel Business */}
-      <div className="loc-list-container" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 14px rgba(0,0,0,0.03)', marginTop: '24px' }}>
+      <div className="loc-list-container" style={{ background: 'var(--surface)', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 4px 14px rgba(0,0,0,0.03)', marginTop: '24px' }}>
         <table className="loc-table hoverable-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-          <thead style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+          <thead style={{ background: 'var(--bg-surface)', borderBottom: '2px solid var(--border)' }}>
             <tr>
               <th style={{ padding: '16px 24px', width: '50px', color: '#64748b', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>#</th>
               <th style={{ padding: '16px 24px', color: '#64748b', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Denumire & ID</th>
@@ -670,7 +670,7 @@ function KiosksManager({ backend }) {
         </table>
         
         {/* Pagination Controls */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 24px', background: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 24px', background: 'var(--bg-surface)', borderTop: '1px solid var(--border)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: '0.82rem', color: '#64748b' }}>Rânduri pe pagină:</span>
             <select
@@ -716,6 +716,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
     bottomBannerHeight: loc.bottomBannerHeight || 2,
     bottomBannerRadiusTop: loc.bottomBannerRadiusTop !== undefined ? loc.bottomBannerRadiusTop : false,
     bottomBannerRadiusBottom: loc.bottomBannerRadiusBottom !== undefined ? loc.bottomBannerRadiusBottom : true,
+    bottomBannerTextFixed: loc.bottomBannerTextFixed || false,
     bottomBannerTextAlign: loc.bottomBannerTextAlign || 'center',
     bottomBannerBg: loc.bottomBannerBg || '#1e293b',
     bottomBannerLogoUrl: loc.bottomBannerLogoUrl || '',
@@ -1019,6 +1020,22 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                 {(formData.bottomBannerText || '').length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 16, padding: 16, background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0' }}>
                     
+                    {/* Mode: Fix / Rulant */}
+                    <div>
+                      <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted,#475569)', display: 'block', marginBottom: 8 }}>MOD AFIȘARE TEXT</label>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        {[['false', '▶ Rulant (scroll)'], ['true', '✓ Fix (static)']].map(([val, lbl]) => {
+                          const isActive = String(formData.bottomBannerTextFixed) === val;
+                          return (
+                            <button key={val} type="button"
+                              onClick={() => handleChange('bottomBannerTextFixed', val === 'true')}
+                              style={{ flex: 1, padding: '8px 4px', borderRadius: 8, border: `2px solid ${isActive ? '#0f172a' : '#cbd5e1'}`, background: isActive ? '#0f172a' : 'var(--surface,#fff)', color: isActive ? '#fff' : 'var(--text-muted,#475569)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }}
+                            >{lbl}</button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
                     {/* Position */}
                     <div>
                       <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: 8 }}>POZIȚIE TEXT</label>
@@ -1386,10 +1403,10 @@ function LocationsManager({ backend }) {
 
       {/* Locations table */}
       {/* Locations table (List View) */}
-      <div className="loc-list-container" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 14px rgba(0,0,0,0.03)', marginTop: '24px' }}>
+      <div className="loc-list-container" style={{ background: 'var(--surface)', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 4px 14px rgba(0,0,0,0.04)', marginTop: '24px' }}>
         <table className="loc-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
-            <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.85rem' }}>
+            <tr style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
               <th style={{ padding: '14px 16px', fontWeight: 600 }}>Nume Locație</th>
               <th style={{ padding: '14px 16px', fontWeight: 600 }}>Branduri Active</th>
               <th style={{ padding: '14px 16px', fontWeight: 600 }}>Statistici</th>

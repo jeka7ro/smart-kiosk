@@ -57,17 +57,19 @@
 
 /* ─── TABLE ─────────────────────────────────────────────────── */
 .um-table-wrap {
-  border: 1px solid var(--border, #e5e7eb);
+  border: 1px solid var(--border);
   border-radius: 14px;
   overflow: hidden;
-  background: var(--surface, #fff);
-  box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+  background: var(--surface);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
 }
 .um-table {
   width: 100%;
   border-collapse: collapse;
 }
-.um-table thead { background: var(--bg, #f9fafb); }
+.um-table thead { background: var(--bg-surface); }
 .um-table th {
   padding: 11px 14px;
   text-align: left;
@@ -88,7 +90,7 @@
 }
 .um-table tbody tr:last-child td { border-bottom: none; }
 .um-table tbody tr { transition: background 0.1s; }
-.um-table tbody tr:hover { background: var(--bg, #f9fafb); }
+.um-table tbody tr:hover { background: var(--bg-surface); }
 .um-row--selected { background: rgba(15, 118, 110, 0.05) !important; }
 .um-cell--muted { opacity: 0.65; }
 .um-cell--sm { font-size: 0.82rem; }
@@ -128,14 +130,17 @@
   padding: 24px;
 }
 .um-modal {
-  background: var(--surface, #fff);
+  background: var(--surface);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--border);
   border-radius: 20px;
   padding: 32px;
   width: 100%;
   max-width: 560px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
 }
 .um-modal-title { margin: 0 0 24px; font-size: 1.2rem; font-weight: 700; }
 .um-modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 20px; margin-bottom: 16px; }
@@ -150,8 +155,8 @@
   border: 1.5px solid var(--border, #e5e7eb);
   border-radius: 10px;
   font-size: 0.9rem;
-  background: var(--bg, #f9fafb);
-  color: var(--text, #111827);
+  background: var(--bg-surface);
+  color: var(--text);
   outline: none;
   font-family: inherit;
 }

@@ -203,4 +203,36 @@ router.get('/providers/list', async (req, res) => {
   res.json({ providers: list });
 });
 
+// ─── POST /api/integrations/import-from-env — auto-import Syrve from env vars ─
+router.post('/import-from-env', protect, async (req, res) => {
+  try {
+    const API_URL = process.env.SYRVE_API_URL || 'https://api-eu.syrve.live';
+    const SYRVE_BRANDS = [
+      { brandId: 'smashme',     apiKey: process.env.SYRVE_API_KEY,           orgId: (process.env.SYRVE_ORG_IDS || '').split(',')[0]?.trim() },
+      { brandId: 'sushimaster', apiKey: process.env.SYRVE_API_KEY_SUSHI,     orgId: process.env.SYRVE_ORG_ID_SUSHI },
+      { brandId: 'welovesushi', apiKey: process.env.SYRVE_API_KEY_SUSHI,     orgId: process.env.SYRVE_ORG_ID_WELOVESUSHI },
+      { brandId: 'ikura',       apiKey: process.env.SYRVE_API_KEY_SUSHI,     orgId: process.env.SYRVE_ORG_ID_IKURA },
+    ].filter(b => b.apiKey && b.orgId); // only configured brands
+
+    let created = 0;
+    let skipped = 0;
+    for (const b of SYRVE_BRANDS) {
+      const name = `${b.brandId.charAt(0).toUpperCase() + b.brandId.slice(1)} — Syrve`;
+      const creds = JSON.stringify({ apiLogin: b.apiKey, orgId: b.orgId, apiUrl: API_URL });
+
+      const { rowCount } = await pool.query(
+        `INSERT INTO pos_integrations (name, provider, credentials, brand_id, status, updated_at)
+         VALUES ($1, 'syrve', $2, $3, 'pending', NOW())
+         ON CONFLICT DO NOTHING`,
+        [name, creds, b.brandId]
+      );
+      rowCount > 0 ? created++ : skipped++;
+    }
+    res.json({ ok: true, created, skipped, total: SYRVE_BRANDS.length,
+      detail: `${created} integrări Syrve importate, ${skipped} deja existente` });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 module.exports = router;
