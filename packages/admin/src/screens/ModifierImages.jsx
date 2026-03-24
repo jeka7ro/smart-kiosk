@@ -17,6 +17,7 @@ export default function ModifierImages() {
   const [editUrl,     setEditUrl]     = useState('');
   const [saving,      setSaving]      = useState(null);
   const [toast,       setToast]       = useState(null);
+  const [selectedSugs, setSelectedSugs] = useState(new Set()); // for suggestions bulk
 
   const showToast = (msg, type = 'ok') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000); };
 
@@ -91,6 +92,35 @@ export default function ModifierImages() {
   const acceptSuggestion = (sug) => saveImage(sug.modifier.id, sug.modifier.name, sug.modifier.brandId, sug.suggestedProduct.image);
   const dismissSuggestion = (id) => setSuggestions(prev => prev.filter(s => s.modifier.id !== id));
 
+  // Bulk accept suggestions
+  const allSugsSelected = suggestions.length > 0 && suggestions.every(s => selectedSugs.has(s.modifier.id));
+  const toggleAllSugs = () => setSelectedSugs(prev => {
+    if (allSugsSelected) return new Set();
+    return new Set(suggestions.map(s => s.modifier.id));
+  });
+  const toggleOneSug = (id) => setSelectedSugs(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+
+  const [acceptingAll, setAcceptingAll] = useState(false);
+  const bulkAcceptSugs = async (ids) => {
+    const toAccept = suggestions.filter(s => ids.has(s.modifier.id));
+    if (!toAccept.length) return;
+    setAcceptingAll(true);
+    try {
+      await Promise.all(toAccept.map(sug =>
+        fetchWithAuth(`${BACKEND}/api/admin/modifier-images/${sug.modifier.id}`, {
+          method: 'PUT',
+          body: JSON.stringify({ imageUrl: sug.suggestedProduct.image, name: sug.modifier.name, brandId: sug.modifier.brandId }),
+        })
+      ));
+      showToast(`✅ ${toAccept.length} imagini acceptate!`);
+      setSelectedSugs(new Set());
+      fetchAll();
+    } catch (e) { showToast('❌ ' + e.message, 'err'); }
+    finally { setAcceptingAll(false); }
+  };
+  const acceptAllSugs = () => bulkAcceptSugs(new Set(suggestions.map(s => s.modifier.id)));
+  const acceptSelectedSugs = () => bulkAcceptSugs(selectedSugs);
+
   const th = 'um-th';
 
   return (
@@ -99,17 +129,28 @@ export default function ModifierImages() {
       {/* ── Sugestii Automate ────────────────────────────────── */}
       {suggestions.length > 0 && (
         <div style={{ marginBottom: 32 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
             <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>✨ Sugestii Automate</h2>
             <span style={{ background: '#fef3c7', color: '#92400e', fontSize: '0.72rem', fontWeight: 700, padding: '2px 10px', borderRadius: 20, border: '1px solid #fcd34d' }}>{suggestions.length}</span>
-            <span style={{ fontSize: '0.8rem', opacity: 0.5 }}>— produse din meniu cu imagini sugerate pentru modificatori cu același nume</span>
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+              {selectedSugs.size > 0 && (
+                <button className="um-btn um-btn--primary um-btn--sm" onClick={acceptSelectedSugs} disabled={acceptingAll}>
+                  {acceptingAll ? '...' : `✓ Acceptă Selectate (${selectedSugs.size})`}
+                </button>
+              )}
+              <button className="um-btn um-btn--primary" onClick={acceptAllSugs} disabled={acceptingAll} style={{ background: '#0f766e', fontWeight: 700 }}>
+                {acceptingAll ? 'Se procesează...' : `✓ Acceptă Tot (${suggestions.length})`}
+              </button>
+              <button className="um-btn um-btn--ghost um-btn--sm" onClick={() => setSuggestions([])} style={{ opacity: 0.5 }}>Ignoră Toate</button>
+            </div>
           </div>
 
           <div className="um-table-wrap" style={{ border: '1.5px solid #fbbf24' }}>
             <table className="um-table">
               <thead style={{ background: '#fffbeb' }}>
                 <tr>
-                  <th>#</th>
+                  <th style={{ width: 40 }}><input type="checkbox" checked={allSugsSelected} onChange={toggleAllSugs} /></th>
+                  <th style={{ width: 48 }}>#</th>
                   <th>Modificator</th>
                   <th>Grup</th>
                   <th>Produs Sugerat</th>
@@ -120,7 +161,8 @@ export default function ModifierImages() {
               </thead>
               <tbody>
                 {suggestions.map((sug, i) => (
-                  <tr key={sug.modifier.id}>
+                  <tr key={sug.modifier.id} className={selectedSugs.has(sug.modifier.id) ? 'um-row--selected' : ''}>
+                    <td><input type="checkbox" checked={selectedSugs.has(sug.modifier.id)} onChange={() => toggleOneSug(sug.modifier.id)} /></td>
                     <td className="um-cell--muted">{i + 1}</td>
                     <td><strong>{sug.modifier.name}</strong><br /><small className="um-cell--muted">{sug.modifier.brandId}</small></td>
                     <td className="um-cell--muted">{sug.modifier.groupName}</td>
