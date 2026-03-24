@@ -40,15 +40,19 @@ export default function ConfirmationScreen() {
         const pData = await res.json();
         
         if (pData && pData.available && pData.rules) {
-          const minVal = pData.rules.minOrderValue || 0;
-          const ordersToAppear = pData.rules.ordersToAppear || 1;
-          const ordersFinished = parseInt(localStorage.getItem('kiosk_orders_count') || '0', 10);
-          
-          // isRightFreq trebuie să evalueze momentul terminării actualei comenzi
-          const isRightFreq = ((ordersFinished) % ordersToAppear) === 0;
+          const trigger = pData.rules.triggerMoment || 'after_payment';
+          if (trigger === 'after_payment') {
+            const minVal = pData.rules.minOrderValue || 0;
+            const freqEnabled = pData.rules.freqEnabled === undefined ? true : pData.rules.freqEnabled;
+            const ordersToAppear = pData.rules.ordersToAppear || 1;
+            const ordersFinished = parseInt(localStorage.getItem('kiosk_orders_count') || '0', 10);
+            
+            // isRightFreq trebuie să evalueze momentul terminării actualei comenzi
+            const isRightFreq = freqEnabled ? ((ordersFinished % ordersToAppear) === 0) : true;
 
-          if (total >= minVal && isRightFreq) {
-             setShowWheel(true);
+            if (total >= minVal && isRightFreq) {
+               setShowWheel(true);
+            }
           }
         }
       } catch (e) {

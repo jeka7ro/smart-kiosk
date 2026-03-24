@@ -899,8 +899,13 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
           />
           
           {formData.posterUrl ? (
-            <div style={{ height: 160, borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--bg-surface)' }}>
-               {renderPreview(formData.posterUrl)}
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
+              <div style={{ width: 135, height: 240, borderRadius: 12, overflow: 'hidden', border: '6px solid #1e293b', background: '#000', position: 'relative', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}>
+                {renderPreview(formData.posterUrl)}
+                <div style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', background: 'rgba(255,255,255,0.95)', color: '#0f172a', padding: '6px 12px', borderRadius: 20, fontSize: '0.55rem', fontWeight: 800, whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
+                  Atinge pentru a începe
+                </div>
+              </div>
             </div>
           ) : (
              <div style={{ height: 160, borderRadius: 12, border: '2px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 500 }}>Fără screensaver.</div>
@@ -934,6 +939,18 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                </div>
                
                <div style={{ flex: 1, minWidth: 150 }}>
+                 <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: 8 }}>Moment Apariție Roată</label>
+                 <select 
+                   value={formData.promoTriggerMoment || 'after_payment'} 
+                   onChange={e => handleChange('promoTriggerMoment', e.target.value)}
+                   style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text)', fontSize: '0.95rem', outline: 'none' }}
+                 >
+                   <option value="before_payment">Înainte de Plată (Adaugă în coș)</option>
+                   <option value="after_payment">După Confirmare Plată (Prezintă la Casă)</option>
+                 </select>
+               </div>
+               
+               <div style={{ flex: 1, minWidth: 150 }}>
                  <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: 8 }}>Sumă Minimă Coș (RON)</label>
                  <input 
                    type="number" 
@@ -944,16 +961,30 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                  />
                </div>
 
-               <div style={{ flex: 1, minWidth: 150 }}>
-                 <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: 8 }}>Frecvență Apariție</label>
-                 <input 
-                   type="number" 
-                   value={formData.promoOrdersToAppear === 0 ? '' : formData.promoOrdersToAppear} 
-                   onChange={e => handleChange('promoOrdersToAppear', Number(e.target.value))}
-                   placeholder="N comenzi"
-                   style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text)', fontSize: '0.95rem', outline: 'none' }}
-                 />
-                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Ex: 1 = apare mereu. 3 = a 3-a oară.</span>
+               <div style={{ flex: 1, minWidth: 200 }}>
+                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                   <label style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)' }}>Limitare Frecvență</label>
+                   <label className="pc-toggle" style={{ margin: 0, transform: 'scale(0.8)' }}>
+                     <input type="checkbox" checked={formData.promoFreqEnabled || false} onChange={e => handleChange('promoFreqEnabled', e.target.checked)} />
+                     <span className="toggle-slider" />
+                   </label>
+                 </div>
+                 {formData.promoFreqEnabled ? (
+                   <>
+                     <input 
+                       type="number" 
+                       value={formData.promoOrdersToAppear === 0 ? '' : formData.promoOrdersToAppear} 
+                       onChange={e => handleChange('promoOrdersToAppear', Number(e.target.value))}
+                       placeholder="Ex: Apare la fiecare a 3-a comandă"
+                       style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text)', fontSize: '0.95rem', outline: 'none' }}
+                     />
+                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Ex: Randează doar dacă Comanda % N == 0</span>
+                   </>
+                 ) : (
+                   <div style={{ padding: '10px 14px', borderRadius: 10, background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--primary)', fontWeight: 600, fontSize: '0.9rem', textAlign: 'center' }}>
+                     Roata apare MEREU
+                   </div>
+                 )}
                </div>
              </div>
           )}
