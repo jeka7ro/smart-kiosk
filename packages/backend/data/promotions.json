@@ -1,0 +1,186 @@
+{
+  "smashme": {
+    "active": true,
+    "config": {
+      "title": "Roata SmashMe",
+      "slices": [
+        {
+          "id": "sm1",
+          "name": "Burger Simplu",
+          "type": "product",
+          "probability": 5,
+          "bg": "#ef4444"
+        },
+        {
+          "id": "sm2",
+          "name": "Mai încearcă",
+          "type": "nada",
+          "probability": 15,
+          "bg": "#3b82f6"
+        },
+        {
+          "id": "sm3",
+          "name": "Cartofi Prăjiți",
+          "type": "product",
+          "probability": 10,
+          "bg": "#10b981"
+        },
+        {
+          "id": "sm4",
+          "name": "Ghinion",
+          "type": "nada",
+          "probability": 10,
+          "bg": "#f59e0b"
+        },
+        {
+          "id": "sm5",
+          "name": "Cola Zero",
+          "type": "product",
+          "probability": 10,
+          "bg": "#8b5cf6"
+        },
+        {
+          "id": "sm6",
+          "name": "Aproape!",
+          "type": "nada",
+          "probability": 10,
+          "bg": "#ec4899"
+        },
+        {
+          "id": "sm7",
+          "name": "Sos de Usturoi",
+          "type": "product",
+          "probability": 10,
+          "bg": "#06b6d4"
+        },
+        {
+          "id": "sm8",
+          "name": "Mai trage o dată",
+          "type": "nada",
+          "probability": 10,
+          "bg": "#84cc16"
+        },
+        {
+          "id": "sm9",
+          "name": "SmashBurger",
+          "type": "product",
+          "probability": 2,
+          "bg": "#6366f1"
+        },
+        {
+          "id": "sm10",
+          "name": "Nimic azi",
+          "type": "nada",
+          "probability": 8,
+          "bg": "#f43f5e"
+        },
+        {
+          "id": "sm11",
+          "name": "Gogoașă",
+          "type": "product",
+          "probability": 5,
+          "bg": "#14b8a6"
+        },
+        {
+          "id": "sm12",
+          "name": "Încearcă mâine",
+          "type": "nada",
+          "probability": 5,
+          "bg": "#d946ef"
+        }
+      ]
+    }
+  },
+  "welovesushi": {
+    "active": true,
+    "config": {
+      "title": "Roata WeLoveSushi",
+      "slices": [
+        {
+          "id": "su1",
+          "name": "Sushi Roll",
+          "type": "product",
+          "probability": 5,
+          "bg": "#d946ef"
+        },
+        {
+          "id": "su2",
+          "name": "Pe aproape!",
+          "type": "nada",
+          "probability": 10,
+          "bg": "#14b8a6"
+        },
+        {
+          "id": "su3",
+          "name": "Sos Soia",
+          "type": "product",
+          "probability": 10,
+          "bg": "#f43f5e"
+        },
+        {
+          "id": "su4",
+          "name": "Mai încearcă",
+          "type": "nada",
+          "probability": 10,
+          "bg": "#6366f1"
+        },
+        {
+          "id": "su5",
+          "name": "Orez",
+          "type": "product",
+          "probability": 10,
+          "bg": "#84cc16"
+        },
+        {
+          "id": "su6",
+          "name": "Ghinion",
+          "type": "nada",
+          "probability": 10,
+          "bg": "#06b6d4"
+        },
+        {
+          "id": "su7",
+          "name": "Mochi",
+          "type": "product",
+          "probability": 10,
+          "bg": "#ec4899"
+        },
+        {
+          "id": "su8",
+          "name": "Data viitoare",
+          "type": "nada",
+          "probability": 10,
+          "bg": "#8b5cf6"
+        },
+        {
+          "id": "su9",
+          "name": "Platou 30 Piese",
+          "type": "product",
+          "probability": 2,
+          "bg": "#f59e0b"
+        },
+        {
+          "id": "su10",
+          "name": "Încearcă iar",
+          "type": "nada",
+          "probability": 8,
+          "bg": "#10b981"
+        },
+        {
+          "id": "su11",
+          "name": "Edamame",
+          "type": "product",
+          "probability": 5,
+          "bg": "#3b82f6"
+        },
+        {
+          "id": "su12",
+          "name": "Nimic azi",
+          "type": "nada",
+          "probability": 10,
+          "bg": "#ef4444"
+        }
+      ]
+    }
+  }
+}
