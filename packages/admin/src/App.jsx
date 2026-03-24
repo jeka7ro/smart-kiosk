@@ -715,6 +715,9 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
     bottomBannerHeight: loc.bottomBannerHeight || 2,
     bottomBannerRadiusTop: loc.bottomBannerRadiusTop !== undefined ? loc.bottomBannerRadiusTop : false,
     bottomBannerRadiusBottom: loc.bottomBannerRadiusBottom !== undefined ? loc.bottomBannerRadiusBottom : true,
+    bottomBannerTextAlign: loc.bottomBannerTextAlign || 'center',
+    bottomBannerBg: loc.bottomBannerBg || '#1e293b',
+    bottomBannerLogoUrl: loc.bottomBannerLogoUrl || '',
     kioskPin: loc.kioskPin || '',
     brands: loc.brands || [],
   });
@@ -1003,6 +1006,51 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                   onChange={e => handleChange('bottomBannerContent', e.target.value)}
                   style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid #cbd5e1', width: '100%', marginBottom: 16, boxSizing: 'border-box', minHeight: 80, resize: 'vertical' }}
                 />
+
+                {/* Text appearance options */}
+                {!formData.bottomBannerContent.startsWith('http') && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 16, padding: 16, background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0' }}>
+                    
+                    {/* Position */}
+                    <div>
+                      <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: 8 }}>POZIȚIE TEXT</label>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        {[['left', '⬅ Stânga'], ['center', '⬌ Centru'], ['right', 'Dreapta ➡']].map(([val, lbl]) => (
+                          <button key={val} type="button"
+                            onClick={() => handleChange('bottomBannerTextAlign', val)}
+                            style={{ flex: 1, padding: '8px 4px', borderRadius: 8, border: `2px solid ${formData.bottomBannerTextAlign === val ? '#0f172a' : '#cbd5e1'}`, background: formData.bottomBannerTextAlign === val ? '#0f172a' : '#fff', color: formData.bottomBannerTextAlign === val ? '#fff' : '#475569', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }}
+                          >{lbl}</button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Background color */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>CULOARE FUNDAL</label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+                        <input type="color" value={formData.bottomBannerBg} onChange={e => handleChange('bottomBannerBg', e.target.value)}
+                          style={{ width: 44, height: 36, borderRadius: 8, border: '1px solid #cbd5e1', cursor: 'pointer', padding: 2 }} />
+                        {['#1e293b','#d32f2f','#1a237e','#004d40','#4a148c','#e65100','#212121','#ffffff'].map(c => (
+                          <button key={c} type="button" onClick={() => handleChange('bottomBannerBg', c)}
+                            style={{ width: 26, height: 26, borderRadius: 6, background: c, border: formData.bottomBannerBg === c ? '3px solid #0f172a' : '2px solid #e2e8f0', cursor: 'pointer', flexShrink: 0 }} />
+                        ))}
+                        <input type="text" value={formData.bottomBannerBg} onChange={e => handleChange('bottomBannerBg', e.target.value)}
+                          style={{ width: 80, fontSize: '0.8rem', border: '1px solid #cbd5e1', borderRadius: 6, padding: '4px 8px', fontFamily: 'monospace' }} />
+                      </div>
+                    </div>
+
+                    {/* Logo URL */}
+                    <div>
+                      <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: 6 }}>LOGO PNG (opțional, se afișează alături de text)</label>
+                      <input type="url" value={formData.bottomBannerLogoUrl} onChange={e => handleChange('bottomBannerLogoUrl', e.target.value)}
+                        placeholder="https://... URL imagine PNG/SVG"
+                        style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                      {formData.bottomBannerLogoUrl && (
+                        <img src={formData.bottomBannerLogoUrl} alt="logo preview" style={{ height: 32, marginTop: 8, borderRadius: 4, objectFit: 'contain', border: '1px solid #e2e8f0', background: formData.bottomBannerBg, padding: '4px 8px' }} />
+                      )}
+                    </div>
+                  </div>
+                )}
                 
                 {formData.bottomBannerContent && formData.bottomBannerContent.startsWith('http') ? (
                   <div style={{ 

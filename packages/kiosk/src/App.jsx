@@ -181,8 +181,12 @@ export default function App() {
     if (content.startsWith('http')) {
       return renderPromoMedia(content);
     }
+    const align = locationData?.bottomBannerTextAlign || 'center';
+    const logoUrl = locationData?.bottomBannerLogoUrl || '';
+    const justifyMap = { left: 'flex-start', center: 'center', right: 'flex-end' };
     return (
-      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 24px', boxSizing: 'border-box' }}>
+      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: justifyMap[align] || 'center', padding: '0 32px', boxSizing: 'border-box', gap: 16 }}>
+        {logoUrl && <img src={logoUrl} alt="" style={{ height: '60%', maxHeight: 48, objectFit: 'contain', flexShrink: 0 }} />}
         <marquee scrollamount="6" style={{ fontSize: '1.4rem', fontWeight: 700, color: '#fff', letterSpacing: '1px' }}>
           {content}
         </marquee>
@@ -260,7 +264,7 @@ export default function App() {
             right: 0,
             height: `${bBannerVh}vh`, 
             borderRadius: `${bRadTop ? '24px' : '0'} ${bRadTop ? '24px' : '0'} ${bRadBot ? '24px' : '0'} ${bRadBot ? '24px' : '0'}`,
-            background: locationData.bottomBannerContent.startsWith('http') ? '#000' : '#1e293b', 
+            background: locationData.bottomBannerContent.startsWith('http') ? '#000' : (locationData.bottomBannerBg || '#1e293b'), 
             zIndex: 50,
             overflow: 'hidden',
             boxShadow: '0 -8px 32px rgba(0,0,0,0.15)' 
