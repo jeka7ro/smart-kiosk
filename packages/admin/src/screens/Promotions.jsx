@@ -177,28 +177,6 @@ export default function Promotions() {
               placeholder="Învârte roata și câștigă!"
             />
           </div>
-
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: 8 }}>Sumă Minimă Coș (RON)</label>
-            <input 
-              type="number" 
-              value={localConfig.rules?.minOrderValue || 0} 
-              onChange={e => setLocalConfig({...localConfig, rules: { ...(localConfig.rules || {}), minOrderValue: Number(e.target.value) }})} 
-              style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text)', fontSize: '0.95rem', outline: 'none' }}
-              placeholder="Ex: 50"
-            />
-          </div>
-
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: 8 }}>Rotiri Permise / Comandă</label>
-            <input 
-              type="number" min="1"
-              value={localConfig.rules?.maxSpinsPerOrder || 1} 
-              onChange={e => setLocalConfig({...localConfig, rules: { ...(localConfig.rules || {}), maxSpinsPerOrder: Number(e.target.value) }})} 
-              style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text)', fontSize: '0.95rem', outline: 'none' }}
-              placeholder="Ex: 1"
-            />
-          </div>
         </div>
 
         {/* Slices List */}

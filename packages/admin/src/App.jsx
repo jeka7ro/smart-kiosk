@@ -726,6 +726,10 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
     bottomBannerLogoUrl: loc.bottomBannerLogoUrl || '',
     kioskPin: loc.kioskPin || '',
     brands: loc.brands || [],
+    promoActive: loc.promoActive || false,
+    promoBrandId: loc.promoBrandId || '',
+    promoMinOrderValue: loc.promoMinOrderValue || 0,
+    promoOrdersToAppear: loc.promoOrdersToAppear || 1,
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -900,6 +904,58 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
             </div>
           ) : (
              <div style={{ height: 160, borderRadius: 12, border: '2px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 500 }}>Fără screensaver.</div>
+          )}
+        </div>
+
+        {/* Card: Promoție (Roată Kiosk) */}
+        <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>🎁 Promoție Kiosk (Roată Noroc)</h3>
+            <label className="pc-toggle" style={{ margin: 0 }}>
+              <input type="checkbox" checked={formData.promoActive || false} onChange={e => handleChange('promoActive', e.target.checked)} />
+              <span className="toggle-slider" />
+            </label>
+          </div>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>Configurează condițiile specifice acestui kiosk pentru afișarea roții.</p>
+          
+          {formData.promoActive && (
+             <div style={{ animation: 'fadeIn 0.3s ease', display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+               <div style={{ flex: 1, minWidth: 200 }}>
+                 <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: 8 }}>Alege Roata</label>
+                 <select 
+                   value={formData.promoBrandId || ''} 
+                   onChange={e => handleChange('promoBrandId', e.target.value)}
+                   style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text)', fontSize: '0.95rem', outline: 'none' }}
+                 >
+                   <option value="">Alege...</option>
+                   <option value="smashme">Roata SmashMe</option>
+                   <option value="welovesushi">Roata SushiMaster</option>
+                 </select>
+               </div>
+               
+               <div style={{ flex: 1, minWidth: 150 }}>
+                 <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: 8 }}>Sumă Minimă Coș (RON)</label>
+                 <input 
+                   type="number" 
+                   value={formData.promoMinOrderValue === 0 ? '' : formData.promoMinOrderValue} 
+                   onChange={e => handleChange('promoMinOrderValue', Number(e.target.value))}
+                   placeholder="Ex: 50"
+                   style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text)', fontSize: '0.95rem', outline: 'none' }}
+                 />
+               </div>
+
+               <div style={{ flex: 1, minWidth: 150 }}>
+                 <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: 8 }}>Frecvență Apariție</label>
+                 <input 
+                   type="number" 
+                   value={formData.promoOrdersToAppear === 0 ? '' : formData.promoOrdersToAppear} 
+                   onChange={e => handleChange('promoOrdersToAppear', Number(e.target.value))}
+                   placeholder="N comenzi"
+                   style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text)', fontSize: '0.95rem', outline: 'none' }}
+                 />
+                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Ex: 1 = apare mereu. 3 = a 3-a oară.</span>
+               </div>
+             </div>
           )}
         </div>
 

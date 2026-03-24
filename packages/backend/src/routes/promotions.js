@@ -34,35 +34,13 @@ function savePromos(data) {
 function createSeed() {
   const getColors = () => ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16', '#6366f1', '#f43f5e', '#14b8a6', '#d946ef'];
   
-  const smashSlices = [
-    { id: 'sm1', name: 'Burger Simplu', type: 'product', probability: 5 },
-    { id: 'sm2', name: 'Mai încearcă altă dată', type: 'nada', probability: 15 },
-    { id: 'sm3', name: 'Cartofi Prăjiți', type: 'product', probability: 10 },
-    { id: 'sm4', name: 'Mai încearcă altă dată', type: 'nada', probability: 10 },
-    { id: 'sm5', name: 'Cola Zero', type: 'product', probability: 10 },
-    { id: 'sm6', name: 'Mai încearcă altă dată', type: 'nada', probability: 10 },
-    { id: 'sm7', name: 'Sos de Usturoi', type: 'product', probability: 10 },
-    { id: 'sm8', name: 'Mai încearcă altă dată', type: 'nada', probability: 10 },
-    { id: 'sm9', name: 'SmashBurger', type: 'product', probability: 2 },
-    { id: 'sm10', name: 'Mai încearcă altă dată', type: 'nada', probability: 8 },
-    { id: 'sm11', name: 'Gogoașă', type: 'product', probability: 5 },
-    { id: 'sm12', name: 'Mai încearcă altă dată', type: 'nada', probability: 5 }
-  ];
+  const smashSlices = Array.from({ length: 12 }).map((_, i) => ({
+    id: `sm_${i}`, name: 'Câștigă un premiu!', type: 'nada', probability: 100/12
+  }));
 
-  const sushiSlices = [
-    { id: 'su1', name: 'Sushi Roll', type: 'product', probability: 5 },
-    { id: 'su2', name: 'Mai încearcă altă dată', type: 'nada', probability: 10 },
-    { id: 'su3', name: 'Sos Soia', type: 'product', probability: 10 },
-    { id: 'su4', name: 'Mai încearcă altă dată', type: 'nada', probability: 10 },
-    { id: 'su5', name: 'Orez', type: 'product', probability: 10 },
-    { id: 'su6', name: 'Mai încearcă altă dată', type: 'nada', probability: 10 },
-    { id: 'su7', name: 'Mochi', type: 'product', probability: 10 },
-    { id: 'su8', name: 'Mai încearcă altă dată', type: 'nada', probability: 10 },
-    { id: 'su9', name: 'Platou 30 Piese', type: 'product', probability: 2 },
-    { id: 'su10', name: 'Mai încearcă altă dată', type: 'nada', probability: 8 },
-    { id: 'su11', name: 'Edamame', type: 'product', probability: 5 },
-    { id: 'su12', name: 'Mai încearcă altă dată', type: 'nada', probability: 10 }
-  ];
+  const sushiSlices = Array.from({ length: 12 }).map((_, i) => ({
+    id: `su_${i}`, name: 'Câștigă un premiu!', type: 'nada', probability: 100/12
+  }));
 
   const colors = getColors();
   smashSlices.forEach((s, idx) => s.bg = colors[idx]);
@@ -135,75 +113,55 @@ router.put('/:brandId', protect, async (req, res) => {
 });
 
 // GET /api/promotions/kiosk/:locationId (Public Kiosk)
-// Routes based on location brands
+// Routes based on explicit Hardware Kiosk Selection!
 router.get('/kiosk/:locationId', async (req, res) => {
   try {
     const { locationId } = req.params;
-    let locBrands = [];
-    
-    // Attempt to load location brands from Postgres
+    let hardwareActive = false;
+    let reqBrand = null;
+    let minOrderValue = 0;
+    let ordersToAppear = 1;
+
+    // Load detailed Kiosk/Hardware configuration
     try {
       const locData = await pool.query('SELECT data FROM locations WHERE id = $1', [locationId]);
       if (locData.rows.length > 0) {
-        locBrands = locData.rows[0].data.brands || [];
+        const hd = locData.rows[0].data || {};
+        hardwareActive = !!hd.promoActive;
+        reqBrand = hd.promoBrandId || null;
+        minOrderValue = hd.promoMinOrderValue || 0;
+        ordersToAppear = hd.promoOrdersToAppear || 1;
       }
     } catch(err) {
-      // Fallback: try loading from local locations.json if exists
-      try {
-        const locFile = path.join(__dirname, '../../data/locations.json');
-        if (fs.existsSync(locFile)) {
-           const fileLocs = JSON.parse(fs.readFileSync(locFile, 'utf8'));
-           const loc = fileLocs.find(l => l.id === locationId);
-           if (loc && loc.brands) locBrands = loc.brands;
-        }
-      } catch(e){}
-    }
-    
-    if (locBrands.length === 0) {
-      // Ultimate fallback: assume it wants smashme if undefined
-      locBrands = ['smashme'];
+      // Fallback
     }
 
-    let allSlices = [];
-    let combinedTitle = 'Roata Norocului';
-    let available = false;
+    if (!hardwareActive || !reqBrand) {
+       return res.json({ available: false });
+    }
 
-    // Load from DB or use JSON cache
     let dataMap = {};
     try {
       const { rows } = await pool.query('SELECT brand_id, active, config FROM promotions');
       rows.forEach(r => { dataMap[r.brand_id] = { active: r.active, config: r.config }; });
-    } catch(err) {
-      dataMap = promotionsCache;
-    }
+    } catch(err) { dataMap = promotionsCache; }
     
-    if (Object.keys(dataMap).length === 0) {
-       dataMap = promotionsCache;
-    }
+    if (Object.keys(dataMap).length === 0) dataMap = promotionsCache;
 
-    locBrands.forEach(bId => {
-      const promo = dataMap[bId];
-      if (promo && promo.active && promo.config && promo.config.slices) {
-        available = true;
-        
-        // Add slices tagged with brand
-        const mappedSlices = promo.config.slices.map(s => ({
-          ...s,
-          brand_id: bId 
-        }));
-        
-        allSlices = allSlices.concat(mappedSlices);
-      }
-    });
-
-    if (!available || allSlices.length === 0) {
+    const promo = dataMap[reqBrand];
+    
+    if (!promo || !promo.config || !promo.config.slices || promo.config.slices.length === 0) {
       return res.json({ available: false });
     }
 
     res.json({
       available: true,
-      title: combinedTitle,
-      slices: allSlices
+      title: promo.config.title || 'Roata Norocului',
+      slices: promo.config.slices.map(s => ({ ...s, brand_id: reqBrand })),
+      rules: {
+        minOrderValue,
+        ordersToAppear
+      }
     });
 
   } catch (err) {

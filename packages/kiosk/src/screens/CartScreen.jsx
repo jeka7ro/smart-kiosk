@@ -15,6 +15,9 @@ export default function CartScreen() {
   const getCartTotal   = useKioskStore((s) => s.getCartTotal);
   const goTo           = useKioskStore((s) => s.goTo);
   const lang           = useKioskStore((s) => s.lang);
+  const setShowWheel   = useKioskStore((s) => s.setShowWheel);
+  const setPromoIntendedRoute = useKioskStore((s) => s.setPromoIntendedRoute);
+  
   const brand          = useBrand();
   const [imgErrors, setImgErrors] = useState({});
   const [addedIds, setAddedIds]   = useState({});
@@ -183,7 +186,37 @@ export default function CartScreen() {
               <span className="price price-xl">{subtotal.toFixed(2)} {t('lei', lang)}</span>
             </div>
           </div>
-          <button className="btn btn-pay btn-xl" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={() => goTo('payment')}>
+          <button className="btn btn-pay btn-xl" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={() => {
+            // Evaluare reguli afișaj Roata Pop-Up
+            (async () => {
+              try {
+                const locId = new URLSearchParams(window.location.search).get('loc') || localStorage.getItem('kiosk_loc_id');
+                if (!locId) return goTo('payment');
+                
+                const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
+                const res = await fetch(`${BACKEND}/api/promotions/kiosk/${locId}`);
+                const pData = await res.json();
+                
+                if (pData && pData.available && pData.rules) {
+                  const minVal = pData.rules.minOrderValue || 0;
+                  const ordersToAppear = pData.rules.ordersToAppear || 1;
+                  const ordersFinished = parseInt(localStorage.getItem('kiosk_orders_count') || '0', 10);
+                  const isRightFreq = (ordersFinished % ordersToAppear) === 0;
+                  const hasSpunTooMany = cartItems.filter(i => i.isPromo).length >= 1; // Limităm global la 1 rotire/comandă hardcodată momentan.
+
+                  if (subtotal >= minVal && isRightFreq && !hasSpunTooMany) {
+                     setPromoIntendedRoute('payment');
+                     setShowWheel(true);
+                     return;
+                  }
+                }
+              } catch (e) {
+                console.error("Promo eval failed:", e);
+              }
+              // Normal flow
+              goTo('payment');
+            })();
+          }}>
             {t('pay', lang)} {subtotal.toFixed(0)} {t('lei', lang)} →
           </button>
           <button className="btn btn-ghost btn-lg" style={{ width: '100%', marginTop: 10 }} onClick={() => goTo('menu')}>

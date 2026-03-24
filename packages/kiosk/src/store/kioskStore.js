@@ -35,7 +35,13 @@ export const useKioskStore = create((set, get) => ({
   selectedProduct: null,
 
   // ─── Navigation ───────────────────────────────────────────
-  goTo: (screen) => set({ screen }),
+  goTo: (screen) => set((state) => {
+    if (screen === 'confirmation' && state.screen !== 'confirmation') {
+       const count = parseInt(localStorage.getItem('kiosk_orders_count') || '0', 10);
+       localStorage.setItem('kiosk_orders_count', String(count + 1));
+    }
+    return { screen };
+  }),
 
   setOrderType: (type, table = null) => set({
     orderType: type,
@@ -44,6 +50,12 @@ export const useKioskStore = create((set, get) => ({
   }),
 
   isUnlocking: false,
+
+  // ─── Promo UI State ───────────────────────────────────────
+  showWheel: false,
+  setShowWheel: (val) => set({ showWheel: val }),
+  promoIntendedRoute: null,
+  setPromoIntendedRoute: (route) => set({ promoIntendedRoute: route }),
 
   // After welcome: slide up screensaver over half a second
   goAfterWelcome: () => {

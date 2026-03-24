@@ -342,8 +342,12 @@ export default function MenuScreen() {
                 className={`cat-btn ${activeCategory === cat.id ? 'cat-btn--active' : ''}`}
                 onClick={() => { setActiveCategory(cat.id); setSearch(''); }}
               >
-                {displayImage && (
+                {displayImage ? (
                   <img src={proxySyrveImage(displayImage)} alt={cat.name} className="cat-btn-img" onError={(e) => { e.target.style.display = 'none'; }} />
+                ) : (
+                  <div className="cat-btn-img" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.8rem', background: 'linear-gradient(135deg, #fef3c7, #fde68a)', color: '#d97706' }}>
+                    {/new|nou|noutăți/i.test(cat.name) ? '🔥' : '✨'}
+                  </div>
                 )}
                 <span className="cat-btn-label">{cat.name}</span>
               </button>

@@ -2,48 +2,240 @@
   "smashme": {
     "active": true,
     "config": {
-      "title": "Învârte roata și câștigă!",
+      "title": "Din partea casei!",
       "rules": {
         "minOrderValue": 45,
         "maxSpinsPerOrder": 1
       },
       "slices": [
-        { "id": "sm1", "name": "Burger Simplu", "type": "product", "probability": 5, "bg": "#ef4444", "image": "https://cdn-icons-png.flaticon.com/512/3075/3075977.png" },
-        { "id": "sm2", "name": "Mai încearcă altă dată", "type": "nada", "probability": 15, "bg": "#3b82f6" },
-        { "id": "sm3", "name": "Cartofi Prăjiți", "type": "product", "probability": 10, "bg": "#10b981", "image": "https://cdn-icons-png.flaticon.com/512/114/114322.png" },
-        { "id": "sm4", "name": "Mai încearcă altă dată", "type": "nada", "probability": 10, "bg": "#f59e0b" },
-        { "id": "sm5", "name": "Cola Zero", "type": "product", "probability": 10, "bg": "#8b5cf6", "image": "https://cdn-icons-png.flaticon.com/512/2405/2405461.png" },
-        { "id": "sm6", "name": "Mai încearcă altă dată", "type": "nada", "probability": 10, "bg": "#ec4899" },
-        { "id": "sm7", "name": "Sos de Usturoi", "type": "product", "probability": 10, "bg": "#06b6d4", "image": "https://cdn-icons-png.flaticon.com/512/1206/1206240.png" },
-        { "id": "sm8", "name": "Mai încearcă altă dată", "type": "nada", "probability": 10, "bg": "#84cc16" },
-        { "id": "sm9", "name": "SmashBurger", "type": "product", "probability": 2, "bg": "#6366f1", "image": "https://cdn-icons-png.flaticon.com/512/3075/3075977.png" },
-        { "id": "sm10", "name": "Mai încearcă altă dată", "type": "nada", "probability": 8, "bg": "#f43f5e" },
-        { "id": "sm11", "name": "Fries", "type": "product", "probability": 5, "bg": "#14b8a6", "image": "https://cdn-icons-png.flaticon.com/512/114/114322.png" },
-        { "id": "sm12", "name": "Mai încearcă altă dată", "type": "nada", "probability": 5, "bg": "#d946ef" }
+        {
+          "id": "sm_p0",
+          "name": "Sos Dip-in Cheesy 50g",
+          "type": "product",
+          "productId": "779fb5a0-f2e6-4656-8405-8be10196eeb3",
+          "image": "https://storage.cdneu.syrve.com/nomenclature_images/7601594/6102dfff-e840-48a8-befc-092b7f316e82.jpg",
+          "probability": 8.333333333333334,
+          "bg": "#ef4444"
+        },
+        {
+          "id": "sm_p1",
+          "name": "Sos Garlic Mayo 50g",
+          "type": "product",
+          "productId": "b09ef7c2-4e7d-4dde-a936-3b8f6d6b1226",
+          "image": "https://storage.cdneu.syrve.com/nomenclature_images/7601594/eaaac233-4394-4872-b223-e9b97a0ecefe.jpg",
+          "probability": 8.333333333333334,
+          "bg": "#3b82f6"
+        },
+        {
+          "id": "sm_p2",
+          "name": "Ketchup 50g",
+          "type": "product",
+          "productId": "dbb2ef28-4ff7-4fea-8ced-5d42b9b8e9b2",
+          "image": "https://storage.cdneu.syrve.com/nomenclature_images/7601594/9ebf1e86-63f5-4981-bb16-6c49382a0502.jpg",
+          "probability": 8.333333333333334,
+          "bg": "#10b981"
+        },
+        {
+          "id": "sm_p3",
+          "name": "Maioneza 50g",
+          "type": "product",
+          "productId": "fbd2c0ba-df08-411f-ab56-8a27852b67d2",
+          "image": "https://storage.cdneu.syrve.com/nomenclature_images/7601594/cd1ae5fb-24bb-4866-9cb2-3bcdf837a994.jpg",
+          "probability": 8.333333333333334,
+          "bg": "#f59e0b"
+        },
+        {
+          "id": "sm_p4",
+          "name": "Sos Smash Me 50g",
+          "type": "product",
+          "productId": "e29dba75-3869-4262-b240-1cfb24bcf12c",
+          "image": "https://storage.cdneu.syrve.com/nomenclature_images/7601594/54f8ffee-f5bd-4b1b-8ae1-e396afb86a44.jpg",
+          "probability": 8.333333333333334,
+          "bg": "#8b5cf6"
+        },
+        {
+          "id": "sm_p5",
+          "name": "Cartofi Prajiti Cajun 150 gr",
+          "type": "product",
+          "productId": "28440a75-5b9a-4c4c-8519-36686cb8a846",
+          "image": "https://storage.cdneu.syrve.com/nomenclature_images/7601594/da943aad-e9b5-4ef1-9545-e5faf1aedd0e.jpg",
+          "probability": 8.333333333333334,
+          "bg": "#ec4899"
+        },
+        {
+          "id": "sm_p6",
+          "name": "Cartofi Prajiti Classic 150 gr",
+          "type": "product",
+          "productId": "c7e42aed-73b1-4738-af8b-ecf7f19e2bfa",
+          "image": "https://storage.cdneu.syrve.com/nomenclature_images/7601594/3d988f31-87fc-4df3-bea3-38d085c3b63c.jpg",
+          "probability": 8.333333333333334,
+          "bg": "#06b6d4"
+        },
+        {
+          "id": "sm_p7",
+          "name": "Cartofi Prajiti Usturoi si Patrunjel 150 gr",
+          "type": "product",
+          "productId": "424a43ac-87f7-40cd-be8b-db1e9ddeb03a",
+          "image": "https://storage.cdneu.syrve.com/nomenclature_images/7601594/d8d1348e-6ce1-4970-bfe3-65b445b56d57.jpg",
+          "probability": 8.333333333333334,
+          "bg": "#84cc16"
+        },
+        {
+          "id": "sm_p8",
+          "name": "Cheesburger Dublu",
+          "type": "product",
+          "productId": "d99ab9b1-8a4d-4452-9305-15ba38a92305",
+          "image": "https://storage.cdneu.syrve.com/nomenclature_images/7601594/4e21ae1f-d604-458e-9a81-05f1b5f7a378.jpg",
+          "probability": 8.333333333333334,
+          "bg": "#6366f1"
+        },
+        {
+          "id": "sm_p9",
+          "name": "Cheesburger Simplu",
+          "type": "product",
+          "productId": "f1ae5619-d0e1-4f4c-b86e-ecfe05baaed4",
+          "image": "https://storage.cdneu.syrve.com/nomenclature_images/7601594/5f23895a-a7b6-4fd6-a6dd-a9d713b30d5a.jpg",
+          "probability": 8.333333333333334,
+          "bg": "#f43f5e"
+        },
+        {
+          "id": "sm_p10",
+          "name": "Cheesburger Triplu",
+          "type": "product",
+          "productId": "fde10ee6-419a-47e9-bb15-37a0b5b3caa3",
+          "image": "https://storage.cdneu.syrve.com/nomenclature_images/7601594/ae802cdb-d95a-4071-9e51-a0fd514d1b82.jpg",
+          "probability": 8.333333333333334,
+          "bg": "#14b8a6"
+        },
+        {
+          "id": "sm_p11",
+          "name": "Chicken Burger",
+          "type": "product",
+          "productId": "5db3ae9e-2a63-4a53-bce5-ba5ab4d0860f",
+          "image": "https://storage.cdneu.syrve.com/nomenclature_images/7601594/da5a3a4d-be2f-4769-86ce-d0ee2b969b56.png",
+          "probability": 8.333333333333334,
+          "bg": "#d946ef"
+        }
       ]
     }
   },
   "welovesushi": {
     "active": true,
     "config": {
-      "title": "Învârte roata și câștigă!",
+      "title": "Îți oferim cu drag!",
       "rules": {
         "minOrderValue": 80,
         "maxSpinsPerOrder": 1
       },
       "slices": [
-        { "id": "ws1", "name": "Soba cu fructe de mare in sos Chinezesc", "type": "product", "probability": 5, "bg": "#ef4444", "image": "https://cdn-icons-png.flaticon.com/512/3173/3173369.png" },
-        { "id": "ws2", "name": "Mai încearcă altă dată", "type": "nada", "probability": 20, "bg": "#3b82f6" },
-        { "id": "ws3", "name": "Soba cu pui in Sos Teriyaki", "type": "product", "probability": 5, "bg": "#10b981", "image": "https://cdn-icons-png.flaticon.com/512/3173/3173369.png" },
-        { "id": "ws4", "name": "Mai încearcă altă dată", "type": "nada", "probability": 20, "bg": "#f59e0b" },
-        { "id": "ws5", "name": "Soba Vegan in sos Sweet Sour", "type": "product", "probability": 5, "bg": "#8b5cf6", "image": "https://cdn-icons-png.flaticon.com/512/3173/3173356.png" },
-        { "id": "ws6", "name": "Mai încearcă altă dată", "type": "nada", "probability": 20, "bg": "#ec4899" },
-        { "id": "ws7", "name": "Wok orez cu fructe de mare in Sos Stridii", "type": "product", "probability": 5, "bg": "#06b6d4", "image": "https://cdn-icons-png.flaticon.com/512/3173/3173356.png" },
-        { "id": "ws8", "name": "Mai încearcă altă dată", "type": "nada", "probability": 20, "bg": "#84cc16" },
-        { "id": "ws9", "name": "Mai încearcă altă dată", "type": "nada", "probability": 0, "bg": "#6366f1" },
-        { "id": "ws10", "name": "Mai încearcă altă dată", "type": "nada", "probability": 0, "bg": "#f43f5e" },
-        { "id": "ws11", "name": "Mai încearcă altă dată", "type": "nada", "probability": 0, "bg": "#14b8a6" },
-        { "id": "ws12", "name": "Mai încearcă altă dată", "type": "nada", "probability": 0, "bg": "#d946ef" }
+        {
+          "id": "ws_p0",
+          "name": "Lots Of Salmon Set",
+          "type": "product",
+          "productId": "9c7b052c-2d55-487a-a2c7-75fb70d31e9b",
+          "image": "https://storage.cdneu.syrve.com/nomenclature_images/295833/93ef1ab1-2c7f-4285-859f-b6522198331b.png",
+          "probability": 8.333333333333334,
+          "bg": "#ef4444"
+        },
+        {
+          "id": "ws_p1",
+          "name": "SushiMaster 1kg NEW",
+          "type": "product",
+          "productId": "ac343e83-5147-4454-9b73-00907a979670",
+          "image": "https://storage.cdneu.syrve.com/nomenclature_images/295833/35c937ce-f358-4d63-b637-e0a840462b20.png",
+          "probability": 8.333333333333334,
+          "bg": "#3b82f6"
+        },
+        {
+          "id": "ws_p2",
+          "name": "SushiMaster All In Remix",
+          "type": "product",
+          "productId": "1b1b4142-d824-430e-879c-6b9ff927b837",
+          "image": "https://storage.cdneu.syrve.com/nomenclature_images/295833/3efa829c-3bd7-4b91-9a75-bd86026fb3f2.png",
+          "probability": 8.333333333333334,
+          "bg": "#10b981"
+        },
+        {
+          "id": "ws_p3",
+          "name": "SushiMaster Big in Japan",
+          "type": "product",
+          "productId": "60aca4e5-2a12-4e93-84b0-03b96ed03630",
+          "image": "https://storage.cdneu.syrve.com/nomenclature_images/295833/6feb48c5-2886-4da5-b10d-47097fd98821.png",
+          "probability": 8.333333333333334,
+          "bg": "#f59e0b"
+        },
+        {
+          "id": "ws_p4",
+          "name": "SushiMaster Big Party Set",
+          "type": "product",
+          "productId": "d5edd6b9-a731-4b0f-8998-557e8f6c76b9",
+          "image": "https://storage.cdneu.syrve.com/nomenclature_images/295833/4660855e-dbb6-43f8-bf73-86dd8e1f3705.png",
+          "probability": 8.333333333333334,
+          "bg": "#8b5cf6"
+        },
+        {
+          "id": "ws_p5",
+          "name": "SushiMaster Chef's Set",
+          "type": "product",
+          "productId": "94a7179f-679a-450b-bef9-a6fe724f2dbc",
+          "image": "https://storage.cdneu.syrve.com/nomenclature_images/295833/2d9ca6de-83c8-460b-be44-150dcbe9748a.png",
+          "probability": 8.333333333333334,
+          "bg": "#ec4899"
+        },
+        {
+          "id": "ws_p6",
+          "name": "SushiMaster Fancy",
+          "type": "product",
+          "productId": "48d104a8-88cd-491b-831b-2f40d9f58f50",
+          "image": "https://storage.cdneu.syrve.com/nomenclature_images/295833/41dc70b3-7b07-47e1-aab1-9af54d845186.png",
+          "probability": 8.333333333333334,
+          "bg": "#06b6d4"
+        },
+        {
+          "id": "ws_p7",
+          "name": "SushiMaster First Class",
+          "type": "product",
+          "productId": "3a39f276-e04f-41ab-9b97-467dddacfd1d",
+          "image": "https://storage.cdneu.syrve.com/nomenclature_images/295833/17c2abac-5aef-4f5c-9883-8eacb1426177.png",
+          "probability": 8.333333333333334,
+          "bg": "#84cc16"
+        },
+        {
+          "id": "ws_p8",
+          "name": "SushiMaster Fish&Cheese",
+          "type": "product",
+          "productId": "a6de8a67-133d-444e-baec-593b9ce2d575",
+          "image": "https://storage.cdneu.syrve.com/nomenclature_images/295833/a4eb1831-0a19-4f5f-af77-8d9d7f024e8d.png",
+          "probability": 8.333333333333334,
+          "bg": "#6366f1"
+        },
+        {
+          "id": "ws_p9",
+          "name": "SushiMaster For You",
+          "type": "product",
+          "productId": "2ea84b56-dbaf-43a1-978f-406151af5057",
+          "image": "https://storage.cdneu.syrve.com/nomenclature_images/295833/b5ae598e-c09f-4d49-a944-910bd2bc6400.png",
+          "probability": 8.333333333333334,
+          "bg": "#f43f5e"
+        },
+        {
+          "id": "ws_p10",
+          "name": "SushiMaster Full House",
+          "type": "product",
+          "productId": "9eaacadb-a950-4ad1-86ea-ba06786d6e90",
+          "image": "https://storage.cdneu.syrve.com/nomenclature_images/295833/ec6bdfea-5e95-4f2d-b8ad-fdb340afc579.png",
+          "probability": 8.333333333333334,
+          "bg": "#14b8a6"
+        },
+        {
+          "id": "ws_p11",
+          "name": "Sushimaster Fusion Set",
+          "type": "product",
+          "productId": "f7c630c2-7a62-44d8-8b67-ea992f9e57ee",
+          "image": "https://storage.cdneu.syrve.com/nomenclature_images/295833/6e17ce44-cc0a-4b76-b9fe-38516258526a.png",
+          "probability": 8.333333333333334,
+          "bg": "#d946ef"
+        }
       ]
     }
   }

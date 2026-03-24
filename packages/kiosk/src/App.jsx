@@ -39,7 +39,8 @@ export default function App() {
 
   // Promoții Roată Noroc
   const [promoData, setPromoData] = useState(null);
-  const [showWheel, setShowWheel] = useState(false);
+  const showWheel = useKioskStore((s) => s.showWheel);
+  const setShowWheel = useKioskStore((s) => s.setShowWheel);
 
   useInactivityTimeout();
 
@@ -301,38 +302,20 @@ export default function App() {
           </div>
         )}
 
-        {/* ─── Fortune Wheel Floating Button ─── */}
-        {(() => {
-          const canShowPromo = promoData && promoData.available && !['welcome', 'payment', 'confirmation', 'pin'].includes(screen) && !isUnlocking;
-          const cartTotal = cartItems.reduce((sum, it) => sum + (it.totalPrice * it.qty), 0);
-          const minOrderValue = promoData?.config?.rules?.minOrderValue || 0;
-          const maxSpins = promoData?.config?.rules?.maxSpinsPerOrder || 1;
-          const hasSpunTooMany = cartItems.filter(i => i.isPromo).length >= maxSpins;
-          
-          if (!canShowPromo || cartTotal < minOrderValue || hasSpunTooMany) return null;
+        {/* Floating Button eliminat complet la cererea clientului */}
 
-          return (
-          <button
-            onClick={() => setShowWheel(true)}
-            style={{
-              position: 'fixed', right: 28, bottom: showBottomBanner ? `calc(${bBannerVh}vh + 28px)` : 28, zIndex: 90,
-              background: 'linear-gradient(135deg, #f59e0b, #ef4444)', padding: '16px 28px', borderRadius: '40px',
-              border: '2px solid rgba(255,255,255,0.4)', color: '#fff', fontSize: '1.2rem', fontWeight: 800, cursor: 'pointer',
-              boxShadow: '0 8px 32px rgba(239,68,68,0.4), inset 0 2px 0 rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', gap: 10,
-              animation: 'floatWheelBtn 3s infinite ease-in-out', textShadow: '0 2px 4px rgba(0,0,0,0.2)'
-            }}
-          >
-            <span style={{ fontSize: '1.8rem', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}>🎁</span>
-            Pachet Surpriză!
-          </button>
-          );
-        })()}
-
-        {/* ─── Fortune Wheel Modal ─── */}
+        {/* ─── Fortune Wheel Modal (Triggered Internally e.g. from Checkout) ─── */}
         {showWheel && promoData && (
           <FortuneWheel 
             config={promoData} 
-            onClose={() => setShowWheel(false)}
+            onClose={() => {
+               setShowWheel(false);
+               // Dacă roata a fost declanșată fix înainte de plată, mergem la plată
+               if (useKioskStore.getState().promoIntendedRoute === 'payment') {
+                 useKioskStore.getState().setPromoIntendedRoute(null);
+                 useKioskStore.getState().goTo('payment');
+               }
+            }}
             onWin={(prize) => {
               if (prize && prize.type !== 'nada') {
                 useKioskStore.getState().addToCart(
@@ -345,11 +328,16 @@ export default function App() {
                   1,
                   [],
                   0, // totalPrice per unit
-                  prize.brand_id || activeBrandId // if multi-brand wheel, use slice's brand. Fallback to active
+                  prize.brand_id || activeBrandId
                 );
-                // Optional delay before jumping to cart or just stay where it is
-                setTimeout(() => useKioskStore.getState().goTo('cart'), 1200);
               }
+              setTimeout(() => {
+                 setShowWheel(false);
+                 if (useKioskStore.getState().promoIntendedRoute === 'payment') {
+                   useKioskStore.getState().setPromoIntendedRoute(null);
+                   useKioskStore.getState().goTo('payment');
+                 }
+              }, 1800);
             }}
           />
         )}
