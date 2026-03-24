@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import useKioskStore from '../store/kioskStore';
+import { useKioskStore } from '../store/kioskStore';
 
 // CSS IN JS for Keyframes & Blur
 const style = document.createElement('style');
@@ -34,7 +34,7 @@ document.head.appendChild(style);
 
 export default function FortuneWheel({ config, onClose, onWin }) {
   const slices = config?.slices || [];
-  const brandId = useKioskStore(s => s.brandId) || 'smashme';
+  const brandId = useKioskStore(s => s.activeBrandId) || 'smashme';
   
   const [isSpinning, setIsSpinning] = useState(false);
   const [wheelRotation, setWheelRotation] = useState(0);
