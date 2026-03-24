@@ -25,8 +25,8 @@ style.innerHTML = `
   @keyframes fadeInGlass { to { opacity: 1; } }
   
   .fortune-slice-text {
-    font-size: 1.1rem; font-weight: 800; fill: #fff; letter-spacing: -0.5px;
-    text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    font-size: 4px; font-weight: 900; fill: #fff; letter-spacing: -0.1px;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
   }
 `;
 document.head.appendChild(style);
@@ -183,15 +183,31 @@ export default function FortuneWheel({ config, onClose, onWin }) {
           {/* Textele și Imaginile */}
           {slices.map((slice, i) => {
             const midAngle = getSliceMidAngle(i);
+            const words = slice.name.split(' ');
+            const isLong = words.length > 1;
+            const line1 = isLong ? words[0] : slice.name;
+            const line2 = isLong ? words.slice(1).join(' ') : '';
+
             return (
-              <g key={`text-${slice.id}`} transform={`translate(50, 50) rotate(${midAngle}) translate(28, 0)`}>
+              <g key={`text-${slice.id}`} transform={`translate(50, 50) rotate(${midAngle}) translate(34, 0)`}>
                 {slice.image ? (
-                  // Desenăm imaginea avatar la margine
-                  <image href={slice.image} x="-8" y="-8" width="16" height="16" clipPath="circle(8px at 8px 8px)" preserveAspectRatio="xMidYMid slice" />
+                  <g transform="rotate(90)">
+                    <image href={slice.image} x="-10" y="-18" width="20" height="20" clipPath="circle(10px at 10px 10px)" preserveAspectRatio="xMidYMid slice" />
+                    <text className="fortune-slice-text" style={{ fontSize: '3.2px' }} textAnchor="middle" y="6">
+                      {slice.name.substring(0, 16)}
+                    </text>
+                  </g>
                 ) : (
-                  <text className="fortune-slice-text" textAnchor="middle" transform="rotate(90)" y="1.5">
-                    {slice.name.substring(0, 15)}
-                  </text>
+                  <g transform="rotate(90)">
+                    <text className="fortune-slice-text" textAnchor="middle" y={line2 ? "-1.5" : "1.5"}>
+                      {line1}
+                    </text>
+                    {line2 && (
+                      <text className="fortune-slice-text" style={{ fontSize: '3.2px', fontWeight: 700 }} textAnchor="middle" y="2.5">
+                        {line2.substring(0, 18)}
+                      </text>
+                    )}
+                  </g>
                 )}
               </g>
             );
