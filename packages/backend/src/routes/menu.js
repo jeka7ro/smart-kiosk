@@ -1,6 +1,7 @@
 const express = require('express');
 const router  = express.Router();
 const { getCachedMenu, getAllCachedMenus, fetchMenu, getOrgIdForBrand, clearMenuCache } = require('../services/iikoService');
+const { pool } = require('../db');
 
 // Clear stale cache on startup so the new groupModifiers mapping takes effect immediately
 clearMenuCache();
@@ -36,12 +37,30 @@ router.get('/', requireApiKey, async (req, res) => {
     }
   }
 
+  // Enrich modifier options with custom images from admin DB
+  let modifierImages = {};
+  try {
+    const { rows } = await pool.query('SELECT modifier_id, image_url FROM modifier_images');
+    rows.forEach(r => { modifierImages[r.modifier_id] = r.image_url; });
+  } catch (_) { /* graceful — don't block menu if DB is slow */ }
+
+  const enrichedProducts = menu.products.map(p => ({
+    ...p,
+    modifierGroups: (p.modifierGroups || []).map(gm => ({
+      ...gm,
+      options: (gm.options || []).map(opt => ({
+        ...opt,
+        image: modifierImages[opt.id] || opt.image || null,
+      })),
+    })),
+  }));
+
   res.json({
     orgId,
     brandId: brandId || 'smashme',
     categories: menu.categories,
-    products: menu.products,
-    total: menu.products.length,
+    products: enrichedProducts,
+    total: enrichedProducts.length,
     source: 'syrve-live',
   });
 });

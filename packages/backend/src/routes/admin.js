@@ -125,4 +125,81 @@ router.delete('/kiosk-config/:brandId', protect, async (req, res) => {
   }
 });
 
+// ─── MODIFIER IMAGES CRUD ───────────────────────────────────────────────────
+
+const { getAllCachedMenus } = require('../services/iikoService');
+
+// GET /api/admin/modifier-images — all modifiers with saved images
+router.get('/modifier-images', async (req, res) => {
+  try {
+    // Gather all modifier options from all cached menus
+    const allMenus = getAllCachedMenus();
+    const modifierMap = {}; // modifierId → { id, name, brandId, groupName }
+
+    for (const [key, entry] of Object.entries(allMenus)) {
+      if (!entry?.menu?.products) continue;
+      // only process brand keys (skip orgId duplicates by using a Set)
+      const brandId = entry.brandId;
+      for (const product of entry.menu.products) {
+        for (const group of (product.modifierGroups || [])) {
+          for (const opt of (group.options || [])) {
+            if (!modifierMap[opt.id]) {
+              modifierMap[opt.id] = {
+                id: opt.id,
+                name: opt.name,
+                brandId,
+                groupName: group.name || 'Opțiuni',
+                price: opt.price,
+              };
+            }
+          }
+        }
+      }
+    }
+
+    // Fetch saved images
+    const { rows } = await pool.query('SELECT modifier_id, image_url FROM modifier_images');
+    const savedImages = {};
+    rows.forEach(r => { savedImages[r.modifier_id] = r.image_url; });
+
+    // Merge
+    const result = Object.values(modifierMap).map(m => ({
+      ...m,
+      imageUrl: savedImages[m.id] || null,
+    }));
+
+    res.json({ modifiers: result });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// PUT /api/admin/modifier-images/:id — save/update image URL for a modifier
+router.put('/modifier-images/:id', async (req, res) => {
+  const { id } = req.params;
+  const { imageUrl, name, brandId } = req.body;
+  if (!imageUrl) return res.status(400).json({ error: 'imageUrl obligatoriu' });
+  try {
+    await pool.query(
+      `INSERT INTO modifier_images (modifier_id, modifier_name, brand_id, image_url, updated_at)
+       VALUES ($1, $2, $3, $4, NOW())
+       ON CONFLICT (modifier_id) DO UPDATE SET image_url = $4, modifier_name = $2, updated_at = NOW()`,
+      [id, name || id, brandId || '', imageUrl]
+    );
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// DELETE /api/admin/modifier-images/:id — remove image for a modifier
+router.delete('/modifier-images/:id', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM modifier_images WHERE modifier_id = $1', [req.params.id]);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 module.exports = router;

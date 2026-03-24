@@ -4,6 +4,7 @@ import './App.css';
 import { useAuth } from './context/AuthProvider';
 import LoginScreen from './screens/LoginScreen';
 import UsersManager from './screens/UsersManager';
+import ModifierImages from './screens/ModifierImages';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 
@@ -43,7 +44,7 @@ export default function AdminApp() {
   
   const [tab, setTabState] = useState(() => {
     const hash = window.location.hash.replace('#', '');
-    const validTabs = ['dashboard', 'orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'users'];
+    const validTabs = ['dashboard', 'orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'modifiers', 'users'];
     return validTabs.includes(hash) ? hash : 'orders';
   });
 
@@ -55,7 +56,7 @@ export default function AdminApp() {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '');
-      const validTabs = ['dashboard', 'orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'users'];
+      const validTabs = ['dashboard', 'orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'modifiers', 'users'];
       if (validTabs.includes(hash)) setTabState(hash);
     };
     window.addEventListener('hashchange', handleHashChange);
@@ -160,6 +161,7 @@ export default function AdminApp() {
             { id: 'kiosks',    label: 'Kioskuri', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg> },
             { id: 'qrcodes',   label: 'QR Coduri', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><rect x="7" y="7" width="3" height="3"></rect><rect x="14" y="7" width="3" height="3"></rect><rect x="7" y="14" width="3" height="3"></rect><rect x="14" y="14" width="3" height="3"></rect></svg> },
             { id: 'menu',      label: 'Meniu / Syrve', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg> },
+            { id: 'modifiers', label: 'Imagini Opțiuni', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg> },
             ...(user?.role === 'admin' ? [{ id: 'users', label: 'Echipă', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> }] : []),
           ].map(item => (
             <button
@@ -217,6 +219,7 @@ export default function AdminApp() {
               {tab === 'kiosks' && 'Kioskuri'}
               {tab === 'qrcodes' && 'Coduri QR'}
               {tab === 'menu' && 'Sincronizare Syrve'}
+              {tab === 'modifiers' && '🖼 Imagini Modificatori Opțiuni'}
               {tab === 'users' && 'Echipă'}
            </h2>
         </div>
@@ -322,6 +325,7 @@ export default function AdminApp() {
           </div>
         )}
         {/* ─── USERS MANAGER ─── */}
+        {tab === 'modifiers' && <ModifierImages />}
         {tab === 'users' && <UsersManager />}
       </main>
     </div>

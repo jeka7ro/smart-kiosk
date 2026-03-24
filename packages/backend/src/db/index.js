@@ -63,6 +63,17 @@ async function initDb() {
     CREATE INDEX IF NOT EXISTS orders_created_idx ON orders(created_at DESC);
   `);
 
+  // ── Modifier Images (custom images for Syrve modifier options) ────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS modifier_images (
+      modifier_id   TEXT PRIMARY KEY,   -- Syrve product UUID for the modifier option
+      modifier_name TEXT,               -- Name at time of assignment (for display)
+      brand_id      TEXT,               -- Which brand this modifier belongs to
+      image_url     TEXT NOT NULL,      -- URL of the image (CDN or Supabase Storage)
+      updated_at    TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+
   console.log('[DB] Tables initialized (Supabase/PostgreSQL)');
 }
 
