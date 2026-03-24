@@ -518,7 +518,7 @@ function KiosksManager({ backend }) {
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const fetchLocs = () => {
     setLoading(true);
@@ -670,29 +670,33 @@ function KiosksManager({ backend }) {
         </table>
         
         {/* Pagination Controls */}
-        {totalPages > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', background: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500 }}>
-              Afișare {Math.min(sorted.length, (currentPage - 1) * itemsPerPage + 1)} - {Math.min(sorted.length, currentPage * itemsPerPage)} din {sorted.length}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 24px', background: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: '0.82rem', color: '#64748b' }}>Rânduri pe pagină:</span>
+            <select
+              value={itemsPerPage}
+              onChange={e => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+              style={{ fontSize: '0.82rem', border: '1px solid #cbd5e1', borderRadius: 6, padding: '4px 8px', background: '#fff', color: '#334155', cursor: 'pointer' }}
+            >
+              {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+            <span style={{ fontSize: '0.82rem', color: '#64748b', marginLeft: 8 }}>
+              {(currentPage - 1) * itemsPerPage + 1}–{Math.min(sorted.length, currentPage * itemsPerPage)} din {sorted.length}
             </span>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button 
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage(p => p - 1)}
-                style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid #cbd5e1', background: currentPage === 1 ? '#f1f5f9' : '#fff', color: currentPage === 1 ? '#94a3b8' : '#334155', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: '0.85rem', transition: 'all 0.2s' }}
-              >
-                Start
-              </button>
-              <button 
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage(p => p + 1)}
-                style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid #cbd5e1', background: currentPage === totalPages ? '#f1f5f9' : '#fff', color: currentPage === totalPages ? '#94a3b8' : '#334155', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: '0.85rem', transition: 'all 0.2s' }}
-              >
-                Următoarea
-              </button>
-            </div>
           </div>
-        )}
+          <div style={{ display: 'flex', gap: 4 }}>
+            {[
+              { label: '«', action: () => setCurrentPage(1),            disabled: currentPage === 1,          title: 'Prima pagină' },
+              { label: '‹', action: () => setCurrentPage(p => p - 1),  disabled: currentPage === 1,          title: 'Anterioară' },
+              { label: '›', action: () => setCurrentPage(p => p + 1),  disabled: currentPage === totalPages, title: 'Următoarea' },
+              { label: '»', action: () => setCurrentPage(totalPages),  disabled: currentPage === totalPages, title: 'Ultima pagină' },
+            ].map(btn => (
+              <button key={btn.label} onClick={btn.action} disabled={btn.disabled} title={btn.title}
+                style={{ width: 32, height: 32, borderRadius: 6, border: '1px solid #cbd5e1', background: btn.disabled ? '#f1f5f9' : '#fff', color: btn.disabled ? '#cbd5e1' : '#334155', cursor: btn.disabled ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: '1rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}
+              >{btn.label}</button>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
