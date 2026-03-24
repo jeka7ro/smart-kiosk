@@ -96,20 +96,20 @@ export default function ModifierModal({ product, onConfirm, onClose, activeBrand
                       onClick={() => handleSelect(gm.id, opt.id)}
                     >
                       {opt.image && (
-                        <img 
-                          src={proxySyrveImage(opt.image)} 
+                        <img
+                          src={proxySyrveImage(opt.image)}
                           alt={opt.name}
                           className="mm-opt-img"
                           onError={e => { e.target.style.display = 'none'; }}
                         />
                       )}
-                      <span className="mm-opt-name">{opt.name}</span>
-                      <span className={`mm-opt-price ${isFree ? 'mm-opt-price--free' : ''}`}>
-                        {isFree ? 'Inclus' : `+${opt.price.toFixed(2)} lei`}
-                      </span>
-                      <div className={`mm-opt-check ${isSelected ? 'checked' : ''}`}>
-                        {isSelected && <span>✓</span>}
+                      <div className="mm-opt-text">
+                        <span className="mm-opt-name">{opt.name}</span>
+                        <span className={`mm-opt-price ${isFree ? 'mm-opt-price--free' : ''}`}>
+                          {isFree ? 'Inclus' : `+${opt.price.toFixed(2)} lei`}
+                        </span>
                       </div>
+                      <div className={`mm-opt-check ${isSelected ? 'checked' : ''}`} />
                     </button>
                   );
                 })}
