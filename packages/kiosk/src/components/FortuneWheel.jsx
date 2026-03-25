@@ -119,7 +119,7 @@ export default function FortuneWheel({ config, onClose, onWin }) {
   return (
     <div className="fortune-wheel-container">
       {showWinModal && winningSlice?.type !== 'nada' && (
-        <div style={{ position: 'absolute', inset: 0, opacity: 0.4, backgroundImage: 'url(https://media.giphy.com/media/xT0xezQGU5xCDJuCPe/giphy.gif)', backgroundSize: 'cover', mixBlendMode: 'screen', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', inset: 0, opacity: 0.5, background: 'radial-gradient(circle at center, rgba(250,204,21,0.4) 0%, transparent 70%)', mixBlendMode: 'screen', pointerEvents: 'none', animation: 'fadeInGlass 1s ease-out' }} />
       )}
 
       {/* Header Text */}
