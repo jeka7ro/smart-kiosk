@@ -1542,6 +1542,8 @@ function LocationsManager({ backend }) {
   const [newBrands, setNewBrands] = useState([]);
   const [newTables, setNewTables] = useState(10);
   const [filter, setFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const fetchLocs = () => {
     setLoading(true);
@@ -1582,6 +1584,11 @@ function LocationsManager({ backend }) {
   };
 
   const filtered = filter === 'all' ? locations : locations.filter(l => l.brands?.includes(filter));
+  const sorted = [...filtered].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  const totalPages = Math.ceil(sorted.length / itemsPerPage) || 1;
+  const paginated = sorted.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const handleFilterChange = (f) => { setFilter(f); setCurrentPage(1); };
 
   if (loading) return <p style={{color:'var(--text-muted)'}}>Se incarca...</p>;
 
@@ -1594,7 +1601,7 @@ function LocationsManager({ backend }) {
       {/* Filters Add button */}
       <div className="loc-controls">
         <div className="loc-filters">
-          <button className={`loc-filter-btn ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>
+          <button className={`loc-filter-btn ${filter === 'all' ? 'active' : ''}`} onClick={() => handleFilterChange('all')}>
             Toate ({locations.length})
           </button>
           {Object.entries(BRAND_LABELS).map(([k, v]) => {
@@ -1605,7 +1612,7 @@ function LocationsManager({ backend }) {
                 key={k}
                 className={`loc-filter-btn ${filter === k ? 'active' : ''}`}
                 style={{ '--pill-color': BRAND_PILL_COLORS[k], display: 'flex', alignItems: 'center', gap: '6px' }}
-                onClick={() => setFilter(k)}
+                onClick={() => handleFilterChange(k)}
               >
                 <BrandLogo brandId={k} size={14} /> {v} ({count})
               </button>
@@ -1648,11 +1655,11 @@ function LocationsManager({ backend }) {
       )}
 
       {/* Locations table */}
-      {/* Locations table (List View) */}
       <div className="loc-list-container" style={{ background: 'var(--surface)', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 4px 14px rgba(0,0,0,0.04)', marginTop: '24px' }}>
         <table className="loc-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+              <th style={{ padding: '14px 16px', fontWeight: 600 }}>#</th>
               <th style={{ padding: '14px 16px', fontWeight: 600 }}>Nume Locație</th>
               <th style={{ padding: '14px 16px', fontWeight: 600 }}>Branduri Active</th>
               <th style={{ padding: '14px 16px', fontWeight: 600 }}>Statistici</th>
@@ -1661,8 +1668,11 @@ function LocationsManager({ backend }) {
             </tr>
           </thead>
           <tbody>
-            {filtered.map(loc => (
+            {paginated.map((loc, index) => (
               <tr key={loc.id} style={{ borderBottom: '1px solid var(--border)', opacity: loc.active ? 1 : 0.6, cursor: 'pointer' }} onClick={() => setEditingLoc(loc)} className="loc-list-row">
+                <td style={{ padding: '16px', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.9rem' }}>
+                  {(currentPage - 1) * itemsPerPage + index + 1}
+                </td>
                 <td style={{ padding: '16px', fontWeight: 600, color: 'var(--text)', fontSize: '1rem' }}>
                   {loc.name}
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400, marginTop: 4 }}>ID: {loc.id}</div>
@@ -1712,6 +1722,35 @@ function LocationsManager({ backend }) {
           </tbody>
         </table>
         {filtered.length === 0 && <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)', fontWeight: 500 }}>Nu există locații care să corespundă filtrelor.</div>}
+
+        {/* Pagination */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', background: 'var(--bg-surface)', borderTop: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Rânduri pe pagină:</span>
+            <select
+              value={itemsPerPage}
+              onChange={e => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+              style={{ fontSize: '0.82rem', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px', background: 'var(--surface)', color: 'var(--text)', cursor: 'pointer' }}
+            >
+              {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+            <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginLeft: 8 }}>
+              {sorted.length === 0 ? '0' : `${(currentPage - 1) * itemsPerPage + 1}–${Math.min(sorted.length, currentPage * itemsPerPage)}`} din {sorted.length}
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: 4 }}>
+            {[
+              { label: '«', action: () => setCurrentPage(1),           disabled: currentPage === 1,          title: 'Prima pagină' },
+              { label: '‹', action: () => setCurrentPage(p => p - 1), disabled: currentPage === 1,          title: 'Anterioară' },
+              { label: '›', action: () => setCurrentPage(p => p + 1), disabled: currentPage === totalPages, title: 'Următoarea' },
+              { label: '»', action: () => setCurrentPage(totalPages),  disabled: currentPage === totalPages, title: 'Ultima pagină' },
+            ].map(btn => (
+              <button key={btn.label} onClick={btn.action} disabled={btn.disabled} title={btn.title}
+                style={{ width: 32, height: 32, borderRadius: 6, border: '1px solid var(--border)', background: btn.disabled ? '#f1f5f9' : '#fff', color: btn.disabled ? '#cbd5e1' : '#334155', cursor: btn.disabled ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: '1rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}
+              >{btn.label}</button>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
