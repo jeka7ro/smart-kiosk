@@ -131,7 +131,7 @@ async function autoAssignSushiOrgs() {
 
 // ── Menu transformer: Syrve nomenclature → kiosk format ─────────────────────
 
-function transformMenu(raw) {
+function transformMenu(raw, brandId = 'smashme') {
   const { groups = [], products = [] } = raw;
 
   const groupMap = {};
@@ -156,7 +156,14 @@ function transformMenu(raw) {
     image: cat.imageLinks?.[0] || cat.imagePaths?.[0] || null,
     parentGroupId: cat.parentGroup,
     order: cat.order || 0,
-  })).sort((a, b) => a.order - b.order);
+  })).filter(c => {
+    // Cross-brand bleed prevention for shared Syrve orgs
+    const n = (c.name || '').toLowerCase();
+    if (brandId === 'sushimaster') {
+      if (n.includes('ikura') || n.includes('love')) return false;
+    }
+    return true;
+  }).sort((a, b) => a.order - b.order);
 
   const categoryIds = new Set(mappedCategories.map(c => c.id));
 
@@ -274,7 +281,7 @@ async function getOrganizations(brandId = 'smashme') {
 async function fetchMenu(orgId, brandId = 'smashme') {
   const raw = await syrvePost('/api/1/nomenclature', { organizationId: orgId }, brandId);
   if (raw.errorDescription) throw new Error(`Menu fetch failed: ${raw.errorDescription}`);
-  return transformMenu(raw);
+  return transformMenu(raw, brandId);
 }
 
 /**
