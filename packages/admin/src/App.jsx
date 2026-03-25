@@ -1635,7 +1635,7 @@ function LocationsManager({ backend }) {
   if (loading) return <p style={{color:'var(--text-muted)'}}>Se incarca...</p>;
 
   if (editingLoc) {
-    return <KioskSettingsForm loc={editingLoc} backend={backend} onBack={() => setEditingLoc(null)} onSave={fetchLocs} />;
+    return <LocationEditForm loc={editingLoc} backend={backend} onBack={() => setEditingLoc(null)} onSave={fetchLocs} />;
   }
 
   return (
@@ -1793,6 +1793,118 @@ function LocationsManager({ backend }) {
             ))}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── LocationEditForm (Restored from Git History) ─────────────────────────────────
+function LocationEditForm({ loc, backend, onBack, onSave }) {
+  const [formData, setFormData] = useState({
+    name: loc.name || '',
+    brands: loc.brands || [],
+    orgIds: loc.orgIds || {},
+    tables: loc.tables || 0,
+    note: loc.note || '',
+  });
+
+  const handleChange = (field, val) => setFormData(prev => ({ ...prev, [field]: val }));
+  
+  const handleOrgChange = (brandId, val) => {
+    setFormData(prev => ({ ...prev, orgIds: { ...prev.orgIds, [brandId]: val } }));
+  };
+
+  const toggleBrand = (b) => {
+    setFormData(prev => {
+      const newBrands = prev.brands.includes(b) ? prev.brands.filter(x => x !== b) : [...prev.brands, b];
+      return { ...prev, brands: newBrands };
+    });
+  };
+
+  const saveLoc = async () => {
+    await fetchWithAuth(`${backend}/api/locations/${loc.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData)
+    });
+    onSave();
+    onBack();
+  };
+
+  return (
+    <div className="loc-edit-form fade-in">
+      <div className="loc-edit-header" style={{ marginBottom: 24, paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
+        <button className="btn btn-secondary" style={{ marginBottom: 16 }} onClick={onBack}>← Inapoi</button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 style={{ fontSize: '1.4rem', margin: 0 }}>Editare Locatie: <span style={{ color: '#0f172a' }}>{loc.name}</span></h2>
+          <button className="btn btn-primary" onClick={saveLoc}>Salvează Modificările</button>
+        </div>
+      </div>
+
+      <div className="loc-edit-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(400px, 1fr)', gap: '24px', maxWidth: 800 }}>
+        {/* Card: Nume & Mese */}
+        <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
+          <h3 style={{ marginTop: 0, fontSize: '1.1rem', color: 'var(--text)', marginBottom: 20 }}>Informații Generale</h3>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+               <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)' }}>Nume Locație</label>
+               <input type="text" className="input-field" style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', boxSizing: 'border-box', marginTop: 6 }} value={formData.name} onChange={e => handleChange('name', e.target.value)} placeholder="Ex: SM Bacau" />
+            </div>
+            <div>
+               <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)' }}>Număr de Mese (Generate Kiosk/QR)</label>
+               <input type="number" className="input-field" style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', boxSizing: 'border-box', marginTop: 6 }} value={formData.tables} onChange={e => handleChange('tables', parseInt(e.target.value)||0)} min="0" />
+            </div>
+          </div>
+        </div>
+
+        {/* Card: Branduri Asignate */}
+        <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
+          <h3 style={{ marginTop: 0, fontSize: '1.1rem', color: 'var(--text)', marginBottom: 20 }}>Restaurante Active în Kiosk</h3>
+          
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 24 }}>
+            {Object.entries({smashme:'SmashMe',sushimaster:'Sushi Master',welovesushi:'WeLoveSushi',ikura:'Ikura'}).map(([k, v]) => {
+              const isActive = formData.brands.includes(k);
+              const pillColor = (BRAND_COLORS && BRAND_COLORS[k]) ? BRAND_COLORS[k] : '#64748b';
+              return (
+                <button
+                  key={k}
+                  className={`loc-brand-pill ${isActive ? 'active' : ''}`}
+                  style={{ 
+                    padding: '10px 18px', borderRadius: '12px', 
+                    display: 'flex', alignItems: 'center', gap: '10px', 
+                    background: isActive ? pillColor : '#ffffff', 
+                    color: isActive ? '#fff' : '#334155', 
+                    border: isActive ? `2px solid ${pillColor}` : '2px solid #cbd5e1',
+                    boxShadow: isActive ? `0 4px 12px ${pillColor}50` : '0 2px 4px rgba(0,0,0,0.02)',
+                    fontWeight: 600, transition: 'all 0.2s', cursor: 'pointer',
+                    filter: isActive ? 'none' : 'grayscale(100%) opacity(0.8)'
+                  }}
+                  onClick={() => toggleBrand(k)}
+                >
+                  <BrandLogo brandId={k} size={18} /> {v}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Card: Syrve API Keys */}
+        <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
+          <h3 style={{ marginTop: 0, fontSize: '1.1rem', color: 'var(--text)', marginBottom: 8 }}>Setări Syrve (iiko) per locație</h3>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>Dacă un brand folosește un `Organization ID` diferit față de cel global (din .env), pune-l aici pentru a trimite comenzile corect la POS-ul locației corespunzătoare.</p>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+             {formData.brands.map(bId => (
+               <div key={bId} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                 <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)' }}>Overide ID Organizație ({bId}):</label>
+                 <input type="text" className="input-field" style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', boxSizing: 'border-box', marginTop: 6 }} value={formData.orgIds[bId] || ''} onChange={e => handleOrgChange(bId, e.target.value)} placeholder="Lăsați gol pentru ID-ul global" />
+               </div>
+             ))}
+             {formData.brands.length === 0 && <span style={{fontSize:'0.85rem', color:'var(--warning)'}}>Selectează măcar un brand pentru a seta suprascrieri de locație Syrve.</span>}
+          </div>
+        </div>
+        
       </div>
     </div>
   );
