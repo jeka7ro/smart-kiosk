@@ -171,21 +171,26 @@ function transformMenu(raw, brandId = 'smashme') {
     return false;
   }
 
-  let categories = groups.filter(g => !g.isGroupModifier && g.parentGroup);
+  let categories;
   if (kioskRootId) {
     categories = groups.filter(g => !g.isGroupModifier && g.parentGroup === kioskRootId);
+  } else {
+    categories = groups.filter(g => !g.isGroupModifier && g.parentGroup);
   }
   if (categories.length === 0) {
-    categories = groups.filter(g => !g.isGroupModifier && !isCategoryBlocked(g.id));
+    categories = groups.filter(g => !g.isGroupModifier);
   }
 
-  const mappedCategories = categories.map(cat => ({
-    id: cat.id,
-    name: cat.name,
-    image: cat.imageLinks?.[0] || cat.imagePaths?.[0] || null,
-    parentGroupId: cat.parentGroup,
-    order: cat.order || 0,
-  })).sort((a, b) => a.order - b.order);
+  const mappedCategories = categories
+    .filter(cat => !isCategoryBlocked(cat.id))
+    .map(cat => ({
+      id: cat.id,
+      name: cat.name,
+      image: cat.imageLinks?.[0] || cat.imagePaths?.[0] || null,
+      parentGroupId: cat.parentGroup,
+      order: cat.order || 0,
+    }))
+    .sort((a, b) => a.order - b.order);
 
   const categoryIds = new Set(mappedCategories.map(c => c.id));
 
