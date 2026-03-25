@@ -106,12 +106,17 @@ export default function AdminApp() {
   /* ─── Load promotions configs for UI Previews ───── */
   // promosData moved to KioskSettingsForm
 
-  /* ─── Load initial orders ────────────────────────── */
+  /* ─── Load initial orders + poll every 30s ──────── */
   useEffect(() => {
-    fetchWithAuth(`${BACKEND}/api/orders?limit=100`)
-      .then(r => r.json())
-      .then(d => setOrders(d.orders || []))
-      .catch(() => {});
+    const loadOrders = () => {
+      fetchWithAuth(`${BACKEND}/api/orders?limit=100`)
+        .then(r => r.json())
+        .then(d => setOrders(d.orders || []))
+        .catch(() => {});
+    };
+    loadOrders();
+    const interval = setInterval(loadOrders, 30_000);
+    return () => clearInterval(interval);
   }, []);
 
   /* ─── Load menu status ───────────────────────────── */
@@ -1427,7 +1432,31 @@ function QrGenerator({ backend }) {
   const [qrs, setQrs] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const QR_WEB_BASE = 'https://loquacious-madeleine-ed11d3.netlify.app';
+  const QR_WEB_BASE = 'https://admin-kiosk.netlify.app';
+
+  // Persist QR codes in localStorage keyed by brand+loc
+  const storageKey = `qr_codes_${brand}_${loc}`;
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) setQrs(JSON.parse(saved));
+    } catch (_) {}
+  }, [storageKey]);
+
+  const generate = async () => {
+    setLoading(true);
+    try {
+      const res = await fetchWithAuth(`${backend}/api/qr/location/${loc}?brand=${brand}&tables=${tableCount}`);
+      const data = await res.json();
+      const newQrs = data.qrs || [];
+      setQrs(newQrs);
+      localStorage.setItem(storageKey, JSON.stringify(newQrs));
+    } catch (err) {
+      console.error('QR gen error:', err);
+    }
+    setLoading(false);
+  };
 
   const brands = [
     { id: 'smashme', name: 'SmashMe', color: '#ef4444' },
@@ -1435,19 +1464,6 @@ function QrGenerator({ backend }) {
     { id: 'ikura', name: 'Ikura', color: '#f97316' },
     { id: 'welovesushi', name: 'We Love Sushi', color: '#8b5cf6' },
   ];
-
-  const generate = async () => {
-    setLoading(true);
-    try {
-      const res = await fetchWithAuth(`${backend}/api/qr/location/${loc}?brand=${brand}&tables=${tableCount}`);
-      const data = await res.json();
-      setQrs(data.qrs || []);
-    } catch (err) {
-      console.error('QR gen error:', err);
-      setQrs([]);
-    }
-    setLoading(false);
-  };
 
   const downloadQr = (dataUrl, tableNum) => {
     const a = document.createElement('a');
@@ -1460,6 +1476,11 @@ function QrGenerator({ backend }) {
     qrs.forEach((q, i) => {
       setTimeout(() => downloadQr(q.dataUrl, q.tableNumber), i * 200);
     });
+  };
+
+  const clearQrs = () => {
+    setQrs([]);
+    localStorage.removeItem(storageKey);
   };
 
   const selectedBrand = brands.find(b => b.id === brand) || brands[0];
@@ -1504,8 +1525,11 @@ function QrGenerator({ backend }) {
       {qrs.length > 0 && (
         <div className="qr-results">
           <div className="qr-results-header">
-            <h3>{selectedBrand.emoji} {selectedBrand.name} — {qrs.length} coduri generate</h3>
-            <button className="qr-dl-all" onClick={downloadAll}>📥 Descarcă toate</button>
+            <h3>{selectedBrand.name} — {qrs.length} coduri generate</h3>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="qr-dl-all" onClick={downloadAll}>Descarca toate</button>
+              <button className="qr-dl-all" style={{ background: '#fee2e2', color: '#ef4444', border: '1px solid #fca5a5' }} onClick={clearQrs}>Sterge lista</button>
+            </div>
           </div>
 
           <div className="qr-grid">

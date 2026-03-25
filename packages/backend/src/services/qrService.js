@@ -7,7 +7,7 @@ const QRCode = require('qrcode');
 const path = require('path');
 const fs   = require('fs');
 
-const BASE_URL = process.env.QR_BASE_URL || 'https://loquacious-madeleine-ed11d3.netlify.app';
+const BASE_URL = process.env.QR_BASE_URL || 'https://admin-kiosk.netlify.app';
 
 /**
  * Generate a QR code as a data URL (base64 PNG).
