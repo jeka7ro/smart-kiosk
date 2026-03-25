@@ -108,7 +108,7 @@ export default function LoginScreen() {
           {error && <div className="login-error">{error}</div>}
 
           <button type="submit" disabled={loading} className="btn-login">
-            {loading ? 'Se verifică...' : 'Log in →'}
+            {loading ? 'Se verifică...' : 'Log in '}
           </button>
         </form>
       </div>

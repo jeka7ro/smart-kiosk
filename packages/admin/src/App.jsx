@@ -135,7 +135,7 @@ export default function AdminApp() {
     pending:   orders.filter(o => o.status === 'pending').length,
     preparing: orders.filter(o => o.status === 'preparing').length,
     ready:     orders.filter(o => o.status === 'ready').length,
-    revenue:   orders.reduce((s, o) => s + (o.totalAmount || 0), 0),
+    revenue:   orders.reduce((s, o) => s (o.totalAmount || 0), 0),
     smashme:   orders.filter(o => o.brand === 'smashme').length,
     sushimaster: orders.filter(o => o.brand === 'sushimaster').length,
   };
@@ -409,7 +409,7 @@ function OrdersTable({ orders, full }) {
                 <td>{o.orderType === 'dine-in' ? `Masa ${o.tableNumber}` : 'Caserie'}</td>
                 <td>{(o.items || []).map(i => `${i.quantity}x ${i.name}`).join(', ').slice(0, 40)}...</td>
                 <td><strong>{(o.totalAmount || 0).toFixed(0)} lei</strong></td>
-                <td><span className="status-pill" style={{ background: sc.color + '22', color: sc.color }}>● {sc.label}</span></td>
+                <td><span className="status-pill" style={{ background: sc.color '22', color: sc.color }}>● {sc.label}</span></td>
                 <td className="time-col">{o.createdAt ? new Date(o.createdAt).toLocaleTimeString('ro-RO') : '—'}</td>
               </tr>
             );
@@ -637,7 +637,7 @@ function KiosksManager({ backend }) {
               return (
                 <tr key={loc.id} className="loc-table-row">
                   <td style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.9rem' }}>
-                    {(currentPage - 1) * itemsPerPage + index + 1}
+                    {(currentPage - 1) * itemsPerPage index 1}
                   </td>
                   <td style={{ padding: '16px 24px' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -711,14 +711,14 @@ function KiosksManager({ backend }) {
               {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
             </select>
             <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginLeft: 8 }}>
-              {(currentPage - 1) * itemsPerPage + 1}–{Math.min(sorted.length, currentPage * itemsPerPage)} din {sorted.length}
+              {(currentPage - 1) * itemsPerPage 1}–{Math.min(sorted.length, currentPage * itemsPerPage)} din {sorted.length}
             </span>
           </div>
           <div style={{ display: 'flex', gap: 4 }}>
             {[
               { label: '«', action: () => setCurrentPage(1),            disabled: currentPage === 1,          title: 'Prima pagină' },
               { label: '‹', action: () => setCurrentPage(p => p - 1),  disabled: currentPage === 1,          title: 'Anterioară' },
-              { label: '›', action: () => setCurrentPage(p => p + 1),  disabled: currentPage === totalPages, title: 'Următoarea' },
+              { label: '›', action: () => setCurrentPage(p => p 1),  disabled: currentPage === totalPages, title: 'Următoarea' },
               { label: '»', action: () => setCurrentPage(totalPages),  disabled: currentPage === totalPages, title: 'Ultima pagină' },
             ].map(btn => (
               <button key={btn.label} onClick={btn.action} disabled={btn.disabled} title={btn.title}
@@ -829,7 +829,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
     <div className="loc-edit-form" style={{ maxWidth: '1000px', margin: '0 auto' }}>
       <div className="loc-edit-header" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)', paddingBottom: 16, marginBottom: 24, display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-           <button className="loc-back-btn" onClick={onBack} style={{ padding: 0, color: 'var(--text-muted)', fontWeight: 600, border: 'none', background: 'none' }}>← Înapoi</button>
+           <button className="loc-back-btn" onClick={onBack} style={{ padding: 0, color: 'var(--text-muted)', fontWeight: 600, border: 'none', background: 'none' }}>Înapoi</button>
            <h2 style={{ margin: '8px 0 0 0', fontSize: '1.5rem', color: 'var(--text)' }}>Configurare Kiosk: <span style={{color:'#3b82f6'}}>{loc.name}</span></h2>
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
@@ -1179,7 +1179,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                       
                       <div style={{ 
                         position: 'absolute', top: 0, left: 0, right: 0,
-                        height: `${10 + ((formData.topBannerHeight || 1) - 1) * 5}%`, 
+                        height: `${10 ((formData.topBannerHeight || 1) - 1) * 5}%`, 
                         borderRadius: `${formData.topBannerRadiusTop ? '6px' : '0'} ${formData.topBannerRadiusTop ? '6px' : '0'} ${formData.topBannerRadiusBottom ? '6px' : '0'} ${formData.topBannerRadiusBottom ? '6px' : '0'}`,
                         transition: 'all 0.3s ease',
                         overflow: 'hidden', background: '#000', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' 
@@ -1342,7 +1342,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                     
                     <div style={{ 
                       position: 'absolute', bottom: 0, left: 0, right: 0,
-                      height: `${10 + ((formData.bottomBannerHeight || 1) - 1) * 5}%`, 
+                      height: `${10 ((formData.bottomBannerHeight || 1) - 1) * 5}%`, 
                       borderRadius: `${formData.bottomBannerRadiusTop ? '6px' : '0'} ${formData.bottomBannerRadiusTop ? '6px' : '0'} ${formData.bottomBannerRadiusBottom ? '6px' : '0'} ${formData.bottomBannerRadiusBottom ? '6px' : '0'}`,
                       transition: 'all 0.3s ease',
                       overflow: 'hidden', background: formData.bottomBannerBg || '#000', boxShadow: '0 -4px 12px rgba(0,0,0,0.2)',
@@ -1595,7 +1595,7 @@ function LocationsManager({ backend }) {
 
   return (
     <div className="loc-manager">
-      {/* Filters + Add button */}
+      {/* Filters Add button */}
       <div className="loc-controls">
         <div className="loc-filters">
           <button className={`loc-filter-btn ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>
@@ -1616,7 +1616,7 @@ function LocationsManager({ backend }) {
             );
           })}
         </div>
-        <button className="loc-add-btn" onClick={() => setShowAdd(!showAdd)}>+ Adauga locatie</button>
+        <button className="loc-add-btn" onClick={() => setShowAdd(!showAdd)}>Adauga locatie</button>
       </div>
 
       {/* Add form */}
