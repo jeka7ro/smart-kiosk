@@ -47,7 +47,7 @@ export default function LoginScreen() {
       <div className="login-glass-panel">
         <div className="login-header">
           <img
-            src="/logo_tech.png"
+            src="/logo_getapp.png"
             alt="GetApp"
             className="login-logo"
           />

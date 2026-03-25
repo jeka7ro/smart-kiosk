@@ -154,7 +154,7 @@ export default function AdminApp() {
       <aside className={`admin-sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="admin-logo" style={{justifyContent: 'space-between', alignItems: 'center'}}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <img src="/logo_tech.png" alt="GetApp" style={{ height: '44px', mixBlendMode: 'multiply' }} />
+            <img src="/logo_getapp.png" alt="GetApp" style={{ height: '44px', mixBlendMode: 'multiply' }} />
             <span className="al-text" style={{ fontSize: '1.2rem', fontWeight: 600, letterSpacing: '-0.5px', lineHeight: '1.2' }}>Smart Kiosk<br/><small style={{ fontWeight: 400, opacity: 0.7, fontSize: '0.8rem' }}>Admin Panel</small></span>
           </div>
           <button className="mobile-close-btn" onClick={() => setIsSidebarOpen(false)}>×</button>
@@ -409,7 +409,7 @@ function OrdersTable({ orders, full }) {
                 <td>{o.orderType === 'dine-in' ? `Masa ${o.tableNumber}` : 'Caserie'}</td>
                 <td>{(o.items || []).map(i => `${i.quantity}x ${i.name}`).join(', ').slice(0, 40)}...</td>
                 <td><strong>{(o.totalAmount || 0).toFixed(0)} lei</strong></td>
-                <td><span className="status-pill" style={{ background: sc.color '22', color: sc.color }}>● {sc.label}</span></td>
+                <td><span className="status-pill" style={{ background: sc.color + '22', color: sc.color }}>● {sc.label}</span></td>
                 <td className="time-col">{o.createdAt ? new Date(o.createdAt).toLocaleTimeString('ro-RO') : '—'}</td>
               </tr>
             );
@@ -637,7 +637,7 @@ function KiosksManager({ backend }) {
               return (
                 <tr key={loc.id} className="loc-table-row">
                   <td style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.9rem' }}>
-                    {(currentPage - 1) * itemsPerPage index 1}
+                    {(currentPage - 1) * itemsPerPage + index + 1}
                   </td>
                   <td style={{ padding: '16px 24px' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -711,14 +711,14 @@ function KiosksManager({ backend }) {
               {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
             </select>
             <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginLeft: 8 }}>
-              {(currentPage - 1) * itemsPerPage 1}–{Math.min(sorted.length, currentPage * itemsPerPage)} din {sorted.length}
+              {(currentPage - 1) * itemsPerPage + 1}–{Math.min(sorted.length, currentPage * itemsPerPage)} din {sorted.length}
             </span>
           </div>
           <div style={{ display: 'flex', gap: 4 }}>
             {[
               { label: '«', action: () => setCurrentPage(1),            disabled: currentPage === 1,          title: 'Prima pagină' },
               { label: '‹', action: () => setCurrentPage(p => p - 1),  disabled: currentPage === 1,          title: 'Anterioară' },
-              { label: '›', action: () => setCurrentPage(p => p 1),  disabled: currentPage === totalPages, title: 'Următoarea' },
+              { label: '›', action: () => setCurrentPage(p => p + 1),  disabled: currentPage === totalPages, title: 'Următoarea' },
               { label: '»', action: () => setCurrentPage(totalPages),  disabled: currentPage === totalPages, title: 'Ultima pagină' },
             ].map(btn => (
               <button key={btn.label} onClick={btn.action} disabled={btn.disabled} title={btn.title}
