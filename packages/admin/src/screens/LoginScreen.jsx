@@ -105,7 +105,7 @@ export default function LoginScreen() {
             <span>Ține-mă minte</span>
           </label>
 
-          {error && <div className="login-error">⚠️ {error}</div>}
+          {error && <div className="login-error">{error}</div>}
 
           <button type="submit" disabled={loading} className="btn-login">
             {loading ? 'Se verifică...' : 'Log in →'}

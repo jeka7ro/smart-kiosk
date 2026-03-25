@@ -843,7 +843,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
               textDecoration: 'none', transition: 'all 0.2s'
             }}
           >
-            👁️ Preview Live
+            Preview Live
           </a>
           <button 
             className="loc-save-btn" 
@@ -866,10 +866,8 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
         </div>
       </div>
 
-      <div className="loc-edit-grid" style={{ display: 'grid !important', gridTemplateColumns: 'minmax(400px, 1fr) 1fr', gap: '24px' }}>
-        
-        {/* Coloana Stânga: Setări (Stack vertical) */}
-        <div className="loc-settings-column" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <div className="loc-edit-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
+
         {/* Card: Comportament */}
         <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
           <h3 style={{ marginTop: 0, fontSize: '1.1rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>Conținut Kiosk</h3>
@@ -894,9 +892,9 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                             setFormData(p => ({ ...p, brands: newB }));
                           }
                         }}
-                        style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: '0 4px', fontSize: '1rem' }}
+                        style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: '0 4px', fontSize: '0.75rem' }}
                         title="Mută mai sus"
-                      >↑</button>
+                      >Sus</button>
                       <button 
                         onClick={() => {
                           const newB = [...formData.brands];
@@ -905,14 +903,14 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                             setFormData(p => ({ ...p, brands: newB }));
                           }
                         }}
-                        style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: '0 4px', fontSize: '1rem' }}
+                        style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: '0 4px', fontSize: '0.75rem' }}
                         title="Mută mai jos"
-                      >↓</button>
+                      >Jos</button>
                     </div>
                     <button 
                       onClick={() => toggleBrand(k)}
-                      style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', borderRadius: '50%', width: 22, height: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: 4, fontWeight: 800 }}
-                    >×</button>
+                      style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', borderRadius: '4px', padding: '2px 6px', cursor: 'pointer', marginLeft: 4, fontSize: '0.7rem' }}
+                    >Sterge</button>
                   </div>
                 );
               })}
@@ -945,7 +943,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
             </div>
           </div>
           
-          <label style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: 8 }}>🔗 Link Universal (Aplică-l pe tabletă)</label>
+          <label style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: 8 }}>Link Universal (Aplică-l pe tabletă)</label>
           <div style={{ display: 'flex', gap: 8, background: 'var(--bg-surface)', padding: 4, borderRadius: 12, border: '1px solid var(--border)' }}>
             <input type="text" readOnly value={finalKioskUrl} style={{ background: 'transparent', border: 'none', flex: 1, padding: '0 12px', fontFamily: 'monospace', fontSize: '0.85rem', color: 'var(--text)', outline: 'none' }} />
             <button 
@@ -985,6 +983,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
             </div>
           )}
         </div>
+
 
         {/* Card: Promoție (Roată Kiosk) */}
         <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
@@ -1090,7 +1089,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.2)'; e.currentTarget.style.transform = 'scale(1.1)'; }}
                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.transform = 'scale(1)'; }}
                          >
-                           ✕
+                           Inchide
                          </button>
 
                          <h2 style={{ color: '#fff', fontSize: '2rem', fontWeight: 800, marginBottom: 40, marginTop: -60, textShadow: '0 4px 12px rgba(0,0,0,0.5)', zIndex: 100000 }}>
@@ -1279,7 +1278,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                     <div>
                       <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted,#475569)', display: 'block', marginBottom: 8 }}>MOD AFIȘARE TEXT</label>
                       <div style={{ display: 'flex', gap: 6 }}>
-                        {[['false', '▶ Rulant (scroll)'], ['true', '✓ Fix (static)']].map(([val, lbl]) => {
+                        {[['false', 'Rulant (scroll)'], ['true', 'Fix (static)']].map(([val, lbl]) => {
                           const isActive = String(formData.bottomBannerTextFixed) === val;
                           return (
                             <button key={val} type="button"
@@ -1295,7 +1294,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                     <div>
                       <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 8 }}>POZIȚIE TEXT</label>
                       <div style={{ display: 'flex', gap: 6 }}>
-                        {[['left', '⬅ Stânga'], ['center', '⬌ Centru'], ['right', 'Dreapta ➡']].map(([val, lbl]) => (
+                        {[['left', 'Stanga'], ['center', 'Centru'], ['right', 'Dreapta']].map(([val, lbl]) => (
                           <button key={val} type="button"
                             onClick={() => handleChange('bottomBannerTextAlign', val)}
                             style={{ flex: 1, padding: '8px 4px', borderRadius: 8, border: `2px solid ${formData.bottomBannerTextAlign === val ? '#0f172a' : '#cbd5e1'}`, background: formData.bottomBannerTextAlign === val ? '#0f172a' : '#fff', color: formData.bottomBannerTextAlign === val ? '#fff' : '#475569', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }}
@@ -1413,18 +1412,11 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
              </div>
           )}
         </div>
-
-        </div>
-
-        {/* Coloana Dreapta: Previzualizare (Flex: 1) */}
-        <div className="loc-preview-column" style={{ position: 'sticky', top: 24, height: 'fit-content' }}>
-           <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 40, border: '1px dashed var(--border)', textAlign: 'center', color: 'var(--text-muted)' }}>
-              <div style={{ fontSize: '3rem', marginBottom: 16 }}>📱</div>
+        {/* Coloana: Previzualizare (Card simplu la final) */}
+        <div className="loc-preview-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, border: '1px dashed var(--border)', textAlign: 'center', color: 'var(--text-muted)' }}>
               <h3 style={{ margin: '0 0 8px 0', color: 'var(--text)' }}>Previzualizare Kiosk</h3>
               <p style={{ fontSize: '0.9rem', maxWidth: 300, margin: '0 auto' }}>Aici va apărea simulatorul pentru ecranele de standby și promoții.</p>
-           </div>
         </div>
-
       </div>
     </div>
   );
