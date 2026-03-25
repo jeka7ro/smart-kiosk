@@ -35,6 +35,7 @@ export default function MenuBrowse({ brand }) {
   const goTo               = useQrStore((s) => s.goTo);
   const setSelectedProduct = useQrStore((s) => s.setSelectedProduct);
   const tableNum           = useQrStore((s) => s.tableNum);
+  const cartItems          = useQrStore((s) => s.cart);
 
   const [categories,     setCategories]     = useState([]);
   const [products,       setProducts]       = useState([]);
