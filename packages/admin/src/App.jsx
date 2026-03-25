@@ -85,13 +85,23 @@ export default function AdminApp() {
 
   /* ─── Socket.IO ─────────────────────────────────── */
   useEffect(() => {
-    const socket = io(BACKEND, { reconnectionAttempts: 10 });
+    const socket = io(BACKEND, { 
+      reconnectionAttempts: 10,
+      transports: ['websocket'] // Force WebSocket to avoid polling issues
+    });
     socketRef.current = socket;
     socket.on('connect', () => {
+      console.log('Socket connected:', socket.id);
       setConnected(true);
       socket.emit('join', { role: 'admin' });
     });
-    socket.on('disconnect', () => setConnected(false));
+    socket.on('connect_error', (err) => {
+      console.error('Socket connection error:', err.message);
+    });
+    socket.on('disconnect', () => {
+      console.log('Socket disconnected');
+      setConnected(false);
+    });
     socket.on('new_order', order => {
       setOrders(prev => [order, ...prev]);
       addNotif(`Comandă nouă #${order.orderNumber} — ${order.brand} — ${(order.totalAmount||0).toFixed(0)} lei`);
