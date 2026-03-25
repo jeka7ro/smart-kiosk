@@ -150,25 +150,9 @@ function transformMenu(raw) {
     categories = groups.filter(g => !g.isGroupModifier);
   }
 
-  const emojiMap = {
-    'burger': '🍔', 'smash': '🍔', 'pizza': '🍕', 'paste': '🍝', 'salat': '🥗',
-    'sos': '🥣', 'bautur': '🥤', 'drink': '🥤', 'desert': '🍰', 'garnitur': '🍟',
-    'meniu': '🍱', 'combo': '🎁', 'snack': '🍟', 'chicken': '🍗',
-    'sushi': '🍣', 'roll': '🍣', 'maki': '🍣', 'nigiri': '🍣', 'ramen': '🍜',
-    'gyoza': '🥟', 'wok': '🥢', 'sake': '🍶', 'miso': '🍲',
-  };
-  function getEmoji(name) {
-    const n = (name || '').toLowerCase();
-    for (const [k, v] of Object.entries(emojiMap)) {
-      if (n.includes(k)) return v;
-    }
-    return '🍽️';
-  }
-
   const mappedCategories = categories.map(cat => ({
     id: cat.id,
     name: cat.name,
-    emoji: getEmoji(cat.name),
     image: cat.imageLinks?.[0] || cat.imagePaths?.[0] || null,
     parentGroupId: cat.parentGroup,
     order: cat.order || 0,
@@ -188,9 +172,9 @@ function transformMenu(raw) {
       if (!categoryIds.has(p.parentGroup)) return false;
       if (p.isDeleted) return false;
       if (p.type === 'Modifier') return false;
-      // Filter by isIncludedInMenu (each sizePrices entry must have this flag = true to show it)
+      // Only exclude if isIncludedInMenu is explicitly false (not null/undefined)
       const sp = (p.sizePrices || [])[0];
-      if (sp && sp.price && sp.price.isIncludedInMenu === false) return false;
+      if (sp?.price?.isIncludedInMenu === false) return false;
       return true;
     })
     .map(p => {
@@ -249,7 +233,27 @@ function transformMenu(raw) {
     })
     .sort((a, b) => a.order - b.order);
 
-  return { categories: mappedCategories, products: mappedProducts };
+  // Remove categories with 0 products
+  const productCategoryIds = new Set(mappedProducts.map(p => p.categoryId));
+  const visibleCategories = mappedCategories.filter(c => productCategoryIds.has(c.id));
+
+  // Debug log for investigation
+  const newCat = mappedCategories.find(c => c.name?.toLowerCase().includes('new'));
+  if (newCat) {
+    const newProds = mappedProducts.filter(p => p.categoryId === newCat.id);
+    console.log(`[Menu Debug] 'New' category: id=${newCat.id}, products=${newProds.length}, visible=${productCategoryIds.has(newCat.id)}`);
+    if (!productCategoryIds.has(newCat.id)) {
+      // Also log raw products that have this parentGroup to see why they're filtered
+      const rawInNew = products.filter(p => p.parentGroup === newCat.id);
+      console.log(`[Menu Debug] Raw products in 'New' from Syrve: ${rawInNew.length}`);
+      rawInNew.slice(0, 3).forEach(p => {
+        const sp = (p.sizePrices || [])[0];
+        console.log(`  - ${p.name}: isDeleted=${p.isDeleted}, type=${p.type}, isIncludedInMenu=${sp?.price?.isIncludedInMenu}`);
+      });
+    }
+  }
+
+  return { categories: visibleCategories, products: mappedProducts };
 }
 
 // In-memory menu cache (will use Redis when available)
