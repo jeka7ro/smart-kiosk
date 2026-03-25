@@ -4,9 +4,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at top right, rgba(0, 206, 209, 0.15), transparent),
-              radial-gradient(circle at bottom left, rgba(16, 185, 129, 0.15), transparent),
-              var(--bg-dark, #0f172a);
+  background: radial-gradient(circle at top right, rgba(0, 206, 209, 0.25), transparent),
+              radial-gradient(circle at bottom left, rgba(16, 185, 129, 0.2), transparent),
+              var(--bg-dark, #1c3a40);
 }
 
 .login-glass-panel {
@@ -28,9 +28,9 @@
 }
 
 .login-logo {
-  height: 68px;
-  margin-bottom: 14px;
-  mix-blend-mode: screen; /* removes the grey background on dark panel */
+  height: 110px;
+  margin-bottom: 16px;
+  mix-blend-mode: screen;
   display: block;
   margin-left: auto;
   margin-right: auto;

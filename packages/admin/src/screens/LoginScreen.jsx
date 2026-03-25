@@ -51,7 +51,7 @@ export default function LoginScreen() {
             alt="GetApp"
             className="login-logo"
           />
-          <h2>Kiosk Gateway</h2>
+          <h2>Smart Kiosk</h2>
           <p>Autentificare Securizată</p>
         </div>
 
