@@ -1432,10 +1432,10 @@ function QrGenerator({ backend }) {
   const [qrs, setQrs] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const QR_WEB_BASE = 'https://admin-kiosk.netlify.app';
+  const QR_WEB_BASE = 'https://loquacious-madeleine-ed11d3.netlify.app';
 
-  // Persist QR codes in localStorage keyed by brand+loc
-  const storageKey = `qr_codes_${brand}_${loc}`;
+  // Persist QR codes in localStorage keyed by brand+loc. Added _v2 to invalidate old wrongly-generated QRs.
+  const storageKey = `qr_codes_v2_${brand}_${loc}`;
 
   useEffect(() => {
     try {
@@ -1517,7 +1517,7 @@ function QrGenerator({ backend }) {
         </div>
 
         <button className="qr-gen-btn" onClick={generate} disabled={loading} style={{ background: selectedBrand.color }}>
-          {loading ? ' Generez...' : `${selectedBrand.emoji} Generează ${tableCount} QR Coduri`}
+          {loading ? ' Generez...' : `Generează ${tableCount} QR Coduri`}
         </button>
       </div>
 
