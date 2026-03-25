@@ -11,7 +11,7 @@ import CheckoutPage from './screens/CheckoutPage.jsx';
 import OrderSuccess from './screens/OrderSuccess.jsx';
 import PosterScreen from './screens/PosterScreen.jsx';
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
+const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
 
 export default function App({ brandId }) {
   const screen = useQrStore((s) => s.screen);
