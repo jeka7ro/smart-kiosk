@@ -171,7 +171,8 @@ function transformMenu(raw) {
     emoji: getEmoji(cat.name),
     image: cat.imageLinks?.[0] || cat.imagePaths?.[0] || null,
     parentGroupId: cat.parentGroup,
-  }));
+    order: cat.order || 0,
+  })).sort((a, b) => a.order - b.order);
 
   const categoryIds = new Set(mappedCategories.map(c => c.id));
 
@@ -242,9 +243,11 @@ function transformMenu(raw) {
         allergenGroups: p.allergenGroups || [],
         tags: p.tags || [],
         isNew: false,
+        order: p.order || 0,
         modifierGroups,
       };
-    });
+    })
+    .sort((a, b) => a.order - b.order);
 
   return { categories: mappedCategories, products: mappedProducts };
 }

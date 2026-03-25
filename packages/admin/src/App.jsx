@@ -154,7 +154,7 @@ export default function AdminApp() {
       <aside className={`admin-sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="admin-logo" style={{justifyContent: 'space-between', alignItems: 'center'}}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <img src="/logo_getapp.png" alt="GetApp" style={{ height: '44px', mixBlendMode: 'multiply' }} />
+            <img src="/logo_tech.png" alt="GetApp" style={{ height: '44px', mixBlendMode: 'multiply' }} />
             <span className="al-text" style={{ fontSize: '1.2rem', fontWeight: 600, letterSpacing: '-0.5px', lineHeight: '1.2' }}>Smart Kiosk<br/><small style={{ fontWeight: 400, opacity: 0.7, fontSize: '0.8rem' }}>Admin Panel</small></span>
           </div>
           <button className="mobile-close-btn" onClick={() => setIsSidebarOpen(false)}>×</button>
@@ -866,42 +866,83 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
         </div>
       </div>
 
-      <div className="loc-edit-grid" style={{ gridTemplateColumns: 'minmax(400px, 1fr) 1fr', gap: '24px' }}>
+      <div className="loc-edit-grid" style={{ display: 'grid !important', gridTemplateColumns: 'minmax(400px, 1fr) 1fr', gap: '24px' }}>
         
+        {/* Coloana Stânga: Setări (Stack vertical) */}
+        <div className="loc-settings-column" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
         {/* Card: Comportament */}
         <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
           <h3 style={{ marginTop: 0, fontSize: '1.1rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>Conținut Kiosk</h3>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>Selectează restaurantele pe care clienții le pot explora din această tabletă.</p>
           
-          <div className="loc-brand-select" style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 24 }}>
-            {Object.entries({smashme:'SmashMe',sushimaster:'Sushi Master',welovesushi:'WeLoveSushi',ikura:'Ikura'}).map(([k, v]) => {
-              const isActive = formData.brands.includes(k);
-              const pillColor = (BRAND_COLORS && BRAND_COLORS[k]) ? BRAND_COLORS[k] : '#64748b'; // proper fallback
-              return (
-                <button
-                  key={k}
-                  className={`loc-brand-pill ${isActive ? 'active' : ''}`}
-                  style={{ 
-                    padding: '10px 18px', borderRadius: '12px', 
-                    display: 'flex', alignItems: 'center', gap: '10px', 
-                    background: isActive ? pillColor : '#ffffff', 
-                    color: isActive ? '#fff' : '#334155', 
-                    border: isActive ? `2px solid ${pillColor}` : '2px solid #cbd5e1',
-                    boxShadow: isActive ? `0 4px 12px ${pillColor}50` : '0 2px 4px rgba(0,0,0,0.02)',
-                    fontWeight: 600, transition: 'all 0.2s', 
-                    filter: isActive ? 'none' : 'grayscale(100%) opacity(0.8)',
-                     cursor: 'pointer'
-                  }}
-                  onClick={() => toggleBrand(k)}
-                >
-                  {isActive 
-                    ? <span style={{display: 'flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, background: 'rgba(255,255,255,0.3)', borderRadius: '50%', fontSize: '0.85rem'}}>✓</span> 
-                    : <span style={{display: 'block', width: 20, height: 20, border: '2px solid #94a3b8', borderRadius: '50%'}}></span>
-                  }
-                  <BrandLogo brandId={k} size={18} /> {v}
-                </button>
-              );
-            })}
+          <div className="loc-brand-select" style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
+            {/* Show selected brands first with reorder buttons */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 12, paddingBottom: 12, borderBottom: '1px dashed var(--border)' }}>
+              {formData.brands.map((k, index) => {
+                const v = {smashme:'SmashMe',sushimaster:'Sushi Master',welovesushi:'WeLoveSushi',ikura:'Ikura'}[k] || k;
+                const pillColor = (BRAND_COLORS && BRAND_COLORS[k]) ? BRAND_COLORS[k] : '#64748b';
+                return (
+                  <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 6, background: pillColor, color: '#fff', padding: '6px 14px', borderRadius: '12px', boxShadow: `0 4px 12px ${pillColor}33`, fontWeight: 600 }}>
+                    <BrandLogo brandId={k} size={18} />
+                    <span>{v}</span>
+                    <div style={{ display: 'flex', gap: 4, marginLeft: 8, background: 'rgba(0,0,0,0.1)', borderRadius: 8, padding: '2px 4px' }}>
+                      <button 
+                        onClick={() => {
+                          const newB = [...formData.brands];
+                          if (index > 0) {
+                            [newB[index-1], newB[index]] = [newB[index], newB[index-1]];
+                            setFormData(p => ({ ...p, brands: newB }));
+                          }
+                        }}
+                        style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: '0 4px', fontSize: '1rem' }}
+                        title="Mută mai sus"
+                      >↑</button>
+                      <button 
+                        onClick={() => {
+                          const newB = [...formData.brands];
+                          if (index < newB.length - 1) {
+                            [newB[index+1], newB[index]] = [newB[index], newB[index+1]];
+                            setFormData(p => ({ ...p, brands: newB }));
+                          }
+                        }}
+                        style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: '0 4px', fontSize: '1rem' }}
+                        title="Mută mai jos"
+                      >↓</button>
+                    </div>
+                    <button 
+                      onClick={() => toggleBrand(k)}
+                      style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', borderRadius: '50%', width: 22, height: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: 4, fontWeight: 800 }}
+                    >×</button>
+                  </div>
+                );
+              })}
+              {formData.brands.length === 0 && <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem', italic: 'true' }}>Niciun restaurant selectat</span>}
+            </div>
+
+            {/* Selection candidates */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+              {Object.entries({smashme:'SmashMe',sushimaster:'Sushi Master',welovesushi:'WeLoveSushi',ikura:'Ikura'}).map(([k, v]) => {
+                if (formData.brands.includes(k)) return null;
+                return (
+                  <button
+                    key={k}
+                    className="loc-brand-pill"
+                    style={{ 
+                      padding: '8px 16px', borderRadius: '10px', 
+                      display: 'flex', alignItems: 'center', gap: '8px', 
+                      background: '#fff', color: '#64748b', 
+                      border: '1px dashed #94a3b8',
+                      fontWeight: 500, transition: 'all 0.2s', 
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => toggleBrand(k)}
+                  >
+                    <span style={{ fontSize: '1.2rem', color: '#94a3b8' }}>+</span>
+                    <BrandLogo brandId={k} size={16} /> {v}
+                  </button>
+                );
+              })}
+            </div>
           </div>
           
           <label style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: 8 }}>🔗 Link Universal (Aplică-l pe tabletă)</label>
@@ -919,31 +960,29 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
           </div>
         </div>
 
-        {/* Card: Screensaver */}
+        {/* Card: Security */}
         <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
-          <h3 style={{ marginTop: 0, fontSize: '1.1rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>Screensaver Standby</h3>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>Rulare automată reclamă full-screen dacă tableta stă neatinsă 30s.</p>
+           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>Securitate PIN</h3>
+            <label className="pc-toggle" style={{ margin: 0 }}>
+              <input type="checkbox" checked={usePin} onChange={e => setUsePin(e.target.checked)} />
+              <span className="toggle-slider" />
+            </label>
+          </div>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>Blochează tableta până la introducerea primei parole de angajat.</p>
           
-          <input 
-            type="url" 
-            className="pc-input" 
-            placeholder="URL Video MP4 sau Imagine..."
-            value={formData.posterUrl}
-            onChange={e => handleChange('posterUrl', e.target.value)}
-            style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', width: '100%', marginBottom: 16, boxSizing: 'border-box' }}
-          />
-          
-          {formData.posterUrl ? (
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
-              <div style={{ width: 135, height: 240, borderRadius: 12, overflow: 'hidden', border: '6px solid #1e293b', background: '#000', position: 'relative', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}>
-                {renderPreview(formData.posterUrl)}
-                <div style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', background: 'rgba(255,255,255,0.95)', color: '#0f172a', padding: '6px 12px', borderRadius: 20, fontSize: '0.55rem', fontWeight: 800, whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
-                  Atinge pentru a începe
-                </div>
-              </div>
+          {usePin && (
+            <div style={{ animation: 'fadeIn 0.3s ease' }}>
+              <input 
+                type="password" 
+                maxLength="6"
+                className="pc-input" 
+                placeholder="Ex: 1234"
+                value={formData.kioskPin}
+                onChange={e => handleChange('kioskPin', e.target.value.replace(/\D/g, ''))}
+                style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', width: '100%', maxWidth: '140px', fontSize: '1.1rem', letterSpacing: '2px', boxSizing: 'border-box' }}
+              />
             </div>
-          ) : (
-             <div style={{ height: 160, borderRadius: 12, border: '2px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 500 }}>Fără screensaver.</div>
           )}
         </div>
 
@@ -1077,6 +1116,34 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                ) : null}
 
              </div>
+          )}
+        </div>
+
+        {/* Card: Screensaver */}
+        <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
+          <h3 style={{ marginTop: 0, fontSize: '1.1rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>Screensaver Standby</h3>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>Rulare automată reclamă full-screen dacă tableta stă neatinsă 30s.</p>
+          
+          <input 
+            type="url" 
+            className="pc-input" 
+            placeholder="URL Video MP4 sau Imagine..."
+            value={formData.posterUrl}
+            onChange={e => handleChange('posterUrl', e.target.value)}
+            style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', width: '100%', marginBottom: 16, boxSizing: 'border-box' }}
+          />
+          
+          {formData.posterUrl ? (
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
+              <div style={{ width: 135, height: 240, borderRadius: 12, overflow: 'hidden', border: '6px solid #1e293b', background: '#000', position: 'relative', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}>
+                {renderPreview(formData.posterUrl)}
+                <div style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', background: 'rgba(255,255,255,0.95)', color: '#0f172a', padding: '6px 12px', borderRadius: 20, fontSize: '0.55rem', fontWeight: 800, whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
+                  Atinge pentru a începe
+                </div>
+              </div>
+            </div>
+          ) : (
+             <div style={{ height: 160, borderRadius: 12, border: '2px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 500 }}>Fără screensaver.</div>
           )}
         </div>
 
@@ -1347,30 +1414,15 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
           )}
         </div>
 
-        {/* Card: Security */}
-        <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
-           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>Securitate PIN</h3>
-            <label className="pc-toggle" style={{ margin: 0 }}>
-              <input type="checkbox" checked={usePin} onChange={e => setUsePin(e.target.checked)} />
-              <span className="toggle-slider" />
-            </label>
-          </div>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>Blochează tableta până la introducerea primei parole de angajat.</p>
-          
-          {usePin && (
-            <div style={{ animation: 'fadeIn 0.3s ease' }}>
-              <input 
-                type="password" 
-                maxLength="6"
-                className="pc-input" 
-                placeholder="Ex: 1234"
-                value={formData.kioskPin}
-                onChange={e => handleChange('kioskPin', e.target.value.replace(/\D/g, ''))}
-                style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', width: '100%', maxWidth: '140px', fontSize: '1.1rem', letterSpacing: '2px', boxSizing: 'border-box' }}
-              />
-            </div>
-          )}
+        </div>
+
+        {/* Coloana Dreapta: Previzualizare (Flex: 1) */}
+        <div className="loc-preview-column" style={{ position: 'sticky', top: 24, height: 'fit-content' }}>
+           <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 40, border: '1px dashed var(--border)', textAlign: 'center', color: 'var(--text-muted)' }}>
+              <div style={{ fontSize: '3rem', marginBottom: 16 }}>📱</div>
+              <h3 style={{ margin: '0 0 8px 0', color: 'var(--text)' }}>Previzualizare Kiosk</h3>
+              <p style={{ fontSize: '0.9rem', maxWidth: 300, margin: '0 auto' }}>Aici va apărea simulatorul pentru ecranele de standby și promoții.</p>
+           </div>
         </div>
 
       </div>
@@ -1546,7 +1598,7 @@ function LocationsManager({ backend }) {
   if (loading) return <p style={{color:'var(--text-muted)'}}>Se incarca...</p>;
 
   if (editingLoc) {
-    return <LocationEditForm loc={editingLoc} backend={backend} onBack={() => setEditingLoc(null)} onSave={fetchLocs} />;
+    return <KioskSettingsForm loc={editingLoc} backend={backend} onBack={() => setEditingLoc(null)} onSave={fetchLocs} />;
   }
 
   return (
@@ -1676,93 +1728,3 @@ function LocationsManager({ backend }) {
     </div>
   );
 }
-
-function LocationEditForm({ loc, backend, onBack, onSave }) {
-  const [formData, setFormData] = useState({
-    name: loc.name || '',
-    brands: loc.brands || [],
-    orgIds: loc.orgIds || {},
-    tables: loc.tables || 0,
-    note: loc.note || '',
-  });
-
-  const handleChange = (field, val) => setFormData(prev => ({ ...prev, [field]: val }));
-  
-  const handleOrgChange = (brandId, val) => {
-    setFormData(prev => ({ ...prev, orgIds: { ...prev.orgIds, [brandId]: val } }));
-  };
-
-  const toggleBrand = (b) => {
-    setFormData(prev => {
-      const newBrands = prev.brands.includes(b) ? prev.brands.filter(x => x !== b) : [...prev.brands, b];
-      return { ...prev, brands: newBrands };
-    });
-  };
-
-  const saveLoc = async () => {
-    await fetchWithAuth(`${backend}/api/locations/${loc.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(formData)
-    });
-    onSave();
-    onBack();
-  };
-
-  return (
-    <div className="loc-edit-form">
-      <div className="loc-edit-header">
-        <button className="loc-back-btn" onClick={onBack}>← Inapoi</button>
-        <h2>Editare Locatie: {loc.name}</h2>
-        <button className="loc-save-btn" onClick={saveLoc}>Salvează Toate</button>
-      </div>
-
-      <div className="loc-edit-grid">
-        {/* Generaly Config */}
-        <div className="loc-edit-card">
-          <h3>Setări Generale</h3>
-          <label>Nume Locație</label>
-          <input type="text" value={formData.name} onChange={e => handleChange('name', e.target.value)} className="pc-input" />
-          
-          <label>Notă internă (opțional)</label>
-          <textarea
-            className="pc-input"
-            style={{ minHeight: 80, resize: 'vertical' }}
-            placeholder="ex: Kiosk la intrare, lângă casa 2. Tableta Samsung."
-            value={formData.note}
-            onChange={e => handleChange('note', e.target.value)}
-          />
-
-          <label>Număr Mese</label>
-          <input type="number" value={formData.tables} onChange={e => handleChange('tables', Number(e.target.value))} className="pc-input" />
-
-          <label>Branduri Active (restaurante disponibile fizic în locație)</label>
-          <div className="loc-brand-select">
-            {Object.entries(BRAND_LABELS).map(([k, v]) => (
-              <button
-                key={k} className={`loc-brand-pill ${formData.brands.includes(k) ? 'active' : ''}`}
-                style={{ '--pill-color': BRAND_PILL_COLORS[k] }}
-                onClick={() => toggleBrand(k)}
-              >{v}</button>
-            ))}
-          </div>
-        </div>
-
-        {/* Syrve / Org ID */}
-        <div className="loc-edit-card">
-          <h3>Integrare Syrve (API)</h3>
-          <p style={{fontSize: '0.85rem', color: 'var(--text-muted)'}}>Completează Organization ID (orgId) de la Syrve pentru fiecare brand activ în această locație.</p>
-          {formData.brands.length === 0 && <p className="empty-text">Selectează un brand mai întâi.</p>}
-          {formData.brands.map(b => (
-            <div key={b} className="org-input-group">
-              <label>{BRAND_LABELS[b]} orgId</label>
-              <input type="text" value={formData.orgIds[b] || ''} onChange={e => handleOrgChange(b, e.target.value)} className="pc-input" placeholder="ex: f4742901-..." />
-            </div>
-          ))}
-        </div>
-
-      </div>
-    </div>
-  );
-}
-
