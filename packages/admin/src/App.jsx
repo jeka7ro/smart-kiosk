@@ -1450,7 +1450,7 @@ function QrGenerator({ backend }) {
   const [qrs, setQrs] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const QR_WEB_BASE = 'https://loquacious-madeleine-ed11d3.netlify.app';
+  const QR_WEB_BASE = 'https://qr-restaurants.netlify.app';
 
   // Persist QR codes in localStorage keyed by brand+loc. Added _v2 to invalidate old wrongly-generated QRs.
   const storageKey = `qr_codes_v2_${brand}_${loc}`;
