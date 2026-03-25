@@ -1134,9 +1134,9 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
           
           {formData.posterUrl ? (
             <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
-              <div style={{ width: 135, height: 240, borderRadius: 12, overflow: 'hidden', border: '6px solid #1e293b', background: '#000', position: 'relative', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}>
+              <div style={{ width: 270, height: 480, borderRadius: 16, overflow: 'hidden', border: '8px solid #1e293b', background: '#000', position: 'relative', boxShadow: '0 12px 32px rgba(0,0,0,0.25)' }}>
                 {renderPreview(formData.posterUrl)}
-                <div style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', background: 'rgba(255,255,255,0.95)', color: '#0f172a', padding: '6px 12px', borderRadius: 20, fontSize: '0.55rem', fontWeight: 800, whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
+                <div style={{ position: 'absolute', bottom: 30, left: '50%', transform: 'translateX(-50%)', background: 'rgba(255,255,255,0.95)', color: '#0f172a', padding: '8px 16px', borderRadius: 24, fontSize: '0.8rem', fontWeight: 800, whiteSpace: 'nowrap', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
                   Atinge pentru a începe
                 </div>
               </div>
@@ -1179,7 +1179,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                       
                       <div style={{ 
                         position: 'absolute', top: 0, left: 0, right: 0,
-                        height: `${10 ((formData.topBannerHeight || 1) - 1) * 5}%`, 
+                        height: `${10 + ((formData.topBannerHeight || 1) - 1) * 5}%`, 
                         borderRadius: `${formData.topBannerRadiusTop ? '6px' : '0'} ${formData.topBannerRadiusTop ? '6px' : '0'} ${formData.topBannerRadiusBottom ? '6px' : '0'} ${formData.topBannerRadiusBottom ? '6px' : '0'}`,
                         transition: 'all 0.3s ease',
                         overflow: 'hidden', background: '#000', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' 
@@ -1342,7 +1342,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                     
                     <div style={{ 
                       position: 'absolute', bottom: 0, left: 0, right: 0,
-                      height: `${10 ((formData.bottomBannerHeight || 1) - 1) * 5}%`, 
+                      height: `${10 + ((formData.bottomBannerHeight || 1) - 1) * 5}%`, 
                       borderRadius: `${formData.bottomBannerRadiusTop ? '6px' : '0'} ${formData.bottomBannerRadiusTop ? '6px' : '0'} ${formData.bottomBannerRadiusBottom ? '6px' : '0'} ${formData.bottomBannerRadiusBottom ? '6px' : '0'}`,
                       transition: 'all 0.3s ease',
                       overflow: 'hidden', background: formData.bottomBannerBg || '#000', boxShadow: '0 -4px 12px rgba(0,0,0,0.2)',
@@ -1412,11 +1412,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
              </div>
           )}
         </div>
-        {/* Coloana: Previzualizare (Card simplu la final) */}
-        <div className="loc-preview-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, border: '1px dashed var(--border)', textAlign: 'center', color: 'var(--text-muted)' }}>
-              <h3 style={{ margin: '0 0 8px 0', color: 'var(--text)' }}>Previzualizare Kiosk</h3>
-              <p style={{ fontSize: '0.9rem', maxWidth: 300, margin: '0 auto' }}>Aici va apărea simulatorul pentru ecranele de standby și promoții.</p>
-        </div>
+
       </div>
     </div>
   );
