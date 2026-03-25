@@ -135,7 +135,7 @@ export default function AdminApp() {
     pending:   orders.filter(o => o.status === 'pending').length,
     preparing: orders.filter(o => o.status === 'preparing').length,
     ready:     orders.filter(o => o.status === 'ready').length,
-    revenue:   orders.reduce((s, o) => s (o.totalAmount || 0), 0),
+    revenue:   orders.reduce((s, o) => s + (o.totalAmount || 0), 0),
     smashme:   orders.filter(o => o.brand === 'smashme').length,
     sushimaster: orders.filter(o => o.brand === 'sushimaster').length,
   };
