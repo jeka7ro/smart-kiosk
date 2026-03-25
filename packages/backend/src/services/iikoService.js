@@ -179,9 +179,18 @@ function transformMenu(raw, brandId = 'smashme') {
       if (!categoryIds.has(p.parentGroup)) return false;
       if (p.isDeleted) return false;
       if (p.type === 'Modifier') return false;
-      // Only exclude if isIncludedInMenu is explicitly false (not null/undefined)
+      // Brand-specific visibility rules
       const sp = (p.sizePrices || [])[0];
-      if (sp?.price?.isIncludedInMenu === false) return false;
+      const isIncluded = sp?.price?.isIncludedInMenu;
+      
+      if (brandId === 'sushimaster') {
+        // Sushi Master explicitly requires this flag to be TRUE to hide non-kiosk items (like Delivery)
+        if (!isIncluded) return false;
+      } else {
+        // SmashMe lacks proper flags on some items; only hide if explicitly FALSE
+        if (isIncluded === false) return false;
+      }
+      
       return true;
     })
     .map(p => {
