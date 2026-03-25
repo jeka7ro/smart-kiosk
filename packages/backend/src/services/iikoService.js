@@ -142,12 +142,41 @@ function transformMenu(raw, brandId = 'smashme') {
   const kioskRoot = groups.find(g => g.name?.toUpperCase().includes('KIOSK'));
   const kioskRootId = kioskRoot?.id;
 
+  // Since many orgs lack a KIOSK root, dynamically find and blacklist known bad roots
+  const blockedRootIds = new Set();
+  for (const g of groups) {
+    if (!g.parentGroup) {
+      const n = (g.name || '').toLowerCase();
+      // Block Delivery/Online root branches entirely
+      if (n.includes('livrare') || n.includes('bolt') || n.includes('tazz') || n.includes('glovo') || n.includes('sait') || n.includes('site')) {
+        blockedRootIds.add(g.id);
+      }
+      // Block cross-brand branches
+      if (brandId === 'sushimaster') {
+        if (n.includes('ikura') || n.includes('wls') || n.includes('love')) blockedRootIds.add(g.id);
+      } else if (brandId === 'welovesushi') {
+        if (n.includes('ikura') || n.includes('master') || n.includes('sm ')) blockedRootIds.add(g.id);
+      } else if (brandId === 'ikura') {
+        if (n.includes('master') || n.includes('sm ') || n.includes('wls') || n.includes('love')) blockedRootIds.add(g.id);
+      }
+    }
+  }
+
+  function isCategoryBlocked(catId) {
+    let current = groupMap[catId];
+    while (current) {
+      if (blockedRootIds.has(current.id)) return true;
+      current = groupMap[current.parentGroup];
+    }
+    return false;
+  }
+
   let categories = groups.filter(g => !g.isGroupModifier && g.parentGroup);
   if (kioskRootId) {
     categories = groups.filter(g => !g.isGroupModifier && g.parentGroup === kioskRootId);
   }
   if (categories.length === 0) {
-    categories = groups.filter(g => !g.isGroupModifier);
+    categories = groups.filter(g => !g.isGroupModifier && !isCategoryBlocked(g.id));
   }
 
   const mappedCategories = categories.map(cat => ({
@@ -156,14 +185,7 @@ function transformMenu(raw, brandId = 'smashme') {
     image: cat.imageLinks?.[0] || cat.imagePaths?.[0] || null,
     parentGroupId: cat.parentGroup,
     order: cat.order || 0,
-  })).filter(c => {
-    // Cross-brand bleed prevention for shared Syrve orgs
-    const n = (c.name || '').toLowerCase();
-    if (brandId === 'sushimaster') {
-      if (n.includes('ikura') || n.includes('love')) return false;
-    }
-    return true;
-  }).sort((a, b) => a.order - b.order);
+  })).sort((a, b) => a.order - b.order);
 
   const categoryIds = new Set(mappedCategories.map(c => c.id));
 
