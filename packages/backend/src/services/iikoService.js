@@ -164,6 +164,19 @@ function transformMenu(raw, brandId = 'smashme') {
 
   function isCategoryBlocked(catId) {
     let current = groupMap[catId];
+    
+    // Hard-ban by explicit category name (catches operator errors where they put Delivery *inside* the main root)
+    const catName = (current?.name || '').toLowerCase();
+    if (catName.includes('livrare') || catName.includes('delivery')) return true;
+    
+    if (brandId === 'sushimaster') {
+      if (catName.includes('ikura') || catName.includes('wls') || catName.includes('love')) return true;
+    } else if (brandId === 'welovesushi') {
+      if (catName.includes('ikura') || catName.includes('master') || catName.includes('sm ')) return true;
+    } else if (brandId === 'ikura') {
+      if (catName.includes('master') || catName.includes('sm ') || catName.includes('wls') || catName.includes('love')) return true;
+    }
+
     while (current) {
       if (blockedRootIds.has(current.id)) return true;
       current = groupMap[current.parentGroup];
