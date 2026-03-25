@@ -1325,10 +1325,28 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
 
                     {/* Logo URL */}
                     <div>
-                      <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>LOGO PNG (opțional, se afișează alături de text)</label>
-                      <input type="url" value={formData.bottomBannerLogoUrl} onChange={e => handleChange('bottomBannerLogoUrl', e.target.value)}
-                        placeholder="https://... URL imagine PNG/SVG"
-                        style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                      <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>LOGO PNG (opțional, poți pune un URL sau poți face upload)</label>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <input type="text" value={formData.bottomBannerLogoUrl || ''} onChange={e => handleChange('bottomBannerLogoUrl', e.target.value)}
+                          placeholder="https://... URL imagine PNG/SVG"
+                          style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                        <label style={{ cursor: 'pointer', background: '#f1f5f9', color: '#0f172a', padding: '8px 16px', borderRadius: 8, fontSize: '0.85rem', fontWeight: 600, border: '1px solid #cbd5e1', whiteSpace: 'nowrap', transition: 'all 0.15s' }}>
+                          + Upload
+                          <input type="file" accept="image/png, image/jpeg, image/svg+xml, image/webp" style={{ display: 'none' }} onChange={e => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            if (file.size > 2 * 1024 * 1024) {
+                              alert('Se permit maxim 2MB pentru un logo base64 ca să nu încetinim tableta. Găsește o variantă mai micșorată.');
+                              return;
+                            }
+                            const reader = new FileReader();
+                            reader.onload = (ev) => {
+                              handleChange('bottomBannerLogoUrl', ev.target.result);
+                            };
+                            reader.readAsDataURL(file);
+                          }} />
+                        </label>
+                      </div>
                       {formData.bottomBannerLogoUrl && (
                         <img src={formData.bottomBannerLogoUrl} alt="logo preview" style={{ height: 32, marginTop: 8, borderRadius: 4, objectFit: 'contain', border: '1px solid var(--border)', background: formData.bottomBannerBg, padding: '4px 8px' }} />
                       )}
