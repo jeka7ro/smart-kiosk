@@ -87,24 +87,21 @@
 }
 
 .poster-cta-btn-glass {
-  background: linear-gradient(135deg, rgba(34,197,94,0.9), rgba(22,163,74,0.9));
   border: 2px solid rgba(255,255,255,0.4);
   backdrop-filter: blur(12px);
   padding: 18px 56px;
   border-radius: 100px;
   cursor: pointer;
-  box-shadow: 0 12px 32px rgba(34,197,94,0.4);
   transition: all 0.3s;
   animation: pulseGlow 2.5s infinite alternate;
 }
 .poster-cta-btn-glass:hover {
   transform: scale(1.06);
-  box-shadow: 0 16px 48px rgba(34,197,94,0.6);
   border-color: rgba(255,255,255,0.8);
 }
 @keyframes pulseGlow {
-  0%   { box-shadow: 0 10px 30px rgba(34,197,94,0.3); }
-  100% { box-shadow: 0 16px 48px rgba(34,197,94,0.6); }
+  0%   { filter: drop-shadow(0 10px 20px rgba(0,0,0,0.3)); }
+  100% { filter: drop-shadow(0 16px 40px rgba(0,0,0,0.5)); }
 }
 
 .poster-cta-label {

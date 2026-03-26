@@ -71,9 +71,9 @@ export default function WelcomeScreen() {
   return (
     <div className={`welcome-screen ${isUnlocking ? 'unlocking' : ''}`} onClick={() => goAfterWelcome()}>
       {/* Language selector on welcome screen (if position = before or both) */}
-      {showLangOnWelcome && !posterVisible && allowedLangs.length > 1 && (
+      {showLangOnWelcome && allowedLangs.length > 1 && (
         <div
-          style={{ position: 'absolute', top: 24, right: 24, zIndex: 200, display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: 280 }}
+          style={{ position: 'absolute', top: 24, right: 24, zIndex: 10000, display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: 280 }}
           onClick={(e) => e.stopPropagation()}
         >
           {allowedLangs.map(l => (
@@ -135,7 +135,11 @@ export default function WelcomeScreen() {
               )}
             </div>
 
-            <button className="poster-cta-btn-glass" onClick={(e) => { e.stopPropagation(); handlePosterTap(); }}>
+            <button 
+              className="poster-cta-btn-glass" 
+              style={{ background: btnColor, boxShadow: `0 12px 32px ${btnColor}80` }}
+              onClick={(e) => { e.stopPropagation(); handlePosterTap(); }}
+            >
               <span className="poster-cta-label">{t('start_order', lang)}</span>
             </button>
 
