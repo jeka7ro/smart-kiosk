@@ -34,12 +34,18 @@ export default function TranslationsScreen({ backend }) {
   const fetchTranslations = async () => {
     try {
       setLoading(true);
-      const res = await fetchWithAuth(`${backend}/api/admin/translations/`);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+      const res = await fetchWithAuth(`${backend}/api/admin/translations/`, { signal: controller.signal });
+      clearTimeout(timeout);
       const data = await res.json();
       setTranslations(data || {});
     } catch (err) {
-      console.error(err);
-      setMessage({ type: 'error', text: 'Eroare la încărcarea traducerilor din baza de date.' });
+      if (err.name === 'AbortError') {
+        setMessage({ type: 'error', text: 'Server-ul nu răspunde (posibil adormit pe Render). Apasă Refresh Dicționar peste 30 secunde.' });
+      } else {
+        setMessage({ type: 'error', text: 'Eroare la încărcarea traducerilor.' });
+      }
     } finally {
       setLoading(false);
     }
@@ -131,7 +137,7 @@ export default function TranslationsScreen({ backend }) {
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
   const pageProducts = filteredProducts.slice((page - 1) * pageSize, page * pageSize);
 
-  if (loading) return <div className="admin-loading"><span className="spinner"></span> Încărcare dicționar...</div>;
+  if (loading) return <div className="admin-loading" style={{ flexDirection: 'column', gap: '12px' }}><span className="spinner"></span><span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Încărcare dicționar... (poate dura 30s dacă serverul a adormit)</span></div>;
 
   return (
     <div className="translations-screen admin-fade-in" style={{ padding: '0 40px', maxWidth: '1200px', margin: '0 auto', paddingBottom: '100px' }}>
@@ -234,7 +240,7 @@ export default function TranslationsScreen({ backend }) {
                   <React.Fragment key={pid}>
                   <tr style={{ borderBottom: '1px solid var(--border)' }} className={isExpanded ? 'active-row' : ''}>
                     <td style={{ padding: '16px', color: '#64748B', fontSize: '0.85rem' }}>
-                      {(page - 1) * PAGE_SIZE + index + 1}
+                      {(page - 1) * pageSize + index + 1}
                     </td>
                     <td style={{ padding: '16px', fontWeight: 600, color: 'var(--text)' }}>
                       {item.name || 'Produs Necunoscut'}
@@ -308,7 +314,7 @@ export default function TranslationsScreen({ backend }) {
       {totalPages > 1 && (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px' }}>
           <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-            {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredProducts.length)} din {filteredProducts.length} produse
+            {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, filteredProducts.length)} din {filteredProducts.length} produse
           </span>
           <div style={{ display: 'flex', gap: '4px' }}>
             <button className="loc-filter-btn" disabled={page === 1} onClick={() => setPage(1)}>«</button>
