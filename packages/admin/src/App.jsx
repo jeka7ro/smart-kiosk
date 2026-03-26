@@ -828,7 +828,8 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
     promoBrandId: loc.promoBrandId || '',
     promoMinOrderValue: loc.promoMinOrderValue || 0,
     promoOrdersToAppear: loc.promoOrdersToAppear || 1,
-    languages: loc.languages || ['ro', 'en', 'fr', 'hu', 'ru', 'uk', 'bg', 'de', 'es'],
+    languages: loc.languages && loc.languages.length > 0 ? loc.languages : ['ro'],
+    defaultLanguage: loc.defaultLanguage || (loc.languages && loc.languages.length > 0 ? loc.languages[0] : 'ro'),
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -1057,40 +1058,87 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
           )}
 
           <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px dashed var(--border)' }}>
-             <h4 style={{ margin: '0 0 12px 0', fontSize: '0.85rem', color: 'var(--text)' }}>Limbi Afișate pe Kiosk</h4>
-             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-               {['ro', 'en', 'fr', 'hu', 'ru', 'uk', 'bg', 'de', 'es'].map(lang => {
-                  const langNames = { ro: 'RO', en: 'EN', fr: 'FR', hu: 'HU', ru: 'RU', uk: 'UA', bg: 'BG', de: 'DE', es: 'ES' };
-                  const currentLangs = formData.languages || ['ro', 'en', 'fr', 'hu', 'ru', 'uk']; // fallback to all existing if old
-                  const isSelected = currentLangs.includes(lang);
-                  return (
-                     <button
-                        key={lang}
-                        type="button"
-                        onClick={() => {
-                           if (isSelected) {
-                              handleChange('languages', currentLangs.filter(l => l !== lang));
-                           } else {
-                              handleChange('languages', [...currentLangs, lang]);
-                           }
-                        }}
-                        style={{
-                           padding: '4px 10px',
-                           borderRadius: 12,
-                           fontSize: '0.75rem',
-                           fontWeight: 800,
-                           cursor: 'pointer',
-                           border: isSelected ? '1px solid currentColor' : '1px solid #cbd5e1',
-                           background: isSelected ? '#0f172a' : '#f8fafc',
-                           color: isSelected ? '#fff' : '#64748b',
-                           transition: 'all 0.2s',
-                        }}
-                     >
-                        {langNames[lang]}
-                     </button>
-                  );
-               })}
+             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+               <h4 style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text)' }}>Limbi Afișate pe Kiosk</h4>
+               <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>★ = limbă implicită</span>
              </div>
+             {/* Active languages — ordered list with controls */}
+             {(() => {
+               const ALL_LANGS = ['ro', 'en', 'fr', 'hu', 'ru', 'uk', 'bg', 'de', 'es'];
+               const langNames = { ro: 'RO 🇷🇴', en: 'EN 🇬🇧', fr: 'FR 🇫🇷', hu: 'HU 🇭🇺', ru: 'RU 🇷🇺', uk: 'UA 🇺🇦', bg: 'BG 🇧🇬', de: 'DE 🇩🇪', es: 'ES 🇪🇸' };
+               const currentLangs = formData.languages || ['ro', 'en'];
+               const defaultLang = formData.defaultLanguage || currentLangs[0];
+               const inactive = ALL_LANGS.filter(l => !currentLangs.includes(l));
+
+               const moveLang = (idx, dir) => {
+                 const arr = [...currentLangs];
+                 const newIdx = idx + dir;
+                 if (newIdx < 0 || newIdx >= arr.length) return;
+                 [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+                 handleChange('languages', arr);
+               };
+               const removeLang = (lang) => {
+                 const filtered = currentLangs.filter(l => l !== lang);
+                 handleChange('languages', filtered);
+                 if (defaultLang === lang && filtered.length > 0) handleChange('defaultLanguage', filtered[0]);
+               };
+               const addLang = (lang) => {
+                 handleChange('languages', [...currentLangs, lang]);
+               };
+               const setDefault = (lang) => handleChange('defaultLanguage', lang);
+
+               return (
+                 <div>
+                   {/* Selected languages in order */}
+                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 10 }}>
+                     {currentLangs.map((lang, idx) => {
+                       const isDefault = lang === defaultLang;
+                       return (
+                         <div key={lang} style={{
+                           display: 'flex', alignItems: 'center', gap: 6,
+                           background: isDefault ? '#0f172a' : 'var(--bg-surface)',
+                           border: isDefault ? '1px solid #0f172a' : '1px solid var(--border)',
+                           borderRadius: 10, padding: '6px 10px',
+                           transition: 'all 0.2s',
+                         }}>
+                           {/* Drag order number */}
+                           <span style={{ fontSize: '0.7rem', color: isDefault ? '#94a3b8' : 'var(--text-muted)', width: 16, textAlign: 'center', fontWeight: 700 }}>{idx + 1}</span>
+                           {/* Lang name */}
+                           <span style={{ flex: 1, fontSize: '0.82rem', fontWeight: 800, color: isDefault ? '#fff' : 'var(--text)' }}>{langNames[lang]}</span>
+                           {/* Default star button */}
+                           <button
+                             type="button"
+                             title={isDefault ? 'Limbă implicită (default)' : 'Setează ca limbă implicită'}
+                             onClick={() => setDefault(lang)}
+                             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', fontSize: '0.9rem', opacity: isDefault ? 1 : 0.3, color: isDefault ? '#f59e0b' : '#94a3b8', transition: 'all 0.15s' }}
+                           >★</button>
+                           {/* Up / Down */}
+                           <button type="button" onClick={() => moveLang(idx, -1)} disabled={idx === 0}
+                             style={{ background: 'none', border: 'none', cursor: idx === 0 ? 'default' : 'pointer', padding: '2px 4px', fontSize: '0.7rem', opacity: idx === 0 ? 0.2 : 0.7, color: isDefault ? '#94a3b8' : 'var(--text-muted)', fontWeight: 700 }}>▲</button>
+                           <button type="button" onClick={() => moveLang(idx, 1)} disabled={idx === currentLangs.length - 1}
+                             style={{ background: 'none', border: 'none', cursor: idx === currentLangs.length - 1 ? 'default' : 'pointer', padding: '2px 4px', fontSize: '0.7rem', opacity: idx === currentLangs.length - 1 ? 0.2 : 0.7, color: isDefault ? '#94a3b8' : 'var(--text-muted)', fontWeight: 700 }}>▼</button>
+                           {/* Remove */}
+                           <button type="button" onClick={() => removeLang(lang)} disabled={currentLangs.length === 1}
+                             style={{ background: 'none', border: 'none', cursor: currentLangs.length === 1 ? 'default' : 'pointer', padding: '2px 6px', fontSize: '0.75rem', opacity: currentLangs.length === 1 ? 0.2 : 0.6, color: isDefault ? '#f87171' : '#ef4444', fontWeight: 700 }}>✕</button>
+                         </div>
+                       );
+                     })}
+                   </div>
+                   {/* Pool of inactive languages to add */}
+                   {inactive.length > 0 && (
+                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', paddingTop: 8, borderTop: '1px dashed var(--border)' }}>
+                       <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', alignSelf: 'center', marginRight: 2 }}>+ Adaugă:</span>
+                       {inactive.map(lang => (
+                         <button key={lang} type="button" onClick={() => addLang(lang)}
+                           style={{ padding: '3px 8px', borderRadius: 8, fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', border: '1px dashed #94a3b8', background: 'transparent', color: 'var(--text-muted)', transition: 'all 0.15s' }}>
+                           {langNames[lang]}
+                         </button>
+                       ))}
+                     </div>
+                   )}
+                 </div>
+               );
+             })()}
           </div>
         </div>
 

@@ -85,6 +85,14 @@ export default function App() {
         if (loc && !loc.error) {
           setLocationData(loc);
           
+          // Auto-apply default language from Admin config
+          const setLang = useKioskStore.getState().setLang;
+          if (loc.defaultLanguage) {
+            setLang(loc.defaultLanguage);
+          } else if (loc.languages && loc.languages.length > 0) {
+            setLang(loc.languages[0]); // first in list is the default
+          }
+          
           // Determine the Main Brand natively from Database payload
           const bId = (loc.brands && loc.brands.length > 0) ? loc.brands[0] : 'smashme';
           setActiveBrandId(bId);
