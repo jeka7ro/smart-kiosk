@@ -136,7 +136,7 @@ export default function TranslationsScreen({ backend }) {
   if (loading) return <div className="admin-loading" style={{ flexDirection: 'column', gap: '12px' }}><span className="spinner"></span><span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Încărcare dicționar... (poate dura 30s dacă serverul a adormit)</span></div>;
 
   return (
-    <div className="translations-screen admin-fade-in" style={{ paddingBottom: '100px' }}>
+    <div className="translations-screen admin-fade-in">
 
       {/* Single toolbar row */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
@@ -195,21 +195,6 @@ export default function TranslationsScreen({ backend }) {
           );
         })}
 
-        {/* Page size */}
-        <select
-          value={pageSize}
-          onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}
-          style={{
-            padding: '8px 10px', border: '1px solid var(--border)', borderRadius: '8px',
-            fontSize: '0.85rem', outline: 'none', background: 'var(--card)', color: 'var(--text)', flexShrink: 0
-          }}
-        >
-          <option value={10}>10 / pag</option>
-          <option value={25}>25 / pag</option>
-          <option value={50}>50 / pag</option>
-          <option value={100}>100 / pag</option>
-        </select>
-
         {/* Action buttons — pushed to end */}
         <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px', flexShrink: 0 }}>
           <button className="loc-filter-btn" onClick={fetchTranslations} disabled={submitting}>Refresh</button>
@@ -231,7 +216,18 @@ export default function TranslationsScreen({ backend }) {
               <th style={{ padding: '16px', fontWeight: 600 }}>Denumiere Produs</th>
               <th style={{ padding: '16px', fontWeight: 600, width: '120px' }}>Brand</th>
               <th style={{ padding: '16px', fontWeight: 600 }}>Stare Traduceri</th>
-              <th style={{ padding: '16px', fontWeight: 600, textAlign: 'right' }}>Acțiuni</th>
+              <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>
+                <select
+                  value={pageSize}
+                  onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}
+                  style={{ padding: '5px 8px', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '0.8rem', outline: 'none', background: 'var(--card)', color: 'var(--text)', cursor: 'pointer' }}
+                >
+                  <option value={10}>10 / pag</option>
+                  <option value={25}>25 / pag</option>
+                  <option value={50}>50 / pag</option>
+                  <option value={100}>100 / pag</option>
+                </select>
+              </th>
             </tr>
           </thead>
           <tbody>

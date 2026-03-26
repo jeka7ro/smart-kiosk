@@ -377,7 +377,7 @@ export default function AdminApp() {
           </div>
         )}
         {/* ─── USERS MANAGER ─── */}
-        {tab === 'translations' && <TranslationsScreen backend={BACKEND} />}
+        {tab === 'translations' && <div className="admin-section"><TranslationsScreen backend={BACKEND} /></div>}
         {tab === 'modifiers' && <ModifierImages />}
         {tab === 'integrations' && <Integrations />}
         {tab === 'promotions' && <Promotions />}
