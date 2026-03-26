@@ -4,7 +4,7 @@
  */
 
 export const LANGUAGES = ['ro', 'en', 'fr', 'hu', 'ru', 'uk'];
-export const LANGUAGE_NAMES = { ro: 'RO', en: 'EN', fr: 'FR', hu: 'HU', ru: 'RU' , uk: 'UK' };
+export const LANGUAGE_NAMES = { ro: 'RO', en: 'EN', fr: 'FR', hu: 'HU', ru: 'RU' , uk: 'UA' };
 export const LANGUAGE_FLAGS = { ro: '🇷🇴', en: '🇬🇧', fr: '🇫🇷', hu: '🇭🇺', ru: '🇷🇺' , uk: '🇺🇦' };
 
 /** @type {Record<string, Record<string, string>>} */
