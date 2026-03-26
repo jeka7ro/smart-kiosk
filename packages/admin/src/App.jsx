@@ -771,6 +771,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
     promoBrandId: loc.promoBrandId || '',
     promoMinOrderValue: loc.promoMinOrderValue || 0,
     promoOrdersToAppear: loc.promoOrdersToAppear || 1,
+    languages: loc.languages || ['ro', 'en', 'fr', 'hu', 'ru', 'uk', 'bg', 'de', 'es'],
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -1001,8 +1002,8 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
           <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px dashed var(--border)' }}>
              <h4 style={{ margin: '0 0 12px 0', fontSize: '0.85rem', color: 'var(--text)' }}>Limbi Afișate pe Kiosk</h4>
              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-               {['ro', 'en', 'fr', 'hu', 'ru', 'uk', 'bg', 'de'].map(lang => {
-                  const langNames = { ro: 'RO', en: 'EN', fr: 'FR', hu: 'HU', ru: 'RU', uk: 'UA', bg: 'BG', de: 'DE' };
+               {['ro', 'en', 'fr', 'hu', 'ru', 'uk', 'bg', 'de', 'es'].map(lang => {
+                  const langNames = { ro: 'RO', en: 'EN', fr: 'FR', hu: 'HU', ru: 'RU', uk: 'UA', bg: 'BG', de: 'DE', es: 'ES' };
                   const currentLangs = formData.languages || ['ro', 'en', 'fr', 'hu', 'ru', 'uk']; // fallback to all existing if old
                   const isSelected = currentLangs.includes(lang);
                   return (
