@@ -176,10 +176,10 @@ export default function TranslationsScreen({ backend }) {
               title={b.toUpperCase()}
               style={{
                 width: '40px', height: '40px', borderRadius: '50%', flexShrink: 0,
-                border: `3px solid ${isActive ? '#0f766e' : 'transparent'}`,
+                border: `3px solid ${isActive ? '#0f766e' : '#e2e8f0'}`,
                 outline: isActive ? '2px solid #0f766e44' : 'none',
                 outlineOffset: '1px',
-                background: 'var(--card)',
+                background: '#fff',
                 boxShadow: '0 1px 4px rgba(0,0,0,0.12)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 cursor: 'pointer', padding: '5px',
