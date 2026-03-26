@@ -104,7 +104,7 @@ export default function TranslationsScreen({ backend }) {
         <div style={{ display: 'flex', gap: '8px' }}>
           <button className="admin-btn btn-outline" onClick={fetchTranslations} disabled={submitting}>🔄 Refresh</button>
           <button className="admin-btn" onClick={handleForceTranslate} disabled={submitting}>
-            ✨ Pornește Auto-Traducere
+            Pornește Auto-Traducere
           </button>
         </div>
       </div>

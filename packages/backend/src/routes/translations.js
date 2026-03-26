@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const translator = require('../services/translatorService');
-const { verifyAdmin } = require('../middleware/authMiddleware');
+const { protect, restrictTo } = require('../middleware/authMiddleware');
 
 // GET all product translations
 router.get('/', async (req, res) => {
@@ -15,7 +15,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST to update specific product translations (Admin only)
-router.post('/update', verifyAdmin, async (req, res) => {
+router.post('/update', protect, restrictTo('admin'), async (req, res) => {
   try {
     const { productId, translations } = req.body;
     
@@ -46,7 +46,7 @@ router.post('/update', verifyAdmin, async (req, res) => {
 });
 
 // POST to force auto-translation check manually (Admin only)
-router.post('/auto-translate', verifyAdmin, async (req, res) => {
+router.post('/auto-translate', protect, restrictTo('admin'), async (req, res) => {
   try {
     // A bit hacky: To trigger auto-translate we normally pass products from Syrve.
     // If Admin triggers this, we might fetch the latest cache from iikoService.
