@@ -15,20 +15,28 @@ export default function OrderTypeScreen() {
     ? locationData.languages 
     : LANGUAGES;
 
+  const btnColor = locationData?.langButtonColor || '#0f172a';
+  const isLightColor = parseInt(btnColor.replace('#',''), 16) > 0xaaaaaa;
+  const btnTextColor = isLightColor ? '#111' : '#fff';
+  const showLangSelector = (locationData?.langSelectorPosition || 'after') !== 'before';
+
   return (
     <div className="order-type-screen screen">
       {/* Language selector top-right */}
+      {showLangSelector && (
       <div className="bss-langs" style={{ position: 'absolute', top: 32, right: 32, zIndex: 100 }} onClick={(e) => e.stopPropagation()}>
         {allowedLangs.map(l => (
           <button
             key={l}
             className={`bss-lang-btn ${lang === l ? 'active' : ''}`}
             onClick={() => setLang(l)}
+            style={lang === l ? { background: btnColor, color: btnTextColor, borderColor: btnColor, opacity: 1 } : { opacity: 0.5 }}
           >
             {LANGUAGE_FLAGS[l]} {LANGUAGE_NAMES[l]}
           </button>
         ))}
       </div>
+      )}
 
       <button className="back-btn-screen" onClick={() => goTo('welcome')}>
         ← {t('back', lang)}

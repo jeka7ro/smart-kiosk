@@ -830,6 +830,8 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
     promoOrdersToAppear: loc.promoOrdersToAppear || 1,
     languages: loc.languages && loc.languages.length > 0 ? loc.languages : ['ro'],
     defaultLanguage: loc.defaultLanguage || (loc.languages && loc.languages.length > 0 ? loc.languages[0] : 'ro'),
+    langButtonColor: loc.langButtonColor || '#0f172a',
+    langSelectorPosition: loc.langSelectorPosition || 'after',
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -1142,6 +1144,88 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
           </div>
         </div>
 
+
+        {/* Card: Langue Settings (Color + Position) */}
+        <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
+          <h3 style={{ marginTop: 0, fontSize: '1.1rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>🎨 Aspect Butoane Limbi</h3>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>Personalizează culoarea și poziția selectorului de limbă pe kiosk.</p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Color picker */}
+            <div>
+              <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: 10 }}>Culoare butoane limbă</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                {/* Preset colors */}
+                {['#0f172a','#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#8b5cf6','#ec4899','#ffffff'].map(c => (
+                  <button key={c} type="button"
+                    onClick={() => handleChange('langButtonColor', c)}
+                    title={c}
+                    style={{
+                      width: 32, height: 32, borderRadius: '50%', background: c,
+                      border: formData.langButtonColor === c ? '3px solid var(--primary)' : '2px solid var(--border)',
+                      boxShadow: formData.langButtonColor === c ? '0 0 0 3px rgba(59,130,246,0.3)' : 'none',
+                      cursor: 'pointer', transition: 'all 0.15s', flexShrink: 0,
+                    }} />
+                ))}
+                {/* Custom color input */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '4px 10px' }}>
+                  <input type="color" value={formData.langButtonColor}
+                    onChange={e => handleChange('langButtonColor', e.target.value)}
+                    style={{ width: 24, height: 24, border: 'none', background: 'none', cursor: 'pointer', padding: 0 }} />
+                  <span style={{ fontSize: '0.78rem', fontFamily: 'monospace', color: 'var(--text)', fontWeight: 700 }}>{formData.langButtonColor}</span>
+                </div>
+              </div>
+              {/* Live preview */}
+              <div style={{ marginTop: 12, display: 'flex', gap: 6 }}>
+                {(formData.languages || ['ro']).slice(0,3).map(l => {
+                  const isLight = formData.langButtonColor === '#ffffff' || parseInt(formData.langButtonColor.replace('#',''), 16) > 0xaaaaaa;
+                  return (
+                    <div key={l} style={{
+                      padding: '6px 14px', borderRadius: 12, fontSize: '0.82rem', fontWeight: 800,
+                      background: formData.langButtonColor,
+                      color: isLight ? '#111' : '#fff',
+                      border: `2px solid ${formData.langButtonColor}`,
+                      opacity: l === (formData.defaultLanguage || formData.languages[0]) ? 1 : 0.6,
+                    }}>
+                      {({ro:'🇷🇴 RO',en:'🇬🇧 EN',fr:'🇫🇷 FR',hu:'🇭🇺 HU',ru:'🇷🇺 RU',uk:'🇺🇦 UA',bg:'🇧🇬 BG',de:'🇩🇪 DE',es:'🇪🇸 ES'})[l] || l.toUpperCase()}
+                    </div>
+                  );
+                })}
+                {formData.languages && formData.languages.length > 3 && (
+                  <div style={{ padding: '6px 10px', borderRadius: 12, fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)', background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
+                    +{formData.languages.length - 3} mai multe
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Position selector */}
+            <div>
+              <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: 10 }}>Unde apare selectorul de limbă?</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {[
+                  { value: 'before', label: 'Pe Screensaver', desc: 'Limbile apar chiar pe ecranul de așteptare', icon: '🖼️' },
+                  { value: 'after',  label: 'După Screensaver', desc: 'Limbile apar pe ecranul de alegere tip comandă', icon: '📋' },
+                  { value: 'both',   label: 'Ambele', desc: 'Apar atât pe screensaver cât și după', icon: '✨' },
+                ].map(opt => (
+                  <button key={opt.value} type="button"
+                    onClick={() => handleChange('langSelectorPosition', opt.value)}
+                    style={{
+                      flex: 1, padding: '12px 10px', borderRadius: 12, textAlign: 'center',
+                      border: formData.langSelectorPosition === opt.value ? '2px solid #3b82f6' : '1px solid var(--border)',
+                      background: formData.langSelectorPosition === opt.value ? '#eff6ff' : 'var(--bg-surface)',
+                      color: formData.langSelectorPosition === opt.value ? '#1d4ed8' : 'var(--text-muted)',
+                      cursor: 'pointer', transition: 'all 0.2s', fontWeight: 600,
+                    }}>
+                    <div style={{ fontSize: '1.4rem', marginBottom: 4 }}>{opt.icon}</div>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 800, marginBottom: 4 }}>{opt.label}</div>
+                    <div style={{ fontSize: '0.7rem', opacity: 0.7 }}>{opt.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Card: Promoție (Roată Kiosk) */}
         <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>

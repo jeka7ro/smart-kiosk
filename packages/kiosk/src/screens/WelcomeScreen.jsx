@@ -61,8 +61,40 @@ export default function WelcomeScreen() {
     goAfterWelcome();
   };
 
+  const btnColor = locationData?.langButtonColor || '#0f172a';
+  const isLightColor = parseInt(btnColor.replace('#',''), 16) > 0xaaaaaa;
+  const btnTextColor = isLightColor ? '#111' : '#fff';
+  const pos = locationData?.langSelectorPosition || 'after';
+  const showLangOnWelcome = pos === 'before' || pos === 'both';
+  const allowedLangs = locationData?.languages && locationData.languages.length > 0 ? locationData.languages : LANGUAGES;
+
   return (
     <div className={`welcome-screen ${isUnlocking ? 'unlocking' : ''}`} onClick={() => goAfterWelcome()}>
+      {/* Language selector on welcome screen (if position = before or both) */}
+      {showLangOnWelcome && !posterVisible && allowedLangs.length > 1 && (
+        <div
+          style={{ position: 'absolute', top: 24, right: 24, zIndex: 200, display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: 280 }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {allowedLangs.map(l => (
+            <button
+              key={l}
+              onClick={() => setLang(l)}
+              style={{
+                padding: '6px 12px', borderRadius: 20, fontSize: '0.8rem', fontWeight: 800,
+                background: lang === l ? btnColor : 'rgba(255,255,255,0.15)',
+                color: lang === l ? btnTextColor : '#fff',
+                border: lang === l ? `2px solid ${btnColor}` : '2px solid rgba(255,255,255,0.3)',
+                backdropFilter: 'blur(8px)',
+                cursor: 'pointer', transition: 'all 0.2s',
+                opacity: lang === l ? 1 : 0.7,
+              }}
+            >
+              {LANGUAGE_FLAGS[l]} {LANGUAGE_NAMES[l]}
+            </button>
+          ))}
+        </div>
+      )}
       {/* ─── POSTER SCREENSAVER (fullscreen overlay) ─── */}
       {posterVisible && poster && (
         <div className="poster-overlay" onClick={(e) => { e.stopPropagation(); handlePosterTap(); }}>

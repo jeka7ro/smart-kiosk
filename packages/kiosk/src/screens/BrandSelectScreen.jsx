@@ -30,20 +30,28 @@ export default function BrandSelectScreen() {
     ? locationData.languages 
     : LANGUAGES; // fallback to all if not configured
 
+  const btnColor = locationData?.langButtonColor || '#0f172a';
+  const isLightColor = parseInt(btnColor.replace('#',''), 16) > 0xaaaaaa;
+  const btnTextColor = isLightColor ? '#111' : '#fff';
+  const showLangSelector = (locationData?.langSelectorPosition || 'after') !== 'before';
+
   return (
     <div className="brand-select-screen screen">
       {/* Language selector top-right */}
+      {showLangSelector && (
       <div className="bss-langs" onClick={(e) => e.stopPropagation()}>
         {allowedLangs.map(l => (
           <button
             key={l}
             className={`bss-lang-btn ${lang === l ? 'active' : ''}`}
             onClick={() => setLang(l)}
+            style={lang === l ? { background: btnColor, color: btnTextColor, borderColor: btnColor, opacity: 1 } : { opacity: 0.5 }}
           >
             {LANGUAGE_FLAGS[l]} {LANGUAGE_NAMES[l]}
           </button>
         ))}
       </div>
+      )}
 
       <h1 className="bss-title">{t('choose_brand', lang) || 'Alege restaurantul'}</h1>
       <p className="bss-subtitle">{t('choose_brand_sub', lang) || 'Poți comanda de la mai multe restaurante'}</p>
