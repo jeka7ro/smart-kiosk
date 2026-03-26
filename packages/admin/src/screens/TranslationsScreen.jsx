@@ -142,66 +142,79 @@ export default function TranslationsScreen({ backend }) {
   return (
     <div className="translations-screen admin-fade-in" style={{ padding: '0 40px', maxWidth: '1200px', margin: '0 auto', paddingBottom: '100px' }}>
       
-      <div className="admin-top-bar" style={{ marginTop: '40px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
-        <div style={{ flex: 1, minWidth: '300px' }}>
-          <p className="admin-subtitle" style={{ margin: 0, color: 'var(--text-muted)' }}>
-            Ajustează descrierile produselor pe limbi. Filtrează, caută, sau lansează o sincronizare inteligentă de pe server.
-          </p>
-          
-          <div style={{ display: 'flex', gap: '8px', marginTop: '16px', flexWrap: 'wrap' }}>
-            <input 
-              type="text" 
-              placeholder="Caută produs sau ingredient..." 
-              value={search} 
-              onChange={e => { setSearch(e.target.value); setPage(1); }} 
-              style={{ padding: '8px 12px', border: '1px solid var(--border)', borderRadius: '8px', minWidth: '240px', fontSize: '0.85rem' }}
-            />
-            <select 
-              value={pageSize}
-              onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}
-              style={{ padding: '8px 12px', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '0.85rem', outline: 'none', background: 'var(--card)', color: 'var(--text)' }}
-            >
-              <option value={10}>10 Rânduri / Pagină</option>
-              <option value={25}>25 Rânduri / Pagină</option>
-              <option value={50}>50 Rânduri / Pagină</option>
-              <option value={100}>100 Rânduri / Pagină</option>
-            </select>
-            <button className={`loc-filter-btn ${brandFilter === 'all' ? 'active' : ''}`} onClick={() => { setBrandFilter('all'); setPage(1); }}>
-              Toate Brandurile
-            </button>
-            {availableBrands.map(b => {
-              const bLower = b.toLowerCase();
-              return (
-                <button 
-                  key={b} 
-                  className={`loc-filter-btn ${brandFilter === bLower ? 'active' : ''}`} 
-                  onClick={() => { setBrandFilter(bLower); setPage(1); }}
-                  style={{
-                    ...(brandFilter === bLower ? { background: '#10b981', color: 'white', borderColor: '#10b981' } : {}),
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '100px', height: '36px'
-                  }}
-                >
-                  {BRAND_LOGOS[bLower] ? (
-                    <img 
-                      src={BRAND_LOGOS[bLower]} 
-                      alt={b.toUpperCase()} 
-                      style={{ height: '20px', objectFit: 'contain', filter: brandFilter === bLower ? 'brightness(0) invert(1)' : 'none' }} 
-                    />
-                  ) : (
-                    b.toUpperCase()
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: '8px' }}>
+      {/* Row 1: Description + Action buttons */}
+      <div style={{ marginTop: '40px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
+        <p className="admin-subtitle" style={{ margin: 0, color: 'var(--text-muted)' }}>
+          Ajustează descrierile produselor pe limbi. Filtrează, caută sau lansează o sincronizare de pe server.
+        </p>
+        <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
           <button className="loc-filter-btn" onClick={fetchTranslations} disabled={submitting}>Refresh Dicționar</button>
-          <button className="loc-add-btn" onClick={handleForceTranslate} disabled={submitting}>
-            Pornește Auto-Traducere
-          </button>
+          <button className="loc-add-btn" onClick={handleForceTranslate} disabled={submitting}>Pornește Auto-Traducere</button>
         </div>
+      </div>
+
+      {/* Row 2: Search + page size selector */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', alignItems: 'center' }}>
+        <input 
+          type="text" 
+          placeholder="Caută produs sau ingredient..." 
+          value={search} 
+          onChange={e => { setSearch(e.target.value); setPage(1); }} 
+          style={{ padding: '8px 12px', border: '1px solid var(--border)', borderRadius: '8px', minWidth: '260px', flex: 1, maxWidth: '360px', fontSize: '0.85rem' }}
+        />
+        <select 
+          value={pageSize}
+          onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}
+          style={{ padding: '8px 12px', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '0.85rem', outline: 'none', background: 'var(--card)', color: 'var(--text)' }}
+        >
+          <option value={10}>10 / pagină</option>
+          <option value={25}>25 / pagină</option>
+          <option value={50}>50 / pagină</option>
+          <option value={100}>100 / pagină</option>
+        </select>
+      </div>
+
+      {/* Row 3: Brand filter buttons — all on ONE line */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', alignItems: 'center', flexWrap: 'nowrap', overflowX: 'auto' }}>
+        <button 
+          onClick={() => { setBrandFilter('all'); setPage(1); }}
+          style={{
+            padding: '6px 18px', height: '36px', border: `1px solid ${brandFilter === 'all' ? '#10b981' : 'var(--border)'}`,
+            borderRadius: '8px', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: '0.85rem', fontWeight: 500,
+            background: brandFilter === 'all' ? '#10b981' : 'var(--card)', color: brandFilter === 'all' ? 'white' : 'var(--text)'
+          }}
+        >
+          Toate
+        </button>
+        {availableBrands.map(b => {
+          const bLower = b.toLowerCase();
+          const isActive = brandFilter === bLower;
+          return (
+            <button 
+              key={b} 
+              onClick={() => { setBrandFilter(bLower); setPage(1); }}
+              title={b.toUpperCase()}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: '6px 16px', height: '36px', minWidth: '110px',
+                border: `1px solid ${isActive ? '#10b981' : 'var(--border)'}`,
+                borderRadius: '8px', cursor: 'pointer',
+                background: isActive ? '#10b981' : 'var(--card)',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              {BRAND_LOGOS[bLower] ? (
+                <img 
+                  src={BRAND_LOGOS[bLower]} 
+                  alt={b} 
+                  style={{ height: '22px', maxWidth: '90px', objectFit: 'contain', filter: isActive ? 'brightness(0) invert(1)' : 'none', display: 'block' }} 
+                />
+              ) : (
+                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: isActive ? 'white' : 'var(--text)' }}>{b.toUpperCase()}</span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {message && (
