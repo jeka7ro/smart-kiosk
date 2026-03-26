@@ -905,7 +905,10 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
     <div className="loc-edit-form" style={{ maxWidth: '1000px', margin: '0 auto' }}>
       <div className="loc-edit-header" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)', paddingBottom: 16, marginBottom: 24, display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-           <button className="loc-back-btn" onClick={onBack} style={{ padding: 0, color: 'var(--text-muted)', fontWeight: 600, border: 'none', background: 'none' }}>Înapoi</button>
+           <button className="loc-back-btn" onClick={onBack} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', color: 'var(--text)', fontWeight: 700, border: '1px solid var(--border)', background: 'var(--surface)', borderRadius: 10, cursor: 'pointer', fontSize: '0.9rem', boxShadow: '0 2px 6px rgba(0,0,0,0.06)', transition: 'all 0.2s' }}>
+             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+             Înapoi
+           </button>
            <h2 style={{ margin: '8px 0 0 0', fontSize: '1.5rem', color: 'var(--text)' }}>Configurare Kiosk: <span style={{color:'#3b82f6'}}>{loc.name}</span></h2>
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
