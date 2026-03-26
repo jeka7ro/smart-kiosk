@@ -32,7 +32,7 @@ export const BRANDS = {
     },
 
     // Font
-    font: "'Outfit', sans-serif",
+    font: "-apple-system, BlinkMacSystemFont, 'Inter', sans-serif",
     fontWeight: 900,
 
     // Welcome screen
@@ -79,7 +79,7 @@ export const BRANDS = {
     },
 
     // Font — more refined
-    font: "'Outfit', sans-serif",
+    font: "-apple-system, BlinkMacSystemFont, 'Inter', sans-serif",
     fontWeight: 700,
 
     // Welcome screen
@@ -120,7 +120,7 @@ export const BRANDS = {
       textMuted:    '#6E6F84',
       borderColor:  '#E8E8E8',
     },
-    font: "'Outfit', sans-serif",
+    font: "-apple-system, BlinkMacSystemFont, 'Inter', sans-serif",
     fontWeight: 700,
     welcomeSlides: [
       { headline: 'We Love Sushi!', sub: 'Sushi proaspăt, pregătit cu pasiune', emoji: '🍣' },
@@ -151,7 +151,7 @@ export const BRANDS = {
       textMuted:    '#6E6F84',
       borderColor:  '#E8E8E8',
     },
-    font: "'Outfit', sans-serif",
+    font: "-apple-system, BlinkMacSystemFont, 'Inter', sans-serif",
     fontWeight: 700,
     welcomeSlides: [
       { headline: 'Ikura Oradea', sub: 'Sushi premium, ingrediente proaspete', emoji: '🍱' },

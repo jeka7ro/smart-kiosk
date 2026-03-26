@@ -33,7 +33,7 @@
   --shadow-card: 0 2px 12px rgba(0,0,0,0.08);
   --shadow-btn:  0 4px 20px rgba(238,59,36,0.35);
 
-  --font: 'Outfit', sans-serif;
+  --font: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
   font-size: 16px;
 }
 

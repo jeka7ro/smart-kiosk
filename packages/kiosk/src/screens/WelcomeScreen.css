@@ -105,14 +105,14 @@
 }
 
 .poster-cta-label {
-  color: #fff; font-family: 'Outfit', sans-serif;
+  color: #fff;
   font-size: 1.8rem; font-weight: 800;
   letter-spacing: 1px;
   text-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 .poster-tap-hint {
   color: rgba(255,255,255,0.9);
-  font-family: 'Outfit', sans-serif;
+ 
   font-size: 1.15rem; font-weight: 600;
   letter-spacing: 2px;
   text-transform: uppercase;
@@ -126,7 +126,7 @@
 .poster-lang-btn {
   background: rgba(255,255,255,0.15); backdrop-filter: blur(12px);
   border: 2px solid rgba(255,255,255,0.4);
-  color: rgba(255,255,255,0.9); font-family: 'Outfit',sans-serif;
+  color: rgba(255,255,255,0.9);
   font-size: 1.4rem; font-weight: 800;
   padding: 14px 28px; border-radius: 20px;
   cursor: pointer; transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -247,7 +247,7 @@
 .cta-button {
   background: var(--primary);
   color: #fff;
-  font-family: 'Outfit', sans-serif;
+ 
   font-size: 1.15rem; font-weight: 700;
   padding: 16px 48px;
   border: none; border-radius: 16px;
@@ -273,7 +273,7 @@
 }
 .lang-btn {
   background: rgba(0,0,0,0.06); border: 1.5px solid var(--border);
-  color: var(--text-muted); font-family: 'Outfit',sans-serif; font-size: 0.85rem;
+  color: var(--text-muted); font-size: 0.85rem;
   font-weight: 700; padding: 7px 14px; border-radius: 10px;
   cursor: pointer; transition: all 0.2s;
 }
@@ -291,7 +291,7 @@
 .bs-label { font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; }
 .bs-btn {
   background: var(--surface); border: 1px solid var(--border);
-  color: var(--text-muted); font-family: 'Outfit',sans-serif; font-size: 0.8rem; font-weight: 600;
+  color: var(--text-muted); font-size: 0.8rem; font-weight: 600;
   padding: 6px 12px; border-radius: 8px; cursor: pointer; transition: all 0.2s; white-space: nowrap;
 }
 .bs-btn:hover { color: var(--text); }
