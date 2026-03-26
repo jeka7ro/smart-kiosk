@@ -3,6 +3,7 @@ import { useKioskStore } from './store/kioskStore';
 import { useInactivityTimeout } from './hooks/useInactivityTimeout';
 import { getBrand } from './config/brands.js';
 import { BrandContext, useBrand } from './context/BrandContext.js';
+import { io } from 'socket.io-client';
 
 // Re-export so existing imports from App.jsx still work
 export { BrandContext, useBrand };
@@ -115,6 +116,27 @@ export default function App() {
         })
         .catch(console.error);
     }
+  }, [locationData]);
+
+  // Global Socket.io connection for Remote Management (e.g. Restart)
+  useEffect(() => {
+    if (!locationData || !locationData.id) return;
+    
+    const socket = io(BACKEND, {
+      transports: ['websocket'],
+      reconnectionDelayMax: 10000,
+    });
+
+    socket.on('connect', () => {
+      socket.emit('join', { role: 'kiosk', locationId: locationData.id });
+    });
+
+    socket.on('remote_restart', () => {
+      console.log('[Kiosk] Remote restart signal received! Reloading...');
+      window.location.reload(true);
+    });
+
+    return () => socket.disconnect();
   }, [locationData]);
 
   // Auto-fullscreen on first user interaction (for kiosk/tablet mode)

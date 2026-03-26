@@ -609,13 +609,14 @@ function KiosksManager({ backend }) {
 
   return (
     <div className="kiosk-location-list">
-      <div className="kl-brand-filter">
-        <button
-          className={`kl-filter-btn ${brandFilter === 'all' ? 'active' : ''}`}
-          onClick={() => handleFilterClick('all')}
-        >
-          Toate ({locations.length})
-        </button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <div className="kl-brand-filter" style={{ marginBottom: 0 }}>
+          <button
+            className={`kl-filter-btn ${brandFilter === 'all' ? 'active' : ''}`}
+            onClick={() => handleFilterClick('all')}
+          >
+            Toate ({locations.length})
+          </button>
         {brandIds.map(bid => {
           const m = brandMeta[bid] || { name: bid, color: '#6b7a99' };
           const count = locations.filter(l => (l.brands && l.brands.includes(bid)) || l.brandId === bid).length;
@@ -630,6 +631,15 @@ function KiosksManager({ backend }) {
             </button>
           );
         })}
+        </div>
+        <button
+          title="Reîncarcă lista"
+          onClick={fetchLocs}
+          style={{ background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer', padding: '8px 16px', borderRadius: '8px', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', color: 'var(--text)', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 600, fontSize: '0.85rem' }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+          Refresh
+        </button>
       </div>
 
       {/* Tabel Business */}
@@ -674,6 +684,22 @@ function KiosksManager({ backend }) {
                   </td>
                   <td style={{ padding: '16px 24px', textAlign: 'right' }}>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                      <button 
+                        title="Restartare Ecrane Remote"
+                        className="btn-business-icon"
+                        style={{ background: '#fffbeb', border: '1px solid #fde68a', cursor: 'pointer', padding: '8px', borderRadius: '8px', transition: 'all 0.2s', color: '#d97706', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                        onClick={(e) => {
+                           e.stopPropagation();
+                           if (!window.confirm('Ești sigur că vrei să forțezi restartarea tuturor tabletelor conectate pentru ' + loc.name + '?')) return;
+                           const { fetchWithAuth } = useAuth.getState ? useAuth.getState() : { fetchWithAuth: window.fetch }; // fallback if outside context
+                           fetch(`${backend}/api/locations/${loc.id}/restart`, {
+                             method: 'POST',
+                             headers: { 'Authorization': `Bearer ${localStorage.getItem('admin_token')}` }
+                           }).then(() => alert('Comandă de restart trimisă!')).catch(() => alert('Eroare la trimitere'));
+                        }}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 2v6h6M21.5 22v-6h-6"/><path d="M22 11.5A10 10 0 0 0 3.2 7.2M2 12.5a10 10 0 0 0 18.8 4.2"/></svg>
+                      </button>
                       <a 
                         title="Vizualizare Kiosk direct"
                         href={finalKioskUrl} target="_blank" rel="noreferrer"

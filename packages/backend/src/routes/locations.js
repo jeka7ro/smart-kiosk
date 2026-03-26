@@ -161,4 +161,20 @@ router.delete('/:id/kiosks/:kioskId', protect, async (req, res) => {
   }
 });
 
+// POST /api/locations/:id/restart — remote restart all kiosks at location
+router.post('/:id/restart', protect, async (req, res) => {
+  try {
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`kiosk-${req.params.id}`).emit('remote_restart');
+      res.json({ ok: true, message: 'Restart signal sent' });
+    } else {
+      res.status(500).json({ error: 'Socket.io not initialized on server' });
+    }
+  } catch (e) {
+    console.error('[Locations RESTART]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 module.exports = router;

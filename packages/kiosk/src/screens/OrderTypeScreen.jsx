@@ -9,10 +9,10 @@ export default function OrderTypeScreen() {
   const goTo = useKioskStore((s) => s.goTo);
   const lang = useKioskStore((s) => s.lang);
   const setLang = useKioskStore((s) => s.setLang);
-  const kioskData = useKioskStore((s) => s.kioskData);
+  const locationData = useKioskStore((s) => s.locationData);
 
-  const allowedLangs = kioskData?.languages && kioskData.languages.length > 0 
-    ? kioskData.languages 
+  const allowedLangs = locationData?.languages && locationData.languages.length > 0 
+    ? locationData.languages 
     : LANGUAGES;
 
   return (

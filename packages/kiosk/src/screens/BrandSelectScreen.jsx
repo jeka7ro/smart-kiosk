@@ -26,8 +26,8 @@ export default function BrandSelectScreen() {
     goTo('orderType');
   };
 
-  const allowedLangs = kioskData?.languages && kioskData.languages.length > 0 
-    ? kioskData.languages 
+  const allowedLangs = locationData?.languages && locationData.languages.length > 0 
+    ? locationData.languages 
     : LANGUAGES; // fallback to all if not configured
 
   return (
