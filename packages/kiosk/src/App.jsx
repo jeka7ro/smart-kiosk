@@ -60,8 +60,10 @@ export default function App() {
   }, []);
 
   // ─── Fetch + Poll location data every 30s ────────────────────────────────
+  // ─── Fetch + Poll location data every 30s ────────────────────────────────
   // This is the primary settings sync mechanism - no socket dependency.
   useEffect(() => {
+    let isInitialBoot = true;
     const params = new URLSearchParams(window.location.search);
     let locId = params.get('loc');
     if (locId) localStorage.setItem('kiosk_loc_id', locId);
@@ -87,10 +89,13 @@ export default function App() {
             setLang(defaultLang);
           }
 
-          const bId = (loc.brands && loc.brands.length > 0) ? loc.brands[0] : 'smashme';
-          setActiveBrandId(bId);
-          const { applyBrandTheme } = await import('./config/brands.js');
-          applyBrandTheme(bId);
+          if (isInitialBoot) {
+            const bId = (loc.brands && loc.brands.length > 0) ? loc.brands[0] : 'smashme';
+            setActiveBrandId(bId);
+            const { applyBrandTheme } = await import('./config/brands.js');
+            applyBrandTheme(bId);
+            isInitialBoot = false;
+          }
 
           if (loc.kioskPin) {
             const unlocked = localStorage.getItem(`kiosk_unlocked_${loc.id}_${loc.kioskPin}`);
