@@ -174,43 +174,54 @@ export default function TranslationsScreen({ backend }) {
         </select>
       </div>
 
-      {/* Row 3: Brand filter buttons — all on ONE line */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', alignItems: 'center', flexWrap: 'nowrap', overflowX: 'auto' }}>
+      {/* Row 3: Brand filter — circular avatar buttons */}
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', alignItems: 'center' }}>
+        {/* "All" pill button */}
         <button 
           onClick={() => { setBrandFilter('all'); setPage(1); }}
           style={{
-            padding: '6px 18px', height: '36px', border: `1px solid ${brandFilter === 'all' ? '#10b981' : 'var(--border)'}`,
-            borderRadius: '8px', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: '0.85rem', fontWeight: 500,
-            background: brandFilter === 'all' ? '#10b981' : 'var(--card)', color: brandFilter === 'all' ? 'white' : 'var(--text)'
+            padding: '0 16px', height: '40px', borderRadius: '20px',
+            border: `2px solid ${brandFilter === 'all' ? '#10b981' : 'var(--border)'}`,
+            background: brandFilter === 'all' ? '#10b981' : 'var(--card)',
+            color: brandFilter === 'all' ? 'white' : 'var(--text)',
+            cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap',
+            transition: 'all 0.15s ease'
           }}
         >
           Toate
         </button>
+
+        {/* Brand circle avatars */}
         {availableBrands.map(b => {
           const bLower = b.toLowerCase();
           const isActive = brandFilter === bLower;
           return (
-            <button 
-              key={b} 
+            <button
+              key={b}
               onClick={() => { setBrandFilter(bLower); setPage(1); }}
               title={b.toUpperCase()}
               style={{
+                width: '48px', height: '48px', borderRadius: '50%',
+                border: `3px solid ${isActive ? '#10b981' : 'transparent'}`,
+                outline: isActive ? '2px solid #10b98133' : 'none',
+                outlineOffset: '2px',
+                background: 'var(--card)',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.12)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: '6px 16px', height: '36px', minWidth: '110px',
-                border: `1px solid ${isActive ? '#10b981' : 'var(--border)'}`,
-                borderRadius: '8px', cursor: 'pointer',
-                background: isActive ? '#10b981' : 'var(--card)',
-                transition: 'all 0.15s ease'
+                cursor: 'pointer', padding: '6px',
+                transition: 'all 0.15s ease',
+                overflow: 'hidden',
+                flexShrink: 0
               }}
             >
               {BRAND_LOGOS[bLower] ? (
-                <img 
-                  src={BRAND_LOGOS[bLower]} 
-                  alt={b} 
-                  style={{ height: '22px', maxWidth: '90px', objectFit: 'contain', filter: isActive ? 'brightness(0) invert(1)' : 'none', display: 'block' }} 
+                <img
+                  src={BRAND_LOGOS[bLower]}
+                  alt={b}
+                  style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
                 />
               ) : (
-                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: isActive ? 'white' : 'var(--text)' }}>{b.toUpperCase()}</span>
+                <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text)' }}>{b.slice(0,3).toUpperCase()}</span>
               )}
             </button>
           );
