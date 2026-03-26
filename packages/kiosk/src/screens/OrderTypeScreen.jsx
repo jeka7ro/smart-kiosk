@@ -24,15 +24,16 @@ export default function OrderTypeScreen() {
     <div className="order-type-screen screen">
       {/* Language selector top-right */}
       {showLangSelector && (
-      <div className="bss-langs" style={{ position: 'absolute', top: 32, right: 32, zIndex: 100 }} onClick={(e) => e.stopPropagation()}>
+      <div className="bss-langs" onClick={(e) => e.stopPropagation()}>
         {allowedLangs.map(l => (
           <button
             key={l}
             className={`bss-lang-btn ${lang === l ? 'active' : ''}`}
             onClick={() => setLang(l)}
-            style={lang === l ? { background: btnColor, color: btnTextColor, borderColor: btnColor, opacity: 1 } : { opacity: 0.5 }}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
           >
-            {LANGUAGE_FLAGS[l]} {LANGUAGE_NAMES[l]}
+            <img src={`https://flagcdn.com/w40/${LANGUAGE_FLAGS[l]}.png`} alt={l} style={{ width: 18, borderRadius: 2 }} />
+            {LANGUAGE_NAMES[l]}
           </button>
         ))}
       </div>

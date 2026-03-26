@@ -45,9 +45,10 @@ export default function BrandSelectScreen() {
             key={l}
             className={`bss-lang-btn ${lang === l ? 'active' : ''}`}
             onClick={() => setLang(l)}
-            style={lang === l ? { background: btnColor, color: btnTextColor, borderColor: btnColor, opacity: 1 } : { opacity: 0.5 }}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
           >
-            {LANGUAGE_FLAGS[l]} {LANGUAGE_NAMES[l]}
+            <img src={`https://flagcdn.com/w40/${LANGUAGE_FLAGS[l]}.png`} alt={l} style={{ width: 18, borderRadius: 2 }} />
+            {LANGUAGE_NAMES[l]}
           </button>
         ))}
       </div>

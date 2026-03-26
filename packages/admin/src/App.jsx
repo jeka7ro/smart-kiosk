@@ -1082,7 +1082,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
             <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
               {/* Color swatches */}
               <div style={{ flex: '1 1 200px' }}>
-                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: 8 }}>Culoare buton limbă</label>
+                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: 8 }}>Culoare buton principal (Începe comanda)</label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                   {['#0f172a','#ef4444','#f97316','#22c55e','#3b82f6','#8b5cf6','#ec4899','#ffffff'].map(c => (
                     <button key={c} type="button" onClick={() => handleChange('langButtonColor', c)} title={c}

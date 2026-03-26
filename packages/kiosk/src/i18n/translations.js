@@ -5,7 +5,7 @@
 
 export const LANGUAGES = ['ro', 'en', 'fr', 'hu', 'ru', 'uk', 'bg', 'de', 'es'];
 export const LANGUAGE_NAMES = { ro: 'RO', en: 'EN', fr: 'FR', hu: 'HU', ru: 'RU', uk: 'UA', bg: 'BG', de: 'DE', es: 'ES' };
-export const LANGUAGE_FLAGS = { ro: '🇷🇴', en: '🇬🇧', fr: '🇫🇷', hu: '🇭🇺', ru: '🇷🇺', uk: '🇺🇦', bg: '🇧🇬', de: '🇩🇪', es: '🇪🇸' };
+export const LANGUAGE_FLAGS = { ro: 'ro', en: 'gb', fr: 'fr', hu: 'hu', ru: 'ru', uk: 'ua', bg: 'bg', de: 'de', es: 'es' };
 
 /** @type {Record<string, Record<string, string>>} */
 export const T = {

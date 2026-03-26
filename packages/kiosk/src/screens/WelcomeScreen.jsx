@@ -72,25 +72,16 @@ export default function WelcomeScreen() {
     <div className={`welcome-screen ${isUnlocking ? 'unlocking' : ''}`} onClick={() => goAfterWelcome()}>
       {/* Language selector on welcome screen (if position = before or both) */}
       {showLangOnWelcome && allowedLangs.length > 1 && (
-        <div
-          style={{ position: 'absolute', top: 24, right: 24, zIndex: 10000, display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: 280 }}
-          onClick={(e) => e.stopPropagation()}
-        >
+        <div className="poster-langs" onClick={(e) => e.stopPropagation()}>
           {allowedLangs.map(l => (
             <button
               key={l}
               onClick={() => setLang(l)}
-              style={{
-                padding: '6px 12px', borderRadius: 20, fontSize: '0.8rem', fontWeight: 800,
-                background: lang === l ? btnColor : 'rgba(255,255,255,0.15)',
-                color: lang === l ? btnTextColor : '#fff',
-                border: lang === l ? `2px solid ${btnColor}` : '2px solid rgba(255,255,255,0.3)',
-                backdropFilter: 'blur(8px)',
-                cursor: 'pointer', transition: 'all 0.2s',
-                opacity: lang === l ? 1 : 0.7,
-              }}
+              className={`poster-lang-btn ${lang === l ? 'active' : ''}`}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
             >
-              {LANGUAGE_FLAGS[l]} {LANGUAGE_NAMES[l]}
+              <img src={`https://flagcdn.com/w40/${LANGUAGE_FLAGS[l]}.png`} alt={l} style={{ width: 24, borderRadius: 3 }} />
+              {LANGUAGE_NAMES[l]}
             </button>
           ))}
         </div>
