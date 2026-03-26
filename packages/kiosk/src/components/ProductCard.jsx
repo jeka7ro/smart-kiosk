@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { useKioskStore } from '../store/kioskStore';
 import { proxySyrveImage } from '../utils/imageUtils.js';
-
+import { t } from '../i18n/translations.js';
 export { proxySyrveImage }; // re-export for backward compat
 
 export default function ProductCard({ product, delay, lang, activeBrand, onQuickAdd, onInfo, isFavorited, onToggleFavorite }) {
