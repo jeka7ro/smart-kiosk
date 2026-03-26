@@ -85,10 +85,8 @@ export const T = {
     ru: 'Введите номер столика',
     uk: 'Введіть номер столика',
     bg: "Въведете номер на маса",
-    de: "Tischnummer eingeben"
-    bg: "Маса",
-    de: "Tisch",
-    es: "Ingrese número de mesa"
+    de: "Tischnummer eingeben",
+    es: "Ingrese número de mesa",
     es: "Mesa"
   },
   table: {
@@ -222,10 +220,10 @@ export const T = {
     ru: 'Сумма',
     uk: 'Сума',
     bg: "Междинна сума",
-    de: "Zwischensumme"
+    de: "Zwischensumme",
     bg: "Общо",
     de: "Gesamt",
-    es: "Subtotal"
+    es: "Subtotal",
     es: "Total"
   },
   tva: {
@@ -462,10 +460,10 @@ export const T = {
     ru: 'Ошибка загрузки',
     uk: 'Помилка завантаження',
     bg: "Зареждане...",
-    de: "Laden..."
+    de: "Laden...",
     bg: "Грешка",
     de: "Fehler",
-    es: "Cargando..."
+    es: "Cargando...",
     es: "Error"
   },
   retry: {
@@ -521,10 +519,10 @@ export const T = {
     ru: 'Сумма к оплате',
     uk: 'До сплати',
     bg: "Плати",
-    de: "Bezahlen"
+    de: "Bezahlen",
     bg: "Общо за плащане",
     de: "Zu zahlen",
-    es: "Pagar"
+    es: "Pagar",
     es: "Total a pagar"
   },
   payment_step_1: {
@@ -634,10 +632,10 @@ export const T = {
     ru: 'ВАШ НОМЕР ЗАКАЗА',
     uk: 'ВАШ НОМЕР ЗАМОВЛЕННЯ',
     bg: "Номер",
-    de: "Bestellnummer"
+    de: "Bestellnummer",
     bg: "ВАШИЯТ НОМЕР",
     de: "IHRE NUMMER",
-    es: "Número"
+    es: "Número",
     es: "SU NÚMERO"
   },
   pickup_at_counter: {
