@@ -11,6 +11,13 @@ const BRAND_LOGOS = {
   sushimaster: '/brands/sushimaster-logo.png'
 };
 
+const BRAND_META = {
+  smashme:     { name: 'SmashMe',      color: '#ef4444' },
+  sushimaster: { name: 'Sushi Master', color: '#f97316' },
+  welovesushi: { name: 'WeLoveSushi',  color: '#f97316' },
+  ikura:       { name: 'Ikura',        color: '#1e293b' },
+};
+
 export default function TranslationsScreen({ backend }) {
   const { fetchWithAuth } = useAuth();
   const [translations, setTranslations] = useState({});
@@ -21,7 +28,7 @@ export default function TranslationsScreen({ backend }) {
   const [expandedId, setExpandedId] = useState(null);
   const [editData, setEditData] = useState({});
 
-  // Table state — multi-select brands
+  // Table state
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [search, setSearch] = useState('');
@@ -52,7 +59,7 @@ export default function TranslationsScreen({ backend }) {
       setTranslations(data || {});
     } catch (err) {
       if (err.name === 'AbortError') {
-        setMessage({ type: 'error', text: 'Server-ul nu răspunde (posibil adormit pe Render). Apasă Refresh Dicționar peste 30 secunde.' });
+        setMessage({ type: 'error', text: 'Server-ul nu răspunde (posibil adormit pe Render). Apasă Refresh peste 30 secunde.' });
       } else {
         setMessage({ type: 'error', text: 'Eroare la încărcarea traducerilor.' });
       }
@@ -62,14 +69,13 @@ export default function TranslationsScreen({ backend }) {
   };
 
   const handleForceTranslate = async () => {
-    if (!window.confirm('Ești sigur că vrei să rulezi o scanare automată pentru toate elementele lipsă? Va dura câteva minute în fundal.')) return;
+    if (!window.confirm('Ești sigur? Va dura câteva minute în fundal.')) return;
     try {
       setSubmitting(true);
       const res = await fetchWithAuth(`${backend}/api/admin/translations/auto-translate`, { method: 'POST' });
       const data = await res.json();
-      setMessage({ type: 'success', text: data.message || 'Job-ul de traducere a fost inițiat pe fundal.' });
+      setMessage({ type: 'success', text: data.message || 'Job-ul de traducere a fost inițiat.' });
     } catch (err) {
-      console.error(err);
       setMessage({ type: 'error', text: 'Eroare la inițierea traducerii.' });
     } finally {
       setSubmitting(false);
@@ -87,9 +93,9 @@ export default function TranslationsScreen({ backend }) {
       setMessage(null);
       const payload = { productId, translations: editData };
       await fetchWithAuth(`${backend}/api/admin/translations/update`, {
-         method: 'POST',
-         headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify(payload)
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
       });
       setMessage({ type: 'success', text: 'Traducerea a fost salvată cu succes!' });
       setTranslations(prev => ({
@@ -98,51 +104,94 @@ export default function TranslationsScreen({ backend }) {
       }));
       setExpandedId(null);
     } catch (err) {
-      console.error(err);
       setMessage({ type: 'error', text: 'Eroare la salvare. Reîncearcă.' });
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Convert dictionary to array
-  const productsArray = useMemo(() => {
-    return Object.entries(translations).map(([id, data]) => ({ id, ...data }));
-  }, [translations]);
+  const productsArray = useMemo(() =>
+    Object.entries(translations).map(([id, data]) => ({ id, ...data })),
+  [translations]);
 
-  // Derived available brands
   const availableBrands = useMemo(() => {
     const set = new Set(productsArray.map(p => p.brandId).filter(Boolean));
     return Array.from(set).sort();
   }, [productsArray]);
 
-  // Filtered array — multi-select
-  const filteredProducts = useMemo(() => {
-    return productsArray.filter(p => {
+  const filteredProducts = useMemo(() =>
+    productsArray.filter(p => {
       if (activeBrands.size > 0 && !activeBrands.has((p.brandId || '').toLowerCase())) return false;
       if (search) {
-        const query = search.toLowerCase();
-        const matchesName = p.name && p.name.toLowerCase().includes(query);
-        const matchesDesc = p.originalDescription && p.originalDescription.toLowerCase().includes(query);
-        if (!matchesName && !matchesDesc) return false;
+        const q = search.toLowerCase();
+        if (!(p.name || '').toLowerCase().includes(q) && !(p.originalDescription || '').toLowerCase().includes(q)) return false;
       }
       return true;
-    });
-  }, [productsArray, activeBrands, search]);
+    }),
+  [productsArray, activeBrands, search]);
 
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
   const pageProducts = filteredProducts.slice((page - 1) * pageSize, page * pageSize);
 
-  if (loading) return <div className="admin-loading" style={{ flexDirection: 'column', gap: '12px' }}><span className="spinner"></span><span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Încărcare dicționar... (poate dura 30s dacă serverul a adormit)</span></div>;
+  if (loading) return (
+    <div className="admin-loading" style={{ flexDirection: 'column', gap: '12px' }}>
+      <span className="spinner"></span>
+      <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Încărcare dicționar... (poate dura 30s dacă serverul a adormit)</span>
+    </div>
+  );
 
   return (
     <div className="translations-screen admin-fade-in">
 
-      {/* Single toolbar row */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
-        
-        {/* Search with live result counter */}
-        <div style={{ position: 'relative', flex: '1 1 220px', maxWidth: '320px' }}>
+      {/* Subtitle + action buttons */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+          Ajustează descrierile produselor pe limbi disponibile.
+        </p>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button className="loc-filter-btn" onClick={fetchTranslations} disabled={submitting}>Refresh</button>
+          <button className="loc-add-btn" onClick={handleForceTranslate} disabled={submitting}>Auto-Traducere</button>
+        </div>
+      </div>
+
+      {/* Brand filter pills + search */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '16px', flexWrap: 'wrap' }}>
+
+        {/* Toate */}
+        <button
+          className={`kl-filter-btn ${activeBrands.size === 0 ? 'active' : ''}`}
+          onClick={() => { setActiveBrands(new Set()); setPage(1); }}
+        >
+          Toate ({productsArray.length})
+        </button>
+
+        {/* Brand pills */}
+        {availableBrands.map(b => {
+          const bLower = b.toLowerCase();
+          const meta = BRAND_META[bLower] || { name: b, color: '#6b7a99' };
+          const isActive = activeBrands.has(bLower);
+          const count = productsArray.filter(p => (p.brandId || '').toLowerCase() === bLower).length;
+          return (
+            <button
+              key={b}
+              className={`kl-filter-btn ${isActive ? 'active' : ''}`}
+              style={{ '--bc': meta.color, display: 'flex', alignItems: 'center', gap: '6px' }}
+              onClick={() => toggleBrand(bLower)}
+            >
+              {BRAND_LOGOS[bLower] && (
+                <img
+                  src={BRAND_LOGOS[bLower]}
+                  alt={b}
+                  style={{ width: '16px', height: '16px', borderRadius: '50%', objectFit: 'contain', flexShrink: 0 }}
+                />
+              )}
+              {meta.name} ({count})
+            </button>
+          );
+        })}
+
+        {/* Search pushed right */}
+        <div style={{ marginLeft: 'auto', position: 'relative', minWidth: '220px' }}>
           <input
             type="text"
             placeholder="Caută produs sau ingredient..."
@@ -150,7 +199,7 @@ export default function TranslationsScreen({ backend }) {
             onChange={e => { setSearch(e.target.value); setPage(1); }}
             style={{
               width: '100%', boxSizing: 'border-box',
-              padding: '8px 12px', paddingRight: search ? '80px' : '12px',
+              padding: '8px 12px', paddingRight: search ? '76px' : '12px',
               border: '1px solid var(--border)', borderRadius: '8px', fontSize: '0.85rem'
             }}
           />
@@ -164,42 +213,6 @@ export default function TranslationsScreen({ backend }) {
             </span>
           )}
         </div>
-
-        {/* Brand avatar circles — multi-select */}
-        {availableBrands.map(b => {
-          const bLower = b.toLowerCase();
-          const isActive = activeBrands.has(bLower);
-          return (
-            <button
-              key={b}
-              onClick={() => toggleBrand(bLower)}
-              title={b.toUpperCase()}
-              style={{
-                width: '40px', height: '40px', borderRadius: '50%', flexShrink: 0,
-                border: `3px solid ${isActive ? '#0f766e' : '#e2e8f0'}`,
-                outline: isActive ? '2px solid #0f766e44' : 'none',
-                outlineOffset: '1px',
-                background: '#fff',
-                boxShadow: '0 1px 4px rgba(0,0,0,0.12)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer', padding: '5px',
-                transition: 'all 0.15s ease', overflow: 'hidden'
-              }}
-            >
-              {BRAND_LOGOS[bLower] ? (
-                <img src={BRAND_LOGOS[bLower]} alt={b} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-              ) : (
-                <span style={{ fontSize: '0.6rem', fontWeight: 800 }}>{b.slice(0,3).toUpperCase()}</span>
-              )}
-            </button>
-          );
-        })}
-
-        {/* Action buttons — pushed to end */}
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px', flexShrink: 0 }}>
-          <button className="loc-filter-btn" onClick={fetchTranslations} disabled={submitting}>Refresh</button>
-          <button className="loc-add-btn" onClick={handleForceTranslate} disabled={submitting}>Auto-Traducere</button>
-        </div>
       </div>
 
       {message && (
@@ -208,33 +221,23 @@ export default function TranslationsScreen({ backend }) {
         </div>
       )}
 
+      {/* Table */}
       <div style={{ background: 'var(--card)', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)' }}>
         <table className="loc-table hoverable-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--border)', color: '#64748B', fontSize: '0.85rem' }}>
               <th style={{ padding: '16px', fontWeight: 600, width: '48px' }}>#</th>
-              <th style={{ padding: '16px', fontWeight: 600 }}>Denumiere Produs</th>
+              <th style={{ padding: '16px', fontWeight: 600 }}>Denumire Produs</th>
               <th style={{ padding: '16px', fontWeight: 600, width: '120px' }}>Brand</th>
               <th style={{ padding: '16px', fontWeight: 600 }}>Stare Traduceri</th>
-              <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>
-                <select
-                  value={pageSize}
-                  onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}
-                  style={{ padding: '5px 8px', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '0.8rem', outline: 'none', background: 'var(--card)', color: 'var(--text)', cursor: 'pointer' }}
-                >
-                  <option value={10}>10 / pag</option>
-                  <option value={25}>25 / pag</option>
-                  <option value={50}>50 / pag</option>
-                  <option value={100}>100 / pag</option>
-                </select>
-              </th>
+              <th style={{ padding: '16px', fontWeight: 600, textAlign: 'right' }}>Acțiuni</th>
             </tr>
           </thead>
           <tbody>
             {filteredProducts.length === 0 ? (
               <tr>
                 <td colSpan="5" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-                  Nu au fost găsite produse cu aceste filtre. Verifică sistemul.
+                  Nu au fost găsite produse cu aceste filtre.
                 </td>
               </tr>
             ) : (
@@ -243,76 +246,75 @@ export default function TranslationsScreen({ backend }) {
                 const isExpanded = expandedId === pid;
                 const missingLangs = LANGUAGES.filter(l => !item.translations[l]).length;
                 const brandLower = (item.brandId || '').toLowerCase();
-                const logoObj = BRAND_LOGOS[brandLower];
+                const logoSrc = BRAND_LOGOS[brandLower];
 
                 return (
                   <React.Fragment key={pid}>
-                  <tr style={{ borderBottom: '1px solid var(--border)' }} className={isExpanded ? 'active-row' : ''}>
-                    <td style={{ padding: '16px', color: '#64748B', fontSize: '0.85rem' }}>
-                      {(page - 1) * pageSize + index + 1}
-                    </td>
-                    <td style={{ padding: '16px', fontWeight: 600, color: 'var(--text)' }}>
-                      {item.name || 'Produs Necunoscut'}
-                    </td>
-                    <td style={{ padding: '16px' }}>
-                      {logoObj ? (
-                        <img src={logoObj} alt={item.brandId} style={{ height: '24px', objectFit: 'contain' }} />
-                      ) : (
-                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>
-                          {item.brandId ? item.brandId.toUpperCase() : 'NEDEFINIT'}
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ padding: '16px' }}>
-                      {missingLangs === 0 
-                        ? <span style={{ color: '#0f766e', fontWeight: 600, fontSize: '0.85rem' }}>Tradus Complet</span>
-                        : <span style={{ color: '#f59e0b', fontWeight: 600, fontSize: '0.85rem' }}>Lipsesc {missingLangs} limbi</span>
-                      }
-                    </td>
-                    <td style={{ padding: '16px', textAlign: 'right' }}>
-                      <button className="loc-filter-btn" onClick={() => !isExpanded ? openEditor(pid, item) : setExpandedId(null)} style={{ fontSize: '0.85rem', padding: '6px 12px' }}>
-                        {isExpanded ? 'Închide Editor' : 'Editează Limbi'}
-                      </button>
-                    </td>
-                  </tr>
-                  
-                  {isExpanded && (
-                    <tr style={{ background: '#f8fafc' }}>
-                      <td colSpan="5" style={{ padding: '24px', borderBottom: '1px solid var(--border)' }}>
-                        <div className="tc-body" style={{ background: 'transparent', padding: 0 }}>
-                          <div className="original-text">
-                            <label>Descriere Originală (Syrve):</label>
-                            <p>{item.originalDescription || <em>Fără descriere la bază.</em>}</p>
-                          </div>
-
-                          <div className="translations-grid">
-                            {LANGUAGES.map(lang => (
-                              <div key={lang} className="t-input-group">
-                                <label className="t-lang-label">
-                                  <img src={`https://flagsapi.com/` + (lang==='en'?'GB':lang==='uk'?'UA':lang.toUpperCase()) + `/flat/24.png`} alt={lang}/>
-                                  {lang.toUpperCase()}
-                                </label>
-                                <textarea 
-                                  value={editData[lang] || ''}
-                                  onChange={(e) => setEditData({...editData, [lang]: e.target.value})}
-                                  placeholder={`Traducerea în ${lang}...`}
-                                  rows={3}
-                                />
-                              </div>
-                            ))}
-                          </div>
-                          
-                          <div className="tc-actions">
-                            <button className="loc-filter-btn" onClick={() => setExpandedId(null)}>Anulează Modificări</button>
-                            <button className="loc-add-btn" onClick={() => handleSave(pid)} disabled={submitting}>
-                              {submitting ? 'Se salvează...' : 'Salvează Traducerea Manuală'}
-                            </button>
-                          </div>
-                        </div>
+                    <tr style={{ borderBottom: '1px solid var(--border)' }} className={isExpanded ? 'active-row' : ''}>
+                      <td style={{ padding: '16px', color: '#64748B', fontSize: '0.85rem' }}>
+                        {(page - 1) * pageSize + index + 1}
+                      </td>
+                      <td style={{ padding: '16px', fontWeight: 600, color: 'var(--text)' }}>
+                        {item.name || 'Produs Necunoscut'}
+                      </td>
+                      <td style={{ padding: '16px' }}>
+                        {logoSrc
+                          ? <img src={logoSrc} alt={item.brandId} style={{ height: '24px', objectFit: 'contain' }} />
+                          : <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>{(item.brandId || 'NEDEFINIT').toUpperCase()}</span>
+                        }
+                      </td>
+                      <td style={{ padding: '16px' }}>
+                        {missingLangs === 0
+                          ? <span style={{ color: '#0f766e', fontWeight: 600, fontSize: '0.85rem' }}>Tradus Complet</span>
+                          : <span style={{ color: '#f59e0b', fontWeight: 600, fontSize: '0.85rem' }}>Lipsesc {missingLangs} limbi</span>
+                        }
+                      </td>
+                      <td style={{ padding: '16px', textAlign: 'right' }}>
+                        <button className="loc-filter-btn" style={{ fontSize: '0.85rem', padding: '6px 12px' }}
+                          onClick={() => isExpanded ? setExpandedId(null) : openEditor(pid, item)}>
+                          {isExpanded ? 'Închide Editor' : 'Editează Limbi'}
+                        </button>
                       </td>
                     </tr>
-                  )}
-                </React.Fragment>
+
+                    {isExpanded && (
+                      <tr style={{ background: '#f8fafc' }}>
+                        <td colSpan="5" style={{ padding: '24px', borderBottom: '1px solid var(--border)' }}>
+                          <div className="tc-body" style={{ background: 'transparent', padding: 0 }}>
+                            <div className="original-text">
+                              <label>Descriere Originală (Syrve):</label>
+                              <p>{item.originalDescription || <em>Fără descriere la bază.</em>}</p>
+                            </div>
+                            <div className="translations-grid">
+                              {LANGUAGES.map(lang => (
+                                <div key={lang} className="t-input-group">
+                                  <label className="t-lang-label">
+                                    <img
+                                      src={`https://flagsapi.com/${lang === 'en' ? 'GB' : lang === 'uk' ? 'UA' : lang.toUpperCase()}/flat/24.png`}
+                                      alt={lang}
+                                    />
+                                    {lang.toUpperCase()}
+                                  </label>
+                                  <textarea
+                                    value={editData[lang] || ''}
+                                    onChange={e => setEditData({ ...editData, [lang]: e.target.value })}
+                                    placeholder={`Traducerea în ${lang}...`}
+                                    rows={3}
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                            <div className="tc-actions">
+                              <button className="loc-filter-btn" onClick={() => setExpandedId(null)}>Anulează</button>
+                              <button className="loc-add-btn" onClick={() => handleSave(pid)} disabled={submitting}>
+                                {submitting ? 'Se salvează...' : 'Salvează Traducerea'}
+                              </button>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 );
               })
             )}
@@ -320,11 +322,27 @@ export default function TranslationsScreen({ backend }) {
         </table>
       </div>
 
-      {totalPages > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px' }}>
-          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-            {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, filteredProducts.length)} din {filteredProducts.length} produse
+      {/* Bottom footer — page size + range + pagination (same as Kiosks) */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '16px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span>Rânduri pe pagină:</span>
+          <select
+            value={pageSize}
+            onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}
+            style={{ padding: '4px 8px', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '0.85rem', outline: 'none', background: 'var(--card)', color: 'var(--text)', cursor: 'pointer' }}
+          >
+            <option value={10}>10</option>
+            <option value={25}>25</option>
+            <option value={50}>50</option>
+            <option value={100}>100</option>
+          </select>
+          <span>
+            {filteredProducts.length > 0
+              ? `${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, filteredProducts.length)} din ${filteredProducts.length}`
+              : '0 rezultate'}
           </span>
+        </div>
+        {totalPages > 1 && (
           <div style={{ display: 'flex', gap: '4px' }}>
             <button className="loc-filter-btn" disabled={page === 1} onClick={() => setPage(1)}>«</button>
             <button className="loc-filter-btn" disabled={page === 1} onClick={() => setPage(p => p - 1)}>‹</button>
@@ -332,22 +350,22 @@ export default function TranslationsScreen({ backend }) {
               .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
               .map((p, idx, arr) => (
                 <React.Fragment key={p}>
-                  {idx > 0 && arr[idx - 1] !== p - 1 && <span style={{ padding: '4px 8px', color: 'var(--text-muted)' }}>…</span>}
-                  <button 
-                    className="loc-filter-btn" 
-                    style={p === page ? { background: '#0f766e', color: 'white', borderColor: '#0f766e' } : {}} 
+                  {idx > 0 && arr[idx - 1] !== p - 1 && <span style={{ padding: '4px 6px' }}>…</span>}
+                  <button
+                    className="loc-filter-btn"
+                    style={p === page ? { background: '#0f766e', color: 'white', borderColor: '#0f766e' } : {}}
                     onClick={() => setPage(p)}
                   >
                     {p}
                   </button>
                 </React.Fragment>
-              ))
-            }
+              ))}
             <button className="loc-filter-btn" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>›</button>
             <button className="loc-filter-btn" disabled={page === totalPages} onClick={() => setPage(totalPages)}>»</button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
+
     </div>
   );
 }
