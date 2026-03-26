@@ -20,6 +20,7 @@ const authRoutes = require('./routes/auth');
 const usersRoutes        = require('./routes/users');
 const integrationsRoutes = require('./routes/integrations');
 const promotionsRoutes = require('./routes/promotions');
+const brandsRoutes     = require('./routes/brands');
 
 const app = express();
 const server = http.createServer(app);
@@ -74,6 +75,11 @@ app.use('/api/users',        usersRoutes);
 app.use('/api/qr',           qrRoutes);
 app.use('/api/integrations', integrationsRoutes);
 app.use('/api/promotions',   promotionsRoutes);
+app.use('/api/brands',       brandsRoutes);
+
+// Serve uploaded brand logos
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));

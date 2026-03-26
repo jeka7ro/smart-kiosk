@@ -47,7 +47,7 @@ export default function AdminApp() {
   
   const [tab, setTabState] = useState(() => {
     const hash = window.location.hash.replace('#', '');
-    const validTabs = ['dashboard', 'orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'modifiers', 'users', 'integrations', 'promotions'];
+    const validTabs = ['dashboard', 'orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'modifiers', 'users', 'integrations', 'promotions', 'brands'];
     return validTabs.includes(hash) ? hash : 'orders';
   });
 
@@ -186,6 +186,7 @@ export default function AdminApp() {
             ...(user?.role === 'admin' ? [{ id: 'users', label: 'Echipă', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> }] : []),
             ...(user?.role === 'admin' ? [{ id: 'integrations', label: 'Integrări POS', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg> }] : []),
             ...(user?.role === 'admin' ? [{ id: 'promotions', label: 'Promoții ', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 2L12 22"></path><path d="M2 12L22 12"></path><path d="M5 5l14 14"></path><path d="M19 5L5 19"></path></svg> }] : []),
+            ...(user?.role === 'admin' ? [{ id: 'brands', label: 'Branduri', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> }] : []),
           ].map(item => (
             <button
               key={item.id}
@@ -268,6 +269,7 @@ export default function AdminApp() {
               {tab === 'integrations' && 'Integrări POS'}
               {tab === 'users' && 'Echipă'}
               {tab === 'promotions' && 'Roata Norocului'}
+              {tab === 'brands' && 'Branduri'}
            </h2>
         </div>
 
@@ -376,6 +378,7 @@ export default function AdminApp() {
         {tab === 'integrations' && <Integrations />}
         {tab === 'promotions' && <Promotions />}
         {tab === 'users' && <UsersManager />}
+        {tab === 'brands' && <BrandsManager backend={BACKEND} />}
       </main>
     </div>
   );
@@ -944,10 +947,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
     <div className="loc-edit-form" style={{ maxWidth: '1000px', margin: '0 auto' }}>
       <div className="loc-edit-header" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)', paddingBottom: 16, marginBottom: 24, display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-           <button className="loc-back-btn" onClick={onBack} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', color: 'var(--text)', fontWeight: 700, border: '1px solid var(--border)', background: 'var(--surface)', borderRadius: 10, cursor: 'pointer', fontSize: '0.9rem', boxShadow: '0 2px 6px rgba(0,0,0,0.06)', transition: 'all 0.2s' }}>
-             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-             Înapoi
-           </button>
+
            <h2 style={{ margin: '8px 0 0 0', fontSize: '1.5rem', color: 'var(--text)' }}>Configurare Kiosk: <span style={{color:'#3b82f6'}}>{loc.name}</span></h2>
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
@@ -2146,6 +2146,209 @@ function LocationEditForm({ loc, backend, onBack, onSave }) {
         </div>
         
       </div>
+    </div>
+  );
+}
+
+function BrandsManager({ backend }) {
+  const { fetchWithAuth } = useAuth();
+  const [brands, setBrands] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(null); // brandId being edited
+  const [form, setForm] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [uploadingId, setUploadingId] = useState(null);
+
+  const showToast = (msg, type = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3500);
+  };
+
+  const fetchBrands = () => {
+    setLoading(true);
+    fetchWithAuth(`${backend}/api/brands`)
+      .then(r => r.json())
+      .then(d => { setBrands(d.brands || []); setLoading(false); })
+      .catch(() => setLoading(false));
+  };
+  useEffect(fetchBrands, [backend]);
+
+  const startEdit = (brand) => {
+    setEditing(brand.id);
+    setForm({ name: brand.name || '', description: brand.description || '', website: brand.website || '', logo_url: brand.logo_url || '' });
+  };
+
+  const saveEdit = async () => {
+    setSaving(true);
+    try {
+      const res = await fetchWithAuth(`${backend}/api/brands/${editing}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      if (res.ok) { showToast('Brand salvat!'); fetchBrands(); setEditing(null); }
+      else showToast('Eroare la salvare', 'error');
+    } catch { showToast('Conexiune eșuată', 'error'); }
+    setSaving(false);
+  };
+
+  const handleLogoUpload = async (brandId, file) => {
+    if (!file) return;
+    setUploadingId(brandId);
+    const fd = new FormData();
+    fd.append('logo', file);
+    try {
+      const res = await fetchWithAuth(`${backend}/api/brands/${brandId}/logo`, { method: 'POST', body: fd });
+      const data = await res.json();
+      if (res.ok) { showToast('Logo încărcat!'); fetchBrands(); }
+      else showToast(data.error || 'Eroare upload', 'error');
+    } catch { showToast('Upload eșuat', 'error'); }
+    setUploadingId(null);
+  };
+
+  const BRAND_DEFAULT_COLORS = {
+    smashme: '#ef4444', sushimaster: '#3b82f6', ikura: '#8b5cf6', welovesushi: '#ec4899',
+  };
+
+  if (loading) return <p className="loading-text">Se încarcă brandurile...</p>;
+
+  return (
+    <div className="admin-section">
+      <p style={{ color: 'var(--text-muted)', marginBottom: 24, fontSize: '0.9rem' }}>
+        Gestionează informațiile și logo-urile pentru fiecare brand din sistem.
+      </p>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
+        {brands.map(brand => {
+          const isEditing = editing === brand.id;
+          const color = BRAND_DEFAULT_COLORS[brand.id] || 'var(--primary)';
+          return (
+            <div key={brand.id} style={{
+              background: 'var(--surface)', borderRadius: 20, padding: 24,
+              border: `1px solid var(--border)`,
+              boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
+              outline: isEditing ? `2px solid ${color}` : 'none',
+              transition: 'all 0.2s',
+            }}>
+              {/* Logo + brand ID header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
+                <div style={{
+                  width: 72, height: 72, borderRadius: 16,
+                  background: `${color}15`,
+                  border: `2px solid ${color}40`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  overflow: 'hidden', flexShrink: 0,
+                }}>
+                  {brand.logo_url ? (
+                    <img src={brand.logo_url} alt={brand.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                  ) : (
+                    <span style={{ fontSize: '1.8rem', fontWeight: 900, color, opacity: 0.4 }}>{(brand.name||brand.id)[0].toUpperCase()}</span>
+                  )}
+                </div>
+                <div>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text)' }}>{brand.name || brand.id}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{brand.id}</div>
+                  {brand.website && (
+                    <a href={brand.website} target="_blank" rel="noreferrer" style={{ fontSize: '0.75rem', color: color, textDecoration: 'none', fontWeight: 600 }}>
+                      {brand.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              {!isEditing ? (
+                <>
+                  {brand.description && <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0 0 16px', lineHeight: 1.5 }}>{brand.description}</p>}
+
+                  {/* Logo upload area */}
+                  <label style={{
+                    display: 'block', border: '2px dashed var(--border)', borderRadius: 12,
+                    padding: '12px', textAlign: 'center', cursor: 'pointer',
+                    background: 'var(--bg-surface)', transition: 'all 0.2s', marginBottom: 12,
+                  }}>
+                    <input type="file" accept="image/*" style={{ display: 'none' }}
+                      onChange={e => handleLogoUpload(brand.id, e.target.files[0])} />
+                    {uploadingId === brand.id ? (
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Se încarcă...</span>
+                    ) : (
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                        Upload logo (PNG/JPG/SVG, max 5MB)
+                      </span>
+                    )}
+                  </label>
+
+                  {/* Or paste URL */}
+                  {brand.logo_url && (
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 12, wordBreak: 'break-all', fontFamily: 'monospace', background: 'var(--bg-surface)', padding: '6px 8px', borderRadius: 6 }}>
+                      {brand.logo_url}
+                    </div>
+                  )}
+
+                  <button onClick={() => startEdit(brand)} style={{
+                    width: '100%', padding: '10px', borderRadius: 10,
+                    background: 'var(--bg-surface)', border: '1px solid var(--border)',
+                    color: 'var(--text)', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem',
+                  }}>
+                    Editează informații
+                  </button>
+                </>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Nume brand</label>
+                    <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text)', fontSize: '0.9rem', boxSizing: 'border-box' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Descriere</label>
+                    <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={2}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text)', fontSize: '0.85rem', boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Website</label>
+                    <input value={form.website} onChange={e => setForm(p => ({ ...p, website: e.target.value }))}
+                      placeholder="https://smashme.ro" type="url"
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text)', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Logo URL (sau uploadează mai sus)</label>
+                    <input value={form.logo_url} onChange={e => setForm(p => ({ ...p, logo_url: e.target.value }))}
+                      placeholder="https://cdn.example.com/logo.png" type="url"
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text)', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                  </div>
+                  {form.logo_url && (
+                    <div style={{ height: 60, borderRadius: 10, background: 'var(--bg-surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8 }}>
+                      <img src={form.logo_url} alt="Preview" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={saveEdit} disabled={saving} style={{ flex: 2, padding: '10px', borderRadius: 10, background: color, color: '#fff', border: 'none', fontWeight: 700, cursor: saving ? 'default' : 'pointer', fontSize: '0.9rem' }}>
+                      {saving ? 'Se salvează...' : 'Salvează'}
+                    </button>
+                    <button onClick={() => setEditing(null)} style={{ flex: 1, padding: '10px', borderRadius: 10, background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text)', fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem' }}>
+                      Anulează
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Toast */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
+          background: toast.type === 'error' ? '#ef4444' : '#10b981',
+          color: '#fff', padding: '14px 24px', borderRadius: '14px',
+          fontWeight: 700, fontSize: '0.95rem', boxShadow: '0 8px 30px rgba(0,0,0,0.2)',
+          display: 'flex', alignItems: 'center', gap: 10,
+        }}>
+          <span>{toast.type === 'error' ? '✕' : '✓'}</span> {toast.msg}
+        </div>
+      )}
     </div>
   );
 }

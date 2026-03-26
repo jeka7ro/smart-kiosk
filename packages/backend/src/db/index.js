@@ -101,6 +101,26 @@ async function initDb() {
     );
   `);
 
+  // ── Brands (editable brand metadata + logo) ───────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS brands (
+      id          TEXT PRIMARY KEY,       -- e.g. 'smashme', 'sushimaster'
+      name        TEXT NOT NULL,
+      description TEXT,
+      website     TEXT,
+      logo_url    TEXT,
+      colors      JSONB NOT NULL DEFAULT '{}',  -- { primary, accent }
+      data        JSONB NOT NULL DEFAULT '{}',
+      updated_at  TIMESTAMPTZ DEFAULT NOW()
+    );
+    INSERT INTO brands (id, name) VALUES
+      ('smashme', 'SmashMe'),
+      ('sushimaster', 'Sushi Master'),
+      ('ikura', 'Ikura'),
+      ('welovesushi', 'WeLoveSushi')
+    ON CONFLICT (id) DO NOTHING;
+  `);
+
   console.log('[DB] Tables initialized (Supabase/PostgreSQL)');
 }
 
