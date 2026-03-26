@@ -867,6 +867,41 @@ export const T = {
     bg: "�� Вземете от касата",
     de: "🏁 An der Kasse abholen"
   },
+  
+  // ── Modifiers & Options ──────────────────────────────────────────────
+  options: {
+    ro: 'Opțiuni',
+    en: 'Options',
+    fr: 'Options',
+    hu: 'Opciók',
+    ru: 'Опции',
+    uk: 'Опції',
+    bg: 'Опции',
+    de: 'Optionen',
+    es: 'Opciones'
+  },
+  choose_min_max: {
+    ro: 'Alege minimum {min} și maximum {max}',
+    en: 'Choose minimum {min} to maximum {max}',
+    fr: 'Choisissez minimum {min} et maximum {max}',
+    hu: 'Válasszon minimum {min} maximum {max}',
+    ru: 'Выбрать от {min} до {max}',
+    uk: 'Виберіть мінімум {min} максимум {max}',
+    bg: 'Изберете минимум {min} до максимум {max}',
+    de: 'Wähle mindestens {min} bis maximal {max}',
+    es: 'Elija mínimo {min} y máximo {max}'
+  },
+  choose_exact: {
+    ro: 'Alege exact {amount}',
+    en: 'Choose exactly {amount}',
+    fr: 'Choisissez exactement {amount}',
+    hu: 'Válasszon pontosan {amount}',
+    ru: 'Выбрать точно {amount}',
+    uk: 'Виберіть рівно {amount}',
+    bg: 'Изберете точно {amount}',
+    de: 'Wähle genau {amount}',
+    es: 'Elija exactamente {amount}'
+  }
 };
 
 /**

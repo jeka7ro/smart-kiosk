@@ -156,14 +156,24 @@ export default function ProductScreen() {
           {modifiers.map(mod => {
             const opts = mod.options || mod.items || [];
             if (opts.length === 0) return null;
-            const groupLabel = mod.name ? mod.name.toUpperCase() : 'OPȚIUNI';
+            const groupLabel = mod.name ? mod.name.toUpperCase() : t('options', lang).toUpperCase();
+            
+            let reqBadge = null;
+            if (mod.required) {
+              const min = mod.minAmount ?? 1;
+              const max = mod.maxAmount ?? 1;
+              reqBadge = min === max 
+                ? t('choose_exact', lang).replace('{amount}', min)
+                : t('choose_min_max', lang).replace('{min}', min).replace('{max}', max);
+            }
+            
             return (
               <div key={mod.id} className="pd-modifier">
                 <div className="pd-mod-header">
                   <h3>{groupLabel}</h3>
-                  {mod.required && (
+                  {reqBadge && (
                     <span className="req-badge">
-                      Poți selecta minim {mod.minAmount ?? 1} maxim {mod.maxAmount ?? 1}
+                      {reqBadge}
                     </span>
                   )}
                 </div>

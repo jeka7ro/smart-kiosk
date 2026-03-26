@@ -48,7 +48,7 @@ async function translateText(text, targetLang) {
  */
 async function processNewTranslations(products) {
   const dict = loadTranslations();
-  let hasUpdates = false;
+  let translateCount = 0;
 
   for (const p of products) {
     if (!p.description || !p.description.trim()) {
@@ -69,16 +69,13 @@ async function processNewTranslations(products) {
     dict[p.id].brandId = p.brandId;
     dict[p.id].categoryId = p.categoryId;
     
-    // If the original description changed in the POS, we should ideally wipe the old translations.
-    // For safety, we just allow the user to manually edit or we override if missing.
-    // An advanced implementation would reset translations on source content change.
     if (dict[p.id].originalDescription !== p.description) {
       console.log(`[Translator] Product ${p.id} description updated in POS, updating source...`);
       dict[p.id].originalDescription = p.description;
-      // We do NOT clear existing translations automatically to avoid destroying manual user overrides.
       hasUpdates = true;
     }
     
+    let localUpdates = false;
     for (const lang of TARGET_LANGS) {
       if (!dict[p.id].translations[lang]) {
         console.log(`[Translator] Auto-translating [${lang}] for '${p.name}'...`);
@@ -86,15 +83,22 @@ async function processNewTranslations(products) {
         
         dict[p.id].translations[lang] = translated;
         hasUpdates = true;
+        localUpdates = true;
+        translateCount++;
         
         // Rate-limit throttle (delay 750ms)
         await new Promise(r => setTimeout(r, 750));
       }
     }
+    
+    // Save iteratively to avoid losing progress on large menus
+    if (localUpdates && translateCount % 5 === 0) {
+      saveTranslations(dict);
+    }
   }
 
   if (hasUpdates) {
-    console.log(`[Translator] Saved new/updated translations to dictionary.`);
+    console.log(`[Translator] Finished queue. Saved final translations to dictionary.`);
     saveTranslations(dict);
   }
 

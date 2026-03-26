@@ -81,12 +81,15 @@ export default function ModifierModal({ product, onConfirm, onClose, activeBrand
           {modifierGroups.map(gm => (
             <div key={gm.id} className="mm-group">
               <div className="mm-group-header">
-                <span className="mm-group-name">{gm.name ? gm.name.toUpperCase() : 'OPȚIUNI'}</span>
-                {gm.required && (
-                  <span className="mm-group-badge">
-                    {t('choose', lang) || 'Alege'} {gm.minAmount ?? 1}–{gm.maxAmount ?? 1}
-                  </span>
-                )}
+                <span className="mm-group-name">{gm.name ? gm.name.toUpperCase() : t('options', lang).toUpperCase()}</span>
+                {gm.required && (() => {
+                  const min = gm.minAmount ?? 1;
+                  const max = gm.maxAmount ?? 1;
+                  const reqBadge = min === max 
+                    ? t('choose_exact', lang).replace('{amount}', min)
+                    : t('choose_min_max', lang).replace('{min}', min).replace('{max}', max);
+                  return <span className="mm-group-badge">{reqBadge}</span>;
+                })()}
               </div>
               <div className="mm-options">
                 {(gm.options || []).map(opt => {
