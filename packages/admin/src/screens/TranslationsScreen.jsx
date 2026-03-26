@@ -96,14 +96,13 @@ export default function TranslationsScreen({ backend }) {
 
   return (
     <div className="translations-screen admin-fade-in">
-      <div className="admin-top-bar">
-        <div>
-          <h2 className="admin-title">📖 Traduceri Meniu Automate</h2>
-          <p className="admin-subtitle">Ajustează descrierile și ingredientele. Orice schimbare de aici va suprascrie robotul Google Translate.</p>
-        </div>
+      <div className="admin-top-bar" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <p className="admin-subtitle" style={{ margin: 0 }}>
+          Ajustează descrierile și ingredientele. Orice schimbare manuală de aici va suprascrie robotul Google Translate.
+        </p>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button className="admin-btn btn-outline" onClick={fetchTranslations} disabled={submitting}>🔄 Refresh</button>
-          <button className="admin-btn" onClick={handleForceTranslate} disabled={submitting}>
+          <button className="loc-filter-btn" onClick={fetchTranslations} disabled={submitting}>🔄 Refresh Dicționar</button>
+          <button className="loc-add-btn" onClick={handleForceTranslate} disabled={submitting}>
             Pornește Auto-Traducere
           </button>
         </div>
@@ -117,70 +116,91 @@ export default function TranslationsScreen({ backend }) {
 
       {productIds.length === 0 ? (
         <div className="empty-state">
-          <h3>Nicio traducere generată</h3>
-          <p>Se pare că nu s-a rulat încă nicio sincronizare sau nu ai produse cu descrieri. Apasă "Pornește Auto-Traducere".</p>
+          <h3>Sincronizare Necesară</h3>
+          <p>Se pare că nu s-a rulat curând o sincronizare sau lista s-a reinițializat automat. Apasă "Pornește Auto-Traducere" pentru a trage datele live din POS.</p>
         </div>
       ) : (
-        <div className="translations-list">
-          {productIds.map(pid => {
-            const item = translations[pid];
-            const isExpanded = expandedId === pid;
-            const missingLangs = LANGUAGES.filter(l => !item.translations[l]).length;
+        <div style={{ background: 'var(--card)', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)' }}>
+          <table className="loc-table hoverable-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--border)', color: '#64748B', fontSize: '0.85rem' }}>
+                <th style={{ padding: '16px', fontWeight: 600 }}>ID (Syrve)</th>
+                <th style={{ padding: '16px', fontWeight: 600 }}>Denumiere Produs</th>
+                <th style={{ padding: '16px', fontWeight: 600 }}>Brand</th>
+                <th style={{ padding: '16px', fontWeight: 600 }}>Stare Traduceri</th>
+                <th style={{ padding: '16px', fontWeight: 600, textAlign: 'right' }}>Acțiuni</th>
+              </tr>
+            </thead>
+            <tbody>
+              {productIds.map(pid => {
+                const item = translations[pid];
+                const isExpanded = expandedId === pid;
+                const missingLangs = LANGUAGES.filter(l => !item.translations[l]).length;
 
-            return (
-              <div key={pid} className={`translation-card ${isExpanded ? 'expanded' : ''}`}>
-                <div className="tc-header" onClick={() => !isExpanded ? openEditor(pid, item) : setExpandedId(null)}>
-                  <div className="tc-info">
-                    <h4>{item.name || 'Produs Necunoscut'}</h4>
-                    <span className="tc-id">ID: {pid.split('-')[0]}...</span>
-                  </div>
-                  
-                  <div className="tc-status">
-                    {missingLangs === 0 
-                      ? <span className="status-badge success">Tradus Complet</span>
-                      : <span className="status-badge warning">Lipsesc {missingLangs} limbi</span>
-                    }
-                    <button className="tc-toggle">
-                      {isExpanded ? 'Închide' : 'Editează'}
-                    </button>
-                  </div>
-                </div>
-                
-                {isExpanded && (
-                  <div className="tc-body">
-                    <div className="original-text">
-                      <label>Descriere Originală (Syrve):</label>
-                      <p>{item.originalDescription || <em>Fără descriere.</em>}</p>
-                    </div>
-
-                    <div className="translations-grid">
-                      {LANGUAGES.map(lang => (
-                        <div key={lang} className="t-input-group">
-                          <label className="t-lang-label">
-                            <img src={`https://flagsapi.com/` + (lang==='en'?'GB':lang==='uk'?'UA':lang.toUpperCase()) + `/flat/24.png`} alt={lang}/>
-                            {lang.toUpperCase()}
-                          </label>
-                          <textarea 
-                            value={editData[lang] || ''}
-                            onChange={(e) => setEditData({...editData, [lang]: e.target.value})}
-                            placeholder={`Traducerea în ${lang}...`}
-                            rows={3}
-                          />
-                        </div>
-                      ))}
-                    </div>
+                return (
+                  <React.Fragment key={pid}>
+                    <tr style={{ borderBottom: '1px solid var(--border)' }} className={isExpanded ? 'active-row' : ''}>
+                      <td style={{ padding: '16px', color: '#64748B', fontSize: '0.85rem', fontFamily: 'monospace' }}>{pid.split('-')[0]}...</td>
+                      <td style={{ padding: '16px', fontWeight: 600, color: 'var(--text)' }}>{item.name || 'Produs Necunoscut'}</td>
+                      <td style={{ padding: '16px' }}>
+                        <span style={{ background: 'var(--bg)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                          {item.brandId ? item.brandId.toUpperCase() : 'NEDEFINIT'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '16px' }}>
+                        {missingLangs === 0 
+                          ? <span style={{ color: '#10b981', fontWeight: 600, fontSize: '0.85rem' }}>Tradus Complet</span>
+                          : <span style={{ color: '#f59e0b', fontWeight: 600, fontSize: '0.85rem' }}>Lipsesc {missingLangs} limbi</span>
+                        }
+                      </td>
+                      <td style={{ padding: '16px', textAlign: 'right' }}>
+                        <button className="loc-filter-btn" onClick={() => !isExpanded ? openEditor(pid, item) : setExpandedId(null)}>
+                          {isExpanded ? 'Închide Editor' : 'Editează Limbi'}
+                        </button>
+                      </td>
+                    </tr>
                     
-                    <div className="tc-actions">
-                      <button className="admin-btn btn-outline" onClick={() => setExpandedId(null)}>Anulează</button>
-                      <button className="admin-btn" onClick={() => handleSave(pid)} disabled={submitting}>
-                        {submitting ? 'Se salvează...' : 'Salveză Manual'}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                    {isExpanded && (
+                      <tr style={{ background: '#f8fafc' }}>
+                        <td colSpan="5" style={{ padding: '24px', borderBottom: '1px solid var(--border)' }}>
+                          <div className="tc-body" style={{ background: 'transparent', padding: 0 }}>
+                            <div className="original-text">
+                              <label>Descriere Originală (Syrve):</label>
+                              <p>{item.originalDescription || <em>Fără descriere la bază.</em>}</p>
+                            </div>
+
+                            <div className="translations-grid">
+                              {LANGUAGES.map(lang => (
+                                <div key={lang} className="t-input-group">
+                                  <label className="t-lang-label">
+                                    <img src={`https://flagsapi.com/` + (lang==='en'?'GB':lang==='uk'?'UA':lang.toUpperCase()) + `/flat/24.png`} alt={lang}/>
+                                    {lang.toUpperCase()}
+                                  </label>
+                                  <textarea 
+                                    value={editData[lang] || ''}
+                                    onChange={(e) => setEditData({...editData, [lang]: e.target.value})}
+                                    placeholder={`Traducerea în ${lang}...`}
+                                    rows={3}
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                            
+                            <div className="tc-actions">
+                              <button className="loc-filter-btn" onClick={() => setExpandedId(null)}>Anulează Modificări</button>
+                              <button className="loc-add-btn" onClick={() => handleSave(pid)} disabled={submitting}>
+                                {submitting ? 'Se salvează...' : 'Salvează Traducerea Manuală'}
+                              </button>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

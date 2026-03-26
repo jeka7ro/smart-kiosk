@@ -274,6 +274,7 @@ function transformMenu(raw, brandId = 'smashme') {
 
       return {
         id: p.id,
+        brandId,
         categoryId: p.parentGroup,
         name: p.name,
         description: p.description || '',

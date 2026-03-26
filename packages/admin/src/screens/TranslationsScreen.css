@@ -12,96 +12,15 @@
   margin-bottom: 30px;
 }
 
-.translations-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-bottom: 60px;
-}
-
-.translation-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  overflow: hidden;
-  transition: all 0.2s ease;
-}
-
-.translation-card:hover {
-  border-color: #0f766e;
-}
-
-.tc-header {
-  padding: 16px 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  cursor: pointer;
-  background: var(--surface);
-}
-
-.tc-info h4 {
-  margin: 0 0 4px 0;
-  font-size: 1.1rem;
-  color: var(--text);
-}
-
-.tc-id {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  font-family: monospace;
-}
-
-.tc-status {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.status-badge {
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.status-badge.success {
-  background: #def7ec;
-  color: #03543f;
-}
-
-.status-badge.warning {
-  background: #fef08a;
-  color: #854d0e;
-}
-
-.tc-toggle {
-  background: none;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 6px 12px;
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--text);
-  cursor: pointer;
-}
-
-.tc-toggle:hover {
-  background: var(--bg-main);
-}
-
 .tc-body {
   padding: 24px;
-  border-top: 1px solid var(--border);
-  background: var(--bg-main);
 }
 
 .original-text {
   margin-bottom: 24px;
   padding: 16px;
   background: var(--surface);
-  border-left: 4px solid #0f766e;
+  border-left: 4px solid #10b981;
   border-radius: 4px;
 }
 
@@ -165,8 +84,8 @@
 
 .t-input-group textarea:focus {
   outline: none;
-  border-color: #0f766e;
-  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.1);
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
 }
 
 .tc-actions {

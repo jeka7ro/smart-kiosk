@@ -52,21 +52,22 @@ async function processNewTranslations(products) {
 
   for (const p of products) {
     if (!p.description || !p.description.trim()) {
-      // Create empty dictionary entry if it doesn't exist
       if (!dict[p.id]) {
-        dict[p.id] = { name: p.name, originalDescription: p.description || '', translations: {} };
+        dict[p.id] = { name: p.name, brandId: p.brandId, categoryId: p.categoryId, originalDescription: p.description || '', translations: {} };
         hasUpdates = true;
       }
       continue;
     }
     
     if (!dict[p.id]) {
-      dict[p.id] = { name: p.name, originalDescription: p.description, translations: {} };
+      dict[p.id] = { name: p.name, brandId: p.brandId, categoryId: p.categoryId, originalDescription: p.description, translations: {} };
       hasUpdates = true;
     }
 
     // Refresh metadata in case POS updated it
     dict[p.id].name = p.name;
+    dict[p.id].brandId = p.brandId;
+    dict[p.id].categoryId = p.categoryId;
     
     // If the original description changed in the POS, we should ideally wipe the old translations.
     // For safety, we just allow the user to manually edit or we override if missing.
