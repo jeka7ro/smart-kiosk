@@ -73,6 +73,34 @@ export default function MenuScreen() {
     setFavorites(prev => prev.filter(p => p.id !== product.id)); // auto-remove from wishlist
   }, [addToCart, activeBrandId]);
 
+  const handleAddAllFavorites = useCallback(() => {
+    let requiresConfig = false;
+    let addedCount = 0;
+
+    favorites.forEach(product => {
+      const hasReqMods = (product.modifierGroups?.length > 0 && product.modifierGroups.some(m => m.required)) || product.modifiers?.length > 0;
+      if (hasReqMods) {
+        requiresConfig = true;
+      } else {
+        const actualBrandId = product._brand || activeBrandId;
+        addToCart(product, 1, [], product.price, actualBrandId);
+        addedCount++;
+      }
+    });
+
+    if (requiresConfig) {
+      showToast(addedCount > 0 ? `Adăugate ${addedCount}. Unele necesită configurare separată!` : 'Toate produsele favorite necesită configurare separată!');
+    } else {
+      showToast('Toate produsele favorite au fost adăugate!');
+    }
+    
+    // Auto-remove those that were successfully added without config
+    setFavorites(prev => prev.filter(p => {
+      const hasReqMods = (p.modifierGroups?.length > 0 && p.modifierGroups.some(m => m.required)) || p.modifiers?.length > 0;
+      return hasReqMods; // keep only those that still need config
+    }));
+  }, [favorites, addToCart, activeBrandId]);
+
   // Fetch location to discover multi-brand capability
   useEffect(() => {
     const locId = new URLSearchParams(window.location.search).get('loc');
@@ -303,7 +331,15 @@ export default function MenuScreen() {
       {/* ─── FAVORITES / WISHLIST BAR ─── */}
       {favorites.length > 0 && (
         <div className="favorites-bar">
-          <span className="fav-bar-label">❤️ Salvate</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start' }}>
+            <span className="fav-bar-label">❤️ Salvate</span>
+            <button 
+              onClick={handleAddAllFavorites}
+              style={{ background: '#10b981', color: '#fff', border: 'none', borderRadius: '8px', padding: '6px 12px', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 8px rgba(16,185,129,0.3)', transition: 'all 0.2s', whiteSpace: 'nowrap' }}
+            >
+              + Adaugă toate
+            </button>
+          </div>
           <div className="fav-bar-items">
             {favorites.map(fav => (
               <div key={fav.id} className="fav-item">
