@@ -62,8 +62,9 @@ export default function WelcomeScreen() {
   };
 
   const btnColor = locationData?.langButtonColor || '#0f172a';
-  const isLightColor = parseInt(btnColor.replace('#',''), 16) > 0xaaaaaa;
-  const btnTextColor = isLightColor ? '#111' : '#fff';
+  const btnTextColor = locationData?.langButtonTextColor || '#ffffff';
+  const btnBorderColor = locationData?.langButtonBorderColor || 'transparent';
+  const customBtnText = locationData?.langButtonText || '';
   const pos = locationData?.langSelectorPosition || 'after';
   const showLangOnWelcome = pos === 'before' || pos === 'both';
   const allowedLangs = locationData?.languages && locationData.languages.length > 0 ? locationData.languages : LANGUAGES;
@@ -136,10 +137,10 @@ export default function WelcomeScreen() {
 
             <button 
               className="poster-cta-btn-glass" 
-              style={{ background: btnColor, boxShadow: `0 12px 32px ${btnColor}80` }}
+              style={{ background: btnColor, color: btnTextColor, borderColor: btnBorderColor, borderWidth: btnBorderColor !== 'transparent' ? '3px' : '0', borderStyle: 'solid', boxShadow: `0 12px 32px ${btnColor}80` }}
               onClick={(e) => { e.stopPropagation(); handlePosterTap(); }}
             >
-              <span className="poster-cta-label">{t('start_order', lang)}</span>
+              <span className="poster-cta-label" style={{ color: btnTextColor }}>{customBtnText || t('start_order', lang)}</span>
             </button>
 
             <span className="poster-tap-hint">{t('touch_anywhere', lang)}</span>
@@ -197,7 +198,11 @@ export default function WelcomeScreen() {
 
       {/* CTA */}
       <div className="welcome-cta">
-        <button className="cta-button" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+        <button 
+          className="cta-button" 
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, background: btnColor, color: btnTextColor, borderColor: btnBorderColor, borderWidth: btnBorderColor !== 'transparent' ? '3px' : '0', borderStyle: 'solid', boxShadow: `0 12px 32px ${btnColor}80` }}
+          onClick={goAfterWelcome}
+        >
           {(locationData?.brands?.length > 1 ? locationData.brands : [brand.id]).map((bId) => (
             <img
               key={bId}
@@ -207,7 +212,7 @@ export default function WelcomeScreen() {
               onError={(e) => { e.target.style.display='none'; }}
             />
           ))}
-          <span>{t('tap_to_order', lang)}</span>
+          <span style={{ color: btnTextColor }}>{customBtnText || t('tap_to_order', lang)}</span>
         </button>
       </div>
 

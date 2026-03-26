@@ -1068,13 +1068,38 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
              
              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(180px, 1fr) minmax(180px, 1fr)', gap: '16px' }}>
                 
-                {/* COL 1: Buton Principal */}
+                {/* COL 1: Buton Principal (Fundal) */}
                 <div>
-                   <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Culoare Buton (Start Comanda)</label>
+                   <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Fundal Buton Start Comandă</label>
                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <input type="color" value={formData.langButtonColor || '#0f172a'} onChange={e => handleChange('langButtonColor', e.target.value)} style={{ width: 28, height: 28, border: '2px solid var(--border)', borderRadius: '6px', cursor: 'pointer', padding: 0 }} />
                       <input type="text" value={formData.langButtonColor || '#0f172a'} onChange={e => handleChange('langButtonColor', e.target.value)} style={{ width: 70, padding: '4px 8px', fontSize: '0.8rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: '#fff', color: 'var(--text)' }} />
                    </div>
+                </div>
+
+                {/* COL 1B: Buton Principal (Text Color) */}
+                <div>
+                   <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Culoare Text Buton Start</label>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <input type="color" value={formData.langButtonTextColor || '#ffffff'} onChange={e => handleChange('langButtonTextColor', e.target.value)} style={{ width: 28, height: 28, border: '2px solid var(--border)', borderRadius: '6px', cursor: 'pointer', padding: 0 }} />
+                      <input type="text" value={formData.langButtonTextColor || '#ffffff'} onChange={e => handleChange('langButtonTextColor', e.target.value)} style={{ width: 70, padding: '4px 8px', fontSize: '0.8rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: '#fff', color: 'var(--text)' }} />
+                   </div>
+                </div>
+
+                {/* COL 1C: Buton Principal (Border) */}
+                <div>
+                   <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Contur Buton Start</label>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <input type="color" value={formData.langButtonBorderColor || '#0f172a'} onChange={e => handleChange('langButtonBorderColor', e.target.value)} style={{ width: 28, height: 28, border: '2px solid var(--border)', borderRadius: '6px', cursor: 'pointer', padding: 0 }} />
+                      <input type="text" value={formData.langButtonBorderColor || '#0f172a'} onChange={e => handleChange('langButtonBorderColor', e.target.value)} style={{ width: 70, padding: '4px 8px', fontSize: '0.8rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: '#fff', color: 'var(--text)' }} />
+                      <button type="button" onClick={() => handleChange('langButtonBorderColor', 'transparent')} style={{ fontSize: '0.65rem', padding: '4px 6px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', color: 'var(--text)' }}>Fără</button>
+                   </div>
+                </div>
+
+                {/* COL 1D: Buton Principal (Text) */}
+                <div style={{ gridColumn: '1 / -1' }}>
+                   <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Text Personalizat Buton Start</label>
+                   <input type="text" placeholder="Începe comanda" value={formData.langButtonText || ''} onChange={e => handleChange('langButtonText', e.target.value)} style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: '#fff', color: 'var(--text)', boxSizing: 'border-box' }} />
                 </div>
 
                 {/* COL 2: Pozitie Sus/Jos */}
