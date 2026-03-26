@@ -59,59 +59,57 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Fetch location data at boot (for multi-brand detection, security PIN, and styling)
+  // ─── Fetch + Poll location data every 30s ────────────────────────────────
+  // This is the primary settings sync mechanism - no socket dependency.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     let locId = params.get('loc');
-    
-    // Fix iOS PWA (Home Screen) bug: Apple strips query parameters because of manifest `start_url: "/"`.
-    // We must permanently save and restore the last known location.
-    if (locId) {
-      localStorage.setItem('kiosk_loc_id', locId);
-    } else {
-      locId = localStorage.getItem('kiosk_loc_id');
-    }
+    if (locId) localStorage.setItem('kiosk_loc_id', locId);
+    else locId = localStorage.getItem('kiosk_loc_id');
 
-    if (!locId) {
-       setLoading(false);
-       return;
-    }
-    
-    fetch(`${BACKEND}/api/locations/${locId}?t=${Date.now()}`, {
-      headers: { 'x-api-key': import.meta.env.VITE_API_KEY || 'sk-live-2024-secure' }
-    })
-      .then(r => r.json())
-      .then(async loc => {
+    if (!locId) { setLoading(false); return; }
+
+    const fetchLocation = async () => {
+      try {
+        const r = await fetch(`${BACKEND}/api/locations/${locId}?t=${Date.now()}`, {
+          headers: { 'x-api-key': import.meta.env.VITE_API_KEY || 'sk-live-2024-secure' }
+        });
+        const loc = await r.json();
         if (loc && !loc.error) {
           setLocationData(loc);
-          
-          // Auto-apply default language from Admin config
-          const setLang = useKioskStore.getState().setLang;
-          if (loc.defaultLanguage) {
-            setLang(loc.defaultLanguage);
-          } else if (loc.languages && loc.languages.length > 0) {
-            setLang(loc.languages[0]); // first in list is the default
+
+          // Apply default language from Admin config
+          const { lang: currentLang, setLang } = useKioskStore.getState();
+          const defaultLang = loc.defaultLanguage || (loc.languages?.[0]);
+          // Only override if current lang isn't in the allowed list (respect user's manual selection)
+          const allowedSet = new Set(loc.languages || []);
+          if (defaultLang && (!allowedSet.has(currentLang))) {
+            setLang(defaultLang);
           }
-          
-          // Determine the Main Brand natively from Database payload
+
           const bId = (loc.brands && loc.brands.length > 0) ? loc.brands[0] : 'smashme';
           setActiveBrandId(bId);
-          
-          // Dynamically apply brand theme colors
           const { applyBrandTheme } = await import('./config/brands.js');
           applyBrandTheme(bId);
 
           if (loc.kioskPin) {
-             const unlocked = localStorage.getItem(`kiosk_unlocked_${loc.id}_${loc.kioskPin}`);
-             setIsLocked(unlocked !== 'true');
+            const unlocked = localStorage.getItem(`kiosk_unlocked_${loc.id}_${loc.kioskPin}`);
+            setIsLocked(unlocked !== 'true');
           }
         }
+      } catch (e) {
+        console.warn('[Kiosk] Failed to fetch location:', e.message);
+      } finally {
         setLoading(false);
-      })
-      .catch((e) => {
-        console.error('Failed to load location:', e);
-        setLoading(false);
-      });
+      }
+    };
+
+    // Fetch immediately on boot
+    fetchLocation();
+
+    // Then poll every 30 seconds to pick up any Admin changes
+    const interval = setInterval(fetchLocation, 30_000);
+    return () => clearInterval(interval);
   }, [setLocationData]);
 
   // Fetch Promo (Wheel) after location is loaded
