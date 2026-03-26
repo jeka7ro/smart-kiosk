@@ -174,7 +174,13 @@ router.post('/:id/restart', protect, async (req, res) => {
   try {
     const io = req.app.get('io');
     if (io) {
-      io.to(`kiosk-${req.params.id}`).emit('remote_restart');
+      const locId = req.params.id;
+      // Emit to the specific room
+      io.to(`kiosk-${locId}`).emit('remote_restart', { locationId: locId });
+      // Also broadcast globally so Kiosks that haven't joined the room yet
+      // (e.g. still on Welcome screen when location loaded late) also get it.
+      io.emit(`remote_restart_${locId}`, { locationId: locId });
+      console.log(`[Locations RESTART] Sent restart signal to kiosk-${locId}`);
       res.json({ ok: true, message: 'Restart signal sent' });
     } else {
       res.status(500).json({ error: 'Socket.io not initialized on server' });

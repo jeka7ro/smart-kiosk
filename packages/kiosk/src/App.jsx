@@ -122,19 +122,50 @@ export default function App() {
   useEffect(() => {
     if (!locationData?.id) return;
     
+    const locId = locationData.id;
+    
     const socket = io(BACKEND, {
-      transports: ['websocket'],
-      reconnectionDelayMax: 10000,
+      transports: ['websocket', 'polling'], // allow polling fallback
+      reconnectionDelayMax: 5000,
+      reconnection: true,
     });
+
+    // Hard reload that also cleans Service Worker cache to avoid PWA stale cache
+    const hardReload = () => {
+      console.log('[Kiosk] Remote restart signal received! Unregistering SW & reloading...');
+      // Unregister service worker so the next load fetches fresh code
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(regs => {
+          regs.forEach(r => r.unregister());
+        }).finally(() => {
+          // Clear caches and reload
+          if ('caches' in window) {
+            caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).finally(() => {
+              window.location.reload(true);
+            });
+          } else {
+            window.location.reload(true);
+          }
+        });
+      } else {
+        window.location.reload(true);
+      }
+    };
 
     socket.on('connect', () => {
-      socket.emit('join', { role: 'kiosk', locationId: locationData.id });
+      console.log(`[Kiosk] Socket connected (${socket.id}), joining room kiosk-${locId}`);
+      socket.emit('join', { role: 'kiosk', locationId: locId });
     });
 
-    socket.on('remote_restart', () => {
-      console.log('[Kiosk] Remote restart signal received! Reloading...');
-      window.location.reload(true);
+    socket.on('reconnect', () => {
+      // Re-join room after reconnect
+      socket.emit('join', { role: 'kiosk', locationId: locId });
     });
+
+    // Room-level restart (when in room kiosk-{id})
+    socket.on('remote_restart', hardReload);
+    // Global fallback restart (before room join completes)
+    socket.on(`remote_restart_${locId}`, hardReload);
 
     socket.on('location_updated', (newData) => {
       console.log('[Kiosk] Live config update received from Admin Panel.');

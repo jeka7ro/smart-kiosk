@@ -560,6 +560,13 @@ function KiosksManager({ backend }) {
   const [loading, setLoading] = useState(true);
   const [brandFilter, setBrandFilter] = useState('all');
   const [editingLoc, setEditingLoc] = useState(null);
+  const [restartingId, setRestartingId] = useState(null); // ID of loc currently restarting
+  const [toast, setToast] = useState(null); // { msg, type: 'success'|'error' }
+
+  const showToast = (msg, type = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 4000);
+  };
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -608,6 +615,7 @@ function KiosksManager({ backend }) {
   };
 
   return (
+    <>
     <div className="kiosk-location-list">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <div className="kl-brand-filter" style={{ marginBottom: 0 }}>
@@ -688,14 +696,23 @@ function KiosksManager({ backend }) {
                         title="Restartare Ecrane Remote"
                         className="btn-business-icon"
                         style={{ background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer', padding: '8px', borderRadius: '8px', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', color: 'var(--text)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                        onClick={(e) => {
+                        onClick={async (e) => {
                            e.stopPropagation();
-                           if (!window.confirm('Ești sigur că vrei să forțezi restartarea tuturor tabletelor conectate pentru ' + loc.name + '?')) return;
-                           const { fetchWithAuth } = useAuth.getState ? useAuth.getState() : { fetchWithAuth: window.fetch }; // fallback if outside context
-                           fetch(`${backend}/api/locations/${loc.id}/restart`, {
-                             method: 'POST',
-                             headers: { 'Authorization': `Bearer ${localStorage.getItem('admin_token')}` }
-                           }).then(() => alert('Comandă de restart trimisă!')).catch(() => alert('Eroare la trimitere'));
+                           if (restartingId === loc.id) return; // already restarting
+                           setRestartingId(loc.id);
+                           try {
+                             const res = await fetchWithAuth(`${backend}/api/locations/${loc.id}/restart`, { method: 'POST' });
+                             const data = await res.json();
+                             if (res.ok) {
+                               showToast(`Semnal de restart trimis pentru ${loc.name}!`);
+                             } else {
+                               showToast(data.error || 'Eroare la trimiterea comenzii', 'error');
+                             }
+                           } catch {
+                             showToast('Conexiune eșuată. Verificați rețeaua.', 'error');
+                           } finally {
+                             setRestartingId(null);
+                           }
                         }}
                       >
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 2v6h6M21.5 22v-6h-6"/><path d="M22 11.5A10 10 0 0 0 3.2 7.2M2 12.5a10 10 0 0 0 18.8 4.2"/></svg>
@@ -770,6 +787,20 @@ function KiosksManager({ backend }) {
         </div>
       </div>
     </div>
+    {toast && (
+      <div style={{
+        position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
+        background: toast.type === 'error' ? '#ef4444' : '#10b981',
+        color: '#fff', padding: '14px 24px', borderRadius: '14px',
+        fontWeight: 700, fontSize: '0.95rem',
+        boxShadow: '0 8px 30px rgba(0,0,0,0.2)',
+        display: 'flex', alignItems: 'center', gap: 10,
+      }}>
+        <span style={{ fontSize: '1.2rem' }}>{toast.type === 'error' ? '✕' : '✓'}</span>
+        {toast.msg}
+      </div>
+    )}
+    </>
   );
 }
 
@@ -849,7 +880,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
       }, 1000);
       
     } catch(e) {
-      alert('Eroare la salvare.');
+      console.error('Eroare la salvare.');
       setIsSaving(false);
     }
   };
@@ -992,7 +1023,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
               style={{ padding: '8px 16px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text)', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
               onClick={() => {
                 navigator.clipboard.writeText(finalKioskUrl);
-                alert('Copiat!');
+                // Copiat - button text handled by SVG swap above
               }}
             >
               Copy
