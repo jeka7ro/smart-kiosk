@@ -181,8 +181,8 @@ export default function TranslationsScreen({ backend }) {
           onClick={() => { setBrandFilter('all'); setPage(1); }}
           style={{
             padding: '0 16px', height: '40px', borderRadius: '20px',
-            border: `2px solid ${brandFilter === 'all' ? '#10b981' : 'var(--border)'}`,
-            background: brandFilter === 'all' ? '#10b981' : 'var(--card)',
+            border: `2px solid ${brandFilter === 'all' ? '#0f766e' : 'var(--border)'}`,
+            background: brandFilter === 'all' ? '#0f766e' : 'var(--card)',
             color: brandFilter === 'all' ? 'white' : 'var(--text)',
             cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap',
             transition: 'all 0.15s ease'
@@ -202,8 +202,8 @@ export default function TranslationsScreen({ backend }) {
               title={b.toUpperCase()}
               style={{
                 width: '48px', height: '48px', borderRadius: '50%',
-                border: `3px solid ${isActive ? '#10b981' : 'transparent'}`,
-                outline: isActive ? '2px solid #10b98133' : 'none',
+                border: `3px solid ${isActive ? '#0f766e' : 'transparent'}`,
+                outline: isActive ? '2px solid #0f766e33' : 'none',
                 outlineOffset: '2px',
                 background: 'var(--card)',
                 boxShadow: '0 1px 4px rgba(0,0,0,0.12)',
@@ -280,7 +280,7 @@ export default function TranslationsScreen({ backend }) {
                     </td>
                     <td style={{ padding: '16px' }}>
                       {missingLangs === 0 
-                        ? <span style={{ color: '#10b981', fontWeight: 600, fontSize: '0.85rem' }}>Tradus Complet</span>
+                        ? <span style={{ color: '#0f766e', fontWeight: 600, fontSize: '0.85rem' }}>Tradus Complet</span>
                         : <span style={{ color: '#f59e0b', fontWeight: 600, fontSize: '0.85rem' }}>Lipsesc {missingLangs} limbi</span>
                       }
                     </td>
@@ -350,7 +350,7 @@ export default function TranslationsScreen({ backend }) {
                   {idx > 0 && arr[idx - 1] !== p - 1 && <span style={{ padding: '4px 8px', color: 'var(--text-muted)' }}>…</span>}
                   <button 
                     className="loc-filter-btn" 
-                    style={p === page ? { background: '#10b981', color: 'white', borderColor: '#10b981' } : {}} 
+                    style={p === page ? { background: '#0f766e', color: 'white', borderColor: '#0f766e' } : {}} 
                     onClick={() => setPage(p)}
                   >
                     {p}
