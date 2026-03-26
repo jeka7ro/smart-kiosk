@@ -233,6 +233,28 @@ export const T = {
     de: 'Stk.',
     es: 'uds.'
   },
+  currency: {
+    ro: 'RON',
+    en: 'RON',
+    fr: 'RON',
+    hu: 'RON',
+    ru: 'RON',
+    uk: 'RON',
+    bg: 'RON',
+    de: 'RON',
+    es: 'RON'
+  },
+  lei: {
+    ro: 'lei',
+    en: 'lei',
+    fr: 'lei',
+    hu: 'lei',
+    ru: 'lei',
+    uk: 'lei',
+    bg: 'lei',
+    de: 'lei',
+    es: 'lei'
+  },
   item_one: {
     ro: 'produs',
     en: 'item',
