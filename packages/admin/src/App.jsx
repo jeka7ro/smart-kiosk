@@ -687,7 +687,7 @@ function KiosksManager({ backend }) {
                       <button 
                         title="Restartare Ecrane Remote"
                         className="btn-business-icon"
-                        style={{ background: '#fffbeb', border: '1px solid #fde68a', cursor: 'pointer', padding: '8px', borderRadius: '8px', transition: 'all 0.2s', color: '#d97706', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                        style={{ background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer', padding: '8px', borderRadius: '8px', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', color: 'var(--text)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                         onClick={(e) => {
                            e.stopPropagation();
                            if (!window.confirm('Ești sigur că vrei să forțezi restartarea tuturor tabletelor conectate pentru ' + loc.name + '?')) return;

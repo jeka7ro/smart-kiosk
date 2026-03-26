@@ -118,9 +118,9 @@ export default function App() {
     }
   }, [locationData]);
 
-  // Global Socket.io connection for Remote Management (e.g. Restart)
+  // Global Socket.io connection for Remote Management
   useEffect(() => {
-    if (!locationData || !locationData.id) return;
+    if (!locationData?.id) return;
     
     const socket = io(BACKEND, {
       transports: ['websocket'],
@@ -136,8 +136,13 @@ export default function App() {
       window.location.reload(true);
     });
 
+    socket.on('location_updated', (newData) => {
+      console.log('[Kiosk] Live config update received from Admin Panel.');
+      setLocationData(newData);
+    });
+
     return () => socket.disconnect();
-  }, [locationData]);
+  }, [locationData?.id, setLocationData]);
 
   // Auto-fullscreen on first user interaction (for kiosk/tablet mode)
   useEffect(() => {

@@ -97,7 +97,15 @@ router.put('/:id', protect, async (req, res) => {
       [JSON.stringify(merged), newActive, req.params.id]
     );
 
-    res.json(rowToLoc(rows[0]));
+    const updatedLoc = rowToLoc(rows[0]);
+    
+    // Notify connected Kiosks about the config change
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`kiosk-${req.params.id}`).emit('location_updated', updatedLoc);
+    }
+
+    res.json(updatedLoc);
   } catch (e) {
     console.error('[Locations PUT]', e.message);
     res.status(500).json({ error: e.message });
