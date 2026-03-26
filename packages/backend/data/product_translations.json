@@ -1,0 +1,35 @@
+{
+  "1": {
+    "name": "Original Smash",
+    "originalDescription": "Chiftea vită, brânză cheddar, castraveți murați, sos SmashMe.",
+    "translations": {
+      "en": "Beef patty, cheddar cheese, pickles, SmashMe sauce.",
+      "fr": "Galette de boeuf, cheddar, cornichons, sauce SmashMe.",
+      "hu": "Marhapogácsa, cheddar sajt, savanyúság, SmashMe szósz.",
+      "ru": "Котлета из говядины, сыр Чеддер, соленые огурцы, соус SmashMe.",
+      "bg": "Телешка баничка, сирене чедър, кисели краставички, сос SmashMe.",
+      "de": "Rindfleischpastetchen, Cheddar-Käse, Gurken, SmashMe-Sauce.",
+      "es": "Hamburguesa de ternera, queso cheddar, pepinillos, salsa SmashMe.",
+      "uk": "Яловичий котлет, сир чеддер, мариновані огірки, соус SmashMe."
+    }
+  },
+  "2": {
+    "name": "Cartofi",
+    "originalDescription": "Porție simplă de cartofi",
+    "translations": {
+      "en": "Simple serving of potatoes",
+      "fr": "Portion simple de pommes de terre",
+      "hu": "A burgonya egyszerű adagolása",
+      "ru": "Простая порция картофеля",
+      "bg": "Лесно сервиране на картофи",
+      "de": "Einfaches Servieren von Kartoffeln",
+      "es": "Porción sencilla de patatas",
+      "uk": "Проста подача картоплі"
+    }
+  },
+  "3": {
+    "name": "NoDesc",
+    "originalDescription": "",
+    "translations": {}
+  }
+}

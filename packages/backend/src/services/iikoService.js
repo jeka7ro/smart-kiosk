@@ -9,6 +9,7 @@
  */
 
 const API_URL = process.env.SYRVE_API_URL || 'https://api-eu.syrve.live';
+const translator = require('./translatorService.js');
 
 // Brand config — each brand has its own API key + org ID
 const BRANDS = {
@@ -330,7 +331,17 @@ async function getOrganizations(brandId = 'smashme') {
 async function fetchMenu(orgId, brandId = 'smashme') {
   const raw = await syrvePost('/api/1/nomenclature', { organizationId: orgId }, brandId);
   if (raw.errorDescription) throw new Error(`Menu fetch failed: ${raw.errorDescription}`);
-  return transformMenu(raw, brandId);
+  const menu = transformMenu(raw, brandId);
+  
+  // Inject known translations into the payload immediately
+  const dict = translator.loadTranslations();
+  menu.products.forEach(p => {
+    if (dict[p.id] && dict[p.id].translations) {
+      p.translations = dict[p.id].translations;
+    }
+  });
+
+  return menu;
 }
 
 /**
@@ -363,6 +374,20 @@ async function syncAllMenus() {
       _menuCache[brand.orgId] = { menu, brandId, syncedAt: new Date().toISOString() };
       _menuCache[brandId]     = { menu, brandId, syncedAt: new Date().toISOString() };
       console.log(`[Syrve] ✅ Synced ${brandId} (${brand.orgId}): ${menu.categories.length} cats, ${menu.products.length} products`);
+
+      // Trigger background translation job for missing descriptions
+      translator.processNewTranslations(menu.products)
+        .then(newDict => {
+          // Live patch the in-memory cache to ensure tablets get translations immediately upon refresh 
+          menu.products.forEach(p => {
+             if (newDict[p.id] && newDict[p.id].translations) {
+               p.translations = newDict[p.id].translations;
+             }
+          });
+          console.log(`[Syrve] Applied verified translations to live cache for ${brandId}`);
+        })
+        .catch(e => console.error(`[Syrve] Translation job failed for ${brandId}:`, e.message));
+
     } catch (err) {
       console.error(`[Syrve] ❌ Sync failed for ${brandId}:`, err.message);
     }

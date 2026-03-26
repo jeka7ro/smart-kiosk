@@ -88,7 +88,7 @@ export default function ProductCard({ product, delay, lang, activeBrand, onQuick
         {product.description && (
            <p 
              style={{ margin: '0 0 12px 0', fontSize: '0.8rem', color: '#6b7280', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.4 }}
-             dangerouslySetInnerHTML={{ __html: product.description }}
+             dangerouslySetInnerHTML={{ __html: (lang !== 'ro' && product.translations && product.translations[lang]) ? product.translations[lang] : product.description }}
            />
         )}
       </div>

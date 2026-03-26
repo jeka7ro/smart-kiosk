@@ -406,6 +406,8 @@ export default function App() {
                  if (useKioskStore.getState().promoIntendedRoute === 'payment') {
                    useKioskStore.getState().setPromoIntendedRoute(null);
                    useKioskStore.getState().goTo('payment');
+                 } else {
+                   useKioskStore.getState().goTo('cart');
                  }
               }, 1800);
             }}

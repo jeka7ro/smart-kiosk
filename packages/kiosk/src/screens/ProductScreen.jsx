@@ -137,7 +137,12 @@ export default function ProductScreen() {
           <div className="pd-hero-info">
             {product.badge && <span className="product-badge">{product.badge}</span>}
             <h1 className="pd-name">{product.name}</h1>
-            <p className="pd-desc">{product.description}</p>
+            {product.description && (
+              <div 
+                className="pd-desc" 
+                dangerouslySetInnerHTML={{ __html: (lang !== 'ro' && product.translations && product.translations[lang]) ? product.translations[lang] : product.description }} 
+              />
+            )}
             {product.weight && <span className="pd-weight">⚖️ {product.weight}g</span>}
             {product.energyAmount && <span className="pd-calories">🔥 {Math.round(product.energyAmount)} kcal</span>}
             {allergenLabels.length > 0 && (
