@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useKioskStore } from '../store/kioskStore';
+import { t } from '../i18n/translations.js';
 import { proxySyrveImage } from '../utils/imageUtils.js';
 import './ModifierModal.css';
 
 export default function ModifierModal({ product, onConfirm, onClose, activeBrandId }) {
+  const lang = useKioskStore(s => s.lang);
   const modifierGroups = (product?.modifierGroups || []).filter(gm => gm.options?.length > 0);
 
   // Initialize: auto-select first option for each required group
@@ -69,7 +72,7 @@ export default function ModifierModal({ product, onConfirm, onClose, activeBrand
           )}
           <div className="mm-product-info">
             <h2 className="mm-product-name">{product?.name}</h2>
-            <span className="mm-product-price">{totalPrice.toFixed(2)} lei</span>
+            <span className="mm-product-price">{totalPrice.toFixed(2)} {t('currency', lang) || 'lei'}</span>
           </div>
         </div>
 
@@ -81,7 +84,7 @@ export default function ModifierModal({ product, onConfirm, onClose, activeBrand
                 <span className="mm-group-name">{gm.name ? gm.name.toUpperCase() : 'OPȚIUNI'}</span>
                 {gm.required && (
                   <span className="mm-group-badge">
-                    Alege {gm.minAmount ?? 1}–{gm.maxAmount ?? 1}
+                    {t('choose', lang) || 'Alege'} {gm.minAmount ?? 1}–{gm.maxAmount ?? 1}
                   </span>
                 )}
               </div>
@@ -106,7 +109,7 @@ export default function ModifierModal({ product, onConfirm, onClose, activeBrand
                       <div className="mm-opt-text">
                         <span className="mm-opt-name">{opt.name}</span>
                         <span className={`mm-opt-price ${isFree ? 'mm-opt-price--free' : ''}`}>
-                          {isFree ? 'Inclus' : `+${opt.price.toFixed(2)} lei`}
+                          {isFree ? (t('included', lang) || 'Inclus') : `+${opt.price.toFixed(2)} ${t('currency', lang) || 'lei'}`}
                         </span>
                       </div>
                       <div className={`mm-opt-check ${isSelected ? 'checked' : ''}`} />
@@ -125,8 +128,8 @@ export default function ModifierModal({ product, onConfirm, onClose, activeBrand
             onClick={handleConfirm}
             disabled={!allRequiredSelected}
           >
-            <span>+ Adaugă în coș</span>
-            <span className="mm-confirm-price">{totalPrice.toFixed(2)} lei</span>
+            <span>{t('add_to_cart', lang) || '+ Adaugă în coș'}</span>
+            <span className="mm-confirm-price">{totalPrice.toFixed(2)} {t('currency', lang) || 'lei'}</span>
           </button>
         </div>
       </div>

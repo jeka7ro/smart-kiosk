@@ -245,7 +245,8 @@ export default function App() {
     );
   }
 
-  const showBanner = screen !== 'welcome' && locationData?.topBannerUrl;
+  const activeBrandBannerUrl = locationData?.[`topBannerUrl_${activeBrandId}`] || locationData?.topBannerUrl;
+  const showBanner = screen !== 'welcome' && activeBrandBannerUrl;
   // Support new split fields AND legacy bottomBannerContent
   const _bbUrl  = locationData?.bottomBannerUrl  || (locationData?.bottomBannerContent?.startsWith('http') ? locationData.bottomBannerContent : '') || '';
   const _bbText = locationData?.bottomBannerText  || (!locationData?.bottomBannerContent?.startsWith('http') ? locationData?.bottomBannerContent || '' : '') || '';
@@ -324,7 +325,7 @@ export default function App() {
             overflow: 'hidden',
             boxShadow: '0 8px 32px rgba(0,0,0,0.15)' 
           }}>
-            {renderPromoMedia(locationData.topBannerUrl)}
+            {renderPromoMedia(activeBrandBannerUrl)}
           </div>
         )}
 

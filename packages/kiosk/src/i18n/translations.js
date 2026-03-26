@@ -156,6 +156,83 @@ export const T = {
     de: "+ Hinzufügen",
     es: "+ Añadir"
   },
+  add_all: {
+    ro: '+ Adaugă toate',
+    en: '+ Add all',
+    fr: '+ Tout ajouter',
+    hu: '+ Összes hozzáadása',
+    ru: '+ Добавить все',
+    uk: '+ Додати все',
+    bg: '+ Добави всички',
+    de: '+ Alle hinzufügen',
+    es: '+ Añadir todo'
+  },
+  add_also: {
+    ro: 'Adaugă și...',
+    en: 'Also add...',
+    fr: 'Ajouter aussi...',
+    hu: 'Adjon hozzá...',
+    ru: 'Добавьте также...',
+    uk: 'Додайте також...',
+    bg: 'Добавете също...',
+    de: 'Auch hinzufügen...',
+    es: 'Añadir también...'
+  },
+  complete_order: {
+    ro: 'Completează comanda ta',
+    en: 'Complete your order',
+    fr: 'Complétez votre commande',
+    hu: 'Egészítse ki rendelését',
+    ru: 'Завершите ваш заказ',
+    uk: 'Доповніть ваше замовлення',
+    bg: 'Допълнете поръчката си',
+    de: 'Vervollständigen Sie Ihre Bestellung',
+    es: 'Completa tu pedido'
+  },
+  saved: {
+    ro: 'Salvate',
+    en: 'Saved',
+    fr: 'Enregistré',
+    hu: 'Mentett',
+    ru: 'Сохраненные',
+    uk: 'Збережені',
+    bg: 'Запазени',
+    de: 'Gespeichert',
+    es: 'Guardado'
+  },
+  cart_short: {
+    ro: 'Coș',
+    en: 'Cart',
+    fr: 'Panier',
+    hu: 'Kosár',
+    ru: 'Корзина',
+    uk: 'Кошик',
+    bg: 'Количка',
+    de: 'Warenkorb',
+    es: 'Carrito'
+  },
+  delete_short: {
+    ro: 'Șterge',
+    en: 'Delete',
+    fr: 'Supprimer',
+    hu: 'Törlés',
+    ru: 'Удалить',
+    uk: 'Видалити',
+    bg: 'Изтриване',
+    de: 'Löschen',
+    es: 'Eliminar'
+  },
+  pcs: {
+    ro: 'buc.',
+    en: 'pcs',
+    fr: 'pcs',
+    hu: 'db.',
+    ru: 'шт.',
+    uk: 'шт.',
+    bg: 'бр.',
+    de: 'Stk.',
+    es: 'uds.'
+  },
   item_one: {
     ro: 'produs',
     en: 'item',

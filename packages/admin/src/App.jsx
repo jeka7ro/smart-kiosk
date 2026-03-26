@@ -996,46 +996,38 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
           
           <div className="loc-brand-select" style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
             {/* Show selected brands first with reorder buttons */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 12, paddingBottom: 12, borderBottom: '1px dashed var(--border)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12, paddingBottom: 12, borderBottom: '1px dashed var(--border)' }}>
               {formData.brands.map((k, index) => {
                 const v = {smashme:'SmashMe',sushimaster:'Sushi Master',welovesushi:'WeLoveSushi',ikura:'Ikura'}[k] || k;
-                const pillColor = (BRAND_COLORS && BRAND_COLORS[k]) ? BRAND_COLORS[k] : '#64748b';
                 return (
-                  <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 6, background: pillColor, color: '#fff', padding: '6px 14px', borderRadius: '12px', boxShadow: `0 4px 12px ${pillColor}33`, fontWeight: 600 }}>
-                    <BrandLogo brandId={k} size={18} />
-                    <span>{v}</span>
-                    <div style={{ display: 'flex', gap: 4, marginLeft: 8, background: 'rgba(0,0,0,0.1)', borderRadius: 8, padding: '2px 4px' }}>
-                      <button 
-                        onClick={() => {
+                  <div key={k} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700, fontSize: '0.95rem', color: 'var(--text)' }}>
+                      <div style={{ width: 28, height: 28, borderRadius: 6, background: (BRAND_COLORS && BRAND_COLORS[k]) ? BRAND_COLORS[k] : '#cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                         <BrandLogo brandId={k} size={18} />
+                      </div>
+                      {v}
+                    </div>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button onClick={() => {
                           const newB = [...formData.brands];
                           if (index > 0) {
                             [newB[index-1], newB[index]] = [newB[index], newB[index-1]];
                             setFormData(p => ({ ...p, brands: newB }));
                           }
-                        }}
-                        style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: '0 4px', fontSize: '0.75rem' }}
-                        title="Mută mai sus"
-                      >Sus</button>
-                      <button 
-                        onClick={() => {
+                        }} disabled={index === 0} style={{ padding: '6px 10px', background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 6, cursor: index===0?'not-allowed':'pointer', fontSize: '0.75rem', fontWeight: 600 }}>↑ Sus</button>
+                      <button onClick={() => {
                           const newB = [...formData.brands];
                           if (index < newB.length - 1) {
                             [newB[index+1], newB[index]] = [newB[index], newB[index+1]];
                             setFormData(p => ({ ...p, brands: newB }));
                           }
-                        }}
-                        style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: '0 4px', fontSize: '0.75rem' }}
-                        title="Mută mai jos"
-                      >Jos</button>
+                        }} disabled={index === formData.brands.length - 1} style={{ padding: '6px 10px', background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 6, cursor: index===formData.brands.length-1?'not-allowed':'pointer', fontSize: '0.75rem', fontWeight: 600 }}>↓ Jos</button>
+                      <button onClick={() => toggleBrand(k)} style={{ padding: '6px 10px', background: '#fee2e2', color: '#ef4444', border: '1px solid #fca5a5', borderRadius: 6, cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}>Șterge</button>
                     </div>
-                    <button 
-                      onClick={() => toggleBrand(k)}
-                      style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', borderRadius: '4px', padding: '2px 6px', cursor: 'pointer', marginLeft: 4, fontSize: '0.7rem' }}
-                    >Sterge</button>
                   </div>
                 );
               })}
-              {formData.brands.length === 0 && <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem', italic: 'true' }}>Niciun restaurant selectat</span>}
+              {formData.brands.length === 0 && <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontStyle: 'italic' }}>Niciun restaurant selectat</span>}
             </div>
 
             {/* Selection candidates */}
@@ -1047,75 +1039,91 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                     key={k}
                     className="loc-brand-pill"
                     style={{ 
-                      padding: '8px 16px', borderRadius: '10px', 
-                      display: 'flex', alignItems: 'center', gap: '8px', 
-                      background: '#fff', color: '#64748b', 
-                      border: '1px dashed #94a3b8',
-                      fontWeight: 500, transition: 'all 0.2s', 
+                      padding: '8px 12px', borderRadius: '8px', 
+                      display: 'flex', alignItems: 'center', gap: '6px', 
+                      background: 'var(--surface)', color: 'var(--text)', 
+                      border: '1px dashed var(--border)',
+                      fontWeight: 600, fontSize: '0.85rem', transition: 'all 0.2s', 
                       cursor: 'pointer'
                     }}
                     onClick={() => toggleBrand(k)}
                   >
-                    <span style={{ fontSize: '1.2rem', color: '#94a3b8' }}>+</span>
-                    <BrandLogo brandId={k} size={16} /> {v}
+                    <span style={{ color: '#3b82f6', fontSize: '1.2rem', lineHeight: 1 }}>+</span>
+                    <BrandLogo brandId={k} size={14} /> <span style={{ opacity: 0.8 }}>{v}</span>
                   </button>
                 );
               })}
             </div>
           </div>
           
-          <label style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: 8 }}>Link Universal (Aplică-l pe tabletă)</label>
-          <div style={{ display: 'flex', gap: 8, background: 'var(--bg-surface)', padding: 4, borderRadius: 12, border: '1px solid var(--border)' }}>
-            <input type="text" readOnly value={finalKioskUrl} style={{ background: 'transparent', border: 'none', flex: 1, padding: '0 12px', fontFamily: 'monospace', fontSize: '0.85rem', color: 'var(--text)', outline: 'none' }} />
-            <button 
-              style={{ padding: '8px 16px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text)', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
-              onClick={() => {
-                navigator.clipboard.writeText(finalKioskUrl);
-                // Copiat - button text handled by SVG swap above
-              }}
-            >
-              Copy
-            </button>
+          {/* LINK KIOSK SUPER COMPACT */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(59,130,246,0.05)', borderRadius: '10px', border: '1px dashed rgba(59,130,246,0.3)', marginBottom: '20px' }}>
+             <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Link Kiosk: <span style={{ fontFamily: 'monospace', color: '#3b82f6' }}>...{finalKioskUrl.split('?loc=')[1]}</span></span>
+             <button onClick={() => navigator.clipboard.writeText(finalKioskUrl)} style={{ fontSize: '0.75rem', padding: '6px 12px', borderRadius: '6px', background: '#3b82f6', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600, boxShadow: '0 2px 4px rgba(59,130,246,0.3)' }}>Copiaza URL</button>
           </div>
-          {/* Culoare & Poziție butoane limbă */}
-          <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px dashed var(--border)' }}>
-            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-              {/* Color swatches */}
-              <div style={{ flex: '1 1 200px' }}>
-                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: 8 }}>Culoare buton principal (Începe comanda)</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                  {['#0f172a','#ef4444','#f97316','#22c55e','#3b82f6','#8b5cf6','#ec4899','#ffffff'].map(c => (
-                    <button key={c} type="button" onClick={() => handleChange('langButtonColor', c)} title={c}
-                      style={{ width: 26, height: 26, borderRadius: '50%', background: c, border: formData.langButtonColor === c ? '3px solid #3b82f6' : '2px solid var(--border)', cursor: 'pointer', flexShrink: 0 }} />
-                  ))}
-                  <input type="color" value={formData.langButtonColor}
-                    onChange={e => handleChange('langButtonColor', e.target.value)}
-                    title="Culoare personalizată"
-                    style={{ width: 26, height: 26, border: '2px solid var(--border)', borderRadius: '50%', cursor: 'pointer', padding: 0 }} />
-                  <div style={{ padding: '3px 8px', borderRadius: 8, background: formData.langButtonColor,
-                    color: parseInt((formData.langButtonColor||'#0f172a').replace('#',''),16) > 0xaaaaaa ? '#111':'#fff',
-                    fontSize: '0.7rem', fontWeight: 800 }}>
-                    {(formData.languages||['ro']).slice(0,2).map(l=>({ro:'RO',en:'EN',fr:'FR',hu:'HU',ru:'RU',uk:'UA',bg:'BG',de:'DE',es:'ES'})[l]||l.toUpperCase()).join(' · ')}
-                  </div>
+
+          {/* GRID COMPACT SETARI DESIGN */}
+          <div style={{ padding: '16px', background: 'var(--bg-surface)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+             <h4 style={{ margin: '0 0 16px 0', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }}>Aspect & Poziționare Limbi</h4>
+             
+             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(180px, 1fr) minmax(180px, 1fr)', gap: '16px' }}>
+                
+                {/* COL 1: Buton Principal */}
+                <div>
+                   <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Culoare Buton (Start Comanda)</label>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <input type="color" value={formData.langButtonColor || '#0f172a'} onChange={e => handleChange('langButtonColor', e.target.value)} style={{ width: 28, height: 28, border: '2px solid var(--border)', borderRadius: '6px', cursor: 'pointer', padding: 0 }} />
+                      <input type="text" value={formData.langButtonColor || '#0f172a'} onChange={e => handleChange('langButtonColor', e.target.value)} style={{ width: 70, padding: '4px 8px', fontSize: '0.8rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: '#fff', color: 'var(--text)' }} />
+                   </div>
                 </div>
-              </div>
-              {/* Position */}
-              <div style={{ flex: '1 1 200px' }}>
-                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: 8 }}>Unde apar limbile</label>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  {[{v:'before',l:'Pe saver'},{v:'after',l:'Dupa saver'},{v:'both',l:'Ambele'}].map(opt => (
-                    <button key={opt.v} type="button" onClick={() => handleChange('langSelectorPosition', opt.v)}
-                      style={{ flex: 1, padding: '6px 4px', borderRadius: 8, fontSize: '0.73rem', fontWeight: 700, textAlign: 'center',
-                        border: formData.langSelectorPosition === opt.v ? '2px solid #3b82f6' : '1px solid var(--border)',
-                        background: formData.langSelectorPosition === opt.v ? '#eff6ff' : 'var(--bg-surface)',
-                        color: formData.langSelectorPosition === opt.v ? '#1d4ed8' : 'var(--text-muted)',
-                        cursor: 'pointer' }}>
-                      {opt.l}
-                    </button>
-                  ))}
+
+                {/* COL 2: Pozitie Sus/Jos */}
+                <div>
+                   <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Poziție pe Ecran</label>
+                   <div style={{ display: 'flex', gap: 4 }}>
+                     {[{v:'top',l:'Sus'},{v:'bottom',l:'Jos'}].map(opt => (
+                       <button key={opt.v} type="button" onClick={() => handleChange('langVerticalPosition', opt.v)}
+                         style={{ padding: '4px 12px', borderRadius: 6, fontSize: '0.75rem', fontWeight: 600, border: (formData.langVerticalPosition || 'bottom') === opt.v ? '2px solid #3b82f6' : '1px solid var(--border)', background: (formData.langVerticalPosition || 'bottom') === opt.v ? '#eff6ff' : '#fff', color: (formData.langVerticalPosition || 'bottom') === opt.v ? '#1d4ed8' : 'var(--text-muted)', cursor: 'pointer' }}>
+                         {opt.l}
+                       </button>
+                     ))}
+                   </div>
                 </div>
-              </div>
-            </div>
+
+                {/* COL 3: Fundal Limbi */}
+                <div>
+                   <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Fundal Etichete Limbi</label>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <input type="color" value={formData.langBgColor || '#ffffff'} onChange={e => handleChange('langBgColor', e.target.value)} style={{ width: 28, height: 28, border: '2px solid var(--border)', borderRadius: '6px', cursor: 'pointer', padding: 0 }} />
+                      <input type="text" value={formData.langBgColor || ''} placeholder="transparent" onChange={e => handleChange('langBgColor', e.target.value)} style={{ width: 70, padding: '4px 8px', fontSize: '0.8rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: '#fff', color: 'var(--text)' }} />
+                      <button type="button" onClick={() => handleChange('langBgColor', 'transparent')} style={{ fontSize: '0.65rem', padding: '4px 6px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', color: 'var(--text)' }}>Fără</button>
+                   </div>
+                </div>
+
+                {/* COL 4: Cand apar */}
+                <div>
+                   <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Moment Apariție</label>
+                   <div style={{ display: 'flex', gap: 4 }}>
+                     {[{v:'before',l:'Screensaver'},{v:'after',l:'Dupa saver'},{v:'both',l:'Ambele'}].map(opt => (
+                       <button key={opt.v} type="button" onClick={() => handleChange('langSelectorPosition', opt.v)}
+                         style={{ padding: '4px 8px', borderRadius: 6, fontSize: '0.7rem', fontWeight: 600, border: formData.langSelectorPosition === opt.v ? '2px solid #3b82f6' : '1px solid var(--border)', background: formData.langSelectorPosition === opt.v ? '#eff6ff' : '#fff', color: formData.langSelectorPosition === opt.v ? '#1d4ed8' : 'var(--text-muted)', cursor: 'pointer' }}>
+                         {opt.l}
+                       </button>
+                     ))}
+                   </div>
+                </div>
+
+                {/* COL 5: Contur Limbi */}
+                <div>
+                   <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Contur Etichete Limbi</label>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <input type="color" value={formData.langBorderColor || '#e2e8f0'} onChange={e => handleChange('langBorderColor', e.target.value)} style={{ width: 28, height: 28, border: '2px solid var(--border)', borderRadius: '6px', cursor: 'pointer', padding: 0 }} />
+                      <input type="text" value={formData.langBorderColor || ''} placeholder="transparent" onChange={e => handleChange('langBorderColor', e.target.value)} style={{ width: 70, padding: '4px 8px', fontSize: '0.8rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: '#fff', color: 'var(--text)' }} />
+                      <button type="button" onClick={() => handleChange('langBorderColor', 'transparent')} style={{ fontSize: '0.65rem', padding: '4px 6px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', color: 'var(--text)' }}>Fără</button>
+                   </div>
+                </div>
+                
+             </div>
           </div>
         </div>
 
@@ -1403,38 +1411,69 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>Ocupă deasupra interfeței cu o bandă îngustă (10%) reclamă video/imagine la reducere.</p>
           
           {useBanner && (
-             <div style={{ animation: 'fadeIn 0.3s ease' }}>
-                <input 
-                  type="url" 
-                  className="pc-input" 
-                  placeholder="URL Video MP4 sau Imagine..."
-                  value={formData.topBannerUrl}
-                  onChange={e => handleChange('topBannerUrl', e.target.value)}
-                  style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', width: '100%', marginBottom: 16, boxSizing: 'border-box' }}
-                />
-                
-                {formData.topBannerUrl ? (
-                  <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16, marginBottom: 16 }}>
-                    <div style={{ width: 135, height: 240, borderRadius: 12, overflow: 'hidden', border: '6px solid #1e293b', background: '#e2e8f0', position: 'relative', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}>
-                      <div style={{ position: 'absolute', inset: 0, padding: '4px' }}>
-                        <div style={{ width: '100%', height: '30%', background: '#cbd5e1', borderRadius: '4px', marginBottom: '4px' }} />
-                        <div style={{ width: '100%', height: '30%', background: '#cbd5e1', borderRadius: '4px', marginBottom: '4px' }} />
-                        <div style={{ width: '100%', height: '30%', background: '#cbd5e1', borderRadius: '4px' }} />
+             <div style={{ animation: 'fadeIn 0.3s ease', display: 'flex', flexDirection: 'column', gap: '24px', marginBottom: '16px' }}>
+                {formData.brands && formData.brands.length > 0 ? (
+                  formData.brands.map(brandId => {
+                    const val = formData[`topBannerUrl_${brandId}`] ?? formData.topBannerUrl ?? '';
+                    return (
+                      <div key={brandId} style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', background: 'var(--bg-surface)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                         <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                           <BrandLogo brandId={brandId} size={16} /> Banner pentru {brandId}
+                         </label>
+                         <input 
+                           type="url" 
+                           className="pc-input" 
+                           placeholder={`URL Video MP4 / Imagine pt ${brandId}...`}
+                           value={val}
+                           onChange={e => handleChange(`topBannerUrl_${brandId}`, e.target.value)}
+                           style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', width: '100%', boxSizing: 'border-box' }}
+                         />
+                         
+                         {val ? (
+                           <div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
+                             <div style={{ width: 135, height: 240, borderRadius: 12, overflow: 'hidden', border: '6px solid #1e293b', background: '#e2e8f0', position: 'relative', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}>
+                               <div style={{ position: 'absolute', inset: 0, padding: '4px' }}>
+                                 <div style={{ width: '100%', height: '30%', background: '#cbd5e1', borderRadius: '4px', marginBottom: '4px' }} />
+                                 <div style={{ width: '100%', height: '30%', background: '#cbd5e1', borderRadius: '4px', marginBottom: '4px' }} />
+                                 <div style={{ width: '100%', height: '30%', background: '#cbd5e1', borderRadius: '4px' }} />
+                               </div>
+                               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: `${10 + ((formData.topBannerHeight || 1) - 1) * 5}%`, borderRadius: `${formData.topBannerRadiusTop ? '6px' : '0'} ${formData.topBannerRadiusTop ? '6px' : '0'} ${formData.topBannerRadiusBottom ? '6px' : '0'} ${formData.topBannerRadiusBottom ? '6px' : '0'}`, transition: 'all 0.3s ease', overflow: 'hidden', background: '#000', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
+                                  {renderPreview(val)}
+                               </div>
+                             </div>
+                           </div>
+                         ) : null}
                       </div>
-                      
-                      <div style={{ 
-                        position: 'absolute', top: 0, left: 0, right: 0,
-                        height: `${10 + ((formData.topBannerHeight || 1) - 1) * 5}%`, 
-                        borderRadius: `${formData.topBannerRadiusTop ? '6px' : '0'} ${formData.topBannerRadiusTop ? '6px' : '0'} ${formData.topBannerRadiusBottom ? '6px' : '0'} ${formData.topBannerRadiusBottom ? '6px' : '0'}`,
-                        transition: 'all 0.3s ease',
-                        overflow: 'hidden', background: '#000', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' 
-                      }}>
-                         {renderPreview(formData.topBannerUrl)}
-                      </div>
-                    </div>
-                  </div>
+                    );
+                  })
                 ) : (
-                   <div style={{ height: 80, borderRadius: 12, border: '2px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 500 }}>Introdu url-ul campaniei.</div>
+                  <div>
+                    <input 
+                      type="url" 
+                      className="pc-input" 
+                      placeholder="URL Video MP4 sau Imagine globală..."
+                      value={formData.topBannerUrl || ''} 
+                      onChange={e => handleChange('topBannerUrl', e.target.value)}
+                      style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', width: '100%', marginBottom: 16, boxSizing: 'border-box' }}
+                    />
+                    
+                    {formData.topBannerUrl ? (
+                      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16, marginBottom: 16 }}>
+                        <div style={{ width: 135, height: 240, borderRadius: 12, overflow: 'hidden', border: '6px solid #1e293b', background: '#e2e8f0', position: 'relative', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}>
+                          <div style={{ position: 'absolute', inset: 0, padding: '4px' }}>
+                            <div style={{ width: '100%', height: '30%', background: '#cbd5e1', borderRadius: '4px', marginBottom: '4px' }} />
+                            <div style={{ width: '100%', height: '30%', background: '#cbd5e1', borderRadius: '4px', marginBottom: '4px' }} />
+                            <div style={{ width: '100%', height: '30%', background: '#cbd5e1', borderRadius: '4px' }} />
+                          </div>
+                          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: `${10 + ((formData.topBannerHeight || 1) - 1) * 5}%`, borderRadius: `${formData.topBannerRadiusTop ? '6px' : '0'} ${formData.topBannerRadiusTop ? '6px' : '0'} ${formData.topBannerRadiusBottom ? '6px' : '0'} ${formData.topBannerRadiusBottom ? '6px' : '0'}`, transition: 'all 0.3s ease', overflow: 'hidden', background: '#000', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
+                             {renderPreview(formData.topBannerUrl)}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                       <div style={{ height: 80, borderRadius: 12, border: '2px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 500 }}>Introdu url-ul campaniei.</div>
+                    )}
+                  </div>
                 )}
 
                 <div style={{ marginTop: 24, padding: 20, background: 'var(--bg-surface)', borderRadius: 12, border: '1px solid var(--border)' }}>

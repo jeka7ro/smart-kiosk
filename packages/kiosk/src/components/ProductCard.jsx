@@ -86,9 +86,10 @@ export default function ProductCard({ product, delay, lang, activeBrand, onQuick
         </div>
 
         {product.description && (
-           <p style={{ margin: '0 0 12px 0', fontSize: '0.8rem', color: '#6b7280', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.4 }}>
-             {product.description}
-           </p>
+           <p 
+             style={{ margin: '0 0 12px 0', fontSize: '0.8rem', color: '#6b7280', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.4 }}
+             dangerouslySetInnerHTML={{ __html: product.description }}
+           />
         )}
       </div>
 
@@ -112,13 +113,13 @@ export default function ProductCard({ product, delay, lang, activeBrand, onQuick
             }}
             onClick={handleAdd}
           >
-            <span>+ Adaugă</span>
-            <span>{product.price} lei</span>
+            <span>{t('add_to_cart', lang) || '+ Adaugă'}</span>
+            <span>{product.price} {t('currency', lang) || 'lei'}</span>
           </button>
         ) : (
           <div style={{ flex: 1, height: 44, borderRadius: 10, border: '1px solid #fca5a5', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }} onClick={e => e.stopPropagation()}>
             <button style={{ width: 40, height: '100%', background: 'transparent', border: 'none', color: '#ef4444', fontSize: '1.4rem', fontWeight: 600, cursor: 'pointer' }} onClick={handleMinus}>−</button>
-            <span style={{ color: '#ef4444', fontWeight: 600, fontSize: '0.9rem' }}>{cartQty} buc.</span>
+            <span style={{ color: '#ef4444', fontWeight: 600, fontSize: '0.9rem' }}>{cartQty} {t('pcs', lang) || 'buc.'}</span>
             <button style={{ width: 40, height: '100%', background: 'transparent', border: 'none', color: '#ef4444', fontSize: '1.4rem', fontWeight: 600, cursor: 'pointer' }} onClick={handleAdd}>+</button>
           </div>
         )}

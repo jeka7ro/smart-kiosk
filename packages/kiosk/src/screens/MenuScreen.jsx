@@ -332,12 +332,12 @@ export default function MenuScreen() {
       {favorites.length > 0 && (
         <div className="favorites-bar">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start' }}>
-            <span className="fav-bar-label">❤️ Salvate</span>
+            <span className="fav-bar-label">❤️ {t('saved', lang) || 'Salvate'}</span>
             <button 
               onClick={handleAddAllFavorites}
               style={{ background: '#10b981', color: '#fff', border: 'none', borderRadius: '8px', padding: '6px 12px', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 8px rgba(16,185,129,0.3)', transition: 'all 0.2s', whiteSpace: 'nowrap' }}
             >
-              + Adaugă toate
+              {t('add_all', lang) || '+ Adaugă toate'}
             </button>
           </div>
           <div className="fav-bar-items">
@@ -351,11 +351,11 @@ export default function MenuScreen() {
                 </div>
                 <div className="fav-item-info">
                   <span className="fav-item-name">{fav.name}</span>
-                  <span className="fav-item-price">{fav.price} lei</span>
+                  <span className="fav-item-price">{fav.price} {t('currency', lang) || 'lei'}</span>
                 </div>
                 <div className="fav-item-actions">
-                  <button className="fav-add-btn" title="Adaugă în coș" onClick={() => handleFavQuickAdd(fav)}>+ Coș</button>
-                  <button className="fav-del-btn" title="Șterge" onClick={() => toggleFavorite(fav)}>✕</button>
+                  <button className="fav-add-btn" title={t('add_to_cart', lang) || "Adaugă în coș"} onClick={() => handleFavQuickAdd(fav)}>+ {t('cart_short', lang) || 'Coș'}</button>
+                  <button className="fav-del-btn" title={t('delete_short', lang) || "Șterge"} onClick={() => toggleFavorite(fav)}>✕</button>
                 </div>
               </div>
             ))}

@@ -124,7 +124,7 @@ export default function CartScreen() {
                         <span>{item.quantity}</span>
                         <button className="ci-btn" onClick={() => updateCartItem(item.id, item.quantity + 1)}>+</button>
                       </div>
-                      <span className="ci-total">{item.totalPrice.toFixed(0)} {t('lei', lang)}</span>
+                      <span className="ci-total">{item.totalPrice.toFixed(0)} {t('currency', lang) || 'lei'}</span>
                       <button className="ci-remove" onClick={() => removeFromCart(item.id)}>🗑️</button>
                     </div>
                   </div>
@@ -141,8 +141,8 @@ export default function CartScreen() {
           {suggestions.length > 0 && (
             <div className="cart-suggestions">
               <div className="cart-sugg-header">
-                <span className="cart-sugg-title">🔥 Adaugă și...</span>
-                <span className="cart-sugg-sub">Completează comanda ta</span>
+                <span className="cart-sugg-title">🔥 {t('add_also', lang) || 'Adaugă și...'}</span>
+                <span className="cart-sugg-sub">{t('complete_order', lang) || 'Completează comanda ta'}</span>
               </div>
               <div className="cart-sugg-grid">
                 {suggestions.map(prod => (

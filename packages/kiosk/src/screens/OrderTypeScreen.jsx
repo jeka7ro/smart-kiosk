@@ -24,13 +24,21 @@ export default function OrderTypeScreen() {
     <div className="order-type-screen screen">
       {/* Language selector top-right */}
       {showLangSelector && (
-      <div className="bss-langs" onClick={(e) => e.stopPropagation()}>
+      <div 
+        className="bss-langs" 
+        onClick={(e) => e.stopPropagation()}
+        style={locationData?.langVerticalPosition === 'bottom' ? { top: 'auto', bottom: '30px' } : {}}
+      >
         {allowedLangs.map(l => (
           <button
             key={l}
             className={`bss-lang-btn ${lang === l ? 'active' : ''}`}
             onClick={() => setLang(l)}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+            style={{ 
+              display: 'flex', alignItems: 'center', gap: '6px',
+              ...(lang !== l && locationData?.langBgColor ? { background: locationData.langBgColor } : {}),
+              ...(lang !== l && locationData?.langBorderColor ? { borderColor: locationData.langBorderColor } : {})
+            }}
           >
             <img src={`https://flagcdn.com/w40/${LANGUAGE_FLAGS[l]}.png`} alt={l} style={{ width: 18, borderRadius: 2 }} />
             {LANGUAGE_NAMES[l]}

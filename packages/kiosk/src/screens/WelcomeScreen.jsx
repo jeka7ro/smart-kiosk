@@ -72,13 +72,21 @@ export default function WelcomeScreen() {
     <div className={`welcome-screen ${isUnlocking ? 'unlocking' : ''}`} onClick={() => goAfterWelcome()}>
       {/* Language selector on welcome screen (if position = before or both) */}
       {showLangOnWelcome && allowedLangs.length > 1 && (
-        <div className="poster-langs" onClick={(e) => e.stopPropagation()}>
+        <div 
+          className="poster-langs" 
+          onClick={(e) => e.stopPropagation()}
+          style={locationData?.langVerticalPosition === 'top' ? { top: '40px', bottom: 'auto' } : { bottom: '40px', top: 'auto' }}
+        >
           {allowedLangs.map(l => (
             <button
               key={l}
               onClick={() => setLang(l)}
               className={`poster-lang-btn ${lang === l ? 'active' : ''}`}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+              style={{ 
+                display: 'flex', alignItems: 'center', gap: '8px',
+                ...(lang !== l && locationData?.langBgColor ? { background: locationData.langBgColor } : {}),
+                ...(lang !== l && locationData?.langBorderColor ? { borderColor: locationData.langBorderColor } : {})
+              }}
             >
               <img src={`https://flagcdn.com/w40/${LANGUAGE_FLAGS[l]}.png`} alt={l} style={{ width: 24, borderRadius: 3 }} />
               {LANGUAGE_NAMES[l]}
