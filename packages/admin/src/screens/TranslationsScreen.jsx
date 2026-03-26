@@ -21,11 +21,21 @@ export default function TranslationsScreen({ backend }) {
   const [expandedId, setExpandedId] = useState(null);
   const [editData, setEditData] = useState({});
 
-  // Table state
+  // Table state — multi-select brands
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [search, setSearch] = useState('');
-  const [brandFilter, setBrandFilter] = useState('all');
+  const [activeBrands, setActiveBrands] = useState(new Set()); // empty = all
+
+  const toggleBrand = (bLower) => {
+    setActiveBrands(prev => {
+      const next = new Set(prev);
+      if (next.has(bLower)) next.delete(bLower);
+      else next.add(bLower);
+      return next;
+    });
+    setPage(1);
+  };
 
   useEffect(() => {
     fetchTranslations();
@@ -75,30 +85,16 @@ export default function TranslationsScreen({ backend }) {
     try {
       setSubmitting(true);
       setMessage(null);
-      
-      const payload = {
-        productId,
-        translations: editData
-      };
-      
+      const payload = { productId, translations: editData };
       await fetchWithAuth(`${backend}/api/admin/translations/update`, {
          method: 'POST',
          headers: { 'Content-Type': 'application/json' },
          body: JSON.stringify(payload)
       });
-      
       setMessage({ type: 'success', text: 'Traducerea a fost salvată cu succes!' });
-      
-      // Update local state without full refetch
       setTranslations(prev => ({
         ...prev,
-        [productId]: {
-          ...prev[productId],
-          translations: {
-            ...prev[productId].translations,
-            ...editData
-          }
-        }
+        [productId]: { ...prev[productId], translations: { ...prev[productId].translations, ...editData } }
       }));
       setExpandedId(null);
     } catch (err) {
@@ -109,7 +105,7 @@ export default function TranslationsScreen({ backend }) {
     }
   };
 
-  // Convert dictionary to array for sorting/pagination
+  // Convert dictionary to array
   const productsArray = useMemo(() => {
     return Object.entries(translations).map(([id, data]) => ({ id, ...data }));
   }, [translations]);
@@ -120,10 +116,10 @@ export default function TranslationsScreen({ backend }) {
     return Array.from(set).sort();
   }, [productsArray]);
 
-  // Filtered array
+  // Filtered array — multi-select
   const filteredProducts = useMemo(() => {
     return productsArray.filter(p => {
-      if (brandFilter !== 'all' && (p.brandId || '').toLowerCase() !== brandFilter.toLowerCase()) return false;
+      if (activeBrands.size > 0 && !activeBrands.has((p.brandId || '').toLowerCase())) return false;
       if (search) {
         const query = search.toLowerCase();
         const matchesName = p.name && p.name.toLowerCase().includes(query);
@@ -132,7 +128,7 @@ export default function TranslationsScreen({ backend }) {
       }
       return true;
     });
-  }, [productsArray, brandFilter, search]);
+  }, [productsArray, activeBrands, search]);
 
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
   const pageProducts = filteredProducts.slice((page - 1) * pageSize, page * pageSize);
@@ -140,96 +136,89 @@ export default function TranslationsScreen({ backend }) {
   if (loading) return <div className="admin-loading" style={{ flexDirection: 'column', gap: '12px' }}><span className="spinner"></span><span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Încărcare dicționar... (poate dura 30s dacă serverul a adormit)</span></div>;
 
   return (
-    <div className="translations-screen admin-fade-in" style={{ padding: '0 40px', maxWidth: '1200px', margin: '0 auto', paddingBottom: '100px' }}>
-      
-      {/* Row 1: Description + Action buttons */}
-      <div style={{ marginTop: '40px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
-        <p className="admin-subtitle" style={{ margin: 0, color: 'var(--text-muted)' }}>
-          Ajustează descrierile produselor pe limbi. Filtrează, caută sau lansează o sincronizare de pe server.
-        </p>
-        <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-          <button className="loc-filter-btn" onClick={fetchTranslations} disabled={submitting}>Refresh Dicționar</button>
-          <button className="loc-add-btn" onClick={handleForceTranslate} disabled={submitting}>Pornește Auto-Traducere</button>
+    <div className="translations-screen admin-fade-in" style={{ paddingBottom: '100px' }}>
+
+      {/* Single toolbar row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
+        
+        {/* Search with live result counter */}
+        <div style={{ position: 'relative', flex: '1 1 220px', maxWidth: '320px' }}>
+          <input
+            type="text"
+            placeholder="Caută produs sau ingredient..."
+            value={search}
+            onChange={e => { setSearch(e.target.value); setPage(1); }}
+            style={{
+              width: '100%', boxSizing: 'border-box',
+              padding: '8px 12px', paddingRight: search ? '80px' : '12px',
+              border: '1px solid var(--border)', borderRadius: '8px', fontSize: '0.85rem'
+            }}
+          />
+          {search && (
+            <span style={{
+              position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)',
+              background: '#0f766e', color: '#fff', borderRadius: '10px',
+              padding: '1px 7px', fontSize: '0.72rem', fontWeight: 700, whiteSpace: 'nowrap'
+            }}>
+              {filteredProducts.length} / {productsArray.length}
+            </span>
+          )}
         </div>
-      </div>
 
-      {/* Row 2: Search + page size selector */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', alignItems: 'center' }}>
-        <input 
-          type="text" 
-          placeholder="Caută produs sau ingredient..." 
-          value={search} 
-          onChange={e => { setSearch(e.target.value); setPage(1); }} 
-          style={{ padding: '8px 12px', border: '1px solid var(--border)', borderRadius: '8px', minWidth: '260px', flex: 1, maxWidth: '360px', fontSize: '0.85rem' }}
-        />
-        <select 
-          value={pageSize}
-          onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}
-          style={{ padding: '8px 12px', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '0.85rem', outline: 'none', background: 'var(--card)', color: 'var(--text)' }}
-        >
-          <option value={10}>10 / pagină</option>
-          <option value={25}>25 / pagină</option>
-          <option value={50}>50 / pagină</option>
-          <option value={100}>100 / pagină</option>
-        </select>
-      </div>
-
-      {/* Row 3: Brand filter — circular avatar buttons */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', alignItems: 'center' }}>
-        {/* "All" pill button */}
-        <button 
-          onClick={() => { setBrandFilter('all'); setPage(1); }}
-          style={{
-            padding: '0 16px', height: '40px', borderRadius: '20px',
-            border: `2px solid ${brandFilter === 'all' ? '#0f766e' : 'var(--border)'}`,
-            background: brandFilter === 'all' ? '#0f766e' : 'var(--card)',
-            color: brandFilter === 'all' ? 'white' : 'var(--text)',
-            cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap',
-            transition: 'all 0.15s ease'
-          }}
-        >
-          Toate
-        </button>
-
-        {/* Brand circle avatars */}
+        {/* Brand avatar circles — multi-select */}
         {availableBrands.map(b => {
           const bLower = b.toLowerCase();
-          const isActive = brandFilter === bLower;
+          const isActive = activeBrands.has(bLower);
           return (
             <button
               key={b}
-              onClick={() => { setBrandFilter(bLower); setPage(1); }}
+              onClick={() => toggleBrand(bLower)}
               title={b.toUpperCase()}
               style={{
-                width: '48px', height: '48px', borderRadius: '50%',
+                width: '40px', height: '40px', borderRadius: '50%', flexShrink: 0,
                 border: `3px solid ${isActive ? '#0f766e' : 'transparent'}`,
-                outline: isActive ? '2px solid #0f766e33' : 'none',
-                outlineOffset: '2px',
+                outline: isActive ? '2px solid #0f766e44' : 'none',
+                outlineOffset: '1px',
                 background: 'var(--card)',
                 boxShadow: '0 1px 4px rgba(0,0,0,0.12)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer', padding: '6px',
-                transition: 'all 0.15s ease',
-                overflow: 'hidden',
-                flexShrink: 0
+                cursor: 'pointer', padding: '5px',
+                transition: 'all 0.15s ease', overflow: 'hidden'
               }}
             >
               {BRAND_LOGOS[bLower] ? (
-                <img
-                  src={BRAND_LOGOS[bLower]}
-                  alt={b}
-                  style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
-                />
+                <img src={BRAND_LOGOS[bLower]} alt={b} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
               ) : (
-                <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text)' }}>{b.slice(0,3).toUpperCase()}</span>
+                <span style={{ fontSize: '0.6rem', fontWeight: 800 }}>{b.slice(0,3).toUpperCase()}</span>
               )}
             </button>
           );
         })}
+
+        {/* Page size */}
+        <select
+          value={pageSize}
+          onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}
+          style={{
+            padding: '8px 10px', border: '1px solid var(--border)', borderRadius: '8px',
+            fontSize: '0.85rem', outline: 'none', background: 'var(--card)', color: 'var(--text)', flexShrink: 0
+          }}
+        >
+          <option value={10}>10 / pag</option>
+          <option value={25}>25 / pag</option>
+          <option value={50}>50 / pag</option>
+          <option value={100}>100 / pag</option>
+        </select>
+
+        {/* Action buttons — pushed to end */}
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px', flexShrink: 0 }}>
+          <button className="loc-filter-btn" onClick={fetchTranslations} disabled={submitting}>Refresh</button>
+          <button className="loc-add-btn" onClick={handleForceTranslate} disabled={submitting}>Auto-Traducere</button>
+        </div>
       </div>
 
       {message && (
-        <div className={`admin-alert mb-24 alert-${message.type}`} style={{ marginBottom: '24px' }}>
+        <div className={`admin-alert mb-24 alert-${message.type}`} style={{ marginBottom: '16px' }}>
           {message.text}
         </div>
       )}
