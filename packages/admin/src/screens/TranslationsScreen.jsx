@@ -21,7 +21,7 @@ export default function TranslationsScreen({ backend }) {
   const fetchTranslations = async () => {
     try {
       setLoading(true);
-      const res = await fetchWithAuth(`${backend}/api/admin/translations`);
+      const res = await fetchWithAuth(`${backend}/api/admin/translations/`);
       const data = await res.json();
       setTranslations(data || {});
     } catch (err) {
@@ -137,8 +137,8 @@ export default function TranslationsScreen({ backend }) {
                   
                   <div className="tc-status">
                     {missingLangs === 0 
-                      ? <span className="status-badge success">✅ Tradus Complet</span>
-                      : <span className="status-badge warning">⏳ Lipsesc {missingLangs} limbi</span>
+                      ? <span className="status-badge success">Tradus Complet</span>
+                      : <span className="status-badge warning">Lipsesc {missingLangs} limbi</span>
                     }
                     <button className="tc-toggle">
                       {isExpanded ? 'Închide' : 'Editează'}
@@ -149,7 +149,7 @@ export default function TranslationsScreen({ backend }) {
                 {isExpanded && (
                   <div className="tc-body">
                     <div className="original-text">
-                      <label>🇷🇴 Descriere Originală (Syrve):</label>
+                      <label>Descriere Originală (Syrve):</label>
                       <p>{item.originalDescription || <em>Fără descriere.</em>}</p>
                     </div>
 
