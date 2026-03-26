@@ -3,12 +3,12 @@ import { useAuth } from '../context/AuthProvider';
 import './TranslationsScreen.css';
 
 const LANGUAGES = ['en', 'fr', 'hu', 'ru', 'bg', 'de', 'es', 'uk'];
-const PAGE_SIZE = 25;
 
 const BRAND_LOGOS = {
-  smashme: '/logo_tech.png',
-  welovesushi: '/logo_wls.png',
-  ikura: '/ikura_logo.webp'
+  smashme: '/brands/smashme-logo.png',
+  welovesushi: '/brands/welovesushi-logo.png',
+  ikura: '/brands/ikura-logo.png',
+  sushimaster: '/brands/sushimaster-logo.png'
 };
 
 export default function TranslationsScreen({ backend }) {
@@ -23,6 +23,7 @@ export default function TranslationsScreen({ backend }) {
 
   // Table state
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const [search, setSearch] = useState('');
   const [brandFilter, setBrandFilter] = useState('all');
 
@@ -127,8 +128,8 @@ export default function TranslationsScreen({ backend }) {
     });
   }, [productsArray, brandFilter, search]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / PAGE_SIZE));
-  const pageProducts = filteredProducts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
+  const pageProducts = filteredProducts.slice((page - 1) * pageSize, page * pageSize);
 
   if (loading) return <div className="admin-loading"><span className="spinner"></span> Încărcare dicționar...</div>;
 
@@ -149,19 +150,43 @@ export default function TranslationsScreen({ backend }) {
               onChange={e => { setSearch(e.target.value); setPage(1); }} 
               style={{ padding: '8px 12px', border: '1px solid var(--border)', borderRadius: '8px', minWidth: '240px', fontSize: '0.85rem' }}
             />
+            <select 
+              value={pageSize}
+              onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}
+              style={{ padding: '8px 12px', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '0.85rem', outline: 'none', background: 'var(--card)', color: 'var(--text)' }}
+            >
+              <option value={10}>10 Rânduri / Pagină</option>
+              <option value={25}>25 Rânduri / Pagină</option>
+              <option value={50}>50 Rânduri / Pagină</option>
+              <option value={100}>100 Rânduri / Pagină</option>
+            </select>
             <button className={`loc-filter-btn ${brandFilter === 'all' ? 'active' : ''}`} onClick={() => { setBrandFilter('all'); setPage(1); }}>
               Toate Brandurile
             </button>
-            {availableBrands.map(b => (
-              <button 
-                key={b} 
-                className={`loc-filter-btn ${brandFilter === b.toLowerCase() ? 'active' : ''}`} 
-                onClick={() => { setBrandFilter(b.toLowerCase()); setPage(1); }}
-                style={brandFilter === b.toLowerCase() ? { background: '#10b981', color: 'white', borderColor: '#10b981' } : {}}
-              >
-                {b.toUpperCase()}
-              </button>
-            ))}
+            {availableBrands.map(b => {
+              const bLower = b.toLowerCase();
+              return (
+                <button 
+                  key={b} 
+                  className={`loc-filter-btn ${brandFilter === bLower ? 'active' : ''}`} 
+                  onClick={() => { setBrandFilter(bLower); setPage(1); }}
+                  style={{
+                    ...(brandFilter === bLower ? { background: '#10b981', color: 'white', borderColor: '#10b981' } : {}),
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '100px', height: '36px'
+                  }}
+                >
+                  {BRAND_LOGOS[bLower] ? (
+                    <img 
+                      src={BRAND_LOGOS[bLower]} 
+                      alt={b.toUpperCase()} 
+                      style={{ height: '20px', objectFit: 'contain', filter: brandFilter === bLower ? 'brightness(0) invert(1)' : 'none' }} 
+                    />
+                  ) : (
+                    b.toUpperCase()
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 
