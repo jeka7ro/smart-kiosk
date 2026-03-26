@@ -101,7 +101,7 @@ export default function TranslationsScreen({ backend }) {
           Ajustează descrierile și ingredientele. Orice schimbare manuală de aici va suprascrie robotul Google Translate.
         </p>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button className="loc-filter-btn" onClick={fetchTranslations} disabled={submitting}>🔄 Refresh Dicționar</button>
+          <button className="loc-filter-btn" onClick={fetchTranslations} disabled={submitting}>Refresh Dicționar</button>
           <button className="loc-add-btn" onClick={handleForceTranslate} disabled={submitting}>
             Pornește Auto-Traducere
           </button>
@@ -114,12 +114,6 @@ export default function TranslationsScreen({ backend }) {
         </div>
       )}
 
-      {productIds.length === 0 ? (
-        <div className="empty-state">
-          <h3>Sincronizare Necesară</h3>
-          <p>Se pare că nu s-a rulat curând o sincronizare sau lista s-a reinițializat automat. Apasă "Pornește Auto-Traducere" pentru a trage datele live din POS.</p>
-        </div>
-      ) : (
         <div style={{ background: 'var(--card)', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)' }}>
           <table className="loc-table hoverable-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
@@ -132,13 +126,20 @@ export default function TranslationsScreen({ backend }) {
               </tr>
             </thead>
             <tbody>
-              {productIds.map(pid => {
-                const item = translations[pid];
-                const isExpanded = expandedId === pid;
-                const missingLangs = LANGUAGES.filter(l => !item.translations[l]).length;
+              {productIds.length === 0 ? (
+                <tr>
+                  <td colSpan="5" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                    Nu au fost găsite produse. Apasă "Pornește Auto-Traducere" pentru a sincroniza meniul live.
+                  </td>
+                </tr>
+              ) : (
+                productIds.map(pid => {
+                  const item = translations[pid];
+                  const isExpanded = expandedId === pid;
+                  const missingLangs = LANGUAGES.filter(l => !item.translations[l]).length;
 
-                return (
-                  <React.Fragment key={pid}>
+                  return (
+                    <React.Fragment key={pid}>
                     <tr style={{ borderBottom: '1px solid var(--border)' }} className={isExpanded ? 'active-row' : ''}>
                       <td style={{ padding: '16px', color: '#64748B', fontSize: '0.85rem', fontFamily: 'monospace' }}>{pid.split('-')[0]}...</td>
                       <td style={{ padding: '16px', fontWeight: 600, color: 'var(--text)' }}>{item.name || 'Produs Necunoscut'}</td>
@@ -198,11 +199,11 @@ export default function TranslationsScreen({ backend }) {
                     )}
                   </React.Fragment>
                 );
-              })}
+              })
+            )}
             </tbody>
           </table>
         </div>
-      )}
     </div>
   );
 }
