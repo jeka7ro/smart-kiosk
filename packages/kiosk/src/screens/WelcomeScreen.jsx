@@ -61,7 +61,22 @@ export default function WelcomeScreen() {
     goAfterWelcome();
   };
 
-  const btnColor = locationData?.langButtonColor || '#0f172a';
+const FLAG_GRADIENTS = {
+  ro: 'linear-gradient(90deg, #002B7F 33.3%, #FCD116 33.3% 66.6%, #CE1126 66.6%)',
+  en: 'linear-gradient(90deg, #012169 0%, #C8102E 100%)',
+  fr: 'linear-gradient(90deg, #002395 33.3%, #FFFFFF 33.3% 66.6%, #ED2939 66.6%)',
+  hu: 'linear-gradient(180deg, #CE2939 33.3%, #FFFFFF 33.3% 66.6%, #477050 66.6%)',
+  ru: 'linear-gradient(180deg, #FFFFFF 33.3%, #0039A6 33.3% 66.6%, #D52B1E 66.6%)',
+  uk: 'linear-gradient(180deg, #005BBB 50%, #FFD500 50%)',
+  bg: 'linear-gradient(180deg, #FFFFFF 33.3%, #00966E 33.3% 66.6%, #D62612 66.6%)',
+  de: 'linear-gradient(180deg, #000000 33.3%, #DD0000 33.3% 66.6%, #FFCE00 66.6%)',
+  es: 'linear-gradient(180deg, #AA151B 25%, #F1BF00 25% 75%, #AA151B 75%)',
+};
+
+  const useFlagBg = locationData?.langButtonFlagColors === true;
+  const baseBtnColor = locationData?.langButtonColor || '#0f172a';
+  const btnColor = useFlagBg ? (FLAG_GRADIENTS[lang] || baseBtnColor) : baseBtnColor;
+  const btnShadowColor = baseBtnColor;
   const btnTextColor = locationData?.langButtonTextColor || '#ffffff';
   const btnBorderColor = locationData?.langButtonBorderColor || 'transparent';
   const customBtnText = locationData?.langButtonText || '';
@@ -137,7 +152,7 @@ export default function WelcomeScreen() {
 
             <button 
               className="poster-cta-btn-glass" 
-              style={{ background: btnColor, color: btnTextColor, borderColor: btnBorderColor, borderWidth: btnBorderColor !== 'transparent' ? '3px' : '0', borderStyle: 'solid', boxShadow: `0 12px 32px ${btnColor}80` }}
+              style={{ background: btnColor, color: btnTextColor, borderColor: btnBorderColor, borderWidth: btnBorderColor !== 'transparent' ? '3px' : '0', borderStyle: 'solid', boxShadow: `0 12px 32px ${btnShadowColor}80` }}
               onClick={(e) => { e.stopPropagation(); handlePosterTap(); }}
             >
               <span className="poster-cta-label" style={{ color: btnTextColor }}>{customBtnText || t('start_order', lang)}</span>
@@ -200,7 +215,7 @@ export default function WelcomeScreen() {
       <div className="welcome-cta">
         <button 
           className="cta-button" 
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, background: btnColor, color: btnTextColor, borderColor: btnBorderColor, borderWidth: btnBorderColor !== 'transparent' ? '3px' : '0', borderStyle: 'solid', boxShadow: `0 12px 32px ${btnColor}80` }}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, background: btnColor, color: btnTextColor, borderColor: btnBorderColor, borderWidth: btnBorderColor !== 'transparent' ? '3px' : '0', borderStyle: 'solid', boxShadow: `0 12px 32px ${btnShadowColor}80` }}
           onClick={goAfterWelcome}
         >
           {(locationData?.brands?.length > 1 ? locationData.brands : [brand.id]).map((bId) => (

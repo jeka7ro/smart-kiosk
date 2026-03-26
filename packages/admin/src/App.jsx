@@ -1075,6 +1075,10 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                       <input type="color" value={formData.langButtonColor || '#0f172a'} onChange={e => handleChange('langButtonColor', e.target.value)} style={{ width: 28, height: 28, border: '2px solid var(--border)', borderRadius: '6px', cursor: 'pointer', padding: 0 }} />
                       <input type="text" value={formData.langButtonColor || '#0f172a'} onChange={e => handleChange('langButtonColor', e.target.value)} style={{ width: 70, padding: '4px 8px', fontSize: '0.8rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: '#fff', color: 'var(--text)' }} />
                    </div>
+                   <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, fontSize: '0.75rem', color: 'var(--text)', cursor: 'pointer', fontWeight: 600 }}>
+                     <input type="checkbox" checked={formData.langButtonFlagColors || false} onChange={e => handleChange('langButtonFlagColors', e.target.checked)} />
+                     Culorile Steagului (Suprascrie Fundalul)
+                   </label>
                 </div>
 
                 {/* COL 1B: Buton Principal (Text Color) */}
