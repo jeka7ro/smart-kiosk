@@ -1,5 +1,5 @@
 import { useKioskStore } from '../store/kioskStore';
-import { t } from '../i18n/translations.js';
+import { t, LANGUAGES, LANGUAGE_NAMES, LANGUAGE_FLAGS } from '../i18n/translations.js';
 import { useInactivityTimeout } from '../hooks/useInactivityTimeout.js';
 import './OrderTypeScreen.css';
 
@@ -8,9 +8,28 @@ export default function OrderTypeScreen() {
   const setOrderType = useKioskStore((s) => s.setOrderType);
   const goTo = useKioskStore((s) => s.goTo);
   const lang = useKioskStore((s) => s.lang);
+  const setLang = useKioskStore((s) => s.setLang);
+  const kioskData = useKioskStore((s) => s.kioskData);
+
+  const allowedLangs = kioskData?.languages && kioskData.languages.length > 0 
+    ? kioskData.languages 
+    : LANGUAGES;
 
   return (
-    <div className="order-type-screen">
+    <div className="order-type-screen screen">
+      {/* Language selector top-right */}
+      <div className="bss-langs" style={{ position: 'absolute', top: 32, right: 32, zIndex: 100 }} onClick={(e) => e.stopPropagation()}>
+        {allowedLangs.map(l => (
+          <button
+            key={l}
+            className={`bss-lang-btn ${lang === l ? 'active' : ''}`}
+            onClick={() => setLang(l)}
+          >
+            {LANGUAGE_FLAGS[l]} {LANGUAGE_NAMES[l]}
+          </button>
+        ))}
+      </div>
+
       <button className="back-btn-screen" onClick={() => goTo('welcome')}>
         ← {t('back', lang)}
       </button>

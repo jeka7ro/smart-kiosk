@@ -997,6 +997,43 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
               />
             </div>
           )}
+
+          <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px dashed var(--border)' }}>
+             <h4 style={{ margin: '0 0 12px 0', fontSize: '0.85rem', color: 'var(--text)' }}>Limbi Afișate pe Kiosk</h4>
+             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+               {['ro', 'en', 'fr', 'hu', 'ru', 'uk', 'bg', 'de'].map(lang => {
+                  const langNames = { ro: 'RO', en: 'EN', fr: 'FR', hu: 'HU', ru: 'RU', uk: 'UA', bg: 'BG', de: 'DE' };
+                  const currentLangs = formData.languages || ['ro', 'en', 'fr', 'hu', 'ru', 'uk']; // fallback to all existing if old
+                  const isSelected = currentLangs.includes(lang);
+                  return (
+                     <button
+                        key={lang}
+                        type="button"
+                        onClick={() => {
+                           if (isSelected) {
+                              handleChange('languages', currentLangs.filter(l => l !== lang));
+                           } else {
+                              handleChange('languages', [...currentLangs, lang]);
+                           }
+                        }}
+                        style={{
+                           padding: '4px 10px',
+                           borderRadius: 12,
+                           fontSize: '0.75rem',
+                           fontWeight: 800,
+                           cursor: 'pointer',
+                           border: isSelected ? '1px solid currentColor' : '1px solid #cbd5e1',
+                           background: isSelected ? '#0f172a' : '#f8fafc',
+                           color: isSelected ? '#fff' : '#64748b',
+                           transition: 'all 0.2s',
+                        }}
+                     >
+                        {langNames[lang]}
+                     </button>
+                  );
+               })}
+             </div>
+          </div>
         </div>
 
 

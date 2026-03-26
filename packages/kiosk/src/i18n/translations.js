@@ -3,9 +3,9 @@
  * Languages: RO (default), EN, FR, HU, RU
  */
 
-export const LANGUAGES = ['ro', 'en', 'fr', 'hu', 'ru', 'uk'];
-export const LANGUAGE_NAMES = { ro: 'RO', en: 'EN', fr: 'FR', hu: 'HU', ru: 'RU' , uk: 'UA' };
-export const LANGUAGE_FLAGS = { ro: '🇷🇴', en: '🇬🇧', fr: '🇫🇷', hu: '🇭🇺', ru: '🇷🇺' , uk: '🇺🇦' };
+export const LANGUAGES = ['ro', 'en', 'fr', 'hu', 'ru', 'uk', 'bg', 'de'];
+export const LANGUAGE_NAMES = { ro: 'RO', en: 'EN', fr: 'FR', hu: 'HU', ru: 'RU', uk: 'UA', bg: 'BG', de: 'DE' };
+export const LANGUAGE_FLAGS = { ro: '🇷🇴', en: '🇬🇧', fr: '🇫🇷', hu: '🇭🇺', ru: '🇷🇺', uk: '🇺🇦', bg: '🇧🇬', de: '🇩🇪' };
 
 /** @type {Record<string, Record<string, string>>} */
 export const T = {
@@ -17,6 +17,8 @@ export const T = {
     hu: 'Érintse meg a rendeléshez',
     ru: 'Нажмите для заказа',
     uk: 'Натисніть, щоб замовити',
+    bg: "Докоснете за поръчка",
+    de: "Tippen zum Bestellen"
   },
   // ── Order Type Screen ──────────────────────────────────────
   how_to_order: {
@@ -26,6 +28,8 @@ export const T = {
     hu: 'Hogyan szeretne rendelni?',
     ru: 'Как вы хотите заказать?',
     uk: 'Як ви бажаєте замовити?',
+    bg: "Как искате да поръчате?",
+    de: "Wie möchten Sie bestellen?"
   },
   dine_in: {
     ro: 'La masă',
@@ -34,6 +38,8 @@ export const T = {
     hu: 'Helyben fogyasztás',
     ru: 'За столом',
     uk: 'У закладі',
+    bg: "В залата",
+    de: "Hier essen"
   },
   dine_in_desc: {
     ro: 'Comanda ajunge direct la masa dvs.',
@@ -42,6 +48,8 @@ export const T = {
     hu: 'A rendelést közvetlenül az asztalához szállítjuk',
     ru: 'Заказ доставят прямо к вашему столу',
     uk: 'Замовлення доставлять прямо до вашого столу',
+    bg: "Поръчката се доставя на масата",
+    de: "Wird an den Tisch gebracht"
   },
   takeaway: {
     ro: 'La pachet',
@@ -50,6 +58,8 @@ export const T = {
     hu: 'Elvitelre',
     ru: 'С собой',
     uk: 'З собою',
+    bg: "За вкъщи",
+    de: "Zum Mitnehmen"
   },
   takeaway_desc: {
     ro: 'Ridicați comanda de la ghișeu',
@@ -58,6 +68,8 @@ export const T = {
     hu: 'Vegye át rendelését a pultnál',
     ru: 'Заберите заказ у стойки',
     uk: 'Заберіть замовлення на касі',
+    bg: "Вземете от касата",
+    de: "Abholung an der Kasse"
   },
   enter_table: {
     ro: 'Introduceți numărul mesei',
@@ -66,6 +78,10 @@ export const T = {
     hu: 'Adja meg az asztal számát',
     ru: 'Введите номер столика',
     uk: 'Введіть номер столика',
+    bg: "Въведете номер на маса",
+    de: "Tischnummer eingeben"
+    bg: "Маса",
+    de: "Tisch"
   },
   table: {
     ro: 'Masa',
@@ -74,6 +90,8 @@ export const T = {
     hu: 'Asztal',
     ru: 'Стол',
     uk: 'Стіл',
+    bg: "Маса",
+    de: "Tisch"
   },
   confirm: {
     ro: 'Confirmă',
@@ -82,6 +100,8 @@ export const T = {
     hu: 'Megerősítés',
     ru: 'Подтвердить',
     uk: 'Підтвердити',
+    bg: "Потвърди",
+    de: "Bestätigen"
   },
   back: {
     ro: 'Înapoi',
@@ -90,6 +110,8 @@ export const T = {
     hu: 'Vissza',
     ru: 'Назад',
     uk: 'Назад',
+    bg: "Назад",
+    de: "Zurück"
   },
   // ── Menu Screen ────────────────────────────────────────────
   menu: {
@@ -99,6 +121,8 @@ export const T = {
     hu: 'Menü',
     ru: 'Меню',
     uk: 'Меню',
+    bg: "Меню",
+    de: "Menü"
   },
   cart_empty: {
     ro: 'Coș gol',
@@ -107,6 +131,8 @@ export const T = {
     hu: 'Üres kosár',
     ru: 'Корзина пуста',
     uk: 'Кошик порожній',
+    bg: "Празна количка",
+    de: "Leerer Warenkorb"
   },
   add_to_cart: {
     ro: '+ Adaugă',
@@ -115,6 +141,8 @@ export const T = {
     hu: '+ Hozzáadás',
     ru: '+ Добавить',
     uk: '+ Додати',
+    bg: "+ Добави",
+    de: "+ Hinzufügen"
   },
   item_one: {
     ro: 'produs',
@@ -123,6 +151,8 @@ export const T = {
     hu: 'termék',
     ru: 'товар',
     uk: 'товар',
+    bg: "продукт",
+    de: "Artikel"
   },
   items_many: {
     ro: 'produse',
@@ -131,6 +161,8 @@ export const T = {
     hu: 'termék',
     ru: 'товаров',
     uk: 'товарів',
+    bg: "продукти",
+    de: "Artikel"
   },
   search: {
     ro: 'Caută',
@@ -139,6 +171,8 @@ export const T = {
     hu: 'Keresés',
     ru: 'Поиск',
     uk: 'Пошук',
+    bg: "Търсене",
+    de: "Suche"
   },
   all_categories: {
     ro: 'Toate',
@@ -147,6 +181,8 @@ export const T = {
     hu: 'Összes',
     ru: 'Все',
     uk: 'Всі',
+    bg: "Всички",
+    de: "Alle"
   },
   // ── Cart Screen ────────────────────────────────────────────
   my_cart: {
@@ -156,6 +192,8 @@ export const T = {
     hu: 'Kosaram',
     ru: 'Моя корзина',
     uk: 'Мій кошик',
+    bg: "Моята количка",
+    de: "Mein Warenkorb"
   },
   subtotal: {
     ro: 'Subtotal',
@@ -164,6 +202,10 @@ export const T = {
     hu: 'Részösszeg',
     ru: 'Сумма',
     uk: 'Сума',
+    bg: "Междинна сума",
+    de: "Zwischensumme"
+    bg: "Общо",
+    de: "Gesamt"
   },
   tva: {
     ro: 'TVA 9%',
@@ -172,6 +214,8 @@ export const T = {
     hu: 'ÁFA 9%',
     ru: 'НДС 9%',
     uk: 'ПДВ 9%',
+    bg: "ДДС",
+    de: "MwSt"
   },
   tva_included: {
     ro: 'inclus',
@@ -180,6 +224,8 @@ export const T = {
     hu: 'tartalmazza',
     ru: 'включен',
     uk: 'включено',
+    bg: "включено",
+    de: "inkl"
   },
   total: {
     ro: 'Total',
@@ -188,6 +234,8 @@ export const T = {
     hu: 'Összesen',
     ru: 'Итого',
     uk: 'Разом',
+    bg: "Общо",
+    de: "Gesamt"
   },
   pay: {
     ro: 'Plătește',
@@ -196,6 +244,8 @@ export const T = {
     hu: 'Fizetés',
     ru: 'Оплатить',
     uk: 'Оплатити',
+    bg: "Плати",
+    de: "Bezahlen"
   },
   add_more: {
     ro: '+ Adaugă mai multe',
@@ -204,6 +254,8 @@ export const T = {
     hu: '+ Több hozzáadása',
     ru: '+ Добавить ещё',
     uk: '+ Додати ще',
+    bg: "+ Добави още",
+    de: "+ Mehr"
   },
   // ── Payment Screen ─────────────────────────────────────────
   present_card: {
@@ -213,6 +265,8 @@ export const T = {
     hu: 'Helyezze a kártyáját a terminálra',
     ru: 'Поднесите карту к терминалу',
     uk: 'Піднесіть картку до терміналу',
+    bg: "Поставете картата",
+    de: "Karte vorhalten"
   },
   payment_processing: {
     ro: 'Se procesează plata...',
@@ -221,6 +275,8 @@ export const T = {
     hu: 'Fizetés feldolgozása...',
     ru: 'Обработка платежа...',
     uk: 'Обробка платежу...',
+    bg: "Обработка...",
+    de: "Verarbeitung..."
   },
   // ── Confirmation ───────────────────────────────────────────
   order_placed: {
@@ -230,6 +286,8 @@ export const T = {
     hu: 'Rendelés leadva!',
     ru: 'Заказ принят!',
     uk: 'Замовлення прийнято!',
+    bg: "Поръчката е приета!",
+    de: "Bestellung aufgegeben!"
   },
   order_number: {
     ro: 'Numărul comenzii',
@@ -238,6 +296,8 @@ export const T = {
     hu: 'Rendelésszám',
     ru: 'Номер заказа',
     uk: 'Номер замовлення',
+    bg: "Номер",
+    de: "Bestellnummer"
   },
   thank_you: {
     ro: 'Mulțumim! Comanda dvs. este pregătită.',
@@ -246,6 +306,8 @@ export const T = {
     hu: 'Köszönjük! Rendelését készítjük.',
     ru: 'Спасибо! Ваш заказ готовится.',
     uk: 'Дякуємо! Ваше замовлення готується.',
+    bg: "Благодарим!",
+    de: "Danke!"
   },
   // ── Product Screen ─────────────────────────────────────────
   required: {
@@ -255,6 +317,8 @@ export const T = {
     hu: 'Kötelező',
     ru: 'Обязательно',
     uk: 'Обов\'язково',
+    bg: "Задължително",
+    de: "Erforderlich"
   },
   allergens: {
     ro: 'Alergeni',
@@ -263,6 +327,8 @@ export const T = {
     hu: 'Allergének',
     ru: 'Аллергены',
     uk: 'Алергени',
+    bg: "Алергени",
+    de: "Allergene"
   },
   lei: {
     ro: 'lei',
@@ -271,6 +337,8 @@ export const T = {
     hu: 'RON',
     ru: 'лей',
     uk: 'лей',
+    bg: "леи",
+    de: "LEI"
   },
   // ── Poster / Screensaver ────────────────────────────────────
   start_order: {
@@ -280,6 +348,8 @@ export const T = {
     hu: 'Rendelés indítása',
     ru: 'Начать заказ',
     uk: 'Почати замовлення',
+    bg: "Старт",
+    de: "Starten"
   },
   touch_anywhere: {
     ro: 'Atinge oriunde pe ecran',
@@ -288,6 +358,8 @@ export const T = {
     hu: 'Érintse meg a képernyőt',
     ru: 'Коснитесь экрана',
     uk: 'Торкніться екрана',
+    bg: "Докоснете екрана",
+    de: "Bildschirm tippen"
   },
   // ── Brand Select ─────────────────────────────────────────────
   choose_brand: {
@@ -297,6 +369,8 @@ export const T = {
     hu: 'Válasszon éttermet',
     ru: 'Выберите ресторан',
     uk: 'Оберіть ресторан',
+    bg: "Изберете ресторант",
+    de: "Restaurant wählen"
   },
   choose_brand_sub: {
     ro: 'Poți comanda de la mai multe restaurante',
@@ -305,6 +379,8 @@ export const T = {
     hu: 'Több étteremből is rendelhet',
     ru: 'Вы можете заказать из нескольких ресторанов',
     uk: 'Ви можете замовити з декількох ресторанів',
+    bg: "Може да поръчате от няколко",
+    de: "Aus mehreren wählen"
   },
   // ── General ─────────────────────────────────────────────────
   cancel: {
@@ -314,6 +390,8 @@ export const T = {
     hu: 'Mégsem',
     ru: 'Отмена',
     uk: 'Скасувати',
+    bg: "Отказ",
+    de: "Abbrechen"
   },
   close: {
     ro: 'Închide',
@@ -322,6 +400,8 @@ export const T = {
     hu: 'Bezárás',
     ru: 'Закрыть',
     uk: 'Закрити',
+    bg: "Затвори",
+    de: "Schließen"
   },
   loading: {
     ro: 'Se încarcă...',
@@ -330,6 +410,8 @@ export const T = {
     hu: 'Betöltés...',
     ru: 'Загрузка...',
     uk: 'Завантаження...',
+    bg: "Зареждане...",
+    de: "Laden..."
   },
   error_loading: {
     ro: 'Eroare la încărcare',
@@ -338,6 +420,10 @@ export const T = {
     hu: 'Betöltési hiba',
     ru: 'Ошибка загрузки',
     uk: 'Помилка завантаження',
+    bg: "Зареждане...",
+    de: "Laden..."
+    bg: "Грешка",
+    de: "Fehler"
   },
   retry: {
     ro: 'Reîncearcă',
@@ -346,6 +432,8 @@ export const T = {
     hu: 'Újra',
     ru: 'Повторить',
     uk: 'Повторити',
+    bg: "Опитай пак",
+    de: "Erneut versuchen"
   },
   added_to_cart: {
     ro: 'Adăugat în coș',
@@ -354,6 +442,8 @@ export const T = {
     hu: 'Kosárba helyezve',
     ru: 'Добавлено',
     uk: 'Додано',
+    bg: "Добавено",
+    de: "Hinzugefügt"
   },
   // ── Payment Screen (full) ──────────────────────────────────
   payment_card_title: {
@@ -363,6 +453,8 @@ export const T = {
     hu: 'Kártyás fizetés',
     ru: 'Оплата картой',
     uk: 'Оплата карткою',
+    bg: "Плащане с карта",
+    de: "Kartenzahlung"
   },
   payment_card_subtitle: {
     ro: 'Apropiați sau introduceți cardul în terminal',
@@ -371,6 +463,8 @@ export const T = {
     hu: 'Érintse meg vagy helyezze be kártyáját a terminálba',
     ru: 'Приложите или вставьте карту в терминал',
     uk: 'Піднесіть або вставте картку в термінал',
+    bg: "Доближете картата",
+    de: "Karte ans Terminal"
   },
   total_to_pay: {
     ro: 'Total de plată',
@@ -379,6 +473,10 @@ export const T = {
     hu: 'Fizetendő összeg',
     ru: 'Сумма к оплате',
     uk: 'До сплати',
+    bg: "Плати",
+    de: "Bezahlen"
+    bg: "Общо за плащане",
+    de: "Zu zahlen"
   },
   payment_step_1: {
     ro: 'Apropiați cardul sau telefonul (contactless)',
@@ -387,6 +485,8 @@ export const T = {
     hu: 'Érintse a kártyáját vagy telefonját (érintésmentes)',
     ru: 'Приложите карту или телефон (бесконтактно)',
     uk: 'Піднесіть картку або телефон',
+    bg: "Доближете карта/телефон",
+    de: "Karte/Telefon vorhalten"
   },
   payment_step_2: {
     ro: 'Sau introduceți cardul și introduceți PIN-ul',
@@ -395,6 +495,8 @@ export const T = {
     hu: 'Vagy helyezze be a kártyát és adja meg a PIN-kódot',
     ru: 'Или вставьте карту и введите PIN',
     uk: 'Або вставте картку та введіть PIN',
+    bg: "Или въведете ПИН",
+    de: "Oder PIN eingeben"
   },
   payment_step_3: {
     ro: 'Așteptați confirmarea pe ecranul terminalului',
@@ -403,6 +505,8 @@ export const T = {
     hu: 'Várja meg a megerősítést a terminál képernyőjén',
     ru: 'Дождитесь подтверждения на экране терминала',
     uk: 'Дочекайтеся підтвердження на екрані',
+    bg: "Изчакайте потвърждение",
+    de: "Warte auf Bestätigung"
   },
   simulate_payment: {
     ro: '✅ Simulează plată (DEMO)',
@@ -411,6 +515,8 @@ export const T = {
     hu: '✅ Fizetés szimulálása (DEMO)',
     ru: '✅ Симуляция оплаты (ДЕМО)',
     uk: '✅ Симуляція оплати (ДЕМО)',
+    bg: "✅ ДЕМО Плащане",
+    de: "✅ DEMO Zahlung"
   },
   back_to_cart: {
     ro: '← Înapoi la coș',
@@ -419,6 +525,8 @@ export const T = {
     hu: '← Vissza a kosárhoz',
     ru: '← Назад к корзине',
     uk: '← Назад до кошика',
+    bg: "← Към количката",
+    de: "← Zum Warenkorb"
   },
   pos_init: {
     ro: 'Inițializare POS...',
@@ -427,6 +535,8 @@ export const T = {
     hu: 'POS inicializálás...',
     ru: 'Инициализация POS...',
     uk: 'Ініціалізація POS...',
+    bg: "POS инициализация...",
+    de: "POS initialisieren..."
   },
   waiting_payment: {
     ro: 'Așteptăm plata...',
@@ -435,6 +545,8 @@ export const T = {
     hu: 'Fizetésre vár...',
     ru: 'Ожидание оплаты...',
     uk: 'Очікування оплати...',
+    bg: "Очаква плащане...",
+    de: "Warte auf Zahlung..."
   },
   processing_payment: {
     ro: 'Se procesează...',
@@ -443,6 +555,8 @@ export const T = {
     hu: 'Feldolgozás...',
     ru: 'Обработка...',
     uk: 'Обробка...',
+    bg: "Обработка...",
+    de: "Verarbeitung..."
   },
   // ── Confirmation Screen ─────────────────────────────────────
   payment_success: {
@@ -452,6 +566,8 @@ export const T = {
     hu: 'Fizetés sikeresen feldolgozva',
     ru: 'Оплата успешно обработана',
     uk: 'Оплата пройшла успішно',
+    bg: "Успешно плащане",
+    de: "Zahlung erfolgreich"
   },
   your_order_number: {
     ro: 'NUMĂRUL TĂU DE COMANDĂ',
@@ -460,6 +576,10 @@ export const T = {
     hu: 'RENDELÉSSZÁMA',
     ru: 'ВАШ НОМЕР ЗАКАЗА',
     uk: 'ВАШ НОМЕР ЗАМОВЛЕННЯ',
+    bg: "Номер",
+    de: "Bestellnummer"
+    bg: "ВАШИЯТ НОМЕР",
+    de: "IHRE NUMMER"
   },
   pickup_at_counter: {
     ro: '🏁 Ridicați comanda la caserie',
@@ -468,6 +588,8 @@ export const T = {
     hu: '🏁 Vegye át rendelését a pultnál',
     ru: '🏁 Заберите заказ у кассы',
     uk: '🏁 Заберіть замовлення на касі',
+    bg: "🏁 Вземете от касата",
+    de: "🏁 Abholen"
   },
   products_count: {
     ro: 'produs',
@@ -476,6 +598,8 @@ export const T = {
     hu: 'termék',
     ru: 'товар',
     uk: 'товар',
+    bg: "продукт",
+    de: "Artikel"
   },
   products_count_many: {
     ro: 'produse',
@@ -484,6 +608,8 @@ export const T = {
     hu: 'termék',
     ru: 'товаров',
     uk: 'товари',
+    bg: "продукти",
+    de: "Artikel"
   },
   paid_by_card: {
     ro: '💳 Plătit cu cardul',
@@ -492,6 +618,8 @@ export const T = {
     hu: '💳 Kártyával fizetve',
     ru: '💳 Оплачено картой',
     uk: '💳 Оплачено карткою',
+    bg: "💳 Платено",
+    de: "💳 Bezahlt"
   },
   confirmed: {
     ro: '✓ Confirmat',
@@ -500,6 +628,8 @@ export const T = {
     hu: '✓ Megerősítve',
     ru: '✓ Подтверждено',
     uk: '✓ Підтверджено',
+    bg: "✓ Потвърдено",
+    de: "✓ Bestätigt"
   },
   screen_reset_in: {
     ro: 'Ecranul se va reseta în',
@@ -508,6 +638,8 @@ export const T = {
     hu: 'A képernyő visszaáll',
     ru: 'Экран сбросится через',
     uk: 'Екран оновиться через',
+    bg: "Рестарт след",
+    de: "Neustart in"
   },
   new_order: {
     ro: 'Comandă nouă',
@@ -516,6 +648,8 @@ export const T = {
     hu: 'Új rendelés',
     ru: 'Новый заказ',
     uk: 'Нове замовлення',
+    bg: "Нова поръчка",
+    de: "Neue Bestellung"
   },
   // ── OrderType subtexts ──────────────────────────────────────
   order_type_subtitle: {
@@ -525,6 +659,8 @@ export const T = {
     hu: 'Válassza ki a rendelés típusát — a konyha elkészíti a megfelelő csomagolást',
     ru: 'Выберите тип заказа — кухня подготовит соответствующую упаковку',
     uk: 'Оберіть тип замовлення — кухня підготує відповідну упаковку',
+    bg: "Изберете тип поръчка",
+    de: "Wählen Sie Ihre Option"
   },
   dine_in_sub: {
     ro: 'Serviți în restaurant · Fără ambalaj',
@@ -533,6 +669,8 @@ export const T = {
     hu: 'Étteremben felszolgálva · Csomagolás nélkül',
     ru: 'В ресторане · Без упаковки',
     uk: 'У ресторані · Без упаковки',
+    bg: "Сервира се в ресторнта",
+    de: "Im Restaurant"
   },
   takeaway_sub: {
     ro: 'Ambalat pentru transport',
@@ -541,6 +679,8 @@ export const T = {
     hu: 'Csomagolva elvitelre',
     ru: 'Упаковано с собой',
     uk: 'Упаковано з собою',
+    bg: "Опаковано",
+    de: "Verpackt"
   },
   or: {
     ro: 'sau',
@@ -549,6 +689,8 @@ export const T = {
     hu: 'vagy',
     ru: 'или',
     uk: 'або',
+    bg: "или",
+    de: "oder"
   },
   pickup_note: {
     ro: '🏁 Ridicați comanda la caserie după plată',
@@ -557,6 +699,8 @@ export const T = {
     hu: '🏁 Vegye át rendelését a pultnál fizetés után',
     ru: '🏁 Заберите заказ у кассы после оплаты',
     uk: '🏁 Заберіть замовлення на касі після оплати',
+    bg: "�� Вземете от касата",
+    de: "🏁 An der Kasse abholen"
   },
 };
 

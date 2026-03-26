@@ -1,0 +1,5 @@
+{
+  "correlationId": "081e78cb-fad3-4103-8a29-b2d910d296a2",
+  "errorDescription": "Passed organization(s) 9c63cff6-1d66-442d-a98d-2302656e3943 doesn't belong to your api login included organization list.",
+  "error": "ORGANIZATION_DENIED"
+}

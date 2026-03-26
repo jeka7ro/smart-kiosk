@@ -26,11 +26,15 @@ export default function BrandSelectScreen() {
     goTo('orderType');
   };
 
+  const allowedLangs = kioskData?.languages && kioskData.languages.length > 0 
+    ? kioskData.languages 
+    : LANGUAGES; // fallback to all if not configured
+
   return (
     <div className="brand-select-screen screen">
       {/* Language selector top-right */}
       <div className="bss-langs" onClick={(e) => e.stopPropagation()}>
-        {LANGUAGES.map(l => (
+        {allowedLangs.map(l => (
           <button
             key={l}
             className={`bss-lang-btn ${lang === l ? 'active' : ''}`}
