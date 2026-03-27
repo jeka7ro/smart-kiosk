@@ -10,6 +10,7 @@ import TranslationsScreen from './screens/TranslationsScreen';
 import Integrations   from './screens/Integrations';
 import Promotions     from './screens/Promotions';
 import FortuneWheelPreview from './components/FortuneWheelPreview';
+import MenuManager, { MenuProfileEditorModal } from './screens/MenuManager';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 
@@ -325,33 +326,7 @@ export default function AdminApp() {
 
         {/* ─── MENU ─── */}
         {tab === 'menu' && (
-          <div className="admin-section">
-            <div className="section-header" style={{ justifyContent: 'flex-end' }}>
-              <button className="btn-refresh" onClick={fetchMenuStatus}>Refresh</button>
-            </div>
-            {!menuStatus ? (
-              <p className="loading-text">Se încarcă...</p>
-            ) : menuStatus.error ? (
-              <div className="error-box">{menuStatus.error}</div>
-            ) : (
-              <div className="menu-status-grid">
-                {menuStatus.brands?.map(b => (
-                  <div key={b.brandId} className="menu-status-card"
-                       style={{ '--bc': BRAND_COLORS[b.brandId] || 'var(--primary)' }}>
-                    <div className="ms-header">
-                      <span className="ms-brand" style={{display:'flex', alignItems:'center', gap:'8px'}}><BrandLogo brandId={b.brandId} size={20} /> {b.name || b.brandId}</span>
-                      <span className="ms-badge">{b.source}</span>
-                    </div>
-                    <div className="ms-stats">
-                      <div className="ms-stat"><span>Categorii</span><strong>{b.categories}</strong></div>
-                      <div className="ms-stat"><span>Produse</span><strong>{b.products}</strong></div>
-                    </div>
-                    <div className="ms-sync">Sincronizat: {b.syncedAt ? new Date(b.syncedAt).toLocaleTimeString('ro-RO') : 'N/A'}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <MenuManager backend={BACKEND} />
         )}
 
         {/* ─── LOCATIONS ─── */}
@@ -1750,6 +1725,93 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
         </div>
 
       </div>
+
+        {/* Card: Personalizare Meniu */}
+        <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
+          <h3 style={{ margin: '0 0 8px 0', fontSize: '1.1rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>Personalizare Meniu Kiosk</h3>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>
+            Configează profilul de meniu pe care îl preia acest Kiosk pentru fiecare brand activ, sau editează vizibilitatea produselor strict pe această tabletă.
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {activeBrands.map(brandId => {
+               const bData = brandProfiles[brandId];
+               if (!bData) return null;
+               
+               const brandOverrides = formData.menuOverrides[brandId] || {};
+               const currentProfileId = brandOverrides.profileId || '';
+               const localHiddenCount = Object.keys(brandOverrides.hiddenItems || {}).length;
+
+               return (
+                 <div key={brandId} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                      <BrandLogo brandId={brandId} size={24} />
+                      <strong style={{ fontSize: '1.05rem', color: 'var(--text)' }}>Meniu {bData.brand.name}</strong>
+                    </div>
+
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end' }}>
+                       <div style={{ flex: 1, minWidth: '220px' }}>
+                          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>Aplică un Șablon Global</label>
+                          <select 
+                            className="pc-input"
+                            value={currentProfileId}
+                            onChange={(e) => {
+                               const newOverrides = { ...formData.menuOverrides };
+                               if (!newOverrides[brandId]) newOverrides[brandId] = { hiddenItems: {} };
+                               newOverrides[brandId] = { ...newOverrides[brandId], profileId: e.target.value };
+                               handleChange('menuOverrides', newOverrides);
+                            }}
+                            style={{ padding: '10px 14px', borderRadius: 30, border: '1px solid var(--border)', width: '100%', outline: 'none', background: '#fff', fontSize: '0.9rem' }}
+                          >
+                            <option value="">Afișează Meniul Complet (Implicit)</option>
+                            {bData.profiles.map(p => (
+                               <option key={p.id} value={p.id}>{p.name} ({Object.keys(p.hiddenItems || {}).length} ascunse)</option>
+                            ))}
+                          </select>
+                       </div>
+
+                       <div style={{ flex: 1, minWidth: '220px' }}>
+                          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>Suprascriere Manuală Kiosk</label>
+                          <button 
+                            className="um-btn"
+                            onClick={() => {
+                               const overrides = formData.menuOverrides[brandId] || { hiddenItems: {} };
+                               const profile = bData.profiles.find(p => p.id === overrides.profileId) || { name: 'Meniu Complet (Fără Șablon)', rootFolderId: null, hiddenItems: {} };
+                               setEditingMenuBrand({
+                                   brand: bData.brand,
+                                   profile,
+                                   localHiddenItemsOverride: overrides.hiddenItems || {}
+                               });
+                            }}
+                            style={{ padding: '10px 14px', borderRadius: 30, background: localHiddenCount > 0 ? '#eff6ff' : '#fff', color: localHiddenCount > 0 ? '#3b82f6' : 'var(--text)', border: `1px solid ${localHiddenCount > 0 ? '#3b82f6' : 'var(--border)'}`, width: '100%', display: 'flex', justifyContent: 'center', fontWeight: localHiddenCount > 0 ? 700 : 500 }}
+                          >
+                             Editează Vizibilitatea {localHiddenCount > 0 && `(${localHiddenCount} specifice)`}
+                          </button>
+                       </div>
+                    </div>
+                 </div>
+               );
+            })}
+          </div>
+        </div>
+
+      {editingMenuBrand && (
+        <MenuProfileEditorModal 
+          backend={backend}
+          brand={editingMenuBrand.brand}
+          profile={editingMenuBrand.profile}
+          localHiddenItemsOverride={editingMenuBrand.localHiddenItemsOverride}
+          onClose={() => setEditingMenuBrand(null)}
+          onSave={(updatedConfig) => {
+             const brandId = editingMenuBrand.brand.id;
+             const newOverrides = { ...formData.menuOverrides };
+             if (!newOverrides[brandId]) newOverrides[brandId] = {};
+             newOverrides[brandId].hiddenItems = updatedConfig.hiddenItems;
+             handleChange('menuOverrides', newOverrides);
+             setEditingMenuBrand(null);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -1784,8 +1846,9 @@ function QrGenerator({ backend }) {
     fetchWithAuth(`${backend}/api/locations`)
       .then(res => res.json())
       .then(data => {
-        setLocations(data);
-        if (data.length > 0) setLocId(data[0].id);
+        const locs = data.locations || data || [];
+        setLocations(locs);
+        if (locs.length > 0) setLocId(locs[0].id);
         setLoadingLocs(false);
       })
       .catch(() => setLoadingLocs(false));

@@ -55,12 +55,84 @@ router.get('/', requireApiKey, async (req, res) => {
     })),
   }));
 
+  let finalCategories = menu.categories || [];
+  let finalProducts = enrichedProducts || [];
+
+  const locId = req.query.locId;
+  if (locId && brandId) {
+    try {
+      const { rows: locRows } = await pool.query('SELECT data FROM locations WHERE id = $1', [locId]);
+      if (locRows.length > 0) {
+        const locData = locRows[0].data || {};
+        const overrides = locData.menuOverrides?.[brandId];
+        
+        if (overrides) {
+          let profile = null;
+          if (overrides.profileId) {
+            const { rows: brandRows } = await pool.query('SELECT data FROM brands WHERE id = $1', [brandId]);
+            if (brandRows.length > 0) {
+              const profiles = brandRows[0].data?.menuProfiles || [];
+              profile = profiles.find(p => p.id === overrides.profileId);
+            }
+          }
+
+          const rootFolderId = overrides.rootFolderId || profile?.rootFolderId || null;
+          const templateHidden = profile?.hiddenItems || {};
+          const localHidden = overrides.hiddenItems || {};
+          
+          // Merge hidden maps: local overrides take precedence (can even explicitly unhide with false)
+          const mergedHidden = { ...templateHidden };
+          for (const [k, v] of Object.entries(localHidden)) {
+            mergedHidden[k] = v;
+          }
+
+          // 1. Root Folder Traversal (if specified)
+          if (rootFolderId) {
+            const getDescendantsAndSelf = (parentId, allCats) => {
+              const self = allCats.find(c => c.id === parentId);
+              if (!self) return [];
+              const children = allCats.filter(c => c.parentGroup === parentId);
+              return [self, ...children.flatMap(c => getDescendantsAndSelf(c.id, allCats))];
+            };
+            finalCategories = getDescendantsAndSelf(rootFolderId, finalCategories);
+          }
+
+          // 2. Hide specific categories (and prune their branches)
+          // We iteratively remove any category whose id OR parentGroup is hidden
+          let categoriesToKeep = [];
+          for (const cat of finalCategories) {
+            // Traverse up to see if any ancestor is hidden
+            let isHidden = false;
+            let currentCursor = cat;
+            while (currentCursor) {
+              if (mergedHidden[currentCursor.id] === true) {
+                isHidden = true;
+                break;
+              }
+              currentCursor = finalCategories.find(c => c.id === currentCursor.parentGroup);
+            }
+            if (!isHidden) categoriesToKeep.push(cat);
+          }
+          finalCategories = categoriesToKeep;
+
+          // 3. Keep products only if their category survived AND the product itself is not hidden
+          const validCatIds = new Set(finalCategories.map(c => c.id));
+          finalProducts = finalProducts.filter(p => {
+             return validCatIds.has(p.categoryId) && mergedHidden[p.id] !== true;
+          });
+        }
+      }
+    } catch (e) {
+      console.error('[Menu API] Failed to apply kiosk overrides:', e);
+    }
+  }
+
   res.json({
     orgId,
     brandId: brandId || 'smashme',
-    categories: menu.categories,
-    products: enrichedProducts,
-    total: enrichedProducts.length,
+    categories: finalCategories,
+    products: finalProducts,
+    total: finalProducts.length,
     source: 'syrve-live',
   });
 });

@@ -36,6 +36,7 @@ export default function MenuScreen() {
   const orderType         = useKioskStore((s) => s.orderType);
   const tableNumber       = useKioskStore((s) => s.tableNumber);
   const lang              = useKioskStore((s) => s.lang);
+  const locationData      = useKioskStore((s) => s.locationData);
   const brand             = useBrand();
 
   const setMenuProducts = useKioskStore(s => s.setMenuProducts);
@@ -151,7 +152,7 @@ export default function MenuScreen() {
       return;
     }
 
-    fetch(`${BACKEND}/api/menu?brandId=${activeBrandId}&orgId=${orgId}`, {
+    fetch(`${BACKEND}/api/menu?brandId=${activeBrandId}&orgId=${orgId}&locId=${locationData?.id || ''}`, {
       headers: { 'x-api-key': import.meta.env.VITE_API_KEY || 'sk-live-2024-secure' },
     })
       .then(r => r.json())
