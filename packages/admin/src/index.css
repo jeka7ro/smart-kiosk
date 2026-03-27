@@ -34,28 +34,27 @@
 }
 
 [data-theme='light'] {
-  --mesh-color-1: #f8fafc;
-  --mesh-color-2: #e0e7ff;
-  --mesh-color-3: #dcfce7;
-  --mesh-color-4: #f3e8ff;
-  
-  /* Glass Variables Light Mode - DO NOT change, affects sidebar/header */
-  --glass-bg: rgba(255, 255, 255, 0.65);
-  --glass-bg-hover: rgba(255, 255, 255, 0.85);
-  --glass-border: rgba(255, 255, 255, 0.5);
-  --glass-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+  /* macOS Tahoe: clean neutral palette */
+  --mesh-color-1: #f5f5f7;  /* Apple light gray page bg */
+  --mesh-color-2: #f5f5f7;
+  --mesh-color-3: #f5f5f7;
+  --mesh-color-4: #f5f5f7;
 
-  --bg: #f8fafc;
-  --text: #1e293b;
-  --text-muted: #64748b;
-  
-  /* Semantic surface vars — light overrides */
-  --surface: rgba(255, 255, 255, 0.92);
-  --card:    rgba(255, 255, 255, 0.8);
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-bg-hover: rgba(255, 255, 255, 0.95);
+  --glass-border: rgba(0, 0, 0, 0.06);
+  --glass-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+
+  --bg: #f5f5f7;
+  --text: #1d1d1f;         /* Apple dark text */
+  --text-muted: #6e6e73;   /* Apple secondary text */
+
+  --surface: #ffffff;
+  --card:    #ffffff;
   --border:  rgba(0, 0, 0, 0.08);
-  --bg-surface: rgba(248, 250, 252, 0.9);
+  --bg-surface: #fafafa;
 
-  --scrollbar-thumb: rgba(0, 0, 0, 0.2);
+  --scrollbar-thumb: rgba(0, 0, 0, 0.18);
 }
 
 body { 
