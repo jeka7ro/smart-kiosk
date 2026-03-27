@@ -539,4 +539,23 @@
 @media (max-width: 600px) {
   .products-grid { grid-template-columns: repeat(2, 1fr); }
   .category-sidebar { width: 80px; }
+  /* Mobile cart bar: stretch near full width */
+  .cart-bar {
+    min-width: unset;
+    width: calc(100vw - 40px);
+    left: 20px;
+    right: 20px;
+    transform: none;
+    border-radius: 18px;
+    padding: 14px 20px;
+    gap: 12px;
+  }
+  .cart-bar:hover { transform: translateY(-2px); }
+  .cart-bar:active { transform: scale(0.98); }
+  .cart-bar-total { font-size: 1.1rem; }
+  .cart-bar-label { font-size: 1rem; }
+}
+@media (max-width: 420px) {
+  /* Very small phones: single column */
+  .products-grid { grid-template-columns: repeat(1, 1fr); }
 }

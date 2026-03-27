@@ -107,14 +107,15 @@ export default function ProductCard({ product, delay, lang, activeBrand, onQuick
           <button 
             style={{ 
               flex: 1, height: 44, borderRadius: 22, border: 'none', background: '#d32f2f', 
-              color: '#fff', fontSize: '1rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px',
+              color: '#fff', fontSize: '0.92rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 12px',
+              gap: 6, overflow: 'hidden',
               boxShadow: '0 4px 12px rgba(211, 47, 47, 0.3)'
             }}
             onClick={handleAdd}
           >
-            <span>{t('add_to_cart', lang) || '+ Adaugă'}</span>
-            <span>{product.price} {t('currency', lang) || 'lei'}</span>
+            <span style={{ flexShrink: 0 }}>{t('add_to_cart', lang) || '+ Adaugă'}</span>
+            <span style={{ flexShrink: 0, fontWeight: 800 }}>{product.price} {t('currency', lang) || 'lei'}</span>
           </button>
         ) : (
           <div style={{ flex: 1, height: 44, borderRadius: 10, border: '1px solid #fca5a5', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }} onClick={e => e.stopPropagation()}>
