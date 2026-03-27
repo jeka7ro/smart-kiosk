@@ -2,7 +2,7 @@
 .co-back {
   display: inline-flex; align-items: center; gap: 6px;
   background: none; border: 1.5px solid var(--border); border-radius: 10px;
-  padding: 8px 14px; font-family: 'Outfit',sans-serif; font-size: 0.85rem;
+  padding: 8px 14px; font-size: 0.85rem;
   color: var(--text-muted); cursor: pointer; margin-bottom: 24px;
 }
 .co-body { display: flex; flex-direction: column; gap: 18px; }

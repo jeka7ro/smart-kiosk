@@ -58,7 +58,7 @@
 /* Brand filter (old dropdown — kept for backwards compat) */
 .kds-brand-filter {
   background: var(--bg); border: 1.5px solid var(--border); color: var(--text);
-  font-family: 'Outfit', sans-serif; font-size: 0.85rem; font-weight: 600;
+   font-size: 0.85rem; font-weight: 600;
   padding: 7px 14px; border-radius: 8px; cursor: pointer;
   display: none; /* hidden — replaced by logo tabs */
 }
@@ -84,7 +84,7 @@
   background: transparent;
   cursor: pointer;
   transition: all 0.18s ease;
-  font-family: 'Outfit', sans-serif;
+  
   color: var(--text-muted);
   min-width: 60px;
   min-height: 40px;
@@ -114,7 +114,7 @@
 .kds-filters { display: flex; gap: 6px; }
 .kds-filter-btn {
   background: var(--bg); border: 1.5px solid var(--border); color: var(--text-muted);
-  font-family: 'Outfit', sans-serif; font-size: 0.82rem; font-weight: 600;
+   font-size: 0.82rem; font-weight: 600;
   padding: 7px 14px; border-radius: 8px; cursor: pointer; transition: all 0.2s;
 }
 .kds-filter-btn.active,
