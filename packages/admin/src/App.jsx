@@ -259,7 +259,7 @@ export default function AdminApp() {
         </div>
 
         {/* PAGE TITLE (Moved from Header to Page Content) */}
-        <div style={{ padding: '32px 28px 0 28px', flexShrink: 0 }}>
+        <div style={{ padding: '32px 40px 0 40px', flexShrink: 0 }}>
            <h2 style={{ fontSize: '2rem', fontWeight: 800, margin: 0, color: 'var(--text)', letterSpacing: '-0.5px' }}>
               {tab === 'dashboard' && 'Dashboard Overview'}
               {tab === 'orders' && 'Gestionare Comenzi'}
