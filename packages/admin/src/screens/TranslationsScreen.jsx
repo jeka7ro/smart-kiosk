@@ -225,12 +225,12 @@ export default function TranslationsScreen({ backend }) {
       <div style={{ background: 'var(--card)', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)' }}>
         <table className="loc-table hoverable-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
-            <tr style={{ borderBottom: '1px solid var(--border)', color: '#64748B', fontSize: '0.85rem' }}>
-              <th style={{ padding: '16px', fontWeight: 600, width: '48px' }}>#</th>
-              <th style={{ padding: '16px', fontWeight: 600 }}>Denumire Produs</th>
-              <th style={{ padding: '16px', fontWeight: 600, width: '120px' }}>Brand</th>
-              <th style={{ padding: '16px', fontWeight: 600 }}>Stare Traduceri</th>
-              <th style={{ padding: '16px', fontWeight: 600, textAlign: 'right' }}>Acțiuni</th>
+            <tr style={{ borderBottom: '1px solid var(--border)', background: 'transparent' }}>
+              <th style={{ padding: '12px 16px', fontWeight: 700, width: '48px', fontSize: '0.75rem', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>#</th>
+              <th style={{ padding: '12px 16px', fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>DENUMIRE PRODUS</th>
+              <th style={{ padding: '12px 16px', fontWeight: 700, width: '120px', fontSize: '0.75rem', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>BRAND</th>
+              <th style={{ padding: '12px 16px', fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>STARE TRADUCERI</th>
+              <th style={{ padding: '12px 16px', fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-muted)', textAlign: 'right' }}>ACȚIUNI</th>
             </tr>
           </thead>
           <tbody>
@@ -250,26 +250,26 @@ export default function TranslationsScreen({ backend }) {
 
                 return (
                   <React.Fragment key={pid}>
-                    <tr style={{ borderBottom: '1px solid var(--border)' }} className={isExpanded ? 'active-row' : ''}>
-                      <td style={{ padding: '16px', color: '#64748B', fontSize: '0.85rem' }}>
+                    <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }} className={isExpanded ? 'active-row' : ''}>
+                      <td style={{ padding: '12px 16px', color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 500 }}>
                         {(page - 1) * pageSize + index + 1}
                       </td>
-                      <td style={{ padding: '16px', fontWeight: 600, color: 'var(--text)' }}>
+                      <td style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text)' }}>
                         {item.name || 'Produs Necunoscut'}
                       </td>
-                      <td style={{ padding: '16px' }}>
+                      <td style={{ padding: '12px 16px' }}>
                         {logoSrc
                           ? <img src={logoSrc} alt={item.brandId} style={{ height: '24px', objectFit: 'contain' }} />
                           : <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>{(item.brandId || 'NEDEFINIT').toUpperCase()}</span>
                         }
                       </td>
-                      <td style={{ padding: '16px' }}>
+                      <td style={{ padding: '12px 16px' }}>
                         {missingLangs === 0
                           ? <span style={{ color: '#0f766e', fontWeight: 600, fontSize: '0.85rem' }}>Tradus Complet</span>
                           : <span style={{ color: '#f59e0b', fontWeight: 600, fontSize: '0.85rem' }}>Lipsesc {missingLangs} limbi</span>
                         }
                       </td>
-                      <td style={{ padding: '16px', textAlign: 'right' }}>
+                      <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                         <button className="loc-filter-btn" style={{ fontSize: '0.85rem', padding: '6px 12px' }}
                           onClick={() => isExpanded ? setExpandedId(null) : openEditor(pid, item)}>
                           {isExpanded ? 'Închide Editor' : 'Editează Limbi'}
