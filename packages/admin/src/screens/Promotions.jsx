@@ -238,8 +238,12 @@ export default function Promotions() {
                   </td>
                   <td style={{ padding: '14px 16px', fontWeight: 700, color: 'var(--text)' }}>{slice.probability}%</td>
                   <td style={{ padding: '14px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                    <button onClick={() => openSliceModal(slice)} style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', padding: 6, borderRadius: 6, cursor: 'pointer', marginRight: 6 }}>Editează</button>
-                    <button onClick={() => deleteSlice(slice.id)} style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', padding: 6, borderRadius: 6, cursor: 'pointer' }}>Șterge</button>
+                    <button title="Editează" onClick={() => openSliceModal(slice)} style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', width: 34, height: 34, padding: 0, borderRadius: '50%', cursor: 'pointer', marginRight: 6, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                    </button>
+                    <button title="Șterge" onClick={() => deleteSlice(slice.id)} style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', width: 34, height: 34, padding: 0, borderRadius: '50%', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>
+                    </button>
                   </td>
                 </tr>
               ))}

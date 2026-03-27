@@ -191,7 +191,7 @@ export default function TranslationsScreen({ backend }) {
         })}
 
         {/* Search pushed right */}
-        <div style={{ marginLeft: 'auto', position: 'relative', minWidth: '220px' }}>
+        <div style={{ marginLeft: 'auto', position: 'relative', minWidth: '220px', maxWidth: '320px' }}>
           <input
             type="text"
             placeholder="Caută produs sau ingredient..."
@@ -199,17 +199,19 @@ export default function TranslationsScreen({ backend }) {
             onChange={e => { setSearch(e.target.value); setPage(1); }}
             style={{
               width: '100%', boxSizing: 'border-box',
-              padding: '8px 12px', paddingRight: search ? '76px' : '12px',
-              border: '1px solid var(--border)', borderRadius: '8px', fontSize: '0.85rem'
+              padding: '9px 14px', paddingRight: search ? 64 : 14,
+              border: '1.5px solid var(--border)', borderRadius: 30, fontSize: '0.9rem',
+              outline: 'none'
             }}
           />
           {search && (
             <span style={{
-              position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)',
-              background: '#0f766e', color: '#fff', borderRadius: '10px',
-              padding: '1px 7px', fontSize: '0.72rem', fontWeight: 700, whiteSpace: 'nowrap'
+              position: 'absolute', right: 4, top: 4, bottom: 4, 
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: '#0f766e', color: '#fff', borderRadius: 20, padding: '0 12px', 
+              fontSize: '0.8rem', fontWeight: 700, whiteSpace: 'nowrap', pointerEvents: 'none'
             }}>
-              {filteredProducts.length} / {productsArray.length}
+              {filteredProducts.length}/{productsArray.length}
             </span>
           )}
         </div>
@@ -270,9 +272,18 @@ export default function TranslationsScreen({ backend }) {
                         }
                       </td>
                       <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                        <button className="loc-filter-btn" style={{ fontSize: '0.85rem', padding: '6px 12px' }}
-                          onClick={() => isExpanded ? setExpandedId(null) : openEditor(pid, item)}>
-                          {isExpanded ? 'Închide Editor' : 'Editează Limbi'}
+                        <button title={isExpanded ? 'Închide Editor' : 'Editează Limbi'}
+                          onClick={() => isExpanded ? setExpandedId(null) : openEditor(pid, item)}
+                          style={{
+                             width: 34, height: 34, padding: 0, borderRadius: '50%', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s',
+                             background: isExpanded ? '#fff5f5' : '#f8fafc',
+                             border: `1px solid ${isExpanded ? '#fecaca' : '#e2e8f0'}`,
+                             color: isExpanded ? '#ef4444' : '#334155'
+                          }}>
+                          {isExpanded 
+                            ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                          }
                         </button>
                       </td>
                     </tr>
@@ -305,9 +316,11 @@ export default function TranslationsScreen({ backend }) {
                               ))}
                             </div>
                             <div className="tc-actions">
-                              <button className="loc-filter-btn" onClick={() => setExpandedId(null)}>Anulează</button>
-                              <button className="loc-add-btn" onClick={() => handleSave(pid)} disabled={submitting}>
-                                {submitting ? 'Se salvează...' : 'Salvează Traducerea'}
+                              <button title="Anulează" onClick={() => setExpandedId(null)} style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-muted)', width: 34, height: 34, padding: 0, borderRadius: '50%', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                              </button>
+                              <button title="Salvează" onClick={() => handleSave(pid)} disabled={submitting} style={{ background: '#0f766e', border: 'none', color: '#fff', width: 34, height: 34, padding: 0, borderRadius: '50%', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                {submitting ? '...' : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
                               </button>
                             </div>
                           </div>

@@ -413,14 +413,14 @@
 .loc-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 12px; flex-wrap: wrap; }
 .loc-filters { display: flex; gap: 6px; flex-wrap: wrap; }
 .loc-filter-btn {
-  padding: 6px 14px; border-radius: 12px; border: 1px solid var(--border);
+  padding: 6px 14px; border-radius: 30px; border: 1.5px solid var(--border);
   background: var(--card); color: var(--text); cursor: pointer; font-size: 0.82rem;
   font-weight: 600; transition: all 0.15s;
 }
 .loc-filter-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 .loc-filter-btn:hover { border-color: var(--primary); }
 .loc-add-btn {
-  padding: 8px 18px; border-radius: 12px; border: none;
+  padding: 8px 18px; border-radius: 30px; border: none;
   background: var(--primary); color: #fff; cursor: pointer;
   font-weight: 700; font-size: 0.85rem; transition: opacity 0.15s;
 }
@@ -442,7 +442,7 @@
 }
 .loc-brand-pill.active { background: var(--pill-color); color: #fff; border-color: var(--pill-color); }
 .loc-save-btn {
-  padding: 8px 20px; border-radius: 12px; border: none;
+  padding: 8px 20px; border-radius: 30px; border: none;
   background: #10b981; color: #fff; cursor: pointer; font-weight: 700; font-size: 0.85rem;
 }
 .loc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }

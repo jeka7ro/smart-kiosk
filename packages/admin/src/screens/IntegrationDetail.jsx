@@ -105,10 +105,22 @@ export default function IntegrationDetail({ integ, onBack, onTest, onSync, testi
           <h2 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: 'var(--text)' }}>{titles[drillDown]} — {integ.name}</h2>
         </div>
 
-        <input value={drillSearch} onChange={e => setDrillSearch(e.target.value)}
-          placeholder={`Caută în ${titles[drillDown].toLowerCase()}...`}
-          style={{ width: '100%', maxWidth: 380, padding: '9px 14px', border: '1.5px solid var(--border)', borderRadius: 10, background: 'var(--surface)', color: 'var(--text)', fontSize: '0.9rem', marginBottom: 16, boxSizing: 'border-box', outline: 'none' }}
-        />
+        <div style={{ position: 'relative', width: '100%', maxWidth: 380, marginBottom: 16 }}>
+          <input value={drillSearch} onChange={e => setDrillSearch(e.target.value)}
+            placeholder={`Caută în ${titles[drillDown].toLowerCase()}...`}
+            style={{ width: '100%', padding: '9px 14px', paddingRight: drillSearch ? 64 : 14, border: '1.5px solid var(--border)', borderRadius: 30, background: 'var(--surface)', color: 'var(--text)', fontSize: '0.9rem', boxSizing: 'border-box', outline: 'none' }}
+          />
+          {drillSearch && (
+            <span style={{
+              position: 'absolute', right: 4, top: 4, bottom: 4, 
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: '#0f766e', color: '#fff', borderRadius: 20, padding: '0 12px', 
+              fontSize: '0.8rem', fontWeight: 700, whiteSpace: 'nowrap', pointerEvents: 'none'
+            }}>
+              {filtered.length}/{drillData.length}
+            </span>
+          )}
+        </div>
 
         {drillLoading ? (
           <div style={{ color: 'var(--text-muted)', padding: 40, textAlign: 'center' }}>Se încarcă...</div>

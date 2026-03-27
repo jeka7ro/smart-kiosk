@@ -128,7 +128,25 @@ export default function UsersManager() {
     <div className="um-page">
       {/* ── Toolbar ─────────────────────────────────────────────── */}
       <div className="um-toolbar">
-        <input className="um-search" placeholder="🔍 Caută utilizator..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); setSelected(new Set()); }} />
+        <div style={{ flex: 1, minWidth: 200, maxWidth: 320, position: 'relative' }}>
+          <input 
+            className="um-search" 
+            placeholder="🔍 Caută utilizator..." 
+            value={search} 
+            onChange={e => { setSearch(e.target.value); setPage(1); setSelected(new Set()); }} 
+            style={{ width: '100%', boxSizing: 'border-box', paddingRight: search ? 64 : 14 }} 
+          />
+          {search && (
+            <span style={{
+              position: 'absolute', right: 4, top: 4, bottom: 4, 
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: '#0f766e', color: '#fff', borderRadius: 20, padding: '0 12px', 
+              fontSize: '0.8rem', fontWeight: 700, whiteSpace: 'nowrap', pointerEvents: 'none'
+            }}>
+              {filtered.length}/{users.length}
+            </span>
+          )}
+        </div>
 
         {selected.size > 0 ? (
           <div className="um-bulk-actions">
@@ -172,10 +190,10 @@ export default function UsersManager() {
                 </td>
                 <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                   <button className="btn-business-icon" title="Editează" onClick={() => openEdit(u)}
-                    style={{ background: '#f8fafc', border: '1px solid #e2e8f0', cursor: 'pointer', padding: '8px', borderRadius: '8px', color: '#334155', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}
+                    style={{ background: '#f8fafc', border: '1px solid #e2e8f0', cursor: 'pointer', width: 34, height: 34, padding: 0, borderRadius: '50%', color: '#334155', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}
                   ><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
                   {u.id !== 'env-admin' && u.id !== 'u-admin' && (
-                    <button className="btn-business-icon" title="Șterge" style={{ marginLeft: 6, background: '#fff5f5', border: '1px solid #fecaca', cursor: 'pointer', padding: '8px', borderRadius: '8px', color: '#ef4444', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }} onClick={() => deleteOne(u)}>
+                    <button className="btn-business-icon" title="Șterge" style={{ marginLeft: 6, background: '#fff5f5', border: '1px solid #fecaca', cursor: 'pointer', width: 34, height: 34, padding: 0, borderRadius: '50%', color: '#ef4444', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }} onClick={() => deleteOne(u)}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
                     </button>
                   )}

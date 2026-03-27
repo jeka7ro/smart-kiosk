@@ -193,10 +193,12 @@ export default function ModifierImages() {
                       </span>
                     </td>
                     <td style={{ whiteSpace: 'nowrap' }}>
-                      <button className="um-btn um-btn--primary um-btn--sm" onClick={() => acceptSuggestion(sug)} disabled={saving === sug.modifier.id}>
-                        {saving === sug.modifier.id ? '...' : '✓ Acceptă'}
+                      <button title="Acceptă" onClick={() => acceptSuggestion(sug)} disabled={saving === sug.modifier.id} style={{ background: '#0f766e', border: 'none', color: '#fff', width: 34, height: 34, padding: 0, borderRadius: '50%', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {saving === sug.modifier.id ? '...' : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
                       </button>
-                      <button className="um-btn um-btn--ghost um-btn--sm" style={{ marginLeft: 6 }} onClick={() => dismissSuggestion(sug.modifier.id)}>Ignoră</button>
+                      <button title="Ignoră" onClick={() => dismissSuggestion(sug.modifier.id)} style={{ marginLeft: 6, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-muted)', width: 34, height: 34, padding: 0, borderRadius: '50%', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -328,21 +330,25 @@ export default function ModifierImages() {
                           onChange={e => setEditUrl(e.target.value)}
                           onKeyDown={e => e.key === 'Enter' && saveImage(mod.id, mod.name, mod.brandId, editUrl)}
                           placeholder="https://..."
-                          className="um-input"
-                          style={{ flex: 1, padding: '6px 10px', borderColor: '#0f766e' }}
+                          className="um-search"
+                          style={{ flex: 1, padding: '7px 12px', borderColor: '#0f766e' }}
                         />
-                        <button className="um-btn um-btn--primary um-btn--sm" onClick={() => saveImage(mod.id, mod.name, mod.brandId, editUrl)} disabled={saving === mod.id}>
-                          {saving === mod.id ? '...' : 'OK'}
+                        <button title="OK" onClick={() => saveImage(mod.id, mod.name, mod.brandId, editUrl)} disabled={saving === mod.id} style={{ background: '#0f766e', border: 'none', color: '#fff', width: 34, height: 34, padding: 0, borderRadius: '50%', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {saving === mod.id ? '...' : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
                         </button>
-                        <button className="um-btn um-btn--ghost um-btn--sm" onClick={() => setEditingId(null)}>✕</button>
+                        <button title="✕" onClick={() => setEditingId(null)} style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-muted)', width: 34, height: 34, padding: 0, borderRadius: '50%', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
                       </div>
                     ) : (
                       <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                        <button className="um-btn um-btn--ghost um-btn--sm" onClick={() => { setEditingId(mod.id); setEditUrl(mod.imageUrl || ''); }}>
-                          {mod.imageUrl ? 'Schimbă' : '+ URL'}
+                        <button title={mod.imageUrl ? 'Schimbă' : '+ URL'} onClick={() => { setEditingId(mod.id); setEditUrl(mod.imageUrl || ''); }} style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', width: 34, height: 34, padding: 0, borderRadius: '50%', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
                         </button>
                         {mod.imageUrl && (
-                          <button className="um-btn um-btn--danger um-btn--sm" onClick={() => deleteImage(mod.id)}>Șterge</button>
+                          <button title="Șterge" onClick={() => deleteImage(mod.id)} style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', width: 34, height: 34, padding: 0, borderRadius: '50%', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>
+                          </button>
                         )}
                       </div>
                     )}

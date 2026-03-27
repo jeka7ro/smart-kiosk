@@ -187,7 +187,25 @@ export default function Integrations() {
 
       {/* ── Toolbar ────────────────────────────────────────────── */}
       <div className="um-toolbar">
-        <input className="um-search" placeholder="🔍 Caută integrare..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); setSelected(new Set()); }} />
+        <div style={{ flex: 1, minWidth: 200, maxWidth: 320, position: 'relative' }}>
+          <input 
+            className="um-search" 
+            placeholder="🔍 Caută integrare..." 
+            value={search} 
+            onChange={e => { setSearch(e.target.value); setPage(1); setSelected(new Set()); }} 
+            style={{ width: '100%', boxSizing: 'border-box', paddingRight: search ? 64 : 14 }} 
+          />
+          {search && (
+            <span style={{
+              position: 'absolute', right: 4, top: 4, bottom: 4, 
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: '#0f766e', color: '#fff', borderRadius: 20, padding: '0 12px', 
+              fontSize: '0.8rem', fontWeight: 700, whiteSpace: 'nowrap', pointerEvents: 'none'
+            }}>
+              {filtered.length}/{integrations.length}
+            </span>
+          )}
+        </div>
         {selected.size > 0 ? (
           <div className="um-bulk-actions">
             <span className="um-bulk-label">{selected.size} selectate</span>
