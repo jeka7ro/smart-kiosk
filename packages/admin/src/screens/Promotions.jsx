@@ -161,7 +161,18 @@ export default function Promotions() {
           
           <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', background: 'var(--bg-surface)', padding: '10px 16px', borderRadius: 12, border: '1px solid var(--border)' }}>
             <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text)' }}>Roată Activă</span>
-            <input type="checkbox" style={{ transform: 'scale(1.2)' }} checked={localActive} onChange={e => setLocalActive(e.target.checked)} />
+            <div style={{
+              position: 'relative', width: 44, height: 24, borderRadius: 12,
+              background: localActive ? 'var(--success)' : 'rgba(150,150,150,0.3)',
+              transition: 'background 0.3s'
+            }}>
+              <div style={{
+                position: 'absolute', top: 2, left: localActive ? 22 : 2, width: 20, height: 20,
+                background: '#fff', borderRadius: '50%', transition: 'left 0.3s',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+              }} />
+            </div>
+            <input type="checkbox" style={{ display: 'none' }} checked={localActive} onChange={e => setLocalActive(e.target.checked)} />
           </label>
         </div>
 

@@ -61,7 +61,7 @@
 .admin-links a:hover { background: var(--glass-bg-hover); color: var(--text); }
 
 /* ─── Main ─── */
-.admin-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #f9fafb; position: relative; }
+.admin-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: transparent; position: relative; }
 .admin-main::before {
   content: ''; position: fixed; top: -50%; left: -50%; width: 200%; height: 200%;
   background: radial-gradient(circle at 50% 10%, rgba(20,184,166,0.06), transparent 40%),
