@@ -221,7 +221,7 @@ export default function AdminApp() {
         </div>
 
         {/* TOP HEADER BAR */}
-        <div className="main-header-bar" style={{ padding: '0 28px', height: '80px', boxSizing: 'border-box', borderBottom: '2px solid #0f766e', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', background: 'var(--surface)', position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+        <div className="main-header-bar" style={{ padding: '0 28px', height: '80px', boxSizing: 'border-box', borderBottom: '2px solid #0f766e', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', background: 'rgba(255, 255, 255, 0.4)', backdropFilter: 'blur(40px) saturate(200%)', WebkitBackdropFilter: 'blur(40px) saturate(200%)', position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <button 
                 title={theme === 'dark' ? 'Mod Luminos' : 'Mod Întunecat'}
