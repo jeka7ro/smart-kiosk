@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthProvider';
 
 const BRAND_COLORS = { smashme: '#ef4444', sushimaster: '#3b82f6', ikura: '#f97316', welovesushi: '#8b5cf6' };
@@ -375,98 +374,85 @@ export function MenuProfileEditorModal({ backend, brand, profile, onClose, onSav
     );
   };
 
-  // Derive root Level Items for the Sidebar Navigation!
+  // Derive root Level Items for the Horizontal Navigation Tabs!
   const rootMenuItems = menu.categories.filter(c => {
      const startNode = rootFolderId || null;
      if (!startNode) return !c.parentGroup || c.parentGroup === null || c.parentGroup === "null";
      return c.parentGroup === startNode;
   });
 
-  return createPortal(
-    <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-surface)', zIndex: 999999, display: 'flex', flexDirection: 'column' }}>
-      {/* Full Width Top Header */}
-      <div style={{ height: 80, padding: '0 32px', background: 'var(--surface)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+  // Auto-select first tab when available and not already set
+  useEffect(() => {
+    if (!activeTab && rootMenuItems.length > 0) {
+      setActiveTab(rootMenuItems[0].id);
+    }
+  }, [rootMenuItems, activeTab]);
+
+  return (
+    <div style={{ background: 'var(--bg-surface)', borderRadius: 24, border: '1px solid var(--border)', padding: 32, display: 'flex', flexDirection: 'column', gap: 32 }}>
+      
+      {/* Header Area */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <button className="um-btn um-btn--ghost" onClick={onClose} style={{ borderRadius: '50%', width: 44, height: 44, padding: 0 }}>
+          <button className="um-btn um-btn--ghost" onClick={onClose} style={{ borderRadius: '50%', width: 44, height: 44, padding: 0, background: 'var(--surface)' }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
           </button>
           <div>
-            <h2 style={{ margin: 0, fontSize: '1.4rem' }}>{localHiddenItemsOverride !== null ? 'Personalizare Meniu Kiosk' : `Editare Profil: ${profile.name}`}</h2>
-            <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: 2 }}>{brand.name}</p>
+            <h2 style={{ margin: 0, fontSize: '1.6rem', color: 'var(--text)' }}>{localHiddenItemsOverride !== null ? 'Personalizare Meniu Kiosk' : `Editare Profil: ${profile.name}`}</h2>
+            <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: 4 }}>Brand: {brand.name}</p>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 16 }}>
-          <button className="um-btn um-btn--ghost" onClick={onClose} style={{ borderRadius: 30, padding: '0 24px' }}>Anulează</button>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <button className="um-btn um-btn--ghost" onClick={onClose} style={{ borderRadius: 30, padding: '0 24px' }}>Renunță</button>
           <button className="um-btn" onClick={() => onSave({ ...profile, hiddenItems, rootFolderId: rootFolderId === '' ? null : rootFolderId })} style={{ borderRadius: 30, background: 'var(--primary)', color: '#fff', padding: '0 32px' }}>
             {localHiddenItemsOverride !== null ? 'Salvează Vizibilitate' : 'Salvează Profilul'}
           </button>
         </div>
       </div>
 
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-        {/* Left Sidebar */}
-        <div style={{ width: 340, background: 'var(--surface)', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-          <div style={{ padding: '24px', borderBottom: '1px solid var(--border)' }}>
-             {localHiddenItemsOverride === null ? (
-               <>
-                 <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, fontSize: '0.95rem' }}>Mapa Principală Rădăcină</label>
-                 <select className="um-input" value={rootFolderId || ''} onChange={e => { setRootFolderId(e.target.value); setActiveTab(null); }} style={{ borderRadius: 12, width: '100%', fontSize: '0.9rem' }}>
-                   <option value="">-- Extrage Tot --</option>
-                   {menu.categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                 </select>
-               </>
-             ) : (
-                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Meniul afișat mai jos reprezintă vizibilitatea exclusivă a acestui Kiosk. Modificările de aici au prioritate față de restul template-urilor.</div>
-             )}
-          </div>
-          
-          {/* Nav Links */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '16px 12px' }}>
-             <h4 style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-muted)', margin: '0 0 12px 12px' }}>Navigație Categorii</h4>
-             <button 
-                onClick={() => setActiveTab(null)}
-                style={{ width: '100%', textAlign: 'left', padding: '12px 16px', borderRadius: 12, background: activeTab === null ? 'var(--bg-surface)' : 'transparent', border: activeTab === null ? '1px solid var(--border)' : '1px solid transparent', color: activeTab === null ? 'var(--primary)' : 'var(--text)', fontWeight: activeTab === null ? 600 : 400, fontSize: '1rem', cursor: 'pointer', transition: 'all 0.2s', marginBottom: 4 }}
-             >
-                Toate Categoriile
-             </button>
-             {rootMenuItems.map(c => (
-               <button 
-                 key={c.id}
-                 onClick={() => setActiveTab(c.id)}
-                 style={{ width: '100%', textAlign: 'left', padding: '12px 16px', borderRadius: 12, background: activeTab === c.id ? 'var(--bg-surface)' : 'transparent', border: activeTab === c.id ? '1px solid var(--border)' : '1px solid transparent', color: activeTab === c.id ? 'var(--primary)' : 'var(--text)', fontWeight: activeTab === c.id ? 600 : 400, fontSize: '1rem', cursor: 'pointer', transition: 'all 0.2s', marginBottom: 4 }}
-               >
-                  {c.name}
-               </button>
-             ))}
-          </div>
-        </div>
+      {loading ? (
+        <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted)' }}>Se încarcă structura meniului din integrări POS...</div>
+      ) : (
+        <>
+          {/* Top Config Root Folder */}
+          {localHiddenItemsOverride === null ? (
+            <div style={{ padding: 24, background: 'var(--surface)', borderRadius: 16, border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <label style={{ fontWeight: 600, fontSize: '1.05rem', margin: 0 }}>Sursă / Mapa Principală Rădăcină (Opțional)</label>
+              <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.5, maxWidth: 800 }}>Prin selectarea unei mape, Kiosk-ul va extrage structura meniului strict pornind din acel dosar. Ideal dacă dorești ca profilul să controleze, de exemplu, doar un meniu de Terasă sau Bar.</p>
+              <select className="um-input" value={rootFolderId || ''} onChange={e => { setRootFolderId(e.target.value); setActiveTab(null); }} style={{ borderRadius: 12, width: '100%', maxWidth: 400, marginTop: 8 }}>
+                <option value="">-- Extrage Tot (Fără Rădăcină Specifică) --</option>
+                {menu.categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+          ) : (
+            <div style={{ padding: 20, background: 'rgba(59, 130, 246, 0.08)', borderRadius: 16, border: '1px solid rgba(59, 130, 246, 0.2)', color: '#1e3a8a', fontSize: '0.95rem', lineHeight: 1.5 }}>
+              Modifici vizibilitatea meniului în regim <strong>suprascriere locală Kiosk</strong>. Toate ascunderile debifate aici se aplică exclusiv pe acest aparat, adăugându-se peste restricțiile care ar veni din Profilul de Bază.
+            </div>
+          )}
 
-        {/* Right Main Content */}
-        <div style={{ flex: 1, background: 'var(--bg)', overflowY: 'auto', padding: '40px 60px' }}>
-          <div style={{ maxWidth: 1000, margin: '0 auto' }}>
-             {loading ? (
-                <p className="loading-text" style={{ textAlign: 'center', marginTop: 100 }}>Se descarcă arborele meniului iiko...</p>
-             ) : (
-                <>
-                  <div style={{ marginBottom: 32 }}>
-                    <h3 style={{ fontSize: '1.6rem', margin: '0 0 8px 0', color: '#0f172a' }}>{activeTab ? menu.categories.find(c => c.id === activeTab)?.name : 'Arborele Complet Vizibilitate'}</h3>
-                    <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.95rem' }}>Produsele debifate vor fi ascunse și nu vor fi afișate deloc pe interfața clientului Kiosk.</p>
-                  </div>
-                  
-                  {renderCategoryTree(menu.categories, activeTab ? activeTab : (rootFolderId || null))}
-                  
-                  {/* Fallback if somehow the tree yields absolute zero nodes */}
-                  {!renderCategoryTree(menu.categories, activeTab ? activeTab : (rootFolderId || null)) && (
-                     <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-muted)', background: '#fff', borderRadius: 16, border: '1px solid var(--border)' }}>
-                        Folderul ales nu conține niciun sub-produs.
-                     </div>
-                  )}
-                </>
-             )}
+          {/* Horizontal Navigation Tabs */}
+          <div>
+            <h4 style={{ fontSize: '1rem', color: 'var(--text-muted)', marginBottom: 16, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Categorii</h4>
+            <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8, msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
+               {rootMenuItems.map(c => (
+                 <button 
+                   key={c.id}
+                   onClick={() => setActiveTab(c.id)}
+                   style={{ flexShrink: 0, padding: '12px 24px', borderRadius: 30, background: activeTab === c.id ? 'var(--text)' : 'var(--surface)', border: `1px solid ${activeTab === c.id ? 'var(--text)' : 'var(--border)'}`, color: activeTab === c.id ? 'var(--bg)' : 'var(--text)', fontWeight: activeTab === c.id ? 600 : 500, fontSize: '0.95rem', cursor: 'pointer', transition: 'all 0.2s' }}
+                 >
+                    {c.name}
+                 </button>
+               ))}
+               {rootMenuItems.length === 0 && <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Nu a fost găsită nicio categorie.</span>}
+            </div>
           </div>
-        </div>
-      </div>
-    </div>,
-    document.body
+
+          {/* Render Area */}
+          <div style={{ flex: 1, minHeight: 400 }}>
+            {activeTab && renderCategoryTree(menu.categories, activeTab)}
+          </div>
+        </>
+      )}
+    </div>
   );
 }
