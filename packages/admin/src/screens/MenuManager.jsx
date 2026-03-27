@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthProvider';
 
 const BRAND_COLORS = { smashme: '#ef4444', sushimaster: '#3b82f6', ikura: '#f97316', welovesushi: '#8b5cf6' };
@@ -253,6 +254,12 @@ export default function MenuManager({ backend }) {
 }
 
 // Fullscreen Modal for editing the Menu Tree visibility
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
+function proxySyrveImage(url) {
+  if (!url) return '';
+  return `${BACKEND_URL}/api/image-proxy?url=${encodeURIComponent(url)}`;
+}
+
 export function MenuProfileEditorModal({ backend, brand, profile, onClose, onSave, localHiddenItemsOverride = null }) {
   const { fetchWithAuth } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -344,8 +351,13 @@ export function MenuProfileEditorModal({ backend, brand, profile, onClose, onSav
 
                     return (
                       <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', background: '#fff', borderRadius: 8, border: '1px solid var(--border)', opacity: (effectivelyHidden || pEffectivelyHidden) ? 0.4 : 1, transition: 'opacity 0.2s' }}>
-                        <span style={{ fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingRight: 8 }}>{p.name}</span>
-                        <input type="checkbox" checked={!pEffectivelyHidden} disabled={effectivelyHidden} onChange={e => handleToggleHide(p.id, !e.target.checked)} style={{ cursor: effectivelyHidden ? 'not-allowed' : 'pointer', width: 16, height: 16, accentColor: 'var(--primary)', flexShrink: 0 }} />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
+                          {p.image && (
+                            <img src={proxySyrveImage(p.image)} alt="" style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />
+                          )}
+                          <span style={{ fontSize: '0.85rem', lineHeight: '1.3' }}>{p.name}</span>
+                        </div>
+                        <input type="checkbox" checked={!pEffectivelyHidden} disabled={effectivelyHidden} onChange={e => handleToggleHide(p.id, !e.target.checked)} style={{ cursor: effectivelyHidden ? 'not-allowed' : 'pointer', width: 18, height: 18, accentColor: 'var(--primary)', flexShrink: 0, marginLeft: 8 }} />
                       </div>
                     );
                   })}
@@ -360,9 +372,9 @@ export function MenuProfileEditorModal({ backend, brand, profile, onClose, onSav
     );
   };
 
-  return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(10px)', zIndex: 99999, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 20px', overflowY: 'auto' }}>
-      <div style={{ background: 'var(--surface)', borderRadius: 24, border: '1px solid var(--border)', width: '100%', maxWidth: 1000, boxShadow: '0 24px 64px rgba(0,0,0,0.2)' }}>
+  return createPortal(
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(10px)', zIndex: 999999, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 20px', overflowY: 'auto' }}>
+      <div style={{ background: 'var(--surface)', borderRadius: 24, border: '1px solid var(--border)', width: '100%', maxWidth: 1000, boxShadow: '0 24px 64px rgba(0,0,0,0.2)', marginBottom: 40 }}>
         <div style={{ padding: '24px 32px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: 'var(--surface)', borderRadius: '24px 24px 0 0', zIndex: 10 }}>
           <div>
             <h2 style={{ margin: 0, fontSize: '1.5rem' }}>{localHiddenItemsOverride !== null ? 'Personalizare Meniu Kiosk' : `Editare Profil: ${profile.name}`}</h2>
@@ -399,12 +411,13 @@ export function MenuProfileEditorModal({ backend, brand, profile, onClose, onSav
               <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: 20 }}>Dacă debifezi un folder principal, absolut toate produsele de sub el vor fi ascunse automat.</p>
               
               <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 16, padding: '20px', maxHeight: '55vh', overflowY: 'auto' }}>
-                 {renderCategoryTree(menu.categories, null)}
+                 {renderCategoryTree(menu.categories, rootFolderId ? rootFolderId : null)}
               </div>
             </>
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
