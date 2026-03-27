@@ -241,7 +241,7 @@ export default function ModifierImages() {
             );
           })}
         </div>
-        <div style={{ flex: 1, minWidth: 200, position: 'relative' }}>
+        <div style={{ flex: 1, minWidth: 200, maxWidth: 320, position: 'relative' }}>
           <input 
             className="um-search" 
             placeholder="🔍 Caută modificator..." 
@@ -250,9 +250,10 @@ export default function ModifierImages() {
             style={{ width: '100%', boxSizing: 'border-box', paddingRight: 80 }} 
           />
           <span style={{
-            position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
-            background: '#0f766e', color: '#fff', borderRadius: 12, padding: '2px 8px', 
-            fontSize: '0.75rem', fontWeight: 700, whiteSpace: 'nowrap', pointerEvents: 'none'
+            position: 'absolute', right: 4, top: 4, bottom: 4, 
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: '#0f766e', color: '#fff', borderRadius: 20, padding: '0 12px', 
+            fontSize: '0.8rem', fontWeight: 700, whiteSpace: 'nowrap', pointerEvents: 'none'
           }}>
             {filtered.filter(m => m.imageUrl).length}/{filtered.length}
           </span>
