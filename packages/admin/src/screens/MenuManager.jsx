@@ -20,6 +20,8 @@ export default function MenuManager({ backend }) {
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingProfileForBrand, setEditingProfileForBrand] = useState(null);
+  const [actionModal, setActionModal] = useState(null);
+  const [inputValue, setInputValue] = useState('');
 
   const fetchMenuStatus = useCallback(() => {
     fetchWithAuth(`${backend}/api/menu/status`)
@@ -56,15 +58,13 @@ export default function MenuManager({ backend }) {
     }
   };
 
-  const createProfile = (brandId) => {
+  const createProfile = (brandId, name) => {
     const brand = brands.find(b => b.id === brandId);
-    if (!brand) return;
-    const name = window.prompt("Nume profil (ex: Meniu Terasă):");
-    if (!name) return;
+    if (!brand || !name.trim()) return;
     
     const newProfile = {
       id: `profile_${Date.now()}`,
-      name,
+      name: name.trim(),
       rootFolderId: null,
       hiddenItems: {}
     };
@@ -77,9 +77,9 @@ export default function MenuManager({ backend }) {
     saveBrandData({ ...brand, data: updatedData });
   };
 
-  const deleteProfile = (brandId, profileId) => {
-    if (!window.confirm("Sigur ștergi acest profil?")) return;
+  const deleteProfileConfirmed = (brandId, profileId) => {
     const brand = brands.find(b => b.id === brandId);
+    if (!brand) return;
     const updatedData = {
       ...brand.data,
       menuProfiles: (brand.data?.menuProfiles || []).filter(p => p.id !== profileId)
@@ -146,7 +146,7 @@ export default function MenuManager({ backend }) {
               <button 
                 className="um-btn" 
                 style={{ background: 'var(--text)', color: 'var(--bg)', borderRadius: 30 }}
-                onClick={() => createProfile(brand.id)}
+                onClick={() => { setInputValue(''); setActionModal({ type: 'create', brandId: brand.id, brandName: brand.name }); }}
               >
                 + Adaugă Profil
               </button>
@@ -177,7 +177,7 @@ export default function MenuManager({ backend }) {
                       <button 
                         className="um-btn um-btn--ghost" 
                         style={{ borderRadius: '50%', width: 34, height: 34, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444', background: '#fee2e2' }}
-                        onClick={() => deleteProfile(brand.id, p.id)}
+                        onClick={() => setActionModal({ type: 'delete', brandId: brand.id, profileId: p.id, profileName: p.name })}
                         title="Șterge Profile"
                       >
                         ✕
@@ -207,6 +207,46 @@ export default function MenuManager({ backend }) {
             setEditingProfileForBrand(null);
           }}
         />
+      )}
+
+      {/* CUSTOM PROMPT MODALS TO AVOID NATIVE BROWSER POPUPS BLOCKING */}
+      {actionModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(10px)', zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: 'var(--surface)', borderRadius: 20, padding: 32, width: '100%', maxWidth: 450, boxShadow: '0 24px 64px rgba(0,0,0,0.2)', border: '1px solid var(--border)' }}>
+            
+            {actionModal.type === 'create' && (
+              <>
+                <h3 style={{ margin: '0 0 16px', fontSize: '1.4rem' }}>Creează Profil Nou</h3>
+                <p style={{ margin: '0 0 24px', color: 'var(--text-muted)' }}>Introdu un nume pentru noul profil al brandului <strong>{actionModal.brandName}</strong>.</p>
+                <input 
+                  autoFocus
+                  type="text" 
+                  value={inputValue} 
+                  onChange={e => setInputValue(e.target.value)} 
+                  placeholder="ex: Meniu Terasă"
+                  style={{ width: '100%', padding: '14px 16px', fontSize: '1.1rem', borderRadius: 12, border: '2px solid var(--border)', marginBottom: 32, background: 'var(--bg-surface)', outline: 'none' }}
+                  onKeyDown={e => { if (e.key === 'Enter' && inputValue.trim()) { createProfile(actionModal.brandId, inputValue); setActionModal(null); } }}
+                />
+                <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                  <button className="um-btn um-btn--ghost" onClick={() => setActionModal(null)} style={{ borderRadius: 30 }}>Anulează</button>
+                  <button className="um-btn" onClick={() => { createProfile(actionModal.brandId, inputValue); setActionModal(null); }} style={{ borderRadius: 30, background: 'var(--primary)', color: '#fff' }} disabled={!inputValue.trim()}>Creează Profil</button>
+                </div>
+              </>
+            )}
+
+            {actionModal.type === 'delete' && (
+              <>
+                <h3 style={{ margin: '0 0 16px', fontSize: '1.4rem' }}>Ștergere Profil</h3>
+                <p style={{ margin: '0 0 32px', color: 'var(--text-muted)' }}>Sigur dorești să ștergi profilul de meniu <strong>{actionModal.profileName}</strong>? Kiosk-urile care folosesc acest profil vor reveni la meniul complet standard, deci va trebui să le reatribui.</p>
+                <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                  <button className="um-btn um-btn--ghost" onClick={() => setActionModal(null)} style={{ borderRadius: 30 }}>Anulează</button>
+                  <button className="um-btn" onClick={() => { deleteProfileConfirmed(actionModal.brandId, actionModal.profileId); setActionModal(null); }} style={{ borderRadius: 30, background: '#ef4444', color: '#fff' }}>Da, Șterge Definitiv</button>
+                </div>
+              </>
+            )}
+
+          </div>
+        </div>
       )}
     </div>
   );
