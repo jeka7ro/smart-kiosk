@@ -1852,7 +1852,7 @@ function QrGenerator({ backend }) {
       </div>
 
       {/* Results */}
-      {qrs.length > 0 && (
+      {qrs.length > 0 ? (
         <div className="qr-results">
           <div className="qr-results-header">
             <h3>{selectedBrand.name} — {qrs.length} coduri generate</h3>
@@ -1876,6 +1876,16 @@ function QrGenerator({ backend }) {
               </div>
             ))}
           </div>
+        </div>
+      ) : (
+        <div style={{ marginTop: 24, padding: 30, background: 'var(--glass-bg)', backdropFilter: 'blur(20px)', borderRadius: 16, border: '1px solid var(--border)', textAlign: 'center' }}>
+          <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>📱</div>
+          <h3 style={{ margin: '0 0 8px', color: 'var(--text)' }}>Niciun QR afișat pe ecran</h3>
+          <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: 460, display: 'inline-block', lineHeight: 1.5 }}>
+            Codurile QR sunt generate direct aici și <strong>nu se șterg niciodată</strong> pentru că ele conțin doar adrese web (link-uri statice). 
+            <br/><br/>
+            Dacă le-ai printat deja, ele vor funcționa mereu. Apasă din nou pe <strong>Generează QR Coduri</strong> pentru a le afișa pe ecran sau pentru a le descărca din nou. Codurile generate for fi <strong>exact aceleași</strong> ca și cele printate anterior!
+          </p>
         </div>
       )}
     </div>
