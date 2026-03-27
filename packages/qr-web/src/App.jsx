@@ -21,6 +21,7 @@ export default function App({ brandId }) {
   const setLocationData = useQrStore((s) => s.setLocationData);
   const locationData = useQrStore((s) => s.locationData);
   const isIdle = useQrStore((s) => s.isIdle);
+  const setIdle = useQrStore((s) => s.setIdle);
   
   const [loading, setLoading] = useState(true);
 
@@ -62,6 +63,10 @@ export default function App({ brandId }) {
           inactivityTimeout:        mc.inactivityTimeout        ?? 30,
         };
         setLocationData(merged);
+        // Show screensaver on first load if configured
+        if (mc.posterUrl) {
+          setTimeout(() => setIdle(true), 100);
+        }
       }
       setLoading(false);
     })
