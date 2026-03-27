@@ -41,7 +41,27 @@ export default function App({ brandId }) {
     .then(r => r.json())
     .then(loc => {
       if (loc && !loc.error) {
-        setLocationData(loc);
+        // Prefer mobileConfig (per-location mobile settings), fallback to root fields
+        const mc = loc.data?.mobileConfig || {};
+        const merged = {
+          ...loc,
+          topBannerUrl:           mc.topBannerUrl           ?? loc.topBannerUrl           ?? '',
+          topBannerHeight:        mc.topBannerHeight         ?? loc.topBannerHeight         ?? 3,
+          topBannerRadiusTop:     mc.topBannerRadiusTop      ?? loc.topBannerRadiusTop      ?? true,
+          topBannerRadiusBottom:  mc.topBannerRadiusBottom   ?? loc.topBannerRadiusBottom   ?? false,
+          bottomBannerContent:    mc.bottomBannerUrl || mc.bottomBannerText || loc.bottomBannerContent || '',
+          bottomBannerUrl:        mc.bottomBannerUrl         ?? loc.bottomBannerUrl         ?? '',
+          bottomBannerText:       mc.bottomBannerText        ?? loc.bottomBannerText        ?? '',
+          bottomBannerHeight:     mc.bottomBannerHeight      ?? loc.bottomBannerHeight      ?? 2,
+          bottomBannerRadiusTop:  mc.bottomBannerRadiusTop   ?? loc.bottomBannerRadiusTop   ?? false,
+          bottomBannerRadiusBottom: mc.bottomBannerRadiusBottom ?? loc.bottomBannerRadiusBottom ?? true,
+          bottomBannerTextFixed:  mc.bottomBannerTextFixed   ?? loc.bottomBannerTextFixed   ?? false,
+          bottomBannerTextAlign:  mc.bottomBannerTextAlign   ?? loc.bottomBannerTextAlign   ?? 'center',
+          bottomBannerBg:         mc.bottomBannerBg          ?? loc.bottomBannerBg          ?? '#1e293b',
+          posterUrl:              mc.posterUrl               ?? loc.posterUrl               ?? '',
+          inactivityTimeout:      mc.inactivityTimeout       ?? loc.inactivityTimeout       ?? 30,
+        };
+        setLocationData(merged);
       }
       setLoading(false);
     })
