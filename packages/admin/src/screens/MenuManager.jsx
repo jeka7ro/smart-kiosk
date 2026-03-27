@@ -264,12 +264,11 @@ export function MenuProfileEditorModal({ backend, brand, profile, onClose, onSav
   const { fetchWithAuth } = useAuth();
   const [loading, setLoading] = useState(true);
   const [menu, setMenu] = useState({ categories: [], products: [] });
-  // Map of hidden IDs (true = hidden) - Either Local Overrides OR the Profile Native Settings
   const [hiddenItems, setHiddenItems] = useState(localHiddenItemsOverride || profile.hiddenItems || {});
   const [rootFolderId, setRootFolderId] = useState(profile.rootFolderId || '');
+  const [activeTab, setActiveTab] = useState(null); // Category ID for sidebar navigation
 
   useEffect(() => {
-    // Note: We bypass kiosk filters here and get the raw full synced menu for this brand
     fetchWithAuth(`${backend}/api/menu?brandId=${brand.id}`)
       .then(r => r.json())
       .then(d => {
@@ -279,19 +278,16 @@ export function MenuProfileEditorModal({ backend, brand, profile, onClose, onSav
       .catch(() => setLoading(false));
   }, [backend, brand.id, fetchWithAuth]);
 
-  // Support local overriding mode vs Template editing mode
   useEffect(() => {
-    if (localHiddenItemsOverride !== null) {
-      setHiddenItems(localHiddenItemsOverride);
-    }
+    if (localHiddenItemsOverride !== null) setHiddenItems(localHiddenItemsOverride);
   }, [localHiddenItemsOverride]);
 
   const handleToggleHide = (id, hidden) => {
     setHiddenItems(prev => {
       const next = { ...prev };
       if (hidden) next[id] = true;
-      else if (localHiddenItemsOverride !== null) next[id] = false; // if local override, false means explicit UNHIDE
-      else delete next[id]; // if template, missing means default (visible)
+      else if (localHiddenItemsOverride !== null) next[id] = false; 
+      else delete next[id]; 
       return next;
     });
   };
@@ -301,14 +297,21 @@ export function MenuProfileEditorModal({ backend, brand, profile, onClose, onSav
       if (!parentId) return !c.parentGroup || c.parentGroup === null || c.parentGroup === "null";
       return c.parentGroup === parentId;
     });
-    if (!children.length) return null;
+    // For the main render block, if we don't have children but the parent itself matches activeTab, we STILL want to render the parent container!
+    // But our recursive tree always renders children. If activeTab has NO subfolders but has products, we must render them.
+    if (!children.length && !parentId) return null;
+
+    // Wait, if activeTab is selected, parentId === activeTab. If activeTab has NO children, children.length is 0.
+    // To fix this, if parentId === activeTab and activeTab has NO children, we just render the activeTab ITSELF.
+    // We achieve this logically before calling renderCategoryTree, by including the active node if needed, 
+    // but the recursive nature handles it fine if we just render the node that matches!
+    const nodesToRender = parentId === activeTab ? categories.filter(c => c.id === activeTab) : children;
+
+    if (!nodesToRender.length) return null;
 
     return (
-      <div style={{ marginLeft: parentId ? 24 : 0, marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {children.map(cat => {
-          // If we're in template edit, we check hiddenItems directly.
-          // If in kiosk edit, hiddenItems is merged local overrides. true = hidden, false = explicit visible.
-          // Let's rely on the base profile to figure out if it's hidden by template.
+      <div style={{ marginLeft: (parentId && parentId !== activeTab) ? 24 : 0, marginTop: parentId ? 16 : 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {nodesToRender.map(cat => {
           const isHiddenByTemplate = profile.hiddenItems?.[cat.id] === true;
           const isLocallyHidden = hiddenItems[cat.id] === true;
           const isLocallyVisible = hiddenItems[cat.id] === false;
@@ -321,22 +324,22 @@ export function MenuProfileEditorModal({ backend, brand, profile, onClose, onSav
           }
 
           const hasProds = menu.products.filter(p => p.categoryId === cat.id);
+          const hasChildren = categories.some(c => c.parentGroup === cat.id);
           
           return (
-            <div key={cat.id} style={{ padding: '8px 12px', background: parentId ? 'rgba(0,0,0,0.02)' : '#f8f9fa', borderRadius: 10, border: '1px solid var(--border)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: hasProds.length ? 8 : 0 }}>
-                <strong style={{ opacity: effectivelyHidden ? 0.4 : 1, transition: 'opacity 0.2s', display: 'flex', alignItems: 'center', gap: 8, fontSize: parentId ? '0.9rem' : '1.05rem' }}>
+            <div key={cat.id} style={{ padding: '16px 20px', background: '#fff', borderRadius: 16, border: '1px solid var(--border)', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: hasProds.length ? 16 : 0 }}>
+                <strong style={{ opacity: effectivelyHidden ? 0.4 : 1, transition: 'opacity 0.2s', display: 'flex', alignItems: 'center', gap: 12, fontSize: '1.15rem', color: '#1e293b' }}>
                    📁 {cat.name}
                 </strong>
-                <label className="pc-toggle" style={{ margin: 0, transform: 'scale(0.85)' }}>
+                <label className="pc-toggle" style={{ margin: 0, transform: 'scale(1)' }}>
                   <input type="checkbox" checked={!effectivelyHidden} onChange={e => handleToggleHide(cat.id, !e.target.checked)} />
                   <span className="toggle-slider" />
                 </label>
               </div>
 
-              {/* Prod items */}
               {hasProds.length > 0 && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8, marginTop: 8 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12, marginTop: 12 }}>
                   {hasProds.map(p => {
                     const isPHiddenByTemplate = profile.hiddenItems?.[p.id] === true;
                     const isPLocallyHidden = hiddenItems[p.id] === true;
@@ -350,21 +353,21 @@ export function MenuProfileEditorModal({ backend, brand, profile, onClose, onSav
                     }
 
                     return (
-                      <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', background: '#fff', borderRadius: 8, border: '1px solid var(--border)', opacity: (effectivelyHidden || pEffectivelyHidden) ? 0.4 : 1, transition: 'opacity 0.2s' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
+                      <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-surface)', borderRadius: 12, border: '1px solid var(--border)', opacity: (effectivelyHidden || pEffectivelyHidden) ? 0.4 : 1, transition: 'opacity 0.2s' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
                           {p.image && (
-                            <img src={proxySyrveImage(p.image)} alt="" style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />
+                            <img src={proxySyrveImage(p.image)} alt="" style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover', flexShrink: 0, border: '1px solid rgba(0,0,0,0.05)' }} />
                           )}
-                          <span style={{ fontSize: '0.85rem', lineHeight: '1.3' }}>{p.name}</span>
+                          <span style={{ fontSize: '0.95rem', lineHeight: '1.3', fontWeight: 500, color: '#334155' }}>{p.name}</span>
                         </div>
-                        <input type="checkbox" checked={!pEffectivelyHidden} disabled={effectivelyHidden} onChange={e => handleToggleHide(p.id, !e.target.checked)} style={{ cursor: effectivelyHidden ? 'not-allowed' : 'pointer', width: 18, height: 18, accentColor: 'var(--primary)', flexShrink: 0, marginLeft: 8 }} />
+                        <input type="checkbox" checked={!pEffectivelyHidden} disabled={effectivelyHidden} onChange={e => handleToggleHide(p.id, !e.target.checked)} style={{ cursor: effectivelyHidden ? 'not-allowed' : 'pointer', width: 22, height: 22, accentColor: 'var(--primary)', flexShrink: 0, marginLeft: 12 }} />
                       </div>
                     );
                   })}
                 </div>
               )}
 
-              {renderCategoryTree(categories, cat.id)}
+              {hasChildren && renderCategoryTree(categories, cat.id)}
             </div>
           );
         })}
@@ -372,49 +375,95 @@ export function MenuProfileEditorModal({ backend, brand, profile, onClose, onSav
     );
   };
 
+  // Derive root Level Items for the Sidebar Navigation!
+  const rootMenuItems = menu.categories.filter(c => {
+     const startNode = rootFolderId || null;
+     if (!startNode) return !c.parentGroup || c.parentGroup === null || c.parentGroup === "null";
+     return c.parentGroup === startNode;
+  });
+
   return createPortal(
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(10px)', zIndex: 999999, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 20px', overflowY: 'auto' }}>
-      <div style={{ background: 'var(--surface)', borderRadius: 24, border: '1px solid var(--border)', width: '100%', maxWidth: 1000, boxShadow: '0 24px 64px rgba(0,0,0,0.2)', marginBottom: 40 }}>
-        <div style={{ padding: '24px 32px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: 'var(--surface)', borderRadius: '24px 24px 0 0', zIndex: 10 }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-surface)', zIndex: 999999, display: 'flex', flexDirection: 'column' }}>
+      {/* Full Width Top Header */}
+      <div style={{ height: 80, padding: '0 32px', background: 'var(--surface)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <button className="um-btn um-btn--ghost" onClick={onClose} style={{ borderRadius: '50%', width: 44, height: 44, padding: 0 }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+          </button>
           <div>
-            <h2 style={{ margin: 0, fontSize: '1.5rem' }}>{localHiddenItemsOverride !== null ? 'Personalizare Meniu Kiosk' : `Editare Profil: ${profile.name}`}</h2>
-            <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: 4 }}>Brand: {brand.name}</p>
+            <h2 style={{ margin: 0, fontSize: '1.4rem' }}>{localHiddenItemsOverride !== null ? 'Personalizare Meniu Kiosk' : `Editare Profil: ${profile.name}`}</h2>
+            <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: 2 }}>{brand.name}</p>
           </div>
-          <div style={{ display: 'flex', gap: 12 }}>
-            <button className="um-btn um-btn--ghost" onClick={onClose} style={{ borderRadius: 30 }}>Anulează</button>
-            <button className="um-btn" onClick={() => onSave({ ...profile, hiddenItems, rootFolderId: rootFolderId === '' ? null : rootFolderId })} style={{ borderRadius: 30, background: 'var(--primary)', color: '#fff' }}>{localHiddenItemsOverride !== null ? 'Salvează Vizibilitatea Kiosk' : 'Salvează Profilul'}</button>
+        </div>
+        <div style={{ display: 'flex', gap: 16 }}>
+          <button className="um-btn um-btn--ghost" onClick={onClose} style={{ borderRadius: 30, padding: '0 24px' }}>Anulează</button>
+          <button className="um-btn" onClick={() => onSave({ ...profile, hiddenItems, rootFolderId: rootFolderId === '' ? null : rootFolderId })} style={{ borderRadius: 30, background: 'var(--primary)', color: '#fff', padding: '0 32px' }}>
+            {localHiddenItemsOverride !== null ? 'Salvează Vizibilitate' : 'Salvează Profilul'}
+          </button>
+        </div>
+      </div>
+
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+        {/* Left Sidebar */}
+        <div style={{ width: 340, background: 'var(--surface)', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+          <div style={{ padding: '24px', borderBottom: '1px solid var(--border)' }}>
+             {localHiddenItemsOverride === null ? (
+               <>
+                 <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, fontSize: '0.95rem' }}>Mapa Principală Rădăcină</label>
+                 <select className="um-input" value={rootFolderId || ''} onChange={e => { setRootFolderId(e.target.value); setActiveTab(null); }} style={{ borderRadius: 12, width: '100%', fontSize: '0.9rem' }}>
+                   <option value="">-- Extrage Tot --</option>
+                   {menu.categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                 </select>
+               </>
+             ) : (
+                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Meniul afișat mai jos reprezintă vizibilitatea exclusivă a acestui Kiosk. Modificările de aici au prioritate față de restul template-urilor.</div>
+             )}
+          </div>
+          
+          {/* Nav Links */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '16px 12px' }}>
+             <h4 style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-muted)', margin: '0 0 12px 12px' }}>Navigație Categorii</h4>
+             <button 
+                onClick={() => setActiveTab(null)}
+                style={{ width: '100%', textAlign: 'left', padding: '12px 16px', borderRadius: 12, background: activeTab === null ? 'var(--bg-surface)' : 'transparent', border: activeTab === null ? '1px solid var(--border)' : '1px solid transparent', color: activeTab === null ? 'var(--primary)' : 'var(--text)', fontWeight: activeTab === null ? 600 : 400, fontSize: '1rem', cursor: 'pointer', transition: 'all 0.2s', marginBottom: 4 }}
+             >
+                Toate Categoriile
+             </button>
+             {rootMenuItems.map(c => (
+               <button 
+                 key={c.id}
+                 onClick={() => setActiveTab(c.id)}
+                 style={{ width: '100%', textAlign: 'left', padding: '12px 16px', borderRadius: 12, background: activeTab === c.id ? 'var(--bg-surface)' : 'transparent', border: activeTab === c.id ? '1px solid var(--border)' : '1px solid transparent', color: activeTab === c.id ? 'var(--primary)' : 'var(--text)', fontWeight: activeTab === c.id ? 600 : 400, fontSize: '1rem', cursor: 'pointer', transition: 'all 0.2s', marginBottom: 4 }}
+               >
+                  {c.name}
+               </button>
+             ))}
           </div>
         </div>
 
-        <div style={{ padding: 32 }}>
-          {loading ? (
-            <p className="loading-text">Se descarcă arborele meniului...</p>
-          ) : (
-            <>
-              {/* Optional Root Folder is only editable when editing the base Profile */}
-              {localHiddenItemsOverride === null && (
-                <div style={{ marginBottom: 24, padding: 20, background: 'var(--bg-surface)', borderRadius: 16, border: '1px solid var(--border)' }}>
-                  <label style={{ display: 'block', fontWeight: 600, marginBottom: 8 }}>Sursă / Mapa Principală Rădăcină (Opțional)</label>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.4 }}>
-                    Prin selectarea unei mape rădăcină, Kiosk-ul va ignora ABSOLUT TOT meniul cu excepția acestei mape și a sub-categoriilor ei. Util dacă vrei să restrângi Kioskul doar la folderul "Meniu Exterior".
-                  </p>
-                  <select className="um-input" value={rootFolderId || ''} onChange={e => setRootFolderId(e.target.value)} style={{ borderRadius: 30, width: '100%', maxWidth: 400 }}>
-                    <option value="">-- Ignoră (Extrage complet tot) --</option>
-                    {menu.categories.map(c => (
-                       <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <h4 style={{ fontSize: '1.1rem', marginBottom: 16 }}>Arbore Vizibilitate (Debifează pentru a ascunde)</h4>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: 20 }}>Dacă debifezi un folder principal, absolut toate produsele de sub el vor fi ascunse automat.</p>
-              
-              <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 16, padding: '20px', maxHeight: '55vh', overflowY: 'auto' }}>
-                 {renderCategoryTree(menu.categories, rootFolderId ? rootFolderId : null)}
-              </div>
-            </>
-          )}
+        {/* Right Main Content */}
+        <div style={{ flex: 1, background: 'var(--bg)', overflowY: 'auto', padding: '40px 60px' }}>
+          <div style={{ maxWidth: 1000, margin: '0 auto' }}>
+             {loading ? (
+                <p className="loading-text" style={{ textAlign: 'center', marginTop: 100 }}>Se descarcă arborele meniului iiko...</p>
+             ) : (
+                <>
+                  <div style={{ marginBottom: 32 }}>
+                    <h3 style={{ fontSize: '1.6rem', margin: '0 0 8px 0', color: '#0f172a' }}>{activeTab ? menu.categories.find(c => c.id === activeTab)?.name : 'Arborele Complet Vizibilitate'}</h3>
+                    <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.95rem' }}>Produsele debifate vor fi ascunse și nu vor fi afișate deloc pe interfața clientului Kiosk.</p>
+                  </div>
+                  
+                  {renderCategoryTree(menu.categories, activeTab ? activeTab : (rootFolderId || null))}
+                  
+                  {/* Fallback if somehow the tree yields absolute zero nodes */}
+                  {!renderCategoryTree(menu.categories, activeTab ? activeTab : (rootFolderId || null)) && (
+                     <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-muted)', background: '#fff', borderRadius: 16, border: '1px solid var(--border)' }}>
+                        Folderul ales nu conține niciun sub-produs.
+                     </div>
+                  )}
+                </>
+             )}
+          </div>
         </div>
       </div>
     </div>,
