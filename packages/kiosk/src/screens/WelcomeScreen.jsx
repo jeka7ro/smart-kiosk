@@ -155,7 +155,18 @@ const FLAG_GRADIENTS = {
               style={{ background: btnColor, color: btnTextColor, borderColor: btnBorderColor, borderWidth: btnBorderColor !== 'transparent' ? '3px' : '0', borderStyle: 'solid', boxShadow: `0 12px 32px ${btnShadowColor}80` }}
               onClick={(e) => { e.stopPropagation(); handlePosterTap(); }}
             >
-              <span className="poster-cta-label" style={{ color: btnTextColor }}>{customBtnText || t('start_order', lang)}</span>
+              <span className="poster-cta-label" style={{ 
+                color: btnTextColor, 
+                background: 'rgba(0, 0, 0, 0.45)', 
+                backdropFilter: 'blur(8px)', 
+                WebkitBackdropFilter: 'blur(8px)', 
+                padding: '8px 24px', 
+                borderRadius: '16px',
+                textShadow: '0 2px 8px rgba(0,0,0,0.5)',
+                display: 'inline-block'
+              }}>
+                {customBtnText || t('start_order', lang)}
+              </span>
             </button>
 
             <span className="poster-tap-hint">{t('touch_anywhere', lang)}</span>
