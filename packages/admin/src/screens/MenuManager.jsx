@@ -444,15 +444,22 @@ export function MenuProfileEditorModal({ backend, brand, profile, onClose, onSav
             </div>
           )}
 
-          {/* Horizontal Navigation Tabs */}
           <div>
-            <h4 style={{ fontSize: '1rem', color: 'var(--text-muted)', marginBottom: 16, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Categorii</h4>
-            <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8, msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
+            <h4 style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Categorii</h4>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                {rootMenuItems.map(c => (
                  <button 
                    key={c.id}
                    onClick={() => setActiveTab(c.id)}
-                   style={{ flexShrink: 0, padding: '12px 24px', borderRadius: 30, background: activeTab === c.id ? 'var(--text)' : 'var(--surface)', border: `1px solid ${activeTab === c.id ? 'var(--text)' : 'var(--border)'}`, color: activeTab === c.id ? 'var(--bg)' : 'var(--text)', fontWeight: activeTab === c.id ? 600 : 500, fontSize: '0.95rem', cursor: 'pointer', transition: 'all 0.2s' }}
+                   style={{
+                     padding: '8px 18px', borderRadius: 20,
+                     background: activeTab === c.id ? '#0f172a' : 'var(--surface)',
+                     border: `1.5px solid ${activeTab === c.id ? '#0f172a' : 'var(--border)'}`,
+                     color: activeTab === c.id ? '#fff' : 'var(--text)',
+                     fontWeight: activeTab === c.id ? 700 : 500,
+                     fontSize: '0.875rem', cursor: 'pointer', transition: 'all 0.15s',
+                     whiteSpace: 'nowrap',
+                   }}
                  >
                     {c.name}
                  </button>
