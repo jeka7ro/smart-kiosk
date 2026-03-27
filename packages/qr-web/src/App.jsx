@@ -41,25 +41,25 @@ export default function App({ brandId }) {
     .then(r => r.json())
     .then(loc => {
       if (loc && !loc.error) {
-        // Prefer mobileConfig (per-location mobile settings), fallback to root fields
+        // ONLY read mobile-specific settings from mobileConfig — never inherit kiosk settings
         const mc = loc.data?.mobileConfig || {};
         const merged = {
           ...loc,
-          topBannerUrl:           mc.topBannerUrl           ?? loc.topBannerUrl           ?? '',
-          topBannerHeight:        mc.topBannerHeight         ?? loc.topBannerHeight         ?? 3,
-          topBannerRadiusTop:     mc.topBannerRadiusTop      ?? loc.topBannerRadiusTop      ?? true,
-          topBannerRadiusBottom:  mc.topBannerRadiusBottom   ?? loc.topBannerRadiusBottom   ?? false,
-          bottomBannerContent:    mc.bottomBannerUrl || mc.bottomBannerText || loc.bottomBannerContent || '',
-          bottomBannerUrl:        mc.bottomBannerUrl         ?? loc.bottomBannerUrl         ?? '',
-          bottomBannerText:       mc.bottomBannerText        ?? loc.bottomBannerText        ?? '',
-          bottomBannerHeight:     mc.bottomBannerHeight      ?? loc.bottomBannerHeight      ?? 2,
-          bottomBannerRadiusTop:  mc.bottomBannerRadiusTop   ?? loc.bottomBannerRadiusTop   ?? false,
-          bottomBannerRadiusBottom: mc.bottomBannerRadiusBottom ?? loc.bottomBannerRadiusBottom ?? true,
-          bottomBannerTextFixed:  mc.bottomBannerTextFixed   ?? loc.bottomBannerTextFixed   ?? false,
-          bottomBannerTextAlign:  mc.bottomBannerTextAlign   ?? loc.bottomBannerTextAlign   ?? 'center',
-          bottomBannerBg:         mc.bottomBannerBg          ?? loc.bottomBannerBg          ?? '#1e293b',
-          posterUrl:              mc.posterUrl               ?? loc.posterUrl               ?? '',
-          inactivityTimeout:      mc.inactivityTimeout       ?? loc.inactivityTimeout       ?? 30,
+          topBannerUrl:             mc.topBannerUrl             || '',
+          topBannerHeight:          mc.topBannerHeight          ?? 3,
+          topBannerRadiusTop:       mc.topBannerRadiusTop       ?? true,
+          topBannerRadiusBottom:    mc.topBannerRadiusBottom    ?? false,
+          bottomBannerContent:      mc.bottomBannerUrl || mc.bottomBannerText || '',
+          bottomBannerUrl:          mc.bottomBannerUrl          || '',
+          bottomBannerText:         mc.bottomBannerText         || '',
+          bottomBannerHeight:       mc.bottomBannerHeight       ?? 2,
+          bottomBannerRadiusTop:    mc.bottomBannerRadiusTop    ?? false,
+          bottomBannerRadiusBottom: mc.bottomBannerRadiusBottom ?? true,
+          bottomBannerTextFixed:    mc.bottomBannerTextFixed    ?? false,
+          bottomBannerTextAlign:    mc.bottomBannerTextAlign    || 'center',
+          bottomBannerBg:           mc.bottomBannerBg           || '#1e293b',
+          posterUrl:                mc.posterUrl                || '',
+          inactivityTimeout:        mc.inactivityTimeout        ?? 30,
         };
         setLocationData(merged);
       }
@@ -117,7 +117,7 @@ export default function App({ brandId }) {
     <>
       {isIdle && <PosterScreen />}
       
-      <div style={{ maxWidth: 480, margin: '0 auto', height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '12px', boxSizing: 'border-box', background: 'var(--bg, #f8fafc)' }}>
+      <div style={{ maxWidth: 480, margin: '0 auto', height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', background: 'var(--bg, #f5f5f7)' }}>
         
         {/* TOP BANNER */}
         {showTopBanner && (
@@ -135,15 +135,15 @@ export default function App({ brandId }) {
           </div>
         )}
 
-        {/* MAIN APP CONTAINER */}
+        {/* MAIN APP CONTAINER — scrollable */}
         <div style={{ 
           flex: 1, 
           width: '100%', 
           position: 'relative', 
-          overflow: 'hidden',
-          borderRadius: `${mainRadTop} ${mainRadTop} ${mainRadBot} ${mainRadBot}`,
-          boxShadow: (showTopBanner || showBottomBanner) ? '0 4px 16px rgba(0,0,0,0.05)' : 'none',
-          background: 'var(--card)'
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          WebkitOverflowScrolling: 'touch',
+          background: 'var(--card, #fff)'
         }}>
           {screen === 'landing'  && <TableLanding brand={brand} />}
           {screen === 'menu'     && <MenuBrowse brand={brand} />}

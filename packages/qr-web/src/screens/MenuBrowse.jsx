@@ -163,32 +163,26 @@ export default function MenuBrowse({ brand }) {
                 )}
               </div>
 
-              {/* Action Bar (Footer) */}
-              <div style={{ display: 'flex', gap: 12, marginTop: 'auto' }}>
-                <button 
-                  style={{ width: 44, height: 44, borderRadius: 10, border: '1px solid #e5e7eb', background: '#fff', color: '#9ca3af', fontSize: '1.4rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
-                >
-                  ♡
-                </button>
-
+              {/* Action Bar */}
+              <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
                 {cartQty === 0 ? (
                   <button 
                     style={{ 
-                      flex: 1, height: 44, borderRadius: 22, border: 'none', background: '#d32f2f', 
-                      color: '#fff', fontSize: '1rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s',
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px',
-                      boxShadow: '0 4px 12px rgba(211, 47, 47, 0.3)'
+                      flex: 1, height: 40, borderRadius: 12, border: 'none', background: '#d32f2f', 
+                      color: '#fff', fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                      boxShadow: '0 3px 10px rgba(211,47,47,0.3)'
                     }}
                     onClick={(e) => { e.stopPropagation(); useQrStore.getState().addToCart(p, 1, [], p.price); }}
                   >
-                    <span>+ Adaugă</span>
-                    <span>{p.price} lei</span>
+                    <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>+</span>
+                    <span>Adaugă</span>
                   </button>
                 ) : (
-                  <div style={{ flex: 1, height: 44, borderRadius: 10, border: '1px solid #fca5a5', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }} onClick={e => e.stopPropagation()}>
-                    <button style={{ width: 40, height: '100%', background: 'transparent', border: 'none', color: '#ef4444', fontSize: '1.4rem', fontWeight: 600, cursor: 'pointer' }} onClick={() => { if (cartQty <= 1) { useQrStore.getState().removeFromCart(cartEntry.id); } else { useQrStore.getState().updateCartItem(cartEntry.id, cartQty - 1); } }}>−</button>
-                    <span style={{ color: '#ef4444', fontWeight: 600, fontSize: '0.9rem' }}>{cartQty} buc.</span>
-                    <button style={{ width: 40, height: '100%', background: 'transparent', border: 'none', color: '#ef4444', fontSize: '1.4rem', fontWeight: 600, cursor: 'pointer' }} onClick={() => useQrStore.getState().updateCartItem(cartEntry.id, cartQty + 1)}>+</button>
+                  <div style={{ flex: 1, height: 40, borderRadius: 10, border: '1px solid #fca5a5', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }} onClick={e => e.stopPropagation()}>
+                    <button style={{ width: 36, height: '100%', background: 'transparent', border: 'none', color: '#ef4444', fontSize: '1.3rem', fontWeight: 600, cursor: 'pointer' }} onClick={() => { if (cartQty <= 1) { useQrStore.getState().removeFromCart(cartEntry.id); } else { useQrStore.getState().updateCartItem(cartEntry.id, cartQty - 1); } }}>−</button>
+                    <span style={{ color: '#ef4444', fontWeight: 700, fontSize: '0.85rem' }}>{cartQty}</span>
+                    <button style={{ width: 36, height: '100%', background: 'transparent', border: 'none', color: '#ef4444', fontSize: '1.3rem', fontWeight: 600, cursor: 'pointer' }} onClick={() => useQrStore.getState().updateCartItem(cartEntry.id, cartQty + 1)}>+</button>
                   </div>
                 )}
               </div>
