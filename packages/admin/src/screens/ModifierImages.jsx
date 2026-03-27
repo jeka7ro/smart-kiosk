@@ -209,7 +209,7 @@ export default function ModifierImages() {
       )}
 
       {/* ── Toolbar ──────────────────────────────────────────── */}
-      <div className="um-toolbar" style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+      <div className="um-toolbar">
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <button
             onClick={() => setActiveBrand('ALL')}
@@ -243,7 +243,7 @@ export default function ModifierImages() {
             );
           })}
         </div>
-        <div style={{ flex: 1, minWidth: 200, maxWidth: 320, position: 'relative' }}>
+        <div style={{ flex: 1, minWidth: 200, position: 'relative' }}>
           <input 
             className="um-search" 
             placeholder="🔍 Caută modificator..." 
