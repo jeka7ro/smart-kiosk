@@ -403,28 +403,26 @@ export default function QrGenerator({ backend }) {
                             </div>
                           </div>
                         )}
-
-                        <div style={{ marginTop: 8, padding: 16, background: 'var(--bg-surface)', borderRadius: 12, border: '1px solid var(--border)' }}>
-                          <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 10 }}>
-                            <span>Inaltime Banner</span><span style={{ color: 'var(--text)' }}>Nivel {mob.topBannerHeight} / 5</span>
-                          </label>
-                          <input type="range" min="1" max="5" step="1" value={mob.topBannerHeight}
-                            onChange={e => hm('topBannerHeight', parseInt(e.target.value))} style={{ width: '100%', cursor: 'pointer' }} />
-
-                          <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
-                            {[['topBannerRadiusTop','Colturi Sus Rotunde'],['topBannerRadiusBottom','Colturi Jos Rotunde']].map(([key, lbl]) => (
-                              <label key={key} className="pc-toggle" style={{ margin: 0, flex: 1, background: 'var(--surface)', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
-                                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text)' }}>{lbl}</span>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                  <input type="checkbox" checked={mob[key]} onChange={e => hm(key, e.target.checked)} />
-                                  <span className="toggle-slider" style={{ position: 'relative', display: 'inline-block' }} />
-                                </div>
-                              </label>
-                            ))}
-                          </div>
-                        </div>
                       </div>
                     )}
+
+                    {/* Design Config — mereu vizibil */}
+                    <div style={{ marginTop: 8, padding: 16, background: 'var(--bg-surface)', borderRadius: 12, border: '1px solid var(--border)' }}>
+                      <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 10 }}>
+                        <span>Inaltime Banner</span><span style={{ color: 'var(--text)' }}>Nivel {mob.topBannerHeight} / 5</span>
+                      </label>
+                      <input type="range" min="1" max="5" step="1" value={mob.topBannerHeight}
+                        onChange={e => hm('topBannerHeight', parseInt(e.target.value))} style={{ width: '100%', cursor: 'pointer' }} />
+
+                      <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+                        {[['topBannerRadiusTop','Colturi Sus Rotunde'],['topBannerRadiusBottom','Colturi Jos Rotunde']].map(([key, lbl]) => (
+                          <label key={key} style={{ margin: 0, flex: 1, background: 'var(--surface)', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+                            <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text)' }}>{lbl}</span>
+                            <Toggle checked={mob[key]} onChange={v => hm(key, v)} />
+                          </label>
+                        ))}
+                      </div>
+                    </div>
                   </div>
 
                   {/* ─ Banner Jos ─ */}
@@ -466,20 +464,26 @@ export default function QrGenerator({ backend }) {
                             </div>
                           </div>
                         )}
-
-                        <div style={{ display: 'flex', gap: 10 }}>
-                          {[['bottomBannerRadiusTop','Colturi Sus Rotunde'],['bottomBannerRadiusBottom','Colturi Jos Rotunde']].map(([key, lbl]) => (
-                            <label key={key} className="pc-toggle" style={{ margin: 0, flex: 1, background: 'var(--surface)', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
-                              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text)' }}>{lbl}</span>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <input type="checkbox" checked={mob[key]} onChange={e => hm(key, e.target.checked)} />
-                                <span className="toggle-slider" style={{ position: 'relative', display: 'inline-block' }} />
-                              </div>
-                            </label>
-                          ))}
-                        </div>
                       </div>
                     )}
+
+                    {/* Design Config — mereu vizibil */}
+                    <div style={{ marginTop: 16, padding: 16, background: 'var(--bg-surface)', borderRadius: 12, border: '1px solid var(--border)' }}>
+                      <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 10 }}>
+                        <span>Inaltime Banner</span><span style={{ color: 'var(--text)' }}>Nivel {mob.bottomBannerHeight} / 5</span>
+                      </label>
+                      <input type="range" min="1" max="5" step="1" value={mob.bottomBannerHeight}
+                        onChange={e => hm('bottomBannerHeight', parseInt(e.target.value))} style={{ width: '100%', cursor: 'pointer', marginBottom: 14 }} />
+
+                      <div style={{ display: 'flex', gap: 10 }}>
+                        {[['bottomBannerRadiusTop','Colturi Sus Rotunde'],['bottomBannerRadiusBottom','Colturi Jos Rotunde']].map(([key, lbl]) => (
+                          <label key={key} style={{ margin: 0, flex: 1, background: 'var(--surface)', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+                            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text)' }}>{lbl}</span>
+                            <Toggle checked={mob[key]} onChange={v => hm(key, v)} />
+                          </label>
+                        ))}
+                      </div>
+                    </div>
                   </div>
 
                 </div>

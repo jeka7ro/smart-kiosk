@@ -1,12 +1,18 @@
-.pp-screen { min-height: 100vh; background: var(--bg); padding-bottom: 90px; }
-.pp-back {
-  position: fixed; top: 14px; left: 14px; z-index: 100;
-  background: rgba(255,255,255,0.9); backdrop-filter: blur(8px);
-  border: 1.5px solid var(--border); border-radius: 10px;
-  padding: 8px 14px; font-size: 0.85rem;
-  font-weight: 600; color: var(--text-muted); cursor: pointer;
+.pp-screen { min-height: 100%; background: var(--bg); padding-bottom: 100px; }
+.pp-topbar {
+  position: sticky; top: 0; z-index: 50;
+  background: var(--card, #fff);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 14px;
+  display: flex; align-items: center;
 }
-.pp-back:hover { color: var(--primary); border-color: var(--primary); }
+.pp-back {
+  background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px;
+  padding: 8px 16px; font-size: 0.88rem;
+  font-weight: 700; color: var(--text); cursor: pointer;
+  display: flex; align-items: center; gap: 6px; transition: all 0.15s;
+}
+.pp-back:active { background: var(--primary); color: #fff; border-color: var(--primary); }
 
 .pp-img-block {
   width: 100%; height: 240px; background: var(--surface);

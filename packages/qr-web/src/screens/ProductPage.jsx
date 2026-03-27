@@ -38,9 +38,11 @@ export default function ProductPage({ brand }) {
   return (
     <div className="pp-screen">
       {/* Back */}
-      <button className="pp-back" onClick={() => goTo('menu')}>
-        ← Meniu
-      </button>
+      <div className="pp-topbar">
+        <button className="pp-back" onClick={() => goTo('menu')}>
+          ← Înapoi la meniu
+        </button>
+      </div>
 
       {/* Product image */}
       <div className="pp-img-block">
