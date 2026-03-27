@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { QRCodeCanvas } from 'qrcode.react';
 import { io } from 'socket.io-client';
 import './App.css';
 import { useAuth } from './context/AuthProvider';
@@ -1757,36 +1758,13 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
 function QrGenerator({ backend }) { 
   const { fetchWithAuth } = useAuth();
   const [brand, setBrand] = useState('smashme');
-  const [loc, setLoc] = useState('1');
+  const [locId, setLocId] = useState('');
+  const [locations, setLocations] = useState([]);
+  const [loadingLocs, setLoadingLocs] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [tableCount, setTableCount] = useState(10);
-  const [qrs, setQrs] = useState([]);
-  const [loading, setLoading] = useState(false);
 
   const QR_WEB_BASE = 'https://qr-restaurants.netlify.app';
-
-  // Persist QR codes in localStorage keyed by brand+loc. Added _v2 to invalidate old wrongly-generated QRs.
-  const storageKey = `qr_codes_${brand}_${loc}`;
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(storageKey);
-      if (saved) setQrs(JSON.parse(saved));
-    } catch (_) {}
-  }, [storageKey]);
-
-  const generate = async () => {
-    setLoading(true);
-    try {
-      const res = await fetchWithAuth(`${backend}/api/qr/location/${loc}?brand=${brand}&tables=${tableCount}`);
-      const data = await res.json();
-      const newQrs = data.qrs || [];
-      setQrs(newQrs);
-      localStorage.setItem(storageKey, JSON.stringify(newQrs));
-    } catch (err) {
-      console.error('QR gen error:', err);
-    }
-    setLoading(false);
-  };
 
   const brands = [
     { id: 'smashme', name: 'SmashMe', color: '#ef4444' },
@@ -1795,40 +1773,106 @@ function QrGenerator({ backend }) {
     { id: 'welovesushi', name: 'We Love Sushi', color: '#8b5cf6' },
   ];
 
-  const downloadQr = (dataUrl, tableNum) => {
+  const brandLogos = {
+    smashme: '/brands/smashme-logo.png',
+    sushimaster: '/brands/sushimaster-logo.png',
+    welovesushi: '/brands/welovesushi-logo.png',
+    ikura: '/brands/ikura-logo.png'
+  };
+
+  useEffect(() => {
+    fetchWithAuth(`${backend}/api/locations`)
+      .then(res => res.json())
+      .then(data => {
+        setLocations(data);
+        if (data.length > 0) setLocId(data[0].id);
+        setLoadingLocs(false);
+      })
+      .catch(() => setLoadingLocs(false));
+  }, [backend, fetchWithAuth]);
+
+  const selectedLoc = locations.find(l => l.id === locId);
+  const dbTableCount = selectedLoc?.data?.qrConfig?.[brand] || 0;
+
+  useEffect(() => {
+    if (dbTableCount > 0) setTableCount(dbTableCount);
+  }, [brand, locId, dbTableCount]);
+
+  const handleSaveGenerate = async () => {
+    if (!selectedLoc) return;
+    setSaving(true);
+    try {
+      const updatedData = {
+        ...selectedLoc.data,
+        qrConfig: {
+          ...(selectedLoc.data?.qrConfig || {}),
+          [brand]: tableCount,
+        }
+      };
+      
+      const res = await fetchWithAuth(`${backend}/api/locations/${locId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...selectedLoc, data: updatedData })
+      });
+      
+      if (res.ok) {
+        setLocations(prev => prev.map(l => l.id === locId ? { ...l, data: updatedData } : l));
+      }
+    } catch (err) {
+      console.error('Failed to save loc qr config', err);
+    }
+    setSaving(false);
+  };
+
+  const clearQrs = async () => {
+    if (!selectedLoc) return;
+    setSaving(true);
+    try {
+      const qrConfig = { ...(selectedLoc.data?.qrConfig || {}) };
+      delete qrConfig[brand];
+      const updatedData = { ...selectedLoc.data, qrConfig };
+      
+      const res = await fetchWithAuth(`${backend}/api/locations/${locId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...selectedLoc, data: updatedData })
+      });
+      if (res.ok) setLocations(prev => prev.map(l => l.id === locId ? { ...l, data: updatedData } : l));
+    } catch (err) {}
+    setSaving(false);
+  };
+
+  const downloadQr = (tableNum) => {
+    const canvas = document.getElementById(`qr-canvas-${tableNum}`);
+    if (!canvas) return;
     const a = document.createElement('a');
-    a.href = dataUrl;
-    a.download = `qr-${brand}-masa-${tableNum}.png`;
+    a.href = canvas.toDataURL('image/png');
+    a.download = `qr-${brand}-loc${locId}-masa-${tableNum}.png`;
     a.click();
   };
 
   const downloadAll = () => {
-    qrs.forEach((q, i) => {
-      setTimeout(() => downloadQr(q.dataUrl, q.tableNumber), i * 200);
-    });
-  };
-
-  const clearQrs = () => {
-    setQrs([]);
-    localStorage.removeItem(storageKey);
+    for (let i = 1; i <= dbTableCount; i++) {
+        setTimeout(() => downloadQr(i), i * 200);
+    }
   };
 
   const selectedBrand = brands.find(b => b.id === brand) || brands[0];
 
+  if (loadingLocs) return <p style={{ color: 'var(--text-muted)' }}>Se încarcă locațiile...</p>;
+  if (!locations.length) return <p style={{ color: 'var(--text-muted)' }}>Nu ai nicio locație creată.</p>;
+
   return (
     <div className="qr-gen">
-      {/* Controls */}
       <div className="qr-controls">
         <div className="qr-field">
           <label>Brand</label>
           <div className="qr-brand-pills">
             {brands.map(b => (
-              <button
-                key={b.id}
-                className={`qr-brand-pill ${brand === b.id ? 'active' : ''}`}
+              <button key={b.id} className={`qr-brand-pill ${brand === b.id ? 'active' : ''}`}
                 style={{ ...(brand === b.id ? { background: b.color, borderColor: b.color } : {}), display: 'flex', alignItems: 'center', gap: '6px' }}
-                onClick={() => setBrand(b.id)}
-              >
+                onClick={() => setBrand(b.id)}>
                 <BrandLogo brandId={b.id} size={14} /> {b.name}
               </button>
             ))}
@@ -1837,54 +1881,74 @@ function QrGenerator({ backend }) {
 
         <div className="qr-field-row">
           <div className="qr-field">
-            <label>Locație ID</label>
-            <input type="text" value={loc} onChange={e => setLoc(e.target.value)} placeholder="ex: 1" />
+            <label>Locație</label>
+            <select value={locId} onChange={e => setLocId(e.target.value)} className="um-input">
+              {locations.map(l => (
+                <option key={l.id} value={l.id}>{l.name} (ID: {l.id})</option>
+              ))}
+            </select>
           </div>
           <div className="qr-field">
             <label>Număr mese</label>
-            <input type="number" min="1" max="50" value={tableCount} onChange={e => setTableCount(parseInt(e.target.value) || 1)} />
+            <input type="number" min="1" max="50" value={tableCount} onChange={e => setTableCount(parseInt(e.target.value) || 1)} className="um-input" />
           </div>
         </div>
 
-        <button className="qr-gen-btn" onClick={generate} disabled={loading} style={{ background: selectedBrand.color }}>
-          {loading ? ' Generez...' : `Generează ${tableCount} QR Coduri`}
+        <button className="qr-gen-btn" onClick={handleSaveGenerate} disabled={saving} style={{ background: selectedBrand.color }}>
+          {saving ? 'Se salvează...' : `Salvează pentru ${tableCount} mese`}
         </button>
+        <p style={{ marginTop: 8, fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+          *{saving ? 'Așteaptă...' : 'Salvează configurația în baza de date pentru această locație.'}
+        </p>
       </div>
 
-      {/* Results */}
-      {qrs.length > 0 ? (
+      {dbTableCount > 0 ? (
         <div className="qr-results">
           <div className="qr-results-header">
-            <h3>{selectedBrand.name} — {qrs.length} coduri generate</h3>
+            <h3>{selectedBrand.name} — {dbTableCount} coduri generate automat</h3>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button className="qr-dl-all" onClick={downloadAll}>Descarca toate</button>
-              <button className="qr-dl-all" style={{ background: '#fee2e2', color: '#ef4444', border: '1px solid #fca5a5' }} onClick={clearQrs}>Sterge lista</button>
+              <button className="qr-dl-all" onClick={downloadAll}>Descarcă toate</button>
+              <button className="qr-dl-all" style={{ background: '#fee2e2', color: '#ef4444', border: '1px solid #fca5a5' }} onClick={clearQrs}>Șterge lista</button>
             </div>
           </div>
 
           <div className="qr-grid">
-            {qrs.map(q => (
-              <div key={q.tableNumber} className="qr-card">
-                <div className="qr-card-header" style={{ background: selectedBrand.color }}>
-                  Masa {q.tableNumber}
+            {Array.from({ length: dbTableCount }).map((_, i) => {
+              const tableNum = i + 1;
+              const qrUrl = `${QR_WEB_BASE}/?brand=${brand}&table=${tableNum}&loc=${locId}`;
+              return (
+                <div key={tableNum} className="qr-card">
+                  <div className="qr-card-header" style={{ background: selectedBrand.color }}>Masa {tableNum}</div>
+                  <div style={{ padding: 12, display: 'flex', justifyContent: 'center', background: '#fff' }}>
+                    <QRCodeCanvas
+                      id={`qr-canvas-${tableNum}`}
+                      value={qrUrl}
+                      size={200}
+                      level="H"
+                      includeMargin={true}
+                      imageSettings={{
+                        src: brandLogos[brand],
+                        height: 48,
+                        width: 48,
+                        excavate: true,
+                      }}
+                    />
+                  </div>
+                  <div className="qr-card-url">{qrUrl}</div>
+                  <button className="qr-card-dl" onClick={() => downloadQr(tableNum)}>📥 Descarcă PNG</button>
                 </div>
-                <img src={q.dataUrl} alt={`QR Masa ${q.tableNumber}`} className="qr-card-img" />
-                <div className="qr-card-url">{QR_WEB_BASE}/?brand={brand}&table={q.tableNumber}&loc={loc}</div>
-                <button className="qr-card-dl" onClick={() => downloadQr(q.dataUrl, q.tableNumber)}>
-                  📥 Descarcă PNG
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       ) : (
         <div style={{ marginTop: 24, padding: 30, background: 'var(--glass-bg)', backdropFilter: 'blur(20px)', borderRadius: 16, border: '1px solid var(--border)', textAlign: 'center' }}>
           <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>📱</div>
-          <h3 style={{ margin: '0 0 8px', color: 'var(--text)' }}>Niciun QR afișat pe ecran</h3>
+          <h3 style={{ margin: '0 0 8px', color: 'var(--text)' }}>Niciun QR salvat pentru {selectedLoc?.name}</h3>
           <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: 460, display: 'inline-block', lineHeight: 1.5 }}>
-            Codurile QR sunt generate direct aici și <strong>nu se șterg niciodată</strong> pentru că ele conțin doar adrese web (link-uri statice). 
+            Acum codurile QR au <strong>logoul brandului integrat</strong> și se salvează automat în profilul locației.
             <br/><br/>
-            Dacă le-ai printat deja, ele vor funcționa mereu. Apasă din nou pe <strong>Generează QR Coduri</strong> pentru a le afișa pe ecran sau pentru a le descărca din nou. Codurile generate for fi <strong>exact aceleași</strong> ca și cele printate anterior!
+            Dacă le-ai printat deja înainte de noul sistem de salvare, apasă <strong>Salvează pentru X mese</strong> și îți vor apărea la loc. Ele vor rămâne afișate <strong>pentru totdeauna</strong> pe orice dispozitiv vei accesa panoul admin!
           </p>
         </div>
       )}
