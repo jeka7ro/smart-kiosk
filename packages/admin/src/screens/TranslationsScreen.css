@@ -1,7 +1,5 @@
 .translations-screen {
-  padding: 0 40px;
-  max-width: 1000px;
-  margin: 0 auto;
+  /* padding handled by parent admin-section */
 }
 
 .admin-top-bar {
@@ -41,8 +39,8 @@
 
 .translations-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
 }
 
 .t-input-group {
@@ -84,8 +82,8 @@
 
 .t-input-group textarea:focus {
   outline: none;
-  border-color: #10b981;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+  border-color: #0f766e;
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.1);
 }
 
 .tc-actions {
@@ -99,7 +97,7 @@
 
 @media (max-width: 768px) {
   .translations-grid {
-    grid-template-columns: 1fr;
+  grid-template-columns: repeat(2, 1fr);
   }
   .admin-top-bar {
     flex-direction: column;
