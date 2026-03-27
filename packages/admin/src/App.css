@@ -24,22 +24,22 @@
 .admin-nav { padding: 12px 10px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
 .anav-btn {
   display: flex; align-items: center; gap: 12px;
-  background: transparent; color: #475569;
-  border-radius: 12px; padding: 10px 14px; font-size: 0.92rem; font-weight: 600;
-  transition: all 0.2s; text-align: left; width: 100%; border: none;
-  font-family: inherit;
+  background: transparent; color: #334155;
+  border-radius: 12px; padding: 10px 14px; font-size: 0.9rem; font-weight: 600;
+  transition: all 0.18s; text-align: left; width: 100%; border: none;
+  font-family: inherit; cursor: pointer;
 }
-.anav-btn:hover { background: rgba(0,0,0,0.05); color: #1e293b; }
+.anav-btn:hover { background: rgba(15,118,110,0.06); color: #0f766e; }
 .anav-btn.active { 
-  background: rgba(15,118,110,0.1); color: #0f766e; 
-  box-shadow: none;
+  background: rgba(15,118,110,0.12); color: #0d6b62;
   font-weight: 700;
   border-left: 3px solid #0f766e;
   border-radius: 0 12px 12px 0;
   margin-left: -10px;
   padding-left: 20px;
+  box-shadow: inset 0 0 0 0 transparent;
 }
-.anav-icon { font-size: 1.1rem; color: inherit; }
+.anav-icon { font-size: 1.05rem; color: inherit; flex-shrink: 0; }
 
 .admin-conn {
   display: flex; align-items: center; gap: 7px;
