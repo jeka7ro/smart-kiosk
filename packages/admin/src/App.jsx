@@ -377,7 +377,7 @@ export default function AdminApp() {
           </div>
         )}
         {/* ─── USERS MANAGER ─── */}
-        {tab === 'translations' && <div style={{ padding: '24px 28px 80px 28px', flex: 1, overflowY: 'auto', position: 'relative', zIndex: 1 }}><TranslationsScreen backend={BACKEND} /></div>}
+        {tab === 'translations' && <div className="admin-section"><TranslationsScreen backend={BACKEND} /></div>}
         {tab === 'modifiers' && <ModifierImages />}
         {tab === 'integrations' && <Integrations />}
         {tab === 'promotions' && <Promotions />}
