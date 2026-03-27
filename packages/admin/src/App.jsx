@@ -702,7 +702,7 @@ function KiosksManager({ backend }) {
                       <button 
                         title="Restartare Ecrane Remote"
                         className="btn-business-icon"
-                        style={{ background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer', padding: '8px', borderRadius: '8px', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', color: 'var(--text)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                        style={{ background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer', width: 34, height: 34, padding: 0, borderRadius: '50%', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', color: 'var(--text)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                         onClick={async (e) => {
                            e.stopPropagation();
                            if (restartingId === loc.id) return; // already restarting
@@ -728,14 +728,14 @@ function KiosksManager({ backend }) {
                         title="Vizualizare Kiosk direct"
                         href={finalKioskUrl} target="_blank" rel="noreferrer"
                         className="btn-business-icon"
-                        style={{ textDecoration: 'none', background: 'var(--bg-surface)', border: '1px solid var(--border)', cursor: 'pointer', padding: '8px', borderRadius: '8px', transition: 'all 0.2s', color: 'var(--text)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                        style={{ textDecoration: 'none', background: 'var(--bg-surface)', border: '1px solid var(--border)', cursor: 'pointer', width: 34, height: 34, padding: 0, borderRadius: '50%', transition: 'all 0.2s', color: 'var(--text)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                       >
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                       </a>
                       <button 
                         title="Copiază Link Universal"
                         className="btn-business-icon"
-                        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', cursor: 'pointer', padding: '8px', borderRadius: '8px', transition: 'all 0.2s', color: 'var(--text)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', cursor: 'pointer', width: 34, height: 34, padding: 0, borderRadius: '50%', transition: 'all 0.2s', color: 'var(--text)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                         onClick={(e) => {
                           const btn = e.currentTarget;
                           const svg = btn.querySelector('svg');
@@ -751,7 +751,7 @@ function KiosksManager({ backend }) {
                       <button 
                         title="Setări și Screensaver"
                         className="btn-business-icon"
-                        style={{ background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer', padding: '8px', borderRadius: '8px', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', color: 'var(--text)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                        style={{ background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer', width: 34, height: 34, padding: 0, borderRadius: '50%', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', color: 'var(--text)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                         onClick={() => setEditingLoc(loc)}
                       >
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
@@ -2056,7 +2056,7 @@ function LocationsManager({ backend }) {
                     <button 
                       title="Configurare locație"
                       className="btn-business-icon"
-                      style={{ background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer', padding: '8px', borderRadius: '8px', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', color: 'var(--text)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                      style={{ background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer', width: 34, height: 34, padding: 0, borderRadius: '50%', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', color: 'var(--text)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                       onClick={() => setEditingLoc(loc)}
                     >
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
