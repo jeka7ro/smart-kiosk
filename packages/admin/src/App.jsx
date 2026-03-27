@@ -2012,7 +2012,7 @@ function QrGenerator({ backend }) {
         </div>
       ) : (
         <div style={{ marginTop: 24, padding: 30, background: 'var(--glass-bg)', backdropFilter: 'blur(20px)', borderRadius: 16, border: '1px solid var(--border)', textAlign: 'center' }}>
-          <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>📱</div>
+          <div style={{ marginBottom: 16 }}><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/><rect x="19" y="14" width="2" height="2"/><rect x="14" y="19" width="2" height="2"/><rect x="18" y="19" width="3" height="2"/></svg></div>
           <h3 style={{ margin: '0 0 8px', color: 'var(--text)' }}>Niciun QR salvat pentru {selectedLoc?.name}</h3>
           <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: 460, display: 'inline-block', lineHeight: 1.5 }}>
             Acum codurile QR au <strong>logoul brandului integrat</strong> și se salvează automat în profilul locației.

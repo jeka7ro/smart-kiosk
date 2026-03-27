@@ -34,29 +34,28 @@
 }
 
 [data-theme='light'] {
-  /* macOS Tahoe: neutral warm canvas */
-  --mesh-color-1: #f1f5f9;
-  --mesh-color-2: #e2e8f0;
-  --mesh-color-3: #e2e8f0;
-  --mesh-color-4: #e2e8f0;
+  --mesh-color-1: #f8fafc;
+  --mesh-color-2: #e0e7ff;
+  --mesh-color-3: #dcfce7;
+  --mesh-color-4: #f3e8ff;
   
-  /* Glass Variables Light Mode */
-  --glass-bg: rgba(255, 255, 255, 0.72);
-  --glass-bg-hover: rgba(255, 255, 255, 0.9);
-  --glass-border: rgba(0, 0, 0, 0.08);
-  --glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  /* Glass Variables Light Mode - DO NOT change, affects sidebar/header */
+  --glass-bg: rgba(255, 255, 255, 0.65);
+  --glass-bg-hover: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.5);
+  --glass-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
 
-  --bg: #f1f5f9;
+  --bg: #f8fafc;
   --text: #1e293b;
   --text-muted: #64748b;
   
   /* Semantic surface vars — light overrides */
-  --surface: rgba(255, 255, 255, 0.88);
-  --card:    rgba(255, 255, 255, 0.92);
+  --surface: rgba(255, 255, 255, 0.92);
+  --card:    rgba(255, 255, 255, 0.8);
   --border:  rgba(0, 0, 0, 0.08);
-  --bg-surface: rgba(248, 250, 252, 0.95);
+  --bg-surface: rgba(248, 250, 252, 0.9);
 
-  --scrollbar-thumb: rgba(0, 0, 0, 0.15);
+  --scrollbar-thumb: rgba(0, 0, 0, 0.2);
 }
 
 body { 
