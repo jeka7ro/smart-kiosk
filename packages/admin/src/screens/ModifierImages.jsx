@@ -241,17 +241,28 @@ export default function ModifierImages() {
             );
           })}
         </div>
-        <input className="um-search" placeholder="🔍 Caută modificator..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); setSelected(new Set()); }} style={{ flex: 1, minWidth: 200 }} />
-        {selected.size > 0 ? (
+        <div style={{ flex: 1, minWidth: 200, position: 'relative' }}>
+          <input 
+            className="um-search" 
+            placeholder="🔍 Caută modificator..." 
+            value={search} 
+            onChange={e => { setSearch(e.target.value); setPage(1); setSelected(new Set()); }} 
+            style={{ width: '100%', boxSizing: 'border-box', paddingRight: 80 }} 
+          />
+          <span style={{
+            position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+            background: '#0f766e', color: '#fff', borderRadius: 12, padding: '2px 8px', 
+            fontSize: '0.75rem', fontWeight: 700, whiteSpace: 'nowrap', pointerEvents: 'none'
+          }}>
+            {filtered.filter(m => m.imageUrl).length}/{filtered.length}
+          </span>
+        </div>
+        {selected.size > 0 && (
           <div className="um-bulk-actions">
             <span className="um-bulk-label">{selected.size} selectați</span>
             <button className="um-btn um-btn--danger" onClick={bulkDelete}>🗑 Șterge imagini ({selected.size})</button>
             <button className="um-btn um-btn--ghost" onClick={() => setSelected(new Set())}>Deselectează</button>
           </div>
-        ) : (
-          <span style={{ fontSize: '0.85rem', opacity: 0.5 }}>
-            {filtered.filter(m => m.imageUrl).length}/{filtered.length} cu imagini
-          </span>
         )}
       </div>
 
