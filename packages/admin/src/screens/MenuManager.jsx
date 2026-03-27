@@ -290,7 +290,10 @@ export function MenuProfileEditorModal({ backend, brand, profile, onClose, onSav
   };
 
   const renderCategoryTree = (categories, parentId) => {
-    const children = categories.filter(c => c.parentGroup === parentId);
+    const children = categories.filter(c => {
+      if (!parentId) return !c.parentGroup || c.parentGroup === null || c.parentGroup === "null";
+      return c.parentGroup === parentId;
+    });
     if (!children.length) return null;
 
     return (
