@@ -380,11 +380,20 @@ export function MenuProfileEditorModal({ backend, brand, profile, onClose, onSav
   };
 
   // Derive root Level Items for the Horizontal Navigation Tabs!
-  const rootMenuItems = menu.categories.filter(c => {
+  let rootMenuItems = menu.categories.filter(c => {
      const startNode = rootFolderId || null;
      if (!startNode) return !c.parentGroup || c.parentGroup === null || c.parentGroup === "null";
      return c.parentGroup === startNode;
   });
+
+  // If a root folder is selected but has NO sub-categories (it's a leaf category),
+  // make the folder itself the only available tab so its products can be edited!
+  if (rootFolderId && rootMenuItems.length === 0) {
+     const selfCategory = menu.categories.find(c => c.id === rootFolderId);
+     if (selfCategory) {
+        rootMenuItems = [selfCategory];
+     }
+  }
 
   // Auto-select first tab when available and not already set
   useEffect(() => {
