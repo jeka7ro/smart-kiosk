@@ -921,6 +921,28 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
     }
   };
 
+  if (editingMenuBrand) {
+    return (
+      <div className="admin-section" style={{ padding: 0 }}>
+        <MenuProfileEditorModal 
+          backend={backend}
+          brand={editingMenuBrand.brand}
+          profile={editingMenuBrand.profile}
+          localHiddenItemsOverride={editingMenuBrand.localHiddenItemsOverride}
+          onClose={() => setEditingMenuBrand(null)}
+          onSave={(updatedConfig) => {
+             const brandId = editingMenuBrand.brand.id;
+             const newOverrides = { ...formData.menuOverrides };
+             if (!newOverrides[brandId]) newOverrides[brandId] = {};
+             newOverrides[brandId].hiddenItems = updatedConfig.hiddenItems;
+             handleChange('menuOverrides', newOverrides);
+             setEditingMenuBrand(null);
+          }}
+        />
+      </div>
+    );
+  }
+
   const finalKioskUrl = formData.kioskUrl || `https://kiosk-smashme.netlify.app/?loc=${loc.id}`;
 
   return (
@@ -1795,23 +1817,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
           </div>
         </div>
 
-      {editingMenuBrand && (
-        <MenuProfileEditorModal 
-          backend={backend}
-          brand={editingMenuBrand.brand}
-          profile={editingMenuBrand.profile}
-          localHiddenItemsOverride={editingMenuBrand.localHiddenItemsOverride}
-          onClose={() => setEditingMenuBrand(null)}
-          onSave={(updatedConfig) => {
-             const brandId = editingMenuBrand.brand.id;
-             const newOverrides = { ...formData.menuOverrides };
-             if (!newOverrides[brandId]) newOverrides[brandId] = {};
-             newOverrides[brandId].hiddenItems = updatedConfig.hiddenItems;
-             handleChange('menuOverrides', newOverrides);
-             setEditingMenuBrand(null);
-          }}
-        />
-      )}
+
     </div>
   );
 }

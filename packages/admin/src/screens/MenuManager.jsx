@@ -87,6 +87,28 @@ export default function MenuManager({ backend }) {
     saveBrandData({ ...brand, data: updatedData });
   };
 
+  if (editingProfileForBrand) {
+    return (
+      <div className="admin-section" style={{ padding: 0 }}>
+        <MenuProfileEditorModal 
+          backend={backend}
+          brand={editingProfileForBrand.brand}
+          profile={editingProfileForBrand.profile}
+          onClose={() => setEditingProfileForBrand(null)}
+          onSave={(updatedProfile) => {
+            const b = editingProfileForBrand.brand;
+            const updatedData = {
+              ...b.data,
+              menuProfiles: b.data.menuProfiles.map(p => p.id === updatedProfile.id ? updatedProfile : p)
+            };
+            saveBrandData({ ...b, data: updatedData });
+            setEditingProfileForBrand(null);
+          }}
+        />
+      </div>
+    );
+  }
+
   if (loading) return <p className="loading-text">Se încarcă managerul de meniu...</p>;
 
   return (
@@ -191,23 +213,6 @@ export default function MenuManager({ backend }) {
         );
       })}
 
-      {editingProfileForBrand && (
-        <MenuProfileEditorModal 
-          backend={backend}
-          brand={editingProfileForBrand.brand}
-          profile={editingProfileForBrand.profile}
-          onClose={() => setEditingProfileForBrand(null)}
-          onSave={(updatedProfile) => {
-            const b = editingProfileForBrand.brand;
-            const updatedData = {
-              ...b.data,
-              menuProfiles: b.data.menuProfiles.map(p => p.id === updatedProfile.id ? updatedProfile : p)
-            };
-            saveBrandData({ ...b, data: updatedData });
-            setEditingProfileForBrand(null);
-          }}
-        />
-      )}
 
       {/* CUSTOM PROMPT MODALS TO AVOID NATIVE BROWSER POPUPS BLOCKING */}
       {actionModal && (
