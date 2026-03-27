@@ -230,7 +230,7 @@ export default function Integrations() {
                     <td className="um-cell--muted">{(page - 1) * PAGE_SIZE + i + 1}</td>
                     <td>
                       <strong
-                        style={{ cursor: 'pointer', color: 'var(--primary)', textDecoration: 'underline', textUnderlineOffset: 3 }}
+                        style={{ cursor: 'pointer', color: 'var(--primary)', fontWeight: 700 }}
                         onClick={() => setSelectedDetail(integ)}
                       >{integ.name}</strong>
                     </td>
@@ -243,7 +243,14 @@ export default function Integrations() {
                         {pm.label}
                       </span>
                     </td>
-                    <td className="um-cell--muted">{integ.brand_id || '—'}</td>
+                    <td>
+                      {integ.brand_id ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <img src={`/brands/${integ.brand_id.toLowerCase()}-logo.png`} alt={integ.brand_id} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border)' }} onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='block'; }} />
+                          <span style={{ display: 'none', textTransform: 'uppercase', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>{integ.brand_id}</span>
+                        </div>
+                      ) : <span className="um-cell--muted">—</span>}
+                    </td>
                     <td>
                       <span style={{ background: st.bg, color: st.color, padding: '3px 10px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 700 }}>
                         {st.label}
@@ -262,12 +269,12 @@ export default function Integrations() {
                     <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                       {/* Edit */}
                       <button title="Editează" onClick={() => openEdit(integ)}
-                        style={{ background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer', padding: '7px', borderRadius: '8px', color: 'var(--text)', display: 'inline-flex', alignItems: 'center', transition: 'all 0.2s' }}>
+                        style={{ background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer', width: 34, height: 34, padding: 0, borderRadius: '50%', justifyContent: 'center', color: 'var(--text)', display: 'inline-flex', alignItems: 'center', transition: 'all 0.2s' }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
                       </button>
                       {/* Test */}
                       <button title="Test conexiune" disabled={testing === integ.id} onClick={() => testConnection(integ.id)}
-                        style={{ marginLeft: 5, background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer', padding: '7px', borderRadius: '8px', color: testing === integ.id ? 'var(--text-muted)' : '#f59e0b', display: 'inline-flex', alignItems: 'center', transition: 'all 0.2s' }}>
+                        style={{ marginLeft: 5, background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer', width: 34, height: 34, padding: 0, borderRadius: '50%', justifyContent: 'center', color: testing === integ.id ? 'var(--text-muted)' : '#f59e0b', display: 'inline-flex', alignItems: 'center', transition: 'all 0.2s' }}>
                         {testing === integ.id
                           ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
                           : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="13 2 13 9 20 9"/><path d="M3 21L13 11 17 15 21 11M7 11L3 21"/></svg>
@@ -275,12 +282,12 @@ export default function Integrations() {
                       </button>
                       {/* Sync */}
                       <button title="Sincronizează meniu" disabled={syncing === integ.id} onClick={() => syncMenu(integ.id, integ.name)}
-                        style={{ marginLeft: 5, background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer', padding: '7px', borderRadius: '8px', color: syncing === integ.id ? 'var(--text-muted)' : '#06b6d4', display: 'inline-flex', alignItems: 'center', transition: 'all 0.2s' }}>
+                        style={{ marginLeft: 5, background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer', width: 34, height: 34, padding: 0, borderRadius: '50%', justifyContent: 'center', color: syncing === integ.id ? 'var(--text-muted)' : '#06b6d4', display: 'inline-flex', alignItems: 'center', transition: 'all 0.2s' }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
                       </button>
                       {/* Delete */}
                       <button title="Șterge" onClick={() => deleteOne(integ)}
-                        style={{ marginLeft: 5, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', cursor: 'pointer', padding: '7px', borderRadius: '8px', color: '#ef4444', display: 'inline-flex', alignItems: 'center', transition: 'all 0.2s' }}>
+                        style={{ marginLeft: 5, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', cursor: 'pointer', width: 34, height: 34, padding: 0, borderRadius: '50%', justifyContent: 'center', color: '#ef4444', display: 'inline-flex', alignItems: 'center', transition: 'all 0.2s' }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>
                       </button>
                     </td>

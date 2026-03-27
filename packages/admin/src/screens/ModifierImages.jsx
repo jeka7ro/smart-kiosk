@@ -173,7 +173,15 @@ export default function ModifierImages() {
                   <tr key={sug.modifier.id} className={selectedSugs.has(sug.modifier.id) ? 'um-row--selected' : ''}>
                     <td><input type="checkbox" checked={selectedSugs.has(sug.modifier.id)} onChange={() => toggleOneSug(sug.modifier.id)} /></td>
                     <td className="um-cell--muted">{i + 1}</td>
-                    <td><strong>{sug.modifier.name}</strong><br /><small className="um-cell--muted">{sug.modifier.brandId}</small></td>
+                    <td>
+                      <strong>{sug.modifier.name}</strong><br />
+                      {sug.modifier.brandId ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                          <img src={`/brands/${sug.modifier.brandId.toLowerCase()}-logo.png`} alt={sug.modifier.brandId} style={{ width: 16, height: 16, borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border)' }} onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='block'; }} />
+                          <small className="um-cell--muted" style={{ display: 'none' }}>{sug.modifier.brandId}</small>
+                        </div>
+                      ) : <small className="um-cell--muted">—</small>}
+                    </td>
                     <td className="um-cell--muted">{sug.modifier.groupName}</td>
                     <td className="um-cell--muted">{sug.suggestedProduct.name}</td>
                     <td>
@@ -279,7 +287,14 @@ export default function ModifierImages() {
                   </td>
                   <td><strong>{mod.name}</strong></td>
                   <td className="um-cell--muted">{mod.groupName}</td>
-                  <td className="um-cell--muted um-cell--sm" style={{ textTransform: 'uppercase', letterSpacing: '0.04em' }}>{mod.brandId}</td>
+                  <td>
+                    {mod.brandId ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <img src={`/brands/${mod.brandId.toLowerCase()}-logo.png`} alt={mod.brandId} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border)' }} onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='block'; }} />
+                        <span style={{ display: 'none', textTransform: 'uppercase', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>{mod.brandId}</span>
+                      </div>
+                    ) : <span className="um-cell--muted">—</span>}
+                  </td>
                   <td>
                     {mod.price > 0
                       ? <span style={{ color: '#d32f2f', fontWeight: 600 }}>+{mod.price.toFixed(2)} lei</span>

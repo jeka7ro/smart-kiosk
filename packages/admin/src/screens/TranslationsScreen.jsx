@@ -259,7 +259,7 @@ export default function TranslationsScreen({ backend }) {
                       </td>
                       <td style={{ padding: '12px 16px' }}>
                         {logoSrc
-                          ? <img src={logoSrc} alt={item.brandId} style={{ height: '24px', objectFit: 'contain' }} />
+                          ? <img src={logoSrc} alt={item.brandId} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border)' }} />
                           : <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>{(item.brandId || 'NEDEFINIT').toUpperCase()}</span>
                         }
                       </td>
