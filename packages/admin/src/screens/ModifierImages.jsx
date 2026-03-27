@@ -5,6 +5,13 @@ import './UsersManager.css'; // reuse same table CSS
 const BACKEND   = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 const PAGE_SIZE = 25;
 
+const BRANDS = [
+  { id: 'smashme',     label: 'SmashMe',     color: '#ef4444' },
+  { id: 'sushimaster', label: 'Sushi Master',color: '#3b82f6' },
+  { id: 'welovesushi', label: 'WeLoveSushi', color: '#f59e0b' },
+  { id: 'ikura',       label: 'Ikura',       color: '#10b981' }
+];
+
 export default function ModifierImages() {
   const { fetchWithAuth } = useAuth();
   const [modifiers,   setModifiers]   = useState([]);
@@ -13,6 +20,7 @@ export default function ModifierImages() {
   const [selected,    setSelected]    = useState(new Set());
   const [page,        setPage]        = useState(1);
   const [search,      setSearch]      = useState('');
+  const [activeBrand, setActiveBrand] = useState('ALL');
   const [editingId,   setEditingId]   = useState(null);
   const [editUrl,     setEditUrl]     = useState('');
   const [saving,      setSaving]      = useState(null);
@@ -39,11 +47,12 @@ export default function ModifierImages() {
   useEffect(() => { fetchAll(); }, []);
 
   const filtered = useMemo(() =>
-    modifiers.filter(m =>
-      m.name?.toLowerCase().includes(search.toLowerCase()) ||
-      m.groupName?.toLowerCase().includes(search.toLowerCase()) ||
-      m.brandId?.toLowerCase().includes(search.toLowerCase())
-    ), [modifiers, search]);
+    modifiers.filter(m => {
+      if (activeBrand !== 'ALL' && m.brandId?.toLowerCase() !== activeBrand) return false;
+      return m.name?.toLowerCase().includes(search.toLowerCase()) ||
+             m.groupName?.toLowerCase().includes(search.toLowerCase()) ||
+             m.brandId?.toLowerCase().includes(search.toLowerCase());
+    }), [modifiers, search, activeBrand]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -190,8 +199,41 @@ export default function ModifierImages() {
       )}
 
       {/* ── Toolbar ──────────────────────────────────────────── */}
-      <div className="um-toolbar">
-        <input className="um-search" placeholder="🔍 Caută modificator..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); setSelected(new Set()); }} />
+      <div className="um-toolbar" style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button
+            onClick={() => setActiveBrand('ALL')}
+            style={{
+              padding: '6px 14px', borderRadius: 20, fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
+              background: activeBrand === 'ALL' ? '#0f766e' : 'var(--surface)',
+              color: activeBrand === 'ALL' ? '#fff' : 'var(--text-muted)',
+              border: `1px solid ${activeBrand === 'ALL' ? '#0f766e' : 'var(--border)'}`,
+              height: 38, display: 'flex', alignItems: 'center'
+            }}
+          >Toate</button>
+          {BRANDS.map(b => {
+            const isActive = activeBrand === b.id;
+            return (
+              <button
+                key={b.id}
+                onClick={() => { setActiveBrand(b.id); setPage(1); }}
+                title={b.label}
+                style={{
+                  width: 38, height: 38, borderRadius: '50%', padding: 0,
+                  border: isActive ? `2px solid ${b.color}` : '1px solid var(--border)',
+                  background: '#fff', cursor: 'pointer', transition: 'all 0.2s',
+                  boxShadow: isActive ? `0 4px 10px ${b.color}40` : 'none',
+                  opacity: isActive ? 1 : 0.5,
+                  transform: isActive ? 'scale(1.1)' : 'scale(1)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden'
+                }}
+              >
+                <img src={`/brands/${b.id}-logo.png`} alt={b.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display='none'; }} />
+              </button>
+            );
+          })}
+        </div>
+        <input className="um-search" placeholder="🔍 Caută modificator..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); setSelected(new Set()); }} style={{ flex: 1, minWidth: 200 }} />
         {selected.size > 0 ? (
           <div className="um-bulk-actions">
             <span className="um-bulk-label">{selected.size} selectați</span>

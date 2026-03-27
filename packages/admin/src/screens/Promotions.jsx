@@ -137,15 +137,18 @@ export default function Promotions() {
             <button
               key={b.id}
               onClick={() => setActiveBrand(b.id)}
+              title={b.label}
               style={{
-                background: isActive ? b.color : 'var(--surface)',
-                color: isActive ? '#fff' : 'var(--text-muted)',
-                border: `1px solid ${isActive ? b.color : 'var(--border)'}`,
-                padding: '10px 20px', borderRadius: 12, fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.2s',
-                boxShadow: isActive ? `0 4px 12px ${b.color}40` : 'none'
+                width: 46, height: 46, borderRadius: '50%', padding: 0,
+                border: isActive ? `2px solid ${b.color}` : '1px solid var(--border)',
+                background: '#fff', cursor: 'pointer', transition: 'all 0.2s',
+                boxShadow: isActive ? `0 6px 16px ${b.color}50` : 'none',
+                opacity: isActive ? 1 : 0.4,
+                transform: isActive ? 'scale(1.1)' : 'scale(1)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden'
               }}
             >
-              {b.label}
+              <img src={`/brands/${b.id}-logo.png`} alt={b.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display='none'; }} />
             </button>
           );
         })}
