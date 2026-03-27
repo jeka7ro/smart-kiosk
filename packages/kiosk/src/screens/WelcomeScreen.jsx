@@ -63,7 +63,7 @@ export default function WelcomeScreen() {
 
 const FLAG_GRADIENTS = {
   ro: 'linear-gradient(90deg, #002B7F 33.3%, #FCD116 33.3% 66.6%, #CE1126 66.6%)',
-  en: 'linear-gradient(90deg, #012169 0%, #C8102E 100%)',
+  en: 'linear-gradient(135deg, #012169 25%, #FFFFFF 25% 42%, #C8102E 42% 58%, #FFFFFF 58% 75%, #012169 75%)',
   fr: 'linear-gradient(90deg, #002395 33.3%, #FFFFFF 33.3% 66.6%, #ED2939 66.6%)',
   hu: 'linear-gradient(180deg, #CE2939 33.3%, #FFFFFF 33.3% 66.6%, #477050 66.6%)',
   ru: 'linear-gradient(180deg, #FFFFFF 33.3%, #0039A6 33.3% 66.6%, #D52B1E 66.6%)',
