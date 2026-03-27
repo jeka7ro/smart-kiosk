@@ -247,16 +247,18 @@ export default function ModifierImages() {
             placeholder="🔍 Caută modificator..." 
             value={search} 
             onChange={e => { setSearch(e.target.value); setPage(1); setSelected(new Set()); }} 
-            style={{ width: '100%', boxSizing: 'border-box', paddingRight: 80 }} 
+            style={{ width: '100%', boxSizing: 'border-box', paddingRight: search ? 80 : 14 }} 
           />
-          <span style={{
-            position: 'absolute', right: 4, top: 4, bottom: 4, 
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: '#0f766e', color: '#fff', borderRadius: 20, padding: '0 12px', 
-            fontSize: '0.8rem', fontWeight: 700, whiteSpace: 'nowrap', pointerEvents: 'none'
-          }}>
-            {filtered.filter(m => m.imageUrl).length}/{filtered.length}
-          </span>
+          {search && (
+            <span style={{
+              position: 'absolute', right: 4, top: 4, bottom: 4, 
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: '#0f766e', color: '#fff', borderRadius: 20, padding: '0 12px', 
+              fontSize: '0.8rem', fontWeight: 700, whiteSpace: 'nowrap', pointerEvents: 'none'
+            }}>
+              {filtered.filter(m => m.imageUrl).length}/{filtered.length}
+            </span>
+          )}
         </div>
         {selected.size > 0 && (
           <div className="um-bulk-actions">
