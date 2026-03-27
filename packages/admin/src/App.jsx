@@ -2086,12 +2086,21 @@ function LocationEditForm({ loc, backend, onBack, onSave }) {
 
   return (
     <div className="loc-edit-form fade-in">
-      <div className="loc-edit-header" style={{ marginBottom: 24, paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
-        <button className="btn btn-secondary" style={{ marginBottom: 16 }} onClick={onBack}>← Inapoi</button>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ fontSize: '1.4rem', margin: 0 }}>Editare Locatie: <span style={{ color: '#0f172a' }}>{loc.name}</span></h2>
-          <button className="btn btn-primary" onClick={saveLoc}>Salvează Modificările</button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 28, paddingBottom: 20, borderBottom: '1px solid var(--border)', flexWrap: 'wrap' }}>
+        <button onClick={onBack}
+          style={{ padding: '8px 18px', borderRadius: 12, border: '1.5px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          ← Înapoi
+        </button>
+        <div style={{ flex: 1 }}>
+          <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em' }}>
+            {loc.name}
+          </h2>
+          <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>Editare locație</p>
         </div>
+        <button onClick={saveLoc}
+          style={{ padding: '11px 26px', borderRadius: 12, border: 'none', background: '#0f172a', color: '#fff', fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', boxShadow: '0 4px 14px rgba(15,23,42,0.2)', flexShrink: 0 }}>
+          Salvează Modificările
+        </button>
       </div>
 
       <div className="loc-edit-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(400px, 1fr)', gap: '24px', maxWidth: 800 }}>
