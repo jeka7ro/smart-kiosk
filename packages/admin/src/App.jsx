@@ -1765,7 +1765,7 @@ function QrGenerator({ backend }) {
   const QR_WEB_BASE = 'https://qr-restaurants.netlify.app';
 
   // Persist QR codes in localStorage keyed by brand+loc. Added _v2 to invalidate old wrongly-generated QRs.
-  const storageKey = `qr_codes_v2_${brand}_${loc}`;
+  const storageKey = `qr_codes_${brand}_${loc}`;
 
   useEffect(() => {
     try {
