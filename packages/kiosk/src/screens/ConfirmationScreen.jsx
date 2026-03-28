@@ -35,7 +35,7 @@ export default function ConfirmationScreen() {
         const locId = new URLSearchParams(window.location.search).get('loc') || localStorage.getItem('kiosk_loc_id');
         if (!locId) return;
         
-        const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
+        const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
         const res = await fetch(`${BACKEND}/api/promotions/kiosk/${locId}`);
         const pData = await res.json();
         

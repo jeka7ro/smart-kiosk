@@ -6,7 +6,7 @@ import { t, LANGUAGES, LANGUAGE_NAMES, LANGUAGE_FLAGS } from '../i18n/translatio
 import { io } from 'socket.io-client';
 import './WelcomeScreen.css';
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
+const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
 
 export default function WelcomeScreen() {
   const goTo    = useKioskStore((s) => s.goTo);

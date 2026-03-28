@@ -2,6 +2,10 @@
   command = "npm install && npm run build"
   publish = "dist"
 
+  [build.environment]
+    VITE_BACKEND_URL = "https://smart-kiosk-ttut.onrender.com"
+    VITE_API_KEY = "sk-live-2024-secure"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

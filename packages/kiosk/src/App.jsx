@@ -20,7 +20,7 @@ import PinScreen           from './screens/PinScreen';
 import FortuneWheel        from './components/FortuneWheel';
 import { proxySyrveImage } from './utils/imageUtils.js';
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
+const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
 
 
 
@@ -208,32 +208,24 @@ export default function App() {
   if (loading) return null;
 
   if (!locationData) {
+    const locId = new URLSearchParams(window.location.search).get('loc') || localStorage.getItem('kiosk_loc_id');
     return (
       <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', alignItems: 'center', justifyContent: 'center', background: '#111827', color: '#fff', gap: '24px', fontFamily: 'inherit' }}>
-        <h1 style={{ fontSize: '2.5rem', marginBottom: '16px' }}>Kiosk Setup</h1>
-        <p style={{ fontSize: '1.2rem', opacity: 0.8, marginBottom: '32px' }}>Alege locația pentru această tabletă (salvare integrată PWA):</p>
-        
-        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center', maxWidth: '600px' }}>
-          <button 
-            style={{ padding: '20px 40px', fontSize: '1.5rem', borderRadius: '16px', background: '#ef4444', color: '#fff', border: 'none', cursor: 'pointer', boxShadow: '0 4px 12px rgba(239,68,68,0.4)' }}
-            onClick={() => {
-              localStorage.setItem('kiosk_loc_id', 'sm-brasov');
-              window.location.href = '/?loc=sm-brasov';
-            }}
-          >
-            📍 Brașov
-          </button>
-          
-          <button 
-            style={{ padding: '20px 40px', fontSize: '1.5rem', borderRadius: '16px', background: '#3b82f6', color: '#fff', border: 'none', cursor: 'pointer', boxShadow: '0 4px 12px rgba(59,130,246,0.4)' }}
-            onClick={() => {
-              localStorage.setItem('kiosk_loc_id', 'sm-bucuresti');
-              window.location.href = '/?loc=sm-bucuresti';
-            }}
-          >
-            📍 București
-          </button>
-        </div>
+        {locId ? (
+          <>
+            <div style={{ width: 56, height: 56, border: '4px solid rgba(255,255,255,0.15)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.9s linear infinite' }} />
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            <p style={{ fontSize: '1.1rem', opacity: 0.7, margin: 0 }}>Se conectează la server...</p>
+            <button
+              onClick={() => window.location.reload()}
+              style={{ marginTop: 8, padding: '10px 28px', fontSize: '1rem', borderRadius: '12px', background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', cursor: 'pointer' }}
+            >
+              Reîncearcă
+            </button>
+          </>
+        ) : (
+          <p style={{ fontSize: '1.2rem', opacity: 0.7 }}>Nicio locație configurată. Adaugă <code>?loc=ID</code> în URL.</p>
+        )}
       </div>
     );
   }

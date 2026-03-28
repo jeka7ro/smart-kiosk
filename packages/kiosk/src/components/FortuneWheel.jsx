@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useKioskStore } from '../store/kioskStore';
+import { t } from '../i18n/translations';
 
 // CSS IN JS for Keyframes & Blur
 const style = document.createElement('style');
@@ -35,6 +36,7 @@ document.head.appendChild(style);
 export default function FortuneWheel({ config, onClose, onWin }) {
   const slices = config?.slices || [];
   const brandId = useKioskStore(s => s.activeBrandId) || 'smashme';
+  const lang = useKioskStore(s => s.lang) || 'ro';
   
   const [isSpinning, setIsSpinning] = useState(false);
   const [wheelRotation, setWheelRotation] = useState(0);
@@ -46,8 +48,8 @@ export default function FortuneWheel({ config, onClose, onWin }) {
   if (slices.length === 0) {
     return (
       <div className="fortune-wheel-container">
-        <h2>Roata Norocului nu a fost configurată corect.</h2>
-        <button onClick={onClose} style={{ marginTop: 20, padding: '12px 24px', borderRadius: 12, background: '#fff', color: '#000', fontWeight: 800, border: 'none' }}>Închide</button>
+        <h2>{t('wheel_not_configured', lang)}</h2>
+        <button onClick={onClose} style={{ marginTop: 20, padding: '12px 24px', borderRadius: 12, background: '#fff', color: '#000', fontWeight: 800, border: 'none' }}>{t('close', lang)}</button>
       </div>
     );
   }
@@ -125,9 +127,9 @@ export default function FortuneWheel({ config, onClose, onWin }) {
       {/* Header Text */}
       <div style={{ position: 'absolute', top: 30, width: '100%', textAlign: 'center', transition: 'all 0.4s', opacity: showWinModal ? 0 : 1 }}>
         <h1 style={{ fontSize: '3.8rem', fontWeight: 900, textTransform: 'uppercase', margin: 0, textShadow: '0 4px 24px rgba(0,0,0,0.6)', color: '#fef08a' }}>
-          {config?.title || 'Roata Norocului'}
+          {config?.title || t('wheel_default_title', lang)}
         </h1>
-        <p style={{ fontSize: '1.4rem', opacity: 0.9, marginTop: 10, fontWeight: 700 }}>Apasă pe buton și descoperă surpriza!</p>
+        <p style={{ fontSize: '1.4rem', opacity: 0.9, marginTop: 10, fontWeight: 700 }}>{t('wheel_subtitle', lang)}</p>
       </div>
 
       {/* Wheel Area */}
@@ -183,7 +185,7 @@ export default function FortuneWheel({ config, onClose, onWin }) {
               const isLeft = midAngle > 90 && midAngle < 270;
               const textRot = isLeft ? midAngle + 180 : midAngle;
               
-              const sliceName = slice.type === 'nada' ? 'Necâștigător' : slice.name;
+              const sliceName = slice.type === 'nada' ? t('wheel_no_loser_slice', lang) : slice.name;
 
               const words = sliceName.split(' ');
               const lines = [];
@@ -260,7 +262,7 @@ export default function FortuneWheel({ config, onClose, onWin }) {
           onMouseUp={e => !isSpinning && (e.currentTarget.style.transform = 'scale(1)')}
           onMouseLeave={e => !isSpinning && (e.currentTarget.style.transform = 'scale(1)')}
         >
-          {isSpinning ? 'Se învârte...' : 'ÎNVÂRTE ROATA!'}
+          {isSpinning ? t('wheel_spinning', lang) : t('wheel_spin_button', lang)}
         </button>
       </div>
 
@@ -277,22 +279,22 @@ export default function FortuneWheel({ config, onClose, onWin }) {
         <div style={{ position: 'absolute', bottom: 60, left: '50%', transform: 'translateX(-50%)', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.3)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)', borderRadius: 32, padding: '40px 60px', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.4)', animation: 'spinWin 0.6s cubic-bezier(0.16,1,0.3,1)', width: '80%', maxWidth: 700 }}>
           {winningSlice.type === 'nada' ? (
             <>
-              <h2 style={{ fontSize: '2.5rem', margin: 0, fontWeight: 900 }}>Ai nimerit: {winningSlice.name}</h2>
-              <p style={{ fontSize: '1.2rem', opacity: 0.8, marginTop: 10 }}>Mai încearcă altă dată! Norocul se întoarce.</p>
-              <button onClick={onClose} style={{ marginTop: 30, padding: '16px 40px', fontSize: '1.2rem', fontWeight: 800, borderRadius: 20, border: 'none', background: '#fff', color: '#0f172a', cursor: 'pointer' }}>Înapoi la meniu</button>
+              <h2 style={{ fontSize: '2.5rem', margin: 0, fontWeight: 900 }}>{t('wheel_no_win_title', lang).replace('{name}', winningSlice.name)}</h2>
+              <p style={{ fontSize: '1.2rem', opacity: 0.8, marginTop: 10 }}>{t('wheel_no_win_sub', lang)}</p>
+              <button onClick={onClose} style={{ marginTop: 30, padding: '16px 40px', fontSize: '1.2rem', fontWeight: 800, borderRadius: 20, border: 'none', background: '#fff', color: '#0f172a', cursor: 'pointer' }}>{t('wheel_no_win_back', lang)}</button>
             </>
           ) : (
             <>
-              <h2 style={{ fontSize: '1.6rem', color: '#cbd5e1', textTransform: 'uppercase', letterSpacing: 2, margin: 0 }}>Felicitări, ai câștigat!</h2>
+              <h2 style={{ fontSize: '1.6rem', color: '#cbd5e1', textTransform: 'uppercase', letterSpacing: 2, margin: 0 }}>{t('wheel_congrats', lang)}</h2>
               <h1 style={{ fontSize: '3.2rem', margin: '10px 0', fontWeight: 900, color: '#fff', textShadow: `0 4px 20px ${winBg}88` }}>{winningSlice.name}</h1>
-              <p style={{ fontSize: '1.2rem', opacity: 0.9, marginBottom: 30 }}>Acest cadou a fost adăugat GRATUIT în coșul tău!</p>
+              <p style={{ fontSize: '1.2rem', opacity: 0.9, marginBottom: 30 }}>{t('wheel_prize_added', lang)}</p>
               
               <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
                 <button 
                   onClick={() => { onWin && onWin(winningSlice); onClose(); }} 
                   style={{ padding: '20px 48px', fontSize: '1.3rem', fontWeight: 900, borderRadius: 24, border: 'none', background: winBg, color: '#fff', cursor: 'pointer', boxShadow: `0 10px 30px ${winBg}66` }}
                 >
-                  Revendică Premiul!
+                  {t('wheel_claim_prize', lang)}
                 </button>
               </div>
             </>

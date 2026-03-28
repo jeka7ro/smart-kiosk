@@ -901,6 +901,140 @@ export const T = {
     bg: 'Изберете точно {amount}',
     de: 'Wähle genau {amount}',
     es: 'Elija exactamente {amount}'
+  },
+
+  // ── Fortune Wheel ──────────────────────────────────────────────────────
+  wheel_not_configured: {
+    ro: 'Roata Norocului nu a fost configurată corect.',
+    en: 'The Fortune Wheel has not been configured correctly.',
+    fr: 'La Roue de la Fortune n\'a pas été configurée correctement.',
+    hu: 'A Szerencsekerék nincs megfelelően konfigurálva.',
+    ru: 'Колесо Фортуны не настроено корректно.',
+    uk: 'Колесо Фортуни не налаштоване коректно.',
+    bg: 'Колелото на Съдбата не е конфигурирано.',
+    de: 'Das Glücksrad wurde nicht richtig konfiguriert.',
+    es: 'La Rueda de la Fortuna no está configurada correctamente.'
+  },
+  wheel_default_title: {
+    ro: 'Roata Norocului',
+    en: 'Wheel of Fortune',
+    fr: 'Roue de la Fortune',
+    hu: 'Szerencsekerék',
+    ru: 'Колесо Фортуны',
+    uk: 'Колесо Фортуни',
+    bg: 'Колело на Съдбата',
+    de: 'Glücksrad',
+    es: 'Rueda de la Fortuna'
+  },
+  wheel_subtitle: {
+    ro: 'Apasă pe buton și descoperă surpriza!',
+    en: 'Press the button and discover your surprise!',
+    fr: 'Appuyez sur le bouton et découvrez votre surprise !',
+    hu: 'Nyomd meg a gombot és fedezd fel a meglepetést!',
+    ru: 'Нажмите кнопку и откройте свой сюрприз!',
+    uk: 'Натисніть кнопку та дізнайтесь свій сюрприз!',
+    bg: 'Натисни бутона и открий изненадата!',
+    de: 'Drücke den Knopf und entdecke deine Überraschung!',
+    es: '¡Pulsa el botón y descubre tu sorpresa!'
+  },
+  wheel_no_loser_slice: {
+    ro: 'Necâștigător',
+    en: 'No win',
+    fr: 'Sans gain',
+    hu: 'Nem nyert',
+    ru: 'Без выигрыша',
+    uk: 'Без виграшу',
+    bg: 'Без печалба',
+    de: 'Kein Gewinn',
+    es: 'Sin premio'
+  },
+  wheel_spin_button: {
+    ro: 'ÎNVÂRTE ROATA!',
+    en: 'SPIN THE WHEEL!',
+    fr: 'TOURNEZ LA ROUE !',
+    hu: 'FORGASD A KEREKET!',
+    ru: 'КРУТИ КОЛЕСО!',
+    uk: 'КРУТИ КОЛЕСО!',
+    bg: 'ЗАВЪРТИ КОЛЕЛОТО!',
+    de: 'RAD DREHEN!',
+    es: '¡GIRA LA RUEDA!'
+  },
+  wheel_spinning: {
+    ro: 'Se învârte...',
+    en: 'Spinning...',
+    fr: 'En rotation...',
+    hu: 'Forog...',
+    ru: 'Крутится...',
+    uk: 'Крутиться...',
+    bg: 'Върти се...',
+    de: 'Dreht sich...',
+    es: 'Girando...'
+  },
+  wheel_no_win_title: {
+    ro: 'Ai nimerit: {name}',
+    en: 'You got: {name}',
+    fr: 'Vous avez eu : {name}',
+    hu: 'Ezt kaptad: {name}',
+    ru: 'Вы попали на: {name}',
+    uk: 'Ви потрапили на: {name}',
+    bg: 'Получи: {name}',
+    de: 'Du hast: {name}',
+    es: 'Obtuviste: {name}'
+  },
+  wheel_no_win_sub: {
+    ro: 'Mai încearcă altă dată! Norocul se întoarce.',
+    en: 'Try again another time! Luck will come back.',
+    fr: 'Réessayez une autre fois ! La chance reviendra.',
+    hu: 'Próbálja legközelebb! A szerencse visszajön.',
+    ru: 'Попробуйте в следующий раз! Удача вернётся.',
+    uk: 'Спробуйте наступного разу! Удача повернеться.',
+    bg: 'Опитай пак! Късметът ще се върне.',
+    de: 'Versuche es ein anderes Mal! Das Glück kommt zurück.',
+    es: '¡Inténtalo otra vez! La suerte volverá.'
+  },
+  wheel_no_win_back: {
+    ro: 'Înapoi la meniu',
+    en: 'Back to menu',
+    fr: 'Retour au menu',
+    hu: 'Vissza a menühöz',
+    ru: 'Назад к меню',
+    uk: 'Назад до меню',
+    bg: 'Обратно към менюто',
+    de: 'Zurück zum Menü',
+    es: 'Volver al menú'
+  },
+  wheel_congrats: {
+    ro: 'Felicitări, ai câștigat!',
+    en: 'Congratulations, you won!',
+    fr: 'Félicitations, vous avez gagné !',
+    hu: 'Gratulálunk, nyertél!',
+    ru: 'Поздравляем, вы выиграли!',
+    uk: 'Вітаємо, ви виграли!',
+    bg: 'Поздравления, спечели!',
+    de: 'Herzlichen Glückwunsch, du hast gewonnen!',
+    es: '¡Felicidades, ganaste!'
+  },
+  wheel_prize_added: {
+    ro: 'Acest cadou a fost adăugat GRATUIT în coșul tău!',
+    en: 'This gift has been added FREE to your cart!',
+    fr: 'Ce cadeau a été ajouté GRATUITEMENT à votre panier !',
+    hu: 'Ez az ajándék INGYENESEN hozzáadva a kosaradhoz!',
+    ru: 'Этот подарок добавлен в корзину БЕСПЛАТНО!',
+    uk: 'Цей подарунок доданий у кошик БЕЗКОШТОВНО!',
+    bg: 'Тази награда е добавена БЕЗПЛАТНО в количката!',
+    de: 'Dieses Geschenk wurde KOSTENLOS in deinen Warenkorb gelegt!',
+    es: '¡Este regalo se ha añadido GRATIS a tu carrito!'
+  },
+  wheel_claim_prize: {
+    ro: 'Revendică Premiul!',
+    en: 'Claim Your Prize!',
+    fr: 'Réclamez votre prix !',
+    hu: 'Nyerd el a díjad!',
+    ru: 'Забрать приз!',
+    uk: 'Отримати приз!',
+    bg: 'Вземи наградата!',
+    de: 'Preis einlösen!',
+    es: '¡Reclama tu premio!'
   }
 };
 

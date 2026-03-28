@@ -31,6 +31,18 @@ export const useKioskStore = create((set, get) => ({
   // ─── Cart ─────────────────────────────────────────────────
   cartItems: [],
 
+  // ─── Favorites (wishlist — persists until checkout/reset) ─
+  favorites: [],
+
+  toggleFavorite: (product) =>
+    set((state) => ({
+      favorites: state.favorites.find((p) => p.id === product.id)
+        ? state.favorites.filter((p) => p.id !== product.id)
+        : [...state.favorites, product],
+    })),
+
+  clearFavorites: () => set({ favorites: [] }),
+
   // ─── Selected product (for detail screen) ─────────────────
   selectedProduct: null,
 
@@ -156,6 +168,7 @@ export const useKioskStore = create((set, get) => ({
   // ─── Reset ────────────────────────────────────────────────
   resetOrder: () => set({
     cartItems: [],
+    favorites: [],
     orderType: null,
     tableNumber: null,
     selectedProduct: null,
@@ -165,6 +178,7 @@ export const useKioskStore = create((set, get) => ({
   // Alias for inactivity hook
   resetAll: () => set({
     cartItems: [],
+    favorites: [],
     orderType: null,
     tableNumber: null,
     selectedProduct: null,
