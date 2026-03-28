@@ -172,9 +172,8 @@ export default function AdminApp() {
       {/* ─── Sidebar ─── */}
       <aside className={`admin-sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="admin-logo" style={{justifyContent: 'space-between', alignItems: 'center'}}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <img src="/logo_get_image.png" alt="GetApp" style={{ height: '64px', mixBlendMode: 'multiply' }} />
-            <span className="al-text" style={{ fontSize: '1.2rem', fontWeight: 600, letterSpacing: '-0.5px', lineHeight: '1.2' }}>Smart Kiosk<br/><small style={{ fontWeight: 400, opacity: 0.7, fontSize: '0.8rem' }}>Admin Panel</small></span>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <img src="/logo_getapp.png" alt="GetApp Smart Kiosk" style={{ height: '52px', objectFit: 'contain' }} />
           </div>
           <button className="mobile-close-btn" onClick={() => setIsSidebarOpen(false)}>×</button>
         </div>

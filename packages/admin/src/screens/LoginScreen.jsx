@@ -47,11 +47,11 @@ export default function LoginScreen() {
       <div className="login-glass-panel">
         <div className="login-header">
           <img
-            src="/logo_get_image.png"
-            alt="GetApp"
+            src="/logo_getapp.png"
+            alt="GetApp Smart Kiosk"
             className="login-logo"
+            style={{ height: '72px', objectFit: 'contain' }}
           />
-          <h2>Smart Kiosk</h2>
           <p>Autentificare Securizată</p>
         </div>
 
