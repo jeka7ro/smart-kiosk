@@ -49,7 +49,9 @@ export default function MenuScreen() {
   const [error, setError]     = useState(null);
   const [search, setSearch]   = useState('');
   const [flyAnim, setFlyAnim] = useState(null);
-  const [favorites, setFavorites] = useState([]); // ♡ wishlist bar
+  const favorites        = useKioskStore((s) => s.favorites);
+  const toggleFavoriteStore = useKioskStore((s) => s.toggleFavorite);
+  const clearFavorites   = useKioskStore((s) => s.clearFavorites);
   const [modifierModalProduct, setModifierModalProduct] = useState(null);
   const cartBarRef = useRef(null);
 
@@ -60,23 +62,34 @@ export default function MenuScreen() {
   const [locationOrgIds, setLocationOrgIds]  = useState({});         // brandId → orgId from location
 
   const toggleFavorite = useCallback((product) => {
-    setFavorites(prev =>
-      prev.find(p => p.id === product.id)
-        ? prev.filter(p => p.id !== product.id)
-        : [...prev, product]
-    );
-  }, []);
+    toggleFavoriteStore(product);
+  }, [toggleFavoriteStore]);
 
-  const handleFavQuickAdd = useCallback((product) => {
-    // Fix: Use product._brand if it came from cross-brand wishlist
+  const handleFavQuickAdd = useCallback((product, btnEl) => {
     const actualBrandId = product._brand || activeBrandId;
     addToCart(product, 1, [], product.price, actualBrandId);
-    setFavorites(prev => prev.filter(p => p.id !== product.id)); // auto-remove from wishlist
-  }, [addToCart, activeBrandId]);
+    toggleFavoriteStore(product); // remove from favorites
+
+    // Fly animation from fav bar button to cart
+    if (btnEl && cartBarRef.current) {
+      const btnRect = btnEl.getBoundingClientRect();
+      const cartRect = cartBarRef.current.getBoundingClientRect();
+      setFlyAnim({
+        id: Date.now(),
+        img: product.image,
+        startX: btnRect.left + btnRect.width / 2,
+        startY: btnRect.top + btnRect.height / 2,
+        endX: cartRect.left + cartRect.width / 2,
+        endY: cartRect.top,
+      });
+      setTimeout(() => setFlyAnim(null), 850);
+    }
+  }, [addToCart, activeBrandId, toggleFavoriteStore]);
 
   const handleAddAllFavorites = useCallback(() => {
     let requiresConfig = false;
     let addedCount = 0;
+    const toRemove = [];
 
     favorites.forEach(product => {
       const hasReqMods = (product.modifierGroups?.length > 0 && product.modifierGroups.some(m => m.required)) || product.modifiers?.length > 0;
@@ -85,22 +98,34 @@ export default function MenuScreen() {
       } else {
         const actualBrandId = product._brand || activeBrandId;
         addToCart(product, 1, [], product.price, actualBrandId);
+        toRemove.push(product);
         addedCount++;
       }
     });
+
+    // Remove added items from global store
+    toRemove.forEach(p => toggleFavoriteStore(p));
+
+    // Fly animation from center of fav bar to cart
+    if (addedCount > 0 && cartBarRef.current) {
+      const cartRect = cartBarRef.current.getBoundingClientRect();
+      setFlyAnim({
+        id: Date.now(),
+        img: toRemove[0]?.image,
+        startX: window.innerWidth / 2,
+        startY: cartRect.top - 80,
+        endX: cartRect.left + cartRect.width / 2,
+        endY: cartRect.top,
+      });
+      setTimeout(() => setFlyAnim(null), 850);
+    }
 
     if (requiresConfig) {
       showToast(addedCount > 0 ? `Adăugate ${addedCount}. Unele necesită configurare separată!` : 'Toate produsele favorite necesită configurare separată!');
     } else {
       showToast('Toate produsele favorite au fost adăugate!');
     }
-    
-    // Auto-remove those that were successfully added without config
-    setFavorites(prev => prev.filter(p => {
-      const hasReqMods = (p.modifierGroups?.length > 0 && p.modifierGroups.some(m => m.required)) || p.modifiers?.length > 0;
-      return hasReqMods; // keep only those that still need config
-    }));
-  }, [favorites, addToCart, activeBrandId]);
+  }, [favorites, addToCart, activeBrandId, toggleFavoriteStore]);
 
   // Fetch location to discover multi-brand capability
   useEffect(() => {
@@ -355,7 +380,7 @@ export default function MenuScreen() {
                   <span className="fav-item-price">{fav.price} {t('currency', lang) || 'lei'}</span>
                 </div>
                 <div className="fav-item-actions">
-                  <button className="fav-add-btn" title={t('add_to_cart', lang) || "Adaugă în coș"} onClick={() => handleFavQuickAdd(fav)}>+ {t('cart_short', lang) || 'Coș'}</button>
+                  <button className="fav-add-btn" title={t('add_to_cart', lang) || "Adaugă în coș"} onClick={(e) => handleFavQuickAdd(fav, e.currentTarget)}>+ {t('cart_short', lang) || 'Coș'}</button>
                   <button className="fav-del-btn" title={t('delete_short', lang) || "Șterge"} onClick={() => toggleFavorite(fav)}>✕</button>
                 </div>
               </div>
