@@ -60,7 +60,8 @@
 body { 
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   color: var(--text); 
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   margin: 0;
   background-color: var(--mesh-color-1);
   /* Removed Mesh Gradient for a cleaner pro-business solid look */

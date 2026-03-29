@@ -1,5 +1,5 @@
 /* ─── Layout ─── */
-.admin-app { display: flex; min-height: 100vh; }
+.admin-app { display: flex; height: 100vh; overflow: hidden; }
 
 /* ─── Sidebar ─── */
 .admin-sidebar {
