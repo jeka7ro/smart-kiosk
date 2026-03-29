@@ -868,6 +868,20 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
       .catch(() => {});
   }, [backend, fetchWithAuth]);
 
+  // Derived: active brands for this location
+  const activeBrands = formData.brands && formData.brands.length > 0 ? formData.brands : (loc.brands || []);
+
+  // Brand profiles for menu customization
+  const [brandProfiles, setBrandProfiles] = useState({});
+  useEffect(() => {
+    activeBrands.forEach(brandId => {
+      fetchWithAuth(`${backend}/api/menu/profiles/${brandId}`)
+        .then(r => r.json())
+        .then(d => setBrandProfiles(prev => ({ ...prev, [brandId]: d })))
+        .catch(() => setBrandProfiles(prev => ({ ...prev, [brandId]: { profiles: [] } })));
+    });
+  }, [backend, activeBrands.join(',')]);
+
   // Toggles for optional sections
   const [usePin, setUsePin] = useState(!!loc.kioskPin);
   const [useBanner, setUseBanner] = useState(!!loc.topBannerUrl);
