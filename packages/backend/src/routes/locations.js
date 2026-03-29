@@ -1,7 +1,23 @@
 const express = require('express');
 const router = express.Router();
+const path = require('path');
+const fs = require('fs');
 const { pool } = require('../db');
 const { protect, requireApiKey } = require('../middleware/authMiddleware');
+
+const LOCATIONS_FILE = path.join(__dirname, '../../data/locations.json');
+const hasDb = !!process.env.DATABASE_URL;
+
+function readLocFile() {
+  try {
+    const raw = JSON.parse(fs.readFileSync(LOCATIONS_FILE, 'utf8'));
+    return Array.isArray(raw) ? raw : (raw.locations || []);
+  } catch { return []; }
+}
+
+function writeLocFile(locs) {
+  try { fs.writeFileSync(LOCATIONS_FILE, JSON.stringify(locs, null, 2)); } catch(e) { console.error('[Locations JSON write]', e.message); }
+}
 
 // Force bypass browser caching for all location updates!
 router.use((req, res, next) => {
@@ -12,33 +28,40 @@ router.use((req, res, next) => {
 });
 
 // ── Helpers ─────────────────────────────────────────────────
-// Flatten a DB row (id + data JSONB) back to the flat object the frontend expects
 function rowToLoc(row) {
   return { id: row.id, active: row.active, ...row.data };
 }
 
-// GET /api/locations — all locations (optionally filter by brand)
+// GET /api/locations
 router.get('/', requireApiKey, async (req, res) => {
   try {
+    if (!hasDb) throw new Error('no db');
     const { rows } = await pool.query('SELECT * FROM locations ORDER BY created_at ASC');
     let locs = rows.map(rowToLoc);
     const { brandId } = req.query;
     if (brandId) locs = locs.filter(l => l.brands && l.brands.includes(brandId));
-    res.json({ locations: locs, total: locs.length });
+    return res.json({ locations: locs, total: locs.length });
   } catch (e) {
-    console.error('[Locations GET /]', e.message);
-    res.status(500).json({ error: e.message });
+    // JSON file fallback
+    let locs = readLocFile();
+    const { brandId } = req.query;
+    if (brandId) locs = locs.filter(l => l.brands && l.brands.includes(brandId));
+    return res.json({ locations: locs, total: locs.length });
   }
 });
 
 // GET /api/locations/:id
 router.get('/:id', requireApiKey, async (req, res) => {
   try {
+    if (!hasDb) throw new Error('no db');
     const { rows } = await pool.query('SELECT * FROM locations WHERE id = $1', [req.params.id]);
     if (!rows.length) return res.status(404).json({ error: 'Location not found' });
     res.json(rowToLoc(rows[0]));
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    const locs = readLocFile();
+    const loc = locs.find(l => l.id === req.params.id);
+    if (!loc) return res.status(404).json({ error: 'Location not found' });
+    res.json(loc);
   }
 });
 
