@@ -29,9 +29,6 @@ const upload = multer({
 // GET /api/brands — list all brands
 router.get('/', requireApiKey, async (req, res) => {
   try {
-    if (req.query.db_test === '1') {
-      return res.json({ dbUrl: process.env.DATABASE_URL, hasDb: !!process.env.DATABASE_URL });
-    }
     const { rows } = await pool.query('SELECT * FROM brands ORDER BY id ASC');
     res.json({ brands: rows });
   } catch (e) {
