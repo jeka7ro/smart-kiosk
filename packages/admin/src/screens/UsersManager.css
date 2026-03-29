@@ -1,5 +1,5 @@
 /* ─── PAGE ──────────────────────────────────────────────────── */
-.um-page { padding: 24px 32px; }
+.um-page { padding: 24px 32px; flex: 1; overflow-y: auto; }
 
 /* ─── TOOLBAR ─────────────────────────────────────────── */
 .um-toolbar {
