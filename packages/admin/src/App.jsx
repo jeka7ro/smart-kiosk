@@ -858,6 +858,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [showWheelPreviewFull, setShowWheelPreviewFull] = useState(false);
+  const [editingMenuBrand, setEditingMenuBrand] = useState(null);
 
   const [promosData, setPromosData] = useState({});
   useEffect(() => {
