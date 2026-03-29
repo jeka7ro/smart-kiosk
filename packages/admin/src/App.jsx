@@ -877,9 +877,9 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
   useEffect(() => {
     activeBrands.forEach(brandId => {
       fetchWithAuth(`${backend}/api/menu/profiles/${brandId}`)
-        .then(r => r.json())
+        .then(r => r.ok ? r.json() : null)
         .then(d => setBrandProfiles(prev => ({ ...prev, [brandId]: d })))
-        .catch(() => setBrandProfiles(prev => ({ ...prev, [brandId]: { profiles: [] } })));
+        .catch(() => {});
     });
   }, [backend, activeBrands.join(',')]);
 
@@ -1774,7 +1774,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {activeBrands.map(brandId => {
                const bData = brandProfiles[brandId];
-               if (!bData) return null;
+               if (!bData || !bData.brand) return null;
                
                const brandOverrides = (formData.menuOverrides || {})[brandId] || {};
                const currentProfileId = brandOverrides.profileId || '';
