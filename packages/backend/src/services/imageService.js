@@ -51,7 +51,13 @@ async function syncProductImages(menuProducts, brandId) {
 
       // If we already have this exact Syrve URL processed, and it has a local or custom image, skip it.
       if (existing && existing.syrve_image_url === syrveUrl && existing.local_image_url) {
-        continue;
+        // Critical for Render ephemeral disks: verify the file physically survived restarts
+        const expectedPath = path.join(__dirname, '../../', existing.local_image_url);
+        if (fs.existsSync(expectedPath)) {
+          continue;
+        } else {
+          console.warn(`[ImageService] DB has local_image_url but file missing on disk. Redownloading...`);
+        }
       }
 
       console.log(`[ImageService] New or changed image detected for ${product.name}. Downloading...`);

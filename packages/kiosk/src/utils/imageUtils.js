@@ -8,6 +8,11 @@ const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.on
  */
 export function proxySyrveImage(url) {
   if (!url) return null;
-  // Return the original URL directly to leverage Syrve's fast CDN
+  // If it's a locally synchronized file, we must prepend the backend host
+  if (url.startsWith('/uploads')) {
+    const base = BACKEND.endsWith('/') ? BACKEND.slice(0, -1) : BACKEND;
+    return `${base}${url}`;
+  }
+  // Otherwise leverage Syrve's fast CDN directly
   return url;
 }

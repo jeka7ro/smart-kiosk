@@ -215,7 +215,7 @@ export default function ProductOverrides() {
                     <td className="um-cell--muted">{(page - 1) * PAGE_SIZE + i + 1}</td>
                     <td>
                       {displayImage
-                        ? <img src={displayImage.startsWith('http') ? displayImage : `${BACKEND}${displayImage}`} alt="" style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8, border: hasCustom ? '2px solid #8b5cf6' : '1px solid var(--border)' }} onError={e => { e.target.style.display='none'; }} />
+                        ? <img src={displayImage.startsWith('http') ? displayImage : `${BACKEND.endsWith('/') ? BACKEND.slice(0, -1) : BACKEND}${displayImage}`} alt="" style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8, border: hasCustom ? '2px solid #8b5cf6' : '1px solid var(--border)' }} onError={e => { e.target.style.display='none'; }} />
                         : <div style={{ width: 64, height: 64, borderRadius: 8, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.3, fontSize: '1.2rem' }}>?</div>
                       }
                     </td>

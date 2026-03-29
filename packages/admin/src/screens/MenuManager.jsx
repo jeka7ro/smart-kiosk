@@ -261,6 +261,10 @@ export default function MenuManager({ backend }) {
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 function proxySyrveImage(url) {
   if (!url) return '';
+  if (url.startsWith('/uploads')) {
+    const base = BACKEND_URL.endsWith('/') ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
+    return `${base}${url}`;
+  }
   return `${BACKEND_URL}/api/image-proxy?url=${encodeURIComponent(url)}`;
 }
 
