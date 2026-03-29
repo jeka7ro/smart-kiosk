@@ -854,6 +854,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
     defaultLanguage: loc.defaultLanguage || (loc.languages && loc.languages.length > 0 ? loc.languages[0] : 'ro'),
     langButtonColor: loc.langButtonColor || '#0f172a',
     langSelectorPosition: loc.langSelectorPosition || 'after',
+    menuOverrides: loc.menuOverrides || {},
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -1775,7 +1776,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                const bData = brandProfiles[brandId];
                if (!bData) return null;
                
-               const brandOverrides = formData.menuOverrides[brandId] || {};
+               const brandOverrides = (formData.menuOverrides || {})[brandId] || {};
                const currentProfileId = brandOverrides.profileId || '';
                const localHiddenCount = Object.keys(brandOverrides.hiddenItems || {}).length;
 
