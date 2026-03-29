@@ -2,6 +2,9 @@
   command = "npm run build"
   publish = "dist"
 
+  [build.environment]
+    VITE_BACKEND_URL = "https://smart-kiosk-ttut.onrender.com"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

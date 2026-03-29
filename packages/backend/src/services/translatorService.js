@@ -48,6 +48,7 @@ async function translateText(text, targetLang) {
  */
 async function processNewTranslations(products) {
   const dict = loadTranslations();
+  let hasUpdates = false;
   let translateCount = 0;
 
   for (const p of products) {
