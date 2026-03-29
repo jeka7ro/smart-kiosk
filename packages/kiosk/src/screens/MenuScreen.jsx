@@ -10,7 +10,7 @@ import ModifierModal from '../components/ModifierModal.jsx';
 import { proxySyrveImage } from '../utils/imageUtils.js';
 import './MenuScreen.css';
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
+const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
 
 // Fallback org ID map (used when no location is loaded)
 const BRAND_ORG_MAP = {

@@ -3,7 +3,7 @@
   publish = "dist"
 
   [build.environment]
-    VITE_BACKEND_URL = "https://smart-kiosk-ttut.onrender.com"
+    VITE_BACKEND_URL = "https://smart-kiosk-v7ws.onrender.com"
 
 [[redirects]]
   from = "/*"

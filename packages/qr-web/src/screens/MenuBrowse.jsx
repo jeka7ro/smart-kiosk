@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQrStore } from '../store/qrStore.js';
 import './MenuBrowse.css';
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
+const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
 
 // Mock sushi data for brands without Syrve org
 const SUSHI_CATS = [

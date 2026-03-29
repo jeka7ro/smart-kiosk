@@ -20,7 +20,7 @@ import PinScreen           from './screens/PinScreen';
 import FortuneWheel        from './components/FortuneWheel';
 import { proxySyrveImage } from './utils/imageUtils.js';
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
+const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
 
 
 

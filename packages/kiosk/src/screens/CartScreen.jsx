@@ -192,7 +192,7 @@ export default function CartScreen() {
                 const locId = new URLSearchParams(window.location.search).get('loc') || localStorage.getItem('kiosk_loc_id');
                 if (!locId) return goTo('payment');
                 
-                const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
+                const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
                 const res = await fetch(`${BACKEND}/api/promotions/kiosk/${locId}`);
                 const pData = await res.json();
                 

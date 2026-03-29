@@ -4,7 +4,7 @@ import { t } from '../i18n/translations.js';
 import { useInactivityTimeout } from '../hooks/useInactivityTimeout.js';
 import './PaymentScreen.css';
 
-const BACKEND       = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
+const BACKEND       = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
 const DEFAULT_BRAND = import.meta.env.VITE_BRAND       || 'smashme';
 const DEFAULT_ORG   = import.meta.env.VITE_ORG_ID      || '';
 const LOCATION_NAME = import.meta.env.VITE_LOCATION_NAME || '';

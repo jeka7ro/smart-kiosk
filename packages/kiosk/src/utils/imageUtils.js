@@ -1,4 +1,4 @@
-const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
+const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
 
 /**
  * Direct Syrve CDN loading (bypassing backend proxy).

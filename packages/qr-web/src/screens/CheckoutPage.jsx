@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQrStore } from '../store/qrStore.js';
 import './CheckoutPage.css';
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
+const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
 
 export default function CheckoutPage({ brand }) {
   const total      = useQrStore((s) => s.getCartTotal());

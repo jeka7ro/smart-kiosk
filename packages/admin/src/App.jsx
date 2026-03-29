@@ -13,7 +13,7 @@ import FortuneWheelPreview from './components/FortuneWheelPreview';
 import MenuManager, { MenuProfileEditorModal } from './screens/MenuManager';
 import QrGenerator from './screens/QrGenerator';
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
+const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
 
 // ─── Keep-alive: prevent Render.com free tier from sleeping ───────────────────
 function useKeepAlive() {
