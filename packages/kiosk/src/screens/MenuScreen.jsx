@@ -45,6 +45,7 @@ export default function MenuScreen() {
   const [products,   setProducts]   = useState([]);
   const [allProducts, setAllProducts] = useState([]); // all brands combined (for global search)
   const [activeCategory, setActiveCategory] = useState(null);
+  const [activeDiet, setActiveDiet] = useState(null); // null | 'veg' | 'spicy'
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
   const [search, setSearch]   = useState('');
@@ -219,11 +220,22 @@ export default function MenuScreen() {
   }, [categories, products]);
 
   // Filter products by category + search
-  // When searching: search globally across ALL brands, ignore active category
   const filteredProducts = useMemo(() => {
+    // 1. Apply dietary filters to the base pool
+    let baseProds = products;
+    let baseAllProds = allProducts;
+    
+    if (activeDiet === 'veg') {
+      baseProds = baseProds.filter(p => p.isVegetarian);
+      baseAllProds = baseAllProds.filter(p => p.isVegetarian);
+    } else if (activeDiet === 'spicy') {
+      baseProds = baseProds.filter(p => p.isSpicy);
+      baseAllProds = baseAllProds.filter(p => p.isSpicy);
+    }
+
     if (search) {
       const q = search.toLowerCase();
-      const matched = allProducts.filter(p =>
+      const matched = baseAllProds.filter(p =>
         p.name.toLowerCase().includes(q) ||
         (p.description || '').toLowerCase().includes(q)
       );
@@ -238,10 +250,18 @@ export default function MenuScreen() {
         return scoreB - scoreA;
       });
     }
-    return products.filter(p =>
-      !activeCategory || p.categoryId === activeCategory
-    );
-  }, [search, products, allProducts, activeCategory, activeBrandId]);
+    
+    return baseProds.filter(p => !activeCategory || p.categoryId === activeCategory);
+  }, [search, products, allProducts, activeCategory, activeBrandId, activeDiet]);
+
+  const visibleCategories = useMemo(() => {
+    return categories.filter(cat => {
+      return products.some(p => 
+        p.categoryId === cat.id && 
+        (!activeDiet || (activeDiet === 'veg' && p.isVegetarian) || (activeDiet === 'spicy' && p.isSpicy))
+      );
+    });
+  }, [categories, products, activeDiet]);
 
   // Quick add to cart with fly animation
   const handleQuickAdd = useCallback((product, cardEl) => {
@@ -390,10 +410,28 @@ export default function MenuScreen() {
       )}
 
 
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 16, padding: '16px 20px', background: 'var(--bg-surface)' }}>
+        <button 
+          onClick={() => setActiveDiet(null)}
+          style={{ padding: '8px 24px', borderRadius: 40, border: activeDiet === null ? 'none' : '1px solid var(--border)', background: activeDiet === null ? 'var(--brand-color)' : 'transparent', color: activeDiet === null ? '#fff' : 'var(--text)', fontWeight: 700, fontSize: '1.2rem', cursor: 'pointer', transition: 'all 0.2s', boxShadow: activeDiet === null ? '0 4px 12px rgba(0,0,0,0.15)' : 'none', minWidth: 120 }}>
+          {t('all', lang) || 'Toate'}
+        </button>
+        <button 
+          onClick={() => setActiveDiet('veg')}
+          style={{ padding: '8px 24px', borderRadius: 40, border: activeDiet === 'veg' ? 'none' : '1px solid #10b981', background: activeDiet === 'veg' ? '#10b981' : 'transparent', color: activeDiet === 'veg' ? '#fff' : '#10b981', fontWeight: 700, fontSize: '1.2rem', cursor: 'pointer', transition: 'all 0.2s', boxShadow: activeDiet === 'veg' ? '0 4px 12px rgba(16,185,129,0.3)' : 'none' }}>
+          🍃 Vegetarian
+        </button>
+        <button 
+          onClick={() => setActiveDiet('spicy')}
+          style={{ padding: '8px 24px', borderRadius: 40, border: activeDiet === 'spicy' ? 'none' : '1px solid #ef4444', background: activeDiet === 'spicy' ? '#ef4444' : 'transparent', color: activeDiet === 'spicy' ? '#fff' : '#ef4444', fontWeight: 700, fontSize: '1.2rem', cursor: 'pointer', transition: 'all 0.2s', boxShadow: activeDiet === 'spicy' ? '0 4px 12px rgba(239,68,68,0.3)' : 'none' }}>
+          🌶️ Picant
+        </button>
+      </div>
+
       <div className="menu-body">
         {/* ─── SIDEBAR CATEGORIES ────────────────────── */}
         <aside className="category-sidebar">
-          {categories.map(cat => {
+          {visibleCategories.map(cat => {
             // Caută imaginea primului produs din această categorie dacă categoria nu are poză
             const firstProdWithImage = allProducts.find(p => p.categoryId === cat.id && p.image);
             const displayImage = cat.image || firstProdWithImage?.image;

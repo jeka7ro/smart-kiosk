@@ -121,6 +121,20 @@ async function initDb() {
     ON CONFLICT (id) DO NOTHING;
   `);
 
+  // ── Product Overrides (custom images, vegetarian tags) ───────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS product_overrides (
+      id               TEXT PRIMARY KEY,   -- Syrve product UUID
+      brand_id         TEXT,
+      syrve_image_url  TEXT,               -- to detect changes
+      local_image_url  TEXT,               -- auto-downloaded image path
+      custom_image_url TEXT,               -- manually uploaded image path
+      is_vegetarian    BOOLEAN DEFAULT false,
+      is_spicy         BOOLEAN DEFAULT false,
+      updated_at       TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+
   console.log('[DB] Tables initialized (Supabase/PostgreSQL)');
 }
 

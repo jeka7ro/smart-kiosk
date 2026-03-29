@@ -6,6 +6,7 @@ import { useAuth } from './context/AuthProvider';
 import LoginScreen from './screens/LoginScreen';
 import UsersManager from './screens/UsersManager';
 import ModifierImages from './screens/ModifierImages';
+import ProductOverrides from './screens/ProductOverrides';
 import TranslationsScreen from './screens/TranslationsScreen';
 import Integrations   from './screens/Integrations';
 import Promotions     from './screens/Promotions';
@@ -51,7 +52,7 @@ export default function AdminApp() {
   
   const [tab, setTabState] = useState(() => {
     const hash = window.location.hash.replace('#', '');
-    const validTabs = ['dashboard', 'orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'modifiers', 'users', 'integrations', 'promotions', 'brands', 'translations'];
+    const validTabs = ['dashboard', 'orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'modifiers', 'products', 'users', 'integrations', 'promotions', 'brands', 'translations'];
     return validTabs.includes(hash) ? hash : 'orders';
   });
 
@@ -63,7 +64,7 @@ export default function AdminApp() {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '');
-      const validTabs = ['dashboard', 'orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'modifiers', 'users', 'integrations', 'promotions', 'brands', 'translations'];
+      const validTabs = ['dashboard', 'orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'modifiers', 'products', 'users', 'integrations', 'promotions', 'brands', 'translations'];
       if (validTabs.includes(hash)) setTabState(hash);
     };
     window.addEventListener('hashchange', handleHashChange);
@@ -187,6 +188,7 @@ export default function AdminApp() {
             { id: 'menu',      label: 'Meniu / Syrve', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg> },
             { id: 'translations', label: 'Traduceri Automate', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 8l6 6"></path><path d="M4 14l6-6 2-3"></path><path d="M2 5h12"></path><path d="M7 2h1"></path><path d="M22 22l-5-10-5 10"></path><path d="M14 18h6"></path></svg> },
             { id: 'modifiers', label: 'Imagini Opțiuni', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg> },
+            { id: 'products', label: 'Produse & Etichete', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg> },
             ...(user?.role === 'admin' ? [{ id: 'users', label: 'Echipă', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> }] : []),
             ...(user?.role === 'admin' ? [{ id: 'integrations', label: 'Integrări POS', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg> }] : []),
             ...(user?.role === 'admin' ? [{ id: 'promotions', label: 'Promoții ', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 2L12 22"></path><path d="M2 12L22 12"></path><path d="M5 5l14 14"></path><path d="M19 5L5 19"></path></svg> }] : []),
@@ -271,6 +273,7 @@ export default function AdminApp() {
               {tab === 'menu' && 'Sincronizare Syrve'}
               {tab === 'translations' && 'Traduceri Meniu'}
               {tab === 'modifiers' && 'Imagini Modificatori Opțiuni'}
+              {tab === 'products' && 'Suprascriere Imagini & Filtre Produse'}
               {tab === 'integrations' && 'Integrări POS'}
               {tab === 'users' && 'Echipă'}
               {tab === 'promotions' && 'Roata Norocului'}
@@ -355,6 +358,7 @@ export default function AdminApp() {
         {/* ─── USERS MANAGER ─── */}
         {tab === 'translations' && <div className="admin-section"><TranslationsScreen backend={BACKEND} /></div>}
         {tab === 'modifiers' && <ModifierImages />}
+        {tab === 'products' && <ProductOverrides />}
         {tab === 'integrations' && <Integrations />}
         {tab === 'promotions' && <Promotions />}
         {tab === 'users' && <UsersManager />}

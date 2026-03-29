@@ -22,6 +22,7 @@ const integrationsRoutes = require('./routes/integrations');
 const promotionsRoutes = require('./routes/promotions');
 const brandsRoutes     = require('./routes/brands');
 const translationRoutes = require('./routes/translations');
+const productsRoutes    = require('./routes/products');
 
 const app = express();
 const server = http.createServer(app);
@@ -78,6 +79,7 @@ app.use('/api/integrations', integrationsRoutes);
 app.use('/api/promotions',   promotionsRoutes);
 app.use('/api/brands',       brandsRoutes);
 app.use('/api/admin/translations', translationRoutes);
+app.use('/api/products',     productsRoutes);
 
 // Serve uploaded brand logos
 const path = require('path');

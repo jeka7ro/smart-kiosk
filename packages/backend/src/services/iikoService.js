@@ -10,6 +10,7 @@
 
 const API_URL = process.env.SYRVE_API_URL || 'https://api-eu.syrve.live';
 const translator = require('./translatorService.js');
+const { syncProductImages } = require('./imageService.js');
 
 // Brand config — each brand has its own API key + org ID
 const BRANDS = {
@@ -388,6 +389,11 @@ async function syncAllMenus() {
           console.log(`[Syrve] Applied verified translations to live cache for ${brandId}`);
         })
         .catch(e => console.error(`[Syrve] Translation job failed for ${brandId}:`, e.message));
+
+      // Trigger background image downlaod job
+      syncProductImages(menu.products, brandId).catch(e => 
+        console.error(`[Syrve] Image sync failed for ${brandId}:`, e.message)
+      );
 
     } catch (err) {
       console.error(`[Syrve] ❌ Sync failed for ${brandId}:`, err.message);

@@ -44,16 +44,29 @@ router.get('/', requireApiKey, async (req, res) => {
     rows.forEach(r => { modifierImages[r.modifier_id] = r.image_url; });
   } catch (_) { /* graceful — don't block menu if DB is slow */ }
 
-  const enrichedProducts = menu.products.map(p => ({
-    ...p,
-    modifierGroups: (p.modifierGroups || []).map(gm => ({
-      ...gm,
-      options: (gm.options || []).map(opt => ({
-        ...opt,
-        image: modifierImages[opt.id] || opt.image || null,
+  // Fetch product overrides (custom images, tags)
+  let productOverrides = {};
+  try {
+    const { rows } = await pool.query('SELECT * FROM product_overrides WHERE brand_id = $1', [brandId]);
+    rows.forEach(r => { productOverrides[r.id] = r; });
+  } catch (_) { /* graceful */ }
+
+  const enrichedProducts = menu.products.map(p => {
+    const over = productOverrides[p.id] || {};
+    return {
+      ...p,
+      image: over.custom_image_url || over.local_image_url || over.syrve_image_url || p.image,
+      isVegetarian: over.is_vegetarian || false,
+      isSpicy: over.is_spicy || false,
+      modifierGroups: (p.modifierGroups || []).map(gm => ({
+        ...gm,
+        options: (gm.options || []).map(opt => ({
+          ...opt,
+          image: modifierImages[opt.id] || opt.image || null,
+        })),
       })),
-    })),
-  }));
+    };
+  });
 
   let finalCategories = menu.categories || [];
   let finalProducts = enrichedProducts || [];
