@@ -93,7 +93,7 @@ export default function MenuScreen() {
     const toRemove = [];
 
     favorites.forEach(product => {
-      const hasReqMods = (product.modifierGroups?.length > 0 && product.modifierGroups.some(m => m.required)) || product.modifiers?.length > 0;
+      const hasReqMods = (product.modifierGroups || []).some(gm => gm.required && gm.options?.length > 0);
       if (hasReqMods) {
         requiresConfig = true;
       } else {
@@ -204,10 +204,37 @@ export default function MenuScreen() {
         setCategories(cats);
         setProducts(prods);
         setMenuProducts(prods);
-        setActiveCategory(pickDefault(cats, prods));
+            setActiveCategory(pickDefault(cats, prods));
         setLoading(false);
       });
   }, [activeBrandId, locationOrgIds]);
+
+  // SMART DIETARY NAVIGATOR: Automatically select categories/brands with matching products
+  useEffect(() => {
+    if (!products.length || !categories.length || !activeDiet) return;
+    
+    const currentCatHasProducts = products.some(p => 
+      p.categoryId === activeCategory && (activeDiet === 'veg' ? p.isVegetarian : p.isSpicy)
+    );
+
+    if (!currentCatHasProducts) {
+      const validCat = categories.find(cat => 
+        products.some(p => p.categoryId === cat.id && (activeDiet === 'veg' ? p.isVegetarian : p.isSpicy))
+      );
+      
+      if (validCat) {
+        setActiveCategory(validCat.id);
+      } else if (locationBrands.length > 1) {
+        const alternateBrand = locationBrands.find(bId => 
+          bId !== activeBrandId && allProducts.some(p => p._brand === bId && (activeDiet === 'veg' ? p.isVegetarian : p.isSpicy))
+        );
+        if (alternateBrand) {
+          setActiveBrandId(alternateBrand);
+        }
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeDiet, products, categories]); 
 
   // Build category → first product image map
   const catImages = useMemo(() => {
@@ -391,7 +418,7 @@ export default function MenuScreen() {
               <div key={fav.id} className="fav-item">
                 <div className="fav-item-img">
                   {fav.image
-                    ? <img src={`${BACKEND}/api/image-proxy?url=${encodeURIComponent(fav.image)}`} alt={fav.name} onError={e => e.target.style.display='none'} />
+                    ? <img src={proxySyrveImage(fav.image)} alt={fav.name} onError={e => { e.target.style.display='none'; e.target.parentNode.innerHTML='<span style=\"font-size:1.2rem\">🍽️</span>'; }} />
                     : <span style={{fontSize:'1.2rem'}}>🍽️</span>
                   }
                 </div>
