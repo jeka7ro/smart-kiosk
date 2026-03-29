@@ -147,7 +147,7 @@ export default function ModifierImages() {
                   {acceptingAll ? '...' : `✓ Acceptă Selectate (${selectedSugs.size})`}
                 </button>
               )}
-              <button className="um-btn um-btn--primary" onClick={acceptAllSugs} disabled={acceptingAll} style={{ background: '#0f766e', fontWeight: 700 }}>
+              <button className="um-btn um-btn--primary" onClick={acceptAllSugs} disabled={acceptingAll} style={{ background: '#088c8c', fontWeight: 700 }}>
                 {acceptingAll ? 'Se procesează...' : `✓ Acceptă Tot (${suggestions.length})`}
               </button>
               <button className="um-btn um-btn--ghost um-btn--sm" onClick={() => setSuggestions([])} style={{ opacity: 0.5 }}>Ignoră Toate</button>
@@ -193,7 +193,7 @@ export default function ModifierImages() {
                       </span>
                     </td>
                     <td style={{ whiteSpace: 'nowrap' }}>
-                      <button title="Acceptă" onClick={() => acceptSuggestion(sug)} disabled={saving === sug.modifier.id} style={{ background: '#0f766e', border: 'none', color: '#fff', width: 34, height: 34, padding: 0, borderRadius: '50%', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <button title="Acceptă" onClick={() => acceptSuggestion(sug)} disabled={saving === sug.modifier.id} style={{ background: '#088c8c', border: 'none', color: '#fff', width: 34, height: 34, padding: 0, borderRadius: '50%', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                         {saving === sug.modifier.id ? '...' : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
                       </button>
                       <button title="Ignoră" onClick={() => dismissSuggestion(sug.modifier.id)} style={{ marginLeft: 6, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-muted)', width: 34, height: 34, padding: 0, borderRadius: '50%', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -215,9 +215,9 @@ export default function ModifierImages() {
             onClick={() => setActiveBrand('ALL')}
             style={{
               padding: '6px 14px', borderRadius: 20, fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
-              background: activeBrand === 'ALL' ? '#0f766e' : 'var(--surface)',
+              background: activeBrand === 'ALL' ? '#088c8c' : 'var(--surface)',
               color: activeBrand === 'ALL' ? '#fff' : 'var(--text-muted)',
-              border: `1px solid ${activeBrand === 'ALL' ? '#0f766e' : 'var(--border)'}`,
+              border: `1px solid ${activeBrand === 'ALL' ? '#088c8c' : 'var(--border)'}`,
               height: 38, display: 'flex', alignItems: 'center'
             }}
           >Toate</button>
@@ -255,7 +255,7 @@ export default function ModifierImages() {
             <span style={{
               position: 'absolute', right: 4, top: 4, bottom: 4, 
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: '#0f766e', color: '#fff', borderRadius: 20, padding: '0 12px', 
+              background: '#088c8c', color: '#fff', borderRadius: 20, padding: '0 12px', 
               fontSize: '0.8rem', fontWeight: 700, whiteSpace: 'nowrap', pointerEvents: 'none'
             }}>
               {filtered.filter(m => m.imageUrl).length}/{filtered.length}
@@ -331,9 +331,9 @@ export default function ModifierImages() {
                           onKeyDown={e => e.key === 'Enter' && saveImage(mod.id, mod.name, mod.brandId, editUrl)}
                           placeholder="https://..."
                           className="um-search"
-                          style={{ flex: 1, padding: '7px 12px', borderColor: '#0f766e' }}
+                          style={{ flex: 1, padding: '7px 12px', borderColor: '#088c8c' }}
                         />
-                        <button title="OK" onClick={() => saveImage(mod.id, mod.name, mod.brandId, editUrl)} disabled={saving === mod.id} style={{ background: '#0f766e', border: 'none', color: '#fff', width: 34, height: 34, padding: 0, borderRadius: '50%', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <button title="OK" onClick={() => saveImage(mod.id, mod.name, mod.brandId, editUrl)} disabled={saving === mod.id} style={{ background: '#088c8c', border: 'none', color: '#fff', width: 34, height: 34, padding: 0, borderRadius: '50%', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                           {saving === mod.id ? '...' : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
                         </button>
                         <button title="✕" onClick={() => setEditingId(null)} style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-muted)', width: 34, height: 34, padding: 0, borderRadius: '50%', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>

@@ -47,7 +47,7 @@ export default function LoginScreen() {
       <div className="login-glass-panel">
         <div className="login-header">
           <img
-            src="/getapp_smart_kiosk.png"
+            src="/getapp_smart_kiosk_white.png"
             alt="GetApp Smart Kiosk"
             className="login-logo"
             style={{ maxWidth: '100%', height: 'auto', maxHeight: '64px', objectFit: 'contain' }}

@@ -31,7 +31,7 @@
   transition: border-color 0.2s, box-shadow 0.2s;
   box-shadow: 0 1px 4px rgba(0,0,0,0.04);
 }
-.um-search:focus { border-color: #0f766e; box-shadow: 0 0 0 3px rgba(15,118,110,0.12); }
+.um-search:focus { border-color: #088c8c; box-shadow: 0 0 0 3px rgba(8,140,140,0.12); }
 
 .um-bulk-actions {
   display: flex;
@@ -55,14 +55,14 @@
   transition: all 0.15s;
   white-space: nowrap;
 }
-.um-btn--primary  { background: #0f766e; color: #fff; }
+.um-btn--primary  { background: #088c8c; color: #fff; }
 .um-btn--primary:hover { background: #0d6460; }
 .um-btn--ghost    { background: transparent; border: 1.5px solid var(--border, #e5e7eb); color: var(--text, #111827); }
-.um-btn--ghost:hover { border-color: #0f766e; color: #0f766e; }
+.um-btn--ghost:hover { border-color: #088c8c; color: #088c8c; }
 .um-btn--danger   { background: transparent; border: 1.5px solid #ef4444; color: #ef4444; }
 .um-btn--danger:hover { background: #fef2f2; }
 .um-btn--sm       { padding: 5px 12px; font-size: 0.82rem; }
-.um-btn--active   { background: #0f766e; color: #fff; border-color: #0f766e; }
+.um-btn--active   { background: #088c8c; color: #fff; border-color: #088c8c; }
 .um-btn:disabled  { opacity: 0.5; cursor: not-allowed; }
 
 /* ─── TABLE ─────────────────────────────────────────────────── */
@@ -108,12 +108,12 @@
 }
 .um-table th input[type=checkbox]:hover,
 .um-table td input[type=checkbox]:hover {
-  border-color: #0f766e;
+  border-color: #088c8c;
 }
 .um-table th input[type=checkbox]:checked,
 .um-table td input[type=checkbox]:checked {
-  background: #0f766e;
-  border-color: #0f766e;
+  background: #088c8c;
+  border-color: #088c8c;
 }
 .um-table th input[type=checkbox]:checked::after,
 .um-table td input[type=checkbox]:checked::after {
@@ -204,7 +204,7 @@
   outline: none;
   font-family: inherit;
 }
-.um-input:focus { border-color: #0f766e; }
+.um-input:focus { border-color: #088c8c; }
 .um-input--error { border-color: #ef4444; }
 
 .um-section-divider {
@@ -234,9 +234,9 @@
   transition: all 0.15s;
 }
 .um-loc-pill--active {
-  border-color: #0f766e;
-  background: rgba(15,118,110,0.08);
-  color: #0f766e;
+  border-color: #088c8c;
+  background: rgba(8,140,140,0.08);
+  color: #088c8c;
   font-weight: 600;
 }
 

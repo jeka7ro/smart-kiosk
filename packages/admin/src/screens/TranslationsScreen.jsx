@@ -208,7 +208,7 @@ export default function TranslationsScreen({ backend }) {
             <span style={{
               position: 'absolute', right: 4, top: 4, bottom: 4, 
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: '#0f766e', color: '#fff', borderRadius: 20, padding: '0 12px', 
+              background: '#088c8c', color: '#fff', borderRadius: 20, padding: '0 12px', 
               fontSize: '0.8rem', fontWeight: 700, whiteSpace: 'nowrap', pointerEvents: 'none'
             }}>
               {filteredProducts.length}/{productsArray.length}
@@ -267,7 +267,7 @@ export default function TranslationsScreen({ backend }) {
                       </td>
                       <td style={{ padding: '12px 16px' }}>
                         {missingLangs === 0
-                          ? <span style={{ color: '#0f766e', fontWeight: 600, fontSize: '0.85rem' }}>Tradus Complet</span>
+                          ? <span style={{ color: '#088c8c', fontWeight: 600, fontSize: '0.85rem' }}>Tradus Complet</span>
                           : <span style={{ color: '#f59e0b', fontWeight: 600, fontSize: '0.85rem' }}>Lipsesc {missingLangs} limbi</span>
                         }
                       </td>
@@ -319,7 +319,7 @@ export default function TranslationsScreen({ backend }) {
                               <button title="Anulează" onClick={() => setExpandedId(null)} style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-muted)', width: 34, height: 34, padding: 0, borderRadius: '50%', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                               </button>
-                              <button title="Salvează" onClick={() => handleSave(pid)} disabled={submitting} style={{ background: '#0f766e', border: 'none', color: '#fff', width: 34, height: 34, padding: 0, borderRadius: '50%', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              <button title="Salvează" onClick={() => handleSave(pid)} disabled={submitting} style={{ background: '#088c8c', border: 'none', color: '#fff', width: 34, height: 34, padding: 0, borderRadius: '50%', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                 {submitting ? '...' : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
                               </button>
                             </div>
@@ -366,7 +366,7 @@ export default function TranslationsScreen({ backend }) {
                   {idx > 0 && arr[idx - 1] !== p - 1 && <span style={{ padding: '4px 6px' }}>…</span>}
                   <button
                     className="loc-filter-btn"
-                    style={p === page ? { background: '#0f766e', color: 'white', borderColor: '#0f766e' } : {}}
+                    style={p === page ? { background: '#088c8c', color: 'white', borderColor: '#088c8c' } : {}}
                     onClick={() => setPage(p)}
                   >
                     {p}

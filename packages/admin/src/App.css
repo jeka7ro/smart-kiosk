@@ -4,8 +4,8 @@
 /* ─── Sidebar ─── */
 .admin-sidebar {
   width: 240px; flex-shrink: 0;
-  background: #ffffff !important;
-  border-right: 1px solid rgba(0, 0, 0, 0.08);
+  background: var(--bg-surface) !important;
+  border-right: 1.5px solid #088c8c;
   display: flex; flex-direction: column;
   padding: 0 0 16px; position: sticky; top: 0; height: 100vh; overflow-y: auto;
   box-shadow: 2px 0 12px rgba(0,0,0,0.06);
@@ -13,7 +13,7 @@
 .admin-logo {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   height: 80px; box-sizing: border-box; padding: 0 18px;
-  border-bottom: 2px solid #0f766e;
+  border-bottom: 2px solid #088c8c;
   font-weight: 800; font-size: 1rem; color: #1e293b;
 }
 .al-icon { font-size: 1.6rem; }
@@ -28,12 +28,12 @@
   transition: all 0.18s; text-align: left; width: 100%; border: none;
   font-family: inherit; cursor: pointer;
 }
-.anav-btn:hover { background: rgba(15,118,110,0.07) !important; color: #0f766e !important; }
+.anav-btn:hover { background: rgba(8,140,140,0.07) !important; color: #088c8c !important; }
 .anav-btn.active { 
-  background: rgba(15,118,110,0.12) !important;
-  color: #0d6b62 !important;
+  background: rgba(8,140,140,0.12) !important;
+  color: #066e6e !important;
   font-weight: 700;
-  border-left: 3px solid #0f766e;
+  border-left: 3px solid #088c8c;
   border-radius: 0 12px 12px 0;
   margin-left: -10px;
   padding-left: 20px;

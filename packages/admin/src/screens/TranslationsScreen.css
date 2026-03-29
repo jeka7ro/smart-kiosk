@@ -82,7 +82,7 @@
 
 .t-input-group textarea:focus {
   outline: none;
-  border-color: #0f766e;
+  border-color: #088c8c;
   box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.1);
 }
 

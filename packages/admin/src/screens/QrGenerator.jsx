@@ -64,7 +64,7 @@ function LocationList({ locations, onSelect }) {
                 padding: '18px 20px', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s',
                 display: 'flex', flexDirection: 'column', gap: 6,
               }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = '#0f766e'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(15,118,110,0.1)'; }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#088c8c'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(8,140,140,0.1)'; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -75,7 +75,7 @@ function LocationList({ locations, onSelect }) {
                 </div>
               </div>
               <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{loc.id}</span>
-              <span style={{ fontSize: '0.8rem', color: '#0f766e', fontWeight: 600, marginTop: 4 }}>Configurare →</span>
+              <span style={{ fontSize: '0.8rem', color: '#088c8c', fontWeight: 600, marginTop: 4 }}>Configurare →</span>
             </button>
           );
         })}
@@ -233,8 +233,8 @@ function LocationQrForm({ loc, backend, onBack, onRefresh }) {
         {[['qr','Coduri QR'],['settings','Setari Mobile']].map(([tab, label]) => (
           <button key={tab} onClick={() => setActiveTab(tab)}
             style={{ padding: '10px 24px', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.92rem', transition: 'all 0.15s', background: 'transparent',
-              borderBottom: activeTab === tab ? '2.5px solid #0f766e' : '2.5px solid transparent',
-              color: activeTab === tab ? '#0f766e' : 'var(--text-muted)', marginBottom: -1.5 }}>
+              borderBottom: activeTab === tab ? '2.5px solid #088c8c' : '2.5px solid transparent',
+              color: activeTab === tab ? '#088c8c' : 'var(--text-muted)', marginBottom: -1.5 }}>
             {label}
           </button>
         ))}

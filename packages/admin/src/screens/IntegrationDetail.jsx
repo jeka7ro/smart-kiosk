@@ -114,7 +114,7 @@ export default function IntegrationDetail({ integ, onBack, onTest, onSync, testi
             <span style={{
               position: 'absolute', right: 4, top: 4, bottom: 4, 
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: '#0f766e', color: '#fff', borderRadius: 20, padding: '0 12px', 
+              background: '#088c8c', color: '#fff', borderRadius: 20, padding: '0 12px', 
               fontSize: '0.8rem', fontWeight: 700, whiteSpace: 'nowrap', pointerEvents: 'none'
             }}>
               {filtered.length}/{drillData.length}

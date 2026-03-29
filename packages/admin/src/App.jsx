@@ -174,7 +174,7 @@ export default function AdminApp() {
       <aside className={`admin-sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="admin-logo" style={{justifyContent: 'space-between', alignItems: 'center'}}>
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <img src="/getapp_smart_kiosk.png" alt="GetApp Smart Kiosk" style={{ maxWidth: '100%', height: 'auto', maxHeight: '52px', objectFit: 'contain' }} />
+            <img src={theme === 'dark' ? "/getapp_smart_kiosk_white.png" : "/getapp_smart_kiosk_black.png"} alt="GetApp Smart Kiosk" style={{ maxWidth: '100%', height: 'auto', maxHeight: '52px', objectFit: 'contain' }} />
           </div>
           <button className="mobile-close-btn" onClick={() => setIsSidebarOpen(false)}>×</button>
         </div>
@@ -225,7 +225,7 @@ export default function AdminApp() {
         </div>
 
         {/* TOP HEADER BAR */}
-        <div className="main-header-bar" style={{ padding: '0 28px', height: '80px', boxSizing: 'border-box', borderBottom: '2px solid #0f766e', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', background: 'rgba(255, 255, 255, 0.4)', backdropFilter: 'blur(40px) saturate(200%)', WebkitBackdropFilter: 'blur(40px) saturate(200%)', position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+        <div className="main-header-bar" style={{ padding: '0 28px', height: '80px', boxSizing: 'border-box', borderBottom: '2px solid #088c8c', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', background: 'rgba(255, 255, 255, 0.4)', backdropFilter: 'blur(40px) saturate(200%)', WebkitBackdropFilter: 'blur(40px) saturate(200%)', position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <button 
                 title={theme === 'dark' ? 'Mod Luminos' : 'Mod Întunecat'}
@@ -267,17 +267,8 @@ export default function AdminApp() {
            <h2 style={{ fontSize: '2rem', fontWeight: 800, margin: 0, color: 'var(--text)', letterSpacing: '-0.5px' }}>
               {tab === 'dashboard' && 'Dashboard Overview'}
               {tab === 'orders' && 'Gestionare Comenzi'}
-              {tab === 'locations' && 'Locațiile Noastre'}
-              {tab === 'kiosks' && 'Kioskuri'}
-              {tab === 'qrcodes' && 'Coduri QR'}
               {tab === 'menu' && 'Sincronizare Syrve'}
               {tab === 'translations' && 'Traduceri Meniu'}
-              {tab === 'modifiers' && 'Imagini Modificatori Opțiuni'}
-              {tab === 'products' && 'Suprascriere Imagini & Filtre Produse'}
-              {tab === 'integrations' && 'Integrări POS'}
-              {tab === 'users' && 'Echipă'}
-              {tab === 'promotions' && 'Roata Norocului'}
-              {tab === 'brands' && 'Branduri'}
            </h2>
         </div>
 
@@ -334,26 +325,17 @@ export default function AdminApp() {
 
         {/* ─── LOCATIONS ─── */}
         {tab === 'locations' && (
-          <div className="admin-section">
-            <p style={{color:'var(--text-muted)',marginBottom:16,fontSize:'0.9rem'}}>Gestioneaza locatiile si kioskurile alocate. Locatiile cu mai multe branduri permit comenzi mixte.</p>
-            <LocationsManager backend={BACKEND} />
-          </div>
+          <LocationsManager backend={BACKEND} />
         )}
 
         {/* ─── KIOSKS / SCREENSAVER ─── */}
         {tab === 'kiosks' && (
-          <div className="admin-section">
-            <p style={{color:'var(--text-muted)',marginBottom:16,fontSize:'0.9rem'}}>Copiază link-ul necesar pentru tabletă sau setează screensaver-ul (imagine/video completă care rulează înainte de comandă).</p>
-            <KiosksManager backend={BACKEND} />
-          </div>
+          <KiosksManager backend={BACKEND} />
         )}
 
         {/* ─── QR CODE GENERATOR ─── */}
         {tab === 'qrcodes' && (
-          <div className="admin-section">
-            <p style={{color:'var(--text-muted)',marginBottom:16,fontSize:'0.9rem'}}>Generează coduri QR pentru mese. Clienții scanează QR-ul și comandă direct de pe telefon.</p>
-            <QrGenerator backend={BACKEND} />
-          </div>
+          <QrGenerator backend={BACKEND} />
         )}
         {/* ─── USERS MANAGER ─── */}
         {tab === 'translations' && <div className="admin-section"><TranslationsScreen backend={BACKEND} /></div>}
@@ -674,7 +656,7 @@ function KiosksManager({ backend }) {
                   </td>
                   <td style={{ padding: '16px 24px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                       <span style={{ width: 10, height: 10, borderRadius: '50%', background: loc.active ? '#22c55e' : '#ef4444', display: 'inline-block' }} title={loc.active ? 'Online' : 'Inactiv'} />
+                       <span style={{ width: 10, height: 10, borderRadius: '50%', background: loc.active ? '#088c8c' : '#ef4444', display: 'inline-block' }} title={loc.active ? 'Online' : 'Inactiv'} />
                     </div>
                   </td>
                   <td style={{ padding: '16px 24px', textAlign: 'right' }}>
@@ -2008,7 +1990,7 @@ function LocationsManager({ backend }) {
                     onClick={() => toggleActive(loc)} 
                     title={loc.active ? 'Acum e LIVE (Apasă pentru dezactivare)' : 'Inactiv (Apasă pentru activare)'}
                   >
-                     <span style={{ width: 10, height: 10, borderRadius: '50%', background: loc.active ? '#22c55e' : '#ef4444', display: 'inline-block' }} />
+                     <span style={{ width: 10, height: 10, borderRadius: '50%', background: loc.active ? '#088c8c' : '#ef4444', display: 'inline-block' }} />
                   </div>
                 </td>
                 <td style={{ padding: '16px', textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
