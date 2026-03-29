@@ -70,68 +70,60 @@ router.post('/', protect, async (req, res) => {
   try {
     const { name, brands, orgIds, tables, kiosks } = req.body;
     if (!name) return res.status(400).json({ error: 'Name is required' });
-
     const id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '');
+    const newLoc = { id, name, active: true, brands: brands || [], isMultiBrand: Array.isArray(brands) && brands.length > 1, orgIds: orgIds || {}, kiosks: kiosks || [], tables: tables || 0, ...req.body };
 
-    const data = {
-      name,
-      brands: brands || [],
-      isMultiBrand: Array.isArray(brands) && brands.length > 1,
-      orgIds: orgIds || {},
-      kiosks: kiosks || [],
-      tables: tables || 0,
-      kioskUrl: req.body.kioskUrl || '',
-      screensaverUrl: req.body.screensaverUrl || '',
-      showLogoOnScreensaver: req.body.showLogoOnScreensaver !== undefined ? req.body.showLogoOnScreensaver : true,
-      topBanner: req.body.topBanner || null,
-      bottomBanner: req.body.bottomBanner || null,
-    };
-
+    if (!hasDb) throw new Error('no db');
     const { rows } = await pool.query(
-      `INSERT INTO locations (id, name, data, active) VALUES ($1, $2, $3, true)
-       ON CONFLICT (id) DO NOTHING
-       RETURNING *`,
-      [id, name, JSON.stringify(data)]
+      `INSERT INTO locations (id, name, data, active) VALUES ($1, $2, $3, true) ON CONFLICT (id) DO NOTHING RETURNING *`,
+      [id, name, JSON.stringify(newLoc)]
     );
-
-    res.status(201).json(rowToLoc(rows[0]));
+    return res.status(201).json(rowToLoc(rows[0]));
   } catch (e) {
-    console.error('[Locations POST]', e.message);
-    res.status(500).json({ error: e.message });
+    // JSON fallback
+    const locs = readLocFile();
+    const { name, brands, orgIds, tables } = req.body;
+    if (!name) return res.status(400).json({ error: 'Name is required' });
+    const id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '');
+    if (locs.find(l => l.id === id)) return res.status(201).json(locs.find(l => l.id === id));
+    const newLoc = { id, name, active: true, brands: brands || [], orgIds: orgIds || {}, tables: tables || 0, ...req.body };
+    locs.push(newLoc);
+    writeLocFile(locs);
+    return res.status(201).json(newLoc);
   }
 });
 
 // PUT /api/locations/:id — update location
 router.put('/:id', protect, async (req, res) => {
   try {
-    // Merge existing data with new data
+    if (!hasDb) throw new Error('no db');
     const existing = await pool.query('SELECT * FROM locations WHERE id = $1', [req.params.id]);
     if (!existing.rows.length) return res.status(404).json({ error: 'Location not found' });
-
     const current = existing.rows[0];
-    const { active, ...bodyRest } = req.body; // separate active from data fields
-
+    const { active, ...bodyRest } = req.body;
     const merged = { ...current.data, ...bodyRest };
     const newActive = active !== undefined ? active : current.active;
-
     const { rows } = await pool.query(
-      `UPDATE locations SET data = $1, active = $2, updated_at = NOW()
-       WHERE id = $3 RETURNING *`,
+      `UPDATE locations SET data = $1, active = $2, updated_at = NOW() WHERE id = $3 RETURNING *`,
       [JSON.stringify(merged), newActive, req.params.id]
     );
-
     const updatedLoc = rowToLoc(rows[0]);
-    
-    // Notify connected Kiosks about the config change
     const io = req.app.get('io');
-    if (io) {
-      io.to(`kiosk-${req.params.id}`).emit('location_updated', updatedLoc);
-    }
-
-    res.json(updatedLoc);
+    if (io) io.to(`kiosk-${req.params.id}`).emit('location_updated', updatedLoc);
+    return res.json(updatedLoc);
   } catch (e) {
-    console.error('[Locations PUT]', e.message);
-    res.status(500).json({ error: e.message });
+    // JSON fallback
+    const locs = readLocFile();
+    const idx = locs.findIndex(l => l.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Location not found' });
+    const { active, ...bodyRest } = req.body;
+    const merged = { ...locs[idx], ...bodyRest };
+    if (active !== undefined) merged.active = active;
+    locs[idx] = merged;
+    writeLocFile(locs);
+    const io = req.app.get('io');
+    if (io) io.to(`kiosk-${req.params.id}`).emit('location_updated', merged);
+    return res.json(merged);
   }
 });
 
