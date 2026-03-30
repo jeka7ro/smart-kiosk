@@ -323,7 +323,7 @@ export default function AdminApp() {
         )}
 
         {/* ─── SCROLLABLE CONTENT AREA ─── */}
-        <div className="admin-scrollable-content" style={{ flex: 1, overflowY: 'auto', paddingBottom: '40px' }}>
+        <div className="admin-scrollable-content" style={{ flex: 1, overflowY: 'auto', padding: '0 40px 40px 40px' }}>
           {/* ─── MENU ─── */}
           {tab === 'menu' && (
             <MenuManager backend={BACKEND} />

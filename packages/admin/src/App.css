@@ -23,17 +23,19 @@
 .anav-btn {
   display: flex; align-items: center; gap: 12px;
   background: transparent !important;
-  color: #334155 !important;
+  color: var(--text) !important;
   border-radius: 12px; padding: 10px 14px; font-size: 0.9rem; font-weight: 600;
   transition: all 0.18s; text-align: left; width: 100%; border: none;
   font-family: inherit; cursor: pointer;
+  opacity: 0.8;
 }
-.anav-btn:hover { background: rgba(8,140,140,0.07) !important; color: #088c8c !important; }
+.anav-btn:hover { background: rgba(8,140,140,0.07) !important; color: var(--primary) !important; opacity: 1; }
 .anav-btn.active { 
   background: rgba(8,140,140,0.12) !important;
-  color: #066e6e !important;
+  color: var(--primary) !important;
   font-weight: 700;
-  border-left: 3px solid #088c8c;
+  opacity: 1;
+  border-left: 3px solid var(--primary);
   border-radius: 0 12px 12px 0;
   margin-left: -10px;
   padding-left: 20px;
