@@ -28,8 +28,8 @@ export default function WelcomeScreen() {
     if (locationData && locationData.posterUrl) {
       const detectType = (u) => {
         if (/\.(mp4|webm|mov|mkv|avi)(\?|$)/i.test(u)) return 'video';
-        if (u.includes('youtube.com') || u.includes('youtu.be') || u.includes('vimeo.com')) return 'iframe';
-        return 'image'; // Default to image to prevent rendering HTML errors (502/503) from gateway proxies
+        if (/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i.test(u)) return 'image';
+        return 'iframe'; // Default to iframe to support arbitrary web pages, Canva links, and interactive promos
       };
       
       setPoster({
