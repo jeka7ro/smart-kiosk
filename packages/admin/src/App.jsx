@@ -172,11 +172,15 @@ export default function AdminApp() {
     <div className="admin-app">
       {/* ─── Sidebar ─── */}
       <aside className={`admin-sidebar ${isSidebarOpen ? 'open' : ''}`}>
-        <div className="admin-logo" style={{justifyContent: 'space-between', alignItems: 'center'}}>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <img src={theme === 'dark' ? "/getapp_smart_kiosk_white.png" : "/getapp_smart_kiosk_black.png"} alt="GetApp Smart Kiosk" style={{ maxWidth: '100%', height: 'auto', maxHeight: '52px', objectFit: 'contain' }} />
+        <div className="admin-logo" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+            <img 
+              src={theme === 'dark' ? "/getapp_smart_kiosk_white.png" : "/getapp_smart_kiosk_black.png"} 
+              alt="GetApp Smart Kiosk" 
+              style={{ maxWidth: '100%', height: 'auto', maxHeight: '66px', objectFit: 'contain', transform: 'translateX(8px)' }} 
+            />
           </div>
-          <button className="mobile-close-btn" onClick={() => setIsSidebarOpen(false)}>×</button>
+          <button className="mobile-close-btn" onClick={() => setIsSidebarOpen(false)} style={{ position: 'absolute', right: 16 }}>×</button>
         </div>
         <nav className="admin-nav">
           {[
