@@ -229,7 +229,7 @@ export default function AdminApp() {
         </div>
 
         {/* TOP HEADER BAR */}
-        <div className="main-header-bar" style={{ padding: '0 28px', height: '80px', boxSizing: 'border-box', borderBottom: '2px solid #088c8c', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', background: 'rgba(255, 255, 255, 0.4)', backdropFilter: 'blur(40px) saturate(200%)', WebkitBackdropFilter: 'blur(40px) saturate(200%)', position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+        <div className="main-header-bar" style={{ padding: '0 28px', height: '80px', boxSizing: 'border-box', borderBottom: '2px solid #088c8c', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', background: 'var(--glass-bg)', backdropFilter: 'blur(40px) saturate(200%)', WebkitBackdropFilter: 'blur(40px) saturate(200%)', position: 'sticky', top: 0, zIndex: 10, boxShadow: 'var(--glass-shadow)' }}>
            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <button 
                 title={theme === 'dark' ? 'Mod Luminos' : 'Mod Întunecat'}
@@ -1068,8 +1068,8 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
           </div>
           
           {/* LINK KIOSK SUPER COMPACT */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(59,130,246,0.05)', borderRadius: '10px', border: '1px dashed rgba(59,130,246,0.3)', marginBottom: '20px' }}>
-             <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Link Kiosk: <span style={{ fontFamily: 'monospace', color: '#3b82f6' }}>...{finalKioskUrl.split('?loc=')[1]}</span></span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(59,130,246,0.1)', borderRadius: '10px', border: '1px dashed rgba(59,130,246,0.3)', marginBottom: '20px' }}>
+             <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>Link Kiosk: <span style={{ fontFamily: 'monospace', color: 'var(--cyan, #3b82f6)' }}>...{finalKioskUrl.split('?loc=')[1]}</span></span>
              <button onClick={() => navigator.clipboard.writeText(finalKioskUrl)} style={{ fontSize: '0.75rem', padding: '6px 12px', borderRadius: '6px', background: '#3b82f6', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600, boxShadow: '0 2px 4px rgba(59,130,246,0.3)' }}>Copiaza URL</button>
           </div>
 
@@ -1084,7 +1084,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Fundal Buton Start Comandă</label>
                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <input type="color" value={formData.langButtonColor || '#0f172a'} onChange={e => handleChange('langButtonColor', e.target.value)} style={{ width: 28, height: 28, border: '2px solid var(--border)', borderRadius: '6px', cursor: 'pointer', padding: 0 }} />
-                      <input type="text" value={formData.langButtonColor || '#0f172a'} onChange={e => handleChange('langButtonColor', e.target.value)} style={{ width: 70, padding: '4px 8px', fontSize: '0.8rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: '#fff', color: 'var(--text)' }} />
+                      <input type="text" value={formData.langButtonColor || '#0f172a'} onChange={e => handleChange('langButtonColor', e.target.value)} style={{ width: 70, padding: '4px 8px', fontSize: '0.8rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)' }} />
                    </div>
                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, fontSize: '0.75rem', color: 'var(--text)', cursor: 'pointer', fontWeight: 600 }}>
                      <input type="checkbox" checked={formData.langButtonFlagColors || false} onChange={e => handleChange('langButtonFlagColors', e.target.checked)} />
@@ -1097,7 +1097,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Culoare Text Buton Start</label>
                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <input type="color" value={formData.langButtonTextColor || '#ffffff'} onChange={e => handleChange('langButtonTextColor', e.target.value)} style={{ width: 28, height: 28, border: '2px solid var(--border)', borderRadius: '6px', cursor: 'pointer', padding: 0 }} />
-                      <input type="text" value={formData.langButtonTextColor || '#ffffff'} onChange={e => handleChange('langButtonTextColor', e.target.value)} style={{ width: 70, padding: '4px 8px', fontSize: '0.8rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: '#fff', color: 'var(--text)' }} />
+                      <input type="text" value={formData.langButtonTextColor || '#ffffff'} onChange={e => handleChange('langButtonTextColor', e.target.value)} style={{ width: 70, padding: '4px 8px', fontSize: '0.8rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)' }} />
                    </div>
                 </div>
 
@@ -1106,7 +1106,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Contur Buton Start</label>
                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <input type="color" value={formData.langButtonBorderColor || '#0f172a'} onChange={e => handleChange('langButtonBorderColor', e.target.value)} style={{ width: 28, height: 28, border: '2px solid var(--border)', borderRadius: '6px', cursor: 'pointer', padding: 0 }} />
-                      <input type="text" value={formData.langButtonBorderColor || '#0f172a'} onChange={e => handleChange('langButtonBorderColor', e.target.value)} style={{ width: 70, padding: '4px 8px', fontSize: '0.8rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: '#fff', color: 'var(--text)' }} />
+                      <input type="text" value={formData.langButtonBorderColor || '#0f172a'} onChange={e => handleChange('langButtonBorderColor', e.target.value)} style={{ width: 70, padding: '4px 8px', fontSize: '0.8rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)' }} />
                       <button type="button" onClick={() => handleChange('langButtonBorderColor', 'transparent')} style={{ fontSize: '0.65rem', padding: '4px 6px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', color: 'var(--text)' }}>Fără</button>
                    </div>
                 </div>
@@ -1114,7 +1114,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                 {/* COL 1D: Buton Principal (Text) */}
                 <div style={{ gridColumn: '1 / -1' }}>
                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Text Personalizat Buton Start</label>
-                   <input type="text" placeholder="Începe comanda" value={formData.langButtonText || ''} onChange={e => handleChange('langButtonText', e.target.value)} style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: '#fff', color: 'var(--text)', boxSizing: 'border-box' }} />
+                   <input type="text" placeholder="Începe comanda" value={formData.langButtonText || ''} onChange={e => handleChange('langButtonText', e.target.value)} style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)', boxSizing: 'border-box' }} />
                 </div>
 
                 {/* COL 2: Pozitie Sus/Jos */}
@@ -1123,7 +1123,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                    <div style={{ display: 'flex', gap: 4 }}>
                      {[{v:'top',l:'Sus'},{v:'bottom',l:'Jos'}].map(opt => (
                        <button key={opt.v} type="button" onClick={() => handleChange('langVerticalPosition', opt.v)}
-                         style={{ padding: '4px 12px', borderRadius: 6, fontSize: '0.75rem', fontWeight: 600, border: (formData.langVerticalPosition || 'bottom') === opt.v ? '2px solid #3b82f6' : '1px solid var(--border)', background: (formData.langVerticalPosition || 'bottom') === opt.v ? '#eff6ff' : '#fff', color: (formData.langVerticalPosition || 'bottom') === opt.v ? '#1d4ed8' : 'var(--text-muted)', cursor: 'pointer' }}>
+                         style={{ padding: '4px 12px', borderRadius: 6, fontSize: '0.75rem', fontWeight: 600, border: (formData.langVerticalPosition || 'bottom') === opt.v ? '2px solid var(--primary)' : '1px solid var(--border)', background: (formData.langVerticalPosition || 'bottom') === opt.v ? 'var(--primary)' : 'var(--surface)', color: (formData.langVerticalPosition || 'bottom') === opt.v ? '#fff' : 'var(--text)', cursor: 'pointer' }}>
                          {opt.l}
                        </button>
                      ))}
@@ -1135,7 +1135,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Fundal Etichete Limbi</label>
                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <input type="color" value={formData.langBgColor || '#ffffff'} onChange={e => handleChange('langBgColor', e.target.value)} style={{ width: 28, height: 28, border: '2px solid var(--border)', borderRadius: '6px', cursor: 'pointer', padding: 0 }} />
-                      <input type="text" value={formData.langBgColor || ''} placeholder="transparent" onChange={e => handleChange('langBgColor', e.target.value)} style={{ width: 70, padding: '4px 8px', fontSize: '0.8rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: '#fff', color: 'var(--text)' }} />
+                      <input type="text" value={formData.langBgColor || ''} placeholder="transparent" onChange={e => handleChange('langBgColor', e.target.value)} style={{ width: 70, padding: '4px 8px', fontSize: '0.8rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)' }} />
                       <button type="button" onClick={() => handleChange('langBgColor', 'transparent')} style={{ fontSize: '0.65rem', padding: '4px 6px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', color: 'var(--text)' }}>Fără</button>
                    </div>
                 </div>
@@ -1146,7 +1146,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                    <div style={{ display: 'flex', gap: 4 }}>
                      {[{v:'before',l:'Screensaver'},{v:'after',l:'Dupa saver'},{v:'both',l:'Ambele'}].map(opt => (
                        <button key={opt.v} type="button" onClick={() => handleChange('langSelectorPosition', opt.v)}
-                         style={{ padding: '4px 8px', borderRadius: 6, fontSize: '0.7rem', fontWeight: 600, border: formData.langSelectorPosition === opt.v ? '2px solid #3b82f6' : '1px solid var(--border)', background: formData.langSelectorPosition === opt.v ? '#eff6ff' : '#fff', color: formData.langSelectorPosition === opt.v ? '#1d4ed8' : 'var(--text-muted)', cursor: 'pointer' }}>
+                         style={{ padding: '4px 8px', borderRadius: 6, fontSize: '0.7rem', fontWeight: 600, border: formData.langSelectorPosition === opt.v ? '2px solid var(--primary)' : '1px solid var(--border)', background: formData.langSelectorPosition === opt.v ? 'var(--primary)' : 'var(--surface)', color: formData.langSelectorPosition === opt.v ? '#fff' : 'var(--text)', cursor: 'pointer' }}>
                          {opt.l}
                        </button>
                      ))}
@@ -1158,7 +1158,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Contur Etichete Limbi</label>
                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <input type="color" value={formData.langBorderColor || '#e2e8f0'} onChange={e => handleChange('langBorderColor', e.target.value)} style={{ width: 28, height: 28, border: '2px solid var(--border)', borderRadius: '6px', cursor: 'pointer', padding: 0 }} />
-                      <input type="text" value={formData.langBorderColor || ''} placeholder="transparent" onChange={e => handleChange('langBorderColor', e.target.value)} style={{ width: 70, padding: '4px 8px', fontSize: '0.8rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: '#fff', color: 'var(--text)' }} />
+                      <input type="text" value={formData.langBorderColor || ''} placeholder="transparent" onChange={e => handleChange('langBorderColor', e.target.value)} style={{ width: 70, padding: '4px 8px', fontSize: '0.8rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)' }} />
                       <button type="button" onClick={() => handleChange('langBorderColor', 'transparent')} style={{ fontSize: '0.65rem', padding: '4px 6px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', color: 'var(--text)' }}>Fără</button>
                    </div>
                 </div>
@@ -1792,7 +1792,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                                newOverrides[brandId] = { ...newOverrides[brandId], profileId: e.target.value };
                                handleChange('menuOverrides', newOverrides);
                             }}
-                            style={{ padding: '10px 14px', borderRadius: 30, border: '1px solid var(--border)', width: '100%', outline: 'none', background: '#fff', fontSize: '0.9rem' }}
+                            style={{ padding: '10px 14px', borderRadius: 30, border: '1px solid var(--border)', width: '100%', outline: 'none', background: 'var(--surface)', color: 'var(--text)', fontSize: '0.9rem' }}
                           >
                             <option value="">Afișează Meniul Complet (Implicit)</option>
                             {bData.profiles.map(p => (
