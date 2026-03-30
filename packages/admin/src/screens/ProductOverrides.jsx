@@ -5,6 +5,14 @@ import './UsersManager.css';
 const BACKEND   = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 const PAGE_SIZE = 25;
 
+// Proxy image URLs — same logic as kiosk
+const proxySyrveImage = (url) => {
+  if (!url) return null;
+  if (url.startsWith('/uploads')) return `${BACKEND}${url}`;
+  if (url.startsWith('http')) return url;
+  return `${BACKEND}${url}`;
+};
+
 const BRANDS = [
   { id: 'smashme',     label: 'SmashMe',     color: '#ef4444' },
   { id: 'sushimaster', label: 'Sushi Master',color: '#3b82f6' },
@@ -215,7 +223,7 @@ export default function ProductOverrides() {
                     <td className="um-cell--muted">{(page - 1) * PAGE_SIZE + i + 1}</td>
                     <td>
                       {displayImage
-                        ? <img src={displayImage.startsWith('http') ? displayImage : `${BACKEND.endsWith('/') ? BACKEND.slice(0, -1) : BACKEND}${displayImage}`} alt="" style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8, border: hasCustom ? '2px solid #8b5cf6' : '1px solid var(--border)' }} onError={e => { e.target.style.display='none'; }} />
+                        ? <img src={proxySyrveImage(displayImage)} alt="" style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8, border: hasCustom ? '2px solid #8b5cf6' : '1px solid var(--border)' }} onError={e => { e.target.style.display='none'; }} />
                         : <div style={{ width: 64, height: 64, borderRadius: 8, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.3, fontSize: '1.2rem' }}>?</div>
                       }
                     </td>

@@ -278,7 +278,7 @@ export default function MenuScreen() {
       });
     }
     
-    return baseProds.filter(p => !activeCategory || p.categoryId === activeCategory);
+    return baseProds.filter(p => !activeCategory || activeDiet || p.categoryId === activeCategory);
   }, [search, products, allProducts, activeCategory, activeBrandId, activeDiet]);
 
   const visibleCategories = useMemo(() => {
