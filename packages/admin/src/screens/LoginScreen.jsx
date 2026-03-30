@@ -50,7 +50,7 @@ export default function LoginScreen() {
             src="/getapp_smart_kiosk_white.png"
             alt="GetApp Smart Kiosk"
             className="login-logo"
-            style={{ maxWidth: '100%', height: 'auto', maxHeight: '64px', objectFit: 'contain' }}
+            style={{ maxWidth: '100%', height: 'auto', maxHeight: '64px', objectFit: 'contain', display: 'block', margin: '0 auto' }}
           />
           <p>Autentificare Securizată</p>
         </div>
@@ -110,6 +110,12 @@ export default function LoginScreen() {
           <button type="submit" disabled={loading} className="btn-login">
             {loading ? 'Se verifică...' : 'Log in '}
           </button>
+          
+          <div style={{ textAlign: 'center', marginTop: '16px' }}>
+            <a href="https://www.getapp.ro" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: '0.85rem', transition: 'color 0.2s' }}>
+              www.getapp.ro
+            </a>
+          </div>
         </form>
       </div>
     </div>

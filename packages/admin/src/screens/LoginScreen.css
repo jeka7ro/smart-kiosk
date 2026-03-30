@@ -4,9 +4,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at top right, rgba(0, 180, 180, 0.15), transparent),
-              radial-gradient(circle at bottom left, rgba(6, 100, 100, 0.25), transparent),
-              #063333;
+  background: radial-gradient(circle at top right, rgba(0, 180, 180, 0.08), transparent),
+              radial-gradient(circle at bottom left, rgba(6, 100, 100, 0.15), transparent),
+              #021818;
 }
 
 .login-glass-panel {
