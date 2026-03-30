@@ -323,7 +323,7 @@ export default function AdminApp() {
         )}
 
         {/* ─── SCROLLABLE CONTENT AREA ─── */}
-        <div className="admin-scrollable-content" style={{ flex: 1, overflowY: 'auto', padding: '0 40px 40px 40px' }}>
+        <div className="admin-scrollable-content" style={{ flex: 1, overflowY: 'auto', paddingBottom: '40px' }}>
           {/* ─── MENU ─── */}
           {tab === 'menu' && (
             <MenuManager backend={BACKEND} />
@@ -331,12 +331,12 @@ export default function AdminApp() {
 
           {/* ─── LOCATIONS ─── */}
           {tab === 'locations' && (
-            <LocationsManager backend={BACKEND} />
+            <div className="admin-section"><LocationsManager backend={BACKEND} /></div>
           )}
 
           {/* ─── KIOSKS / SCREENSAVER ─── */}
           {tab === 'kiosks' && (
-            <KiosksManager backend={BACKEND} />
+            <div className="admin-section"><KiosksManager backend={BACKEND} /></div>
           )}
 
           {/* ─── QR CODE GENERATOR ─── */}
