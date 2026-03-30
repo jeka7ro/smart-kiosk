@@ -196,7 +196,6 @@ export default function ProductOverrides() {
     <div className="um-page">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: '1.4rem' }}>Produse & Etichete</h1>
           <p style={{ margin: 0, color: 'var(--text-muted)' }}>Meniul sincronizat din Syrve. Aici poți adăuga manual supra-scrieri (poză HD proprie, filtru Vegetarian).</p>
         </div>
       </div>

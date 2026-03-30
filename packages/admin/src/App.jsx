@@ -271,8 +271,17 @@ export default function AdminApp() {
            <h2 style={{ fontSize: '2rem', fontWeight: 800, margin: 0, color: 'var(--text)', letterSpacing: '-0.5px' }}>
               {tab === 'dashboard' && 'Dashboard Overview'}
               {tab === 'orders' && 'Gestionare Comenzi'}
-              {tab === 'menu' && 'Sincronizare Syrve'}
-              {tab === 'translations' && 'Traduceri Meniu'}
+              {tab === 'locations' && 'Gestionare Locații'}
+              {tab === 'kiosks' && 'Kiosk-uri & Screensavere'}
+              {tab === 'qrcodes' && 'Coduri QR & Portal Mobil'}
+              {tab === 'menu' && 'Sincronizare Syrve & Profile'}
+              {tab === 'translations' && 'Traduceri Automate Meniu'}
+              {tab === 'modifiers' && 'Asociere Imagini Opțiuni'}
+              {tab === 'products' && 'Produse & Etichete (Overrides)'}
+              {tab === 'users' && 'Echipă & Permisiuni'}
+              {tab === 'integrations' && 'Integrări POS'}
+              {tab === 'promotions' && 'Promoții / Roată Kiosk'}
+              {tab === 'brands' && 'Gestionare Branduri'}
            </h2>
         </div>
 

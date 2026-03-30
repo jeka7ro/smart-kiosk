@@ -41,9 +41,7 @@ function LocationList({ locations, onSelect }) {
 
   return (
     <div>
-      <div className="section-header" style={{ marginBottom: 20 }}>
-        <h1 className="section-title" style={{ marginBottom: 0 }}>Coduri QR</h1>
-      </div>
+      <div className="section-header" style={{ marginBottom: 8, display: 'none' }}></div>
       <p style={{ color: 'var(--text-muted)', marginBottom: 20, fontSize: '0.92rem' }}>
         Genereaza coduri QR pentru mese. Clientii scaneaza QR-ul si comanda direct de pe telefon.
         Selecteaza o locatie pentru a gestiona QR-urile si setarile mobile.

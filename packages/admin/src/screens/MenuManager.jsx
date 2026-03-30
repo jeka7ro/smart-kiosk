@@ -113,8 +113,7 @@ export default function MenuManager({ backend }) {
 
   return (
     <div className="admin-section">
-      <div className="section-header" style={{ justifyContent: 'space-between', marginBottom: 20 }}>
-        <h2 style={{ margin: 0, fontSize: '1.4rem' }}>Status SincRONIZARE POS</h2>
+      <div className="section-header" style={{ justifyContent: 'flex-end', marginBottom: 20 }}>
         <button className="um-btn" onClick={fetchMenuStatus} style={{ borderRadius: 30 }}>Re-sincronizare Check</button>
       </div>
 
