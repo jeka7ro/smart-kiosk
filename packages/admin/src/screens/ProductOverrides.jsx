@@ -30,6 +30,7 @@ export default function ProductOverrides() {
   const [search,      setSearch]      = useState('');
   const [activeBrand, setActiveBrand] = useState('smashme');
   const [toast,       setToast]       = useState(null);
+  const [filterDiet,  setFilterDiet]  = useState(null); // null | 'veg' | 'spicy'
   
   const fileInputRef = useRef(null);
   const [uploadingId, setUploadingId] = useState(null);
@@ -66,12 +67,16 @@ export default function ProductOverrides() {
     fetchAll(); 
   }, [activeBrand]);
 
-  const filtered = useMemo(() =>
-    products.filter(p => {
+  const filtered = useMemo(() => {
+    let list = products.filter(p => {
       const q = search.toLowerCase();
       const catName = categories[p.categoryId] || '';
       return p.name?.toLowerCase().includes(q) || catName.toLowerCase().includes(q);
-    }), [products, search, categories]);
+    });
+    if (filterDiet === 'veg')   list = list.filter(p => !!(overrides[p.id]?.is_vegetarian));
+    if (filterDiet === 'spicy') list = list.filter(p => !!(overrides[p.id]?.is_spicy));
+    return list;
+  }, [products, search, categories, filterDiet, overrides]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -180,14 +185,26 @@ export default function ProductOverrides() {
             );
           })}
         </div>
-        <div style={{ flex: 1, minWidth: 200, position: 'relative' }}>
+        <div style={{ flex: 1, minWidth: 200, position: 'relative', display: 'flex', gap: 8, alignItems: 'center' }}>
           <input 
             className="um-search" 
             placeholder="🔍 Caută produs sau categorie..." 
             value={search} 
             onChange={e => { setSearch(e.target.value); setPage(1); }} 
-            style={{ width: '100%', boxSizing: 'border-box' }} 
+            style={{ flex: 1, boxSizing: 'border-box' }} 
           />
+          <button
+            onClick={() => { setFilterDiet(filterDiet === 'veg' ? null : 'veg'); setPage(1); }}
+            style={{ flexShrink: 0, padding: '7px 14px', borderRadius: 40, border: filterDiet === 'veg' ? 'none' : '1px solid #10b981', background: filterDiet === 'veg' ? '#10b981' : 'transparent', color: filterDiet === 'veg' ? '#fff' : '#10b981', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s', whiteSpace: 'nowrap' }}
+          >
+            🍃 Vegetarian
+          </button>
+          <button
+            onClick={() => { setFilterDiet(filterDiet === 'spicy' ? null : 'spicy'); setPage(1); }}
+            style={{ flexShrink: 0, padding: '7px 14px', borderRadius: 40, border: filterDiet === 'spicy' ? 'none' : '1px solid #ef4444', background: filterDiet === 'spicy' ? '#ef4444' : 'transparent', color: filterDiet === 'spicy' ? '#fff' : '#ef4444', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s', whiteSpace: 'nowrap' }}
+          >
+            🌶️ Picant
+          </button>
         </div>
       </div>
 

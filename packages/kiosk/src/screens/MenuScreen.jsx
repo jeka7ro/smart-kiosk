@@ -352,16 +352,6 @@ export default function MenuScreen() {
         </div>
 
         <div className="menu-search">
-          <input
-            type="text"
-            placeholder={t('search', lang) + '...'}
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="menu-search-input"
-          />
-          {search && (
-            <button className="menu-search-clear" onClick={() => setSearch('')}>x</button>
-          )}
           {allProducts.some(p => p.isVegetarian) && (
             <button
               onClick={() => setActiveDiet(activeDiet === 'veg' ? null : 'veg')}
@@ -377,6 +367,16 @@ export default function MenuScreen() {
             >
               🌶️ Picant
             </button>
+          )}
+          <input
+            type="text"
+            placeholder={t('search', lang) + '...'}
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="menu-search-input"
+          />
+          {search && (
+            <button className="menu-search-clear" onClick={() => setSearch('')}>x</button>
           )}
         </div>
 
