@@ -28,13 +28,13 @@ const BRANDS = {
   },
   welovesushi: {
     apiKey: process.env.SYRVE_API_KEY_SUSHI || '56597d13165c49c49c10e351b5eac617',
-    orgId:  process.env.SYRVE_ORG_ID_WELOVESUSHI || '',
+    orgId:  process.env.SYRVE_ORG_ID_WELOVESUSHI || process.env.SYRVE_ORG_ID_SUSHI || 'adddb5a0-26e5-4d50-b472-1c74726c3f72',
     token: null,
     tokenExpiry: 0,
   },
   ikura: {
     apiKey: process.env.SYRVE_API_KEY_SUSHI || '56597d13165c49c49c10e351b5eac617',
-    orgId:  process.env.SYRVE_ORG_ID_IKURA || '',
+    orgId:  process.env.SYRVE_ORG_ID_IKURA || process.env.SYRVE_ORG_ID_SUSHI || 'adddb5a0-26e5-4d50-b472-1c74726c3f72',
     token: null,
     tokenExpiry: 0,
   },
