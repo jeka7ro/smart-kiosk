@@ -322,33 +322,36 @@ export default function AdminApp() {
           </div>
         )}
 
-        {/* ─── MENU ─── */}
-        {tab === 'menu' && (
-          <MenuManager backend={BACKEND} />
-        )}
+        {/* ─── SCROLLABLE CONTENT AREA ─── */}
+        <div className="admin-scrollable-content" style={{ flex: 1, overflowY: 'auto', paddingBottom: '40px' }}>
+          {/* ─── MENU ─── */}
+          {tab === 'menu' && (
+            <MenuManager backend={BACKEND} />
+          )}
 
-        {/* ─── LOCATIONS ─── */}
-        {tab === 'locations' && (
-          <LocationsManager backend={BACKEND} />
-        )}
+          {/* ─── LOCATIONS ─── */}
+          {tab === 'locations' && (
+            <LocationsManager backend={BACKEND} />
+          )}
 
-        {/* ─── KIOSKS / SCREENSAVER ─── */}
-        {tab === 'kiosks' && (
-          <KiosksManager backend={BACKEND} />
-        )}
+          {/* ─── KIOSKS / SCREENSAVER ─── */}
+          {tab === 'kiosks' && (
+            <KiosksManager backend={BACKEND} />
+          )}
 
-        {/* ─── QR CODE GENERATOR ─── */}
-        {tab === 'qrcodes' && (
-          <QrGenerator backend={BACKEND} />
-        )}
-        {/* ─── USERS MANAGER ─── */}
-        {tab === 'translations' && <div className="admin-section"><TranslationsScreen backend={BACKEND} /></div>}
-        {tab === 'modifiers' && <ModifierImages />}
-        {tab === 'products' && <ProductOverrides />}
-        {tab === 'integrations' && <Integrations />}
-        {tab === 'promotions' && <Promotions />}
-        {tab === 'users' && <UsersManager />}
-        {tab === 'brands' && <BrandsManager backend={BACKEND} />}
+          {/* ─── QR CODE GENERATOR ─── */}
+          {tab === 'qrcodes' && (
+            <QrGenerator backend={BACKEND} />
+          )}
+          {/* ─── USERS MANAGER ─── */}
+          {tab === 'translations' && <div className="admin-section"><TranslationsScreen backend={BACKEND} /></div>}
+          {tab === 'modifiers' && <ModifierImages />}
+          {tab === 'products' && <ProductOverrides />}
+          {tab === 'integrations' && <Integrations />}
+          {tab === 'promotions' && <Promotions />}
+          {tab === 'users' && <UsersManager />}
+          {tab === 'brands' && <BrandsManager backend={BACKEND} />}
+        </div>
       </main>
     </div>
   );
