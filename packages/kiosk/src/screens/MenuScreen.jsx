@@ -362,6 +362,22 @@ export default function MenuScreen() {
           {search && (
             <button className="menu-search-clear" onClick={() => setSearch('')}>x</button>
           )}
+          {allProducts.some(p => p.isVegetarian) && (
+            <button
+              onClick={() => setActiveDiet(activeDiet === 'veg' ? null : 'veg')}
+              style={{ flexShrink: 0, padding: '6px 14px', borderRadius: 40, border: activeDiet === 'veg' ? 'none' : '1px solid #10b981', background: activeDiet === 'veg' ? '#10b981' : 'transparent', color: activeDiet === 'veg' ? '#fff' : '#10b981', fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', transition: 'all 0.2s', whiteSpace: 'nowrap', boxShadow: activeDiet === 'veg' ? '0 3px 10px rgba(16,185,129,0.35)' : 'none' }}
+            >
+              🍃 Vegetarian
+            </button>
+          )}
+          {allProducts.some(p => p.isSpicy) && (
+            <button
+              onClick={() => setActiveDiet(activeDiet === 'spicy' ? null : 'spicy')}
+              style={{ flexShrink: 0, padding: '6px 14px', borderRadius: 40, border: activeDiet === 'spicy' ? 'none' : '1px solid #ef4444', background: activeDiet === 'spicy' ? '#ef4444' : 'transparent', color: activeDiet === 'spicy' ? '#fff' : '#ef4444', fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', transition: 'all 0.2s', whiteSpace: 'nowrap', boxShadow: activeDiet === 'spicy' ? '0 3px 10px rgba(239,68,68,0.35)' : 'none' }}
+            >
+              🌶️ Picant
+            </button>
+          )}
         </div>
 
         <div className="menu-order-info">
@@ -437,24 +453,7 @@ export default function MenuScreen() {
       )}
 
 
-      {(allProducts.some(p => p.isVegetarian) || allProducts.some(p => p.isSpicy)) && (
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 16, padding: '16px 20px', background: 'var(--bg-surface)' }}>
-          {allProducts.some(p => p.isVegetarian) && (
-            <button 
-              onClick={() => setActiveDiet(activeDiet === 'veg' ? null : 'veg')}
-              style={{ padding: '8px 24px', borderRadius: 40, border: activeDiet === 'veg' ? 'none' : '1px solid #10b981', background: activeDiet === 'veg' ? '#10b981' : 'transparent', color: activeDiet === 'veg' ? '#fff' : '#10b981', fontWeight: 700, fontSize: '1.2rem', cursor: 'pointer', transition: 'all 0.2s', boxShadow: activeDiet === 'veg' ? '0 4px 12px rgba(16,185,129,0.3)' : 'none' }}>
-              🍃 Vegetarian
-            </button>
-          )}
-          {allProducts.some(p => p.isSpicy) && (
-            <button 
-              onClick={() => setActiveDiet(activeDiet === 'spicy' ? null : 'spicy')}
-              style={{ padding: '8px 24px', borderRadius: 40, border: activeDiet === 'spicy' ? 'none' : '1px solid #ef4444', background: activeDiet === 'spicy' ? '#ef4444' : 'transparent', color: activeDiet === 'spicy' ? '#fff' : '#ef4444', fontWeight: 700, fontSize: '1.2rem', cursor: 'pointer', transition: 'all 0.2s', boxShadow: activeDiet === 'spicy' ? '0 4px 12px rgba(239,68,68,0.3)' : 'none' }}>
-              🌶️ Picant
-            </button>
-          )}
-        </div>
-      )}
+
 
       <div className="menu-body">
         {/* ─── SIDEBAR CATEGORIES ────────────────────── */}
