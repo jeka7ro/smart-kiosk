@@ -31,6 +31,8 @@ export default function ProductOverrides() {
   const [activeBrand, setActiveBrand] = useState('smashme');
   const [toast,       setToast]       = useState(null);
   const [filterDiet,  setFilterDiet]  = useState(null); // null | 'veg' | 'spicy'
+  const [previewImage,setPreviewImage]= useState(null);
+  const [previewDesc, setPreviewDesc] = useState(null);
   
   const fileInputRef = useRef(null);
   const [uploadingId, setUploadingId] = useState(null);
@@ -240,7 +242,16 @@ export default function ProductOverrides() {
                     <td className="um-cell--muted">{(page - 1) * PAGE_SIZE + i + 1}</td>
                     <td>
                       {displayImage
-                        ? <img src={proxySyrveImage(displayImage)} alt="" style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8, border: hasCustom ? '2px solid #8b5cf6' : '1px solid var(--border)' }} onError={e => { e.target.style.display='none'; }} />
+                        ? <img 
+                            src={proxySyrveImage(displayImage)} 
+                            alt="" 
+                            onClick={() => setPreviewImage(proxySyrveImage(displayImage))}
+                            title="Click pentru a mări imaginea"
+                            style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8, border: hasCustom ? '2px solid #8b5cf6' : '1px solid var(--border)', cursor: 'pointer', transition: 'transform 0.1s' }} 
+                            onMouseOver={e => e.currentTarget.style.transform = 'scale(1.05)'}
+                            onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+                            onError={e => { e.target.style.display='none'; }} 
+                          />
                         : <div style={{ width: 64, height: 64, borderRadius: 8, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.3, fontSize: '1.2rem' }}>?</div>
                       }
                     </td>
@@ -254,7 +265,26 @@ export default function ProductOverrides() {
                             : <span className="um-badge" style={{ background: '#fef2f2', color: '#991b1b' }}>Fără poză</span>
                       }
                     </td>
-                    <td><strong>{prod.name}</strong></td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <strong>{prod.name}</strong>
+                        {prod.description && (
+                          <button 
+                            onClick={() => setPreviewDesc(prod)}
+                            title="Vezi descrierea produsului"
+                            style={{ 
+                              background: 'transparent', border: 'none', padding: 0, margin: 0,
+                              cursor: 'pointer', opacity: 0.5, transition: 'opacity 0.2s',
+                              display: 'flex', alignItems: 'center'
+                            }}
+                            onMouseOver={e => e.currentTarget.style.opacity = 1}
+                            onMouseOut={e => e.currentTarget.style.opacity = 0.5}
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                          </button>
+                        )}
+                      </div>
+                    </td>
                     <td className="um-cell--muted">{categories[prod.categoryId] || 'Necunoscută'}</td>
                     <td><span style={{ fontWeight: 600 }}>{prod.price} lei</span></td>
                     
@@ -316,6 +346,54 @@ export default function ProductOverrides() {
 
       {/* Toast */}
       {toast && <div className={`um-toast ${toast.type==='err'?'um-toast--err':''}`}>{toast.msg}</div>}
+
+      {/* Image Preview Modal */}
+      {previewImage && (
+        <div 
+          onClick={() => setPreviewImage(null)}
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(15, 23, 42, 0.85)',
+            zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'zoom-out', padding: 40, backdropFilter: 'blur(4px)'
+          }}
+        >
+          <div style={{ position: 'relative', maxWidth: '100%', maxHeight: '100%', display: 'flex', justifyContent: 'center' }}>
+            <img 
+              src={previewImage} 
+              alt="Preview" 
+              style={{ maxWidth: '100%', maxHeight: '85vh', objectFit: 'contain', borderRadius: 16, boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)' }} 
+            />
+            <div style={{ position: 'absolute', top: -40, right: -40, color: 'white', fontSize: '2.5rem', fontWeight: 300, cursor: 'pointer', userSelect: 'none' }}>&times;</div>
+          </div>
+        </div>
+      )}
+
+      {/* Description Preview Modal */}
+      {previewDesc && (
+        <div 
+          onClick={(e) => { if (e.target === e.currentTarget) setPreviewDesc(null); }}
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(15, 23, 42, 0.65)',
+            zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 40, backdropFilter: 'blur(2px)'
+          }}
+        >
+          <div style={{ position: 'relative', width: 500, maxWidth: '100%', background: 'var(--card)', borderRadius: 16, padding: 32, boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', border: '1px solid var(--border)' }}>
+            <button 
+              onClick={() => setPreviewDesc(null)}
+              style={{ position: 'absolute', top: 16, right: 16, background: 'var(--bg)', border: 'none', width: 32, height: 32, borderRadius: '50%', cursor: 'pointer', fontSize: '1.2rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              &times;
+            </button>
+            <h3 style={{ margin: '0 0 16px', color: 'var(--text)', fontSize: '1.25rem' }}>{previewDesc.name}</h3>
+            <p style={{ margin: 0, color: 'var(--text-muted)', lineHeight: 1.6, fontSize: '0.95rem', whiteSpace: 'pre-wrap' }}>
+              {previewDesc.description || 'Acest produs nu are o descriere setată în sistem.'}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
