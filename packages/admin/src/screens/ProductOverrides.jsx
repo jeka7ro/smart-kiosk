@@ -31,6 +31,7 @@ export default function ProductOverrides() {
   const [activeBrand, setActiveBrand] = useState('smashme');
   const [toast,       setToast]       = useState(null);
   const [filterDiet,  setFilterDiet]  = useState(null); // null | 'veg' | 'spicy'
+  const [filterCategory, setFilterCategory] = useState(''); // empty = all
   const [previewImage,setPreviewImage]= useState(null);
   const [previewDesc, setPreviewDesc] = useState(null);
   
@@ -69,10 +70,20 @@ export default function ProductOverrides() {
     fetchAll(); 
   }, [activeBrand]);
 
+  const uniqueCategories = useMemo(() => {
+    const set = new Set();
+    products.forEach(p => {
+      const name = categories[p.categoryId];
+      if (name) set.add(name);
+    });
+    return Array.from(set).sort();
+  }, [products, categories]);
+
   const filtered = useMemo(() => {
     let list = products.filter(p => {
       const q = search.toLowerCase();
       const catName = categories[p.categoryId] || '';
+      if (filterCategory && catName !== filterCategory) return false;
       return p.name?.toLowerCase().includes(q) || catName.toLowerCase().includes(q);
     });
     if (filterDiet === 'veg')   list = list.filter(p => !!(overrides[p.id]?.is_vegetarian));
@@ -187,10 +198,19 @@ export default function ProductOverrides() {
             );
           })}
         </div>
-        <div style={{ flex: 1, minWidth: 200, position: 'relative', display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ flex: 1, minWidth: 200, display: 'flex', gap: 8, alignItems: 'center' }}>
+          <select 
+            value={filterCategory}
+            onChange={e => { setFilterCategory(e.target.value); setPage(1); }}
+            style={{ padding: '9px 14px', borderRadius: 40, border: '1px solid var(--border)', fontSize: '0.9rem', outline: 'none', background: '#f8fafc', color: 'var(--text)', cursor: 'pointer', maxWidth: 180 }}
+          >
+            <option value="">🗂️ Toate categoriile</option>
+            {uniqueCategories.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+
           <input 
             className="um-search" 
-            placeholder="🔍 Caută produs sau categorie..." 
+            placeholder="🔍 Caută produs..." 
             value={search} 
             onChange={e => { setSearch(e.target.value); setPage(1); }} 
             style={{ flex: 1, boxSizing: 'border-box' }} 
