@@ -22,12 +22,12 @@ router.get('/', requireApiKey, async (req, res) => {
     orgId = getOrgIdForBrand(brandId) || DEFAULT_ORG;
   }
 
-  let menu = getCachedMenu(orgId) || getCachedMenu(brandId);
+  let menu = getCachedMenu(brandId) || getCachedMenu(orgId);
 
   if (!menu) {
     // Not cached yet — fetch on-demand
     try {
-      menu = await fetchMenu(orgId);
+      menu = await fetchMenu(orgId, brandId);
     } catch (err) {
       return res.status(503).json({
         error: 'Menu not available',

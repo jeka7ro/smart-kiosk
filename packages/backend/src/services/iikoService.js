@@ -373,7 +373,6 @@ async function syncAllMenus() {
     }
     try {
       const menu = await fetchMenu(brand.orgId, brandId);
-      _menuCache[brand.orgId] = { menu, brandId, syncedAt: new Date().toISOString() };
       _menuCache[brandId]     = { menu, brandId, syncedAt: new Date().toISOString() };
       console.log(`[Syrve] ✅ Synced ${brandId} (${brand.orgId}): ${menu.categories.length} cats, ${menu.products.length} products`);
 
