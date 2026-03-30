@@ -50,7 +50,7 @@ export default function LoginScreen() {
             src="/getapp_smart_kiosk_white.png"
             alt="GetApp Smart Kiosk"
             className="login-logo"
-            style={{ maxWidth: '100%', height: 'auto', maxHeight: '64px', objectFit: 'contain', display: 'block', margin: '0 auto' }}
+            style={{ maxWidth: '100%', height: 'auto', maxHeight: '64px', objectFit: 'contain', display: 'block', margin: '0 auto', transform: 'translateX(8px)' }}
           />
           <p>Autentificare Securizată</p>
         </div>
