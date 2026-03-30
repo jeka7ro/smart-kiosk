@@ -89,7 +89,7 @@ export default function ProductOverrides() {
     if (filterDiet === 'veg')   list = list.filter(p => !!(overrides[p.id]?.is_vegetarian));
     if (filterDiet === 'spicy') list = list.filter(p => !!(overrides[p.id]?.is_spicy));
     return list;
-  }, [products, search, categories, filterDiet, overrides]);
+  }, [products, search, categories, filterDiet, overrides, filterCategory]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -113,9 +113,39 @@ export default function ProductOverrides() {
       });
       showToast('✅ Preferință salvată');
     } catch (e) {
-      showToast('❌ Eraore la salvare: ' + e.message, 'err');
+      showToast('❌ Eroare la salvare: ' + e.message, 'err');
       fetchAll(); // rollback
     }
+  };
+
+  const handleBulkToggle = async (tagType, newValue) => {
+    if (filtered.length === 0) return;
+    if (!window.confirm(`Sigur dorești să aplici modificarea pe toate cele ${filtered.length} produse afișate?`)) return;
+    
+    setLoading(true);
+    let successCount = 0;
+    
+    // Optistic UI bulk update
+    const updates = {};
+    filtered.forEach(p => {
+       const currentOver = overrides[p.id] || {};
+       updates[p.id] = { ...currentOver, [tagType === 'veg' ? 'is_vegetarian' : 'is_spicy']: newValue };
+    });
+    setOverrides(prev => ({ ...prev, ...updates }));
+
+    // Send requests
+    for (const p of filtered) {
+       const payload = updates[p.id];
+       try {
+         await fetchWithAuth(`${BACKEND}/api/products/overrides/${activeBrand}/${p.id}/tags`, {
+           method: 'PUT',
+           body: JSON.stringify(payload),
+         });
+         successCount++;
+       } catch(e) { console.error('Failed to bulk update', p.id); }
+    }
+    setLoading(false);
+    showToast(`✅ Au fost marcate ${successCount} produse.`);
   };
 
   const handleImageUploadClick = (productId) => {
@@ -244,8 +274,18 @@ export default function ProductOverrides() {
                 <th>Produs</th>
                 <th>Categorie</th>
                 <th>Preț</th>
-                <th style={{ textAlign: 'center' }}>🍃 Vegetarian</th>
-                <th style={{ textAlign: 'center' }}>🌶️ Picant</th>
+                <th style={{ textAlign: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, cursor: 'pointer', padding: '4px', borderRadius: 6, background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', transition: 'all 0.2s' }} onClick={() => handleBulkToggle('veg', !(filtered.length > 0 && filtered.every(p => overrides[p.id]?.is_vegetarian)))} title="Bifează/Debifează pe Toate">
+                    <div className={`um-checkbox ${filtered.length > 0 && filtered.every(p => overrides[p.id]?.is_vegetarian) ? 'checked' : ''}`} style={{ zoom: 0.8, pointerEvents: 'none', margin: 0 }} />
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>🍃 Vegetarian</span>
+                  </div>
+                </th>
+                <th style={{ textAlign: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, cursor: 'pointer', padding: '4px', borderRadius: 6, background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', transition: 'all 0.2s' }} onClick={() => handleBulkToggle('spicy', !(filtered.length > 0 && filtered.every(p => overrides[p.id]?.is_spicy)))} title="Bifează/Debifează pe Toate">
+                    <div className={`um-checkbox ${filtered.length > 0 && filtered.every(p => overrides[p.id]?.is_spicy) ? 'checked' : ''}`} style={{ zoom: 0.8, pointerEvents: 'none', margin: 0 }} />
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>🌶️ Picant</span>
+                  </div>
+                </th>
                 <th style={{ textAlign: 'right' }}>Editează Poză</th>
               </tr>
             </thead>
