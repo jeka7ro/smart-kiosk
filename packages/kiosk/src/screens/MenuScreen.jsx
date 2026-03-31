@@ -444,7 +444,14 @@ export default function MenuScreen() {
                   <span className="fav-item-price">{fav.price} {t('currency', lang) || 'lei'}</span>
                 </div>
                 <div className="fav-item-actions">
-                  <button className="fav-add-btn" title={t('add_to_cart', lang) || "Adaugă în coș"} onClick={(e) => handleFavQuickAdd(fav, e.currentTarget)}>+ {t('cart_short', lang) || 'Coș'}</button>
+                  <button className="fav-add-btn" title={t('add_to_cart', lang) || "Adaugă în coș"} onClick={(e) => handleFavQuickAdd(fav, e.currentTarget)}>
+                    <span style={{ fontSize: '1.05rem', lineHeight: 1, marginTop: '-1px' }}>+</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14 }}>
+                      <circle cx="9" cy="21" r="1" />
+                      <circle cx="20" cy="21" r="1" />
+                      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+                    </svg>
+                  </button>
                   <button className="fav-del-btn" title={t('delete_short', lang) || "Șterge"} onClick={() => toggleFavorite(fav)}>✕</button>
                 </div>
               </div>

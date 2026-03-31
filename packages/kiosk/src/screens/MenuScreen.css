@@ -172,9 +172,10 @@
 .fav-item-actions { display: flex; gap: 4px; flex-shrink: 0; }
 .fav-add-btn {
   background: #ef4444; color: #fff; border: none;
-  border-radius: 8px; padding: 4px 8px;
-  font-size: 0.72rem; font-weight: 700; cursor: pointer;
+  border-radius: 8px; padding: 4px 10px;
+  font-weight: 700; cursor: pointer;
   transition: background 0.15s;
+  display: flex; align-items: center; justify-content: center; gap: 4px;
 }
 .fav-add-btn:hover { background: #dc2626; }
 .fav-del-btn {
