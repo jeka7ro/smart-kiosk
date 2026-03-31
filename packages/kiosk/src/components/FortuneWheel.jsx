@@ -42,6 +42,7 @@ export default function FortuneWheel({ config, onClose, onWin }) {
   const [wheelRotation, setWheelRotation] = useState(0);
   const [winningSlice, setWinningSlice] = useState(null);
   const [showWinModal, setShowWinModal] = useState(false);
+  const setHasPlayedPromo = useKioskStore(s => s.setHasPlayedPromo);
 
   const wheelRef = useRef(null);
 
@@ -60,6 +61,7 @@ export default function FortuneWheel({ config, onClose, onWin }) {
   const spin = () => {
     if (isSpinning) return;
     setIsSpinning(true);
+    setHasPlayedPromo(true);
     setWinningSlice(null);
     setShowWinModal(false);
 

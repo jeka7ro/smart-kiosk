@@ -18,6 +18,7 @@ export default function CartScreen() {
   const lang           = useKioskStore((s) => s.lang);
   const setShowWheel   = useKioskStore((s) => s.setShowWheel);
   const setPromoIntendedRoute = useKioskStore((s) => s.setPromoIntendedRoute);
+  const hasPlayedPromo = useKioskStore((s) => s.hasPlayedPromo);
   
   const brand          = useBrand();
   const [imgErrors, setImgErrors] = useState({});
@@ -133,7 +134,7 @@ export default function CartScreen() {
               </div>
             </div>
           ))}
-          <button className="add-more-btn" onClick={() => goTo('menu')}>+ {t('add_more', lang)}</button>
+          <button className="add-more-btn" onClick={() => goTo('menu')}>{t('add_more', lang)}</button>
         </div>
 
         {/* Right: Summary + Suggestions */}
@@ -208,7 +209,7 @@ export default function CartScreen() {
                     const isRightFreq = freqEnabled ? ((ordersFinished % ordersToAppear) === 0) : true;
                     const hasSpunTooMany = cartItems.filter(i => i.isPromo).length >= 1;
 
-                    if (subtotal >= minVal && isRightFreq && !hasSpunTooMany) {
+                    if (subtotal >= minVal && isRightFreq && !hasSpunTooMany && !hasPlayedPromo) {
                        setPromoIntendedRoute('payment');
                        setShowWheel(true);
                        return;
@@ -225,7 +226,7 @@ export default function CartScreen() {
             {t('pay', lang)} {subtotal.toFixed(0)} {t('lei', lang)} →
           </button>
           <button className="btn btn-ghost btn-lg" style={{ width: '100%', marginTop: 10 }} onClick={() => goTo('menu')}>
-            ← {t('add_more', lang)}
+            {t('add_more', lang)}
           </button>
         </div>
       </div>

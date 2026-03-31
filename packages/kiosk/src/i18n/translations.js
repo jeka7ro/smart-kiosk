@@ -370,15 +370,15 @@ export const T = {
     es: "Pagar"
   },
   add_more: {
-    ro: '+ Adaugă mai multe',
-    en: '+ Add more items',
-    fr: '+ Ajouter plus',
-    hu: '+ Több hozzáadása',
-    ru: '+ Добавить ещё',
-    uk: '+ Додати ще',
-    bg: "+ Добави още",
-    de: "+ Mehr",
-    es: "+ Añadir más"
+    ro: 'Adaugă mai multe',
+    en: 'Add more items',
+    fr: 'Ajouter plus',
+    hu: 'Több hozzáadása',
+    ru: 'Добавить ещё',
+    uk: 'Додати ще',
+    bg: "Добави още",
+    de: "Mehr",
+    es: "Añadir más"
   },
   // ── Payment Screen ─────────────────────────────────────────
   present_card: {

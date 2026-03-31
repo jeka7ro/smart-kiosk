@@ -18,6 +18,10 @@ export const useKioskStore = create((set, get) => ({
   setLocationData: (data) => set({ locationData: data }),
   setKioskData: (data) => set({ kioskData: data }),
 
+  // ─── Session Flags ─────────────────────────────────────────
+  hasPlayedPromo: false,
+  setHasPlayedPromo: (val) => set({ hasPlayedPromo: val }),
+
   // ─── Menu Data ─────────────────────────────────────────────
   menuProducts: (() => {
     try { return JSON.parse(localStorage.getItem('kiosk_menuProducts') || '[]'); } catch { return []; }
@@ -172,6 +176,7 @@ export const useKioskStore = create((set, get) => ({
     orderType: null,
     tableNumber: null,
     selectedProduct: null,
+    hasPlayedPromo: false,
     screen: 'welcome',
   }),
 
@@ -182,6 +187,7 @@ export const useKioskStore = create((set, get) => ({
     orderType: null,
     tableNumber: null,
     selectedProduct: null,
+    hasPlayedPromo: false,
     screen: 'welcome',
   }),
 }));
