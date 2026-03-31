@@ -56,12 +56,9 @@ export default function ProductCard({ product, delay, lang, activeBrand, onQuick
     >
       {/* Top Header: Name and Price */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-        <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 500, color: '#111827', width: '70%', lineHeight: 1.2 }}>
+        <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 500, color: '#111827', width: '100%', lineHeight: 1.2 }}>
           {product.name}
         </h3>
-        <span style={{ color: '#ef4444', fontWeight: 700, fontSize: '1.05rem' }}>
-          {product.price}RON
-        </span>
       </div>
 
       {/* Image / Content body */}
