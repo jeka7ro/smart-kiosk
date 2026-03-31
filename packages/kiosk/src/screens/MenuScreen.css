@@ -48,8 +48,23 @@
 .menu-order-info {
   flex-shrink: 0;
   font-size: 0.85rem;
-  color: var(--text-muted);
-  font-weight: 600;
+  color: var(--primary, #111827);
+  font-weight: 700;
+  background: var(--surface, #f9fafb);
+  border: 1px solid var(--border, #e5e7eb);
+  padding: 8px 14px;
+  border-radius: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+}
+.menu-order-info:active {
+  transform: scale(0.95);
+  background: var(--border, #e5e7eb);
+  box-shadow: none;
 }
 
 /* ─── BRAND TABS (multi-brand) ─── */

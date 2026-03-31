@@ -382,9 +382,10 @@ export default function MenuScreen() {
 
         <div className="menu-order-info" onClick={() => goTo('orderType')} style={{ cursor: 'pointer' }}>
           {orderType === 'dine-in'
-            ? <span>{t('table', lang)} #{tableNumber}</span>
-            : <span>{t('takeaway', lang)}</span>
+            ? <span>🍽️ {t('table', lang)} #{tableNumber}</span>
+            : <span>🛍️ {t('takeaway', lang)}</span>
           }
+          <span style={{ marginLeft: '4px', opacity: 0.4, fontSize: '0.9em' }}>✎</span>
         </div>
       </header>
 
