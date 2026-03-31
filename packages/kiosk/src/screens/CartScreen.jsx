@@ -3,6 +3,7 @@ import { useKioskStore } from '../store/kioskStore';
 import { t } from '../i18n/translations.js';
 import { useBrand } from '../context/BrandContext.js';
 import { useInactivityTimeout } from '../hooks/useInactivityTimeout.js';
+import { proxySyrveImage } from '../utils/imageUtils.js';
 import './CartScreen.css';
 
 export default function CartScreen() {
@@ -107,7 +108,7 @@ export default function CartScreen() {
                   <div key={item.id} className="cart-item fade-in" style={{ animationDelay: `${i * 0.05}s` }}>
                     <div className="ci-thumb" style={(imgErrors[item.id] || !item.image) ? {background: 'var(--surface)', display:'flex', alignItems:'center', justifyContent:'center'} : {}}>
                       {item.image && !imgErrors[item.id]
-                        ? <img src={item.image} alt={item.name} onError={() => setImgErrors(e => ({ ...e, [item.id]: true }))} />
+                        ? <img src={proxySyrveImage(item.image)} alt={item.name} onError={() => setImgErrors(e => ({ ...e, [item.id]: true }))} />
                         : <img src={`/brands/${bId}-logo.png`} style={{ width: '65%', opacity: 0.15, filter: 'grayscale(100%)', objectFit: 'contain' }} alt="" />
                       }
                     </div>
@@ -153,7 +154,7 @@ export default function CartScreen() {
                   >
                     <div className="cart-sugg-img">
                       {prod.image
-                        ? <img src={prod.image} alt={prod.name} />
+                        ? <img src={proxySyrveImage(prod.image)} alt={prod.name} />
                         : <span style={{ fontSize: '1.8rem' }}>🍽️</span>
                       }
                       {addedIds[prod.id] && (
