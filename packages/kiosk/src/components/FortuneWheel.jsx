@@ -127,7 +127,7 @@ export default function FortuneWheel({ config, onClose, onWin }) {
       {/* Header Text */}
       <div style={{ position: 'absolute', top: 30, width: '100%', textAlign: 'center', transition: 'all 0.4s', opacity: showWinModal ? 0 : 1 }}>
         <h1 style={{ fontSize: '3.8rem', fontWeight: 900, textTransform: 'uppercase', margin: 0, textShadow: '0 4px 24px rgba(0,0,0,0.6)', color: '#fef08a' }}>
-          {config?.title || t('wheel_default_title', lang)}
+          {config?.title ? t(config.title, lang) : t('wheel_default_title', lang)}
         </h1>
         <p style={{ fontSize: '1.4rem', opacity: 0.9, marginTop: 10, fontWeight: 700 }}>{t('wheel_subtitle', lang)}</p>
       </div>

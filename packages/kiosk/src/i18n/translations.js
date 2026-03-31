@@ -1035,6 +1035,28 @@ export const T = {
     bg: 'Вземи наградата!',
     de: 'Preis einlösen!',
     es: '¡Reclama tu premio!'
+  },
+  "Din partea casei!": {
+    ro: "Din partea casei!",
+    en: "On the house!",
+    fr: "Offert par la maison !",
+    hu: "A ház ajándéka!",
+    ru: "От заведения!",
+    uk: "Від закладу!",
+    bg: "От заведението!",
+    de: "Aufs Haus!",
+    es: "¡Invita la casa!"
+  },
+  "Îți oferim cu drag!": {
+    ro: "Îți oferim cu drag!",
+    en: "Given with love!",
+    fr: "Offert avec amour !",
+    hu: "Szeretettel adjuk!",
+    ru: "Дарим с любовью!",
+    uk: "Даруємо з любов'ю!",
+    bg: "Даваме с любов!",
+    de: "Mit Liebe geschenkt!",
+    es: "¡Dado con amor!"
   }
 };
 
