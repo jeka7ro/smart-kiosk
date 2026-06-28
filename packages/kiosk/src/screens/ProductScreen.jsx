@@ -94,7 +94,7 @@ export default function ProductScreen() {
   const handleQuickAddSug = (sugProd, refElem) => {
     // Fix: Use sugProd._brand if available
     const sugBrandId = sugProd._brand || brand?.id;
-    addToCart(sugProd, 1, [], sugProd.price, sugBrandId);
+    addToCart(sugProd, 1, [], sugProd.price, sugBrandId, false);
     if (!refElem || !cartIconRef.current) return;
     const fromRect = refElem.getBoundingClientRect();
     const toRect = cartIconRef.current.getBoundingClientRect();
@@ -220,7 +220,7 @@ export default function ProductScreen() {
             onClick={handleAdd}
           >
             <span>{t('add_to_cart', lang)}</span>
-            <span className="pd-total">{totalPrice.toFixed(0)} {t('lei', lang)}</span>
+            <span className="pd-total">{totalPrice.toFixed(2)} {t('lei', lang)}</span>
           </button>
         </div>
       </div>

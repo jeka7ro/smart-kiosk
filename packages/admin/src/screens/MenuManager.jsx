@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthProvider';
 
-const BRAND_COLORS = { smashme: '#ef4444', sushimaster: '#3b82f6', ikura: '#f97316', welovesushi: '#8b5cf6' };
+const BRAND_COLORS = { smashme: '#ef4444', crunch: '#eab308', rollmaster: '#3b82f6', lovesushi: '#ec4899', pokiwoki: '#f97316' };
 
 function BrandLogo({ brandId, size = 18 }) {
   const logos = {
     smashme: '/brands/smashme-logo.png',
-    sushimaster: '/brands/sushimaster-logo.png',
-    welovesushi: '/brands/welovesushi-logo.png',
+    crunch: '/brands/smashme-logo.png',
+    rollmaster: '/brands/sushimaster-logo.png',
+    lovesushi: '/brands/welovesushi-logo.png',
+    pokiwoki: '/brands/sushimaster-logo.png',
     ikura: '/brands/ikura-logo.png'
   };
   const src = logos[brandId] || logos.smashme; // fallback

@@ -4,162 +4,78 @@
  * The active brand is determined by VITE_BRAND env variable or URL param ?brand=smashme
  */
 
+
 export const BRANDS = {
   smashme: {
     id: 'smashme',
     name: 'Smash Me',
-    tagline: 'Burgeri smash suculenți cu gust memorabil',
+    tagline: 'Burgeri smash suculenți',
     emoji: '🍔',
     url: 'smashme.ro',
-
-    // Logo
-    logoImg:    '/brands/smashme-logo.png',
+    logoImg: '/brands/smashme-logo.png',
     logoHeight: 80,
-
-    // Colors — LIGHT theme matching smashme.ro (white/cream bg, red accent)
-    colors: {
-      primary:      '#EE3B24',   // Exact red from site
-      primaryDark:  '#CC2A14',
-      primaryLight: '#FF5540',
-      accent:       '#FFB800',
-      bgDark:       '#F5F5F5',   // Light grey — matching site bg
-      bgCard:       '#FFFFFF',   // White cards
-      bgCard2:      '#F9F9F9',
-      surface:      '#F2F2F2',   // From site: #F2F2F2
-      textMain:     '#1A1A1A',   // Dark text
-      textMuted:    '#6E6F84',   // From site CSS
-      borderColor:  '#E8E8E8',
-    },
-
-    // Font
+    colors: { primary: '#EE3B24', primaryDark: '#CC2A14', primaryLight: '#FF5540', accent: '#FFB800', bgDark: '#F5F5F5', bgCard: '#FFFFFF', bgCard2: '#F9F9F9', surface: '#F2F2F2', textMain: '#1A1A1A', textMuted: '#6E6F84', borderColor: '#E8E8E8' },
     font: "-apple-system, BlinkMacSystemFont, 'Inter', sans-serif",
     fontWeight: 900,
-
-    // Welcome screen
-    welcomeSlides: [
-      { headline: 'Burgeri smash,', sub: 'suculenți și memorabili', emoji: '🍔' },
-      { headline: 'Ingrediente fresh,', sub: 'gătite la comandă', emoji: '🥩' },
-      { headline: 'Plată rapidă', sub: 'cu cardul sau contactless', emoji: '💳' },
-    ],
-
-    // Category style
-    categoryEmojis: {
-      burgers: '🍔',
-      sides:   '🍟',
-      drinks:  '🥤',
-      desserts:'🍰',
-      shakes:  '🥛',
-    },
+    welcomeSlides: [{ headline: 'Burgeri smash', sub: 'suculenți', emoji: '🍔' }],
+    categoryEmojis: { burgers: '🍔', sides: '🍟', drinks: '🥤' }
   },
-
-  sushimaster: {
-    id: 'sushimaster',
-    name: 'Sushi Master',
+  crunch: {
+    id: 'crunch',
+    name: 'Crunch',
+    tagline: 'Pui crispy',
+    emoji: '🍗',
+    url: 'smashme.ro',
+    logoImg: '/brands/crunch-logo.png',
+    logoHeight: 80,
+    colors: { primary: '#FFB800', primaryDark: '#E5A600', primaryLight: '#FFC833', accent: '#EE3B24', bgDark: '#F5F5F5', bgCard: '#FFFFFF', bgCard2: '#F9F9F9', surface: '#F2F2F2', textMain: '#1A1A1A', textMuted: '#6E6F84', borderColor: '#E8E8E8' },
+    font: "-apple-system, BlinkMacSystemFont, 'Inter', sans-serif",
+    fontWeight: 900,
+    welcomeSlides: [{ headline: 'Pui crispy', sub: 'delicios', emoji: '🍗' }],
+    categoryEmojis: { combo: '🍱', pui: '🍗', drinks: '🥤' }
+  },
+  rollmaster: {
+    id: 'rollmaster',
+    name: 'Roll Master',
     tagline: 'Bucătărie japoneză autentică',
     emoji: '🍣',
     url: 'sushimaster.ro',
-
-    // Logo
-    logoImg:    '/brands/sushimaster-logo.png',
+    logoImg: '/brands/rollmaster-logo.png',
     logoHeight: 80,
-
-    // Colors — LIGHT theme matching sushimaster.ro (white bg, red accent)
-    colors: {
-      primary:      '#E31E24',   // Exact red from site
-      primaryDark:  '#B81219',
-      primaryLight: '#FF3038',
-      accent:       '#D4AF37',   // Gold
-      bgDark:       '#F5F5F5',   // Light grey
-      bgCard:       '#FFFFFF',   // White cards
-      bgCard2:      '#F9F9F9',
-      surface:      '#F2F2F2',   // From site: #F2F2F2
-      textMain:     '#1A1A1A',
-      textMuted:    '#6E6F84',
-      borderColor:  '#E8E8E8',
-    },
-
-    // Font — more refined
+    colors: { primary: '#E31E24', primaryDark: '#B81219', primaryLight: '#FF3038', accent: '#D4AF37', bgDark: '#F5F5F5', bgCard: '#FFFFFF', bgCard2: '#F9F9F9', surface: '#F2F2F2', textMain: '#1A1A1A', textMuted: '#6E6F84', borderColor: '#E8E8E8' },
     font: "-apple-system, BlinkMacSystemFont, 'Inter', sans-serif",
     fontWeight: 700,
-
-    // Welcome screen
-    welcomeSlides: [
-      { headline: 'Sushi proaspăt,', sub: 'pregătit la comandă', emoji: '🍣' },
-      { headline: 'Rețete japoneze', sub: 'autentice și rafinate', emoji: '🌸' },
-      { headline: 'Plată rapidă', sub: 'cu cardul sau contactless', emoji: '💳' },
-    ],
-
-    categoryEmojis: {
-      rolls:   '🌀',
-      nigiri:  '🍣',
-      sashimi: '🐟',
-      soups:   '🍜',
-      drinks:  '🍵',
-      desserts:'🍡',
-    },
+    welcomeSlides: [{ headline: 'Sushi proaspăt', sub: 'autentic', emoji: '🍣' }],
+    categoryEmojis: { rolls: '🌀', nigiri: '🍣' }
   },
-
-  welovesushi: {
-    id: 'welovesushi',
-    name: 'WeLoveSushi',
-    tagline: 'Iubim sushi-ul, la fel ca tine',
+  lovesushi: {
+    id: 'lovesushi',
+    name: 'Love Sushi',
+    tagline: 'Iubim sushi-ul',
     emoji: '🍣',
     url: 'welovesushi.ro',
-    logoImg:    '/brands/welovesushi-logo.png',
+    logoImg: '/brands/welovesushi-logo.png',
     logoHeight: 80,
-    colors: {
-      primary:      '#E31E24',
-      primaryDark:  '#B81219',
-      primaryLight: '#FF3038',
-      accent:       '#D4AF37',
-      bgDark:       '#F5F5F5',
-      bgCard:       '#FFFFFF',
-      bgCard2:      '#F9F9F9',
-      surface:      '#F2F2F2',
-      textMain:     '#1A1A1A',
-      textMuted:    '#6E6F84',
-      borderColor:  '#E8E8E8',
-    },
+    colors: { primary: '#E31E24', primaryDark: '#B81219', primaryLight: '#FF3038', accent: '#D4AF37', bgDark: '#F5F5F5', bgCard: '#FFFFFF', bgCard2: '#F9F9F9', surface: '#F2F2F2', textMain: '#1A1A1A', textMuted: '#6E6F84', borderColor: '#E8E8E8' },
     font: "-apple-system, BlinkMacSystemFont, 'Inter', sans-serif",
     fontWeight: 700,
-    welcomeSlides: [
-      { headline: 'We Love Sushi!', sub: 'Sushi proaspăt, pregătit cu pasiune', emoji: '🍣' },
-      { headline: 'Rețete autentice', sub: 'din bucătăria japoneză', emoji: '🌸' },
-      { headline: 'Plată rapidă', sub: 'cu cardul sau contactless', emoji: '💳' },
-    ],
-    categoryEmojis: { rolls: '🌀', nigiri: '🍣', sashimi: '🐟', soups: '🍜', drinks: '🍵', desserts: '🍡' },
+    welcomeSlides: [{ headline: 'We Love Sushi!', sub: 'proaspăt', emoji: '🍣' }],
+    categoryEmojis: { rolls: '🌀', nigiri: '🍣' }
   },
-
-  ikura: {
-    id: 'ikura',
-    name: 'Ikura',
-    tagline: 'Sushi premium în inima Oradiei',
-    emoji: '🍱',
-    url: 'ikura.ro',
-    logoImg:    '/brands/ikura-logo.png',
+  pokiwoki: {
+    id: 'pokiwoki',
+    name: 'Poki-Woki',
+    tagline: 'Hawaiian Poke Bowls',
+    emoji: '🥗',
+    url: 'pokiwoki.ro',
+    logoImg: '/brands/pokiwoki-logo.png',
     logoHeight: 80,
-    colors: {
-      primary:      '#8b5cf6',
-      primaryDark:  '#6d28d9',
-      primaryLight: '#a78bfa',
-      accent:       '#f59e0b',
-      bgDark:       '#F5F5F5',
-      bgCard:       '#FFFFFF',
-      bgCard2:      '#F9F9F9',
-      surface:      '#F2F2F2',
-      textMain:     '#1A1A1A',
-      textMuted:    '#6E6F84',
-      borderColor:  '#E8E8E8',
-    },
+    colors: { primary: '#F97316', primaryDark: '#EA580C', primaryLight: '#FB923C', accent: '#10B981', bgDark: '#F5F5F5', bgCard: '#FFFFFF', bgCard2: '#F9F9F9', surface: '#F2F2F2', textMain: '#1A1A1A', textMuted: '#6E6F84', borderColor: '#E8E8E8' },
     font: "-apple-system, BlinkMacSystemFont, 'Inter', sans-serif",
     fontWeight: 700,
-    welcomeSlides: [
-      { headline: 'Ikura Oradea', sub: 'Sushi premium, ingrediente proaspete', emoji: '🍱' },
-      { headline: 'Rulouri artizanale', sub: 'preparate cu măiestrie', emoji: '🌸' },
-      { headline: 'Plată rapidă', sub: 'cu cardul sau contactless', emoji: '💳' },
-    ],
-    categoryEmojis: { rolls: '🌀', nigiri: '🍣', sashimi: '🐟', soups: '🍜', drinks: '🍵', desserts: '🍡' },
-  },
+    welcomeSlides: [{ headline: 'Poki-Woki', sub: 'Sănătos', emoji: '🥗' }],
+    categoryEmojis: { bowls: '🥗', woks: '🍜' }
+  }
 };
 
 // Default brand

@@ -6,6 +6,9 @@ const { protect, restrictTo } = require('../middleware/authMiddleware');
 // Obține toți utilizatorii — doar admin
 router.get('/', protect, restrictTo('admin'), async (req, res) => {
   try {
+    if (!process.env.DATABASE_URL) {
+      return res.json([{ id: 'admin', email: 'admin@kiosk.ro', name: 'Admin', role: 'admin', active: true }]);
+    }
     const { rows } = await pool.query(
       'SELECT id, email, name, role, locations, active FROM users ORDER BY created_at ASC'
     );

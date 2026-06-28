@@ -6,7 +6,10 @@ const QR_WEB_BASE = 'https://qr-restaurants.netlify.app';
 
 const BRANDS = [
   { id: 'smashme',     name: 'SmashMe',      color: '#ef4444', logo: '/brands/smashme-logo.png' },
-  { id: 'sushimaster', name: 'Sushi Master',  color: '#3b82f6', logo: '/brands/sushimaster-logo.png' },
+  { id: 'rollmaster', name: 'Roll Master', color: '#3b82f6', logo: '/brands/sushimaster-logo.png' },
+  { id: 'lovesushi', name: 'Love Sushi', color: '#ec4899', logo: '/brands/welovesushi-logo.png' },
+  { id: 'pokiwoki', name: 'Poki-Woki', color: '#f97316', logo: '/brands/sushimaster-logo.png' },
+  { id: 'crunch', name: 'Crunch', color: '#eab308', logo: '/brands/smashme-logo.png' },
   { id: 'ikura',       name: 'Ikura',         color: '#f97316', logo: '/brands/ikura-logo.png' },
   { id: 'welovesushi', name: 'We Love Sushi', color: '#8b5cf6', logo: '/brands/welovesushi-logo.png' },
 ];

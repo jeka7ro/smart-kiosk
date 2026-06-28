@@ -114,10 +114,11 @@ async function initDb() {
       updated_at  TIMESTAMPTZ DEFAULT NOW()
     );
     INSERT INTO brands (id, name) VALUES
-      ('smashme', 'SmashMe'),
-      ('sushimaster', 'Sushi Master'),
-      ('ikura', 'Ikura'),
-      ('welovesushi', 'WeLoveSushi')
+      ('smashme', 'Smash Me'),
+      ('crunch', 'Crunch'),
+      ('rollmaster', 'Roll Master'),
+      ('lovesushi', 'Love Sushi'),
+      ('pokiwoki', 'Poki-Woki')
     ON CONFLICT (id) DO NOTHING;
   `);
 

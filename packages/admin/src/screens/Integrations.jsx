@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthProvider';
+import { useConfirm } from '../components/ConfirmModal';
 import IntegrationDetail from './IntegrationDetail';
 import './UsersManager.css';
 
@@ -26,6 +27,7 @@ const PROVIDER_LOGOS = {
 
 export default function Integrations() {
   const { fetchWithAuth } = useAuth();
+  const confirm = useConfirm();
   const [integrations, setIntegrations] = useState([]);
   const [providers,    setProviders]    = useState([]);
   const [loading,      setLoading]      = useState(true);
@@ -140,7 +142,8 @@ export default function Integrations() {
   };
 
   const deleteOne = async (integ) => {
-    if (!confirm(`Ștergi integrarea „${integ.name}"?`)) return;
+    const ok = await confirm(`Ștergi integrarea „${integ.name}"?`, { title: 'Confirmare ștergere', icon: '🗑️', okLabel: 'Șterge', danger: true });
+    if (!ok) return;
     try {
       await fetchWithAuth(`${BACKEND}/api/integrations/${integ.id}`, { method: 'DELETE' });
       showToast('🗑 Șters'); fetchAll();
@@ -148,7 +151,9 @@ export default function Integrations() {
   };
 
   const bulkDelete = async () => {
-    if (!selected.size || !confirm(`Ștergi ${selected.size} integrări?`)) return;
+    if (!selected.size) return;
+    const ok = await confirm(`Ștergi ${selected.size} integrări?`, { title: 'Confirmare ștergere multiple', icon: '🗑️', okLabel: 'Șterge tot', danger: true });
+    if (!ok) return;
     try {
       await Promise.all([...selected].map(id => fetchWithAuth(`${BACKEND}/api/integrations/${id}`, { method: 'DELETE' })));
       setSelected(new Set()); showToast(`🗑 ${selected.size} integrări șterse`); fetchAll();

@@ -13,6 +13,7 @@ import Promotions     from './screens/Promotions';
 import FortuneWheelPreview from './components/FortuneWheelPreview';
 import MenuManager, { MenuProfileEditorModal } from './screens/MenuManager';
 import QrGenerator from './screens/QrGenerator';
+import { useConfirm } from './components/ConfirmModal';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
 
@@ -26,14 +27,15 @@ function useKeepAlive() {
   }, []);
 }
 
-const BRAND_COLORS = { smashme: '#ef4444', sushimaster: '#3b82f6' };
+const BRAND_COLORS = { smashme: '#ef4444', crunch: '#eab308', rollmaster: '#3b82f6', lovesushi: '#ec4899', pokiwoki: '#f97316' };
 
 function BrandLogo({ brandId, size = 18 }) {
   const logos = {
     smashme: '/brands/smashme-logo.png',
-    sushimaster: '/brands/sushimaster-logo.png',
-    welovesushi: '/brands/welovesushi-logo.png',
-    ikura: '/brands/ikura-logo.png'
+    crunch: '/brands/smashme-logo.png',
+    rollmaster: '/brands/sushimaster-logo.png',
+    lovesushi: '/brands/welovesushi-logo.png',
+    pokiwoki: '/brands/sushimaster-logo.png'
   };
   const src = logos[brandId];
   if (src) return <img src={src} alt={brandId} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'contain', verticalAlign: 'middle', flexShrink: 0 }} />;
@@ -315,14 +317,14 @@ export default function AdminApp() {
           <div className="admin-section">
             <div className="section-header">
               <div className="brand-tabs">
-                {['all','smashme','sushimaster'].map(b => (
+                {['all','smashme','crunch','rollmaster','lovesushi','pokiwoki'].map(b => (
                   <button
                     key={b}
                     className={`brand-tab ${brandFilter === b ? 'active' : ''}`}
                     style={{ ...(b !== 'all' ? { '--bc': BRAND_COLORS[b] } : {}), display: 'flex', alignItems: 'center', gap: '6px' }}
                     onClick={() => setBrandFilter(b)}
                   >
-                    {b === 'all' ? 'Toate' : <><BrandLogo brandId={b} size={14} /> {b === 'smashme' ? 'SmashMe' : 'SushiMaster'}</>}
+                    {b === 'all' ? 'Toate' : <><BrandLogo brandId={b} size={14} /> {b === 'smashme' ? 'SmashMe' : b === 'crunch' ? 'Crunch' : b === 'rollmaster' ? 'Roll Master' : b === 'lovesushi' ? 'Love Sushi' : 'Poki-Woki'}</>}
                   </button>
                 ))}
               </div>
@@ -574,7 +576,7 @@ function KiosksManager({ backend }) {
 
   const brandMeta = {
     smashme:     { name: 'SmashMe',       color: '#ef4444' },
-    sushimaster: { name: 'Sushi Master',  color: '#3b82f6' },
+    rollmaster: { name: 'Roll Master', color: '#3b82f6' }, lovesushi: { name: 'Love Sushi', color: '#ec4899' }, pokiwoki: { name: 'Poki-Woki', color: '#f97316' }, crunch: { name: 'Crunch', color: '#eab308' },
     ikura:       { name: 'Ikura',         color: '#d4af37' },
     welovesushi: { name: 'WeLoveSushi',   color: '#ec4899' },
   };
@@ -1018,7 +1020,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
             {/* Show selected brands first with reorder buttons */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12, paddingBottom: 12, borderBottom: '1px dashed var(--border)' }}>
               {formData.brands.map((k, index) => {
-                const v = {smashme:'SmashMe',sushimaster:'Sushi Master',welovesushi:'WeLoveSushi',ikura:'Ikura'}[k] || k;
+                const v = {smashme:'SmashMe', crunch:'Crunch', rollmaster:'Roll Master', lovesushi:'Love Sushi', pokiwoki:'Poki-Woki'}[k] || k;
                 return (
                   <div key={k} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 10 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700, fontSize: '0.95rem', color: 'var(--text)' }}>
@@ -1052,7 +1054,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
 
             {/* Selection candidates */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-              {Object.entries({smashme:'SmashMe',sushimaster:'Sushi Master',welovesushi:'WeLoveSushi',ikura:'Ikura'}).map(([k, v]) => {
+              {Object.entries({smashme:'SmashMe', crunch:'Crunch', rollmaster:'Roll Master', lovesushi:'Love Sushi', pokiwoki:'Poki-Woki'}).map(([k, v]) => {
                 if (formData.brands.includes(k)) return null;
                 return (
                   <button
@@ -1841,11 +1843,12 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
 }
 
 /* ─── LOCATIONS MANAGER ──────────────────────────────────── */
-const BRAND_LABELS = { smashme: 'SmashMe', sushimaster: 'Sushi Master', ikura: 'Ikura', welovesushi: 'WeLoveSushi' };
-const BRAND_PILL_COLORS = { smashme: '#ef4444', sushimaster: '#3b82f6', ikura: '#8b5cf6', welovesushi: '#ec4899' };
+const BRAND_LABELS = { smashme: 'SmashMe', crunch: 'Crunch', rollmaster: 'Roll Master', lovesushi: 'Love Sushi', pokiwoki: 'Poki-Woki' };
+const BRAND_PILL_COLORS = { smashme: '#ef4444', crunch: '#eab308', rollmaster: '#3b82f6', lovesushi: '#ec4899', pokiwoki: '#f97316' };
 
 function LocationsManager({ backend }) { 
   const { fetchWithAuth } = useAuth();
+  const confirm = useConfirm();
   const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -1889,8 +1892,9 @@ function LocationsManager({ backend }) {
     }).then(() => fetchLocs());
   };
 
-  const deleteLoc = (id) => {
-    if (!confirm('Stergi aceasta locatie?')) return;
+  const deleteLoc = async (id) => {
+    const ok = await confirm('Ștergi această locație?', { title: 'Ștergere locație', icon: '🗑️', okLabel: 'Șterge', danger: true });
+    if (!ok) return;
     fetchWithAuth(`${backend}/api/locations/${id}`, { method: 'DELETE' })
       .then(() => fetchLocs());
   };
@@ -2142,7 +2146,7 @@ function LocationEditForm({ loc, backend, onBack, onSave }) {
           <h3 style={{ marginTop: 0, fontSize: '1.1rem', color: 'var(--text)', marginBottom: 20 }}>Restaurante Active în Kiosk</h3>
           
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 24 }}>
-            {Object.entries({smashme:'SmashMe',sushimaster:'Sushi Master',welovesushi:'WeLoveSushi',ikura:'Ikura'}).map(([k, v]) => {
+            {Object.entries({smashme:'SmashMe', crunch:'Crunch', rollmaster:'Roll Master', lovesushi:'Love Sushi', pokiwoki:'Poki-Woki'}).map(([k, v]) => {
               const isActive = formData.brands.includes(k);
               const pillColor = (BRAND_COLORS && BRAND_COLORS[k]) ? BRAND_COLORS[k] : '#64748b';
               return (
@@ -2247,7 +2251,7 @@ function BrandsManager({ backend }) {
   };
 
   const BRAND_DEFAULT_COLORS = {
-    smashme: '#ef4444', sushimaster: '#3b82f6', ikura: '#8b5cf6', welovesushi: '#ec4899',
+    smashme: '#ef4444', crunch: '#eab308', rollmaster: '#3b82f6', lovesushi: '#ec4899', pokiwoki: '#f97316',
   };
 
   if (loading) return <p className="loading-text">Se încarcă brandurile...</p>;

@@ -1,0 +1,439 @@
+ 
+ 
+ 
+Hypercom®, Inc. 
+2851 West Kathleen Road 
+Phoenix, Arizona 85023 
+Ph: (602) 866-5399 
+Fax: (602) 866-5380 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+HYPERCOM  
+ 
+T7 / FIP11 
+ 
+ECR INTERFACE 
+ 
+ 
+ 
+ Version 1.06 
+ Document No.: MOLECRIN.DOC 
+ Revision Date: June 16, 1995 
+ Print Date: April 17, 2015 
+ 
+ 
+COPYRIGHT © 2015 BY HYPERCOM, INC. 
+ 
+This publication is proprietary to Hypercom, Inc. and is intended solely for the 
+contractual use of Hypercom customers. 
+ 
+This publication may not be reproduced or distributed for any other purpose without the 
+written permission of Hypercom, Inc. 
+ 
+ 
+ 
+NOTICE 
+ 
+Hypercom, Inc. reserved the right to make changes to specifications at any time and 
+without notice. The information furnished by Hypercom, Inc. in this publication is 
+believed to be accurate and reliable; however, no responsibility is assumed by 
+Hypercom, Inc. for its use, nor for infringements of patents or other rights of third 
+parties resulting from its use. no license is granted under any patents or patent rights 
+owned by Hypercom, Inc. 
+ 
+T7 / FIP11 
+ECR INTERFACE 
+ 
+Confidential 
+Copyright Hypercom ® Inc. 3 Version 1.06 
+TABLE OF CONTENTS 
+ 
+1. DOCUMENT MODIFICATION HISTORY ..........................................................................4 
+2. OVERVIEW ...............................................................................................................................5 
+3. PHYSICAL INTERFACE ........................................................................................................5 
+4. LINK LEVEL PROTOCOL .....................................................................................................6 
+4.1. Message block format .........................................................................................................6 
+4.2. Communications Characters Used ....................................................................................6 
+4.3. LRC - Longitudinal Redundancy Check ..........................................................................6 
+4.4. ACK/NAK Responses .........................................................................................................6 
+4.5. Positive Request/Response Transmission .........................................................................6 
+4.6. Request/Response Transmission with Retries ..................................................................7 
+5. MESSAGE PROCESSING .......................................................................................................8 
+5.1. Message Definitions ............................................................................................................8 
+5.1.1. (10) Initiate Transaction .................................................................................................8 
+5.1.2. (12) Authorization Response .........................................................................................9 
+5.2. Message Transmission ......................................................................................................10 
+5.2.1. Normal Message Sequence ..........................................................................................10 
+5.2.2. Abnormal Message Sequence Processing ....................................................................10 
+5.3. Message Parsing Errors ...................................................................................................11 
+ 
+T7 / FIP11 
+ECR INTERFACE 
+ 
+Confidential 
+Copyright Hypercom ® Inc. 4 Version 1.06 
+1. DOCUMENT MODIFICATION HISTORY 
+ 
+Date Revision Change  
+May 26, 1995 1.00 Initial Release 
+June 12, 1995 1.01 Modify message flow so initial message from ECR 
+contains transaction totals 
+June 14 1.02 Provide more detail for physical interface section and 
+correct the baud rate defined. Add more detail to the link 
+and message leve descriptions. 
+June 16, 1995 1.03 Update ACK/NAK procesing description. Correct ECR 
+timeout processing. 
+March 3, 2010 1.04 Masking of exp date and PAN was added 
+December 20, 2010 1.05 Settlement and VOID Message IDs were added 
+December 22, 2010 1.06 Message flow was corrected for STL transaction; DIS – 
+Discount message was added; 
+ 
+ 
+T7 / FIP11 
+ECR INTERFACE 
+ 
+Confidential 
+Copyright Hypercom ® Inc. 5 Version 1.06 
+2. OVERVIEW 
+This document describes the software interface between a Hypercom POS terminal and a 
+MOL Electronic Cash Register (ECR). 
+ 
+ 
+3. PHYSICAL INTERFACE 
+The Physical Interface to the Hypercom terminal will be implemented by use of the PIN pad 
+full-duplex RS-485 port.  A FIP-11 will be used to provide connection for a Hypercom PIN 
+pad and a RS-232 serial interface as illustrated below: 
+ 
+        RS-232 
+    
+FIP 11
+RS232
+Port 2
+RS232
+Port 1
+T
+Series
+S
+Series Rx ON   
+MOL ECR  
+ 
+      RS-485     RS-485 
+ 
+          
+  
+QZ
+1A
+B
+C
+D
+2 3
+4 5 6
+7 8 9
+0
+ABC DEF
+GHI JKL MNO
+PRS TUV WXY
+NO
+CLEAR
+YES
+ENTER
+MOCREPYH S7SC  
+          POS Terminal      PIN Pad 
+ 
+The connection between the FIP-11 and the terminal is a straight RJ-11 cable.  The 
+connection between the FIP-11 and the PIN pad is a reverse RJ-11 cable.  The pin 
+connections of the FIP-11 RS-232 port is defined as follows: 
+ 
+Signal Name Pin Number Direction 
+RD 2  
+TD 3  
+DTR 4  
+GND 5  
+DSR 6  
+RTS 7  
+CTS 8  
+ 
+Power is supplied to the PIN pad and FIP-11 by the POS terminal. 
+ 
+Data transmission is Asynchronous at 9600 BPS, with 7 data bits, even parity, and 1 stop bits. 
+ 7 bit ASCII characters are supported with least significant bit transmitted first; parity is most 
+significant bit. 
+T7 / FIP11 
+ECR INTERFACE 
+ 
+Confidential 
+Copyright Hypercom ® Inc. 6 Version 1.06 
+ 
+4. LINK LEVEL PROTOCOL 
+ 
+4.1. Message block format 
+ 
+ 
+STX 
+ 
+ 
+MESSAGE BLOCK 
+ 
+ETX 
+ 
+LRC 
+1 variable, 128 maximum 1 1 
+ 
+ 
+4.2. Communications Characters Used 
+ 
+Character Hex Value Meaning 
+STX 02 Start of text 
+ETX 03 End of Text 
+EOT 04 End Of Transmission 
+ACK 06 positive ACKnowledgment 
+NAK 15 Negative AcKnowledgment 
+ 
+ 
+4.3. LRC - Longitudinal Redundancy Check 
+ 
+The LRC character provides an error detection facility. 
+ 
+The LRC is generated by Exclusive-OR'ing all data bytes following the STX, up to and 
+including the ETX. 
+ 
+The LRC byte follows the ETX, and must have the same parity as the rest of the message. 
+ 
+4.4. ACK/NAK Responses 
+ 
+The FIP-11 sends all messages received from the terminal to both the PIN pad port and the 
+ECR serial port.  The PIN pad and the ECR must only ACK or NAK messages that are 
+intended for the specific device.  The external devices must inspect the message content to 
+determine if the message type is for the PIN pad or the ECR and generate an ACK or NAK 
+only when the message is acceptable to the device.  Failure to decode the message by any 
+device will result in no ACK or NAK and the terminal will retransmit the message 
+automatically. 
+ 
+The terminal will receive messages from the external devices and will ACK or NAK as 
+required.  The PIN pad and ECR must ignore unexpected ACK or NAKs when not actually 
+performing message transactions. 
+ 
+4.5. Positive Request/Response Transmission 
+ 
+MOL ECR/POS TERMINAL  MOL ECR/POS TERMINAL 
+STX Message ETX LRC   
+  ACK 
+T7 / FIP11 
+ECR INTERFACE 
+ 
+Confidential 
+Copyright Hypercom ® Inc. 7 Version 1.06 
+ 
+ Minimum ACKnowledgment time = 0ms. 
+ Maximum ACKnowledgment time = 1000ms (Recommended 1500ms between 
+last ACK and sequence “13”). 
+ If no acknowledgment is received before the time expires then it is treated as a 
+NAK and the message is retransmitted.  
+ 
+4.6. Request/Response Transmission with Retries 
+ 
+MOL ECR/POS TERMINAL  MOL ECR/POS TERMINAL 
+STX Message ETX LRC   
+  NAK 
+STX Message ETX LRC   
+  NAK 
+STX Message ETX LRC   
+  NAK 
+ 
+ Maximum number of retries = 3. 
+ 
+T7 / FIP11 
+ECR INTERFACE 
+ 
+Confidential 
+Copyright Hypercom ® Inc. 8 Version 1.06 
+5. MESSAGE PROCESSING 
+ 
+5.1. Message Definitions 
+ 
+ All fields use ASCII character set. 
+ 
+5.1.1. (10) Initiate Transaction 
+ 
+The ECR will generate this message to the terminal.  When the terminal receives this 
+transaction it will initiate the transaction process and prompt the user to swipe the card.  The 
+transaction total will be included in this message and all other data required will be prompted 
+on the terminal.  The terminal will acknowledge the request prior to processing the 
+transaction. 
+ 
+Request 
+ 
+NAME LENGTH VALUE DESCRIPTION 
+STX 1 02h Start of Text  
+Message ID 3 XXX Message Type Identifier, MOL = Purchase, 
+VOI = VOID, STL = Settlement, DIS = Discount 
+Message Type 2 10 Initiate Financial Transaction Request 
+Separator 1 . Separator Character 
+Transaction 
+Amount 
+12 X.....X Transaction total amount, without decimal point (right justified, 
+unused places are fitted by zeros) 
+ETX 1 03h End of Text 
+LRC 1 xxh Longitudinal Redundancy Character 
+ 
+ The transaction amount is 12 digits with an implied decimal as determined by 
+local currency. For VOID transactions this field is used for transmitting of invoice 
+number of transaction which should be voided; 
+ 
+Response 
+ 
+NAME LENGTH VALUE DESCRIPTION 
+STX 1 02h Start of Text  
+Message ID 3 XXX Message Type Identifier, MOL = Purchase, 
+VOI = VOID, STL = Settlement, DIS = Discount 
+Message Type 2 11 Initiate Financial Transaction Response 
+Separator 1 . Separator Character 
+ETX 1 03h End of Text 
+LRC 1 xxh Longitudinal Redundancy Character 
+ 
+T7 / FIP11 
+ECR INTERFACE 
+ 
+Confidential 
+Copyright Hypercom ® Inc. 9 Version 1.06 
+5.1.2. (12) Authorization Response 
+ 
+Request 
+ 
+The terminal will generate this message to the ECR.  This message is generated after the 
+financial transaction is completed.  If the transaction is denied then all fields will be empty 
+except the response code.  
+ 
+NAME LENGTH VALUE DESCRIPTION 
+STX 1 02h Start of Text  
+Message ID 3 XXX Message Type Identifier, MOL = Purchase, 
+VOI = VOID, DIS = Discount 
+Message Type 2 12 Authorization Response 
+Separator 1 . Separator Character 
+Response 
+Code 
+2 XX Authorization response code, 0 = approval 
+PAN 1-18 X.....X Account Number (including check digit)* 
+FS 1 1Ch Field Separator 
+Card Expiry 
+Date 
+4 XXXX Card expiry date, YYMM format* 
+Invoice 
+Number 
+6 XXXXXX Transaction invoice number, right justified, zero fill 
+Approval Code 6 XXXXXX Host approval code, right justified, zero fill 
+Date 6 XXXXXX Transaction date, YYMMDD 
+Time 6 XXXXXX Transaction time, HHMMSS 
+Issuer Name 1-8 X.....X Card issuer name 
+FS 1 1Ch Field Separator 
+ETX 1 03h End of Text 
+LRC 1 xxh Longitudinal Redundancy Character 
+ The authorization response code is a 2 digit value as defined by the ISO-8583 
+standards.  This will be the value returned by the host processor authorizing the 
+transaction. 
+ The PAN is a 1-18 digit account number assigned to the card used for the 
+transaction. 
+ The issuer name is the value assigned to the issuer when the Term-Master 
+configuration is defined.  This issuer that is used will be determined by the POS 
+terminal dependent on the range of the account number. 
+  Card Expiration Date is transmitted depend on “Exp. Date Mask” option from 
+Acquirer Table. If option was selected POS transmits “****” otherwise Expiration 
+Date (MMYY)  
+ The field can be sent in masked form like PAN on the receipt (see description of 
+PAN Mask field in acquirer table) 
+ For STL command Authorization Result (12) is not used, because of Settlement 
+transaction can take a long time.  
+ 
+ 
+ 
+ 
+ 
+ 
+T7 / FIP11 
+ECR INTERFACE 
+ 
+Confidential 
+Copyright Hypercom ® Inc. 10 Version 1.06 
+Response 
+ 
+NAME LENGTH VALUE DESCRIPTION 
+STX 1 02h Start of Text  
+Message ID 3 XXX Message Type Identifier 
+Message Type 2 13 Authorization acknowledgment 
+Separator 1 . Separator Character 
+ETX 1 03h End of Text 
+LRC 1 xxh Longitudinal Redundancy Character 
+ 
+5.2. Message Transmission 
+ 
+5.2.1. Normal Message Sequence 
+ 
+MOL ECR  POS TERMINAL 
+Initiate Transaction (10)   
+  ACK 
+  Initiate Response (11) 
+ACK   
+  Authorization Result (12) 
+ACK   
+Authorization Response (13)   
+  ACK 
+ 
+5.2.2. Normal Message Sequence for STL command 
+ 
+MOL ECR  POS TERMINAL 
+Initiate Transaction (10)   
+  Initiate Response (11) 
+ACK   
+  ACK 
+ 
+5.2.3. Abnormal Message Sequence Processing 
+ 
+ If the Initiate Transaction (10) is not ACKed by the POS terminal or the Initiate 
+Response is not received by the ECR within 30 seconds then the ECR will assume 
+the terminal is off-line and the transaction completed as a stand-beside operation. 
+ If the POS terminal does not receive an ACK for the Initiate Response (11) within 
+30 seconds of transmitting the Initiate Response (11) then the terminal will abort 
+the transaction. 
+ The ECR will start a configurable timer when the Initiate Response is received 
+from the POS terminal.  This timer should have a minimum value of 60 seconds 
+and should provide enough time for the user to perform the  terminal operations, 
+execute the authorization call, and return the Authorization Result.  If the POS 
+terminal does not transmit the Authorization Result (12) within the time 
+configured on the ECR, then the ECR will assume the terminal has gone off-line.  
+Note that the terminal may have completed the transaction and printed a receipt 
+T7 / FIP11 
+ECR INTERFACE 
+ 
+Confidential 
+Copyright Hypercom ® Inc. 11 Version 1.06 
+but was unable to return notification to the ECR.  The ECR will provide a method 
+of manually completing the sale in this event. 
+ If the POS terminal does not receive the ACK or Authorization Response (13) 
+within 30 seconds of attempting to send the Authorization Result (12) then the 
+terminal will return to the quiescent state waiting for the next transaction. 
+ 
+ 
+ 
+ 
+5.3. Message Parsing Errors 
+ 
+The FIP-11 sends all messages received from the terminal to both the PIN pad port and the ECR 
+serial port.  The ECR will therefore receive messages that are intended for the PIN pad and must 
+not respond with an error messages when the message is not recognized.  The ECR should only 
+respond to the messages defined in this document to prevent conflict with PIN pad 
+communications. 
+ 

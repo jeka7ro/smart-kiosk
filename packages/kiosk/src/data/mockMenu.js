@@ -528,7 +528,7 @@ export const SUSHIMASTER_PRODUCTS = [
 
 // Selector per brand
 export function getMenuData(brandId) {
-  if (brandId === "sushimaster" || brandId === "ikura" || brandId === "welovesushi") {
+  if (brandId === "sushimaster" || brandId === "ikura" || brandId === "welovesushi" || brandId === "rollmaster" || brandId === "pokiwoki") {
     return { categories: SUSHIMASTER_CATEGORIES, products: SUSHIMASTER_PRODUCTS };
   }
   return { categories: SMASHME_CATEGORIES, products: SMASHME_PRODUCTS };

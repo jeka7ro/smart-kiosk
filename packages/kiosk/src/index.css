@@ -125,6 +125,31 @@ html, body, #root {
 .btn-xl { min-height: 88px; font-size: 1.4rem; padding: 0 48px; }
 .btn-sm { min-height: 44px; font-size: 0.95rem; padding: 0 20px; }
 
+.btn-outline {
+  background: transparent;
+  color: var(--text);
+  border: 2px solid var(--border);
+  font-weight: 600;
+}
+.btn-outline:hover { background: var(--surface); }
+
+.btn-danger {
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  font-weight: 700;
+  box-shadow: 0 4px 16px rgba(239,68,68,0.35);
+}
+.btn-danger:hover { background: #dc2626; }
+
+.payment-cancel-actions {
+  display: flex;
+  gap: 16px;
+  margin-top: 36px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
 /* ─── CARDS ──────────────────────────────────────────────── */
 .card {
   background: var(--bg-card);

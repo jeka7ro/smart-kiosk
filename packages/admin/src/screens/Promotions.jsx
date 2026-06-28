@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthProvider';
+import { useConfirm } from '../components/ConfirmModal';
 import './UsersManager.css'; // Refolosim stilurile generale din Users/Integrations (tabele, butoane, modale)
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 
 const BRANDS = [
   { id: 'smashme',     label: 'SmashMe',     color: '#ef4444' },
-  { id: 'sushimaster', label: 'Sushi Master',color: '#3b82f6' },
+  { id: 'rollmaster', label: 'Roll Master', color: '#3b82f6' },
+  { id: 'lovesushi', label: 'Love Sushi', color: '#ec4899' },
+  { id: 'pokiwoki', label: 'Poki-Woki', color: '#f97316' },
+  { id: 'crunch', label: 'Crunch', color: '#eab308' },
   { id: 'welovesushi', label: 'WeLoveSushi', color: '#f59e0b' },
   { id: 'ikura',       label: 'Ikura',       color: '#10b981' }
 ];
@@ -16,6 +20,7 @@ const DEFAULT_WHEEL = { title: 'Învârte Roata Norocului!', slices: [] };
 
 export default function Promotions() {
   const { fetchWithAuth } = useAuth();
+  const confirm = useConfirm();
   
   const [activeBrand, setActiveBrand] = useState('smashme');
   const [configList, setConfigList]   = useState({}); // { brandId: { active, config } }
@@ -115,8 +120,9 @@ export default function Promotions() {
     closeSliceModal();
   };
 
-  const deleteSlice = (id) => {
-    if (!confirm('Ștergi această felie?')) return;
+  const deleteSlice = async (id) => {
+    const ok = await confirm('Ștergi această felie?', { icon: '🔥', okLabel: 'Șterge', danger: true });
+    if (!ok) return;
     setLocalConfig({ ...localConfig, slices: localConfig.slices.filter(s => s.id !== id) });
   };
 

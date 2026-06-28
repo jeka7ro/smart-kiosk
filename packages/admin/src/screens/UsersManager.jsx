@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthProvider';
+import { useConfirm } from '../components/ConfirmModal';
 import './UsersManager.css';
 
 const BACKEND   = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
@@ -15,6 +16,7 @@ const EMPTY_FORM = { id: null, name: '', email: '', phone: '', role: 'demo', pas
 
 export default function UsersManager() {
   const { fetchWithAuth, user: loggedUser } = useAuth();
+  const confirm = useConfirm();
   const [users,     setUsers]     = useState([]);
   const [locations, setLocations] = useState([]);
   const [loading,   setLoading]   = useState(true);
@@ -100,7 +102,8 @@ export default function UsersManager() {
   };
 
   const deleteOne = async (u) => {
-    if (!confirm(`Ștergi „${u.name || u.email}"?`)) return;
+    const ok = await confirm(`Ștergi „${u.name || u.email}"?`, { title: 'Ștergere utilizator', icon: '🗑️', okLabel: 'Șterge', danger: true });
+    if (!ok) return;
     try {
       const res = await fetchWithAuth(`${BACKEND}/api/users/${u.id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error((await res.json()).error);
@@ -111,7 +114,8 @@ export default function UsersManager() {
   const bulkDelete = async () => {
     const ids = [...selected].filter(id => id !== 'env-admin' && id !== 'u-admin');
     if (!ids.length) return;
-    if (!confirm(`Ștergi ${ids.length} utilizatori selectați?`)) return;
+    const ok = await confirm(`Ștergi ${ids.length} utilizatori selectați?`, { title: 'Ștergere multiple', icon: '🗑️', okLabel: 'Șterge', danger: true });
+    if (!ok) return;
     try {
       await Promise.all(ids.map(id => fetchWithAuth(`${BACKEND}/api/users/${id}`, { method: 'DELETE' })));
       setSelected(new Set()); showToast(`🗑 ${ids.length} utilizatori șterși`); fetchData();

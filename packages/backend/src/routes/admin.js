@@ -158,9 +158,11 @@ router.get('/modifier-images', async (req, res) => {
     }
 
     // Fetch saved images
-    const { rows } = await pool.query('SELECT modifier_id, image_url FROM modifier_images');
     const savedImages = {};
-    rows.forEach(r => { savedImages[r.modifier_id] = r.image_url; });
+    if (process.env.DATABASE_URL) {
+      const { rows } = await pool.query('SELECT modifier_id, image_url FROM modifier_images');
+      rows.forEach(r => { savedImages[r.modifier_id] = r.image_url; });
+    }
 
     // Merge
     const result = Object.values(modifierMap).map(m => ({
@@ -205,8 +207,11 @@ router.get('/modifier-suggestions', async (req, res) => {
     }
 
     // Fetch already-saved images (skip these from suggestions)
-    const { rows } = await pool.query('SELECT modifier_id FROM modifier_images');
-    const alreadySaved = new Set(rows.map(r => r.modifier_id));
+    let alreadySaved = new Set();
+    if (process.env.DATABASE_URL) {
+      const { rows } = await pool.query('SELECT modifier_id FROM modifier_images');
+      alreadySaved = new Set(rows.map(r => r.modifier_id));
+    }
 
     // Name normalization helper
     const normalize = (s) => (s || '')

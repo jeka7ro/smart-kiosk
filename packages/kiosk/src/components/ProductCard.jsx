@@ -61,26 +61,27 @@ export default function ProductCard({ product, delay, lang, activeBrand, onQuick
         </h3>
       </div>
 
-      {/* Image / Content body */}
-      <div 
-        className="product-card-body" 
-        style={{ flex: 1, display: 'flex', flexDirection: 'column', cursor: 'pointer' }}
-        onClick={handleCardBodyClick}
-      >
-        <div style={{ width: '100%', aspectRatio: '4/3', borderRadius: 12, overflow: 'hidden', background: '#f3f4f6', marginBottom: 12, position: 'relative' }}>
-          <button className="product-info-btn" onClick={handleInfoClick} style={{ position: 'absolute', top: 8, right: 8, width: 32, height: 32, background: 'rgba(255,255,255,0.9)', border: 'none', borderRadius: '50%', color: '#374151', fontSize: '1rem', fontWeight: 'bold', fontStyle: 'italic', fontFamily: 'serif', zIndex: 10 }}>i</button>
-          
+        {/* Image / Content body */}
+        <div 
+          className="product-card-body" 
+          style={{ flex: 1, display: 'flex', flexDirection: 'column', cursor: 'pointer' }}
+          onClick={handleCardBodyClick}
+        >
           {product.image ? (
-            <img
-              src={proxySyrveImage(product.image)}
-              alt={product.name}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              onError={(e) => { e.target.style.display = 'none'; e.target.parentNode.querySelector('.img-fallback').style.display = 'flex'; }}
-            />
-          ) : null}
-          <div className="img-fallback" style={{ width: '100%', height: '100%', display: product.image ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.1, fontSize: '3rem' }}>🍽️</div>
-
-        </div>
+            <div style={{ width: '100%', aspectRatio: '4/3', borderRadius: 12, overflow: 'hidden', background: '#f3f4f6', marginBottom: 12, position: 'relative' }}>
+              <button className="product-info-btn" onClick={handleInfoClick} style={{ position: 'absolute', top: 8, right: 8, width: 32, height: 32, background: 'rgba(255,255,255,0.9)', border: 'none', borderRadius: '50%', color: '#374151', fontSize: '1rem', fontWeight: 'bold', fontStyle: 'italic', fontFamily: 'serif', zIndex: 10 }}>i</button>
+              <img
+                src={proxySyrveImage(product.image)}
+                alt={product.name}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                onError={(e) => { e.target.style.display = 'none'; e.target.parentNode.style.display = 'none'; }}
+              />
+            </div>
+          ) : (
+            <div style={{ position: 'relative', marginBottom: 12, display: 'flex', justifyContent: 'flex-end' }}>
+               <button className="product-info-btn" onClick={handleInfoClick} style={{ width: 32, height: 32, background: '#f3f4f6', border: 'none', borderRadius: '50%', color: '#374151', fontSize: '1rem', fontWeight: 'bold', fontStyle: 'italic', fontFamily: 'serif' }}>i</button>
+            </div>
+          )}
 
         {product.description && (
            <p 

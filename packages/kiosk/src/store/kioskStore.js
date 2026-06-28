@@ -105,7 +105,7 @@ export const useKioskStore = create((set, get) => ({
   }),
 
   // ─── Cart actions ─────────────────────────────────────────
-  addToCart: (product, quantity, selectedModifiers, totalPrice, brandId) => {
+  addToCart: (product, quantity, selectedModifiers, totalPrice, brandId, redirect = true) => {
     set((state) => {
       const existingItemIndex = state.cartItems.findIndex(i => {
         if (i.productId !== product.id || i.brandId !== brandId) return false;
@@ -124,7 +124,7 @@ export const useKioskStore = create((set, get) => ({
         const item = newCart[existingItemIndex];
         item.quantity += quantity;
         item.totalPrice += (totalPrice * quantity);
-        return { cartItems: newCart, screen: 'menu' };
+        return redirect ? { cartItems: newCart, screen: 'menu' } : { cartItems: newCart };
       }
 
       const cartItem = {
@@ -139,10 +139,9 @@ export const useKioskStore = create((set, get) => ({
         totalPrice: totalPrice * quantity,
       };
       
-      return {
-        cartItems: [...state.cartItems, cartItem],
-        screen: 'menu',
-      };
+      return redirect 
+        ? { cartItems: [...state.cartItems, cartItem], screen: 'menu' }
+        : { cartItems: [...state.cartItems, cartItem] };
     });
   },
 

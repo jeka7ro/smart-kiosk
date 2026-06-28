@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthProvider';
+import { useConfirm } from '../components/ConfirmModal';
 import './TranslationsScreen.css';
 
 const LANGUAGES = ['en', 'fr', 'hu', 'ru', 'bg', 'de', 'es', 'uk'];
@@ -13,7 +14,7 @@ const BRAND_LOGOS = {
 
 const BRAND_META = {
   smashme:     { name: 'SmashMe',      color: '#ef4444' },
-  sushimaster: { name: 'Sushi Master', color: '#f97316' },
+  rollmaster: { name: 'Roll Master', color: '#3b82f6' }, lovesushi: { name: 'Love Sushi', color: '#ec4899' }, pokiwoki: { name: 'Poki-Woki', color: '#f97316' }, crunch: { name: 'Crunch', color: '#eab308' },
   welovesushi: { name: 'WeLoveSushi',  color: '#f97316' },
   ikura:       { name: 'Ikura',        color: '#1e293b' },
 };
@@ -68,8 +69,11 @@ export default function TranslationsScreen({ backend }) {
     }
   };
 
+  const confirm = useConfirm();
+
   const handleForceTranslate = async () => {
-    if (!window.confirm('Ești sigur? Va dura câteva minute în fundal.')) return;
+    const ok = await confirm('Va dura câteva minute în fundal.', { title: 'Auto-Traducere', icon: '🌐', okLabel: 'Pornește', danger: false });
+    if (!ok) return;
     try {
       setSubmitting(true);
       const res = await fetchWithAuth(`${backend}/api/admin/translations/auto-translate`, { method: 'POST' });

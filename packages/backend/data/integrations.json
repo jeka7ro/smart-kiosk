@@ -1,0 +1,41 @@
+[
+  {
+    "id": 1782634295378,
+    "name": "smashme Syrve",
+    "provider": "syrve",
+    "credentials": {
+      "apiLogin": "124d0880f4b44717b69ee21d45fc2656",
+      "orgId": "9c63cff6-1d66-442d-a98d-2302656e3943",
+      "apiUrl": "https://api-eu.syrve.live"
+    },
+    "brand_id": "smashme",
+    "status": "pending",
+    "created_at": "2026-06-28T08:11:35.378Z"
+  },
+  {
+    "id": 1782634295379,
+    "name": "rollmaster Syrve",
+    "provider": "syrve",
+    "credentials": {
+      "apiLogin": "56597d13165c49c49c10e351b5eac617",
+      "orgId": "adddb5a0-26e5-4d50-b472-1c74726c3f72",
+      "apiUrl": "https://api-eu.syrve.live"
+    },
+    "brand_id": "rollmaster",
+    "status": "pending",
+    "created_at": "2026-06-28T08:11:35.378Z"
+  },
+  {
+    "id": 1782634295380,
+    "name": "crunch Syrve",
+    "provider": "syrve",
+    "credentials": {
+      "apiLogin": "124d0880f4b44717b69ee21d45fc2656",
+      "orgId": "9c63cff6-1d66-442d-a98d-2302656e3943",
+      "apiUrl": "https://api-eu.syrve.live"
+    },
+    "brand_id": "crunch",
+    "status": "pending",
+    "created_at": "2026-06-28T08:11:35.378Z"
+  }
+]

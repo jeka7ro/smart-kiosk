@@ -72,13 +72,20 @@ async function testProviderConnection(provider, creds) {
 // ─── GET /api/integrations — list all ───────────────────────────────────────
 router.get('/', protect, async (req, res) => {
   try {
+    if (!process.env.DATABASE_URL) throw new Error('no db');
     const { rows } = await pool.query(
       'SELECT id, name, provider, brand_id, location_id, status, last_error, last_sync_at, created_at, updated_at FROM pos_integrations ORDER BY created_at DESC'
     );
     // Don't return credentials in list — security
     res.json({ integrations: rows });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    const fs = require('fs');
+    const dbPath = require('path').join(__dirname, '../../data/integrations.json');
+    let locs = [];
+    if (fs.existsSync(dbPath)) {
+      locs = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
+    }
+    res.json({ integrations: locs });
   }
 });
 
@@ -209,24 +216,38 @@ router.post('/import-from-env', protect, async (req, res) => {
     const API_URL = process.env.SYRVE_API_URL || 'https://api-eu.syrve.live';
     const SYRVE_BRANDS = [
       { brandId: 'smashme',     apiKey: process.env.SYRVE_API_KEY,           orgId: (process.env.SYRVE_ORG_IDS || '').split(',')[0]?.trim() },
-      { brandId: 'sushimaster', apiKey: process.env.SYRVE_API_KEY_SUSHI,     orgId: process.env.SYRVE_ORG_ID_SUSHI },
-      { brandId: 'welovesushi', apiKey: process.env.SYRVE_API_KEY_SUSHI,     orgId: process.env.SYRVE_ORG_ID_WELOVESUSHI },
-      { brandId: 'ikura',       apiKey: process.env.SYRVE_API_KEY_SUSHI,     orgId: process.env.SYRVE_ORG_ID_IKURA },
+      { brandId: 'rollmaster',  apiKey: process.env.SYRVE_API_KEY_SUSHI,     orgId: process.env.SYRVE_ORG_ID_SUSHI },
+      { brandId: 'lovesushi',   apiKey: process.env.SYRVE_API_KEY_SUSHI,     orgId: process.env.SYRVE_ORG_ID_WELOVESUSHI },
+      { brandId: 'pokiwoki',    apiKey: process.env.SYRVE_API_KEY_SUSHI,     orgId: process.env.SYRVE_ORG_ID_IKURA },
+      { brandId: 'crunch',      apiKey: process.env.SYRVE_API_KEY,           orgId: (process.env.SYRVE_ORG_IDS || '').split(',')[0]?.trim() },
     ].filter(b => b.apiKey && b.orgId); // only configured brands
 
-    let created = 0;
-    let skipped = 0;
-    for (const b of SYRVE_BRANDS) {
-      const name = `${b.brandId.charAt(0).toUpperCase() + b.brandId.slice(1)} — Syrve`;
-      const creds = JSON.stringify({ apiLogin: b.apiKey, orgId: b.orgId, apiUrl: API_URL });
+    let created = 0; let skipped = 0;
+    if (process.env.DATABASE_URL) {
+      for (const b of SYRVE_BRANDS) {
+        const name = `${b.brandId.charAt(0).toUpperCase() + b.brandId.slice(1)} — Syrve`;
+        const creds = JSON.stringify({ apiLogin: b.apiKey, orgId: b.orgId, apiUrl: API_URL });
 
-      const { rowCount } = await pool.query(
-        `INSERT INTO pos_integrations (name, provider, credentials, brand_id, status, updated_at)
-         VALUES ($1, 'syrve', $2, $3, 'pending', NOW())
-         ON CONFLICT DO NOTHING`,
-        [name, creds, b.brandId]
-      );
-      rowCount > 0 ? created++ : skipped++;
+        const { rowCount } = await pool.query(
+          `INSERT INTO pos_integrations (name, provider, credentials, brand_id, status, updated_at)
+           VALUES ($1, 'syrve', $2, $3, 'pending', NOW())
+           ON CONFLICT DO NOTHING`,
+          [name, creds, b.brandId]
+        );
+        rowCount > 0 ? created++ : skipped++;
+      }
+    } else {
+      const fs = require('fs');
+      const dbPath = require('path').join(__dirname, '../../data/integrations.json');
+      let locs = [];
+      if (fs.existsSync(dbPath)) locs = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
+      for (const b of SYRVE_BRANDS) {
+        if (!locs.find(l => l.brand_id === b.brandId)) {
+           locs.push({ id: Date.now() + created, name: `${b.brandId} Syrve`, provider: 'syrve', credentials: { apiLogin: b.apiKey, orgId: b.orgId, apiUrl: API_URL }, brand_id: b.brandId, status: 'pending', created_at: new Date().toISOString() });
+           created++;
+        } else skipped++;
+      }
+      fs.writeFileSync(dbPath, JSON.stringify(locs, null, 2));
     }
     res.json({ ok: true, created, skipped, total: SYRVE_BRANDS.length,
       detail: `${created} integrări Syrve importate, ${skipped} deja existente` });

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthProvider';
+import { useConfirm } from '../components/ConfirmModal';
 import './UsersManager.css'; // reuse same table CSS
 
 const BACKEND   = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
@@ -7,13 +8,17 @@ const PAGE_SIZE = 25;
 
 const BRANDS = [
   { id: 'smashme',     label: 'SmashMe',     color: '#ef4444' },
-  { id: 'sushimaster', label: 'Sushi Master',color: '#3b82f6' },
+  { id: 'rollmaster', label: 'Roll Master', color: '#3b82f6' },
+  { id: 'lovesushi', label: 'Love Sushi', color: '#ec4899' },
+  { id: 'pokiwoki', label: 'Poki-Woki', color: '#f97316' },
+  { id: 'crunch', label: 'Crunch', color: '#eab308' },
   { id: 'welovesushi', label: 'WeLoveSushi', color: '#f59e0b' },
   { id: 'ikura',       label: 'Ikura',       color: '#10b981' }
 ];
 
 export default function ModifierImages() {
   const { fetchWithAuth } = useAuth();
+  const confirm = useConfirm();
   const [modifiers,   setModifiers]   = useState([]);
   const [suggestions, setSuggestions] = useState([]);
   const [loading,     setLoading]     = useState(true);
@@ -82,7 +87,8 @@ export default function ModifierImages() {
   };
 
   const deleteImage = async (modId) => {
-    if (!confirm('Ștergi imaginea?')) return;
+    const ok = await confirm('Ștergi imaginea?', { icon: '🖼️', okLabel: 'Șterge', danger: true });
+    if (!ok) return;
     try {
       await fetchWithAuth(`${BACKEND}/api/admin/modifier-images/${modId}`, { method: 'DELETE' });
       showToast('🗑 Șters'); fetchAll();
@@ -91,7 +97,9 @@ export default function ModifierImages() {
 
   const bulkDelete = async () => {
     const ids = [...selected];
-    if (!ids.length || !confirm(`Ștergi imaginile la ${ids.length} modificatori?`)) return;
+    if (!ids.length) return;
+    const ok = await confirm(`Ștergi imaginile la ${ids.length} modificatori?`, { title: 'Ștergere multiple', icon: '🖼️', okLabel: 'Șterge', danger: true });
+    if (!ok) return;
     try {
       await Promise.all(ids.map(id => fetchWithAuth(`${BACKEND}/api/admin/modifier-images/${id}`, { method: 'DELETE' })));
       setSelected(new Set()); showToast(`🗑 ${ids.length} imagini șterse`); fetchAll();

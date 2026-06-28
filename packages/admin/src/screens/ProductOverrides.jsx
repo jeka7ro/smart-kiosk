@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '../context/AuthProvider';
+import { useConfirm } from '../components/ConfirmModal';
 import './UsersManager.css';
 
 const BACKEND   = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
@@ -15,13 +16,17 @@ const proxySyrveImage = (url) => {
 
 const BRANDS = [
   { id: 'smashme',     label: 'SmashMe',     color: '#ef4444' },
-  { id: 'sushimaster', label: 'Sushi Master',color: '#3b82f6' },
+  { id: 'rollmaster', label: 'Roll Master', color: '#3b82f6' },
+  { id: 'lovesushi', label: 'Love Sushi', color: '#ec4899' },
+  { id: 'pokiwoki', label: 'Poki-Woki', color: '#f97316' },
+  { id: 'crunch', label: 'Crunch', color: '#eab308' },
   { id: 'welovesushi', label: 'WeLoveSushi', color: '#f59e0b' },
   { id: 'ikura',       label: 'Ikura',       color: '#10b981' }
 ];
 
 export default function ProductOverrides() {
   const { fetchWithAuth } = useAuth();
+  const confirm = useConfirm();
   const [products,    setProducts]    = useState([]);
   const [categories,  setCategories]  = useState({});
   const [overrides,   setOverrides]   = useState({});
@@ -120,7 +125,8 @@ export default function ProductOverrides() {
 
   const handleBulkToggle = async (tagType, newValue) => {
     if (filtered.length === 0) return;
-    if (!window.confirm(`Sigur dorești să aplici modificarea pe toate cele ${filtered.length} produse afișate?`)) return;
+    const ok = await confirm(`Aplici modificarea pe toate cele ${filtered.length} produse afișate?`, { title: 'Modificare în masă', icon: '⚠️', okLabel: 'Aplică', danger: false });
+    if (!ok) return;
     
     setLoading(true);
     let successCount = 0;
@@ -182,7 +188,8 @@ export default function ProductOverrides() {
   };
 
   const deleteCustomImage = async (productId) => {
-    if (!confirm('Ștergi poza Custom și revii la cea din Syrve?')) return;
+    const ok = await confirm('Ștergi poza Custom și revii la cea din Syrve?', { icon: '🗑️', okLabel: 'Șterge', danger: true });
+    if (!ok) return;
     try {
       await fetchWithAuth(`${BACKEND}/api/products/overrides/${activeBrand}/${productId}/image`, { method: 'DELETE' });
       showToast('🗑 Ștearsă! A revenit la baza Syrve.', 'ok');

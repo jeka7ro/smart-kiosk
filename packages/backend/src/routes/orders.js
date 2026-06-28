@@ -41,7 +41,7 @@ router.post('/', async (req, res) => {
     const {
       locationId, brand, brandId, orgId, locationName,
       orderType, tableNumber, items,
-      totalAmount, lang, channel, paymentMethod,
+      totalAmount, lang, channel, paymentMethod, paymentRef,
     } = req.body;
 
     if (!items || items.length === 0) {
@@ -65,8 +65,9 @@ router.post('/', async (req, res) => {
       items:       items || [],
       totalAmount: Math.round(subtotal * 100) / 100,
       lang:        lang || 'ro',
-      channel:     channel || 'kiosk',
+      channel:      channel || 'kiosk',
       paymentMethod: paymentMethod || 'card',
+      paymentRef: paymentRef || null,  // { authCode, receiptNo, cardNo, refNum } from VeriFone
       status:      'pending',
       syrveOrderId: null,
       arrivedAt:   Date.now(),

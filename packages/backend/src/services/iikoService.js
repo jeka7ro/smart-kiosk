@@ -20,21 +20,27 @@ const BRANDS = {
     token: null,
     tokenExpiry: 0,
   },
-  sushimaster: {
+  crunch: {
+    apiKey: process.env.SYRVE_API_KEY || '',
+    orgId:  (process.env.SYRVE_ORG_IDS || '9c63cff6-1d66-442d-a98d-2302656e3943').split(',')[0].trim(),
+    token: null,
+    tokenExpiry: 0,
+  },
+  rollmaster: {
     apiKey: process.env.SYRVE_API_KEY_SUSHI || '56597d13165c49c49c10e351b5eac617',
     orgId:  process.env.SYRVE_ORG_ID_SUSHI || 'adddb5a0-26e5-4d50-b472-1c74726c3f72',
     token: null,
     tokenExpiry: 0,
   },
-  welovesushi: {
+  lovesushi: {
     apiKey: process.env.SYRVE_API_KEY_SUSHI || '56597d13165c49c49c10e351b5eac617',
     orgId:  process.env.SYRVE_ORG_ID_WELOVESUSHI || process.env.SYRVE_ORG_ID_SUSHI || 'adddb5a0-26e5-4d50-b472-1c74726c3f72',
     token: null,
     tokenExpiry: 0,
   },
-  ikura: {
+  pokiwoki: {
     apiKey: process.env.SYRVE_API_KEY_SUSHI || '56597d13165c49c49c10e351b5eac617',
-    orgId:  process.env.SYRVE_ORG_ID_IKURA || process.env.SYRVE_ORG_ID_SUSHI || 'adddb5a0-26e5-4d50-b472-1c74726c3f72',
+    orgId:  process.env.SYRVE_ORG_ID_POKIWOKI || process.env.SYRVE_ORG_ID_SUSHI || 'adddb5a0-26e5-4d50-b472-1c74726c3f72',
     token: null,
     tokenExpiry: 0,
   },
@@ -102,7 +108,9 @@ async function discoverOrgs(brandId) {
 // ── Auto-assign org IDs for sushi brands that have no env var set ────────────
 
 async function autoAssignSushiOrgs() {
-  const needsDiscovery = ['sushimaster', 'welovesushi', 'ikura'].some(
+  // Not strictly needed anymore since they all share SYRVE_ORG_ID_SUSHI by default, 
+  // but keeping basic resolution just in case they split them.
+  const needsDiscovery = ['rollmaster', 'lovesushi', 'pokiwoki'].some(
     b => !BRANDS[b].orgId
   );
   if (!needsDiscovery) return;
@@ -110,7 +118,7 @@ async function autoAssignSushiOrgs() {
   const apiKey = process.env.SYRVE_API_KEY_SUSHI;
   if (!apiKey) return;
 
-  const orgs = await discoverOrgs('sushimaster');
+  const orgs = await discoverOrgs('rollmaster');
   if (!orgs.length) return;
 
   // Map by name (case-insensitive contains match)
@@ -118,15 +126,12 @@ async function autoAssignSushiOrgs() {
     keywords.some(k => name.toLowerCase().includes(k.toLowerCase()));
 
   for (const org of orgs) {
-    if (!BRANDS.sushimaster.orgId && match(org.name, ['sushi master', 'sushimaster'])) {
-      BRANDS.sushimaster.orgId = org.id;
-      console.log(`[Syrve] Auto-assigned sushimaster orgId: ${org.id} (${org.name})`);
-    } else if (!BRANDS.welovesushi.orgId && match(org.name, ['we love sushi', 'welovesushi', 'love sushi'])) {
-      BRANDS.welovesushi.orgId = org.id;
-      console.log(`[Syrve] Auto-assigned welovesushi orgId: ${org.id} (${org.name})`);
-    } else if (!BRANDS.ikura.orgId && match(org.name, ['ikura'])) {
-      BRANDS.ikura.orgId = org.id;
-      console.log(`[Syrve] Auto-assigned ikura orgId: ${org.id} (${org.name})`);
+    if (!BRANDS.rollmaster.orgId && match(org.name, ['sushi master', 'sushimaster', 'roll master'])) {
+      BRANDS.rollmaster.orgId = org.id;
+    } else if (!BRANDS.lovesushi.orgId && match(org.name, ['we love sushi', 'welovesushi', 'love sushi'])) {
+      BRANDS.lovesushi.orgId = org.id;
+    } else if (!BRANDS.pokiwoki.orgId && match(org.name, ['poki woki', 'pokiwoki'])) {
+      BRANDS.pokiwoki.orgId = org.id;
     }
   }
 }
@@ -141,63 +146,31 @@ function transformMenu(raw, brandId = 'smashme') {
     if (!g.isGroupModifier) groupMap[g.id] = g;
   }
 
-  const kioskRoot = groups.find(g => g.name?.toUpperCase().includes('KIOSK'));
-  const kioskRootId = kioskRoot?.id;
+  // Strict whitelist mapping of brands to Syrve root folders
+  const brandToRootName = {
+    rollmaster: 'SUSHI MASTER',
+    lovesushi: 'WLS',
+    pokiwoki: 'POKI WOKI',
+    smashme: 'SMASH ME KIOSK',
+    crunch: 'CRUNCH'
+  };
 
-  // Since many orgs lack a KIOSK root, dynamically find and blacklist known bad roots
-  const blockedRootIds = new Set();
-  for (const g of groups) {
-    if (!g.parentGroup) {
-      const n = (g.name || '').toLowerCase();
-      // Block Delivery/Online root branches entirely
-      if (n.includes('livrare') || n.includes('bolt') || n.includes('tazz') || n.includes('glovo') || n.includes('sait') || n.includes('site')) {
-        blockedRootIds.add(g.id);
-      }
-      // Block cross-brand branches
-      if (brandId === 'sushimaster') {
-        if (n.includes('ikura') || n.includes('wls') || n.includes('love')) blockedRootIds.add(g.id);
-      } else if (brandId === 'welovesushi') {
-        if (n.includes('ikura') || n.includes('master') || n.includes('sm ')) blockedRootIds.add(g.id);
-      } else if (brandId === 'ikura') {
-        if (n.includes('master') || n.includes('sm ') || n.includes('wls') || n.includes('love')) blockedRootIds.add(g.id);
-      }
-    }
+  const allowedRootName = brandToRootName[brandId] || 'MENIU';
+  
+  // Find the actual root group matching the allowed name
+  const rootGroup = groups.find(g => !g.parentGroup && g.name?.toUpperCase().includes(allowedRootName.toUpperCase()));
+  const allowedRootId = rootGroup?.id;
+
+  if (!allowedRootId) {
+    console.warn(`[Syrve] Could not find root folder matching '${allowedRootName}' for brand '${brandId}'`);
+    return { categories: [], products: [] };
   }
 
-  function isCategoryBlocked(catId) {
-    let current = groupMap[catId];
-    
-    // Hard-ban by explicit category name (catches operator errors where they put Delivery *inside* the main root)
-    const catName = (current?.name || '').toLowerCase();
-    if (catName.includes('livrare') || catName.includes('delivery')) return true;
-    
-    if (brandId === 'sushimaster') {
-      if (catName.includes('ikura') || catName.includes('wls') || catName.includes('love')) return true;
-    } else if (brandId === 'welovesushi') {
-      if (catName.includes('ikura') || catName.includes('master') || catName.includes('sm ')) return true;
-    } else if (brandId === 'ikura') {
-      if (catName.includes('master') || catName.includes('sm ') || catName.includes('wls') || catName.includes('love')) return true;
-    }
+  // Categories are direct children of the allowed root folder
+  let categories = groups.filter(g => !g.isGroupModifier && g.parentGroup === allowedRootId);
 
-    while (current) {
-      if (blockedRootIds.has(current.id)) return true;
-      current = groupMap[current.parentGroup];
-    }
-    return false;
-  }
-
-  let categories;
-  if (kioskRootId) {
-    categories = groups.filter(g => !g.isGroupModifier && g.parentGroup === kioskRootId);
-  } else {
-    categories = groups.filter(g => !g.isGroupModifier && g.parentGroup);
-  }
-  if (categories.length === 0) {
-    categories = groups.filter(g => !g.isGroupModifier);
-  }
-
+  // If a brand uses a complex structure, we could flatten it. For now, Kiosk UI supports 1 level.
   const mappedCategories = categories
-    .filter(cat => !isCategoryBlocked(cat.id))
     .map(cat => ({
       id: cat.id,
       name: cat.name,
@@ -225,8 +198,8 @@ function transformMenu(raw, brandId = 'smashme') {
       const sp = (p.sizePrices || [])[0];
       const isIncluded = sp?.price?.isIncludedInMenu;
       
-      if (brandId === 'sushimaster') {
-        // Sushi Master explicitly requires this flag to be TRUE to hide non-kiosk items (like Delivery)
+      if (brandId === 'rollmaster' || brandId === 'lovesushi' || brandId === 'pokiwoki') {
+        // Sushi explicitly requires this flag to be TRUE to hide non-kiosk items
         if (!isIncluded) return false;
       } else {
         // SmashMe lacks proper flags on some items; only hide if explicitly FALSE

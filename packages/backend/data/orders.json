@@ -1,1 +1,30 @@
-[]
+[
+  {
+    "_id": "ORD-1782475355811",
+    "orderNumber": 237,
+    "locationId": "loc1",
+    "locationName": null,
+    "brand": "smashme",
+    "orgId": null,
+    "orderType": "takeaway",
+    "tableNumber": null,
+    "items": [
+      {
+        "productId": "a017a5c2-67ab-4b4b-9764-8eee16aedd3d",
+        "name": "Bete Sushi",
+        "quantity": 1,
+        "unitPrice": 0.5,
+        "totalPrice": 0.5,
+        "selectedModifiers": []
+      }
+    ],
+    "totalAmount": 0.5,
+    "lang": "ro",
+    "channel": "kiosk",
+    "paymentMethod": "card",
+    "status": "pending",
+    "syrveOrderId": null,
+    "arrivedAt": 1782475355811,
+    "createdAt": "2026-06-26T12:02:35.811Z"
+  }
+]

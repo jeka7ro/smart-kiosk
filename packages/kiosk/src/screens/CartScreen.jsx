@@ -63,7 +63,7 @@ export default function CartScreen() {
   }, [menuProducts, cartItems]);
 
   const handleQuickAdd = (prod) => {
-    addToCart(prod, 1, [], prod.price, brand?.id);
+    addToCart(prod, 1, [], prod.price, brand?.id, false);
     setAddedIds(prev => ({ ...prev, [prod.id]: true }));
     setTimeout(() => setAddedIds(prev => { const next = { ...prev }; delete next[prod.id]; return next; }), 1200);
   };
@@ -118,7 +118,7 @@ export default function CartScreen() {
                       {item.selectedModifiers?.length > 0 && (
                         <p className="ci-mods">{item.selectedModifiers.map(m => m.optionName).join(' • ')}</p>
                       )}
-                      <span className="ci-unit">{item.unitPrice} {t('lei', lang)}</span>
+                      <span className="ci-unit">{(+item.unitPrice).toFixed(2)} {t('lei', lang)}</span>
                     </div>
                     <div className="ci-controls">
                       <div className="ci-qty">
@@ -126,7 +126,7 @@ export default function CartScreen() {
                         <span>{item.quantity}</span>
                         <button className="ci-btn" onClick={() => updateCartItem(item.id, item.quantity + 1)}>+</button>
                       </div>
-                      <span className="ci-total">{item.totalPrice.toFixed(0)} {t('currency', lang) || 'lei'}</span>
+                      <span className="ci-total">{item.totalPrice.toFixed(2)} {t('currency', lang) || 'lei'}</span>
                       <button className="ci-remove" onClick={() => removeFromCart(item.id)}>🗑️</button>
                     </div>
                   </div>
@@ -223,7 +223,7 @@ export default function CartScreen() {
               goTo('payment');
             })();
           }}>
-            {t('pay', lang)} {subtotal.toFixed(0)} {t('lei', lang)} →
+            {t('pay', lang)} {subtotal.toFixed(2)} {t('lei', lang)} →
           </button>
           <button className="btn btn-ghost btn-lg" style={{ width: '100%', marginTop: 10 }} onClick={() => goTo('menu')}>
             {t('add_more', lang)}

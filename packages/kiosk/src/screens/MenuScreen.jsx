@@ -68,7 +68,7 @@ export default function MenuScreen() {
 
   const handleFavQuickAdd = useCallback((product, btnEl) => {
     const actualBrandId = product._brand || activeBrandId;
-    addToCart(product, 1, [], product.price, actualBrandId);
+    addToCart(product, 1, [], product.price, actualBrandId, false);
     toggleFavoriteStore(product); // remove from favorites
 
     // Fly animation from fav bar button to cart
@@ -98,7 +98,7 @@ export default function MenuScreen() {
         requiresConfig = true;
       } else {
         const actualBrandId = product._brand || activeBrandId;
-        addToCart(product, 1, [], product.price, actualBrandId);
+        addToCart(product, 1, [], product.price, actualBrandId, false);
         toRemove.push(product);
         addedCount++;
       }
@@ -122,15 +122,15 @@ export default function MenuScreen() {
     }
 
     if (requiresConfig) {
-      showToast(addedCount > 0 ? `Adăugate ${addedCount}. Unele necesită configurare separată!` : 'Toate produsele favorite necesită configurare separată!');
+      // showToast('Adăugate ' + addedCount + '. Unele necesită configurare separată!');
     } else {
-      showToast('Toate produsele favorite au fost adăugate!');
+      // showToast('Toate produsele favorite au fost adăugate!');
     }
   }, [favorites, addToCart, activeBrandId, toggleFavoriteStore]);
 
   // Fetch location to discover multi-brand capability
   useEffect(() => {
-    const locId = new URLSearchParams(window.location.search).get('loc');
+    const locId = new URLSearchParams(window.location.search).get('loc') || localStorage.getItem('kiosk_loc_id');
     if (!locId) return; // no location → single brand mode
     fetch(`${BACKEND}/api/locations/${locId}`, {
       headers: { 'x-api-key': import.meta.env.VITE_API_KEY || 'sk-live-2024-secure' },
@@ -147,7 +147,7 @@ export default function MenuScreen() {
         }
       })
       .catch(() => {}); // silently fail — use single brand mode
-  }, []);
+  }, [activeBrandId]);
 
   // Fetch menu for active brand
   useEffect(() => {
@@ -170,6 +170,7 @@ export default function MenuScreen() {
     };
 
     if (!orgId) {
+      alert(`[DEBUG] orgId is undefined for activeBrandId=${activeBrandId}. Falling back to mock data.`);
       const { categories: cats, products: prods } = getMenuData(activeBrandId);
       setCategories(cats);
       setProducts(prods);
@@ -178,10 +179,15 @@ export default function MenuScreen() {
       return;
     }
 
-    fetch(`${BACKEND}/api/menu?brandId=${activeBrandId}&orgId=${orgId}&locId=${locationData?.id || ''}`, {
+    const fetchUrl = `${BACKEND}/api/menu?brandId=${activeBrandId}&orgId=${orgId}&locId=${locationData?.id || ''}`;
+    
+    fetch(fetchUrl, {
       headers: { 'x-api-key': import.meta.env.VITE_API_KEY || 'sk-live-2024-secure' },
     })
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP Error ${r.status}`);
+        return r.json();
+      })
       .then(data => {
         if (data.error) throw new Error(data.error);
         const cats = data.categories || [];
@@ -198,16 +204,17 @@ export default function MenuScreen() {
         setLoading(false);
       })
       .catch(err => {
+        alert(`[DEBUG] fetchMenu failed! Error: ${err.message}. BACKEND: ${BACKEND}`);
         console.error('[MenuScreen] API fetch failed, falling back to mock:', err);
         const { categories: cats, products: rawProds } = getMenuData(activeBrandId);
         const prods = rawProds.map(p => ({ ...p, _brand: activeBrandId }));
         setCategories(cats);
         setProducts(prods);
         setMenuProducts(prods);
-            setActiveCategory(pickDefault(cats, prods));
+        setActiveCategory(pickDefault(cats, prods));
         setLoading(false);
       });
-  }, [activeBrandId, locationOrgIds]);
+  }, [activeBrandId, locationOrgIds, locationData]);
 
   // SMART DIETARY NAVIGATOR: Automatically select categories/brands with matching products
   useEffect(() => {
@@ -300,7 +307,7 @@ export default function MenuScreen() {
     }
     // Fix: Use product._brand for cross-brand search results
     const actualBrandId = product._brand || activeBrandId;
-    addToCart(product, 1, [], product.price, actualBrandId);
+    addToCart(product, 1, [], product.price, actualBrandId, false);
 
     // Fly animation: get card position and cart bar position
     if (cardEl && cartBarRef.current) {
@@ -540,7 +547,7 @@ export default function MenuScreen() {
             <span className="cart-bar-count" style={{ background: 'rgba(255,255,255,0.2)', padding: '4px 10px', borderRadius: '16px', fontSize: '0.9rem', fontWeight: 600 }}>{cartCount} {cartCount > 1 ? t('items_many', lang) : t('item_one', lang)}</span>
           </div>
           <span className="cart-bar-label" style={{ flex: 1, textAlign: 'center', fontSize: '1.2rem', fontWeight: 700 }}>{t('my_cart', lang)}</span>
-          <span className="cart-bar-total" style={{ fontSize: '1.4rem', fontWeight: 800 }}>{cartTotal.toFixed(0)} {t('lei', lang)}</span>
+          <span className="cart-bar-total" style={{ fontSize: '1.4rem', fontWeight: 800 }}>{cartTotal.toFixed(2)} {t('lei', lang)}</span>
         </div>
       )}
       {/* invisible cart ref when cart is empty (for fly target) */}
@@ -552,7 +559,7 @@ export default function MenuScreen() {
           product={modifierModalProduct}
           activeBrandId={modifierModalProduct._brand || activeBrandId}
           onConfirm={(product, qty, mods, unitPrice, brandId) => {
-            addToCart(product, qty, mods, unitPrice, brandId);
+            addToCart(product, qty, mods, unitPrice, brandId, false);
             // Fly animation from center screen to cart
             if (cartBarRef.current) {
               const cartRect = cartBarRef.current.getBoundingClientRect();
