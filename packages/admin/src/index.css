@@ -1,79 +1,19 @@
-/* Admin Panel Global Styles */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
-:root {
-  /* Dynamic Mesh Gradient Base Colors */
-  --mesh-color-1: #0a0d15;
-  --mesh-color-2: #1e1b4b;
-  --mesh-color-3: #172554;
-  --mesh-color-4: #083344;
-  
-  /* Glass Variables */
-  --glass-bg: rgba(17, 24, 39, 0.55);
-  --glass-bg-hover: rgba(26, 32, 53, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  
-  --bg: #0a0d15; /* Fallback */
-  --text: #e8eaf0;
-  --text-muted: #94a3b8;
-  --primary: #088c8c;
-  --success: #10b981;
-  --warning: #f59e0b;
-  --danger: #ef4444;
-  --purple: #8b5cf6;
-  --cyan: #06b6d4;
-  
-  /* Semantic surface vars used by tables, cards, modals */
-  --surface: rgba(17, 24, 39, 0.75);
-  --card:    rgba(26, 32, 53, 0.6);
-  --border:  rgba(255, 255, 255, 0.1);
-  --bg-surface: rgba(26, 32, 53, 0.4);
-
-  --scrollbar-thumb: rgba(255, 255, 255, 0.2);
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-white antialiased selection:bg-blue-100 selection:text-blue-900;
+    overflow: hidden; /* App layout dictates internal scrolling */
+  }
 }
 
-[data-theme='light'] {
-  /* macOS Tahoe: clean neutral palette */
-  --mesh-color-1: #f5f5f7;  /* Apple light gray page bg */
-  --mesh-color-2: #f5f5f7;
-  --mesh-color-3: #f5f5f7;
-  --mesh-color-4: #f5f5f7;
-
-  --glass-bg: rgba(255, 255, 255, 0.8);
-  --glass-bg-hover: rgba(255, 255, 255, 0.95);
-  --glass-border: rgba(0, 0, 0, 0.06);
-  --glass-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-
-  --bg: #f5f5f7;
-  --text: #1d1d1f;         /* Apple dark text */
-  --text-muted: #6e6e73;   /* Apple secondary text */
-
-  --surface: #ffffff;
-  --card:    #ffffff;
-  --border:  rgba(0, 0, 0, 0.08);
-  --bg-surface: #fafafa;
-
-  --scrollbar-thumb: rgba(0, 0, 0, 0.18);
-}
-
-body { 
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  color: var(--text); 
-  height: 100vh;
-  overflow: hidden;
-  margin: 0;
-  background-color: var(--mesh-color-1);
-  /* Removed Mesh Gradient for a cleaner pro-business solid look */
-  transition: color 0.3s ease, background-color 0.5s ease;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
+/* Beautiful custom scrollbar */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(128, 128, 128, 0.5); }
-
-button { cursor: pointer; border: none; font-family: inherit; }
-a { text-decoration: none; color: inherit; }
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-200 dark:bg-slate-700 rounded-full;
+}
+::-webkit-scrollbar-thumb:hover { 
+  @apply bg-slate-300 dark:bg-slate-600; 
+}

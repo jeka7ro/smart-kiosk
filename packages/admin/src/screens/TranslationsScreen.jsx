@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthProvider';
 import { useConfirm } from '../components/ConfirmModal';
-import './TranslationsScreen.css';
 
 const LANGUAGES = ['en', 'fr', 'hu', 'ru', 'bg', 'de', 'es', 'uk'];
 
@@ -138,32 +137,32 @@ export default function TranslationsScreen({ backend }) {
   const pageProducts = filteredProducts.slice((page - 1) * pageSize, page * pageSize);
 
   if (loading) return (
-    <div className="admin-loading" style={{ flexDirection: 'column', gap: '12px' }}>
-      <span className="spinner"></span>
-      <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Încărcare dicționar... (poate dura 30s dacă serverul a adormit)</span>
+    <div className="flex flex-col items-center justify-center py-20 gap-4">
+      <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+      <span className="text-slate-500 text-sm font-medium">Încărcare dicționar... (poate dura 30s dacă serverul a adormit)</span>
     </div>
   );
 
   return (
-    <div className="translations-screen admin-fade-in">
+    <div className="space-y-6">
 
       {/* Subtitle + action buttons */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <p className="text-slate-500 text-sm m-0">
           Ajustează descrierile produselor pe limbi disponibile.
         </p>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button className="loc-filter-btn" onClick={fetchTranslations} disabled={submitting}>Refresh</button>
-          <button className="loc-add-btn" onClick={handleForceTranslate} disabled={submitting}>Auto-Traducere</button>
+        <div className="flex gap-2">
+          <button className="px-4 h-9 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold transition-colors disabled:opacity-50" onClick={fetchTranslations} disabled={submitting}>Refresh</button>
+          <button className="px-4 h-9 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all disabled:opacity-50" onClick={handleForceTranslate} disabled={submitting}>Auto-Traducere</button>
         </div>
       </div>
 
       {/* Brand filter pills + search */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '16px', flexWrap: 'wrap' }}>
+      <div className="flex flex-wrap items-center gap-2">
 
         {/* Toate */}
         <button
-          className={`kl-filter-btn ${activeBrands.size === 0 ? 'active' : ''}`}
+          className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${activeBrands.size === 0 ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
           onClick={() => { setActiveBrands(new Set()); setPage(1); }}
         >
           Toate ({productsArray.length})
@@ -178,15 +177,15 @@ export default function TranslationsScreen({ backend }) {
           return (
             <button
               key={b}
-              className={`kl-filter-btn ${isActive ? 'active' : ''}`}
-              style={{ '--bc': meta.color, display: 'flex', alignItems: 'center', gap: '6px' }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-all ${isActive ? 'text-white shadow-sm' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
+              style={isActive ? { backgroundColor: meta.color } : {}}
               onClick={() => toggleBrand(bLower)}
             >
               {BRAND_LOGOS[bLower] && (
                 <img
                   src={BRAND_LOGOS[bLower]}
                   alt={b}
-                  style={{ width: '16px', height: '16px', borderRadius: '50%', objectFit: 'contain', flexShrink: 0 }}
+                  className="w-4 h-4 rounded-full object-cover shrink-0 bg-white"
                 />
               )}
               {meta.name} ({count})
@@ -195,26 +194,16 @@ export default function TranslationsScreen({ backend }) {
         })}
 
         {/* Search pushed right */}
-        <div style={{ marginLeft: 'auto', position: 'relative', minWidth: '220px', maxWidth: '320px' }}>
+        <div className="ml-auto relative min-w-[220px] max-w-[320px] flex-1">
           <input
             type="text"
             placeholder="Caută produs sau ingredient..."
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1); }}
-            style={{
-              width: '100%', boxSizing: 'border-box',
-              padding: '9px 14px', paddingRight: search ? 64 : 14,
-              border: '1.5px solid var(--border)', borderRadius: 30, fontSize: '0.9rem',
-              outline: 'none'
-            }}
+            className="w-full pl-4 pr-16 py-2 border border-slate-200 dark:border-slate-700 rounded-full text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-shadow"
           />
           {search && (
-            <span style={{
-              position: 'absolute', right: 4, top: 4, bottom: 4, 
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: '#088c8c', color: '#fff', borderRadius: 20, padding: '0 12px', 
-              fontSize: '0.8rem', fontWeight: 700, whiteSpace: 'nowrap', pointerEvents: 'none'
-            }}>
+            <span className="absolute right-1 top-1 bottom-1 flex items-center justify-center bg-blue-600 text-white rounded-full px-3 text-xs font-bold pointer-events-none">
               {filteredProducts.length}/{productsArray.length}
             </span>
           )}
@@ -222,163 +211,164 @@ export default function TranslationsScreen({ backend }) {
       </div>
 
       {message && (
-        <div className={`admin-alert mb-24 alert-${message.type}`} style={{ marginBottom: '16px' }}>
+        <div className={`p-4 rounded-xl border font-medium ${message.type === 'error' ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800' : 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'}`}>
           {message.text}
         </div>
       )}
 
       {/* Table */}
-      <div style={{ background: 'var(--card)', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)' }}>
-        <table className="loc-table hoverable-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-          <thead>
-            <tr style={{ borderBottom: '1px solid var(--border)', background: 'transparent' }}>
-              <th style={{ padding: '12px 16px', fontWeight: 700, width: '48px', fontSize: '0.75rem', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>#</th>
-              <th style={{ padding: '12px 16px', fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>DENUMIRE PRODUS</th>
-              <th style={{ padding: '12px 16px', fontWeight: 700, width: '120px', fontSize: '0.75rem', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>BRAND</th>
-              <th style={{ padding: '12px 16px', fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>STARE TRADUCERI</th>
-              <th style={{ padding: '12px 16px', fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-muted)', textAlign: 'right' }}>ACȚIUNI</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredProducts.length === 0 ? (
-              <tr>
-                <td colSpan="5" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-                  Nu au fost găsite produse cu aceste filtre.
-                </td>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+                <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider w-12">#</th>
+                <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">DENUMIRE PRODUS</th>
+                <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider w-32">BRAND</th>
+                <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">STARE TRADUCERI</th>
+                <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">ACȚIUNI</th>
               </tr>
-            ) : (
-              pageProducts.map((item, index) => {
-                const pid = item.id;
-                const isExpanded = expandedId === pid;
-                const missingLangs = LANGUAGES.filter(l => !item.translations[l]).length;
-                const brandLower = (item.brandId || '').toLowerCase();
-                const logoSrc = BRAND_LOGOS[brandLower];
+            </thead>
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+              {filteredProducts.length === 0 ? (
+                <tr>
+                  <td colSpan="5" className="px-6 py-12 text-center text-slate-500 font-medium">
+                    Nu au fost găsite produse cu aceste filtre.
+                  </td>
+                </tr>
+              ) : (
+                pageProducts.map((item, index) => {
+                  const pid = item.id;
+                  const isExpanded = expandedId === pid;
+                  const missingLangs = LANGUAGES.filter(l => !item.translations[l]).length;
+                  const brandLower = (item.brandId || '').toLowerCase();
+                  const logoSrc = BRAND_LOGOS[brandLower];
 
-                return (
-                  <React.Fragment key={pid}>
-                    <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }} className={isExpanded ? 'active-row' : ''}>
-                      <td style={{ padding: '12px 16px', color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 500 }}>
-                        {(page - 1) * pageSize + index + 1}
-                      </td>
-                      <td style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text)' }}>
-                        {item.name || 'Produs Necunoscut'}
-                      </td>
-                      <td style={{ padding: '12px 16px' }}>
-                        {logoSrc
-                          ? <img src={logoSrc} alt={item.brandId} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border)' }} />
-                          : <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>{(item.brandId || 'NEDEFINIT').toUpperCase()}</span>
-                        }
-                      </td>
-                      <td style={{ padding: '12px 16px' }}>
-                        {missingLangs === 0
-                          ? <span style={{ color: '#088c8c', fontWeight: 600, fontSize: '0.85rem' }}>Tradus Complet</span>
-                          : <span style={{ color: '#f59e0b', fontWeight: 600, fontSize: '0.85rem' }}>Lipsesc {missingLangs} limbi</span>
-                        }
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                        <button title={isExpanded ? 'Închide Editor' : 'Editează Limbi'}
-                          onClick={() => isExpanded ? setExpandedId(null) : openEditor(pid, item)}
-                          style={{
-                             width: 34, height: 34, padding: 0, borderRadius: '50%', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s',
-                             background: isExpanded ? '#fff5f5' : '#f8fafc',
-                             border: `1px solid ${isExpanded ? '#fecaca' : '#e2e8f0'}`,
-                             color: isExpanded ? '#ef4444' : '#334155'
-                          }}>
-                          {isExpanded 
-                            ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                            : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                  return (
+                    <React.Fragment key={pid}>
+                      <tr className={`transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50 ${isExpanded ? 'bg-blue-50 dark:bg-slate-800' : ''}`}>
+                        <td className="px-4 py-3 text-sm text-slate-500 font-medium">
+                          {(page - 1) * pageSize + index + 1}
+                        </td>
+                        <td className="px-4 py-3 text-sm font-bold text-slate-900 dark:text-white">
+                          {item.name || 'Produs Necunoscut'}
+                        </td>
+                        <td className="px-4 py-3">
+                          {logoSrc
+                            ? <img src={logoSrc} alt={item.brandId} className="w-7 h-7 rounded-full object-cover border border-slate-200 dark:border-slate-700 bg-white" />
+                            : <span className="text-xs font-bold text-slate-500">{(item.brandId || 'NEDEFINIT').toUpperCase()}</span>
                           }
-                        </button>
-                      </td>
-                    </tr>
-
-                    {isExpanded && (
-                      <tr style={{ background: '#f8fafc' }}>
-                        <td colSpan="5" style={{ padding: '24px', borderBottom: '1px solid var(--border)' }}>
-                          <div className="tc-body" style={{ background: 'transparent', padding: 0 }}>
-                            <div className="original-text">
-                              <label>Descriere Originală (Syrve):</label>
-                              <p>{item.originalDescription || <em>Fără descriere la bază.</em>}</p>
-                            </div>
-                            <div className="translations-grid">
-                              {LANGUAGES.map(lang => (
-                                <div key={lang} className="t-input-group">
-                                  <label className="t-lang-label">
-                                    <img
-                                      src={`https://flagsapi.com/${lang === 'en' ? 'GB' : lang === 'uk' ? 'UA' : lang.toUpperCase()}/flat/24.png`}
-                                      alt={lang}
-                                    />
-                                    {lang.toUpperCase()}
-                                  </label>
-                                  <textarea
-                                    value={editData[lang] || ''}
-                                    onChange={e => setEditData({ ...editData, [lang]: e.target.value })}
-                                    placeholder={`Traducerea în ${lang}...`}
-                                    rows={3}
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                            <div className="tc-actions">
-                              <button title="Anulează" onClick={() => setExpandedId(null)} style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-muted)', width: 34, height: 34, padding: 0, borderRadius: '50%', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                              </button>
-                              <button title="Salvează" onClick={() => handleSave(pid)} disabled={submitting} style={{ background: '#088c8c', border: 'none', color: '#fff', width: 34, height: 34, padding: 0, borderRadius: '50%', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                {submitting ? '...' : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
-                              </button>
-                            </div>
-                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          {missingLangs === 0
+                            ? <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">Tradus Complet</span>
+                            : <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50">Lipsesc {missingLangs} limbi</span>
+                          }
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <button title={isExpanded ? 'Închide Editor' : 'Editează Limbi'}
+                            onClick={() => isExpanded ? setExpandedId(null) : openEditor(pid, item)}
+                            className={`w-9 h-9 inline-flex items-center justify-center rounded-full transition-colors ${isExpanded ? 'bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300'}`}>
+                            {isExpanded 
+                              ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                              : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                            }
+                          </button>
                         </td>
                       </tr>
-                    )}
-                  </React.Fragment>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+
+                      {isExpanded && (
+                        <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
+                          <td colSpan="5" className="p-6">
+                            <div className="flex flex-col xl:flex-row gap-6">
+                              <div className="xl:w-1/3 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm h-fit">
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Descriere Originală (Syrve):</label>
+                                <p className="text-sm text-slate-900 dark:text-white m-0 leading-relaxed">{item.originalDescription || <em className="text-slate-400">Fără descriere la bază.</em>}</p>
+                              </div>
+                              <div className="xl:w-2/3 flex-1 flex flex-col gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                  {LANGUAGES.map(lang => (
+                                    <div key={lang} className="flex flex-col gap-1.5">
+                                      <label className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">
+                                        <img
+                                          src={`https://flagsapi.com/${lang === 'en' ? 'GB' : lang === 'uk' ? 'UA' : lang.toUpperCase()}/flat/24.png`}
+                                          alt={lang}
+                                          className="w-5 h-5 rounded-sm object-cover"
+                                        />
+                                        {lang}
+                                      </label>
+                                      <textarea
+                                        value={editData[lang] || ''}
+                                        onChange={e => setEditData({ ...editData, [lang]: e.target.value })}
+                                        placeholder={`Traducerea în ${lang}...`}
+                                        rows={3}
+                                        className="w-full p-3 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-shadow resize-none"
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                                <div className="flex justify-end gap-3 mt-2">
+                                  <button title="Anulează" onClick={() => setExpandedId(null)} className="px-5 h-10 rounded-full bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 text-sm font-bold transition-colors">
+                                    Anulează
+                                  </button>
+                                  <button title="Salvează" onClick={() => handleSave(pid)} disabled={submitting} className="px-6 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all disabled:opacity-50 flex items-center justify-center min-w-[100px]">
+                                    {submitting ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : 'Salvează'}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* Bottom footer — page size + range + pagination (same as Kiosks) */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '16px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      {/* Pagination Footer */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-500">
+        <div className="flex items-center gap-3">
           <span>Rânduri pe pagină:</span>
           <select
             value={pageSize}
             onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}
-            style={{ padding: '4px 8px', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '0.85rem', outline: 'none', background: 'var(--card)', color: 'var(--text)', cursor: 'pointer' }}
+            className="px-2 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
           >
             <option value={10}>10</option>
             <option value={25}>25</option>
             <option value={50}>50</option>
             <option value={100}>100</option>
           </select>
-          <span>
+          <span className="font-medium text-slate-700 dark:text-slate-300 border-l border-slate-200 dark:border-slate-700 pl-3 ml-1">
             {filteredProducts.length > 0
               ? `${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, filteredProducts.length)} din ${filteredProducts.length}`
               : '0 rezultate'}
           </span>
         </div>
+        
         {totalPages > 1 && (
-          <div style={{ display: 'flex', gap: '4px' }}>
-            <button className="loc-filter-btn" disabled={page === 1} onClick={() => setPage(1)}>«</button>
-            <button className="loc-filter-btn" disabled={page === 1} onClick={() => setPage(p => p - 1)}>‹</button>
+          <div className="flex gap-1.5">
+            <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium" disabled={page === 1} onClick={() => setPage(1)}>«</button>
+            <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium" disabled={page === 1} onClick={() => setPage(p => p - 1)}>‹</button>
             {Array.from({ length: totalPages }, (_, k) => k + 1)
               .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
               .map((p, idx, arr) => (
                 <React.Fragment key={p}>
-                  {idx > 0 && arr[idx - 1] !== p - 1 && <span style={{ padding: '4px 6px' }}>…</span>}
+                  {idx > 0 && arr[idx - 1] !== p - 1 && <span className="px-2 py-1 text-slate-400">…</span>}
                   <button
-                    className="loc-filter-btn"
-                    style={p === page ? { background: '#088c8c', color: 'white', borderColor: '#088c8c' } : {}}
+                    className={`min-w-[32px] h-8 px-2 flex items-center justify-center rounded-lg border font-bold transition-colors ${p === page ? 'bg-blue-600 border-blue-600 text-white shadow-sm' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
                     onClick={() => setPage(p)}
                   >
                     {p}
                   </button>
                 </React.Fragment>
               ))}
-            <button className="loc-filter-btn" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>›</button>
-            <button className="loc-filter-btn" disabled={page === totalPages} onClick={() => setPage(totalPages)}>»</button>
+            <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>›</button>
+            <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium" disabled={page === totalPages} onClick={() => setPage(totalPages)}>»</button>
           </div>
         )}
       </div>

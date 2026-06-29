@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { io } from 'socket.io-client';
-import './App.css';
+
 import { useAuth } from './context/AuthProvider';
 import LoginScreen from './screens/LoginScreen';
 import UsersManager from './screens/UsersManager';
@@ -14,6 +14,7 @@ import FortuneWheelPreview from './components/FortuneWheelPreview';
 import MenuManager, { MenuProfileEditorModal } from './screens/MenuManager';
 import QrGenerator from './screens/QrGenerator';
 import { useConfirm } from './components/ConfirmModal';
+import { LayoutDashboard, Receipt, MapPin, MonitorSmartphone, QrCode, Utensils, Languages, Image as ImageIcon, Tags, Users, Blocks, Gift, Store, Sun, Moon, LogOut, Menu, X } from 'lucide-react';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
 
@@ -32,13 +33,13 @@ const BRAND_COLORS = { smashme: '#ef4444', crunch: '#eab308', rollmaster: '#3b82
 function BrandLogo({ brandId, size = 18 }) {
   const logos = {
     smashme: '/brands/smashme-logo.png',
-    crunch: '/brands/smashme-logo.png',
-    rollmaster: '/brands/sushimaster-logo.png',
-    lovesushi: '/brands/welovesushi-logo.png',
-    pokiwoki: '/brands/sushimaster-logo.png'
+    crunch: '/brands/crunch-logo.png',
+    rollmaster: '/brands/rollmaster-logo.png',
+    lovesushi: '/brands/lovesushi-logo.png',
+    pokiwoki: '/brands/pokiwoki-logo.png'
   };
   const src = logos[brandId];
-  if (src) return <img src={src} alt={brandId} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'contain', verticalAlign: 'middle', flexShrink: 0 }} />;
+  if (src) return <img src={src} alt={brandId} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'contain', verticalAlign: 'middle', flexShrink: 0 }} onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'inline-block'; }} /> 
   return <span style={{ fontSize: size * 0.8, fontWeight: 700, opacity: 0.6, letterSpacing: '0.5px', textTransform: 'uppercase' }}>{brandId}</span>;
 }
 
@@ -86,7 +87,11 @@ export default function AdminApp() {
 
   /* ─── Theme Sync ─────────────────────────────────── */
   useEffect(() => {
-    document.body.setAttribute('data-theme', theme);
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
     localStorage.setItem('admin-theme', theme);
   }, [theme]);
 
@@ -171,106 +176,94 @@ export default function AdminApp() {
   if (!token) return <LoginScreen />;
 
   return (
-    <div className="admin-app">
-      {/* ─── Sidebar ─── */}
-      <aside className={`admin-sidebar ${isSidebarOpen ? 'open' : ''}`}>
-        <div className="admin-logo" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+    <div className="flex flex-col h-screen overflow-hidden bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white transition-colors duration-300">
+      
+      {/* ─── GLOBAL TOP HEADER ─── */}
+      <header className="h-20 shrink-0 px-8 flex items-center justify-between bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 z-20 shadow-sm transition-colors duration-300">
+        
+        {/* Left: Logo & Mobile Toggle */}
+        <div className="flex items-center gap-6 h-full">
+          <div className="flex items-center h-full">
             <img 
-              src={theme === 'dark' ? "/getapp_smart_kiosk_white.png" : "/getapp_smart_kiosk_black.png"} 
+              src={theme === 'dark' ? "/getapp_smart_kiosk_white.png" : "/getapp_smart_kiosk_logo.png"} 
               alt="GetApp Smart Kiosk" 
-              style={{ maxWidth: '100%', height: 'auto', maxHeight: '66px', objectFit: 'contain', transform: 'translateX(8px)' }} 
+              className="max-h-12 object-contain" 
             />
           </div>
-          <button className="mobile-close-btn" onClick={() => setIsSidebarOpen(false)} style={{ position: 'absolute', right: 16 }}>×</button>
-        </div>
-        <nav className="admin-nav">
-          {[
-            { id: 'dashboard', label: 'Dashboard', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg> },
-            { id: 'orders',    label: 'Comenzi', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> },
-            { id: 'locations', label: 'Locații', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> },
-            { id: 'kiosks',    label: 'Kioskuri', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg> },
-            { id: 'qrcodes',   label: 'QR Coduri', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><rect x="7" y="7" width="3" height="3"></rect><rect x="14" y="7" width="3" height="3"></rect><rect x="7" y="14" width="3" height="3"></rect><rect x="14" y="14" width="3" height="3"></rect></svg> },
-            { id: 'menu',      label: 'Meniu / Syrve', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg> },
-            { id: 'translations', label: 'Traduceri Automate', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 8l6 6"></path><path d="M4 14l6-6 2-3"></path><path d="M2 5h12"></path><path d="M7 2h1"></path><path d="M22 22l-5-10-5 10"></path><path d="M14 18h6"></path></svg> },
-            { id: 'modifiers', label: 'Imagini Opțiuni', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg> },
-            { id: 'products', label: 'Produse & Etichete', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg> },
-            ...(user?.role === 'admin' ? [{ id: 'users', label: 'Echipă', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> }] : []),
-            ...(user?.role === 'admin' ? [{ id: 'integrations', label: 'Integrări POS', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg> }] : []),
-            ...(user?.role === 'admin' ? [{ id: 'promotions', label: 'Promoții ', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 2L12 22"></path><path d="M2 12L22 12"></path><path d="M5 5l14 14"></path><path d="M19 5L5 19"></path></svg> }] : []),
-            ...(user?.role === 'admin' ? [{ id: 'brands', label: 'Branduri', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> }] : []),
-          ].map(item => (
-            <button
-              key={item.id}
-              className={`anav-btn ${tab === item.id ? 'active' : ''}`}
-              onClick={() => { setTab(item.id); setIsSidebarOpen(false); }}
-              style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
-            >
-              <span style={{ display: 'flex', opacity: tab === item.id ? 1 : 0.5 }}>{item.icon}</span>
-              <span style={{ fontWeight: tab === item.id ? 600 : 400 }}>{item.label}</span>
-            </button>
-          ))}
-        </nav>
-
-        <div className={`admin-conn ${connected ? 'conn--ok' : 'conn--off'}`}>
-          <span className="conn-dot" />
-          {connected ? 'Live' : 'Offline'}
-        </div>
-
-
-      </aside>
-
-      {/* ─── Main ─── */}
-      <main className="admin-main">
-        {/* Bara Navigare Mobile (Invizibila pe Desktop) */}
-        <div className="mobile-top-bar">
-          <span style={{ fontWeight: 800, fontSize: '1.1rem' }}>Smart Kiosk</span>
-          <button className="mobile-menu-btn" onClick={() => setIsSidebarOpen(true)}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          <button className="md:hidden p-2 text-slate-500 hover:text-slate-900 dark:hover:text-white" onClick={() => setIsSidebarOpen(true)}>
+            <Menu className="w-6 h-6" />
           </button>
         </div>
 
-        {/* TOP HEADER BAR */}
-        <div className="main-header-bar" style={{ padding: '0 28px', height: '80px', boxSizing: 'border-box', borderBottom: '2px solid #088c8c', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', background: 'var(--glass-bg)', backdropFilter: 'blur(40px) saturate(200%)', WebkitBackdropFilter: 'blur(40px) saturate(200%)', position: 'sticky', top: 0, zIndex: 10, boxShadow: 'var(--glass-shadow)' }}>
-           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <button 
-                title={theme === 'dark' ? 'Mod Luminos' : 'Mod Întunecat'}
-                onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
-                style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text)', width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
-              >
-                {theme === 'dark' ? (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="5"></circle>
-                    <line x1="12" y1="1" x2="12" y2="3"></line>
-                    <line x1="12" y1="21" x2="12" y2="23"></line>
-                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-                    <line x1="1" y1="12" x2="3" y2="12"></line>
-                    <line x1="21" y1="12" x2="23" y2="12"></line>
-                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-                  </svg>
-                ) : (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-                  </svg>
-                )}
-              </button>
-              
-              <button 
-                title="Deconectare"
-                onClick={logout} 
-                className="btn-business-icon"
-                style={{ background: '#fee2e2', border: '1px solid #fca5a5', color: '#ef4444', width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-              </button>
-           </div>
+        {/* Right: Actions */}
+        <div className="flex items-center gap-3">
+          <button 
+            title={theme === 'dark' ? 'Mod Luminos' : 'Mod Întunecat'}
+            onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
+            className="w-10 h-10 rounded-full flex items-center justify-center border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors"
+          >
+            {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
+          
+          <button 
+            title="Deconectare"
+            onClick={logout} 
+            className="w-10 h-10 rounded-full flex items-center justify-center bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 transition-colors"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
         </div>
+      </header>
 
-        {/* PAGE TITLE (Moved from Header to Page Content) */}
-        <div style={{ padding: '32px 40px 24px 40px', flexShrink: 0, background: 'var(--bg)', position: 'relative', zIndex: 50 }}>
-           <h2 style={{ fontSize: '2rem', fontWeight: 800, margin: 0, color: 'var(--text)', letterSpacing: '-0.5px' }}>
+      {/* ─── BODY (Sidebar + Main) ─── */}
+      <div className="flex flex-1 overflow-hidden">
+        
+        {/* ─── Sidebar ─── */}
+        {isSidebarOpen && (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-20 md:hidden" onClick={() => setIsSidebarOpen(false)} />
+        )}
+        <aside className={`w-64 shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col transition-all duration-300 z-30 ${isSidebarOpen ? 'fixed inset-y-0 left-0 shadow-2xl' : 'hidden md:flex'}`}>
+          <button className="md:hidden absolute right-4 top-4 text-slate-500" onClick={() => setIsSidebarOpen(false)}><X className="w-5 h-5" /></button>
+          
+          <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-1">
+            {[
+              { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
+              { id: 'orders',    label: 'Comenzi', icon: <Receipt className="w-5 h-5" /> },
+              { id: 'locations', label: 'Locații', icon: <MapPin className="w-5 h-5" /> },
+              { id: 'kiosks',    label: 'Kioskuri', icon: <MonitorSmartphone className="w-5 h-5" /> },
+              { id: 'qrcodes',   label: 'QR Coduri', icon: <QrCode className="w-5 h-5" /> },
+              { id: 'menu',      label: 'Meniu / Syrve', icon: <Utensils className="w-5 h-5" /> },
+              { id: 'translations', label: 'Traduceri Automate', icon: <Languages className="w-5 h-5" /> },
+              { id: 'modifiers', label: 'Imagini Opțiuni', icon: <ImageIcon className="w-5 h-5" /> },
+              { id: 'products', label: 'Produse & Etichete', icon: <Tags className="w-5 h-5" /> },
+              ...(user?.role === 'admin' ? [{ id: 'users', label: 'Echipă', icon: <Users className="w-5 h-5" /> }] : []),
+              ...(user?.role === 'admin' ? [{ id: 'integrations', label: 'Integrări POS', icon: <Blocks className="w-5 h-5" /> }] : []),
+              ...(user?.role === 'admin' ? [{ id: 'promotions', label: 'Promoții', icon: <Gift className="w-5 h-5" /> }] : []),
+              ...(user?.role === 'admin' ? [{ id: 'brands', label: 'Branduri', icon: <Store className="w-5 h-5" /> }] : []),
+            ].map(item => (
+              <button
+                key={item.id}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm ${tab === item.id ? 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'}`}
+                onClick={() => { setTab(item.id); setIsSidebarOpen(false); }}
+              >
+                <span className={tab === item.id ? 'opacity-100' : 'opacity-75'}>{item.icon}</span>
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </nav>
+
+          <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold ${connected ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400'}`}>
+              <div className={`w-2 h-2 rounded-full ${connected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+              {connected ? 'Live' : 'Offline'}
+            </div>
+          </div>
+        </aside>
+
+        {/* ─── Main ─── */}
+        <main className="flex-1 flex flex-col overflow-y-auto bg-slate-50 dark:bg-slate-900 relative">
+        <div className="shrink-0 p-8">
+           <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">
               {tab === 'dashboard' && 'Dashboard Overview'}
               {tab === 'orders' && 'Gestionare Comenzi'}
               {tab === 'locations' && 'Gestionare Locații'}
@@ -296,45 +289,40 @@ export default function AdminApp() {
 
         {/* ─── DASHBOARD ─── */}
         {tab === 'dashboard' && (
-          <div className="admin-section">
-            <div className="stat-grid">
-              <StatCard label="Total comenzi" value={stats.total} color="var(--primary)" />
-              <StatCard label="Noi / Așteptare" value={stats.pending}   color="var(--warning)" />
-              <StatCard label="În pregătire"   value={stats.preparing} color="var(--cyan)" />
-              <StatCard label="Gata ridicare"  value={stats.ready}     color="var(--success)" />
-              <StatCard label="Venituri"        value={`${stats.revenue.toFixed(0)} lei`} color="var(--success)" large />
+          <div className="space-y-8 px-4 md:px-8 pb-10">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <StatCard label="Comenzi Azi" value={stats.total} color="var(--primary)" large />
               <StatCard label="SmashMe"   value={stats.smashme} color={BRAND_COLORS.smashme} />
               <StatCard label="SushiMaster" value={stats.sushimaster} color={BRAND_COLORS.sushimaster} />
             </div>
 
-            <h3 className="sub-title">Ultimele 10 comenzi</h3>
-            <OrdersTable orders={orders.slice(0, 10)} />
+            <div>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Ultimele 10 comenzi</h3>
+              <OrdersTable orders={orders.slice(0, 10)} />
+            </div>
           </div>
         )}
 
         {/* ─── ORDERS ─── */}
         {tab === 'orders' && (
-          <div className="admin-section">
-            <div className="section-header">
-              <div className="brand-tabs">
-                {['all','smashme','crunch','rollmaster','lovesushi','pokiwoki'].map(b => (
-                  <button
-                    key={b}
-                    className={`brand-tab ${brandFilter === b ? 'active' : ''}`}
-                    style={{ ...(b !== 'all' ? { '--bc': BRAND_COLORS[b] } : {}), display: 'flex', alignItems: 'center', gap: '6px' }}
-                    onClick={() => setBrandFilter(b)}
-                  >
-                    {b === 'all' ? 'Toate' : <><BrandLogo brandId={b} size={14} /> {b === 'smashme' ? 'SmashMe' : b === 'crunch' ? 'Crunch' : b === 'rollmaster' ? 'Roll Master' : b === 'lovesushi' ? 'Love Sushi' : 'Poki-Woki'}</>}
-                  </button>
-                ))}
-              </div>
+          <div className="space-y-6 px-4 md:px-8 pb-10">
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+              {['all','smashme','crunch','rollmaster','lovesushi','pokiwoki'].map(b => (
+                <button
+                  key={b}
+                  className={`shrink-0 px-5 h-10 rounded-full text-sm font-bold flex items-center gap-2 border transition-colors ${brandFilter === b ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                  onClick={() => setBrandFilter(b)}
+                >
+                  {b === 'all' ? 'Toate' : <><BrandLogo brandId={b} size={14} /> {b === 'smashme' ? 'SmashMe' : b === 'crunch' ? 'Crunch' : b === 'rollmaster' ? 'Roll Master' : b === 'lovesushi' ? 'Love Sushi' : 'Poki-Woki'}</>}
+                </button>
+              ))}
             </div>
             <OrdersTable orders={filteredOrders} full />
           </div>
         )}
 
-        {/* ─── SCROLLABLE CONTENT AREA ─── */}
-        <div className="admin-scrollable-content" style={{ flex: 1, overflowY: 'auto', paddingBottom: '40px' }}>
+        {/* ─── MAIN CONTENT WRAPPER ─── */}
+        <div className="flex-1 overflow-y-auto px-4 md:px-8 pb-10">
           {/* ─── MENU ─── */}
           {tab === 'menu' && (
             <MenuManager backend={BACKEND} />
@@ -364,55 +352,64 @@ export default function AdminApp() {
           {tab === 'brands' && <BrandsManager backend={BACKEND} />}
         </div>
       </main>
+      </div>
     </div>
   );
 }
 
 function StatCard({ label, value, color, large }) {
   return (
-    <div className={`stat-card ${large ? 'stat-card--large' : ''}`} style={{ '--sc': color }}>
-      <span className="sc-value">{value}</span>
-      <span className="sc-label" style={{ opacity: 0.7, fontSize: '0.9rem' }}>{label}</span>
+    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 flex flex-col justify-center" style={{ borderLeft: `4px solid ${color}` }}>
+      <span className={`font-bold text-slate-900 dark:text-white ${large ? 'text-4xl' : 'text-3xl'}`}>{value}</span>
+      <span className="text-sm font-bold uppercase tracking-wider text-slate-500 mt-2">{label}</span>
     </div>
   );
 }
 
 function OrdersTable({ orders, full }) {
   if (!orders || orders.length === 0)
-    return <p className="empty-text">Nicio comandă</p>;
+    return <p className="text-slate-500 dark:text-slate-400 py-8 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">Nicio comandă</p>;
 
   return (
-    <div className="orders-table-wrap">
-      <table className="orders-table">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-x-auto">
+      <table className="w-full text-left border-collapse min-w-[800px]">
         <thead>
-          <tr>
-            <th>#</th>
-            <th>Brand</th>
-            <th>Canal</th>
-            <th>Tip</th>
-            <th>Produse</th>
-            <th>Total</th>
-            <th>Status</th>
-            <th>Ora</th>
+          <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+            <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">#</th>
+            <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Brand</th>
+            <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Canal</th>
+            <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Tip</th>
+            <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Produse</th>
+            <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Total</th>
+            <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Status</th>
+            <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Ora</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
           {orders.map(o => {
             const sc = STATUS_LABELS[o.status] || { label: o.status, color: '#6b7a99' };
             return (
-              <tr key={o._id}>
-                <td><strong>#{o.orderNumber}</strong></td>
-                <td>
-                  <span style={{ color: BRAND_COLORS[o.brand], display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <tr key={o._id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                <td className="px-6 py-4 text-sm font-bold text-slate-900 dark:text-white">#{o.orderNumber}</td>
+                <td className="px-6 py-4">
+                  <span style={{ color: BRAND_COLORS[o.brand] }} className="flex items-center gap-2 text-sm font-bold">
                     <BrandLogo brandId={o.brand} size={16} /> {o.brand}
                   </span>
                 </td>
-                <td><span className="tag">{o.channel}</span></td>
-                <td>{o.orderType === 'dine-in' ? `Masa ${o.tableNumber}` : 'Caserie'}</td>
-                <td>{(o.items || []).map(i => `${i.quantity}x ${i.name}`).join(', ').slice(0, 40)}...</td>
-                <td><strong>{(o.totalAmount || 0).toFixed(0)} lei</strong></td>
-                <td><span className="status-pill" style={{ background: sc.color + '22', color: sc.color }}>● {sc.label}</span></td>
-                <td className="time-col">{o.createdAt ? new Date(o.createdAt).toLocaleTimeString('ro-RO') : '—'}</td>
+                <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300"><span className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-xs font-medium">{o.channel}</span></td>
+                <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">{o.orderType === 'dine-in' ? `Masa ${o.tableNumber}` : 'Caserie'}</td>
+                <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
+                  <div className="max-w-[200px] truncate" title={(o.items || []).map(i => `${i.quantity}x ${i.name}`).join(', ')}>
+                    {(o.items || []).map(i => `${i.quantity}x ${i.name}`).join(', ').slice(0, 40)}...
+                  </div>
+                </td>
+                <td className="px-6 py-4 text-sm font-bold text-slate-900 dark:text-white">{(o.totalAmount || 0).toFixed(0)} lei</td>
+                <td className="px-6 py-4">
+                  <span className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap" style={{ backgroundColor: `${sc.color}20`, color: sc.color, border: `1px solid ${sc.color}40` }}>
+                    ● {sc.label}
+                  </span>
+                </td>
+                <td className="px-6 py-4 text-sm text-slate-500 whitespace-nowrap">{o.createdAt ? new Date(o.createdAt).toLocaleTimeString('ro-RO') : '—'}</td>
               </tr>
             );
           })}
@@ -466,7 +463,7 @@ function KioskPosterCard({ brandId, brandName, emoji, backend }) {
     setEnabled(false);
   };
 
-  if (loading) return <div className="poster-card"><p>Se încarcă...</p></div>;
+  if (loading) return <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 animate-pulse h-64"></div>;
 
   // Auto-detect type from URL
   const detectType = (u) => {
@@ -483,33 +480,38 @@ function KioskPosterCard({ brandId, brandName, emoji, backend }) {
   };
 
   return (
-    <div className="poster-card" style={{ '--bc': brandId === 'smashme' ? '#ef4444' : '#3b82f6' }}>
-      <div className="pc-header">
-        <span className="pc-brand" style={{display:'flex', alignItems:'center', gap:'8px'}}><BrandLogo brandId={brandId} size={20} /> {brandName}</span>
-        <label className="pc-toggle">
-          <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
-          <span className="toggle-slider" />
-          <span>{enabled ? 'Activ' : 'Inactiv'}</span>
+    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+        <span className="flex items-center gap-2 font-bold text-slate-900 dark:text-white"><BrandLogo brandId={brandId} size={20} /> {brandName}</span>
+        <label className="flex items-center gap-3 cursor-pointer">
+          <span className="text-sm font-bold text-slate-600 dark:text-slate-400">{enabled ? 'Activ' : 'Inactiv'}</span>
+          <div className="relative">
+            <input type="checkbox" className="sr-only" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
+            <div className={`block w-14 h-8 rounded-full transition-colors ${enabled ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-700'}`}></div>
+            <div className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform ${enabled ? 'transform translate-x-6' : ''}`}></div>
+          </div>
         </label>
       </div>
 
-      <div className="pc-form">
-        <label className="pc-label">Link poster (imagine, video, sau pagină web)</label>
-        <input
-          className="pc-input"
-          type="url"
-          placeholder="https://example.com/promo.jpg"
-          value={url}
-          onChange={handleUrlChange}
-        />
+      <div className="p-6 space-y-4">
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Link poster (imagine, video, sau pagină web)</label>
+          <input
+            className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm"
+            type="url"
+            placeholder="https://example.com/promo.jpg"
+            value={url}
+            onChange={handleUrlChange}
+          />
+        </div>
 
-        <div className="pc-type-row">
-          <label className="pc-label" style={{marginBottom: 0}}>Tip conținut:</label>
-          <div className="pc-type-btns">
+        <div className="flex items-center justify-between">
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">Tip conținut:</label>
+          <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-full">
             {['image', 'video', 'iframe'].map(t => (
               <button
                 key={t}
-                className={`pc-type-btn ${type === t ? 'active' : ''}`}
+                className={`px-4 h-8 rounded-full text-sm font-bold transition-colors ${type === t ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
                 onClick={() => setType(t)}
               >
                 {t === 'image' ? 'Imagine' : t === 'video' ? 'Video' : 'Pagină web'}
@@ -521,21 +523,21 @@ function KioskPosterCard({ brandId, brandName, emoji, backend }) {
 
       {/* Preview */}
       {url && (
-        <div className="pc-preview">
-          <span className="pc-label">Preview:</span>
-          <div className="pc-preview-box">
-            {type === 'image' && <img src={url} alt="Preview" onError={e => e.target.src=''} />}
-            {type === 'video' && <video src={url} autoPlay muted loop />}
-            {type === 'iframe' && <iframe src={url} title="Preview" />}
+        <div className="px-6 pb-6">
+          <span className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Preview:</span>
+          <div className="w-full aspect-video bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 relative">
+            {type === 'image' && <img src={url} alt="Preview" className="w-full h-full object-contain" onError={e => e.target.src=''} />}
+            {type === 'video' && <video src={url} autoPlay muted loop className="w-full h-full object-contain" />}
+            {type === 'iframe' && <iframe src={url} title="Preview" className="w-full h-full border-none" />}
           </div>
         </div>
       )}
 
-      <div className="pc-actions">
-        <button className="btn-save" onClick={save}>
-          {saved ? ' Salvat!' : ' Salvează'}
+      <div className="mt-auto p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between">
+        <button className="px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all" onClick={save}>
+          {saved ? 'Salvat!' : 'Salvează'}
         </button>
-        {url && <button className="btn-delete" onClick={remove}>🗑 Șterge</button>}
+        {url && <button className="px-5 h-10 rounded-full bg-red-100 dark:bg-red-500/10 hover:bg-red-200 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 text-sm font-bold transition-colors" onClick={remove}>Șterge</button>}
       </div>
     </div>
   );
@@ -603,11 +605,11 @@ function KiosksManager({ backend }) {
 
   return (
     <>
-    <div className="kiosk-location-list">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <div className="kl-brand-filter" style={{ marginBottom: 0 }}>
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           <button
-            className={`kl-filter-btn ${brandFilter === 'all' ? 'active' : ''}`}
+            className={`shrink-0 px-5 h-10 rounded-full text-sm font-bold flex items-center gap-2 border transition-colors ${brandFilter === 'all' ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
             onClick={() => handleFilterClick('all')}
           >
             Toate ({locations.length})
@@ -618,8 +620,8 @@ function KiosksManager({ backend }) {
           return (
             <button
               key={bid}
-              className={`kl-filter-btn ${brandFilter === bid ? 'active' : ''}`}
-              style={{ '--bc': m.color, display: 'flex', alignItems: 'center', gap: '6px' }}
+              className={`shrink-0 px-5 h-10 rounded-full text-sm font-bold flex items-center gap-2 border transition-colors ${brandFilter === bid ? 'bg-white dark:bg-slate-900 shadow-sm border-slate-300 dark:border-slate-600' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+              style={brandFilter === bid ? { borderColor: m.color, color: m.color } : {}}
               onClick={() => handleFilterClick(bid)}
             >
               <BrandLogo brandId={bid} size={14} /> {m.name} ({count})
@@ -630,7 +632,7 @@ function KiosksManager({ backend }) {
         <button
           title="Reîncarcă lista"
           onClick={fetchLocs}
-          style={{ background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer', padding: '8px 16px', borderRadius: '8px', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', color: 'var(--text)', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 600, fontSize: '0.85rem' }}
+          className="shrink-0 px-5 h-10 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold transition-colors flex items-center gap-2"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
           Refresh
@@ -638,51 +640,51 @@ function KiosksManager({ backend }) {
       </div>
 
       {/* Tabel Business */}
-      <div className="loc-list-container" style={{ background: 'var(--surface)', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 4px 14px rgba(0,0,0,0.03)', marginTop: '24px' }}>
-        <table className="loc-table hoverable-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-          <thead style={{ background: 'var(--bg-surface)', borderBottom: '2px solid var(--border)' }}>
-            <tr>
-              <th style={{ padding: '16px 24px', width: '50px', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>#</th>
-              <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Denumire & ID</th>
-              <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Branduri Admise</th>
-              <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Stare</th>
-              <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: 'right' }}>Acțiuni</th>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-x-auto">
+        <table className="w-full text-left border-collapse min-w-[800px]">
+          <thead>
+            <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+              <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 w-12">#</th>
+              <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Denumire & ID</th>
+              <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Branduri Admise</th>
+              <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Stare</th>
+              <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 text-right">Acțiuni</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
             {paginated.map((loc, index) => {
               const finalKioskUrl = loc.kioskUrl || `https://kiosk-smashme.netlify.app/?loc=${loc.id}`;
               const brandsArr = loc.brands || (loc.brandId ? [loc.brandId] : []);
               
               return (
-                <tr key={loc.id} className="loc-table-row">
-                  <td style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.9rem' }}>
+                <tr key={loc.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                  <td className="px-6 py-4 text-sm font-bold text-slate-900 dark:text-white">
                     {(currentPage - 1) * itemsPerPage + index + 1}
                   </td>
-                  <td style={{ padding: '16px 24px' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <span style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text)' }}>{loc.name}</span>
-                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{loc.id}</span>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-col gap-1">
+                      <span className="font-bold text-slate-900 dark:text-white text-base">{loc.name}</span>
+                      <span className="text-xs text-slate-500 font-mono bg-slate-100 dark:bg-slate-800 self-start px-2 py-0.5 rounded">{loc.id}</span>
                     </div>
                   </td>
-                  <td style={{ padding: '16px 24px' }}>
-                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <td className="px-6 py-4">
+                    <div className="flex gap-2 items-center flex-wrap max-w-[200px]">
                       {brandsArr.map(b => (
-                         <BrandLogo key={b} brandId={b} size={28} />
+                         <div key={b} title={brandMeta[b]?.name || b}><BrandLogo brandId={b} size={28} /></div>
                       ))}
                     </div>
                   </td>
-                  <td style={{ padding: '16px 24px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                       <span style={{ width: 10, height: 10, borderRadius: '50%', background: loc.active ? '#088c8c' : '#ef4444', display: 'inline-block' }} title={loc.active ? 'Online' : 'Inactiv'} />
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2">
+                       <span className={`w-3 h-3 rounded-full ${loc.active ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-red-500'}`} title={loc.active ? 'Online' : 'Inactiv'} />
+                       <span className="text-sm font-medium text-slate-600 dark:text-slate-300">{loc.active ? 'Online' : 'Inactiv'}</span>
                     </div>
                   </td>
-                  <td style={{ padding: '16px 24px', textAlign: 'right' }}>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex justify-end gap-2">
                       <button 
                         title="Restartare Ecrane Remote"
-                        className="btn-business-icon"
-                        style={{ background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer', width: 34, height: 34, padding: 0, borderRadius: '50%', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', color: 'var(--text)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                        className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 dark:hover:bg-orange-500/10 dark:hover:text-orange-400 text-slate-600 dark:text-slate-400 flex items-center justify-center transition-colors"
                         onClick={async (e) => {
                            e.stopPropagation();
                            if (restartingId === loc.id) return; // already restarting
@@ -702,20 +704,18 @@ function KiosksManager({ backend }) {
                            }
                         }}
                       >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 2v6h6M21.5 22v-6h-6"/><path d="M22 11.5A10 10 0 0 0 3.2 7.2M2 12.5a10 10 0 0 0 18.8 4.2"/></svg>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={restartingId === loc.id ? 'animate-spin' : ''}><path d="M2.5 2v6h6M21.5 22v-6h-6"/><path d="M22 11.5A10 10 0 0 0 3.2 7.2M2 12.5a10 10 0 0 0 18.8 4.2"/></svg>
                       </button>
                       <a 
                         title="Vizualizare Kiosk direct"
                         href={finalKioskUrl} target="_blank" rel="noreferrer"
-                        className="btn-business-icon"
-                        style={{ textDecoration: 'none', background: 'var(--bg-surface)', border: '1px solid var(--border)', cursor: 'pointer', width: 34, height: 34, padding: 0, borderRadius: '50%', transition: 'all 0.2s', color: 'var(--text)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                        className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-blue-500/10 dark:hover:text-blue-400 text-slate-600 dark:text-slate-400 flex items-center justify-center transition-colors"
                       >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                       </a>
                       <button 
                         title="Copiază Link Universal"
-                        className="btn-business-icon"
-                        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', cursor: 'pointer', width: 34, height: 34, padding: 0, borderRadius: '50%', transition: 'all 0.2s', color: 'var(--text)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                        className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-400 text-slate-600 dark:text-slate-400 flex items-center justify-center transition-colors"
                         onClick={(e) => {
                           const btn = e.currentTarget;
                           const svg = btn.querySelector('svg');
@@ -726,15 +726,14 @@ function KiosksManager({ backend }) {
                           }, 2000);
                         }}
                       >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                       </button>
                       <button 
                         title="Setări și Screensaver"
-                        className="btn-business-icon"
-                        style={{ background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer', width: 34, height: 34, padding: 0, borderRadius: '50%', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', color: 'var(--text)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                        className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-purple-50 hover:text-purple-600 hover:border-purple-200 dark:hover:bg-purple-500/10 dark:hover:text-purple-400 text-slate-600 dark:text-slate-400 flex items-center justify-center transition-colors"
                         onClick={() => setEditingLoc(loc)}
                       >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
                       </button>
                     </div>
                   </td>
@@ -745,21 +744,21 @@ function KiosksManager({ backend }) {
         </table>
         
         {/* Pagination Controls */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 24px', background: 'var(--bg-surface)', borderTop: '1px solid var(--border)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Rânduri pe pagină:</span>
+        <div className="flex items-center justify-between px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-slate-500">Rânduri pe pagină:</span>
             <select
               value={itemsPerPage}
               onChange={e => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-              style={{ fontSize: '0.82rem', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px', background: 'var(--surface)', color: 'var(--text)', cursor: 'pointer' }}
+              className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
             >
               {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
             </select>
-            <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginLeft: 8 }}>
+            <span className="text-sm font-medium text-slate-500 ml-2 hidden sm:block">
               {(currentPage - 1) * itemsPerPage + 1}–{Math.min(sorted.length, currentPage * itemsPerPage)} din {sorted.length}
             </span>
           </div>
-          <div style={{ display: 'flex', gap: 4 }}>
+          <div className="flex gap-1">
             {[
               { label: '«', action: () => setCurrentPage(1),            disabled: currentPage === 1,          title: 'Prima pagină' },
               { label: '‹', action: () => setCurrentPage(p => p - 1),  disabled: currentPage === 1,          title: 'Anterioară' },
@@ -767,7 +766,7 @@ function KiosksManager({ backend }) {
               { label: '»', action: () => setCurrentPage(totalPages),  disabled: currentPage === totalPages, title: 'Ultima pagină' },
             ].map(btn => (
               <button key={btn.label} onClick={btn.action} disabled={btn.disabled} title={btn.title}
-                style={{ width: 32, height: 32, borderRadius: 6, border: '1px solid var(--border)', background: btn.disabled ? '#f1f5f9' : '#fff', color: btn.disabled ? '#cbd5e1' : '#334155', cursor: btn.disabled ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: '1rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}
+                className={`w-8 h-8 rounded-lg border text-sm font-bold flex items-center justify-center transition-colors ${btn.disabled ? 'border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-slate-300 dark:text-slate-600 cursor-not-allowed' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer'}`}
               >{btn.label}</button>
             ))}
           </div>
@@ -1913,11 +1912,11 @@ function LocationsManager({ backend }) {
   }
 
   return (
-    <div className="loc-manager">
-      {/* Filters Add button */}
-      <div className="loc-controls">
-        <div className="loc-filters">
-          <button className={`loc-filter-btn ${filter === 'all' ? 'active' : ''}`} onClick={() => handleFilterChange('all')}>
+    <div className="space-y-6">
+      {/* Filters & Add button */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <button className={`px-4 h-10 rounded-full text-sm font-bold transition-all ${filter === 'all' ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`} onClick={() => handleFilterChange('all')}>
             Toate ({locations.length})
           </button>
           {Object.entries(BRAND_LABELS).map(([k, v]) => {
@@ -1926,8 +1925,7 @@ function LocationsManager({ backend }) {
             return (
               <button
                 key={k}
-                className={`loc-filter-btn ${filter === k ? 'active' : ''}`}
-                style={{ '--pill-color': BRAND_PILL_COLORS[k], display: 'flex', alignItems: 'center', gap: '6px' }}
+                className={`px-4 h-10 rounded-full text-sm font-bold flex items-center gap-2 transition-all border ${filter === k ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 shadow-sm' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
                 onClick={() => handleFilterChange(k)}
               >
                 <BrandLogo brandId={k} size={14} /> {v} ({count})
@@ -1935,25 +1933,26 @@ function LocationsManager({ backend }) {
             );
           })}
         </div>
-        <button className="loc-add-btn" onClick={() => setShowAdd(!showAdd)}>Adauga locatie</button>
+        <button className="px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap" onClick={() => setShowAdd(!showAdd)}>
+          Adaugă Locație
+        </button>
       </div>
 
       {/* Add form */}
       {showAdd && (
-        <div className="loc-add-form">
+        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row gap-4 items-center">
           <input
             type="text"
-            placeholder="Nume locatie (ex: SM Brasov)"
+            placeholder="Nume locație (ex: SM Brașov)"
             value={newName}
             onChange={e => setNewName(e.target.value)}
-            className="loc-input"
+            className="flex-1 w-full h-10 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
           />
-          <div className="loc-brand-select">
+          <div className="flex items-center gap-2 overflow-x-auto max-w-full">
             {Object.entries(BRAND_LABELS).map(([k, v]) => (
               <button
                 key={k}
-                className={`loc-brand-pill ${newBrands.includes(k) ? 'active' : ''}`}
-                style={{ '--pill-color': BRAND_PILL_COLORS[k], display: 'flex', alignItems: 'center', gap: '6px' }}
+                className={`px-3 h-10 rounded-xl text-sm font-bold flex items-center gap-2 shrink-0 border transition-colors ${newBrands.includes(k) ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400' : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
                 onClick={() => toggleBrand(k)}
               ><BrandLogo brandId={k} size={14} /> {v}</button>
             ))}
@@ -1963,98 +1962,98 @@ function LocationsManager({ backend }) {
             min="1" max="100"
             value={newTables}
             onChange={e => setNewTables(Number(e.target.value))}
-            className="loc-input loc-input-sm"
+            className="w-24 h-10 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
             placeholder="Nr. mese"
           />
-          <button className="loc-save-btn" onClick={createLocation}>Salveaza</button>
+          <button className="px-5 h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-sm transition-all" onClick={createLocation}>Salvează</button>
         </div>
       )}
 
       {/* Locations table */}
-      <div className="loc-list-container" style={{ background: 'var(--surface)', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 4px 14px rgba(0,0,0,0.04)', marginTop: '24px' }}>
-        <table className="loc-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-          <thead>
-            <tr style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-              <th style={{ padding: '14px 16px', fontWeight: 600 }}>#</th>
-              <th style={{ padding: '14px 16px', fontWeight: 600 }}>Nume Locație</th>
-              <th style={{ padding: '14px 16px', fontWeight: 600 }}>Branduri Active</th>
-              <th style={{ padding: '14px 16px', fontWeight: 600 }}>Statistici</th>
-              <th style={{ padding: '14px 16px', fontWeight: 600 }}>Stare</th>
-              <th style={{ padding: '14px 16px', fontWeight: 600, textAlign: 'right' }}>Acțiuni</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paginated.map((loc, index) => (
-              <tr key={loc.id} style={{ borderBottom: '1px solid var(--border)', opacity: loc.active ? 1 : 0.6, cursor: 'pointer' }} onClick={() => setEditingLoc(loc)} className="loc-list-row">
-                <td style={{ padding: '16px', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.9rem' }}>
-                  {(currentPage - 1) * itemsPerPage + index + 1}
-                </td>
-                <td style={{ padding: '16px', fontWeight: 600, color: 'var(--text)', fontSize: '1rem' }}>
-                  {loc.name}
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400, marginTop: 4 }}>ID: {loc.id}</div>
-                </td>
-                <td style={{ padding: '16px' }}>
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    {(loc.brands || []).map(b => <BrandLogo key={b} brandId={b} size={24} />)}
-                  </div>
-                </td>
-                <td style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                  <div style={{ display: 'flex', gap: 12 }}>
-                    <span style={{ background: 'var(--bg-surface)', padding: '4px 8px', borderRadius: 6 }}>Mese: {loc.tables || 0}</span>
-                    <span style={{ background: 'var(--bg-surface)', padding: '4px 8px', borderRadius: 6 }}>Kiosk-uri: {(loc.kiosks || []).length}</span>
-                  </div>
-                </td>
-                <td style={{ padding: '16px' }} onClick={(e) => e.stopPropagation()}>
-                  <div 
-                    style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '4px 6px' }} 
-                    onClick={() => toggleActive(loc)} 
-                    title={loc.active ? 'Acum e LIVE (Apasă pentru dezactivare)' : 'Inactiv (Apasă pentru activare)'}
-                  >
-                     <span style={{ width: 10, height: 10, borderRadius: '50%', background: loc.active ? '#088c8c' : '#ef4444', display: 'inline-block' }} />
-                  </div>
-                </td>
-                <td style={{ padding: '16px', textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                    <button 
-                      title="Configurare locație"
-                      className="btn-business-icon"
-                      style={{ background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer', width: 34, height: 34, padding: 0, borderRadius: '50%', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', color: 'var(--text)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                      onClick={() => setEditingLoc(loc)}
-                    >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-                    </button>
-                    <button 
-                      title="Șterge definitiv locația"
-                      className="btn-business-icon"
-                      style={{ background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer', width: 34, height: 34, padding: 0, borderRadius: '50%', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                      onClick={() => deleteLoc(loc.id)}
-                    >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                    </button>
-                  </div>
-                </td>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-[800px]">
+            <thead>
+              <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">#</th>
+                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Nume Locație</th>
+                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Branduri Active</th>
+                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Statistici</th>
+                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Stare</th>
+                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 text-right">Acțiuni</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {filtered.length === 0 && <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)', fontWeight: 500 }}>Nu există locații care să corespundă filtrelor.</div>}
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {paginated.map((loc, index) => (
+                <tr key={loc.id} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer ${!loc.active ? 'opacity-60 grayscale' : ''}`} onClick={() => setEditingLoc(loc)}>
+                  <td className="px-6 py-4 text-sm font-bold text-slate-400 dark:text-slate-500">
+                    {(currentPage - 1) * itemsPerPage + index + 1}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="font-bold text-slate-900 dark:text-white text-sm">{loc.name}</div>
+                    <div className="text-xs text-slate-500 mt-1 font-mono">ID: {loc.id}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex gap-2 flex-wrap">
+                      {(loc.brands || []).map(b => <BrandLogo key={b} brandId={b} size={20} />)}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex gap-2">
+                      <span className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-xs font-medium text-slate-600 dark:text-slate-300">Mese: {loc.tables || 0}</span>
+                      <span className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-xs font-medium text-slate-600 dark:text-slate-300">Kiosk-uri: {(loc.kiosks || []).length}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                    <button 
+                      className="p-2 -ml-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      onClick={() => toggleActive(loc)} 
+                      title={loc.active ? 'Acum e LIVE (Apasă pentru dezactivare)' : 'Inactiv (Apasă pentru activare)'}
+                    >
+                       <div className={`w-3 h-3 rounded-full ${loc.active ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-red-500'}`} />
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex justify-end gap-2">
+                      <button 
+                        title="Configurare locație"
+                        className="w-8 h-8 rounded-full bg-slate-100 hover:bg-blue-100 dark:bg-slate-800 dark:hover:bg-blue-500/20 text-slate-600 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 flex items-center justify-center transition-colors"
+                        onClick={() => setEditingLoc(loc)}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                      </button>
+                      <button 
+                        title="Șterge definitiv locația"
+                        className="w-8 h-8 rounded-full bg-slate-100 hover:bg-red-100 dark:bg-slate-800 dark:hover:bg-red-500/20 text-slate-600 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400 flex items-center justify-center transition-colors"
+                        onClick={() => deleteLoc(loc.id)}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {filtered.length === 0 && <div className="p-10 text-center text-slate-500 dark:text-slate-400 font-medium">Nu există locații care să corespundă filtrelor.</div>}
+        </div>
 
         {/* Pagination */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', background: 'var(--bg-surface)', borderTop: '1px solid var(--border)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Rânduri pe pagină:</span>
+        <div className="flex justify-between items-center px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Rânduri:</span>
             <select
               value={itemsPerPage}
               onChange={e => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-              style={{ fontSize: '0.82rem', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px', background: 'var(--surface)', color: 'var(--text)', cursor: 'pointer' }}
+              className="text-sm font-bold border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 bg-white dark:bg-slate-900 text-slate-900 dark:text-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
             </select>
-            <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginLeft: 8 }}>
+            <span className="text-xs font-medium text-slate-500 ml-2">
               {sorted.length === 0 ? '0' : `${(currentPage - 1) * itemsPerPage + 1}–${Math.min(sorted.length, currentPage * itemsPerPage)}`} din {sorted.length}
             </span>
           </div>
-          <div style={{ display: 'flex', gap: 4 }}>
+          <div className="flex gap-1">
             {[
               { label: '«', action: () => setCurrentPage(1),           disabled: currentPage === 1,          title: 'Prima pagină' },
               { label: '‹', action: () => setCurrentPage(p => p - 1), disabled: currentPage === 1,          title: 'Anterioară' },
@@ -2062,7 +2061,7 @@ function LocationsManager({ backend }) {
               { label: '»', action: () => setCurrentPage(totalPages),  disabled: currentPage === totalPages, title: 'Ultima pagină' },
             ].map(btn => (
               <button key={btn.label} onClick={btn.action} disabled={btn.disabled} title={btn.title}
-                style={{ width: 32, height: 32, borderRadius: 6, border: '1px solid var(--border)', background: btn.disabled ? '#f1f5f9' : '#fff', color: btn.disabled ? '#cbd5e1' : '#334155', cursor: btn.disabled ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: '1rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}
+                className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold transition-colors ${btn.disabled ? 'text-slate-300 dark:text-slate-700 cursor-not-allowed' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
               >{btn.label}</button>
             ))}
           </div>
@@ -2106,63 +2105,57 @@ function LocationEditForm({ loc, backend, onBack, onSave }) {
   };
 
   return (
-    <div className="loc-edit-form fade-in">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 28, paddingBottom: 20, borderBottom: '1px solid var(--border)', flexWrap: 'wrap' }}>
+    <div className="space-y-6 max-w-4xl animate-in fade-in duration-300">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
         <button onClick={onBack}
-          style={{ padding: '8px 18px', borderRadius: 12, border: '1.5px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-          ← Înapoi
+          className="px-4 h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-2 shrink-0 shadow-sm"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"></path><polyline points="12 19 5 12 12 5"></polyline></svg>
+          Înapoi
         </button>
-        <div style={{ flex: 1 }}>
-          <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em' }}>
+        <div className="flex-1">
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white m-0 tracking-tight">
             {loc.name}
           </h2>
-          <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>Editare locație</p>
+          <p className="text-sm text-slate-500 mt-1">Editare locație</p>
         </div>
         <button onClick={saveLoc}
-          style={{ padding: '11px 26px', borderRadius: 12, border: 'none', background: '#0f172a', color: '#fff', fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', boxShadow: '0 4px 14px rgba(15,23,42,0.2)', flexShrink: 0 }}>
+          className="px-6 h-11 rounded-xl bg-slate-900 hover:bg-black dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-bold text-sm shadow-sm transition-all shrink-0"
+        >
           Salvează Modificările
         </button>
       </div>
 
-      <div className="loc-edit-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(400px, 1fr)', gap: '24px', maxWidth: 800 }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Card: Nume & Mese */}
-        <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
-          <h3 style={{ marginTop: 0, fontSize: '1.1rem', color: 'var(--text)', marginBottom: 20 }}>Informații Generale</h3>
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-800">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Informații Generale</h3>
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="space-y-5">
             <div>
-               <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)' }}>Nume Locație</label>
-               <input type="text" className="input-field" style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', boxSizing: 'border-box', marginTop: 6 }} value={formData.name} onChange={e => handleChange('name', e.target.value)} placeholder="Ex: SM Bacau" />
+               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block">Nume Locație</label>
+               <input type="text" className="w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white transition-all" value={formData.name} onChange={e => handleChange('name', e.target.value)} placeholder="Ex: SM Bacău" />
             </div>
             <div>
-               <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)' }}>Număr de Mese (Generate Kiosk/QR)</label>
-               <input type="number" className="input-field" style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', boxSizing: 'border-box', marginTop: 6 }} value={formData.tables} onChange={e => handleChange('tables', parseInt(e.target.value)||0)} min="0" />
+               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block">Număr de Mese (Kiosk/QR)</label>
+               <input type="number" className="w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white transition-all" value={formData.tables} onChange={e => handleChange('tables', parseInt(e.target.value)||0)} min="0" />
             </div>
           </div>
         </div>
 
         {/* Card: Branduri Asignate */}
-        <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
-          <h3 style={{ marginTop: 0, fontSize: '1.1rem', color: 'var(--text)', marginBottom: 20 }}>Restaurante Active în Kiosk</h3>
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-800">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Restaurante Active</h3>
           
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 24 }}>
+          <div className="flex flex-wrap gap-3">
             {Object.entries({smashme:'SmashMe', crunch:'Crunch', rollmaster:'Roll Master', lovesushi:'Love Sushi', pokiwoki:'Poki-Woki'}).map(([k, v]) => {
               const isActive = formData.brands.includes(k);
               const pillColor = (BRAND_COLORS && BRAND_COLORS[k]) ? BRAND_COLORS[k] : '#64748b';
               return (
                 <button
                   key={k}
-                  className={`loc-brand-pill ${isActive ? 'active' : ''}`}
-                  style={{ 
-                    padding: '10px 18px', borderRadius: '12px', 
-                    display: 'flex', alignItems: 'center', gap: '10px', 
-                    background: isActive ? pillColor : '#ffffff', 
-                    color: isActive ? '#fff' : '#334155', 
-                    border: isActive ? `2px solid ${pillColor}` : '2px solid #cbd5e1',
-                    boxShadow: isActive ? `0 4px 12px ${pillColor}50` : '0 2px 4px rgba(0,0,0,0.02)',
-                    fontWeight: 600, transition: 'all 0.2s', cursor: 'pointer',
-                    filter: isActive ? 'none' : 'grayscale(100%) opacity(0.8)'
-                  }}
+                  className={`px-4 h-11 rounded-xl flex items-center gap-3 font-bold text-sm transition-all border-2 ${isActive ? 'text-white shadow-md' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 opacity-80 grayscale hover:grayscale-0 hover:opacity-100'}`}
+                  style={isActive ? { background: pillColor, borderColor: pillColor, boxShadow: `0 4px 12px ${pillColor}40` } : {}}
                   onClick={() => toggleBrand(k)}
                 >
                   <BrandLogo brandId={k} size={18} /> {v}
@@ -2173,18 +2166,20 @@ function LocationEditForm({ loc, backend, onBack, onSave }) {
         </div>
 
         {/* Card: Syrve API Keys */}
-        <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
-          <h3 style={{ marginTop: 0, fontSize: '1.1rem', color: 'var(--text)', marginBottom: 8 }}>Setări Syrve (iiko) per locație</h3>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>Dacă un brand folosește un `Organization ID` diferit față de cel global (din .env), pune-l aici pentru a trimite comenzile corect la POS-ul locației corespunzătoare.</p>
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-800 md:col-span-2">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Setări Syrve (iiko) per locație</h3>
+          <p className="text-sm text-slate-500 mb-6 max-w-3xl">Dacă un brand folosește un <code>Organization ID</code> diferit față de cel global (din .env), pune-l aici pentru a trimite comenzile corect la POS-ul locației corespunzătoare.</p>
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
              {formData.brands.map(bId => (
-               <div key={bId} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                 <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)' }}>Overide ID Organizație ({bId}):</label>
-                 <input type="text" className="input-field" style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', boxSizing: 'border-box', marginTop: 6 }} value={formData.orgIds[bId] || ''} onChange={e => handleOrgChange(bId, e.target.value)} placeholder="Lăsați gol pentru ID-ul global" />
+               <div key={bId} className="space-y-2">
+                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+                   <BrandLogo brandId={bId} size={14} /> Org ID ({bId})
+                 </label>
+                 <input type="text" className="w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white transition-all font-mono" value={formData.orgIds[bId] || ''} onChange={e => handleOrgChange(bId, e.target.value)} placeholder="ID global implicit" />
                </div>
              ))}
-             {formData.brands.length === 0 && <span style={{fontSize:'0.85rem', color:'var(--warning)'}}>Selectează măcar un brand pentru a seta suprascrieri de locație Syrve.</span>}
+             {formData.brands.length === 0 && <span className="text-sm text-amber-600 dark:text-amber-400 font-medium p-4 bg-amber-50 dark:bg-amber-500/10 rounded-xl border border-amber-200 dark:border-amber-500/20 col-span-full">⚠️ Selectează măcar un brand pentru a seta suprascrieri de locație Syrve.</span>}
           </div>
         </div>
         

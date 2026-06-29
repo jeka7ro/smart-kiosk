@@ -8,25 +8,16 @@ function StatCard({ icon, label, value, sub, onClick, loading }) {
   return (
     <div
       onClick={onClick}
-      style={{
-        background: 'var(--glass-bg)', border: '1px solid var(--glass-border)',
-        borderRadius: 16, padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 8,
-        backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-        cursor: onClick ? 'pointer' : 'default',
-        transition: 'transform 0.2s, box-shadow 0.2s',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
-      }}
-      onMouseEnter={e => onClick && (e.currentTarget.style.transform = 'translateY(-3px)')}
-      onMouseLeave={e => onClick && (e.currentTarget.style.transform = 'translateY(0)')}
+      className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 flex flex-col gap-2 shadow-sm transition-all duration-200 ${onClick ? 'cursor-pointer hover:-translate-y-1 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-700' : ''}`}
     >
-      <span style={{ fontSize: '1.6rem' }}>{icon}</span>
+      <span className="text-3xl mb-1">{icon}</span>
       {loading
-        ? <div style={{ width: 60, height: 32, borderRadius: 8, background: 'var(--border)', animation: 'pulse 1.4s infinite' }} />
-        : <span style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--text)', lineHeight: 1 }}>{value ?? '—'}</span>
+        ? <div className="w-16 h-8 rounded-lg bg-slate-200 dark:bg-slate-800 animate-pulse" />
+        : <span className="text-3xl font-black text-slate-900 dark:text-white leading-none">{value ?? '—'}</span>
       }
-      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</span>
-      {sub && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{sub}</span>}
-      {onClick && <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600, marginTop: 4 }}>→ Vezi lista</span>}
+      <span className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">{label}</span>
+      {sub && <span className="text-xs text-slate-500">{sub}</span>}
+      {onClick && <span className="text-xs text-blue-600 dark:text-blue-400 font-bold mt-1">→ Vezi lista</span>}
     </div>
   );
 }
@@ -88,96 +79,104 @@ export default function IntegrationDetail({ integ, onBack, onTest, onSync, testi
     return !q || JSON.stringify(item).toLowerCase().includes(q);
   });
 
-  const STATUS_COLOR = { active: '#10b981', error: '#ef4444', pending: '#94a3b8' };
-  const statusColor = STATUS_COLOR[integ?.status] || '#94a3b8';
+  const STATUS_COLOR = { active: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800', error: 'text-red-600 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800', pending: 'text-slate-600 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700' };
+  const statusColorClasses = STATUS_COLOR[integ?.status] || STATUS_COLOR.pending;
   const statusLabel = { active: 'Activ', error: 'Eroare', pending: 'Nou' }[integ?.status] || integ?.status;
 
   if (drillDown) {
     const titles = { restaurants: 'Restaurante', products: 'Produse', categories: 'Categorii' };
     return (
-      <div style={{ padding: '0 0 40px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+      <div className="pb-10 animate-in fade-in duration-300">
+        <div className="flex items-center gap-4 mb-6">
           <button onClick={() => setDrillDown(null)}
-            style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', borderRadius: 10, padding: '8px 16px', color: 'var(--text)', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>
+            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-700 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>
             Înapoi la integrare
           </button>
-          <h2 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: 'var(--text)' }}>{titles[drillDown]} — {integ.name}</h2>
+          <h2 className="text-2xl font-black text-slate-900 dark:text-white m-0 leading-tight">
+            {titles[drillDown]} <span className="text-slate-400 font-normal mx-1">—</span> {integ.name}
+          </h2>
         </div>
 
-        <div style={{ position: 'relative', width: '100%', maxWidth: 380, marginBottom: 16 }}>
+        <div className="relative w-full max-w-sm mb-6">
           <input value={drillSearch} onChange={e => setDrillSearch(e.target.value)}
             placeholder={`Caută în ${titles[drillDown].toLowerCase()}...`}
-            style={{ width: '100%', padding: '9px 14px', paddingRight: drillSearch ? 64 : 14, border: '1.5px solid var(--border)', borderRadius: 30, background: 'var(--surface)', color: 'var(--text)', fontSize: '0.9rem', boxSizing: 'border-box', outline: 'none' }}
+            className="w-full pl-11 pr-16 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-shadow shadow-sm"
           />
+          <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
           {drillSearch && (
-            <span style={{
-              position: 'absolute', right: 4, top: 4, bottom: 4, 
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: '#088c8c', color: '#fff', borderRadius: 20, padding: '0 12px', 
-              fontSize: '0.8rem', fontWeight: 700, whiteSpace: 'nowrap', pointerEvents: 'none'
-            }}>
+            <span className="absolute right-1 top-1 bottom-1 flex items-center justify-center bg-blue-600 text-white rounded-full px-3 text-xs font-bold pointer-events-none">
               {filtered.length}/{drillData.length}
             </span>
           )}
         </div>
 
         {drillLoading ? (
-          <div style={{ color: 'var(--text-muted)', padding: 40, textAlign: 'center' }}>Se încarcă...</div>
+          <div className="flex flex-col items-center justify-center py-20 gap-4 opacity-50 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
+             <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-500 rounded-full animate-spin"></div>
+             <span className="text-slate-500 text-sm font-medium">Se încarcă...</span>
+          </div>
         ) : (
-          <div style={{ background: 'var(--surface)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
             {filtered.length === 0
-              ? <div style={{ color: 'var(--text-muted)', padding: 40, textAlign: 'center' }}>Niciun rezultat{drillSearch ? ` pentru "${drillSearch}"` : ''}</div>
+              ? <div className="text-slate-500 py-16 text-center font-medium">Niciun rezultat{drillSearch ? ` pentru "${drillSearch}"` : ''}</div>
               : (
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
-                  <thead>
-                    <tr style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)' }}>
-                      {drillDown === 'restaurants' && <>
-                        <th style={thStyle}>#</th><th style={thStyle}>Nume</th><th style={thStyle}>ID</th><th style={thStyle}>Stare</th>
-                      </>}
-                      {drillDown === 'products' && <>
-                        <th style={thStyle}>#</th><th style={thStyle}>Produs</th><th style={thStyle}>Categorie</th><th style={thStyle}>Preț</th>
-                      </>}
-                      {drillDown === 'categories' && <>
-                        <th style={thStyle}>#</th><th style={thStyle}>Categorie</th><th style={thStyle}>Produse</th>
-                      </>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.slice(0, 200).map((item, i) => (
-                      <tr key={item.id || i} style={{ borderBottom: '1px solid var(--border)' }}
-                        onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-surface)'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                      >
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
                         {drillDown === 'restaurants' && <>
-                          <td style={tdStyle}>{i + 1}</td>
-                          <td style={{ ...tdStyle, fontWeight: 600 }}>{item.name || item.id}</td>
-                          <td style={{ ...tdStyle, fontFamily: 'monospace', color: 'var(--text-muted)', fontSize: '0.78rem' }}>{item.id}</td>
-                          <td style={tdStyle}>
-                            <span style={{ background: item.active ? 'rgba(16,185,129,0.15)' : 'rgba(100,116,139,0.15)', color: item.active ? '#10b981' : '#94a3b8', borderRadius: 20, padding: '2px 10px', fontSize: '0.73rem', fontWeight: 700 }}>
-                              {item.active ? 'Activ' : 'Inactiv'}
-                            </span>
-                          </td>
+                          <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider w-12">#</th>
+                          <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Nume</th>
+                          <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">ID</th>
+                          <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Stare</th>
                         </>}
                         {drillDown === 'products' && <>
-                          <td style={tdStyle}>{i + 1}</td>
-                          <td style={{ ...tdStyle, fontWeight: 600 }}>{item.name || item.title}</td>
-                          <td style={{ ...tdStyle, color: 'var(--text-muted)' }}>{item.category || item.categoryName || '—'}</td>
-                          <td style={{ ...tdStyle, fontWeight: 600, color: 'var(--primary)' }}>{item.price ? `${item.price} lei` : '—'}</td>
+                          <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider w-12">#</th>
+                          <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Produs</th>
+                          <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Categorie</th>
+                          <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Preț</th>
                         </>}
                         {drillDown === 'categories' && <>
-                          <td style={tdStyle}>{i + 1}</td>
-                          <td style={{ ...tdStyle, fontWeight: 600 }}>{item.name || item.title}</td>
-                          <td style={{ ...tdStyle, color: 'var(--text-muted)' }}>{item.itemsCount ?? item.products?.length ?? '—'}</td>
+                          <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider w-12">#</th>
+                          <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Categorie</th>
+                          <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Produse</th>
                         </>}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                      {filtered.slice(0, 200).map((item, i) => (
+                        <tr key={item.id || i} className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                          {drillDown === 'restaurants' && <>
+                            <td className="px-4 py-3 text-sm text-slate-500 font-medium">{i + 1}</td>
+                            <td className="px-4 py-3 text-sm font-bold text-slate-900 dark:text-white">{item.name || item.id}</td>
+                            <td className="px-4 py-3 text-xs font-mono text-slate-400">{item.id}</td>
+                            <td className="px-4 py-3">
+                              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border ${item.active ? 'text-emerald-600 bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800' : 'text-slate-500 bg-slate-100 border-slate-200 dark:bg-slate-800 dark:border-slate-700'}`}>
+                                {item.active ? 'Activ' : 'Inactiv'}
+                              </span>
+                            </td>
+                          </>}
+                          {drillDown === 'products' && <>
+                            <td className="px-4 py-3 text-sm text-slate-500 font-medium">{i + 1}</td>
+                            <td className="px-4 py-3 text-sm font-bold text-slate-900 dark:text-white">{item.name || item.title}</td>
+                            <td className="px-4 py-3 text-sm text-slate-500">{item.category || item.categoryName || '—'}</td>
+                            <td className="px-4 py-3 text-sm font-bold text-blue-600 dark:text-blue-400">{item.price ? `${item.price} lei` : '—'}</td>
+                          </>}
+                          {drillDown === 'categories' && <>
+                            <td className="px-4 py-3 text-sm text-slate-500 font-medium">{i + 1}</td>
+                            <td className="px-4 py-3 text-sm font-bold text-slate-900 dark:text-white">{item.name || item.title}</td>
+                            <td className="px-4 py-3 text-sm text-slate-500 font-medium">{item.itemsCount ?? item.products?.length ?? '—'}</td>
+                          </>}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )
             }
             {filtered.length > 200 && (
-              <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+              <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 text-slate-500 text-sm font-medium text-center">
                 Afișate primele 200 din {filtered.length} rezultate
               </div>
             )}
@@ -188,42 +187,52 @@ export default function IntegrationDetail({ integ, onBack, onTest, onSync, testi
   }
 
   return (
-    <div style={{ padding: '0 0 40px' }}>
+    <div className="pb-10 animate-in fade-in duration-300">
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28, flexWrap: 'wrap', gap: 12 }}>
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8">
         <div>
           <button onClick={onBack}
-            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 600, padding: 0, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, fontSize: '0.88rem' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>
+            className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors mb-3">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>
             Integrări POS
           </button>
-          <h1 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 900, color: 'var(--text)' }}>{integ.name}</h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
-            <span style={{ background: `${statusColor}22`, color: statusColor, borderRadius: 20, padding: '3px 12px', fontSize: '0.78rem', fontWeight: 700 }}>{statusLabel}</span>
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>Provider: <strong style={{ color: 'var(--text)' }}>Syrve / iiko</strong></span>
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>Brand: <strong style={{ color: 'var(--text)' }}>{integ.brand_id || '—'}</strong></span>
+          <h1 className="text-3xl font-black text-slate-900 dark:text-white m-0 leading-tight mb-3">{integ.name}</h1>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${statusColorClasses}`}>
+              {statusLabel}
+            </span>
+            <span className="text-sm text-slate-500">Provider: <strong className="text-slate-700 dark:text-slate-300">Syrve / iiko</strong></span>
+            <span className="text-sm text-slate-500">Brand: <strong className="text-slate-700 dark:text-slate-300">{integ.brand_id || '—'}</strong></span>
           </div>
           {stats?.lastSync && (
-            <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: 4 }}>Ultima sincronizare: {stats.lastSync}</div>
+            <div className="text-sm text-slate-400 mt-2 font-medium">Ultima sincronizare: {stats.lastSync}</div>
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="flex flex-wrap items-center gap-3">
           <button onClick={() => onTest && onTest(integ.id)} disabled={testing === integ.id}
-            style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', borderRadius: 10, padding: '9px 18px', color: '#f59e0b', cursor: 'pointer', fontWeight: 600, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6, backdropFilter: 'blur(16px)' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            className="flex items-center justify-center gap-2 px-5 h-11 rounded-full bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/20 dark:hover:bg-amber-900/40 text-amber-600 dark:text-amber-500 text-sm font-bold border border-amber-200 dark:border-amber-800/50 transition-colors disabled:opacity-50 min-w-[160px]">
+            {testing === integ.id ? (
+              <div className="w-4 h-4 border-2 border-amber-300 border-t-amber-600 rounded-full animate-spin"></div>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            )}
             {testing === integ.id ? 'Se testează...' : 'Test Conexiune'}
           </button>
           <button onClick={() => onSync && onSync(integ.id, integ.name)} disabled={syncing === integ.id}
-            style={{ background: 'var(--primary)', border: 'none', borderRadius: 10, padding: '9px 18px', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            className="flex items-center justify-center gap-2 px-6 h-11 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all disabled:opacity-50 min-w-[160px]">
+            {syncing === integ.id ? (
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            )}
             {syncing === integ.id ? 'Sincronizare...' : 'Sync Meniu'}
           </button>
         </div>
       </div>
 
       {/* Stats Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 32 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard icon="🏪" label="Restaurante" value={stats?.restaurants} loading={loadingStats}
           onClick={() => openDrill('restaurants')} />
         <StatCard icon="🍽️" label="Produse" value={stats?.products} loading={loadingStats}
@@ -234,18 +243,21 @@ export default function IntegrationDetail({ integ, onBack, onTest, onSync, testi
       </div>
 
       {/* Connection details card */}
-      <div style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', borderRadius: 16, padding: '24px 28px', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
-        <h3 style={{ margin: '0 0 16px', fontSize: '1rem', fontWeight: 800, color: 'var(--text)' }}>Detalii Conexiune</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 32px' }}>
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 md:p-8 shadow-sm">
+        <h3 className="text-lg font-bold text-slate-900 dark:text-white m-0 mb-6 flex items-center gap-3">
+           <svg className="text-slate-400" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+           Detalii Conexiune
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
           {[
             ['Provider', 'Syrve / iiko cloud'],
             ['API URL', integ.credentials?.apiUrl || 'https://api-eu.syrve.live'],
             ['Org ID', integ.credentials?.orgId || '—'],
             ['API Login', integ.credentials?.apiLogin ? '••••••••' : '—'],
           ].map(([k, v]) => (
-            <div key={k}>
-              <div style={{ fontSize: '0.73rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>{k}</div>
-              <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text)', fontFamily: v.startsWith('•') ? 'monospace' : 'inherit' }}>{v}</div>
+            <div key={k} className="flex flex-col gap-1">
+              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">{k}</div>
+              <div className={`text-sm font-medium text-slate-900 dark:text-white ${v.startsWith('•') ? 'font-mono tracking-widest text-lg translate-y-1' : ''}`}>{v}</div>
             </div>
           ))}
         </div>
@@ -253,6 +265,3 @@ export default function IntegrationDetail({ integ, onBack, onTest, onSync, testi
     </div>
   );
 }
-
-const thStyle = { padding: '10px 14px', textAlign: 'left', fontSize: '0.73rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)', whiteSpace: 'nowrap' };
-const tdStyle = { padding: '11px 14px', color: 'var(--text)', verticalAlign: 'middle' };

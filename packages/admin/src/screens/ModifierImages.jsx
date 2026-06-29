@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthProvider';
 import { useConfirm } from '../components/ConfirmModal';
-import './UsersManager.css'; // reuse same table CSS
 
 const BACKEND   = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 const PAGE_SIZE = 25;
@@ -30,7 +29,7 @@ export default function ModifierImages() {
   const [editUrl,     setEditUrl]     = useState('');
   const [saving,      setSaving]      = useState(null);
   const [toast,       setToast]       = useState(null);
-  const [selectedSugs, setSelectedSugs] = useState(new Set()); // for suggestions bulk
+  const [selectedSugs, setSelectedSugs] = useState(new Set());
 
   const showToast = (msg, type = 'ok') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000); };
 
@@ -138,96 +137,92 @@ export default function ModifierImages() {
   const acceptAllSugs = () => bulkAcceptSugs(new Set(suggestions.map(s => s.modifier.id)));
   const acceptSelectedSugs = () => bulkAcceptSugs(selectedSugs);
 
-  const th = 'um-th';
-
   return (
-    <div className="um-page">
+    <div className="w-full max-w-7xl mx-auto pb-10 animate-in fade-in duration-300">
 
       {/* ── Sugestii Automate ────────────────────────────────── */}
       {suggestions.length > 0 && (
-        <div style={{ marginBottom: 32 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
-            <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>✨ Sugestii Automate</h2>
-            <span style={{ background: '#fef3c7', color: '#92400e', fontSize: '0.72rem', fontWeight: 700, padding: '2px 10px', borderRadius: 20, border: '1px solid #fcd34d' }}>{suggestions.length}</span>
-            <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-4 flex-wrap">
+            <h2 className="m-0 text-base font-bold text-slate-900 dark:text-white">✨ Sugestii Automate</h2>
+            <span className="bg-amber-100 text-amber-900 text-xs font-bold px-2.5 py-0.5 rounded-full border border-amber-300">{suggestions.length}</span>
+            <div className="ml-auto flex gap-2">
               {selectedSugs.size > 0 && (
-                <button className="um-btn um-btn--primary um-btn--sm" onClick={acceptSelectedSugs} disabled={acceptingAll}>
+                <button className="px-3 h-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all" onClick={acceptSelectedSugs} disabled={acceptingAll}>
                   {acceptingAll ? '...' : `✓ Acceptă Selectate (${selectedSugs.size})`}
                 </button>
               )}
-              <button className="um-btn um-btn--primary" onClick={acceptAllSugs} disabled={acceptingAll} style={{ background: '#088c8c', fontWeight: 700 }}>
+              <button className="px-4 h-8 rounded-full bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-sm transition-all" onClick={acceptAllSugs} disabled={acceptingAll}>
                 {acceptingAll ? 'Se procesează...' : `✓ Acceptă Tot (${suggestions.length})`}
               </button>
-              <button className="um-btn um-btn--ghost um-btn--sm" onClick={() => setSuggestions([])} style={{ opacity: 0.5 }}>Ignoră Toate</button>
+              <button className="px-3 h-8 rounded-full bg-transparent hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 text-xs font-bold transition-all" onClick={() => setSuggestions([])}>Ignoră Toate</button>
             </div>
           </div>
 
-          <div className="um-table-wrap" style={{ border: '1.5px solid #fbbf24' }}>
-            <table className="um-table">
-              <thead style={{ background: '#fffbeb' }}>
-                <tr>
-                  <th style={{ width: 40 }}><input type="checkbox" checked={allSugsSelected} onChange={toggleAllSugs} /></th>
-                  <th style={{ width: 48 }}>#</th>
-                  <th>Modificator</th>
-                  <th>Grup</th>
-                  <th>Produs Sugerat</th>
-                  <th>Imagine</th>
-                  <th>Potrivire</th>
-                  <th>Acțiuni</th>
-                </tr>
-              </thead>
-              <tbody>
-                {suggestions.map((sug, i) => (
-                  <tr key={sug.modifier.id} className={selectedSugs.has(sug.modifier.id) ? 'um-row--selected' : ''}>
-                    <td><input type="checkbox" checked={selectedSugs.has(sug.modifier.id)} onChange={() => toggleOneSug(sug.modifier.id)} /></td>
-                    <td className="um-cell--muted">{i + 1}</td>
-                    <td>
-                      <strong>{sug.modifier.name}</strong><br />
-                      {sug.modifier.brandId ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                          <img src={`/brands/${sug.modifier.brandId.toLowerCase()}-logo.png`} alt={sug.modifier.brandId} style={{ width: 16, height: 16, borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border)' }} onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='block'; }} />
-                          <small className="um-cell--muted" style={{ display: 'none' }}>{sug.modifier.brandId}</small>
-                        </div>
-                      ) : <small className="um-cell--muted">—</small>}
-                    </td>
-                    <td className="um-cell--muted">{sug.modifier.groupName}</td>
-                    <td className="um-cell--muted">{sug.suggestedProduct.name}</td>
-                    <td>
-                      <img src={sug.suggestedProduct.image} alt="" style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 10 }} onError={e => { e.target.style.display='none'; }} />
-                    </td>
-                    <td>
-                      <span style={{ background: sug.confidence >= 70 ? '#dcfce7' : '#fef9c3', color: sug.confidence >= 70 ? '#166534' : '#854d0e', padding: '3px 10px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 700 }}>
-                        {sug.confidence}%
-                      </span>
-                    </td>
-                    <td style={{ whiteSpace: 'nowrap' }}>
-                      <button title="Acceptă" onClick={() => acceptSuggestion(sug)} disabled={saving === sug.modifier.id} style={{ background: '#088c8c', border: 'none', color: '#fff', width: 34, height: 34, padding: 0, borderRadius: '50%', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                        {saving === sug.modifier.id ? '...' : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
-                      </button>
-                      <button title="Ignoră" onClick={() => dismissSuggestion(sug.modifier.id)} style={{ marginLeft: 6, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-muted)', width: 34, height: 34, padding: 0, borderRadius: '50%', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                      </button>
-                    </td>
+          <div className="bg-amber-50/50 dark:bg-amber-900/10 rounded-2xl border border-amber-400 overflow-hidden shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-amber-200 dark:border-amber-900/30 bg-amber-100/50 dark:bg-amber-900/20">
+                    <th className="px-4 py-3 w-12 text-center"><input type="checkbox" className="w-4 h-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500" checked={allSugsSelected} onChange={toggleAllSugs} /></th>
+                    <th className="px-4 py-3 text-xs font-bold text-amber-700 uppercase tracking-wider w-12">#</th>
+                    <th className="px-4 py-3 text-xs font-bold text-amber-700 uppercase tracking-wider">Modificator</th>
+                    <th className="px-4 py-3 text-xs font-bold text-amber-700 uppercase tracking-wider">Grup</th>
+                    <th className="px-4 py-3 text-xs font-bold text-amber-700 uppercase tracking-wider">Produs Sugerat</th>
+                    <th className="px-4 py-3 text-xs font-bold text-amber-700 uppercase tracking-wider">Imagine</th>
+                    <th className="px-4 py-3 text-xs font-bold text-amber-700 uppercase tracking-wider">Potrivire</th>
+                    <th className="px-4 py-3 text-xs font-bold text-amber-700 uppercase tracking-wider">Acțiuni</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-amber-200/50 dark:divide-amber-900/20">
+                  {suggestions.map((sug, i) => (
+                    <tr key={sug.modifier.id} className={`transition-colors hover:bg-amber-100/30 dark:hover:bg-amber-900/30 ${selectedSugs.has(sug.modifier.id) ? 'bg-amber-100/50 dark:bg-amber-900/40' : ''}`}>
+                      <td className="px-4 py-3 text-center"><input type="checkbox" className="w-4 h-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500" checked={selectedSugs.has(sug.modifier.id)} onChange={() => toggleOneSug(sug.modifier.id)} /></td>
+                      <td className="px-4 py-3 text-sm text-slate-500 font-medium">{i + 1}</td>
+                      <td className="px-4 py-3">
+                        <strong className="text-sm text-slate-900 dark:text-white block">{sug.modifier.name}</strong>
+                        {sug.modifier.brandId ? (
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <img src={`/brands/${sug.modifier.brandId.toLowerCase()}-logo.png`} alt={sug.modifier.brandId} className="w-4 h-4 rounded-full object-cover border border-slate-200 dark:border-slate-700" onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='block'; }} />
+                            <small className="hidden text-xs text-slate-500 font-medium uppercase tracking-wider">{sug.modifier.brandId}</small>
+                          </div>
+                        ) : <small className="text-slate-500">—</small>}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{sug.modifier.groupName}</td>
+                      <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{sug.suggestedProduct.name}</td>
+                      <td className="px-4 py-3">
+                        <img src={sug.suggestedProduct.image} alt="" className="w-12 h-12 object-cover rounded-xl" onError={e => { e.target.style.display='none'; }} />
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${sug.confidence >= 70 ? 'bg-emerald-100 text-emerald-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                          {sug.confidence}%
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
+                          <button title="Acceptă" onClick={() => acceptSuggestion(sug)} disabled={saving === sug.modifier.id} className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-teal-600 hover:bg-teal-700 text-white shadow-sm transition-colors">
+                            {saving === sug.modifier.id ? '...' : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                          </button>
+                          <button title="Ignoră" onClick={() => dismissSuggestion(sug.modifier.id)} className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
 
       {/* ── Toolbar ──────────────────────────────────────────── */}
-      <div className="um-toolbar">
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
           <button
             onClick={() => setActiveBrand('ALL')}
-            style={{
-              padding: '6px 14px', borderRadius: 20, fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
-              background: activeBrand === 'ALL' ? '#088c8c' : 'var(--surface)',
-              color: activeBrand === 'ALL' ? '#fff' : 'var(--text-muted)',
-              border: `1px solid ${activeBrand === 'ALL' ? '#088c8c' : 'var(--border)'}`,
-              height: 38, display: 'flex', alignItems: 'center'
-            }}
+            className={`flex-shrink-0 px-4 h-10 rounded-full text-sm font-bold transition-all flex items-center ${activeBrand === 'ALL' ? 'bg-teal-600 text-white border border-teal-600 shadow-sm' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
           >Toate</button>
           {BRANDS.map(b => {
             const isActive = activeBrand === b.id;
@@ -236,164 +231,167 @@ export default function ModifierImages() {
                 key={b.id}
                 onClick={() => { setActiveBrand(b.id); setPage(1); }}
                 title={b.label}
+                className={`flex-shrink-0 w-10 h-10 rounded-full p-0 flex items-center justify-center overflow-hidden transition-all bg-white shadow-sm hover:scale-105`}
                 style={{
-                  width: 38, height: 38, borderRadius: '50%', padding: 0,
-                  border: isActive ? `2px solid ${b.color}` : '1px solid var(--border)',
-                  background: '#fff', cursor: 'pointer', transition: 'all 0.2s',
-                  boxShadow: isActive ? `0 4px 10px ${b.color}40` : 'none',
-                  opacity: isActive ? 1 : 0.5,
+                  border: isActive ? `2px solid ${b.color}` : '1px solid var(--tw-prose-th-borders, #e2e8f0)',
+                  boxShadow: isActive ? `0 4px 10px ${b.color}40` : '',
+                  opacity: isActive ? 1 : 0.6,
                   transform: isActive ? 'scale(1.1)' : 'scale(1)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden'
                 }}
               >
-                <img src={`/brands/${b.id}-logo.png`} alt={b.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display='none'; }} />
+                <img src={`/brands/${b.id}-logo.png`} alt={b.label} className="w-full h-full object-cover" onError={e => { e.target.style.display='none'; }} />
               </button>
             );
           })}
         </div>
-        <div style={{ flex: 1, minWidth: 200, position: 'relative' }}>
+        
+        <div className="relative flex-1 min-w-[200px] max-w-xs ml-auto">
           <input 
-            className="um-search" 
-            placeholder="🔍 Caută modificator..." 
+            className="w-full pl-11 pr-16 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-shadow shadow-sm"
+            placeholder="Caută modificator..." 
             value={search} 
             onChange={e => { setSearch(e.target.value); setPage(1); setSelected(new Set()); }} 
-            style={{ width: '100%', boxSizing: 'border-box', paddingRight: search ? 80 : 14 }} 
           />
+          <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
           {search && (
-            <span style={{
-              position: 'absolute', right: 4, top: 4, bottom: 4, 
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: '#088c8c', color: '#fff', borderRadius: 20, padding: '0 12px', 
-              fontSize: '0.8rem', fontWeight: 700, whiteSpace: 'nowrap', pointerEvents: 'none'
-            }}>
+            <span className="absolute right-1.5 top-1.5 bottom-1.5 flex items-center justify-center bg-blue-600 text-white rounded-full px-3 text-xs font-bold pointer-events-none">
               {filtered.filter(m => m.imageUrl).length}/{filtered.length}
             </span>
           )}
         </div>
+        
         {selected.size > 0 && (
-          <div className="um-bulk-actions">
-            <span className="um-bulk-label">{selected.size} selectați</span>
-            <button className="um-btn um-btn--danger" onClick={bulkDelete}>🗑 Șterge imagini ({selected.size})</button>
-            <button className="um-btn um-btn--ghost" onClick={() => setSelected(new Set())}>Deselectează</button>
+          <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 px-4 py-2 rounded-full border border-slate-200 dark:border-slate-700 animate-in slide-in-from-right-4">
+            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{selected.size} selectați</span>
+            <button className="px-4 py-1.5 rounded-full bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-900/20 dark:hover:bg-red-900/40 dark:text-red-500 text-sm font-bold transition-colors" onClick={bulkDelete}>🗑 Șterge imagini ({selected.size})</button>
+            <button className="px-4 py-1.5 rounded-full bg-transparent hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 text-sm font-bold transition-colors" onClick={() => setSelected(new Set())}>Deselectează</button>
           </div>
         )}
       </div>
 
       {/* ── Main Table ───────────────────────────────────────── */}
       {loading ? (
-        <p style={{ textAlign: 'center', padding: '40px', opacity: 0.4 }}>Se încarcă modificatorii...</p>
+        <div className="flex flex-col items-center justify-center py-20 gap-4 opacity-50">
+          <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-500 rounded-full animate-spin"></div>
+          <span className="text-slate-500 text-sm font-medium">Se încarcă modificatorii...</span>
+        </div>
       ) : (
-        <div className="um-table-wrap">
-          <table className="um-table">
-            <thead>
-              <tr>
-                <th style={{ width: 40 }}><input type="checkbox" checked={allPageSelected} onChange={toggleAll} /></th>
-                <th style={{ width: 48 }}>#</th>
-                <th style={{ width: 72 }}>Imagine</th>
-                <th>Modificator</th>
-                <th>Grup</th>
-                <th>Brand</th>
-                <th>Preț Extra</th>
-                <th>Status</th>
-                <th style={{ textAlign: 'right' }}>Acțiuni</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pageItems.map((mod, i) => (
-                <tr key={mod.id} className={selected.has(mod.id) ? 'um-row--selected' : ''}>
-                  <td><input type="checkbox" checked={selected.has(mod.id)} onChange={() => toggleOne(mod.id)} /></td>
-                  <td className="um-cell--muted">{(page - 1) * PAGE_SIZE + i + 1}</td>
-                  <td>
-                    {mod.imageUrl
-                      ? <img src={mod.imageUrl} alt="" style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 8 }} onError={e => { e.target.style.display='none'; }} />
-                      : <div style={{ width: 48, height: 48, borderRadius: 8, background: 'var(--bg,#f3f4f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.3, fontSize: '1.2rem' }}>?</div>
-                    }
-                  </td>
-                  <td><strong>{mod.name}</strong></td>
-                  <td className="um-cell--muted">{mod.groupName}</td>
-                  <td>
-                    {mod.brandId ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <img src={`/brands/${mod.brandId.toLowerCase()}-logo.png`} alt={mod.brandId} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border)' }} onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='block'; }} />
-                        <span style={{ display: 'none', textTransform: 'uppercase', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>{mod.brandId}</span>
-                      </div>
-                    ) : <span className="um-cell--muted">—</span>}
-                  </td>
-                  <td>
-                    {mod.price > 0
-                      ? <span style={{ color: '#d32f2f', fontWeight: 600 }}>+{mod.price.toFixed(2)} lei</span>
-                      : <span className="um-cell--muted">Inclus</span>}
-                  </td>
-                  <td>
-                    <span className={`um-badge ${mod.imageUrl ? 'um-badge--manager' : 'um-badge--demo'}`} style={mod.imageUrl ? { background: '#dcfce7', color: '#166534' } : { background: '#fef2f2', color: '#991b1b' }}>
-                      {mod.imageUrl ? 'Cu imagine' : 'Fără imagine'}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    {editingId === mod.id ? (
-                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'flex-end', minWidth: 280 }}>
-                        <input
-                          autoFocus
-                          value={editUrl}
-                          onChange={e => setEditUrl(e.target.value)}
-                          onKeyDown={e => e.key === 'Enter' && saveImage(mod.id, mod.name, mod.brandId, editUrl)}
-                          placeholder="https://..."
-                          className="um-search"
-                          style={{ flex: 1, padding: '7px 12px', borderColor: '#088c8c' }}
-                        />
-                        <button title="OK" onClick={() => saveImage(mod.id, mod.name, mod.brandId, editUrl)} disabled={saving === mod.id} style={{ background: '#088c8c', border: 'none', color: '#fff', width: 34, height: 34, padding: 0, borderRadius: '50%', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                          {saving === mod.id ? '...' : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
-                        </button>
-                        <button title="✕" onClick={() => setEditingId(null)} style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-muted)', width: 34, height: 34, padding: 0, borderRadius: '50%', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                        </button>
-                      </div>
-                    ) : (
-                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                        <button title={mod.imageUrl ? 'Schimbă' : '+ URL'} onClick={() => { setEditingId(mod.id); setEditUrl(mod.imageUrl || ''); }} style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', width: 34, height: 34, padding: 0, borderRadius: '50%', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-                        </button>
-                        {mod.imageUrl && (
-                          <button title="Șterge" onClick={() => deleteImage(mod.id)} style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', width: 34, height: 34, padding: 0, borderRadius: '50%', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </td>
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm mb-6">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+                  <th className="px-4 py-3 w-12 text-center"><input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" checked={allPageSelected} onChange={toggleAll} /></th>
+                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider w-12">#</th>
+                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider w-20">Imagine</th>
+                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Modificator</th>
+                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Grup</th>
+                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Brand</th>
+                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Preț Extra</th>
+                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Acțiuni</th>
                 </tr>
-              ))}
-              {pageItems.length === 0 && (
-                <tr><td colSpan={9} style={{ textAlign: 'center', padding: '40px', opacity: 0.4 }}>Niciun modificator găsit.</td></tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                {pageItems.map((mod, i) => (
+                  <tr key={mod.id} className={`transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50 ${selected.has(mod.id) ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}>
+                    <td className="px-4 py-3 text-center"><input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" checked={selected.has(mod.id)} onChange={() => toggleOne(mod.id)} /></td>
+                    <td className="px-4 py-3 text-sm text-slate-500 font-medium">{(page - 1) * PAGE_SIZE + i + 1}</td>
+                    <td className="px-4 py-3">
+                      {mod.imageUrl
+                        ? <img src={mod.imageUrl} alt="" className="w-12 h-12 object-cover rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm" onError={e => { e.target.style.display='none'; }} />
+                        : <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 font-medium text-lg border border-slate-200 dark:border-slate-700">?</div>
+                      }
+                    </td>
+                    <td className="px-4 py-3 text-sm font-bold text-slate-900 dark:text-white">{mod.name}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{mod.groupName}</td>
+                    <td className="px-4 py-3">
+                      {mod.brandId ? (
+                        <div className="flex items-center gap-2">
+                          <img src={`/brands/${mod.brandId.toLowerCase()}-logo.png`} alt={mod.brandId} className="w-7 h-7 rounded-full object-cover border border-slate-200 dark:border-slate-700 shadow-sm" onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='block'; }} />
+                          <span className="hidden text-xs font-bold text-slate-500 uppercase tracking-wider">{mod.brandId}</span>
+                        </div>
+                      ) : <span className="text-sm text-slate-500">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-sm font-medium">
+                      {mod.price > 0
+                        ? <span className="text-red-600 dark:text-red-400">+{mod.price.toFixed(2)} lei</span>
+                        : <span className="text-slate-500">Inclus</span>}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold border ${mod.imageUrl ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-400' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400'}`}>
+                        {mod.imageUrl ? 'Cu imagine' : 'Fără imagine'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {editingId === mod.id ? (
+                        <div className="flex items-center justify-end gap-1.5 min-w-[280px]">
+                          <input
+                            autoFocus
+                            value={editUrl}
+                            onChange={e => setEditUrl(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && saveImage(mod.id, mod.name, mod.brandId, editUrl)}
+                            placeholder="https://..."
+                            className="flex-1 px-3 py-1.5 text-sm rounded-lg border border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                          />
+                          <button title="OK" onClick={() => saveImage(mod.id, mod.name, mod.brandId, editUrl)} disabled={saving === mod.id} className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-teal-600 hover:bg-teal-700 text-white shadow-sm transition-colors">
+                            {saving === mod.id ? '...' : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                          </button>
+                          <button title="✕" onClick={() => setEditingId(null)} className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button title={mod.imageUrl ? 'Schimbă' : '+ URL'} onClick={() => { setEditingId(mod.id); setEditUrl(mod.imageUrl || ''); }} className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 transition-colors shadow-sm">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                          </button>
+                          {mod.imageUrl && (
+                            <button title="Șterge" onClick={() => deleteImage(mod.id)} className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 text-red-600 dark:text-red-500 border border-red-100 dark:border-red-900/50 transition-colors shadow-sm">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {pageItems.length === 0 && (
+                  <tr><td colSpan={9} className="text-center py-12 text-slate-500 font-medium">Niciun modificator găsit.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
       {/* ── Pagination ───────────────────────────────────────── */}
       {totalPages > 1 && (
-        <div className="um-pagination">
-          <span className="um-page-info">{(page-1)*PAGE_SIZE+1}–{Math.min(page*PAGE_SIZE, filtered.length)} din {filtered.length}</span>
-          <div className="um-page-btns">
-            <button className="um-btn um-btn--ghost" disabled={page===1} onClick={() => setPage(1)}>«</button>
-            <button className="um-btn um-btn--ghost" disabled={page===1} onClick={() => setPage(p => p-1)}>‹</button>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 text-sm text-slate-600 dark:text-slate-400 font-medium">
+          <span>{(page-1)*PAGE_SIZE+1}–{Math.min(page*PAGE_SIZE, filtered.length)} din {filtered.length}</span>
+          <div className="flex items-center gap-1">
+            <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 transition-colors" disabled={page===1} onClick={() => setPage(1)}>«</button>
+            <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 transition-colors" disabled={page===1} onClick={() => setPage(p => p-1)}>‹</button>
             {Array.from({ length: totalPages }, (_, k) => k+1)
               .filter(p => p===1 || p===totalPages || Math.abs(p-page)<=2)
               .map((p, idx, arr) => (
-                <>
-                  {idx>0 && arr[idx-1]!==p-1 && <span key={`e${p}`} className="um-page-ellipsis">…</span>}
-                  <button key={p} className={`um-btn ${p===page?'um-btn--active':'um-btn--ghost'}`} onClick={() => setPage(p)}>{p}</button>
-                </>
+                <div key={p} className="flex items-center">
+                  {idx>0 && arr[idx-1]!==p-1 && <span className="w-8 text-center text-slate-400">…</span>}
+                  <button className={`w-8 h-8 flex items-center justify-center rounded-lg font-bold transition-colors ${p === page ? 'bg-blue-600 text-white shadow-sm' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`} onClick={() => setPage(p)}>{p}</button>
+                </div>
               ))}
-            <button className="um-btn um-btn--ghost" disabled={page===totalPages} onClick={() => setPage(p => p+1)}>›</button>
-            <button className="um-btn um-btn--ghost" disabled={page===totalPages} onClick={() => setPage(totalPages)}>»</button>
+            <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 transition-colors" disabled={page===totalPages} onClick={() => setPage(p => p+1)}>›</button>
+            <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 transition-colors" disabled={page===totalPages} onClick={() => setPage(totalPages)}>»</button>
           </div>
         </div>
       )}
 
       {/* Toast */}
-      {toast && <div className={`um-toast ${toast.type==='err'?'um-toast--err':''}`}>{toast.msg}</div>}
+      {toast && (
+        <div className={`fixed bottom-6 right-6 px-6 py-3 rounded-2xl text-sm font-bold shadow-xl flex items-center gap-3 z-50 animate-in slide-in-from-bottom-5 ${toast.type === 'err' ? 'bg-red-600 text-white' : 'bg-emerald-600 text-white'}`}>
+          {toast.msg}
+        </div>
+      )}
     </div>
   );
 }

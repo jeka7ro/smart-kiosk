@@ -17,17 +17,17 @@ const BRANDS = [
 function renderPreview(url) {
   if (!url) return null;
   if (/\.(mp4|webm|mov)(\?|$)/i.test(url))
-    return <video src={url} autoPlay muted loop playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
+    return <video src={url} autoPlay muted loop playsInline className="w-full h-full object-cover" />;
   if (/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i.test(url))
-    return <img src={url} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
-  return <iframe src={url} title="Preview" style={{ width: '100%', height: '100%', border: 'none' }} />;
+    return <img src={url} alt="Preview" className="w-full h-full object-cover" />;
+  return <iframe src={url} title="Preview" className="w-full h-full border-none" />;
 }
 
 function Toggle({ checked, onChange }) {
   return (
-    <label className="pc-toggle" style={{ margin: 0 }}>
-      <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} />
-      <span className="toggle-slider" />
+    <label className="relative inline-flex items-center cursor-pointer m-0">
+      <input type="checkbox" className="sr-only peer" checked={checked} onChange={e => onChange(e.target.checked)} />
+      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-blue-600"></div>
     </label>
   );
 }
@@ -43,40 +43,39 @@ function LocationList({ locations, onSelect }) {
   );
 
   return (
-    <div>
-      <div className="section-header" style={{ marginBottom: 8, display: 'none' }}></div>
-      <p style={{ color: 'var(--text-muted)', marginBottom: 20, fontSize: '0.92rem' }}>
-        Genereaza coduri QR pentru mese. Clientii scaneaza QR-ul si comanda direct de pe telefon.
-        Selecteaza o locatie pentru a gestiona QR-urile si setarile mobile.
+    <div className="w-full max-w-7xl mx-auto pb-10 animate-in fade-in duration-300">
+      <p className="text-slate-500 dark:text-slate-400 mb-6 text-sm leading-relaxed">
+        Generează coduri QR pentru mese. Clienții scanează QR-ul și comandă direct de pe telefon.
+        Selectează o locație pentru a gestiona QR-urile și setările mobile.
       </p>
 
-      <input className="um-search" placeholder="Cauta locatie..."
-        value={search} onChange={e => setSearch(e.target.value)}
-        style={{ maxWidth: 340, marginBottom: 20, display: 'block' }} />
+      <div className="relative max-w-sm mb-6">
+        <input 
+          className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 shadow-sm transition-shadow" 
+          placeholder="Caută locație..."
+          value={search} 
+          onChange={e => setSearch(e.target.value)} 
+        />
+        <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px,1fr))', gap: 12 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map(loc => {
           const totalQr = Object.values(loc.data?.qrConfig || {}).reduce((s, v) => s + v, 0);
           const hasMob = !!(loc.data?.mobileConfig?.topBannerUrl || loc.data?.mobileConfig?.posterUrl || loc.data?.mobileConfig?.bottomBannerUrl);
           return (
             <button key={loc.id} onClick={() => onSelect(loc)}
-              style={{
-                background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16,
-                padding: '18px 20px', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s',
-                display: 'flex', flexDirection: 'column', gap: 6,
-              }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = '#088c8c'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(8,140,140,0.1)'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 text-left cursor-pointer transition-all hover:-translate-y-1 hover:border-blue-500 dark:hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/10 flex flex-col gap-2 group"
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <span style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text)' }}>{loc.name}</span>
-                <div style={{ display: 'flex', gap: 4 }}>
-                  {totalQr > 0 && <span style={{ background: '#dcfce7', color: '#15803d', borderRadius: 20, padding: '2px 8px', fontSize: '0.7rem', fontWeight: 700 }}>{totalQr} QR</span>}
-                  {hasMob && <span style={{ background: '#ede9fe', color: '#7c3aed', borderRadius: 20, padding: '2px 8px', fontSize: '0.7rem', fontWeight: 700 }}>MOB</span>}
+              <div className="flex justify-between items-start">
+                <span className="text-base font-bold text-slate-900 dark:text-white">{loc.name}</span>
+                <div className="flex gap-1.5">
+                  {totalQr > 0 && <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full px-2 py-0.5 text-xs font-bold">{totalQr} QR</span>}
+                  {hasMob && <span className="bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400 rounded-full px-2 py-0.5 text-xs font-bold">MOB</span>}
                 </div>
               </div>
-              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{loc.id}</span>
-              <span style={{ fontSize: '0.8rem', color: '#088c8c', fontWeight: 600, marginTop: 4 }}>Configurare →</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-mono bg-slate-100 dark:bg-slate-800 self-start px-2 py-0.5 rounded-md">{loc.id}</span>
+              <span className="text-sm text-blue-600 dark:text-blue-500 font-bold mt-1 group-hover:translate-x-1 transition-transform">Configurare →</span>
             </button>
           );
         })}
@@ -195,34 +194,34 @@ function LocationQrForm({ loc, backend, onBack, onRefresh }) {
   };
 
   return (
-    <div>
-      {/* Header — identic cu KioskSettingsForm */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
+    <div className="w-full max-w-7xl mx-auto pb-10 animate-in fade-in duration-300">
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-8 flex-wrap">
         <button onClick={onBack}
-          style={{ padding: '8px 18px', borderRadius: 12, border: '1.5px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+          className="px-4 py-2 rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold text-sm cursor-pointer flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm">
           ← Înapoi
         </button>
-        <div style={{ flex: 1 }}>
-          <h1 style={{ margin: 0, fontSize: '1.55rem', fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text)' }}>
+        <div className="flex-1">
+          <h1 className="m-0 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
             {loc.name}
           </h1>
-          <p style={{ margin: '3px 0 0', fontSize: '0.82rem', color: 'var(--text-muted)' }}>ID: {loc.id}</p>
+          <p className="m-0 mt-1 text-sm text-slate-500 font-mono bg-slate-100 dark:bg-slate-800 inline-block px-2 py-0.5 rounded">ID: {loc.id}</p>
         </div>
         {activeTab === 'settings' && (
           <button onClick={saveMobileSettings} disabled={savingMob}
-            style={{ padding: '10px 24px', borderRadius: 12, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.95rem', transition: 'all 0.3s', background: mobSaved ? '#10b981' : '#0f172a', color: '#fff', boxShadow: mobSaved ? '0 4px 14px rgba(16,185,129,0.4)' : '0 4px 14px rgba(15,23,42,0.2)' }}>
-            {mobSaved ? '✓ Salvat!' : savingMob ? 'Se salveaza...' : 'Salveaza Setarile Mobile'}
+            className={`px-6 py-2.5 rounded-full border-none cursor-pointer font-bold text-sm transition-all shadow-sm ${mobSaved ? 'bg-emerald-500 text-white shadow-emerald-500/20' : 'bg-slate-900 dark:bg-slate-800 text-white hover:bg-slate-800 dark:hover:bg-slate-700'}`}>
+            {mobSaved ? '✓ Salvat!' : savingMob ? 'Se salvează...' : 'Salvează Setările Mobile'}
           </button>
         )}
         {activeTab === 'qr' && savedCount > 0 && (
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className="um-btn um-btn--ghost" onClick={downloadAll}>Descarca toate</button>
+          <div className="flex gap-2">
+            <button className="px-5 h-10 rounded-full bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm font-bold border border-slate-200 dark:border-slate-800 transition-colors shadow-sm" onClick={downloadAll}>Descarcă toate</button>
             {!confirmClear
-              ? <button className="um-btn um-btn--danger" onClick={() => setConfirmClear(true)}>Sterge QR-urile</button>
-              : <div style={{ display: 'flex', gap: 6, alignItems: 'center', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 30, padding: '6px 12px', fontSize: '0.85rem', fontWeight: 600 }}>
-                  <span style={{ color: '#ef4444' }}>Sigur?</span>
-                  <button className="um-btn um-btn--danger um-btn--sm" onClick={handleDeleteQr} disabled={savingQr}>Da, sterge</button>
-                  <button className="um-btn um-btn--ghost um-btn--sm" onClick={() => setConfirmClear(false)}>Nu</button>
+              ? <button className="px-5 h-10 rounded-full bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 text-sm font-bold border border-red-100 dark:border-red-900/50 transition-colors shadow-sm" onClick={() => setConfirmClear(true)}>Șterge QR-urile</button>
+              : <div className="flex gap-2 items-center bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 rounded-full px-4 py-1.5 text-sm font-bold animate-in slide-in-from-right-4">
+                  <span className="text-red-600 dark:text-red-400">Sigur?</span>
+                  <button className="px-3 py-1 rounded-full bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors" onClick={handleDeleteQr} disabled={savingQr}>Da</button>
+                  <button className="px-3 py-1 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 text-xs font-bold transition-colors" onClick={() => setConfirmClear(false)}>Nu</button>
                 </div>
             }
           </div>
@@ -230,12 +229,10 @@ function LocationQrForm({ loc, backend, onBack, onRefresh }) {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 0, borderBottom: '1.5px solid var(--border)', marginBottom: 28 }}>
-        {[['qr','Coduri QR'],['settings','Setari Mobile']].map(([tab, label]) => (
+      <div className="flex gap-0 border-b border-slate-200 dark:border-slate-800 mb-8">
+        {[['qr','Coduri QR'],['settings','Setări Mobile']].map(([tab, label]) => (
           <button key={tab} onClick={() => setActiveTab(tab)}
-            style={{ padding: '10px 24px', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.92rem', transition: 'all 0.15s', background: 'transparent',
-              borderBottom: activeTab === tab ? '2.5px solid #088c8c' : '2.5px solid transparent',
-              color: activeTab === tab ? '#088c8c' : 'var(--text-muted)', marginBottom: -1.5 }}>
+            className={`px-6 py-3 border-none cursor-pointer font-bold text-sm transition-all bg-transparent -mb-[1px] border-b-2 ${activeTab === tab ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>
             {label}
           </button>
         ))}
@@ -244,66 +241,72 @@ function LocationQrForm({ loc, backend, onBack, onRefresh }) {
       {/* ══ QR TAB ══════════════════════════════════ */}
       {activeTab === 'qr' && (
         <>
-          <div style={{ display: 'flex', gap: 16, marginBottom: 28, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.73rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Brand</label>
-              <div style={{ display: 'flex', gap: 6 }}>
-                {availableBrands.map(b => (
-                  <button key={b.id} onClick={() => setBrandId(b.id)}
-                    style={{ padding: '7px 14px', borderRadius: 20, fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
-                      border: `1.5px solid ${brandId === b.id ? b.color : 'var(--border)'}`,
-                      background: brandId === b.id ? b.color : 'var(--surface)',
-                      color: brandId === b.id ? '#fff' : 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <img src={b.logo} alt="" style={{ width: 14, height: 14, borderRadius: 3, objectFit: 'contain' }} onError={e => e.target.style.display = 'none'} />
-                    {b.name}
-                  </button>
-                ))}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm mb-8">
+            <div className="flex flex-wrap gap-6 items-end">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Brand</label>
+                <div className="flex flex-wrap gap-2">
+                  {availableBrands.map(b => (
+                    <button key={b.id} onClick={() => setBrandId(b.id)}
+                      className="px-4 py-2 rounded-full text-sm font-bold cursor-pointer transition-all flex items-center gap-2"
+                      style={{
+                        border: `1.5px solid ${brandId === b.id ? b.color : 'var(--tw-prose-th-borders, #e2e8f0)'}`,
+                        background: brandId === b.id ? b.color : 'transparent',
+                        color: brandId === b.id ? '#fff' : 'inherit'
+                      }}>
+                      <img src={b.logo} alt="" className="w-4 h-4 rounded-sm object-contain" onError={e => e.target.style.display = 'none'} />
+                      {b.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Nr. mese</label>
+                <input type="number" min="1" max="200" value={tableCount}
+                  onChange={e => setTableCount(parseInt(e.target.value) || 1)}
+                  className="w-24 px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50" />
+              </div>
+              <div className="ml-auto">
+                <button className="px-6 py-2.5 rounded-full text-white font-bold text-sm shadow-sm hover:brightness-110 transition-all" onClick={handleGenerate} disabled={savingQr}
+                  style={{ background: selectedBrand.color }}>
+                  {savingQr ? 'Se salvează...' : savedCount > 0 ? `Actualizează (${tableCount} mese)` : `Generează ${tableCount} QR-uri`}
+                </button>
               </div>
             </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.73rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Nr. mese</label>
-              <input type="number" min="1" max="200" value={tableCount}
-                onChange={e => setTableCount(parseInt(e.target.value) || 1)}
-                className="um-input" style={{ width: 90 }} />
-            </div>
-            <button className="qr-gen-btn" onClick={handleGenerate} disabled={savingQr}
-              style={{ background: selectedBrand.color, alignSelf: 'flex-end' }}>
-              {savingQr ? 'Se salveaza...' : savedCount > 0 ? `Actualizeaza (${tableCount} mese)` : `Genereaza ${tableCount} QR-uri`}
-            </button>
           </div>
 
           {savedCount > 0 ? (
-            <div className="qr-grid">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {Array.from({ length: savedCount }).map((_, i) => {
                 const n = i + 1;
                 const qrUrl = `${QR_WEB_BASE}/?brand=${brandId}&table=${n}&loc=${loc.id}`;
                 return (
-                  <div key={n} className="qr-card">
-                    <div className="qr-card-header" style={{ background: selectedBrand.color }}>Masa {n}</div>
-                    <div style={{ padding: 12, display: 'flex', justifyContent: 'center', background: '#fff' }}>
-                      <QRCodeCanvas id={`qr-canvas-${n}`} value={qrUrl} size={200} level="H" includeMargin={true}
-                        imageSettings={{ src: selectedBrand.logo, height: 48, width: 48, excavate: true }} />
+                  <div key={n} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm flex flex-col items-center">
+                    <div className="w-full py-3 text-center text-white font-bold text-lg" style={{ background: selectedBrand.color }}>Masa {n}</div>
+                    <div className="p-6 bg-white w-full flex justify-center">
+                      <QRCodeCanvas id={`qr-canvas-${n}`} value={qrUrl} size={180} level="H" includeMargin={true}
+                        imageSettings={{ src: selectedBrand.logo, height: 42, width: 42, excavate: true }} />
                     </div>
-                    <div className="qr-card-url">{qrUrl}</div>
-                    <button className="qr-card-dl" onClick={() => downloadQr(n)}>
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <div className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 text-xs text-slate-500 font-mono truncate text-center border-t border-slate-100 dark:border-slate-800">{qrUrl}</div>
+                    <button className="w-full py-3 bg-transparent border-t border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm font-bold transition-colors flex items-center justify-center gap-2" onClick={() => downloadQr(n)}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                         <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
                       </svg>
-                      Descarca PNG
+                      Descarcă PNG
                     </button>
                   </div>
                 );
               })}
             </div>
           ) : (
-            <div style={{ padding: 48, background: 'var(--bg-surface)', borderRadius: 16, border: '1.5px dashed var(--border)', textAlign: 'center' }}>
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="1.4" style={{ marginBottom: 16 }}>
-                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-                <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/>
+            <div className="p-12 bg-slate-50 dark:bg-slate-800/30 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 text-center">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mx-auto mb-4 text-slate-400">
+                <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+                <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="3" height="3" rx="0.5"/>
               </svg>
-              <h3 style={{ margin: '0 0 8px', color: 'var(--text)' }}>Niciun QR generat pentru {selectedBrand.name}</h3>
-              <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.6 }}>
-                Alege numarul de mese si apasa <strong>Genereaza</strong>. QR-urile sunt salvate permanent.
+              <h3 className="m-0 mb-2 text-xl font-bold text-slate-900 dark:text-white">Niciun QR generat pentru {selectedBrand.name}</h3>
+              <p className="m-0 text-slate-500 max-w-md mx-auto leading-relaxed">
+                Alege numărul de mese și apasă <strong>Generează</strong>. QR-urile vor fi salvate permanent și le vei putea descărca oricând.
               </p>
             </div>
           )}
@@ -312,56 +315,63 @@ function LocationQrForm({ loc, backend, onBack, onRefresh }) {
 
       {/* ══ SETTINGS TAB — identic cu KioskSettingsForm ══ */}
       {activeTab === 'settings' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px,1fr))', gap: 24 }}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
           {/* ─ Screensaver ─ */}
-          <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, border: '1px solid var(--border)' }}>
-            <h3 style={{ marginTop: 0, fontSize: '1.05rem', color: 'var(--text)' }}>Screensaver Standby</h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 16 }}>Reclama full-screen daca telefonul sta neatins. Apare la scanarea QR-ului.</p>
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+            <h3 className="m-0 mb-2 text-lg font-bold text-slate-900 dark:text-white">Screensaver Standby</h3>
+            <p className="text-sm text-slate-500 mb-6">Reclamă full-screen dacă telefonul stă neatins. Apare la scanarea QR-ului.</p>
 
-            <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em', display: 'block', marginBottom: 6 }}>Timeout inactivitate (secunde)</label>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Timeout inactivitate (secunde)</label>
             <input type="number" min="5" max="300" value={mob.inactivityTimeout}
               onChange={e => hm('inactivityTimeout', parseInt(e.target.value) || 30)}
-              className="um-input" style={{ width: 110, marginBottom: 16 }} />
+              className="w-32 px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 mb-6" />
 
-            <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em', display: 'block', marginBottom: 6 }}>URL Video / Imagine Screensaver</label>
-            <input type="url" className="pc-input" placeholder="https://... MP4 sau imagine"
-              value={mob.posterUrl} onChange={e => hm('posterUrl', e.target.value)}
-              style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', width: '100%', marginBottom: 16, boxSizing: 'border-box' }} />
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">URL Video / Imagine Screensaver</label>
+            <input type="url" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 mb-6" placeholder="https://... MP4 sau imagine"
+              value={mob.posterUrl} onChange={e => hm('posterUrl', e.target.value)} />
 
             {mob.posterUrl ? (
-              <div style={{ display: 'flex', justifyContent: 'center' }}>
-                <div style={{ width: 130, height: 240, borderRadius: 16, overflow: 'hidden', border: '8px solid #1e293b', background: '#000', position: 'relative', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>
+              <div className="flex justify-center mt-2">
+                <div className="w-[140px] h-[250px] rounded-[24px] overflow-hidden border-[8px] border-slate-800 bg-black relative shadow-xl">
                   {renderPreview(mob.posterUrl)}
-                  <div style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', background: 'rgba(255,255,255,0.9)', color: '#0f172a', padding: '5px 12px', borderRadius: 20, fontSize: '0.65rem', fontWeight: 800, whiteSpace: 'nowrap' }}>Atinge pentru a incepe</div>
+                  <div className="absolute bottom-5 left-1/2 -translate-x-1/2 bg-white/90 text-slate-900 px-3 py-1 rounded-full text-[10px] font-bold whitespace-nowrap shadow-sm">Atinge pentru a începe</div>
                 </div>
               </div>
             ) : (
-              <div style={{ height: 80, borderRadius: 12, border: '2px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>Fara screensaver.</div>
+              <div className="h-24 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-400 text-sm font-medium">Fără screensaver.</div>
             )}
           </div>
 
           {/* ─ Banner Sus ─ */}
-          <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, border: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <h3 style={{ margin: 0, fontSize: '1.05rem', color: 'var(--text)' }}>Banner Promo (Sus)</h3>
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="m-0 text-lg font-bold text-slate-900 dark:text-white">Banner Promo (Sus)</h3>
               <Toggle checked={useBanner} onChange={setUseBanner} />
             </div>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 16 }}>Banda in partea de sus a aplicatiei mobile.</p>
+            <p className="text-sm text-slate-500 mb-6">Bandă în partea de sus a aplicației mobile.</p>
 
             {useBanner && (
-              <div style={{ animation: 'fadeIn 0.3s ease' }}>
-                <input type="url" className="pc-input" placeholder="URL Video MP4 sau Imagine..."
-                  value={mob.topBannerUrl} onChange={e => hm('topBannerUrl', e.target.value)}
-                  style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', width: '100%', marginBottom: 16, boxSizing: 'border-box' }} />
+              <div className="animate-in fade-in duration-300">
+                <input type="url" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 mb-6" placeholder="URL Video MP4 sau Imagine..."
+                  value={mob.topBannerUrl} onChange={e => hm('topBannerUrl', e.target.value)} />
 
                 {mob.topBannerUrl && (
-                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-                    <div style={{ width: 130, height: 240, borderRadius: 12, overflow: 'hidden', border: '6px solid #1e293b', background: '#e2e8f0', position: 'relative', boxShadow: '0 6px 20px rgba(0,0,0,0.15)' }}>
-                      <div style={{ position: 'absolute', inset: 0, padding: 4 }}>
-                        {[0,1,2].map(i => <div key={i} style={{ width: '100%', height: '30%', background: '#cbd5e1', borderRadius: 4, marginBottom: 4 }} />)}
+                  <div className="flex justify-center mb-6">
+                    <div className="w-[140px] h-[250px] rounded-[24px] overflow-hidden border-[6px] border-slate-800 bg-slate-100 dark:bg-slate-800 relative shadow-xl">
+                      <div className="absolute inset-1 flex flex-col gap-1.5 opacity-30">
+                        <div className="w-full h-[25%] bg-slate-300 dark:bg-slate-600 rounded-md"></div>
+                        <div className="w-full h-[25%] bg-slate-300 dark:bg-slate-600 rounded-md"></div>
+                        <div className="w-full h-[25%] bg-slate-300 dark:bg-slate-600 rounded-md"></div>
                       </div>
-                      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: `${10 + (mob.topBannerHeight - 1) * 5}%`, borderRadius: `${mob.topBannerRadiusTop ? '6px' : '0'} ${mob.topBannerRadiusTop ? '6px' : '0'} ${mob.topBannerRadiusBottom ? '6px' : '0'} ${mob.topBannerRadiusBottom ? '6px' : '0'}`, transition: 'all 0.3s', overflow: 'hidden', background: '#000' }}>
+                      <div className="absolute top-0 left-0 right-0 overflow-hidden bg-black transition-all"
+                        style={{ 
+                          height: `${10 + (mob.topBannerHeight - 1) * 5}%`, 
+                          borderBottomLeftRadius: mob.topBannerRadiusBottom ? '8px' : '0',
+                          borderBottomRightRadius: mob.topBannerRadiusBottom ? '8px' : '0',
+                          borderTopLeftRadius: mob.topBannerRadiusTop ? '16px' : '0',
+                          borderTopRightRadius: mob.topBannerRadiusTop ? '16px' : '0'
+                        }}>
                         {renderPreview(mob.topBannerUrl)}
                       </div>
                     </div>
@@ -371,16 +381,17 @@ function LocationQrForm({ loc, backend, onBack, onRefresh }) {
             )}
 
             {/* Design — mereu vizibil */}
-            <div style={{ marginTop: 8, padding: 16, background: 'var(--bg-surface)', borderRadius: 12, border: '1px solid var(--border)' }}>
-              <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 10 }}>
-                <span>Inaltime Banner</span><span style={{ color: 'var(--text)' }}>Nivel {mob.topBannerHeight} / 5</span>
+            <div className="mt-4 p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-800">
+              <label className="flex justify-between text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">
+                <span>Înălțime Banner</span><span className="text-slate-900 dark:text-white">Nivel {mob.topBannerHeight} / 5</span>
               </label>
               <input type="range" min="1" max="5" step="1" value={mob.topBannerHeight}
-                onChange={e => hm('topBannerHeight', parseInt(e.target.value))} style={{ width: '100%', cursor: 'pointer' }} />
-              <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
-                {[['topBannerRadiusTop','Colturi Sus Rotunde'],['topBannerRadiusBottom','Colturi Jos Rotunde']].map(([key, lbl]) => (
-                  <label key={key} style={{ margin: 0, flex: 1, background: 'var(--surface)', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
-                    <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text)' }}>{lbl}</span>
+                onChange={e => hm('topBannerHeight', parseInt(e.target.value))} className="w-full cursor-pointer accent-blue-600" />
+              
+              <div className="flex flex-col sm:flex-row gap-3 mt-6">
+                {[['topBannerRadiusTop','Colțuri Sus Rotunde'],['topBannerRadiusBottom','Colțuri Jos Rotunde']].map(([key, lbl]) => (
+                  <label key={key} className="flex-1 bg-white dark:bg-slate-900 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between cursor-pointer shadow-sm">
+                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{lbl}</span>
                     <Toggle checked={mob[key]} onChange={v => hm(key, v)} />
                   </label>
                 ))}
@@ -389,40 +400,39 @@ function LocationQrForm({ loc, backend, onBack, onRefresh }) {
           </div>
 
           {/* ─ Banner Jos ─ */}
-          <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, border: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <h3 style={{ margin: 0, fontSize: '1.05rem', color: 'var(--text)' }}>Banner Promo (Jos)</h3>
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="m-0 text-lg font-bold text-slate-900 dark:text-white">Banner Promo (Jos)</h3>
               <Toggle checked={useBottomBanner} onChange={setUseBottomBanner} />
             </div>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 16 }}>Apare in josul aplicatiei. Suporta video/imagine sau text derulant.</p>
+            <p className="text-sm text-slate-500 mb-6">Apare în josul aplicației. Suportă video/imagine sau text derulant.</p>
 
             {useBottomBanner && (
-              <div style={{ animation: 'fadeIn 0.3s ease' }}>
-                <h4 style={{ margin: '0 0 6px', fontSize: '0.85rem', color: 'var(--text)', fontWeight: 700 }}>1. Reclama (Video / Imagine)</h4>
-                <input type="url" className="pc-input" placeholder="https://... URL video sau imagine"
-                  value={mob.bottomBannerUrl} onChange={e => hm('bottomBannerUrl', e.target.value)}
-                  style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', width: '100%', marginBottom: 14, boxSizing: 'border-box' }} />
+              <div className="animate-in fade-in duration-300">
+                <h4 className="m-0 mb-2 text-sm font-bold text-slate-900 dark:text-white">1. Reclamă (Video / Imagine)</h4>
+                <input type="url" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 mb-6" placeholder="https://... URL video sau imagine"
+                  value={mob.bottomBannerUrl} onChange={e => hm('bottomBannerUrl', e.target.value)} />
 
-                <h4 style={{ margin: '0 0 6px', fontSize: '0.85rem', color: 'var(--text)', fontWeight: 700 }}>2. Text Derulant</h4>
-                <textarea className="pc-input" placeholder="Ex: Burger -20% azi! Gratis cartofi la orice combo!"
-                  value={mob.bottomBannerText} onChange={e => hm('bottomBannerText', e.target.value)}
-                  style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', width: '100%', marginBottom: 14, boxSizing: 'border-box', minHeight: 64, resize: 'vertical' }} />
+                <h4 className="m-0 mb-2 text-sm font-bold text-slate-900 dark:text-white">2. Text Derulant</h4>
+                <textarea className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 mb-4 min-h-[80px] resize-y leading-relaxed" placeholder="Ex: Burger -20% azi! Gratis cartofi la orice combo!"
+                  value={mob.bottomBannerText} onChange={e => hm('bottomBannerText', e.target.value)} />
 
                 {mob.bottomBannerText.length > 0 && (
-                  <div style={{ marginBottom: 14, padding: 14, background: 'var(--bg-surface)', borderRadius: 10, border: '1px solid var(--border)' }}>
-                    <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Mod Afisare Text</label>
-                    <div style={{ display: 'flex', gap: 6 }}>
+                  <div className="mb-6 p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-800">
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Mod Afișare Text</label>
+                    <div className="flex gap-2 mb-6">
                       {[['false','Rulant'],['true','Fix']].map(([v, l]) => {
                         const isA = String(mob.bottomBannerTextFixed) === v;
                         return <button key={v} type="button" onClick={() => hm('bottomBannerTextFixed', v === 'true')}
-                          style={{ flex: 1, padding: '8px 4px', borderRadius: 8, border: `2px solid ${isA ? '#0f172a' : '#cbd5e1'}`, background: isA ? '#0f172a' : '#fff', color: isA ? '#fff' : '#475569', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}>{l}</button>;
+                          className={`flex-1 py-2 rounded-xl text-sm font-bold border-2 transition-colors ${isA ? 'border-slate-900 bg-slate-900 text-white dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'}`}>{l}</button>;
                       })}
                     </div>
-                    <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', margin: '10px 0 8px' }}>Pozitie Text</label>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      {[['left','Stanga'],['center','Centru'],['right','Dreapta']].map(([v, l]) => (
+                    
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Poziție Text</label>
+                    <div className="flex gap-2">
+                      {[['left','Stânga'],['center','Centru'],['right','Dreapta']].map(([v, l]) => (
                         <button key={v} type="button" onClick={() => hm('bottomBannerTextAlign', v)}
-                          style={{ flex: 1, padding: '8px 4px', borderRadius: 8, border: `2px solid ${mob.bottomBannerTextAlign === v ? '#0f172a' : '#cbd5e1'}`, background: mob.bottomBannerTextAlign === v ? '#0f172a' : '#fff', color: mob.bottomBannerTextAlign === v ? '#fff' : '#475569', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}>{l}</button>
+                          className={`flex-1 py-2 rounded-xl text-sm font-bold border-2 transition-colors ${mob.bottomBannerTextAlign === v ? 'border-slate-900 bg-slate-900 text-white dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'}`}>{l}</button>
                       ))}
                     </div>
                   </div>
@@ -431,16 +441,17 @@ function LocationQrForm({ loc, backend, onBack, onRefresh }) {
             )}
 
             {/* Design — mereu vizibil */}
-            <div style={{ marginTop: 16, padding: 16, background: 'var(--bg-surface)', borderRadius: 12, border: '1px solid var(--border)' }}>
-              <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 10 }}>
-                <span>Inaltime Banner</span><span style={{ color: 'var(--text)' }}>Nivel {mob.bottomBannerHeight} / 5</span>
+            <div className="mt-4 p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-800">
+              <label className="flex justify-between text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">
+                <span>Înălțime Banner</span><span className="text-slate-900 dark:text-white">Nivel {mob.bottomBannerHeight} / 5</span>
               </label>
               <input type="range" min="1" max="5" step="1" value={mob.bottomBannerHeight}
-                onChange={e => hm('bottomBannerHeight', parseInt(e.target.value))} style={{ width: '100%', cursor: 'pointer', marginBottom: 14 }} />
-              <div style={{ display: 'flex', gap: 10 }}>
-                {[['bottomBannerRadiusTop','Colturi Sus Rotunde'],['bottomBannerRadiusBottom','Colturi Jos Rotunde']].map(([key, lbl]) => (
-                  <label key={key} style={{ margin: 0, flex: 1, background: 'var(--surface)', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text)' }}>{lbl}</span>
+                onChange={e => hm('bottomBannerHeight', parseInt(e.target.value))} className="w-full cursor-pointer accent-blue-600 mb-6" />
+              
+              <div className="flex flex-col sm:flex-row gap-3">
+                {[['bottomBannerRadiusTop','Colțuri Sus Rotunde'],['bottomBannerRadiusBottom','Colțuri Jos Rotunde']].map(([key, lbl]) => (
+                  <label key={key} className="flex-1 bg-white dark:bg-slate-900 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between cursor-pointer shadow-sm">
+                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{lbl}</span>
                     <Toggle checked={mob[key]} onChange={v => hm(key, v)} />
                   </label>
                 ))}
@@ -492,8 +503,18 @@ export default function QrGenerator({ backend }) {
       .catch(() => {});
   };
 
-  if (loadingLocs) return <p style={{ color: 'var(--text-muted)', padding: 40 }}>Se incarca locatiile...</p>;
-  if (!locations.length) return <p style={{ color: 'var(--text-muted)', padding: 40 }}>Nu ai nicio locatie creata.</p>;
+  if (loadingLocs) return (
+    <div className="flex flex-col items-center justify-center py-20 gap-4 opacity-50">
+      <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-500 rounded-full animate-spin"></div>
+      <span className="text-slate-500 text-sm font-medium">Se încarcă locațiile...</span>
+    </div>
+  );
+  
+  if (!locations.length) return (
+    <div className="p-12 text-center text-slate-500 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+      Nu ai nicio locație creată.
+    </div>
+  );
 
   if (selectedLoc) {
     return (

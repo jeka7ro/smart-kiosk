@@ -1,572 +1,485 @@
 [
   {
-    "id": "sm-bucuresti",
-    "name": "SM Bucuresti (Fallback)",
+    "id": "d1cb5d9d-6aeb-4b0c-adf9-5ce8648ce4e1",
+    "name": "IKURA ORADEA",
     "brands": [
-      "smashme",
-      "crunch",
       "rollmaster",
       "lovesushi",
       "pokiwoki"
     ],
     "orgIds": {
-      "smashme": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "crunch": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "rollmaster": "04062575-5a47-426b-9d35-9dc748f24139",
-      "lovesushi": "04062575-5a47-426b-9d35-9dc748f24139",
-      "pokiwoki": "04062575-5a47-426b-9d35-9dc748f24139"
+      "rollmaster": "d1cb5d9d-6aeb-4b0c-adf9-5ce8648ce4e1",
+      "lovesushi": "d1cb5d9d-6aeb-4b0c-adf9-5ce8648ce4e1",
+      "pokiwoki": "d1cb5d9d-6aeb-4b0c-adf9-5ce8648ce4e1"
     },
     "kiosks": [],
     "tables": 20,
     "active": true,
-    "isMultiBrand": true
+    "isMultiBrand": true,
+    "kioskPin": "",
+    "posterUrl": "",
+    "topBannerUrl": "",
+    "topBannerHeight": 3,
+    "bottomBannerUrl": "",
+    "bottomBannerText": "",
+    "bottomBannerHeight": 2,
+    "bottomBannerBg": "#1e293b",
+    "bottomBannerLogoUrl": "",
+    "languages": [
+      "ro"
+    ],
+    "defaultLanguage": "ro",
+    "langButtonColor": "#0f172a",
+    "langSelectorPosition": "after",
+    "promoActive": false,
+    "promoBrandId": "",
+    "promoMinOrderValue": 0,
+    "promoOrdersToAppear": 1
   },
   {
-    "id": "smashme-main",
-    "name": "SmashMe Centru",
+    "id": "d0ca9d11-a38e-48e1-ae02-54ce627f8419",
+    "name": "SM BACAU",
     "brands": [
-      "smashme",
-      "crunch",
       "rollmaster",
       "lovesushi",
       "pokiwoki"
     ],
     "orgIds": {
-      "smashme": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "crunch": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "rollmaster": "adddb5a0-26e5-4d50-b472-1c74726c3f72",
-      "lovesushi": "adddb5a0-26e5-4d50-b472-1c74726c3f72",
-      "pokiwoki": "adddb5a0-26e5-4d50-b472-1c74726c3f72"
-    },
-    "kiosks": [],
-    "tables": 10,
-    "active": true
-  },
-  {
-    "id": "sm-brasov",
-    "name": "SM Brasov",
-    "brands": [
-      "smashme",
-      "crunch",
-      "rollmaster",
-      "lovesushi",
-      "pokiwoki"
-    ],
-    "orgIds": {
-      "smashme": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "crunch": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "rollmaster": "adddb5a0-26e5-4d50-b472-1c74726c3f72",
-      "lovesushi": "adddb5a0-26e5-4d50-b472-1c74726c3f72",
-      "pokiwoki": "adddb5a0-26e5-4d50-b472-1c74726c3f72"
-    },
-    "kiosks": [],
-    "tables": 15,
-    "active": true,
-    "isMultiBrand": true
-  },
-  {
-    "id": "sm-cluj",
-    "name": "SM Cluj",
-    "brands": [
-      "smashme",
-      "crunch",
-      "rollmaster",
-      "lovesushi",
-      "pokiwoki"
-    ],
-    "orgIds": {
-      "smashme": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "crunch": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "rollmaster": "90296b11-9ba9-4279-a69b-1f84e193315e",
-      "lovesushi": "90296b11-9ba9-4279-a69b-1f84e193315e",
-      "pokiwoki": "90296b11-9ba9-4279-a69b-1f84e193315e"
-    },
-    "kiosks": [],
-    "tables": 12,
-    "active": true,
-    "isMultiBrand": true
-  },
-  {
-    "id": "sm-buc-titan",
-    "name": "SM Bucuresti Titan",
-    "brands": [
-      "smashme",
-      "crunch",
-      "rollmaster",
-      "lovesushi",
-      "pokiwoki"
-    ],
-    "orgIds": {
-      "smashme": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "crunch": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "rollmaster": "04062575-5a47-426b-9d35-9dc748f24139",
-      "lovesushi": "04062575-5a47-426b-9d35-9dc748f24139",
-      "pokiwoki": "04062575-5a47-426b-9d35-9dc748f24139"
-    },
-    "kiosks": [],
-    "tables": 20,
-    "active": true,
-    "isMultiBrand": true
-  },
-  {
-    "id": "sm-buc-unirii",
-    "name": "SM Bucuresti Unirii",
-    "brands": [
-      "smashme",
-      "crunch",
-      "rollmaster",
-      "lovesushi",
-      "pokiwoki"
-    ],
-    "orgIds": {
-      "smashme": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "crunch": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "rollmaster": "0a7c46eb-f8e1-43f8-bac2-f7c34239d185",
-      "lovesushi": "0a7c46eb-f8e1-43f8-bac2-f7c34239d185",
-      "pokiwoki": "0a7c46eb-f8e1-43f8-bac2-f7c34239d185"
-    },
-    "kiosks": [],
-    "tables": 18,
-    "active": true,
-    "isMultiBrand": true
-  },
-  {
-    "id": "sm-buc-cora",
-    "name": "SM Bucuresti Cora",
-    "brands": [
-      "smashme",
-      "crunch",
-      "rollmaster",
-      "lovesushi",
-      "pokiwoki"
-    ],
-    "orgIds": {
-      "smashme": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "crunch": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "rollmaster": "6956213e-6f71-48ed-9431-44d020511190",
-      "lovesushi": "6956213e-6f71-48ed-9431-44d020511190",
-      "pokiwoki": "6956213e-6f71-48ed-9431-44d020511190"
-    },
-    "kiosks": [],
-    "tables": 15,
-    "active": true,
-    "isMultiBrand": true
-  },
-  {
-    "id": "sm-buc-ceaikovski",
-    "name": "SM Bucuresti Ceaikovski",
-    "brands": [
-      "smashme",
-      "crunch",
-      "rollmaster",
-      "lovesushi",
-      "pokiwoki"
-    ],
-    "orgIds": {
-      "smashme": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "crunch": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "rollmaster": "742343d9-38c1-4712-add3-1035b6bd7637",
-      "lovesushi": "742343d9-38c1-4712-add3-1035b6bd7637",
-      "pokiwoki": "742343d9-38c1-4712-add3-1035b6bd7637"
-    },
-    "kiosks": [],
-    "tables": 12,
-    "active": true,
-    "isMultiBrand": true
-  },
-  {
-    "id": "sm-pitesti",
-    "name": "SM Pitesti",
-    "brands": [
-      "smashme",
-      "crunch",
-      "rollmaster",
-      "lovesushi",
-      "pokiwoki"
-    ],
-    "orgIds": {
-      "smashme": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "crunch": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "rollmaster": "f0454d67-586e-4a21-9fda-f0b0f6f601e9",
-      "lovesushi": "f0454d67-586e-4a21-9fda-f0b0f6f601e9",
-      "pokiwoki": "f0454d67-586e-4a21-9fda-f0b0f6f601e9"
-    },
-    "kiosks": [],
-    "tables": 10,
-    "active": true,
-    "isMultiBrand": true
-  },
-  {
-    "id": "sm-sibiu",
-    "name": "SM Sibiu",
-    "brands": [
-      "smashme",
-      "crunch",
-      "rollmaster",
-      "lovesushi",
-      "pokiwoki"
-    ],
-    "orgIds": {
-      "smashme": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "crunch": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "rollmaster": "c45b986e-5297-47b7-b733-293bbc91da23",
-      "lovesushi": "c45b986e-5297-47b7-b733-293bbc91da23",
-      "pokiwoki": "c45b986e-5297-47b7-b733-293bbc91da23"
-    },
-    "kiosks": [],
-    "tables": 10,
-    "active": true,
-    "isMultiBrand": true
-  },
-  {
-    "id": "sm-piatra-neamt",
-    "name": "SM Piatra Neamt",
-    "brands": [
-      "smashme",
-      "crunch",
-      "rollmaster",
-      "lovesushi",
-      "pokiwoki"
-    ],
-    "orgIds": {
-      "smashme": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "crunch": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "rollmaster": "c54de781-08e4-4226-bea8-28565ab2b3d0",
-      "lovesushi": "c54de781-08e4-4226-bea8-28565ab2b3d0",
-      "pokiwoki": "c54de781-08e4-4226-bea8-28565ab2b3d0"
-    },
-    "kiosks": [],
-    "tables": 8,
-    "active": true,
-    "isMultiBrand": true
-  },
-  {
-    "id": "sm-targu-mures",
-    "name": "SM Targu Mures",
-    "brands": [
-      "smashme",
-      "crunch",
-      "rollmaster",
-      "lovesushi",
-      "pokiwoki"
-    ],
-    "orgIds": {
-      "smashme": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "crunch": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "rollmaster": "958aefef-28b5-4f25-9f4d-97fb02d2bf9d",
-      "lovesushi": "958aefef-28b5-4f25-9f4d-97fb02d2bf9d",
-      "pokiwoki": "958aefef-28b5-4f25-9f4d-97fb02d2bf9d"
-    },
-    "kiosks": [],
-    "tables": 10,
-    "active": true,
-    "isMultiBrand": true
-  },
-  {
-    "id": "sm-craiova",
-    "name": "SM Craiova",
-    "brands": [
-      "smashme",
-      "crunch",
-      "rollmaster",
-      "lovesushi",
-      "pokiwoki"
-    ],
-    "orgIds": {
-      "smashme": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "crunch": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "rollmaster": "a7f99f17-1ded-4f6f-8920-931ace99b3e0",
-      "lovesushi": "a7f99f17-1ded-4f6f-8920-931ace99b3e0",
-      "pokiwoki": "a7f99f17-1ded-4f6f-8920-931ace99b3e0"
-    },
-    "kiosks": [],
-    "tables": 12,
-    "active": true,
-    "isMultiBrand": true
-  },
-  {
-    "id": "sm-iasi-1",
-    "name": "SM Iasi #1",
-    "brands": [
-      "smashme",
-      "crunch",
-      "rollmaster",
-      "lovesushi",
-      "pokiwoki"
-    ],
-    "orgIds": {
-      "smashme": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "crunch": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "rollmaster": "26bc7c2c-5113-4a18-a9e9-c1c84da4ba9f",
-      "lovesushi": "26bc7c2c-5113-4a18-a9e9-c1c84da4ba9f",
-      "pokiwoki": "26bc7c2c-5113-4a18-a9e9-c1c84da4ba9f"
-    },
-    "kiosks": [],
-    "tables": 10,
-    "active": true,
-    "isMultiBrand": true
-  },
-  {
-    "id": "sm-iasi-2",
-    "name": "SM Iasi #2",
-    "brands": [
-      "smashme",
-      "crunch",
-      "rollmaster",
-      "lovesushi",
-      "pokiwoki"
-    ],
-    "orgIds": {
-      "smashme": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "crunch": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "rollmaster": "9f260bf3-b6d8-42db-b2f1-ee8bb01cc7aa",
-      "lovesushi": "9f260bf3-b6d8-42db-b2f1-ee8bb01cc7aa",
-      "pokiwoki": "9f260bf3-b6d8-42db-b2f1-ee8bb01cc7aa"
-    },
-    "kiosks": [],
-    "tables": 10,
-    "active": true,
-    "isMultiBrand": true
-  },
-  {
-    "id": "sm-balotesti",
-    "name": "SM Balotesti",
-    "brands": [
-      "smashme",
-      "crunch",
-      "rollmaster",
-      "lovesushi",
-      "pokiwoki"
-    ],
-    "orgIds": {
-      "smashme": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "crunch": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "rollmaster": "264cb8e8-0dc9-46c3-b8f5-6a38f6c43fe9",
-      "lovesushi": "264cb8e8-0dc9-46c3-b8f5-6a38f6c43fe9",
-      "pokiwoki": "264cb8e8-0dc9-46c3-b8f5-6a38f6c43fe9"
-    },
-    "kiosks": [],
-    "tables": 8,
-    "active": true,
-    "isMultiBrand": true
-  },
-  {
-    "id": "sm-suceava",
-    "name": "SM Suceava",
-    "brands": [
-      "smashme",
-      "crunch",
-      "rollmaster",
-      "lovesushi",
-      "pokiwoki"
-    ],
-    "orgIds": {
-      "smashme": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "crunch": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "rollmaster": "502e619b-c6bf-47b9-8c93-75833c810deb",
-      "lovesushi": "502e619b-c6bf-47b9-8c93-75833c810deb",
-      "pokiwoki": "502e619b-c6bf-47b9-8c93-75833c810deb"
-    },
-    "kiosks": [],
-    "tables": 8,
-    "active": true,
-    "isMultiBrand": true
-  },
-  {
-    "id": "sm-galati",
-    "name": "SM Galati",
-    "brands": [
-      "smashme",
-      "crunch",
-      "rollmaster",
-      "lovesushi",
-      "pokiwoki"
-    ],
-    "orgIds": {
-      "smashme": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "crunch": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "rollmaster": "37512ec4-ce69-4ce7-91f8-76d7a4216091",
-      "lovesushi": "37512ec4-ce69-4ce7-91f8-76d7a4216091",
-      "pokiwoki": "37512ec4-ce69-4ce7-91f8-76d7a4216091"
-    },
-    "kiosks": [],
-    "tables": 10,
-    "active": true,
-    "isMultiBrand": true
-  },
-  {
-    "id": "sm-constanta",
-    "name": "SM Constanta",
-    "brands": [
-      "smashme",
-      "crunch",
-      "rollmaster",
-      "lovesushi",
-      "pokiwoki"
-    ],
-    "orgIds": {
-      "smashme": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "crunch": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "rollmaster": "8ed15b53-e788-411b-8a06-96d0f9ee005a",
-      "lovesushi": "8ed15b53-e788-411b-8a06-96d0f9ee005a",
-      "pokiwoki": "8ed15b53-e788-411b-8a06-96d0f9ee005a"
-    },
-    "kiosks": [],
-    "tables": 15,
-    "active": true,
-    "isMultiBrand": true
-  },
-  {
-    "id": "sm-botosani",
-    "name": "SM Botosani",
-    "brands": [
-      "smashme",
-      "crunch",
-      "rollmaster",
-      "lovesushi",
-      "pokiwoki"
-    ],
-    "orgIds": {
-      "smashme": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "crunch": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "rollmaster": "f6c77b52-5bf8-4808-b4e4-e7fbfa1a2805",
-      "lovesushi": "f6c77b52-5bf8-4808-b4e4-e7fbfa1a2805",
-      "pokiwoki": "f6c77b52-5bf8-4808-b4e4-e7fbfa1a2805"
-    },
-    "kiosks": [],
-    "tables": 8,
-    "active": true,
-    "isMultiBrand": true
-  },
-  {
-    "id": "sm-braila",
-    "name": "SM Braila",
-    "brands": [
-      "smashme",
-      "crunch",
-      "rollmaster",
-      "lovesushi",
-      "pokiwoki"
-    ],
-    "orgIds": {
-      "smashme": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "crunch": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "rollmaster": "effc9518-ceef-4eec-8ad5-9b48ae84c540",
-      "lovesushi": "effc9518-ceef-4eec-8ad5-9b48ae84c540",
-      "pokiwoki": "effc9518-ceef-4eec-8ad5-9b48ae84c540"
-    },
-    "kiosks": [],
-    "tables": 8,
-    "active": true,
-    "isMultiBrand": true
-  },
-  {
-    "id": "sm-bacau",
-    "name": "SM Bacau",
-    "brands": [
-      "smashme",
-      "crunch",
-      "rollmaster",
-      "lovesushi",
-      "pokiwoki"
-    ],
-    "orgIds": {
-      "smashme": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "crunch": "9c63cff6-1d66-442d-a98d-2302656e3943",
       "rollmaster": "d0ca9d11-a38e-48e1-ae02-54ce627f8419",
       "lovesushi": "d0ca9d11-a38e-48e1-ae02-54ce627f8419",
       "pokiwoki": "d0ca9d11-a38e-48e1-ae02-54ce627f8419"
     },
     "kiosks": [],
-    "tables": 10,
+    "tables": 20,
     "active": true,
     "isMultiBrand": true
   },
   {
-    "id": "sm-timisoara",
-    "name": "SM Timisoara",
+    "id": "264cb8e8-0dc9-46c3-b8f5-6a38f6c43fe9",
+    "name": "SM BALOTESTI",
     "brands": [
-      "smashme",
-      "crunch",
       "rollmaster",
       "lovesushi",
       "pokiwoki"
     ],
     "orgIds": {
-      "smashme": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "crunch": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "rollmaster": "f5cb901f-bff1-4b6a-b3a0-8d5b7b3cd5e3",
-      "lovesushi": "f5cb901f-bff1-4b6a-b3a0-8d5b7b3cd5e3",
-      "pokiwoki": "f5cb901f-bff1-4b6a-b3a0-8d5b7b3cd5e3"
+      "rollmaster": "264cb8e8-0dc9-46c3-b8f5-6a38f6c43fe9",
+      "lovesushi": "264cb8e8-0dc9-46c3-b8f5-6a38f6c43fe9",
+      "pokiwoki": "264cb8e8-0dc9-46c3-b8f5-6a38f6c43fe9"
     },
     "kiosks": [],
-    "tables": 12,
+    "tables": 20,
     "active": true,
     "isMultiBrand": true
   },
   {
-    "id": "sm-oradea",
-    "name": "SM Oradea",
+    "id": "f6c77b52-5bf8-4808-b4e4-e7fbfa1a2805",
+    "name": "SM BOTOSANI",
     "brands": [
-      "smashme",
-      "crunch",
       "rollmaster",
       "lovesushi",
       "pokiwoki"
     ],
     "orgIds": {
-      "smashme": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "crunch": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "rollmaster": "f4742901-905f-4b4c-86ea-ce85dc09a041",
-      "lovesushi": "f4742901-905f-4b4c-86ea-ce85dc09a041",
-      "pokiwoki": "f4742901-905f-4b4c-86ea-ce85dc09a041"
+      "rollmaster": "f6c77b52-5bf8-4808-b4e4-e7fbfa1a2805",
+      "lovesushi": "f6c77b52-5bf8-4808-b4e4-e7fbfa1a2805",
+      "pokiwoki": "f6c77b52-5bf8-4808-b4e4-e7fbfa1a2805"
     },
     "kiosks": [],
-    "tables": 12,
+    "tables": 20,
     "active": true,
     "isMultiBrand": true
   },
   {
-    "id": "sm-tulcea",
-    "name": "SM Tulcea",
+    "id": "effc9518-ceef-4eec-8ad5-9b48ae84c540",
+    "name": "SM BRAILA",
     "brands": [
-      "smashme",
-      "crunch",
       "rollmaster",
       "lovesushi",
       "pokiwoki"
     ],
     "orgIds": {
-      "smashme": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "crunch": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "rollmaster": "5989edaa-038d-4407-8d98-be180b5b5b65",
-      "lovesushi": "5989edaa-038d-4407-8d98-be180b5b5b65",
-      "pokiwoki": "5989edaa-038d-4407-8d98-be180b5b5b65"
+      "rollmaster": "effc9518-ceef-4eec-8ad5-9b48ae84c540",
+      "lovesushi": "effc9518-ceef-4eec-8ad5-9b48ae84c540",
+      "pokiwoki": "effc9518-ceef-4eec-8ad5-9b48ae84c540"
     },
     "kiosks": [],
-    "tables": 8,
+    "tables": 20,
     "active": true,
     "isMultiBrand": true
   },
   {
-    "id": "smashme-constanta",
-    "name": "SmashMe Constanta",
+    "id": "adddb5a0-26e5-4d50-b472-1c74726c3f72",
+    "name": "SM BRASOV",
     "brands": [
-      "smashme",
-      "crunch",
       "rollmaster",
       "lovesushi",
       "pokiwoki"
     ],
     "orgIds": {
-      "smashme": "9c63cff6-1d66-442d-a98d-2302656e3943",
-      "crunch": "9c63cff6-1d66-442d-a98d-2302656e3943",
       "rollmaster": "adddb5a0-26e5-4d50-b472-1c74726c3f72",
       "lovesushi": "adddb5a0-26e5-4d50-b472-1c74726c3f72",
       "pokiwoki": "adddb5a0-26e5-4d50-b472-1c74726c3f72"
     },
     "kiosks": [],
-    "tables": 10,
-    "active": true
+    "tables": 20,
+    "active": true,
+    "isMultiBrand": true
+  },
+  {
+    "id": "742343d9-38c1-4712-add3-1035b6bd7637",
+    "name": "SM BUC CEAIKOVSKI",
+    "brands": [
+      "rollmaster",
+      "lovesushi",
+      "pokiwoki"
+    ],
+    "orgIds": {
+      "rollmaster": "742343d9-38c1-4712-add3-1035b6bd7637",
+      "lovesushi": "742343d9-38c1-4712-add3-1035b6bd7637",
+      "pokiwoki": "742343d9-38c1-4712-add3-1035b6bd7637"
+    },
+    "kiosks": [],
+    "tables": 20,
+    "active": true,
+    "isMultiBrand": true
+  },
+  {
+    "id": "6956213e-6f71-48ed-9431-44d020511190",
+    "name": "SM BUC CORA",
+    "brands": [
+      "rollmaster",
+      "lovesushi",
+      "pokiwoki"
+    ],
+    "orgIds": {
+      "rollmaster": "6956213e-6f71-48ed-9431-44d020511190",
+      "lovesushi": "6956213e-6f71-48ed-9431-44d020511190",
+      "pokiwoki": "6956213e-6f71-48ed-9431-44d020511190"
+    },
+    "kiosks": [],
+    "tables": 20,
+    "active": true,
+    "isMultiBrand": true
+  },
+  {
+    "id": "04062575-5a47-426b-9d35-9dc748f24139",
+    "name": "SM BUC TITAN",
+    "brands": [
+      "rollmaster",
+      "lovesushi",
+      "pokiwoki"
+    ],
+    "orgIds": {
+      "rollmaster": "04062575-5a47-426b-9d35-9dc748f24139",
+      "lovesushi": "04062575-5a47-426b-9d35-9dc748f24139",
+      "pokiwoki": "04062575-5a47-426b-9d35-9dc748f24139"
+    },
+    "kiosks": [],
+    "tables": 20,
+    "active": true,
+    "isMultiBrand": true
+  },
+  {
+    "id": "0a7c46eb-f8e1-43f8-bac2-f7c34239d185",
+    "name": "SM BUC UNIRII",
+    "brands": [
+      "rollmaster",
+      "lovesushi",
+      "pokiwoki"
+    ],
+    "orgIds": {
+      "rollmaster": "0a7c46eb-f8e1-43f8-bac2-f7c34239d185",
+      "lovesushi": "0a7c46eb-f8e1-43f8-bac2-f7c34239d185",
+      "pokiwoki": "0a7c46eb-f8e1-43f8-bac2-f7c34239d185"
+    },
+    "kiosks": [],
+    "tables": 20,
+    "active": true,
+    "isMultiBrand": true
+  },
+  {
+    "id": "90296b11-9ba9-4279-a69b-1f84e193315e",
+    "name": "SM CLUJ",
+    "brands": [
+      "rollmaster",
+      "lovesushi",
+      "pokiwoki"
+    ],
+    "orgIds": {
+      "rollmaster": "90296b11-9ba9-4279-a69b-1f84e193315e",
+      "lovesushi": "90296b11-9ba9-4279-a69b-1f84e193315e",
+      "pokiwoki": "90296b11-9ba9-4279-a69b-1f84e193315e"
+    },
+    "kiosks": [],
+    "tables": 20,
+    "active": true,
+    "isMultiBrand": true
+  },
+  {
+    "id": "8ed15b53-e788-411b-8a06-96d0f9ee005a",
+    "name": "SM CONSTANTA",
+    "brands": [
+      "rollmaster",
+      "lovesushi",
+      "pokiwoki"
+    ],
+    "orgIds": {
+      "rollmaster": "8ed15b53-e788-411b-8a06-96d0f9ee005a",
+      "lovesushi": "8ed15b53-e788-411b-8a06-96d0f9ee005a",
+      "pokiwoki": "8ed15b53-e788-411b-8a06-96d0f9ee005a"
+    },
+    "kiosks": [],
+    "tables": 20,
+    "active": true,
+    "isMultiBrand": true
+  },
+  {
+    "id": "a7f99f17-1ded-4f6f-8920-931ace99b3e0",
+    "name": "SM CRAIOVA",
+    "brands": [
+      "rollmaster",
+      "lovesushi",
+      "pokiwoki"
+    ],
+    "orgIds": {
+      "rollmaster": "a7f99f17-1ded-4f6f-8920-931ace99b3e0",
+      "lovesushi": "a7f99f17-1ded-4f6f-8920-931ace99b3e0",
+      "pokiwoki": "a7f99f17-1ded-4f6f-8920-931ace99b3e0"
+    },
+    "kiosks": [],
+    "tables": 20,
+    "active": true,
+    "isMultiBrand": true
+  },
+  {
+    "id": "37512ec4-ce69-4ce7-91f8-76d7a4216091",
+    "name": "SM GALATI",
+    "brands": [
+      "rollmaster",
+      "lovesushi",
+      "pokiwoki"
+    ],
+    "orgIds": {
+      "rollmaster": "37512ec4-ce69-4ce7-91f8-76d7a4216091",
+      "lovesushi": "37512ec4-ce69-4ce7-91f8-76d7a4216091",
+      "pokiwoki": "37512ec4-ce69-4ce7-91f8-76d7a4216091"
+    },
+    "kiosks": [],
+    "tables": 20,
+    "active": true,
+    "isMultiBrand": true
+  },
+  {
+    "id": "26bc7c2c-5113-4a18-a9e9-c1c84da4ba9f",
+    "name": "SM IASI#1",
+    "brands": [
+      "rollmaster",
+      "lovesushi",
+      "pokiwoki"
+    ],
+    "orgIds": {
+      "rollmaster": "26bc7c2c-5113-4a18-a9e9-c1c84da4ba9f",
+      "lovesushi": "26bc7c2c-5113-4a18-a9e9-c1c84da4ba9f",
+      "pokiwoki": "26bc7c2c-5113-4a18-a9e9-c1c84da4ba9f"
+    },
+    "kiosks": [],
+    "tables": 20,
+    "active": true,
+    "isMultiBrand": true
+  },
+  {
+    "id": "9f260bf3-b6d8-42db-b2f1-ee8bb01cc7aa",
+    "name": "SM IASI#2",
+    "brands": [
+      "rollmaster",
+      "lovesushi",
+      "pokiwoki"
+    ],
+    "orgIds": {
+      "rollmaster": "9f260bf3-b6d8-42db-b2f1-ee8bb01cc7aa",
+      "lovesushi": "9f260bf3-b6d8-42db-b2f1-ee8bb01cc7aa",
+      "pokiwoki": "9f260bf3-b6d8-42db-b2f1-ee8bb01cc7aa"
+    },
+    "kiosks": [],
+    "tables": 20,
+    "active": true,
+    "isMultiBrand": true
+  },
+  {
+    "id": "f4742901-905f-4b4c-86ea-ce85dc09a041",
+    "name": "SM ORADEA",
+    "brands": [
+      "rollmaster",
+      "lovesushi",
+      "pokiwoki"
+    ],
+    "orgIds": {
+      "rollmaster": "f4742901-905f-4b4c-86ea-ce85dc09a041",
+      "lovesushi": "f4742901-905f-4b4c-86ea-ce85dc09a041",
+      "pokiwoki": "f4742901-905f-4b4c-86ea-ce85dc09a041"
+    },
+    "kiosks": [],
+    "tables": 20,
+    "active": true,
+    "isMultiBrand": true
+  },
+  {
+    "id": "c54de781-08e4-4226-bea8-28565ab2b3d0",
+    "name": "SM PIATRA NEAMT",
+    "brands": [
+      "rollmaster",
+      "lovesushi",
+      "pokiwoki"
+    ],
+    "orgIds": {
+      "rollmaster": "c54de781-08e4-4226-bea8-28565ab2b3d0",
+      "lovesushi": "c54de781-08e4-4226-bea8-28565ab2b3d0",
+      "pokiwoki": "c54de781-08e4-4226-bea8-28565ab2b3d0"
+    },
+    "kiosks": [],
+    "tables": 20,
+    "active": true,
+    "isMultiBrand": true
+  },
+  {
+    "id": "f0454d67-586e-4a21-9fda-f0b0f6f601e9",
+    "name": "SM PITESTI",
+    "brands": [
+      "rollmaster",
+      "lovesushi",
+      "pokiwoki"
+    ],
+    "orgIds": {
+      "rollmaster": "f0454d67-586e-4a21-9fda-f0b0f6f601e9",
+      "lovesushi": "f0454d67-586e-4a21-9fda-f0b0f6f601e9",
+      "pokiwoki": "f0454d67-586e-4a21-9fda-f0b0f6f601e9"
+    },
+    "kiosks": [],
+    "tables": 20,
+    "active": true,
+    "isMultiBrand": true
+  },
+  {
+    "id": "c45b986e-5297-47b7-b733-293bbc91da23",
+    "name": "SM SIBIU",
+    "brands": [
+      "rollmaster",
+      "lovesushi",
+      "pokiwoki"
+    ],
+    "orgIds": {
+      "rollmaster": "c45b986e-5297-47b7-b733-293bbc91da23",
+      "lovesushi": "c45b986e-5297-47b7-b733-293bbc91da23",
+      "pokiwoki": "c45b986e-5297-47b7-b733-293bbc91da23"
+    },
+    "kiosks": [],
+    "tables": 20,
+    "active": true,
+    "isMultiBrand": true
+  },
+  {
+    "id": "502e619b-c6bf-47b9-8c93-75833c810deb",
+    "name": "SM SUCEAVA",
+    "brands": [
+      "rollmaster",
+      "lovesushi",
+      "pokiwoki"
+    ],
+    "orgIds": {
+      "rollmaster": "502e619b-c6bf-47b9-8c93-75833c810deb",
+      "lovesushi": "502e619b-c6bf-47b9-8c93-75833c810deb",
+      "pokiwoki": "502e619b-c6bf-47b9-8c93-75833c810deb"
+    },
+    "kiosks": [],
+    "tables": 20,
+    "active": true,
+    "isMultiBrand": true
+  },
+  {
+    "id": "f5cb901f-bff1-4b6a-b3a0-8d5b7b3cd5e3",
+    "name": "SM TIMISOARA",
+    "brands": [
+      "rollmaster",
+      "lovesushi",
+      "pokiwoki"
+    ],
+    "orgIds": {
+      "rollmaster": "f5cb901f-bff1-4b6a-b3a0-8d5b7b3cd5e3",
+      "lovesushi": "f5cb901f-bff1-4b6a-b3a0-8d5b7b3cd5e3",
+      "pokiwoki": "f5cb901f-bff1-4b6a-b3a0-8d5b7b3cd5e3"
+    },
+    "kiosks": [],
+    "tables": 20,
+    "active": true,
+    "isMultiBrand": true
+  },
+  {
+    "id": "5989edaa-038d-4407-8d98-be180b5b5b65",
+    "name": "SM TULCEA",
+    "brands": [
+      "rollmaster",
+      "lovesushi",
+      "pokiwoki"
+    ],
+    "orgIds": {
+      "rollmaster": "5989edaa-038d-4407-8d98-be180b5b5b65",
+      "lovesushi": "5989edaa-038d-4407-8d98-be180b5b5b65",
+      "pokiwoki": "5989edaa-038d-4407-8d98-be180b5b5b65"
+    },
+    "kiosks": [],
+    "tables": 20,
+    "active": true,
+    "isMultiBrand": true
+  },
+  {
+    "id": "9c63cff6-1d66-442d-a98d-2302656e3943",
+    "name": "Smash Me Cluj",
+    "brands": [
+      "smashme",
+      "crunch"
+    ],
+    "orgIds": {
+      "smashme": "9c63cff6-1d66-442d-a98d-2302656e3943",
+      "crunch": "9c63cff6-1d66-442d-a98d-2302656e3943"
+    },
+    "kiosks": [],
+    "tables": 20,
+    "active": true,
+    "isMultiBrand": true
+  },
+  {
+    "id": "8308e796-8780-4d18-ae66-4e430178c778",
+    "name": "Smash Me Constanta",
+    "brands": [
+      "smashme",
+      "crunch"
+    ],
+    "orgIds": {
+      "smashme": "8308e796-8780-4d18-ae66-4e430178c778",
+      "crunch": "8308e796-8780-4d18-ae66-4e430178c778"
+    },
+    "kiosks": [],
+    "tables": 20,
+    "active": true,
+    "isMultiBrand": true
+  },
+  {
+    "id": "958aefef-28b5-4f25-9f4d-97fb02d2bf9d",
+    "name": "TARGU MURES",
+    "brands": [
+      "rollmaster",
+      "lovesushi",
+      "pokiwoki"
+    ],
+    "orgIds": {
+      "rollmaster": "958aefef-28b5-4f25-9f4d-97fb02d2bf9d",
+      "lovesushi": "958aefef-28b5-4f25-9f4d-97fb02d2bf9d",
+      "pokiwoki": "958aefef-28b5-4f25-9f4d-97fb02d2bf9d"
+    },
+    "kiosks": [],
+    "tables": 20,
+    "active": true,
+    "isMultiBrand": true
   }
 ]

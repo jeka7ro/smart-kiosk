@@ -92,6 +92,13 @@ export default function ProductScreen() {
   };
 
   const handleQuickAddSug = (sugProd, refElem) => {
+    const hasRequiredModifiers = (sugProd.modifierGroups || []).some(gm => gm.required && gm.options?.length > 0) || (sugProd.modifiers || []).some(m => m.required && (m.options?.length > 0 || m.items?.length > 0));
+    
+    if (hasRequiredModifiers) {
+      setSelectedProduct(sugProd);
+      return;
+    }
+
     // Fix: Use sugProd._brand if available
     const sugBrandId = sugProd._brand || brand?.id;
     addToCart(sugProd, 1, [], sugProd.price, sugBrandId, false);

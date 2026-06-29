@@ -31,8 +31,7 @@ export default function CartScreen() {
   // IDs already in cart
   const cartProductIds = new Set(cartItems.map(i => i.productId));
 
-  // Smart suggestions: products NOT already in cart, prefer addons/sides
-  // Crucially: never suggest items from categories the user already bought (e.g. no sets if set is in cart)
+  // Smart suggestions: products NOT already in cart (unless just added), prefer addons/sides
   const suggestions = useMemo(() => {
     if (!menuProducts.length) return [];
     
@@ -44,7 +43,8 @@ export default function CartScreen() {
       return p ? p.categoryId : null;
     }).filter(Boolean));
     
-    const candidates = menuProducts.filter(p => !cartProductIds.has(p.id) && p.price > 0);
+    // Allow items that were just added to stay visible momentarily
+    const candidates = menuProducts.filter(p => (!cartProductIds.has(p.id) || addedIds[p.id]) && p.price > 0);
     
     const scored = candidates.map(p => {
       let score = 0;
@@ -60,12 +60,28 @@ export default function CartScreen() {
     
     scored.sort((a, b) => b._score - a._score);
     return scored.slice(0, 4);
-  }, [menuProducts, cartItems]);
+  }, [menuProducts, cartItems, cartProductIds, addedIds]);
+
+  const setSelectedProduct = useKioskStore((s) => s.setSelectedProduct);
 
   const handleQuickAdd = (prod) => {
-    addToCart(prod, 1, [], prod.price, brand?.id, false);
+    const hasRequiredModifiers = (prod.modifierGroups || []).some(gm => gm.required && gm.options?.length > 0) || (prod.modifiers || []).some(m => m.required && (m.options?.length > 0 || m.items?.length > 0));
+    
+    if (hasRequiredModifiers) {
+      setSelectedProduct(prod);
+      return;
+    }
+
+    const actualBrandId = prod._brand || brand?.id;
+    addToCart(prod, 1, [], prod.price, actualBrandId, false);
     setAddedIds(prev => ({ ...prev, [prod.id]: true }));
-    setTimeout(() => setAddedIds(prev => { const next = { ...prev }; delete next[prod.id]; return next; }), 1200);
+    setTimeout(() => {
+      setAddedIds(prev => { 
+        const next = { ...prev }; 
+        delete next[prod.id]; 
+        return next; 
+      });
+    }, 1200);
   };
 
   const groupedCart = cartItems.reduce((acc, item) => {

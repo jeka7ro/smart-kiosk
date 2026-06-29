@@ -6,14 +6,19 @@ const BRAND_COLORS = { smashme: '#ef4444', crunch: '#eab308', rollmaster: '#3b82
 function BrandLogo({ brandId, size = 18 }) {
   const logos = {
     smashme: '/brands/smashme-logo.png',
-    crunch: '/brands/smashme-logo.png',
-    rollmaster: '/brands/sushimaster-logo.png',
-    lovesushi: '/brands/welovesushi-logo.png',
-    pokiwoki: '/brands/sushimaster-logo.png',
+    crunch: '/brands/crunch-logo.png',
+    rollmaster: '/brands/rollmaster-logo.png',
+    lovesushi: '/brands/lovesushi-logo.png',
+    pokiwoki: '/brands/pokiwoki-logo.png',
     ikura: '/brands/ikura-logo.png'
   };
   const src = logos[brandId] || logos.smashme; // fallback
-  return <img src={src} alt={brandId} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'contain', verticalAlign: 'middle', flexShrink: 0 }} />;
+  return (
+    <>
+      <img src={src} alt={brandId} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'contain', verticalAlign: 'middle', flexShrink: 0 }} onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'inline-block'; }} />
+      <span style={{ display: 'none', fontSize: size * 0.8, fontWeight: 700, opacity: 0.6, letterSpacing: '0.5px', textTransform: 'uppercase' }}>{brandId}</span>
+    </>
+  );
 }
 
 export default function MenuManager({ backend }) {
@@ -111,34 +116,42 @@ export default function MenuManager({ backend }) {
     );
   }
 
-  if (loading) return <p className="loading-text">Se încarcă managerul de meniu...</p>;
+  if (loading) return <p className="text-slate-500 font-medium py-10 text-center animate-pulse">Se încarcă managerul de meniu...</p>;
 
   return (
-    <div className="admin-section">
-      <div className="section-header" style={{ justifyContent: 'flex-end', marginBottom: 20 }}>
-        <button className="um-btn" onClick={fetchMenuStatus} style={{ borderRadius: 30 }}>Re-sincronizare Check</button>
+    <div className="space-y-8">
+      <div className="flex justify-end">
+        <button className="px-5 h-10 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold transition-colors" onClick={fetchMenuStatus}>
+          Re-sincronizare Check
+        </button>
       </div>
 
       {!menuStatus ? (
-        <p className="loading-text">Se încarcă...</p>
+        <p className="text-slate-500 font-medium py-10 text-center animate-pulse">Se încarcă...</p>
       ) : menuStatus.error ? (
-        <div className="error-box">{menuStatus.error}</div>
+        <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-4 rounded-xl border border-red-200 dark:border-red-800 font-medium">{menuStatus.error}</div>
       ) : (
-        <div className="menu-status-grid" style={{ marginBottom: 40 }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {menuStatus.brands?.map(b => (
-            <div key={b.brandId} className="menu-status-card"
-                 style={{ '--bc': BRAND_COLORS[b.brandId] || 'var(--primary)' }}>
-              <div className="ms-header">
-                <span className="ms-brand" style={{display:'flex', alignItems:'center', gap:'8px'}}>
-                  <BrandLogo brandId={b.brandId} size={20} /> {b.name || b.brandId}
+            <div key={b.brandId} className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-800"
+                 style={{ borderTop: `4px solid ${BRAND_COLORS[b.brandId] || '#3b82f6'}` }}>
+              <div className="flex items-center justify-between mb-6">
+                <span className="flex items-center gap-2 font-bold text-slate-900 dark:text-white text-lg">
+                  <BrandLogo brandId={b.brandId} size={24} /> {b.name || b.brandId}
                 </span>
-                <span className="ms-badge">{b.source}</span>
+                <span className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-500 uppercase tracking-wider">{b.source}</span>
               </div>
-              <div className="ms-stats" style={{ display: 'flex', gap: 16 }}>
-                <div className="ms-stat"><span>Categorii</span><strong>{b.categories}</strong></div>
-                <div className="ms-stat"><span>Produse</span><strong>{b.products}</strong></div>
+              <div className="flex gap-4">
+                <div className="flex-1 bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800">
+                  <span className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Categorii</span>
+                  <strong className="text-2xl text-slate-900 dark:text-white">{b.categories}</strong>
+                </div>
+                <div className="flex-1 bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800">
+                  <span className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Produse</span>
+                  <strong className="text-2xl text-slate-900 dark:text-white">{b.products}</strong>
+                </div>
               </div>
-              <div className="ms-sync" style={{ fontSize: '0.8rem', marginTop: 12, opacity: 0.7 }}>
+              <div className="text-xs font-medium text-slate-400 mt-4 text-center">
                 Ultima Modificare POS: {b.syncedAt ? new Date(b.syncedAt).toLocaleTimeString('ro-RO') : 'N/A'}
               </div>
             </div>
@@ -147,106 +160,108 @@ export default function MenuManager({ backend }) {
       )}
 
       {/* MENU PROFILES SECTION */}
-      <div className="section-header" style={{ marginBottom: 12 }}>
-        <h2 style={{ margin: 0, fontSize: '1.4rem' }}>Șabloane & Profile de Meniu</h2>
-      </div>
-      <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: 24 }}>
-        Creează "Profile de Meniu" pe fiecare Brand. Poți ascunde din POS foldere sau produse specifice. Ulterior, aloci aceste profile individual pe fiecare Kiosk în parte (ex: Kiosk Terasă - Doar Băuturi).
-      </p>
+      <div className="mt-12">
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Șabloane & Profile de Meniu</h2>
+        <p className="text-slate-500 text-sm mb-8 max-w-3xl">
+          Creează "Profile de Meniu" pe fiecare Brand. Poți ascunde din POS foldere sau produse specifice. Ulterior, aloci aceste profile individual pe fiecare Kiosk în parte (ex: Kiosk Terasă - Doar Băuturi).
+        </p>
 
-      {menuStatus?.brands?.map(mb => {
-        const brand = brands.find(b => b.id === mb.brandId);
-        if (!brand) return null;
-        const profiles = brand.data?.menuProfiles || [];
+        <div className="space-y-6">
+          {menuStatus?.brands?.map(mb => {
+            const brand = brands.find(b => b.id === mb.brandId);
+            if (!brand) return null;
+            const profiles = brand.data?.menuProfiles || [];
 
-        return (
-          <div key={brand.id} style={{ background: 'var(--surface)', padding: 24, borderRadius: 16, border: '1px solid var(--border)', marginBottom: 24, boxShadow: '0 4px 14px rgba(0,0,0,0.02)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <BrandLogo brandId={brand.id} size={32} />
-                <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text)' }}>Profile {brand.name}</h3>
-              </div>
-              <button 
-                className="um-btn" 
-                style={{ background: 'var(--text)', color: 'var(--bg)', borderRadius: 30 }}
-                onClick={() => { setInputValue(''); setActionModal({ type: 'create', brandId: brand.id, brandName: brand.name }); }}
-              >
-                + Adaugă Profil
-              </button>
-            </div>
-
-            {profiles.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '30px 20px', background: 'var(--bg-surface)', borderRadius: 12, border: '1px dashed var(--border)', color: 'var(--text-muted)' }}>
-                Niciun profil de meniu creat pentru {brand.name}. Fiecare Kiosk va afișa meniul 100% complet implicit.
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {profiles.map(p => (
-                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 16, background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 12 }}>
-                    <div>
-                      <strong style={{ fontSize: '1.05rem', color: 'var(--text)', display: 'block', marginBottom: 4 }}>{p.name}</strong>
-                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                        {Object.keys(p.hiddenItems || {}).length} elemente debifate (ascunse)
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <button 
-                        className="um-btn um-btn--ghost" 
-                        style={{ borderRadius: 30, padding: '8px 16px', background: 'var(--primary-light)', color: 'var(--primary)', border: 'none' }}
-                        onClick={() => setEditingProfileForBrand({ brand, profile: p })}
-                      >
-                        Editează Arborele
-                      </button>
-                      <button 
-                        className="um-btn um-btn--ghost" 
-                        style={{ borderRadius: '50%', width: 34, height: 34, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444', background: '#fee2e2' }}
-                        onClick={() => setActionModal({ type: 'delete', brandId: brand.id, profileId: p.id, profileName: p.name })}
-                        title="Șterge Profile"
-                      >
-                        ✕
-                      </button>
-                    </div>
+            return (
+              <div key={brand.id} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 gap-4">
+                  <div className="flex items-center gap-3">
+                    <BrandLogo brandId={brand.id} size={32} />
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Profile {brand.name}</h3>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        );
-      })}
+                  <button 
+                    className="shrink-0 px-5 h-10 rounded-full bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-900 text-sm font-bold transition-colors shadow-sm" 
+                    onClick={() => { setInputValue(''); setActionModal({ type: 'create', brandId: brand.id, brandName: brand.name }); }}
+                  >
+                    + Adaugă Profil
+                  </button>
+                </div>
 
+                <div className="p-6">
+                  {profiles.length === 0 ? (
+                    <div className="text-center py-10 px-4 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-800 text-slate-500 text-sm font-medium">
+                      Niciun profil de meniu creat pentru {brand.name}.<br/>Fiecare Kiosk va afișa meniul 100% complet implicit.
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {profiles.map(p => (
+                        <div key={p.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 gap-4 transition-colors hover:border-slate-300 dark:hover:border-slate-600">
+                          <div>
+                            <strong className="block text-base text-slate-900 dark:text-white mb-1">{p.name}</strong>
+                            <span className="text-sm font-medium text-slate-500">
+                              {Object.keys(p.hiddenItems || {}).length} elemente debifate (ascunse)
+                            </span>
+                          </div>
+                          <div className="flex gap-2 shrink-0">
+                            <button 
+                              className="px-4 h-9 rounded-full bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-sm font-bold transition-colors" 
+                              onClick={() => setEditingProfileForBrand({ brand, profile: p })}
+                            >
+                              Editează Arborele
+                            </button>
+                            <button 
+                              className="w-9 h-9 rounded-full bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 flex items-center justify-center transition-colors"
+                              onClick={() => setActionModal({ type: 'delete', brandId: brand.id, profileId: p.id, profileName: p.name })}
+                              title="Șterge Profile"
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       {/* CUSTOM PROMPT MODALS TO AVOID NATIVE BROWSER POPUPS BLOCKING */}
       {actionModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(10px)', zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: 'var(--surface)', borderRadius: 20, padding: 32, width: '100%', maxWidth: 450, boxShadow: '0 24px 64px rgba(0,0,0,0.2)', border: '1px solid var(--border)' }}>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[999999] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-800">
             
             {actionModal.type === 'create' && (
               <>
-                <h3 style={{ margin: '0 0 16px', fontSize: '1.4rem' }}>Creează Profil Nou</h3>
-                <p style={{ margin: '0 0 24px', color: 'var(--text-muted)' }}>Introdu un nume pentru noul profil al brandului <strong>{actionModal.brandName}</strong>.</p>
+                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Creează Profil Nou</h3>
+                <p className="text-sm text-slate-500 mb-6">Introdu un nume pentru noul profil al brandului <strong className="text-slate-900 dark:text-white">{actionModal.brandName}</strong>.</p>
                 <input 
                   autoFocus
                   type="text" 
                   value={inputValue} 
                   onChange={e => setInputValue(e.target.value)} 
                   placeholder="ex: Meniu Terasă"
-                  style={{ width: '100%', padding: '14px 16px', fontSize: '1.1rem', borderRadius: 12, border: '2px solid var(--border)', marginBottom: 32, background: 'var(--bg-surface)', outline: 'none' }}
+                  className="w-full px-4 h-12 text-base rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all mb-8 shadow-inner"
                   onKeyDown={e => { if (e.key === 'Enter' && inputValue.trim()) { createProfile(actionModal.brandId, inputValue); setActionModal(null); } }}
                 />
-                <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-                  <button className="um-btn um-btn--ghost" onClick={() => setActionModal(null)} style={{ borderRadius: 30 }}>Anulează</button>
-                  <button className="um-btn" onClick={() => { createProfile(actionModal.brandId, inputValue); setActionModal(null); }} style={{ borderRadius: 30, background: 'var(--primary)', color: '#fff' }} disabled={!inputValue.trim()}>Creează Profil</button>
+                <div className="flex gap-3 justify-end">
+                  <button className="px-5 h-11 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold transition-colors" onClick={() => setActionModal(null)}>Anulează</button>
+                  <button className="px-5 h-11 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed" onClick={() => { createProfile(actionModal.brandId, inputValue); setActionModal(null); }} disabled={!inputValue.trim()}>Creează Profil</button>
                 </div>
               </>
             )}
 
             {actionModal.type === 'delete' && (
               <>
-                <h3 style={{ margin: '0 0 16px', fontSize: '1.4rem' }}>Ștergere Profil</h3>
-                <p style={{ margin: '0 0 32px', color: 'var(--text-muted)' }}>Sigur dorești să ștergi profilul de meniu <strong>{actionModal.profileName}</strong>? Kiosk-urile care folosesc acest profil vor reveni la meniul complet standard, deci va trebui să le reatribui.</p>
-                <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-                  <button className="um-btn um-btn--ghost" onClick={() => setActionModal(null)} style={{ borderRadius: 30 }}>Anulează</button>
-                  <button className="um-btn" onClick={() => { deleteProfileConfirmed(actionModal.brandId, actionModal.profileId); setActionModal(null); }} style={{ borderRadius: 30, background: '#ef4444', color: '#fff' }}>Da, Șterge Definitiv</button>
+                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Ștergere Profil</h3>
+                <p className="text-sm text-slate-500 mb-8">
+                  Sigur dorești să ștergi profilul de meniu <strong className="text-slate-900 dark:text-white">{actionModal.profileName}</strong>? Kiosk-urile care folosesc acest profil vor reveni la meniul complet standard, deci va trebui să le reatribui.
+                </p>
+                <div className="flex gap-3 justify-end">
+                  <button className="px-5 h-11 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold transition-colors" onClick={() => setActionModal(null)}>Anulează</button>
+                  <button className="px-5 h-11 rounded-full bg-red-600 hover:bg-red-700 text-white text-sm font-bold shadow-sm transition-all" onClick={() => { deleteProfileConfirmed(actionModal.brandId, actionModal.profileId); setActionModal(null); }}>Da, Șterge Definitiv</button>
                 </div>
               </>
             )}
@@ -319,7 +334,7 @@ export function MenuProfileEditorModal({ backend, brand, profile, onClose, onSav
     if (!nodesToRender.length) return null;
 
     return (
-      <div style={{ marginLeft: (parentId && parentId !== activeTab) ? 24 : 0, marginTop: parentId ? 16 : 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div className={`flex flex-col gap-3 ${parentId && parentId !== activeTab ? 'ml-6' : ''} ${parentId ? 'mt-4' : ''}`}>
         {nodesToRender.map(cat => {
           const isHiddenByTemplate = profile.hiddenItems?.[cat.id] === true;
           const isLocallyHidden = hiddenItems[cat.id] === true;
@@ -336,19 +351,19 @@ export function MenuProfileEditorModal({ backend, brand, profile, onClose, onSav
           const hasChildren = categories.some(c => c.parentGroup === cat.id);
           
           return (
-            <div key={cat.id} style={{ padding: '16px 20px', background: '#fff', borderRadius: 16, border: '1px solid var(--border)', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: hasProds.length ? 16 : 0 }}>
-                <strong style={{ opacity: effectivelyHidden ? 0.4 : 1, transition: 'opacity 0.2s', display: 'flex', alignItems: 'center', gap: 12, fontSize: '1.15rem', color: '#1e293b' }}>
+            <div key={cat.id} className="p-4 sm:p-5 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors">
+              <div className={`flex items-center justify-between ${hasProds.length ? 'mb-4' : ''}`}>
+                <strong className={`flex items-center gap-3 text-lg text-slate-900 dark:text-white transition-opacity duration-200 ${effectivelyHidden ? 'opacity-40' : 'opacity-100'}`}>
                    📁 {cat.name}
                 </strong>
-                <label className="pc-toggle" style={{ margin: 0, transform: 'scale(1)' }}>
-                  <input type="checkbox" checked={!effectivelyHidden} onChange={e => handleToggleHide(cat.id, !e.target.checked)} />
-                  <span className="toggle-slider" />
+                <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                  <input type="checkbox" className="sr-only peer" checked={!effectivelyHidden} onChange={e => handleToggleHide(cat.id, !e.target.checked)} />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-blue-600"></div>
                 </label>
               </div>
 
               {hasProds.length > 0 && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12, marginTop: 12 }}>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 mt-3">
                   {hasProds.map(p => {
                     const isPHiddenByTemplate = profile.hiddenItems?.[p.id] === true;
                     const isPLocallyHidden = hiddenItems[p.id] === true;
@@ -362,14 +377,14 @@ export function MenuProfileEditorModal({ backend, brand, profile, onClose, onSav
                     }
 
                     return (
-                      <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-surface)', borderRadius: 12, border: '1px solid var(--border)', opacity: (effectivelyHidden || pEffectivelyHidden) ? 0.4 : 1, transition: 'opacity 0.2s' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
+                      <div key={p.id} className={`flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700 transition-opacity duration-200 ${effectivelyHidden || pEffectivelyHidden ? 'opacity-40' : 'opacity-100'}`}>
+                        <div className="flex items-center gap-3 flex-1 overflow-hidden">
                           {p.image && (
-                            <img src={proxySyrveImage(p.image)} alt="" style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover', flexShrink: 0, border: '1px solid rgba(0,0,0,0.05)' }} />
+                            <img src={proxySyrveImage(p.image)} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0 border border-slate-200 dark:border-slate-700" />
                           )}
-                          <span style={{ fontSize: '0.95rem', lineHeight: '1.3', fontWeight: 500, color: '#334155' }}>{p.name}</span>
+                          <span className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">{p.name}</span>
                         </div>
-                        <input type="checkbox" checked={!pEffectivelyHidden} disabled={effectivelyHidden} onChange={e => handleToggleHide(p.id, !e.target.checked)} style={{ cursor: effectivelyHidden ? 'not-allowed' : 'pointer', width: 22, height: 22, accentColor: 'var(--primary)', flexShrink: 0, marginLeft: 12 }} />
+                        <input type="checkbox" checked={!pEffectivelyHidden} disabled={effectivelyHidden} onChange={e => handleToggleHide(p.id, !e.target.checked)} className={`w-5 h-5 ml-3 rounded border-slate-300 text-blue-600 focus:ring-blue-500 shrink-0 ${effectivelyHidden ? 'cursor-not-allowed' : 'cursor-pointer'}`} />
                       </div>
                     );
                   })}
@@ -408,73 +423,67 @@ export function MenuProfileEditorModal({ backend, brand, profile, onClose, onSav
   }, [rootMenuItems, activeTab]);
 
   return (
-    <div style={{ background: 'var(--bg-surface)', borderRadius: 24, border: '1px solid var(--border)', padding: 32, display: 'flex', flexDirection: 'column', gap: 32 }}>
+    <div className="bg-slate-50 dark:bg-slate-900 rounded-[24px] border border-slate-200 dark:border-slate-800 p-8 flex flex-col gap-8 w-full max-w-6xl mx-auto shadow-2xl overflow-y-auto max-h-[90vh]">
       
       {/* Header Area */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <button className="um-btn um-btn--ghost" onClick={onClose} style={{ borderRadius: '50%', width: 44, height: 44, padding: 0, background: 'var(--surface)' }}>
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-5">
+        <div className="flex items-center gap-4">
+          <button className="shrink-0 w-11 h-11 rounded-full bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-center text-slate-500 transition-colors border border-slate-200 dark:border-slate-700 shadow-sm" onClick={onClose}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
           </button>
           <div>
-            <h2 style={{ margin: 0, fontSize: '1.6rem', color: 'var(--text)' }}>{localHiddenItemsOverride !== null ? 'Personalizare Meniu Kiosk' : `Editare Profil: ${profile.name}`}</h2>
-            <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: 4 }}>Brand: {brand.name}</p>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white m-0 leading-tight">
+              {localHiddenItemsOverride !== null ? 'Personalizare Meniu Kiosk' : `Editare Profil: ${profile.name}`}
+            </h2>
+            <p className="text-slate-500 text-sm mt-1 m-0">Brand: {brand.name}</p>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 12 }}>
-          <button className="um-btn um-btn--ghost" onClick={onClose} style={{ borderRadius: 30, padding: '0 24px' }}>Renunță</button>
-          <button className="um-btn" onClick={() => onSave({ ...profile, hiddenItems, rootFolderId: rootFolderId === '' ? null : rootFolderId })} style={{ borderRadius: 30, background: 'var(--primary)', color: '#fff', padding: '0 32px' }}>
+        <div className="flex items-center gap-3 shrink-0">
+          <button className="px-6 h-11 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold transition-colors" onClick={onClose}>Renunță</button>
+          <button className="px-8 h-11 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all" onClick={() => onSave({ ...profile, hiddenItems, rootFolderId: rootFolderId === '' ? null : rootFolderId })}>
             {localHiddenItemsOverride !== null ? 'Salvează Vizibilitate' : 'Salvează Profilul'}
           </button>
         </div>
       </div>
 
       {loading ? (
-        <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted)' }}>Se încarcă structura meniului din integrări POS...</div>
+        <div className="py-16 text-center text-slate-500 font-medium animate-pulse">Se încarcă structura meniului din integrări POS...</div>
       ) : (
         <>
           {/* Top Config Root Folder */}
           {localHiddenItemsOverride === null ? (
-            <div style={{ padding: 24, background: 'var(--surface)', borderRadius: 16, border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <label style={{ fontWeight: 600, fontSize: '1.05rem', margin: 0 }}>Sursă / Mapa Principală Rădăcină (Opțional)</label>
-              <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.5, maxWidth: 800 }}>Prin selectarea unei mape, Kiosk-ul va extrage structura meniului strict pornind din acel dosar. Ideal dacă dorești ca profilul să controleze, de exemplu, doar un meniu de Terasă sau Bar.</p>
-              <select className="um-input" value={rootFolderId || ''} onChange={e => { setRootFolderId(e.target.value); setActiveTab(null); }} style={{ borderRadius: 12, width: '100%', maxWidth: 400, marginTop: 8 }}>
+            <div className="p-6 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-col gap-3 shadow-sm">
+              <label className="font-bold text-slate-900 dark:text-white text-base m-0">Sursă / Mapa Principală Rădăcină (Opțional)</label>
+              <p className="m-0 text-slate-500 text-sm leading-relaxed max-w-3xl">Prin selectarea unei mape, Kiosk-ul va extrage structura meniului strict pornind din acel dosar. Ideal dacă dorești ca profilul să controleze, de exemplu, doar un meniu de Terasă sau Bar.</p>
+              <select className="mt-2 w-full max-w-md px-4 h-11 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" value={rootFolderId || ''} onChange={e => { setRootFolderId(e.target.value); setActiveTab(null); }}>
                 <option value="">-- Extrage Tot (Fără Rădăcină Specifică) --</option>
                 {menu.categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
           ) : (
-            <div style={{ padding: 20, background: 'rgba(59, 130, 246, 0.08)', borderRadius: 16, border: '1px solid rgba(59, 130, 246, 0.2)', color: '#1e3a8a', fontSize: '0.95rem', lineHeight: 1.5 }}>
-              Modifici vizibilitatea meniului în regim <strong>suprascriere locală Kiosk</strong>. Toate ascunderile debifate aici se aplică exclusiv pe acest aparat, adăugându-se peste restricțiile care ar veni din Profilul de Bază.
+            <div className="p-5 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-200 dark:border-blue-800/50 text-blue-800 dark:text-blue-300 text-sm leading-relaxed">
+              Modifici vizibilitatea meniului în regim <strong className="font-bold">suprascriere locală Kiosk</strong>. Toate ascunderile debifate aici se aplică exclusiv pe acest aparat, adăugându-se peste restricțiile care ar veni din Profilul de Bază.
             </div>
           )}
 
           <div>
-            <h4 style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Categorii</h4>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Categorii</h4>
+            <div className="flex flex-wrap gap-2">
                {rootMenuItems.map(c => (
                  <button 
                    key={c.id}
                    onClick={() => setActiveTab(c.id)}
-                   style={{
-                     padding: '8px 18px', borderRadius: 20,
-                     background: activeTab === c.id ? '#0f172a' : 'var(--surface)',
-                     border: `1.5px solid ${activeTab === c.id ? '#0f172a' : 'var(--border)'}`,
-                     color: activeTab === c.id ? '#fff' : 'var(--text)',
-                     fontWeight: activeTab === c.id ? 700 : 500,
-                     fontSize: '0.875rem', cursor: 'pointer', transition: 'all 0.15s',
-                     whiteSpace: 'nowrap',
-                   }}
+                   className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${activeTab === c.id ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm border border-transparent' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
                  >
                     {c.name}
                  </button>
                ))}
-               {rootMenuItems.length === 0 && <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Nu a fost găsită nicio categorie.</span>}
+               {rootMenuItems.length === 0 && <span className="text-slate-500 text-sm">Nu a fost găsită nicio categorie.</span>}
             </div>
           </div>
 
           {/* Render Area */}
-          <div style={{ flex: 1, minHeight: 400 }}>
+          <div className="flex-1 min-h-[400px]">
             {activeTab && renderCategoryTree(menu.categories, activeTab)}
           </div>
         </>
