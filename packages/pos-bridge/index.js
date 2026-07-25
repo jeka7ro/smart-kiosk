@@ -12,6 +12,26 @@
 require('dotenv').config();
 const { io }        = require('socket.io-client');
 const { SerialPort } = require('serialport');
+const fs             = require('fs');
+const path           = require('path');
+
+// ── LOG FILE ──────────────────────────────────────────────────────────────────
+const LOG_FILE = path.join(__dirname, 'pos-bridge.log');
+
+function log(msg) {
+  const ts = new Date().toISOString().replace('T', ' ').split('.')[0];
+  const line = `[${ts}] ${msg}`;
+  console.log(line);
+  try { fs.appendFileSync(LOG_FILE, line + '\n'); } catch(_) {}
+}
+
+function logHex(label, buf) {
+  const hex = Buffer.isBuffer(buf) ? buf.toString('hex').match(/../g).join(' ') : String(buf);
+  log(`${label}: ${hex}`);
+}
+
+log('════════════════════════════════════════════════════');
+log('POS Bridge pornit');
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const RENDER_URL  = process.env.RENDER_URL  || 'https://smart-kiosk-ttut.onrender.com';
@@ -42,10 +62,9 @@ function buildMsg(msgId, msgType, payload) {
 // ── Auto-detectare port COM ───────────────────────────────────────────────────
 async function detectPosPort() {
   const ports = await SerialPort.list();
-  console.log('[POS Bridge] Porturi seriale disponibile:');
-  ports.forEach(p => console.log(`  ${p.path} | ${p.manufacturer || '-'} | ${p.friendlyName || '-'}`));
+  log('Porturi seriale disponibile:');
+  ports.forEach(p => log(`  ${p.path} | ${p.manufacturer || '-'} | ${p.friendlyName || '-'}`));
 
-  // Caută adaptor USB-Serial (FTDI, CP210x, Prolific, CH340 — comune cu POS-uri)
   const posPort = ports.find(p => {
     const mfg = (p.manufacturer || '').toLowerCase();
     const fn  = (p.friendlyName || '').toLowerCase();
@@ -55,14 +74,13 @@ async function detectPosPort() {
   });
 
   if (posPort) {
-    console.log(`[POS Bridge] ✅ Port detectat automat: ${posPort.path}`);
+    log(`✅ Port detectat automat: ${posPort.path}`);
     return posPort.path;
   }
 
-  // Fallback: primul COM disponibil (altul decât Bluetooth)
   const firstCom = ports.find(p => p.path.startsWith('COM') && !p.path.includes('BT'));
   if (firstCom) {
-    console.log(`[POS Bridge] ⚠️  Folosesc primul COM disponibil: ${firstCom.path}`);
+    log(`⚠️  Folosesc primul COM disponibil: ${firstCom.path}`);
     return firstCom.path;
   }
 
@@ -78,7 +96,7 @@ async function processPayment(amount, portPath, onStatus) {
     let timer;
 
     const arm  = (ms, lbl) => { clearTimeout(timer); timer = setTimeout(() => fail(`Timeout: ${lbl}`), ms); };
-    const fail = (msg)     => { clearTimeout(timer); try { port.close(); } catch(_) {} reject(new Error(msg)); };
+    const fail = (msg)     => { clearTimeout(timer); try { port.close(); } catch(_) {} log(`❌ FAIL: ${msg}`); reject(new Error(msg)); };
     const ok   = (r)       => { clearTimeout(timer); try { port.close(); } catch(_) {} resolve(r); };
 
     const port = new SerialPort({
@@ -91,16 +109,18 @@ async function processPayment(amount, portPath, onStatus) {
     });
 
     port.open(err => {
-      if (err) return reject(new Error(`Nu pot deschide ${portPath}: ${err.message}`));
-      console.log(`[POS Bridge] Port ${portPath} deschis @ ${BAUD_RATE} baud`);
+      if (err) { log(`❌ Nu pot deschide ${portPath}: ${err.message}`); return reject(new Error(`Nu pot deschide ${portPath}: ${err.message}`)); }
+      log(`Port ${portPath} deschis @ ${BAUD_RATE} baud`);
 
       // Trimite MOL10 — inițierea plătii
       const mol10 = buildMsg('M', '10', amountStr + 'RON' + '0'.repeat(20));
+      logHex('TX MOL10', mol10);
       port.write(mol10);
       arm(5000, 'ACK la MOL10');
     });
 
     port.on('data', chunk => {
+      logHex('RX', chunk);
       rxBuf = Buffer.concat([rxBuf, chunk]);
 
       // ACK la MOL10
@@ -109,18 +129,20 @@ async function processPayment(amount, portPath, onStatus) {
         state = 'WAIT_MOL11';
         arm(120000, 'MOL11 — aştept cardul');
         onStatus && onStatus('Terminal activat — prezentaţi cardul');
-        console.log('[POS Bridge] ACK MOL10 ✓ — aştept cardul (GPRS activ)');
+        log('ACK MOL10 ✓ — aştept cardul');
         return;
       }
 
       // MOL11 — cardul e prezent/introdus
       if (state === 'WAIT_MOL11' && rxBuf.includes(STX)) {
+        log('MOL11 primit — trimit ACK');
+        logHex('RX MOL11 complet', rxBuf);
         port.write(Buffer.from([ACK]));
         rxBuf = Buffer.alloc(0);
         state = 'WAIT_MOL12';
         arm(120000, 'MOL12 — autorizare GPRS');
         onStatus && onStatus('Comunicare cu banca prin GPRS...');
-        console.log('[POS Bridge] MOL11 ✓ — autorizez prin GPRS');
+        log('MOL11 ✓ — autorizez prin GPRS');
         return;
       }
 
@@ -128,6 +150,8 @@ async function processPayment(amount, portPath, onStatus) {
       if (state === 'WAIT_MOL12' && rxBuf.includes(STX)) {
         port.write(Buffer.from([ACK]));
         const raw = rxBuf.toString('ascii');
+        logHex('RX MOL12 complet', rxBuf);
+        log(`MOL12 RAW ASCII: ${raw}`);
         rxBuf = Buffer.alloc(0);
         state = 'DONE';
 
@@ -135,11 +159,13 @@ async function processPayment(amount, portPath, onStatus) {
         const authMatch = raw.match(/[A-Z0-9]{6}/);
         const authCode  = authMatch ? authMatch[0] : '';
 
-        console.log(`[POS Bridge] MOL12 ✓ — ${approved ? '✅ APROBAT' : '❌ REFUZAT'} auth=${authCode}`);
+        log(`MOL12 ✓ — ${approved ? '✅ APROBAT' : '❌ REFUZAT'} auth=${authCode}`);
 
         // Confirmare finală MOL13
         setTimeout(() => {
-          port.write(buildMsg('M', '13', approved ? '00' : '01'));
+          const mol13 = buildMsg('M', '13', approved ? '00' : '01');
+          logHex('TX MOL13', mol13);
+          port.write(mol13);
           setTimeout(() => ok({ success: approved, authCode, raw }), 500);
         }, 300);
       }
@@ -152,20 +178,18 @@ async function processPayment(amount, portPath, onStatus) {
 
 // ── Socket.IO — conectare la Render ──────────────────────────────────────────
 async function start() {
-  // Determină portul COM
   let portPath;
   if (COM_PORT && COM_PORT !== 'auto') {
     portPath = COM_PORT;
-    console.log(`[POS Bridge] Folosesc portul din config: ${portPath}`);
+    log(`Folosesc portul din config: ${portPath}`);
   } else {
     portPath = await detectPosPort();
   }
 
-  console.log(`\n🔗 POS Bridge pornit`);
-  console.log(`   Render:   ${RENDER_URL}`);
-  console.log(`   COM Port: ${portPath} @ ${BAUD_RATE} baud`);
-  console.log(`   Locație:  ${LOCATION_ID}`);
-  console.log(`   GPRS:     POS comunică direct cu banca\n`);
+  log(`Render:   ${RENDER_URL}`);
+  log(`COM Port: ${portPath} @ ${BAUD_RATE} baud`);
+  log(`Locație:  ${LOCATION_ID}`);
+  log(`Log file: ${LOG_FILE}`);
 
   const socket = io(RENDER_URL, {
     auth: { bridgeKey: BRIDGE_KEY, locationId: LOCATION_ID },
@@ -174,27 +198,35 @@ async function start() {
   });
 
   socket.on('connect', () => {
-    console.log(`✅ Conectat la Render (${socket.id})`);
+    log(`✅ Conectat la Render (${socket.id})`);
     socket.emit('pos_bridge_register', { locationId: LOCATION_ID, port: portPath });
   });
 
   socket.on('disconnect', reason => {
-    console.log(`⚠️  Deconectat: ${reason} — reconectez...`);
+    log(`⚠️  Deconectat: ${reason} — reconectez...`);
   });
 
   // Render trimite cerere de plată
   socket.on('pos_payment_request', async ({ orderId, amount, locationId: lid }) => {
-    if (lid && lid !== LOCATION_ID) return; // nu e pentru noi
+    if (lid && lid !== LOCATION_ID) {
+      log(`SKIP cerere: locationId=${lid} nu e al nostru (${LOCATION_ID})`);
+      return;
+    }
 
-    console.log(`\n💳 Cerere plată: ${amount} RON (orderId=${orderId})`);
+    log(`💳 ════ CERERE PLATĂ ════`);
+    log(`   orderId:    ${orderId}`);
+    log(`   amount:     ${amount} RON`);
+    log(`   locationId: ${lid || 'nedefinit'}`);
 
     socket.emit('pos_bridge_status', { orderId, message: 'Terminal activat — prezentaţi cardul' });
 
     try {
       const result = await processPayment(amount, portPath, (msg) => {
+        log(`STATUS: ${msg}`);
         socket.emit('pos_bridge_status', { orderId, message: msg });
       });
-      console.log(`✅ ${result.success ? 'APROBAT' : 'REFUZAT'} — ${result.authCode}`);
+      log(`✅ REZULTAT: ${result.success ? 'APROBAT' : 'REFUZAT'} — auth=${result.authCode}`);
+      log(`   RAW: ${result.raw}`);
       socket.emit('pos_payment_result', {
         orderId,
         paid:     result.success,
@@ -203,14 +235,14 @@ async function start() {
         raw:      result.raw,
       });
     } catch (err) {
-      console.error(`❌ Eroare: ${err.message}`);
+      log(`❌ EROARE POS: ${err.message}`);
       socket.emit('pos_payment_result', { orderId, paid: false, error: err.message });
     }
   });
 }
 
 start().catch(err => {
-  console.error('\n❌ EROARE FATALĂ:', err.message);
-  console.error('Verifică că POS-ul e conectat la USB și driverul e instalat.\n');
+  log(`❌ EROARE FATALĂ: ${err.message}`);
+  log('Verifică că POS-ul e conectat la USB și driverul e instalat.');
   process.exit(1);
 });

@@ -44,6 +44,13 @@ router.post('/initiate', async (req, res) => {
   const { orderId, amount, channel, paymentGateway } = req.body;
   const io = req.app.get('io');
 
+  console.log(`\n[Payment] ════ INIȚIERE PLATĂ ════`);
+  console.log(`[Payment]   orderId:    ${orderId}`);
+  console.log(`[Payment]   amount:     ${amount} RON`);
+  console.log(`[Payment]   gateway:    ${paymentGateway}`);
+  console.log(`[Payment]   locationId: ${req.body.locationId || 'nedefinit'}`);
+  console.log(`[Payment]   channel:    ${channel || 'kiosk'}`);
+
   // ── VeriFone V200t Serial (Printec ECR v3.9.3) ──────────────────────────
   if (paymentGateway === 'verifone_serial' || process.env.DEFAULT_PAYMENT_GATEWAY === 'verifone_serial') {
     try {
@@ -88,14 +95,19 @@ router.post('/initiate', async (req, res) => {
   else if (paymentGateway === 'raiffeisen' || process.env.DEFAULT_PAYMENT_GATEWAY === 'raiffeisen') {
     try {
       const io = req.app.get('io');
-      if (!io) return res.status(500).json({ success: false, error: 'Socket.IO indisponibil' });
+      if (!io) {
+        console.log(`[Payment] ❌ Socket.IO indisponibil!`);
+        return res.status(500).json({ success: false, error: 'Socket.IO indisponibil' });
+      }
 
+      console.log(`[Payment] 📡 Trimit pos_payment_request la POS Bridge...`);
       // Trimite cererea de plată spre POS Bridge-ul din locație
       io.emit('pos_payment_request', {
         orderId,
         amount,
         locationId: req.body.locationId || '',
       });
+      console.log(`[Payment] ✅ Cerere emise via socket — aştept răspuns de la Bridge`);
 
       // Timeout 3 minute — dacă Bridge-ul nu răspunde
       setTimeout(() => {

@@ -87,7 +87,11 @@ router.post('/', async (req, res) => {
       io.to('admin').emit('new_order', order);
     }
 
-    console.log(`[Order] #${orderNumber} ${brandName} (${locationName || orgId || 'no-loc'}) — ${channel} — ${orderType} — ${subtotal} RON`);
+    console.log(`[Order] ════ COMANDĂ NOUĂ ════`);
+    console.log(`[Order]   #${orderNumber} | ${brandName} | ${locationName || orgId || 'no-loc'}`);
+    console.log(`[Order]   channel: ${channel} | orderType: ${orderType} | total: ${subtotal} RON`);
+    console.log(`[Order]   paymentMethod: ${order.paymentMethod} | items: ${order.items.length}`);
+    console.log(`[Order]   paymentRef: ${JSON.stringify(order.paymentRef || null)}`);
 
     // Respond immediately to kiosk (don't block on Syrve)
     res.json({ success: true, order });
@@ -130,19 +134,25 @@ router.post('/', async (req, res) => {
            };
            
            try {
-             console.log(`[Syrve] Pushing sub-order for brand: ${bId} / orgId: ${specificOrgId}`);
-             const syrveResult = await syrveCreateOrder({
-               brandId: bId,
-               orgId:   specificOrgId,
-               order:   splitOrder,
-             });
-             
-             if (syrveResult?.orderInfo?.id || syrveResult?.id) {
-               syrveIds.push(syrveResult?.orderInfo?.id || syrveResult?.id);
-             }
-           } catch (e) {
-             console.error(`[Syrve] Failed to push sub-order for brand ${bId}:`, e.message);
-           }
+              console.log(`[Syrve] ════ TRIMIT LA IIKO ════`);
+              console.log(`[Syrve]   brand: ${bId} | orgId: ${specificOrgId}`);
+              console.log(`[Syrve]   items: ${brandData.items.length} | total: ${brandData.totalAmount} RON`);
+              const syrveResult = await syrveCreateOrder({
+                brandId: bId,
+                orgId:   specificOrgId,
+                order:   splitOrder,
+              });
+              
+              if (syrveResult?.orderInfo?.id || syrveResult?.id) {
+                const syrveId = syrveResult?.orderInfo?.id || syrveResult?.id;
+                syrveIds.push(syrveId);
+                console.log(`[Syrve] ✅ SUCCES — syrveId: ${syrveId}`);
+              } else {
+                console.log(`[Syrve] ⚠️  Răspuns fără ID: ${JSON.stringify(syrveResult)}`);
+              }
+            } catch (e) {
+              console.error(`[Syrve] ❌ EROARE iiko brand ${bId}: ${e.message}`);
+            }
         }
         
         // Link Syracuse IDs back to main order for tracking
