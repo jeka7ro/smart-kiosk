@@ -403,7 +403,7 @@ function OrdersTable({ orders, full }) {
                     {(o.items || []).map(i => `${i.quantity}x ${i.name}`).join(', ').slice(0, 40)}...
                   </div>
                 </td>
-                <td className="px-6 py-4 text-sm font-bold text-slate-900 dark:text-white">{(o.totalAmount || 0).toFixed(0)} lei</td>
+                <td className="px-6 py-4 text-sm font-bold text-slate-900 dark:text-white">{(o.totalAmount || 0).toFixed(2)} lei</td>
                 <td className="px-6 py-4">
                   <span className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap" style={{ backgroundColor: `${sc.color}20`, color: sc.color, border: `1px solid ${sc.color}40` }}>
                     ● {sc.label}

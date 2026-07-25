@@ -70,7 +70,26 @@
     "kiosks": [],
     "tables": 20,
     "active": true,
-    "isMultiBrand": true
+    "isMultiBrand": true,
+    "kioskPin": "",
+    "posterUrl": "",
+    "topBannerUrl": "",
+    "topBannerHeight": 3,
+    "bottomBannerUrl": "",
+    "bottomBannerText": "",
+    "bottomBannerHeight": 2,
+    "bottomBannerBg": "#1e293b",
+    "bottomBannerLogoUrl": "",
+    "languages": [
+      "ro"
+    ],
+    "defaultLanguage": "ro",
+    "langButtonColor": "#0f172a",
+    "langSelectorPosition": "after",
+    "promoActive": false,
+    "promoBrandId": "",
+    "promoMinOrderValue": 0,
+    "promoOrdersToAppear": 1
   },
   {
     "id": "f6c77b52-5bf8-4808-b4e4-e7fbfa1a2805",

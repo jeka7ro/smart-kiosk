@@ -96,11 +96,15 @@ export default function App() {
             applyBrandTheme(bId);
             isInitialBoot = false;
           }
-
           if (loc.kioskPin) {
             const unlocked = localStorage.getItem(`kiosk_unlocked_${loc.id}_${loc.kioskPin}`);
             setIsLocked(unlocked !== 'true');
           }
+        } else if (loc.error) {
+          // If the location is not found, clear it from localStorage so it doesn't stay stuck
+          localStorage.removeItem('kiosk_loc_id');
+          console.error('[Kiosk] Invalid location ID. Cleared from storage.');
+          window.location.reload();
         }
       } catch (e) {
         console.warn('[Kiosk] Failed to fetch location:', e.message);
