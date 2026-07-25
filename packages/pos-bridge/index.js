@@ -120,8 +120,26 @@ async function processPayment(amount, portPath, onStatus) {
     });
 
     port.on('data', chunk => {
+      if (state === 'DONE' || state === 'FAILED') return; // ignoră datele după finalizare
       logHex('RX', chunk);
       rxBuf = Buffer.concat([rxBuf, chunk]);
+
+      // EOT (0x04) = POS a refuzat mesajul / protocol greșit
+      if (rxBuf[0] === 0x04) {
+        log('❌ POS a trimis EOT (0x04) — mesajul a fost REFUZAT');
+        log('   Posibile cauze: format protocol incorect, POS nu e în mod ECR, sau baud rate greșit');
+        state = 'FAILED';
+        fail('POS a refuzat mesajul (EOT). Verifică protocolul ECR și configurarea POS-ului.');
+        return;
+      }
+
+      // NAK (0x15) = POS nu a înțeles mesajul
+      if (rxBuf[0] === NAK) {
+        log('❌ POS a trimis NAK (0x15) — mesajul nu a fost înțeles');
+        state = 'FAILED';
+        fail('POS NAK — mesaj neînțeles. Verifică formatul protocolului.');
+        return;
+      }
 
       // ACK la MOL10
       if (state === 'WAIT_ACK_10' && rxBuf[0] === ACK) {
@@ -171,8 +189,8 @@ async function processPayment(amount, portPath, onStatus) {
       }
     });
 
-    port.on('error', err => fail(`Eroare serial: ${err.message}`));
-    port.on('close', () => { if (state !== 'DONE') fail('Port COM închis neaşteptat'); });
+    port.on('error', err => { if (state !== 'DONE' && state !== 'FAILED') fail(`Eroare serial: ${err.message}`); });
+    port.on('close', () => { if (state !== 'DONE' && state !== 'FAILED') fail('Port COM închis neaşteptat'); });
   });
 }
 
