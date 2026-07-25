@@ -25,13 +25,15 @@ const STATE = {
 export default function PaymentScreen() {
   useInactivityTimeout(180);
 
-  const goTo         = useKioskStore((s) => s.goTo);
-  const getCartTotal = useKioskStore((s) => s.getCartTotal);
-  const cartItems    = useKioskStore((s) => s.cartItems);
-  const orderType    = useKioskStore((s) => s.orderType);
-  const tableNumber  = useKioskStore((s) => s.tableNumber);
-  const lang         = useKioskStore((s) => s.lang);
-  const resetOrder   = useKioskStore((s) => s.resetOrder);
+  const goTo           = useKioskStore((s) => s.goTo);
+  const getCartTotal   = useKioskStore((s) => s.getCartTotal);
+  const cartItems      = useKioskStore((s) => s.cartItems);
+  const orderType      = useKioskStore((s) => s.orderType);
+  const tableNumber    = useKioskStore((s) => s.tableNumber);
+  const lang           = useKioskStore((s) => s.lang);
+  const resetOrder     = useKioskStore((s) => s.resetOrder);
+  const locationData   = useKioskStore((s) => s.locationData);
+  const activeBrandId  = useKioskStore((s) => s.activeBrandId);
 
   const total      = getCartTotal();
   const orderIdRef = useRef(null);
@@ -98,19 +100,30 @@ export default function PaymentScreen() {
 
   const sendOrder = useCallback(async (paymentResult) => {
     try {
-      const urlBrand = new URLSearchParams(window.location.search).get('brand');
-      const urlOrg   = new URLSearchParams(window.location.search).get('orgId');
+      // ⚠️ CRITICAL: Use location-specific orgId to ensure orders go to the correct kitchen
+      // Priority: locationData.orgIds[brand] > URL param > DEFAULT_ORG
+      const urlBrand   = new URLSearchParams(window.location.search).get('brand');
+      const urlOrg     = new URLSearchParams(window.location.search).get('orgId');
+      const effectiveBrand = activeBrandId || urlBrand || DEFAULT_BRAND;
+      const locationOrgId  = locationData?.orgIds?.[effectiveBrand];
+      const effectiveOrgId = locationOrgId || urlOrg || DEFAULT_ORG;
+      const locationName   = locationData?.name || LOCATION_NAME;
+
+      console.log(`[PaymentScreen] Order → brand: ${effectiveBrand}, org: ${effectiveOrgId}, loc: ${locationName}`);
+
       await fetch(`${BACKEND}/api/orders`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          brand:        urlBrand || DEFAULT_BRAND,
-          orgId:        urlOrg   || DEFAULT_ORG,
-          locationName: LOCATION_NAME,
+          brand:        effectiveBrand,
+          orgId:        effectiveOrgId,
+          locationId:   locationData?.id,
+          locationName: locationName,
           orderType, tableNumber,
           items: cartItems.map(i => ({
             productId: i.productId, name: i.name, quantity: i.quantity,
             unitPrice: i.unitPrice, totalPrice: i.totalPrice,
+            brandId: i.brandId,
             selectedModifiers: i.selectedModifiers || [],
           })),
           totalAmount: total, channel: 'kiosk', paymentMethod: 'card',
@@ -119,7 +132,7 @@ export default function PaymentScreen() {
         }),
       });
     } catch (err) { console.error('[PaymentScreen] sendOrder failed:', err); }
-  }, [cartItems, total, orderType, tableNumber]);
+  }, [cartItems, total, orderType, tableNumber, activeBrandId, locationData]);
 
   const handlePay = useCallback(async () => {
     setPayState(STATE.INITIATING);
