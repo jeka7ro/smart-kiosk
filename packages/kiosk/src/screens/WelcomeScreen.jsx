@@ -34,11 +34,16 @@ export default function WelcomeScreen() {
         return 'iframe'; // Default to iframe to support arbitrary web pages, Canva links, and interactive promos
       };
       
+      let rotation = locationData.posterRotation || 0;
+      if (locationData.posterUrl.includes('rotate=true') || locationData.posterUrl.includes('#rotate')) {
+        rotation = 90;
+      }
+      
       setPoster({
         url: locationData.posterUrl,
         type: detectType(locationData.posterUrl),
         showLogo: true, // Always show logo based on user requirements for now
-        isRotated: locationData.posterUrl.includes('rotate=true') || locationData.posterUrl.includes('#rotate')
+        rotation
       });
       setPosterVisible(true);
     } else {
@@ -86,6 +91,15 @@ const FLAG_GRADIENTS = {
   const pos = locationData?.langSelectorPosition || 'after';
   const showLangOnWelcome = pos === 'before' || pos === 'both';
   const allowedLangs = locationData?.languages && locationData.languages.length > 0 ? locationData.languages : LANGUAGES;
+  const getRotationStyle = () => {
+    if (!poster || !poster.rotation) return { width: '100%', height: '100%', objectFit: 'cover' };
+    const r = poster.rotation;
+    const base = { position: 'absolute', top: '50%', left: '50%', objectFit: 'cover' };
+    if (r === 90 || r === 270) {
+      return { ...base, width: '100vh', height: '100vw', transform: `translate(-50%, -50%) rotate(${r}deg)` };
+    }
+    return { ...base, width: '100vw', height: '100vh', transform: `translate(-50%, -50%) rotate(${r}deg)` };
+  };
 
   return (
     <div className={`welcome-screen ${isUnlocking ? 'unlocking' : ''}`} onClick={() => goAfterWelcome()}>
@@ -117,11 +131,11 @@ const FLAG_GRADIENTS = {
       {posterVisible && poster && (
         <div className="poster-overlay" onClick={(e) => { e.stopPropagation(); handlePosterTap(); }}>
           {poster.type === 'video' ? (
-            <video src={poster.url} autoPlay loop muted playsInline className={poster.isRotated ? 'poster-rotated' : 'poster-media'} />
+            <video src={poster.url} autoPlay loop muted playsInline style={getRotationStyle()} />
           ) : poster.type === 'image' ? (
-            <img src={poster.url} alt="Promo" className={poster.isRotated ? 'poster-rotated' : 'poster-media'} />
+            <img src={poster.url} alt="Promo" style={getRotationStyle()} />
           ) : (
-            <iframe src={poster.url} className={poster.isRotated ? 'poster-rotated' : 'poster-iframe'} title="Promo" frameBorder="0" allow="autoplay; fullscreen" />
+            <iframe src={poster.url} style={{ ...getRotationStyle(), border: 'none' }} title="Promo" frameBorder="0" allow="autoplay; fullscreen" />
           )}
           <div className="poster-cta-center">
             

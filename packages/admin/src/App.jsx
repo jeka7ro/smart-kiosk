@@ -834,6 +834,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
   const [formData, setFormData] = useState({
     kioskUrl: loc.kioskUrl || '',
     posterUrl: loc.posterUrl || '',
+    posterRotation: loc.posterRotation || 0,
     topBannerUrl: loc.topBannerUrl || '',
     topBannerHeight: loc.topBannerHeight || 3,
     topBannerRadiusTop: loc.topBannerRadiusTop !== undefined ? loc.topBannerRadiusTop : true,
@@ -929,14 +930,32 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
     }
   };
 
-  const renderPreview = (u) => {
+  const renderPreview = (u, rotation = 0) => {
     if (!u) return null;
+    
+    // Scale and rotate logic for the preview
+    let style = { width: '100%', height: '100%', objectFit: 'contain', border: 'none' };
+    
+    if (rotation === 90 || rotation === 270) {
+      style = { 
+        ...style,
+        width: '177.77%',  // aspect ratio inversion for preview
+        height: '56.25%',
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: `translate(-50%, -50%) rotate(${rotation}deg)` 
+      };
+    } else if (rotation === 180) {
+      style = { ...style, transform: `rotate(180deg)` };
+    }
+
     if (/\.(mp4|webm|mov)(\?|$)/i.test(u)) {
-      return <video src={u} autoPlay muted loop style={{ width: '100%', height: '100%', objectFit: 'contain' }} />;
+      return <video src={u} autoPlay muted loop style={style} />;
     } else if (/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i.test(u)) {
-      return <img src={u} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />;
+      return <img src={u} alt="Preview" style={style} />;
     } else {
-      return <iframe src={u} title="Preview" style={{ width: '100%', height: '100%', border: 'none' }} />;
+      return <iframe src={u} title="Preview" style={style} />;
     }
   };
 
@@ -1438,19 +1457,32 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
           <h3 style={{ marginTop: 0, fontSize: '1.1rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>Screensaver Standby</h3>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>Rulare automată reclamă full-screen dacă tableta stă neatinsă 30s.</p>
           
-          <input 
-            type="url" 
-            className="pc-input" 
-            placeholder="URL Video MP4 sau Imagine..."
-            value={formData.posterUrl}
-            onChange={e => handleChange('posterUrl', e.target.value)}
-            style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', width: '100%', marginBottom: 16, boxSizing: 'border-box' }}
-          />
+          <div style={{ display: 'flex', gap: '12px', marginBottom: 16 }}>
+            <input 
+              type="url" 
+              className="pc-input" 
+              placeholder="URL Video MP4 sau Imagine..."
+              value={formData.posterUrl}
+              onChange={e => handleChange('posterUrl', e.target.value)}
+              style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', flex: 1, boxSizing: 'border-box' }}
+            />
+            <select
+              className="pc-input"
+              value={formData.posterRotation || 0}
+              onChange={e => handleChange('posterRotation', parseInt(e.target.value))}
+              style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', width: 160, boxSizing: 'border-box', background: '#fff' }}
+            >
+              <option value={0}>0° — Normal</option>
+              <option value={90}>90° — Dreapta</option>
+              <option value={180}>180° — Inversat</option>
+              <option value={270}>270° — Stânga</option>
+            </select>
+          </div>
           
           {formData.posterUrl ? (
             <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
               <div style={{ width: 270, height: 480, borderRadius: 16, overflow: 'hidden', border: '8px solid #1e293b', background: '#000', position: 'relative', boxShadow: '0 12px 32px rgba(0,0,0,0.25)' }}>
-                {renderPreview(formData.posterUrl)}
+                {renderPreview(formData.posterUrl, formData.posterRotation || 0)}
                 <div style={{ position: 'absolute', bottom: 30, left: '50%', transform: 'translateX(-50%)', background: 'rgba(255,255,255,0.95)', color: '#0f172a', padding: '8px 16px', borderRadius: 24, fontSize: '0.8rem', fontWeight: 800, whiteSpace: 'nowrap', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
                   Atinge pentru a începe
                 </div>
