@@ -37,7 +37,8 @@ export default function WelcomeScreen() {
       setPoster({
         url: locationData.posterUrl,
         type: detectType(locationData.posterUrl),
-        showLogo: true // Always show logo based on user requirements for now
+        showLogo: true, // Always show logo based on user requirements for now
+        isRotated: locationData.posterUrl.includes('rotate=true') || locationData.posterUrl.includes('#rotate')
       });
       setPosterVisible(true);
     } else {
@@ -116,24 +117,11 @@ const FLAG_GRADIENTS = {
       {posterVisible && poster && (
         <div className="poster-overlay" onClick={(e) => { e.stopPropagation(); handlePosterTap(); }}>
           {poster.type === 'video' ? (
-            <video
-              src={poster.url}
-              className="poster-media"
-              autoPlay muted loop playsInline
-            />
-          ) : poster.type === 'iframe' ? (
-            <iframe
-              src={poster.url}
-              className="poster-iframe"
-              title="Promo"
-            />
+            <video src={poster.url} autoPlay loop muted playsInline className={poster.isRotated ? 'poster-rotated' : 'poster-media'} />
+          ) : poster.type === 'image' ? (
+            <img src={poster.url} alt="Promo" className={poster.isRotated ? 'poster-rotated' : 'poster-media'} />
           ) : (
-            <img
-              src={poster.url}
-              alt="Promo"
-              className="poster-media"
-              onError={() => setPosterVisible(false)}
-            />
+            <iframe src={poster.url} className={poster.isRotated ? 'poster-rotated' : 'poster-iframe'} title="Promo" frameBorder="0" allow="autoplay; fullscreen" />
           )}
           <div className="poster-cta-center">
             
