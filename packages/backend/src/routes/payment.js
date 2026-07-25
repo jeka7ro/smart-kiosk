@@ -84,28 +84,47 @@ router.post('/initiate', async (req, res) => {
     }
   }
 
-  // ── Raiffeisen ECR TCP/IP ────────────────────────────────────────────────
+  // ── Raiffeisen ECR — prin POS Bridge (socket) ───────────────────────────
   else if (paymentGateway === 'raiffeisen' || process.env.DEFAULT_PAYMENT_GATEWAY === 'raiffeisen') {
     try {
-      const posIp   = process.env.RAIFFEISEN_POS_IP   || '127.0.0.1';
-      const posPort = parseInt(process.env.RAIFFEISEN_POS_PORT || '1000');
-      const RaiffeisenEcrService = require('../services/raiffeisenEcrService');
-      const ecr = new RaiffeisenEcrService(posIp, posPort);
+      const io = req.app.get('io');
+      if (!io) return res.status(500).json({ success: false, error: 'Socket.IO indisponibil' });
 
-      ecr.processPayment(amount)
-        .then(result => {
-          if (io) io.emit(`payment_confirmed_${orderId}`, {
-            paid: result.success, responseCode: result.code, raw: result.raw,
-          });
-        })
-        .catch(err => {
-          if (io) io.emit(`payment_confirmed_${orderId}`, { paid: false, error: err.message });
+      // Trimite cererea de plată spre POS Bridge-ul din locație
+      io.emit('pos_payment_request', {
+        orderId,
+        amount,
+        locationId: req.body.locationId || '',
+      });
+
+      // Ascultă rezultatul de la Bridge (timeout 3 minute)
+      const bridgeTimeout = setTimeout(() => {
+        io.emit(`payment_confirmed_${orderId}`, { paid: false, error: 'Timeout POS Bridge (3min)' });
+      }, 180000);
+
+      // Bridge-ul va emite 'pos_payment_result' înapoi
+      io.once('pos_payment_result', (data) => {
+        if (data.orderId !== orderId) return; // nu e pentru noi
+        clearTimeout(bridgeTimeout);
+        io.emit(`payment_confirmed_${orderId}`, {
+          paid:         data.paid,
+          responseCode: data.code,
+          authCode:     data.authCode,
+          error:        data.paid ? undefined : (data.error || 'Plată refuzată'),
         });
+      });
+
+      // Redirecționează status-ul intermediar spre kiosk
+      io.on('pos_bridge_status', (data) => {
+        if (data.orderId === orderId) {
+          io.emit(`payment_status_${orderId}`, { message: data.message });
+        }
+      });
 
       return res.json({
         success: true, orderId, amount, channel: channel || 'kiosk',
         status: 'initiated', paymentGateway: 'raiffeisen',
-        message: 'Payment terminal activated — waiting for card',
+        message: 'Cerere trimisă la POS Bridge — aşteptaţi cardul',
       });
     } catch (err) {
       return res.status(500).json({ success: false, error: err.message });

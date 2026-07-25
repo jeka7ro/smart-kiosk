@@ -20,9 +20,10 @@
   position: fixed; top: 0; left: 0;
   width: 100vw; height: 100vh;
   z-index: 9999; background: #000;
-  display: flex; align-items: center; justify-content: center;
+  display: flex; align-items: flex-end; justify-content: center;
   cursor: pointer;
   animation: posterFadeIn 0.5s ease;
+  overflow: hidden;
 }
 @keyframes posterFadeIn {
   from { opacity: 0; }
@@ -48,7 +49,10 @@
 }
 .poster-cta-center {
   position: relative; z-index: 10;
-  display: flex; flex-direction: column; align-items: center; gap: 24px;
+  display: flex; flex-direction: column; align-items: center; gap: 20px;
+  width: 100%;
+  padding: 32px 24px 56px;
+  background: linear-gradient(0deg, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.3) 60%, transparent 100%);
 }
 
 .poster-brands-glass {
