@@ -215,10 +215,8 @@ function transformMenu(raw, brandId = 'smashme') {
       if (brandId === 'rollmaster' || brandId === 'lovesushi') {
         // Sushi explicitly requires this flag to be TRUE to hide non-kiosk items
         if (!isIncluded) return false;
-      } else {
-        // Pokiwoki, SmashMe and others: only hide if explicitly FALSE
-        if (isIncluded === false) return false;
       }
+      // pokiwoki, smashme, crunch: no isIncludedInMenu filter — all non-deleted products shown
       
       return true;
     })
