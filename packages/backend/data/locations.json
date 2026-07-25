@@ -148,7 +148,40 @@
       "qrConfig": {
         "pokiwoki": 10
       }
-    }
+    },
+    "kioskUrl": "brasov",
+    "posterUrl": "https://smr.onl/display/mect1",
+    "topBannerUrl": "",
+    "topBannerHeight": 3,
+    "topBannerRadiusTop": true,
+    "topBannerRadiusBottom": false,
+    "bottomBannerUrl": "",
+    "bottomBannerText": "",
+    "bottomBannerHeight": 2,
+    "bottomBannerRadiusTop": false,
+    "bottomBannerRadiusBottom": true,
+    "bottomBannerTextFixed": false,
+    "bottomBannerTextAlign": "center",
+    "bottomBannerBg": "#1e293b",
+    "bottomBannerLogoUrl": "",
+    "kioskPin": "",
+    "promoActive": false,
+    "promoBrandId": "",
+    "promoMinOrderValue": 0,
+    "promoOrdersToAppear": 1,
+    "languages": [
+      "ro",
+      "en",
+      "hu",
+      "uk",
+      "bg",
+      "es"
+    ],
+    "defaultLanguage": "ro",
+    "langButtonColor": "#0f172a",
+    "langSelectorPosition": "after",
+    "menuOverrides": {},
+    "bottomBannerContent": ""
   },
   {
     "id": "742343d9-38c1-4712-add3-1035b6bd7637",
