@@ -1,13 +1,15 @@
 {
   "name": "pos-bridge",
   "version": "1.0.0",
-  "description": "POS Bridge — conectează Render cu Raiffeisen POS local",
+  "description": "POS Bridge — conectează Render cu Raiffeisen POS serial (COM port) pe Windows",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "list-ports": "node -e \"const {SerialPort}=require('serialport');SerialPort.list().then(p=>p.forEach(x=>console.log(x.path,'|',x.manufacturer||'','|',x.friendlyName||'')));\"" 
   },
   "dependencies": {
     "dotenv": "^16.0.0",
+    "serialport": "^12.0.0",
     "socket.io-client": "^4.7.0"
   }
 }
