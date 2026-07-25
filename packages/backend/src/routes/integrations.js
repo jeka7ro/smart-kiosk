@@ -218,7 +218,7 @@ router.post('/import-from-env', protect, async (req, res) => {
       { brandId: 'smashme',     apiKey: process.env.SYRVE_API_KEY,           orgId: (process.env.SYRVE_ORG_IDS || '').split(',')[0]?.trim() },
       { brandId: 'rollmaster',  apiKey: process.env.SYRVE_API_KEY_SUSHI,     orgId: process.env.SYRVE_ORG_ID_SUSHI },
       { brandId: 'lovesushi',   apiKey: process.env.SYRVE_API_KEY_SUSHI,     orgId: process.env.SYRVE_ORG_ID_WELOVESUSHI },
-      { brandId: 'pokiwoki',    apiKey: process.env.SYRVE_API_KEY_SUSHI,     orgId: process.env.SYRVE_ORG_ID_IKURA },
+      { brandId: 'pokiwoki',    apiKey: process.env.SYRVE_API_KEY_SUSHI,     orgId: process.env.SYRVE_ORG_ID_POKIWOKI || process.env.SYRVE_ORG_ID_SUSHI },
       { brandId: 'crunch',      apiKey: process.env.SYRVE_API_KEY,           orgId: (process.env.SYRVE_ORG_IDS || '').split(',')[0]?.trim() },
     ].filter(b => b.apiKey && b.orgId); // only configured brands
 
