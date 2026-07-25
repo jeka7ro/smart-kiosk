@@ -91,15 +91,48 @@ const FLAG_GRADIENTS = {
   const pos = locationData?.langSelectorPosition || 'after';
   const showLangOnWelcome = pos === 'before' || pos === 'both';
   const allowedLangs = locationData?.languages && locationData.languages.length > 0 ? locationData.languages : LANGUAGES;
-  const getRotationStyle = () => {
-    if (!poster || !poster.rotation) return { width: '100%', height: '100%', objectFit: 'cover' };
-    const r = poster.rotation;
-    const base = { position: 'absolute', top: '50%', left: '50%', objectFit: 'cover' };
-    if (r === 90 || r === 270) {
-      // Use vmax/vmin so the iframe is ALWAYS 1920x1080 internally, allowing landscape content to fill it.
-      return { ...base, width: '100vmax', height: '100vmin', transform: `translate(-50%, -50%) rotate(${r}deg)` };
+  // Renders the poster media with correct rotation.
+  // For iframe with 90/270deg: we need a wrapper DIV that is the size of the PORTRAIT screen,
+  // but the iframe inside is rendered in LANDSCAPE dimensions and then rotated+scaled to fit.
+  const renderPosterMedia = () => {
+    const r = poster?.rotation || 0;
+    const baseImgStyle = { width: '100%', height: '100%', objectFit: 'cover', display: 'block' };
+
+    if (r === 0) {
+      if (poster.type === 'video') return <video src={poster.url} autoPlay loop muted playsInline style={baseImgStyle} />;
+      if (poster.type === 'image') return <img src={poster.url} alt="Promo" style={baseImgStyle} />;
+      return <iframe src={poster.url} style={{ ...baseImgStyle, border: 'none' }} title="Promo" frameBorder="0" allow="autoplay; fullscreen" />;
     }
-    return { ...base, width: '100%', height: '100%', transform: `translate(-50%, -50%) rotate(${r}deg)` };
+
+    if (r === 90 || r === 270) {
+      // The iframe/image will be landscape. We put it in a wrapper the size of the screen,
+      // then scale+rotate the inner element so it fills the portrait screen.
+      const wrapStyle = {
+        position: 'absolute', top: 0, left: 0,
+        width: '100vw', height: '100vh',
+        overflow: 'hidden',
+      };
+      // Inner is rendered at 100vh wide x 100vw tall (landscape), then rotated.
+      // translateX shifts it to align after rotation.
+      const innerStyle = {
+        position: 'absolute',
+        width: '100vh',
+        height: '100vw',
+        top: '50%',
+        left: '50%',
+        transform: `translate(-50%, -50%) rotate(${r}deg)`,
+        border: 'none',
+        objectFit: 'cover',
+      };
+      if (poster.type === 'video') return <div style={wrapStyle}><video src={poster.url} autoPlay loop muted playsInline style={innerStyle} /></div>;
+      if (poster.type === 'image') return <div style={wrapStyle}><img src={poster.url} alt="Promo" style={innerStyle} /></div>;
+      return <div style={wrapStyle}><iframe src={poster.url} style={innerStyle} title="Promo" frameBorder="0" allow="autoplay; fullscreen" /></div>;
+    }
+
+    // 180deg
+    if (poster.type === 'video') return <video src={poster.url} autoPlay loop muted playsInline style={{ ...baseImgStyle, transform: 'rotate(180deg)' }} />;
+    if (poster.type === 'image') return <img src={poster.url} alt="Promo" style={{ ...baseImgStyle, transform: 'rotate(180deg)' }} />;
+    return <iframe src={poster.url} style={{ ...baseImgStyle, border: 'none', transform: 'rotate(180deg)' }} title="Promo" frameBorder="0" allow="autoplay; fullscreen" />;
   };
 
   return (
@@ -131,13 +164,7 @@ const FLAG_GRADIENTS = {
       {/* ─── POSTER SCREENSAVER (fullscreen overlay) ─── */}
       {posterVisible && poster && (
         <div className="poster-overlay" onClick={(e) => { e.stopPropagation(); handlePosterTap(); }}>
-          {poster.type === 'video' ? (
-            <video src={poster.url} autoPlay loop muted playsInline style={getRotationStyle()} />
-          ) : poster.type === 'image' ? (
-            <img src={poster.url} alt="Promo" style={getRotationStyle()} />
-          ) : (
-            <iframe src={poster.url} style={{ ...getRotationStyle(), border: 'none' }} title="Promo" frameBorder="0" allow="autoplay; fullscreen" />
-          )}
+          {renderPosterMedia()}
           <div className="poster-cta-center">
             
             <div className="poster-brands-glass" onClick={(e) => { e.stopPropagation(); handlePosterTap(); }}>
