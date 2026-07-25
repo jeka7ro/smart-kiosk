@@ -1,6 +1,16 @@
 /* ═══════════════════════════════════════════════════════════
    SMART KIOSK — Global Styles
    ═══════════════════════════════════════════════════════════ */
+
+/* ── Blocare pull-to-refresh pe tabletă/kiosk ────────────── */
+html, body {
+  overscroll-behavior: none;
+  overscroll-behavior-y: none;
+  -webkit-overflow-scrolling: auto;
+  overflow: hidden;
+  touch-action: manipulation;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;

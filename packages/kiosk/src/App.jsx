@@ -45,7 +45,7 @@ export default function App() {
 
   useInactivityTimeout();
 
-  // ─── KIOSK SECURITY: Block right-click & accidental refresh ─────────────────
+  // ─── KIOSK SECURITY: Block right-click, refresh & pull-to-refresh ───────────
   useEffect(() => {
     // 1. Block right-click context menu
     const blockContextMenu = (e) => e.preventDefault();
@@ -65,9 +65,27 @@ export default function App() {
     };
     document.addEventListener('keydown', blockRefresh);
 
+    // 3. Block pull-to-refresh (drag down pe tabletă/telefon)
+    const blockPullRefresh = (e) => {
+      // Blochează scroll vertical când e la top (previne pull-to-refresh)
+      if (e.touches && e.touches.length === 1) {
+        const touch = e.touches[0];
+        if (touch.clientY > (e.target._startY || 0) && window.scrollY === 0) {
+          e.preventDefault();
+        }
+      }
+    };
+    const saveStartY = (e) => {
+      if (e.touches) e.target._startY = e.touches[0].clientY;
+    };
+    document.addEventListener('touchstart', saveStartY, { passive: true });
+    document.addEventListener('touchmove', blockPullRefresh, { passive: false });
+
     return () => {
       document.removeEventListener('contextmenu', blockContextMenu);
       document.removeEventListener('keydown', blockRefresh);
+      document.removeEventListener('touchstart', saveStartY);
+      document.removeEventListener('touchmove', blockPullRefresh);
     };
   }, []);
 
