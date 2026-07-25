@@ -528,7 +528,13 @@ export const SUSHIMASTER_PRODUCTS = [
 
 // Selector per brand
 export function getMenuData(brandId) {
-  if (brandId === "sushimaster" || brandId === "ikura" || brandId === "welovesushi" || brandId === "rollmaster" || brandId === "pokiwoki") {
+  if (brandId === "pokiwoki") {
+    return { 
+      categories: [{ id: 'poke', name: 'Poke Bowls', icon: '🥗', color: '#2E7D32' }], 
+      products: [{ id: 'pw1', categoryId: 'poke', name: 'Poke Somon', price: 45, description: 'Orez, somon, edamame, avocado, sos ponzu', image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80', badge: 'Popular', _brand: 'pokiwoki' }] 
+    };
+  }
+  if (brandId === "sushimaster" || brandId === "ikura" || brandId === "welovesushi" || brandId === "rollmaster") {
     return { categories: SUSHIMASTER_CATEGORIES, products: SUSHIMASTER_PRODUCTS };
   }
   return { categories: SMASHME_CATEGORIES, products: SMASHME_PRODUCTS };
