@@ -212,8 +212,7 @@ export default function MenuScreen() {
         setLoading(false);
       })
       .catch(err => {
-        alert(`[DEBUG] fetchMenu failed! Error: ${err.message}. BACKEND: ${BACKEND}`);
-        console.error('[MenuScreen] API fetch failed, falling back to mock:', err);
+        console.warn('[MenuScreen] API fetch failed, falling back to mock:', err);
         const { categories: cats, products: rawProds } = getMenuData(activeBrandId);
         const prods = rawProds.map(p => ({ ...p, _brand: activeBrandId }));
         setCategories(cats);
