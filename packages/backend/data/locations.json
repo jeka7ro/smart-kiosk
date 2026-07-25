@@ -150,6 +150,7 @@
       }
     },
     "kioskUrl": "brasov",
+    "paymentGateway": "raiffeisen",
     "posterUrl": "https://smr.onl/display/mect1",
     "posterRotation": 270,
     "topBannerUrl": "",
