@@ -17,7 +17,9 @@ export default function WelcomeScreen() {
   const isUnlocking = useKioskStore((s) => s.isUnlocking);
   const brand   = useBrand();
   const [slide, setSlide] = useState(0);
-  const slides = brand.welcomeSlides;
+  const slides = locationData?.brands?.length > 1 
+    ? [{ headline: 'Bine ați venit!', sub: 'Alegeți restaurantul preferat', emoji: '🍽️' }]
+    : brand.welcomeSlides;
 
   // ─── Poster / Screensaver ────────────────────────────────
   const locationData = useKioskStore((s) => s.locationData);
