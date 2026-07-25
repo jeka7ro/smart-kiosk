@@ -40,6 +40,28 @@ function initSocket(io) {
       io.to('admin').emit('order_ready', { orderId, locationId });
     });
 
+    // ─── POS Bridge ──────────────────────────────────────────────────────
+    socket.on('pos_bridge_register', ({ locationId, port }) => {
+      socket.join(`pos-bridge-${locationId}`);
+      console.log(`[Socket] 🔌 POS Bridge registered: location=${locationId} port=${port || '?'} sid=${socket.id}`);
+    });
+
+    // POS Bridge trimite status intermediar (ex: "așteptați cardul")
+    socket.on('pos_bridge_status', ({ orderId, message }) => {
+      if (orderId) io.emit(`payment_status_${orderId}`, { message });
+    });
+
+    // POS Bridge trimite rezultatul plății
+    socket.on('pos_payment_result', ({ orderId, paid, authCode, code, error, raw }) => {
+      console.log(`[Socket] 💳 POS result: orderId=${orderId} paid=${paid} auth=${authCode || '-'}`);
+      io.emit(`payment_confirmed_${orderId}`, {
+        paid,
+        responseCode: code,
+        authCode,
+        error: paid ? undefined : (error || 'Plată refuzată'),
+      });
+    });
+
     socket.on('disconnect', () => {
       console.log(`[Socket] Client disconnected: ${socket.id}`);
     });
