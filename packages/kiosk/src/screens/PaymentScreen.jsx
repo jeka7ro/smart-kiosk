@@ -169,8 +169,8 @@ export default function PaymentScreen() {
         body: JSON.stringify({
           orderId,
           amount: total,
-          // Citește gateway-ul din config locației, fallback la 'none' (auto-confirmare)
           paymentGateway: locationData?.paymentGateway || 'none',
+          locationId: locationData?.kioskUrl || locationData?.id || '',
           channel: 'kiosk',
         }),
       });
