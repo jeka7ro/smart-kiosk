@@ -96,9 +96,10 @@ const FLAG_GRADIENTS = {
     const r = poster.rotation;
     const base = { position: 'absolute', top: '50%', left: '50%', objectFit: 'cover' };
     if (r === 90 || r === 270) {
-      return { ...base, width: '100vh', height: '100vw', transform: `translate(-50%, -50%) rotate(${r}deg)` };
+      // Use vmax/vmin so the iframe is ALWAYS 1920x1080 internally, allowing landscape content to fill it.
+      return { ...base, width: '100vmax', height: '100vmin', transform: `translate(-50%, -50%) rotate(${r}deg)` };
     }
-    return { ...base, width: '100vw', height: '100vh', transform: `translate(-50%, -50%) rotate(${r}deg)` };
+    return { ...base, width: '100%', height: '100%', transform: `translate(-50%, -50%) rotate(${r}deg)` };
   };
 
   return (
