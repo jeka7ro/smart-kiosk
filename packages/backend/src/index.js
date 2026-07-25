@@ -89,6 +89,17 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.get('/health', (req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));
 app.get('/api/health', (req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));
 
+// Debug — shows first 8 chars of API keys (safe, no full key exposure)
+app.get('/api/debug/env', (req, res) => {
+  const mask = (v) => v ? v.substring(0, 8) + '...' : 'NONE';
+  res.json({
+    SYRVE_API_KEY:       mask(process.env.SYRVE_API_KEY),
+    SYRVE_API_KEY_SUSHI: mask(process.env.SYRVE_API_KEY_SUSHI),
+    NODE_ENV:            process.env.NODE_ENV,
+    ts:                  new Date().toISOString(),
+  });
+});
+
 // ─── IMAGE PROXY (for Syrve CDN — bypasses browser CORS) ──────────────────
 const { Readable } = require('stream');
 
