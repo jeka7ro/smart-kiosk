@@ -146,31 +146,45 @@ function transformMenu(raw, brandId = 'smashme') {
     if (!g.isGroupModifier) groupMap[g.id] = g;
   }
 
-  // Strict whitelist mapping of brands to Syrve root folders
-  const brandToRootName = {
-    rollmaster: 'SUSHI MASTER',
-    lovesushi: 'WLS',
-    pokiwoki: 'POKI WOKI',
-    smashme: 'SMASH ME KIOSK',
-    crunch: 'CRUNCH'
+  // Map brand IDs to Syrve root folder IDs (hardcoded for resilience against renames)
+  // Use exact UUIDs from iiko so renames don't break the menu.
+  const brandToRootId = {
+    rollmaster: '52428a16-5250-49d1-8886-252f729a53d7', // SUSHI MASTER
+    lovesushi:  'a820d72d-f735-4e7a-b6f3-5f984a4cbb9c', // WLS (Love Sushi)
+    pokiwoki:   '628f6a2c-32cd-4ccf-b79d-366041f2c9f6', // POKI WOKI (98 produse)
+    smashme:    null, // fallback by name below
+    crunch:     null,
   };
 
-  const allowedRootName = brandToRootName[brandId] || 'MENIU';
-  
-  // Find the actual root group matching the allowed name
-  const rootGroup = groups.find(g => !g.parentGroup && g.name?.toUpperCase().includes(allowedRootName.toUpperCase()));
-  const allowedRootId = rootGroup?.id;
+  // Categories to skip (internal, delivery, promo etc.)
+  const SKIP_CATEGORIES = ['delivery', 'promo', 'scos', 'combo', 'glovo', 'platforme', 'servicii', 'ambalaj', 'sgr'];
+
+  let allowedRootId = brandToRootId[brandId] || null;
+
+  // Fallback: search by name for smashme/crunch or unknown brands
+  if (!allowedRootId) {
+    const brandToRootName = { smashme: 'SMASH ME KIOSK', crunch: 'CRUNCH' };
+    const allowedRootName = brandToRootName[brandId] || brandId.toUpperCase();
+    const rootGroup = groups.find(g => !g.parentGroup && g.name?.toUpperCase().includes(allowedRootName.toUpperCase()));
+    allowedRootId = rootGroup?.id;
+  }
 
   if (!allowedRootId) {
-    console.warn(`[Syrve] Could not find root folder matching '${allowedRootName}' for brand '${brandId}'`);
+    console.warn(`[Syrve] Could not find root folder for brand '${brandId}'`);
     return { categories: [], products: [] };
   }
 
   // Categories are direct children of the allowed root folder
-  let categories = groups.filter(g => !g.isGroupModifier && g.parentGroup === allowedRootId);
+  const categories = groups.filter(g => !g.isGroupModifier && g.parentGroup === allowedRootId);
+
+  // Filter out internal/delivery/promo categories not meant for kiosk
+  const filteredCategories = categories.filter(g => {
+    const nameLower = (g.name || '').toLowerCase();
+    return !SKIP_CATEGORIES.some(skip => nameLower.includes(skip));
+  });
 
   // If a brand uses a complex structure, we could flatten it. For now, Kiosk UI supports 1 level.
-  const mappedCategories = categories
+  const mappedCategories = filteredCategories
     .map(cat => ({
       id: cat.id,
       name: cat.name,
@@ -198,11 +212,11 @@ function transformMenu(raw, brandId = 'smashme') {
       const sp = (p.sizePrices || [])[0];
       const isIncluded = sp?.price?.isIncludedInMenu;
       
-      if (brandId === 'rollmaster' || brandId === 'lovesushi' || brandId === 'pokiwoki') {
+      if (brandId === 'rollmaster' || brandId === 'lovesushi') {
         // Sushi explicitly requires this flag to be TRUE to hide non-kiosk items
         if (!isIncluded) return false;
       } else {
-        // SmashMe lacks proper flags on some items; only hide if explicitly FALSE
+        // Pokiwoki, SmashMe and others: only hide if explicitly FALSE
         if (isIncluded === false) return false;
       }
       
