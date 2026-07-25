@@ -27,19 +27,19 @@ const BRANDS = {
     tokenExpiry: 0,
   },
   rollmaster: {
-    apiKey: process.env.SYRVE_API_KEY_SUSHI || '56597d13165c49c49c10e351b5eac617',
+    apiKey: process.env.SYRVE_API_KEY_SUSHI || '93a34e75123e47b897e390f31ecfa4cb',
     orgId:  process.env.SYRVE_ORG_ID_SUSHI || 'adddb5a0-26e5-4d50-b472-1c74726c3f72',
     token: null,
     tokenExpiry: 0,
   },
   lovesushi: {
-    apiKey: process.env.SYRVE_API_KEY_SUSHI || '56597d13165c49c49c10e351b5eac617',
+    apiKey: process.env.SYRVE_API_KEY_SUSHI || '93a34e75123e47b897e390f31ecfa4cb',
     orgId:  process.env.SYRVE_ORG_ID_WELOVESUSHI || process.env.SYRVE_ORG_ID_SUSHI || 'adddb5a0-26e5-4d50-b472-1c74726c3f72',
     token: null,
     tokenExpiry: 0,
   },
   pokiwoki: {
-    apiKey: process.env.SYRVE_API_KEY_SUSHI || '56597d13165c49c49c10e351b5eac617',
+    apiKey: process.env.SYRVE_API_KEY_SUSHI || '93a34e75123e47b897e390f31ecfa4cb',
     orgId:  process.env.SYRVE_ORG_ID_POKIWOKI || process.env.SYRVE_ORG_ID_SUSHI || 'adddb5a0-26e5-4d50-b472-1c74726c3f72',
     token: null,
     tokenExpiry: 0,
