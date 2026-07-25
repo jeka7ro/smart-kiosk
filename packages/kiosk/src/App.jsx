@@ -213,6 +213,23 @@ export default function App() {
 
   if (loading) return null;
 
+  if (locationData && locationData.notFound) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', alignItems: 'center', justifyContent: 'center', background: '#111827', color: '#fff', gap: '16px', fontFamily: 'inherit' }}>
+        <p style={{ fontSize: '1.4rem', fontWeight: 600, color: '#ef4444' }}>Eroare: Locația nu a fost găsită</p>
+        <p style={{ fontSize: '1.1rem', opacity: 0.8, maxWidth: 400, textAlign: 'center' }}>
+          Locația <code>{locationData.requestedId}</code> nu există pe acest server. Te rugăm să o salvezi în Admin Panel.
+        </p>
+        <button
+          onClick={() => { window.location.href = window.location.pathname; }}
+          style={{ marginTop: 24, padding: '10px 28px', fontSize: '1rem', borderRadius: '12px', background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', cursor: 'pointer' }}
+        >
+          Înapoi
+        </button>
+      </div>
+    );
+  }
+
   if (!locationData) {
     const locId = new URLSearchParams(window.location.search).get('loc') || localStorage.getItem('kiosk_loc_id');
     return (
