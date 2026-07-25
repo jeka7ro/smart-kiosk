@@ -1,51 +1,55 @@
 # Smart Kiosk — POS Bridge
 
-Conectează terminalul **Raiffeisen POS** (local, TCP/IP) cu serverul **Render** (cloud).
+Conectează **Raiffeisen POS** (serial COM + GPRS) cu serverul **Render** (cloud).
 
-## Setup pe PC Windows (o singură dată)
+## Setup pe PC Windows
 
-### 1. Instalează Node.js
-Descarcă de la: https://nodejs.org/en/download  
-(alege versiunea LTS, 64-bit)
+### 1. Instalează Node.js (o singură dată)
+Descarcă: https://nodejs.org/en/download → versiunea LTS, 64-bit  
+Instalează cu opțiunile default.
 
-### 2. Copiază folderul `pos-bridge` pe PC
-Plasează-l oriunde, ex: `C:\SmartKiosk\pos-bridge\`
+### 2. Copiază folderul pe PC
+Plasează conținutul în: **`C:\kiosk_jk\pos-bridge\`**
 
-### 3. Configurează `.env`
-Deschide `C:\SmartKiosk\pos-bridge\.env.example`  
-Copiază-l și salvează ca `.env`:
+### 3. Creează fișierul `.env`
+În `C:\kiosk_jk\pos-bridge\` creează fișierul `.env`:
 
 ```
 RENDER_URL=https://smart-kiosk-ttut.onrender.com
-POS_IP=192.168.1.100        ← IP-ul POS-ului Raiffeisen în rețea locală
-POS_PORT=1000               ← portul ECR (de obicei 1000)
-LOCATION_ID=brasov          ← ID-ul locației din Admin Panel
+COM_PORT=auto
+BAUD_RATE=9600
+LOCATION_ID=brasov
 BRIDGE_KEY=pos-bridge-2024
 ```
 
-**Cum afli IP-ul POS-ului Raiffeisen:**
-- De obicei e setat fix în rețea locală (ex: 192.168.1.50)
-- Verifică în setările terminalului sau în router
+> **Notă:** `COM_PORT=auto` detectează automat portul.  
+> Dacă nu funcționează, pune manual ex: `COM_PORT=COM3`
+
+**Cum afli portul COM:**  
+Device Manager → Ports (COM & LPT) → caută "USB Serial Port"
 
 ### 4. Pornire
-**Dublu-click** pe `start-windows.bat`  
-Fereastra neagră rămâne deschisă — nu o închide!
+**Dublu-click** pe `C:\kiosk_jk\pos-bridge\start-windows.bat`
 
-## Pornire automată cu Windows
-
-1. Apasă `Win+R` → scrie `shell:startup` → Enter
-2. Pune un shortcut la `start-windows.bat` în acel folder
-3. Bridge-ul pornește automat la fiecare restart
-
-## Verificare funcționare
-
-Când bridge-ul e conectat corect vei vedea în consolă:
+Fereastra neagră trebuie să afișeze:
 ```
-✅ Conectat la Render (socket_id_xxx)
+✅ Conectat la Render (socket_xxx)
 ```
 
-La o plată:
+### 5. Pornire automată cu Windows
+1. `Win+R` → `shell:startup` → Enter
+2. Click dreapta în folder → New → Shortcut
+3. Destination: `C:\kiosk_jk\pos-bridge\start-windows.bat`
+4. Finish
+
+---
+
+## Locații multiple
+Dacă ai mai multe kioskuri, copiază folderul `pos-bridge` și schimbă `LOCATION_ID` în `.env` pentru fiecare locație.
+
+## Testare
+La o plată pe kiosk, în consolă apare:
 ```
-💳 Cerere plată: orderId=kiosk-xxx amount=45.00 RON
-✅ Plată APROBATĂ: ABC123
+💳 Cerere plată: 45.00 RON (orderId=kiosk-xxx)
+✅ APROBAT — ABC123
 ```
