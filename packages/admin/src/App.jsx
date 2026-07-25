@@ -1078,9 +1078,21 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
           </div>
           
           {/* LINK KIOSK SUPER COMPACT */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(59,130,246,0.1)', borderRadius: '10px', border: '1px dashed rgba(59,130,246,0.3)', marginBottom: '20px' }}>
-             <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>Link Kiosk: <span style={{ fontFamily: 'monospace', color: 'var(--cyan, #3b82f6)' }}>...{finalKioskUrl.split('?loc=')[1]}</span></span>
-             <button onClick={() => navigator.clipboard.writeText(finalKioskUrl)} style={{ fontSize: '0.75rem', padding: '6px 12px', borderRadius: '6px', background: '#3b82f6', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600, boxShadow: '0 2px 4px rgba(59,130,246,0.3)' }}>Copiaza URL</button>
+          <div style={{ padding: '16px', background: 'var(--bg-surface)', borderRadius: '12px', border: '1px solid var(--border)', marginBottom: '20px' }}>
+             <h4 style={{ margin: '0 0 16px 0', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }}>Link Kiosk Personalizat</h4>
+             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+               <input 
+                 type="text" 
+                 placeholder="ex: smashme-brasov" 
+                 value={formData.kioskUrl || ''} 
+                 onChange={e => handleChange('kioskUrl', e.target.value)} 
+                 style={{ flex: 1, padding: '8px 12px', fontSize: '0.9rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)' }} 
+               />
+               <button onClick={() => navigator.clipboard.writeText(finalKioskUrl)} style={{ fontSize: '0.75rem', padding: '10px 16px', borderRadius: '6px', background: '#3b82f6', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600, boxShadow: '0 2px 4px rgba(59,130,246,0.3)', whiteSpace: 'nowrap' }}>Copiaza URL</button>
+             </div>
+             <div style={{ marginTop: '8px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+               Va genera linkul: <span style={{ fontFamily: 'monospace', color: 'var(--cyan, #3b82f6)' }}>{finalKioskUrl}</span>
+             </div>
           </div>
 
           {/* GRID COMPACT SETARI DESIGN */}
