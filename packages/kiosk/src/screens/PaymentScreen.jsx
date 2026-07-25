@@ -166,7 +166,13 @@ export default function PaymentScreen() {
 
       const res = await fetch(`${BACKEND}/api/payment/initiate`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId, amount: total, paymentGateway: 'verifone_serial', channel: 'kiosk' }),
+        body: JSON.stringify({
+          orderId,
+          amount: total,
+          // Citește gateway-ul din config locației, fallback la 'none' (auto-confirmare)
+          paymentGateway: locationData?.paymentGateway || 'none',
+          channel: 'kiosk',
+        }),
       });
       if (!res.ok) throw new Error(`Backend ${res.status}`);
       setPayState(STATE.WAITING_CARD);
