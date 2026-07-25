@@ -442,7 +442,7 @@ async function syncStopLists() {
       }
     }
     if (sushiOrgs.length) {
-      const res = await syrvePost('/api/1/stop_lists', { organizationIds: sushiOrgs }, 'sushimaster');
+      const res = await syrvePost('/api/1/stop_lists', { organizationIds: sushiOrgs }, 'rollmaster');
       if (res.productStopListItems) {
         console.log(`[Syrve] Stop list synced (Sushi): ${res.productStopListItems.length} items`);
       }
