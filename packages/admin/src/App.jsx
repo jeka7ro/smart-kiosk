@@ -859,6 +859,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
     langButtonColor: loc.langButtonColor || '#0f172a',
     langSelectorPosition: loc.langSelectorPosition || 'after',
     menuOverrides: loc.menuOverrides || {},
+    paymentGateway: loc.paymentGateway || 'none',
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -1112,7 +1113,26 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
              <div style={{ marginTop: '8px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                Va genera linkul: <span style={{ fontFamily: 'monospace', color: 'var(--cyan, #3b82f6)' }}>{finalKioskUrl}</span>
              </div>
-          </div>
+           </div>
+
+           {/* TERMINAL POS */}
+           <div style={{ padding: '16px', background: 'var(--bg-surface)', borderRadius: '12px', border: '1px solid var(--border)', marginBottom: '20px' }}>
+             <h4 style={{ margin: '0 0 12px 0', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }}>Terminal POS Plată</h4>
+             <select
+               value={formData.paymentGateway || 'none'}
+               onChange={e => handleChange('paymentGateway', e.target.value)}
+               style={{ width: '100%', padding: '8px 12px', fontSize: '0.9rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)', cursor: 'pointer' }}
+             >
+               <option value="none">Fără POS (confirmare automată)</option>
+               <option value="verifone_serial">VeriFone V200t — Serial USB</option>
+               <option value="raiffeisen">Raiffeisen ECR — TCP/IP Local</option>
+             </select>
+             <div style={{ marginTop: '6px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+               {formData.paymentGateway === 'none' && '⚡ Comenzile se confirmă automat (fără terminal fizic)'}
+               {formData.paymentGateway === 'verifone_serial' && '🔌 Backend trebuie să ruleze local cu adaptor USB-Serial conectat'}
+               {formData.paymentGateway === 'raiffeisen' && '🌐 POS Raiffeisen prin TCP/IP — setați IP-ul în variabilele backend'}
+             </div>
+           </div>
 
           {/* GRID COMPACT SETARI DESIGN */}
           <div style={{ padding: '16px', background: 'var(--bg-surface)', borderRadius: '12px', border: '1px solid var(--border)' }}>
