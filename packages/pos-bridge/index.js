@@ -102,19 +102,21 @@ async function processPayment(amount, portPath, onStatus) {
     const port = new SerialPort({
       path:     portPath,
       baudRate: BAUD_RATE,
-      dataBits: 8,
-      parity:   'none',
+      dataBits: 7,        // ← Hypercom T7 spec: 7 data bits
+      parity:   'even',   // ← Hypercom T7 spec: even parity
       stopBits: 1,
       autoOpen: false,
     });
 
     port.open(err => {
       if (err) { log(`❌ Nu pot deschide ${portPath}: ${err.message}`); return reject(new Error(`Nu pot deschide ${portPath}: ${err.message}`)); }
-      log(`Port ${portPath} deschis @ ${BAUD_RATE} baud`);
+      log(`Port ${portPath} deschis @ ${BAUD_RATE} baud (7-E-1)`);
 
-      // Trimite MOL10 — inițierea plătii
-      const mol10 = buildMsg('M', '10', amountStr + 'RON' + '0'.repeat(20));
+      // Trimite MOL10 — Initiate Transaction (Hypercom T7 ECR Protocol)
+      // Format: STX + "MOL" + "10" + "." + amount(12 digits) + ETX + LRC
+      const mol10 = buildMsg('MOL', '10', amountStr);
       logHex('TX MOL10', mol10);
+      log(`TX MOL10 ASCII: MOL10.${amountStr}`);
       port.write(mol10);
       arm(5000, 'ACK la MOL10');
     });
@@ -164,7 +166,8 @@ async function processPayment(amount, portPath, onStatus) {
         return;
       }
 
-      // MOL12 — rezultatul final
+      // MOL12 — Authorization Result (from terminal)
+      // Format: STX + MOL + 12 + . + ResponseCode(2) + PAN + FS + ExpDate(4) + Invoice(6) + AuthCode(6) + Date(6) + Time(6) + IssuerName + FS + ETX + LRC
       if (state === 'WAIT_MOL12' && rxBuf.includes(STX)) {
         port.write(Buffer.from([ACK]));
         const raw = rxBuf.toString('ascii');
@@ -173,15 +176,32 @@ async function processPayment(amount, portPath, onStatus) {
         rxBuf = Buffer.alloc(0);
         state = 'DONE';
 
-        const approved  = raw.includes('.00') || raw.includes('APROBAT') || raw.includes('APPROVED');
-        const authMatch = raw.match(/[A-Z0-9]{6}/);
-        const authCode  = authMatch ? authMatch[0] : '';
+        // Parsează conform spec: după "MOL12." vine ResponseCode(2 cifre), 00 = approved
+        const dotIdx = raw.indexOf('.');
+        const responseCode = dotIdx >= 0 ? raw.substring(dotIdx + 1, dotIdx + 3) : 'XX';
+        const approved = responseCode === '00';
+        
+        // Extrage authCode (6 chars după invoice care e 6 chars după expiry+FS)
+        const fsChar = String.fromCharCode(0x1C);
+        const afterDot = raw.substring(dotIdx + 1); // tot payload-ul
+        const parts = afterDot.split(fsChar);
+        let authCode = '';
+        if (parts[0] && parts[0].length > 20) {
+          // ResponseCode(2) + PAN(variable) => FS => ExpDate(4) + Invoice(6) + AuthCode(6)
+          const afterFS = parts[1] || '';
+          authCode = afterFS.substring(10, 16).trim(); // skip ExpDate(4) + Invoice(6)
+        }
+        // Fallback: caută 6 caractere alfanumerice consecutive
+        if (!authCode) {
+          const match = raw.match(/[A-Z0-9]{6}/g);
+          authCode = match ? match[match.length - 1] : '';
+        }
 
-        log(`MOL12 ✓ — ${approved ? '✅ APROBAT' : '❌ REFUZAT'} auth=${authCode}`);
+        log(`MOL12 PARSED: responseCode=${responseCode} approved=${approved} authCode=${authCode}`);
 
         // Confirmare finală MOL13
         setTimeout(() => {
-          const mol13 = buildMsg('M', '13', approved ? '00' : '01');
+          const mol13 = buildMsg('MOL', '13', '');
           logHex('TX MOL13', mol13);
           port.write(mol13);
           setTimeout(() => ok({ success: approved, authCode, raw }), 500);
