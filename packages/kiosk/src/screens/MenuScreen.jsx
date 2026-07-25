@@ -16,6 +16,10 @@ const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.on
 const BRAND_ORG_MAP = {
   smashme:     '9c63cff6-1d66-442d-a98d-2302656e3943',
   sushimaster: 'adddb5a0-26e5-4d50-b472-1c74726c3f72',
+  rollmaster:  'adddb5a0-26e5-4d50-b472-1c74726c3f72',
+  lovesushi:   'adddb5a0-26e5-4d50-b472-1c74726c3f72',
+  pokiwoki:    'adddb5a0-26e5-4d50-b472-1c74726c3f72',
+  crunch:      '9c63cff6-1d66-442d-a98d-2302656e3943',
 };
 
 // Brand display info for tabs
@@ -24,6 +28,10 @@ const BRAND_TAB_INFO = {
   sushimaster: { label: 'Sushi Master', color: '#E31E24', emoji: '🍣' },
   ikura:       { label: 'Ikura',        color: '#8b5cf6', emoji: '🍱' },
   welovesushi: { label: 'WeLoveSushi',  color: '#ec4899', emoji: '🍣' },
+  rollmaster:  { label: 'Roll Master',  color: '#E31E24', emoji: '🍣' },
+  lovesushi:   { label: 'Love Sushi',   color: '#E31E24', emoji: '🍣' },
+  pokiwoki:    { label: 'Poki-Woki',    color: '#F97316', emoji: '🥗' },
+  crunch:      { label: 'Crunch',       color: '#FFB800', emoji: '🍗' },
 };
 
 export default function MenuScreen() {
