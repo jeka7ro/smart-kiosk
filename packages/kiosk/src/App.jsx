@@ -45,6 +45,32 @@ export default function App() {
 
   useInactivityTimeout();
 
+  // ─── KIOSK SECURITY: Block right-click & accidental refresh ─────────────────
+  useEffect(() => {
+    // 1. Block right-click context menu
+    const blockContextMenu = (e) => e.preventDefault();
+    document.addEventListener('contextmenu', blockContextMenu);
+
+    // 2. Block F5, Ctrl+R, Ctrl+Shift+R (accidental refresh)
+    const blockRefresh = (e) => {
+      if (
+        e.key === 'F5' ||
+        (e.ctrlKey && e.key === 'r') ||
+        (e.ctrlKey && e.shiftKey && e.key === 'R') ||
+        (e.metaKey && e.key === 'r')
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+    document.addEventListener('keydown', blockRefresh);
+
+    return () => {
+      document.removeEventListener('contextmenu', blockContextMenu);
+      document.removeEventListener('keydown', blockRefresh);
+    };
+  }, []);
+
   // Pre-load all product images silently into iOS Safari Local Cache while idling on screensaver
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -192,22 +218,46 @@ export default function App() {
     return () => socket.disconnect();
   }, [locationData?.id, setLocationData]);
 
-  // Auto-fullscreen on first user interaction (for kiosk/tablet mode)
+  // Auto-fullscreen agresiv pentru kiosk/tabletă
   useEffect(() => {
-    const goFull = () => {
+    const requestFS = () => {
       const el = document.documentElement;
-      const rfs = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+      const rfs = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
       if (rfs && !document.fullscreenElement && !document.webkitFullscreenElement) {
         rfs.call(el).catch(() => {});
       }
-      document.removeEventListener('touchstart', goFull);
-      document.removeEventListener('click', goFull);
     };
-    document.addEventListener('touchstart', goFull, { once: true });
-    document.addEventListener('click', goFull, { once: true });
+
+    // Încearcă imediat la load (funcționează în Chrome kiosk mode)
+    requestFS();
+
+    // Reintră în fullscreen dacă utilizatorul iese accidental (Esc)
+    const onFSChange = () => {
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        setTimeout(requestFS, 300);
+      }
+    };
+    document.addEventListener('fullscreenchange', onFSChange);
+    document.addEventListener('webkitfullscreenchange', onFSChange);
+
+    // Încearcă din nou la orice interacțiune (touchstart, click, keydown)
+    const onInteraction = () => requestFS();
+    document.addEventListener('touchstart', onInteraction, { passive: true });
+    document.addEventListener('click', onInteraction);
+    document.addEventListener('keydown', onInteraction);
+
+    // Încearcă din nou după 1s și 3s (pentru tablete lente)
+    const t1 = setTimeout(requestFS, 1000);
+    const t2 = setTimeout(requestFS, 3000);
+
     return () => {
-      document.removeEventListener('touchstart', goFull);
-      document.removeEventListener('click', goFull);
+      clearTimeout(t1);
+      clearTimeout(t2);
+      document.removeEventListener('fullscreenchange', onFSChange);
+      document.removeEventListener('webkitfullscreenchange', onFSChange);
+      document.removeEventListener('touchstart', onInteraction);
+      document.removeEventListener('click', onInteraction);
+      document.removeEventListener('keydown', onInteraction);
     };
   }, []);
 
