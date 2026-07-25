@@ -54,12 +54,12 @@ router.get('/', requireApiKey, async (req, res) => {
 router.get('/:id', requireApiKey, async (req, res) => {
   try {
     if (!hasDb) throw new Error('no db');
-    const { rows } = await pool.query('SELECT * FROM locations WHERE id = $1', [req.params.id]);
+    const { rows } = await pool.query('SELECT * FROM locations WHERE id = $1 OR data->>\'kioskUrl\' = $1', [req.params.id]);
     if (!rows.length) return res.status(404).json({ error: 'Location not found' });
     res.json(rowToLoc(rows[0]));
   } catch (e) {
     const locs = readLocFile();
-    const loc = locs.find(l => l.id === req.params.id);
+    const loc = locs.find(l => l.id === req.params.id || l.kioskUrl === req.params.id);
     if (!loc) return res.status(404).json({ error: 'Location not found' });
     res.json(loc);
   }

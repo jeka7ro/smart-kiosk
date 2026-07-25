@@ -653,7 +653,7 @@ function KiosksManager({ backend }) {
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
             {paginated.map((loc, index) => {
-              const finalKioskUrl = loc.kioskUrl || `https://kiosk-smashme.netlify.app/?loc=${loc.id}`;
+              const finalKioskUrl = loc.kioskUrl ? `https://kiosk-smashme.netlify.app/?loc=${loc.kioskUrl}` : `https://kiosk-smashme.netlify.app/?loc=${loc.id}`;
               const brandsArr = loc.brands || (loc.brandId ? [loc.brandId] : []);
               
               return (
@@ -962,7 +962,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
     );
   }
 
-  const finalKioskUrl = formData.kioskUrl || `https://kiosk-smashme.netlify.app/?loc=${loc.id}`;
+  const finalKioskUrl = formData.kioskUrl ? `https://kiosk-smashme.netlify.app/?loc=${formData.kioskUrl}` : `https://kiosk-smashme.netlify.app/?loc=${loc.id}`;
 
   return (
     <div className="loc-edit-form" style={{ maxWidth: '1000px', margin: '0 auto' }}>
