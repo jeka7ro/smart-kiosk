@@ -31,10 +31,13 @@ const server = http.createServer(app);
 const allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').map(o => o.trim());
 app.use(cors({
   origin: (origin, cb) => {
-    // Allow all Netlify subdomains + explicit origins
+    // Allow all Netlify subdomains, explicit origins, and ALL local dev ports
     if (!origin
         || allowedOrigins.includes(origin)
-        || origin.endsWith('.netlify.app')) {
+        || origin.endsWith('.netlify.app')
+        || origin.startsWith('http://localhost:')
+        || origin.startsWith('http://192.168.')
+        || origin.startsWith('http://127.0.0.1:')) {
       return cb(null, true);
     }
     cb(new Error(`CORS blocked: ${origin}`));
@@ -52,7 +55,10 @@ const io = new Server(server, {
     origin: (origin, cb) => {
       if (!origin 
           || allowedOrigins.includes(origin) 
-          || origin.endsWith('.netlify.app')) {
+          || origin.endsWith('.netlify.app')
+          || origin.startsWith('http://localhost:')
+          || origin.startsWith('http://192.168.')
+          || origin.startsWith('http://127.0.0.1:')) {
         return cb(null, true);
       }
       cb(new Error(`Socket CORS blocked: ${origin}`));
