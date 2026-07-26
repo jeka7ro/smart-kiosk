@@ -96,7 +96,7 @@ const FLAG_GRADIENTS = {
   // but the iframe inside is rendered in LANDSCAPE dimensions and then rotated+scaled to fit.
   const renderPosterMedia = () => {
     const r = poster?.rotation || 0;
-    const baseImgStyle = { width: '100%', height: '100%', objectFit: 'cover', display: 'block' };
+    const baseImgStyle = { position: 'absolute', top: 0, left: 0, zIndex: 1, width: '100%', height: '100%', objectFit: 'cover', display: 'block' };
 
     if (r === 0) {
       if (poster.type === 'video') return <video src={poster.url} autoPlay loop muted playsInline style={baseImgStyle} />;
@@ -111,6 +111,7 @@ const FLAG_GRADIENTS = {
         position: 'absolute', top: 0, left: 0,
         width: '100vw', height: '100vh',
         overflow: 'hidden',
+        zIndex: 1,
       };
       // Inner is rendered at 100vh wide x 100vw tall (landscape), then rotated.
       // translateX shifts it to align after rotation.
