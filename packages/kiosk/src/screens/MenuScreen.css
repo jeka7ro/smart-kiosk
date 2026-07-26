@@ -112,7 +112,7 @@
 /* ─── FAVORITES / WISHLIST BAR ─── */
 .favorites-bar {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   padding: 10px 16px;
   background: #fff5f5;
@@ -126,13 +126,14 @@
   color: #ef4444;
   white-space: nowrap;
   flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 6px;
 }
 .fav-bar-items {
   display: flex;
   gap: 8px;
-  overflow-x: auto;
+  flex-wrap: wrap;
   flex: 1;
-  -webkit-overflow-scrolling: touch;
   padding-bottom: 2px;
 }
 .fav-bar-items::-webkit-scrollbar { height: 3px; }
