@@ -9,6 +9,7 @@ html, body {
   -webkit-overflow-scrolling: auto;
   overflow: hidden;
   touch-action: manipulation;
+  -webkit-touch-callout: none;
 }
 
 *, *::before, *::after {

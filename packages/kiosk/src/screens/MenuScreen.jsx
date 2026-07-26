@@ -35,7 +35,6 @@ const BRAND_TAB_INFO = {
 };
 
 export default function MenuScreen() {
-  useInactivityTimeout(90);
   const goTo              = useKioskStore((s) => s.goTo);
   const setSelectedProduct= useKioskStore((s) => s.setSelectedProduct);
   const addToCart          = useKioskStore((s) => s.addToCart);
@@ -358,7 +357,13 @@ export default function MenuScreen() {
     <div className="menu-screen screen">
       {/* ─── TOP BAR ──────────────────────────────── */}
       <header className="menu-header">
-        <div className="menu-header-left">
+        <div className="menu-header-left" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <button 
+            onClick={() => { useKioskStore.getState().resetAll(); goTo('welcome'); }}
+            style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', fontSize: '1.5rem', cursor: 'pointer', padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            🏠
+          </button>
           {locationBrands.length <= 1 && (BRANDS[activeBrandId]?.logoImg
             ? <img src={BRANDS[activeBrandId].logoImg} alt={BRANDS[activeBrandId]?.name} className="menu-logo" />
             : <span className="menu-brand-name">{BRANDS[activeBrandId]?.name || brand.name}</span>

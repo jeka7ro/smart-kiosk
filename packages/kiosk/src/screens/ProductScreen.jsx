@@ -223,7 +223,6 @@ export default function ProductScreen() {
           <button
             className="btn btn-primary btn-xl"
             style={{ flex: 1 }}
-            disabled={!allRequiredSelected}
             onClick={handleAdd}
           >
             <span>{t('add_to_cart', lang)}</span>
