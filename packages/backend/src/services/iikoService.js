@@ -453,7 +453,24 @@ async function syncStopLists() {
 /**
  * Create an order in Syrve — brand-aware
  * Called after payment confirmation from orders.js
+ *
+ * Payment Type IDs (from Valentin):
+ *   Cash:  09322f46-578a-d210-add7-eec222a08871
+ *   Card (paid at kiosk): 29ee5e97-c1cf-42ad-90e6-b4c876025bc9
  */
+const SYRVE_PAYMENT_TYPES = {
+  cash: {
+    paymentTypeId: '09322f46-578a-d210-add7-eec222a08871',
+    paymentTypeKind: 'Cash',
+    isProcessedExternally: false,
+  },
+  card: {
+    paymentTypeId: '29ee5e97-c1cf-42ad-90e6-b4c876025bc9',
+    paymentTypeKind: 'Card',
+    isProcessedExternally: true,
+  },
+};
+
 async function createOrder({ brandId = 'smashme', orgId, order }) {
   const brand = BRANDS[brandId];
 
@@ -470,25 +487,75 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
   }
 
   try {
+    // Map payment method to Syrve payment type
+    const pMethod = (order.paymentMethod || 'card').toLowerCase();
+    const paymentConfig = SYRVE_PAYMENT_TYPES[pMethod] || SYRVE_PAYMENT_TYPES.card;
+
+    // Build items in correct Syrve format
+    const syrveItems = order.items.map(item => {
+      const syrveItem = {
+        productId: item.productId,
+        amount: item.quantity || 1,
+        price: item.unitPrice,
+        type: 'Product',
+        comment: null,
+      };
+
+      // Map modifiers to Syrve format
+      if (item.selectedModifiers && item.selectedModifiers.length > 0) {
+        syrveItem.modifiers = item.selectedModifiers.map(mod => ({
+          productId: mod.id || mod.productId,
+          amount: mod.amount || 1,
+          productGroupId: mod.groupId || mod.productGroupId || null,
+          price: mod.price || 0,
+          positionId: null,
+        }));
+      }
+
+      return syrveItem;
+    });
+
+    // Build comment
+    const orderComment = order.orderType === 'dine-in'
+      ? `Masa #${order.tableNumber} | Kiosk #${order.orderNumber}`
+      : `La pachet | Kiosk #${order.orderNumber}`;
+
     const payload = {
+      createOrderSettings: {
+        mode: 'Async',
+      },
       organizationId: resolvedOrgId,
-      terminalGroupId: null, // will be set per-location in future
-      createRequest: {
-        orderTypeId: null, // will resolve from Syrve order types
-        items: order.items.map(item => ({
-          productId: item.productId,
-          amount:    item.quantity,
-          price:     item.unitPrice,
-          comment:   item.selectedModifiers?.map(m => m.optionName).join(', ') || '',
-        })),
+      terminalGroupId: null,
+      order: {
         deliveryPoint: null,
-        comment: `${order.orderType === 'dine-in' ? `Masa #${order.tableNumber}` : 'La pachet'} | ${order.channel}`,
-        customer: null,
+        customer: {
+          name: 'Kiosk Client',
+          surname: '',
+          comment: '',
+          email: '',
+          gender: 'NotSpecified',
+        },
+        items: syrveItems,
+        payments: [
+          {
+            paymentTypeId: paymentConfig.paymentTypeId,
+            paymentTypeKind: paymentConfig.paymentTypeKind,
+            sum: order.totalAmount,
+            isProcessedExternally: paymentConfig.isProcessedExternally,
+            isFiscalizedExternally: false,
+          },
+        ],
         phone: null,
+        orderTypeId: null,
+        externalNumber: `K${order.orderNumber}`,
+        comment: orderComment,
+        sourceKey: 'Smart Kiosk',
       },
     };
 
-    const res = await syrvePost('/api/1/order/create', payload, brandId);
+    console.log(`[Syrve] Sending order to iiko — brand: ${brandId}, org: ${resolvedOrgId}, payment: ${pMethod}`);
+
+    const res = await syrvePost('/api/1/deliveries/create', payload, brandId);
     if (res.errorDescription) {
       console.error(`[Syrve] createOrder error [${brandId}]:`, res.errorDescription);
       return null;

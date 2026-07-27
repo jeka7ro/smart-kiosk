@@ -9,12 +9,13 @@ import ModifierImages from './screens/ModifierImages';
 import ProductOverrides from './screens/ProductOverrides';
 import TranslationsScreen from './screens/TranslationsScreen';
 import Integrations   from './screens/Integrations';
+import PosLogs        from './screens/PosLogs';
 import Promotions     from './screens/Promotions';
 import FortuneWheelPreview from './components/FortuneWheelPreview';
 import MenuManager, { MenuProfileEditorModal } from './screens/MenuManager';
 import QrGenerator from './screens/QrGenerator';
 import { useConfirm } from './components/ConfirmModal';
-import { LayoutDashboard, Receipt, MapPin, MonitorSmartphone, QrCode, Utensils, Languages, Image as ImageIcon, Tags, Users, Blocks, Gift, Store, Sun, Moon, LogOut, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Receipt, MapPin, MonitorSmartphone, QrCode, Utensils, Languages, Image as ImageIcon, Tags, Users, Blocks, Gift, Store, Sun, Moon, LogOut, Menu, X, CreditCard } from 'lucide-react';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
 
@@ -55,7 +56,7 @@ export default function AdminApp() {
   
   const [tab, setTabState] = useState(() => {
     const hash = window.location.hash.replace('#', '');
-    const validTabs = ['dashboard', 'orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'modifiers', 'products', 'users', 'integrations', 'promotions', 'brands', 'translations'];
+    const validTabs = ['dashboard', 'orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'modifiers', 'products', 'users', 'integrations', 'promotions', 'brands', 'translations', 'pos-logs'];
     return validTabs.includes(hash) ? hash : 'orders';
   });
 
@@ -67,7 +68,7 @@ export default function AdminApp() {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '');
-      const validTabs = ['dashboard', 'orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'modifiers', 'products', 'users', 'integrations', 'promotions', 'brands', 'translations'];
+      const validTabs = ['dashboard', 'orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'modifiers', 'products', 'users', 'integrations', 'promotions', 'brands', 'translations', 'pos-logs'];
       if (validTabs.includes(hash)) setTabState(hash);
     };
     window.addEventListener('hashchange', handleHashChange);
@@ -238,6 +239,7 @@ export default function AdminApp() {
               { id: 'products', label: 'Produse & Etichete', icon: <Tags className="w-5 h-5" /> },
               ...(user?.role === 'admin' ? [{ id: 'users', label: 'Echipă', icon: <Users className="w-5 h-5" /> }] : []),
               ...(user?.role === 'admin' ? [{ id: 'integrations', label: 'Integrări POS', icon: <Blocks className="w-5 h-5" /> }] : []),
+              ...(user?.role === 'admin' ? [{ id: 'pos-logs', label: 'Loguri POS', icon: <CreditCard className="w-5 h-5" /> }] : []),
               ...(user?.role === 'admin' ? [{ id: 'promotions', label: 'Promoții', icon: <Gift className="w-5 h-5" /> }] : []),
               ...(user?.role === 'admin' ? [{ id: 'brands', label: 'Branduri', icon: <Store className="w-5 h-5" /> }] : []),
             ].map(item => (
@@ -277,6 +279,7 @@ export default function AdminApp() {
               {tab === 'integrations' && 'Integrări POS'}
               {tab === 'promotions' && 'Promoții / Roată Kiosk'}
               {tab === 'brands' && 'Gestionare Branduri'}
+              {tab === 'pos-logs' && 'Loguri Tranzacții POS'}
            </h2>
         </div>
 
@@ -347,6 +350,7 @@ export default function AdminApp() {
           {tab === 'modifiers' && <ModifierImages />}
           {tab === 'products' && <ProductOverrides />}
           {tab === 'integrations' && <Integrations />}
+          {tab === 'pos-logs' && <PosLogs />}
           {tab === 'promotions' && <Promotions />}
           {tab === 'users' && <UsersManager />}
           {tab === 'brands' && <BrandsManager backend={BACKEND} />}

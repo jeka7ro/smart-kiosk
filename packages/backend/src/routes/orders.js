@@ -85,6 +85,8 @@ router.post('/', async (req, res) => {
       io.emit('new_order', order);
       io.to(`kitchen-${locId}`).emit('new_order', order);
       io.to('admin').emit('new_order', order);
+      // Trimitem comanda către POS Bridge local pentru tipărire bon fizic
+      io.to(`pos-bridge-${locId}`).emit('print_ticket', { order });
     }
 
     console.log(`[Order] ════ COMANDĂ NOUĂ ════`);

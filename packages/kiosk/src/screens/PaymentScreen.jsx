@@ -20,6 +20,7 @@ const STATE = {
   APPROVED:     'approved',
   DECLINED:     'declined',
   ERROR:        'error',
+  CASH_SUCCESS: 'cash_success',
 };
 
 export default function PaymentScreen() {
@@ -98,7 +99,7 @@ export default function PaymentScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const sendOrder = useCallback(async (paymentResult) => {
+  const sendOrder = useCallback(async (paymentResult, pMethod = 'card') => {
     try {
       // ⚠️ CRITICAL: Use location-specific orgId to ensure orders go to the correct kitchen
       // Priority: locationData.orgIds[brand] > URL param > DEFAULT_ORG
@@ -109,9 +110,9 @@ export default function PaymentScreen() {
       const effectiveOrgId = locationOrgId || urlOrg || DEFAULT_ORG;
       const locationName   = locationData?.name || LOCATION_NAME;
 
-      console.log(`[PaymentScreen] Order → brand: ${effectiveBrand}, org: ${effectiveOrgId}, loc: ${locationName}`);
+      console.log(`[PaymentScreen] Order → brand: ${effectiveBrand}, org: ${effectiveOrgId}, loc: ${locationName}, method: ${pMethod}`);
 
-      await fetch(`${BACKEND}/api/orders`, {
+      const res = await fetch(`${BACKEND}/api/orders`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -126,13 +127,29 @@ export default function PaymentScreen() {
             brandId: i.brandId,
             selectedModifiers: i.selectedModifiers || [],
           })),
-          totalAmount: total, channel: 'kiosk', paymentMethod: 'card',
+          totalAmount: total, channel: 'kiosk', paymentMethod: pMethod,
           paymentRef: { authCode: paymentResult?.authCode, receiptNo: paymentResult?.receiptNo,
                         cardNo: paymentResult?.cardNo, refNum: paymentResult?.refNum },
         }),
       });
-    } catch (err) { console.error('[PaymentScreen] sendOrder failed:', err); }
+      const data = await res.json();
+      return data.order;
+    } catch (err) { console.error('[PaymentScreen] sendOrder failed:', err); return null; }
   }, [cartItems, total, orderType, tableNumber, activeBrandId, locationData]);
+
+  const handlePayCash = async () => {
+    setPayState(STATE.INITIATING);
+    setErrorMsg('');
+    const orderData = await sendOrder(null, 'cash');
+    if (orderData) {
+      setTxInfo({ orderNumber: orderData.orderNumber });
+      setPayState(STATE.CASH_SUCCESS);
+      setTimeout(() => goTo('confirmation'), 8000); // allow time to read
+    } else {
+      setPayState(STATE.ERROR);
+      setErrorMsg('Eroare la trimiterea comenzii. Vă rugăm încercați din nou.');
+    }
+  };
 
   const handlePay = useCallback(async () => {
     setPayState(STATE.INITIATING);
@@ -248,9 +265,14 @@ export default function PaymentScreen() {
               <div className="pi-step"><span className="pi-num">3</span><span>{t('payment_step_3', lang)}</span></div>
             </div>
 
-            <button className="btn btn-success btn-xl pay-btn" onClick={handlePay}>
-              {t('pay', lang)} {total.toFixed(2)} {t('lei', lang)}
-            </button>
+            <div style={{ display: 'flex', gap: '16px', marginTop: '16px', flexDirection: 'column' }}>
+              <button className="btn btn-success btn-xl pay-btn" onClick={handlePay}>
+                Plată Card ({total.toFixed(2)} {t('lei', lang)})
+              </button>
+              <button className="btn btn-outline btn-xl pay-btn" style={{ borderColor: 'var(--brand-primary)', color: 'var(--brand-primary)', borderWidth: '2px' }} onClick={handlePayCash}>
+                Plată Cash la Casierie
+              </button>
+            </div>
 
             {/* Metode acceptate */}
             <div className="payment-methods-row">
@@ -332,11 +354,21 @@ export default function PaymentScreen() {
         )}
 
         {payState === STATE.APPROVED && (
-          <div className="payment-approved fade-in">
-            <div className="approved-circle"><span className="approved-check">✓</span></div>
-            <h2 className="approved-title">Plată aprobată!</h2>
-            {txInfo?.authCode && <p className="approved-info">Cod: <strong>{txInfo.authCode}</strong></p>}
-            <p className="approved-info">Se pregătește comanda...</p>
+          <div className="payment-result success fade-in">
+            <div className="result-icon-wrapper"><span className="result-icon success-icon">✅</span></div>
+            <h2 className="approved-title">Plata aprobata</h2>
+            {txInfo?.authCode && <p className="auth-code">Auth: {txInfo.authCode}</p>}
+            <p className="success-msg">Comanda a fost trimisa spre preparare!</p>
+          </div>
+        )}
+
+        {payState === STATE.CASH_SUCCESS && (
+          <div className="payment-result success fade-in">
+            <div className="result-icon-wrapper" style={{background: '#f59e0b'}}><span className="result-icon success-icon" style={{color: 'white'}}>💵</span></div>
+            <h2 className="approved-title" style={{color: '#d97706'}}>NEACHITAT</h2>
+            <h1 style={{fontSize: '4rem', fontWeight: 900, margin: '16px 0', color: '#1e293b'}}>#{txInfo?.orderNumber}</h1>
+            <p className="success-msg" style={{fontSize: '1.5rem', fontWeight: 700}}>ACHITAȚI LA CASĂ</p>
+            <p style={{marginTop: '16px', color: 'var(--text-muted)'}}>Prezentați acest număr la casierie pentru a finaliza comanda.</p>
           </div>
         )}
 

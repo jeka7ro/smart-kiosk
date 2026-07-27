@@ -40,27 +40,57 @@ function initSocket(io) {
       io.to('admin').emit('order_ready', { orderId, locationId });
     });
 
-    // ─── POS Bridge ──────────────────────────────────────────────────────
-    socket.on('pos_bridge_register', ({ locationId, port }) => {
-      socket.join(`pos-bridge-${locationId}`);
-      console.log(`[Socket] 🔌 POS Bridge registered: location=${locationId} port=${port || '?'} sid=${socket.id}`);
-    });
-
-    // POS Bridge trimite status intermediar (ex: "așteptați cardul")
+    // POS Bridge trimite status intermediar (ex: „așteptați cardul")
     socket.on('pos_bridge_status', ({ orderId, message }) => {
       if (orderId) io.emit(`payment_status_${orderId}`, { message });
     });
 
     // POS Bridge trimite rezultatul plății
-    socket.on('pos_payment_result', ({ orderId, paid, authCode, code, error, raw }) => {
-      console.log(`[Socket] 💳 POS result: orderId=${orderId} paid=${paid} auth=${authCode || '-'}`);
+    socket.on('pos_payment_result', (data) => {
+      const { orderId, paid, authCode, responseCode, code, refNum, cardNo, txDate, error, raw, locationId, amount } = data;
+      console.log(`[Socket] 💳 POS result: orderId=${orderId} paid=${paid} auth=${authCode || '-'} code=${responseCode || code || '-'}`);
+      
+      // Salvează în POS Logs
+      try {
+        const { addPosLog } = require('../routes/posLogs');
+        const logEntry = addPosLog({
+          orderId,
+          locationId: locationId || socket._posLocationId || '',
+          amount: amount || 0,
+          paid,
+          responseCode: responseCode || code || '',
+          authCode: authCode || '',
+          refNum: refNum || '',
+          cardNo: cardNo || '',
+          txDate: txDate || '',
+          error: error || null,
+          gateway: 'raiffeisen',
+          raw: raw || null,
+        });
+        // Emit to admin for live updates
+        io.to('admin').emit('pos_log_new', logEntry);
+      } catch (e) {
+        console.error('[POS Logs] Error saving:', e.message);
+      }
+
       io.emit(`payment_confirmed_${orderId}`, {
         paid,
-        responseCode: code,
+        responseCode: responseCode || code,
         authCode,
+        refNum,
+        cardNo,
         error: paid ? undefined : (error || 'Plată refuzată'),
       });
     });
+
+    // Salvăm locationId pe socket la register
+    socket.on('pos_bridge_register', (origHandler => ({ locationId, port }) => {
+      socket._posLocationId = locationId;
+      origHandler({ locationId, port });
+    })(({ locationId, port }) => {
+      socket.join(`pos-bridge-${locationId}`);
+      console.log(`[Socket] 🔌 POS Bridge registered: location=${locationId} port=${port || '?'} sid=${socket.id}`);
+    }));
 
     socket.on('disconnect', () => {
       console.log(`[Socket] Client disconnected: ${socket.id}`);

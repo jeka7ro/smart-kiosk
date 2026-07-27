@@ -149,10 +149,10 @@
         "pokiwoki": 10
       }
     },
-    "kioskUrl": "brasov",
+    "kioskUrl": "sm-brasov",
     "paymentGateway": "raiffeisen",
     "posterUrl": "https://smr.onl/display/mect1",
-    "posterRotation": 270,
+    "posterRotation": 0,
     "topBannerUrl": "",
     "topBannerHeight": 3,
     "topBannerRadiusTop": true,
