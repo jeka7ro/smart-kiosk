@@ -1,0 +1,61 @@
+{
+	"createOrderSettings": {
+		"mode": "Async"
+	},
+	"organizationId": "d0ca9d11-a38e-48e1-ae02-54ce627f8419",
+	"terminalGroupId": "3801a774-aaa3-4a45-a03d-39565de441ce",
+	"order": {
+		"deliveryPoint": null,
+		"customer": {
+			"name": "Ioana N.",
+			"surname": "",
+			"comment": "",
+			"email": "",
+			"gender": "Male"
+		},
+		"items": [
+			{
+				"modifiers": [
+					{
+						"productId": "3f4aface-0b45-445d-809c-07b58df4b696",
+						"amount": 1.0,
+						"productGroupId": "87a848ea-5cd3-46f8-9fe8-89cbeade363e",
+						"price": 3.0,
+						"positionId": null
+					}
+				],
+				"productId": "acc30b1e-6225-4feb-8094-ed282c67369a",
+				"price": 182.0,
+				"type": "Product",
+				"amount": 1.0,
+				"comment": null
+			}
+		],
+		"payments": [
+			{
+				"paymentTypeId": "97706454-8511-4b57-82ee-7067889e12e8",
+				"paymentTypeKind": "Card",
+				"sum": 129.5,
+				"isProcessedExternally": true,
+				"isFiscalizedExternally": false
+			}
+		],
+		"completeBefore": "2026-07-26 13:30:38.000",
+		"phone": "+40746371062",
+		"orderTypeId": "638149ce-eddd-4f60-9dad-4f50dc1e132e",
+		"externalNumber": "09BTE",
+		"comment": null,
+		"discountsInfo": {
+			"card": null,
+			"discounts": [
+				{
+					"discountTypeId": "ff812142-46cc-4393-b3ec-eebaf8fb4f33",
+					"sum": 55.5,
+					"selectivePositions": null,
+					"type": null
+				}
+			]
+		},
+		"sourceKey": "Bolt Food"
+	}
+}

@@ -35,6 +35,7 @@ export default function PaymentScreen() {
   const resetOrder     = useKioskStore((s) => s.resetOrder);
   const locationData   = useKioskStore((s) => s.locationData);
   const activeBrandId  = useKioskStore((s) => s.activeBrandId);
+  const setPaymentMethod = useKioskStore((s) => s.setPaymentMethod);
 
   const total      = getCartTotal();
   const orderIdRef = useRef(null);
@@ -140,6 +141,7 @@ export default function PaymentScreen() {
   const handlePayCash = async () => {
     setPayState(STATE.INITIATING);
     setErrorMsg('');
+    setPaymentMethod('cash');
     const orderData = await sendOrder(null, 'cash');
     if (orderData) {
       setTxInfo({ orderNumber: orderData.orderNumber });

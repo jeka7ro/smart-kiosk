@@ -5,6 +5,7 @@ export const useKioskStore = create((set, get) => ({
   screen: 'welcome', // welcome | orderType | brandSelect | menu | product | cart | payment | confirmation
   orderType: null,   // 'dine-in' | 'takeaway'
   tableNumber: null,
+  paymentMethod: 'card', // 'card' | 'cash'
   lang: 'ro',
   locationData: null, // { id, brands, orgIds } from backend
   kioskData: null, // Specific config for this tablet
@@ -15,6 +16,7 @@ export const useKioskStore = create((set, get) => ({
 
   // ─── Language ──────────────────────────────────────────────
   setLang: (lang) => set({ lang }),
+  setPaymentMethod: (m) => set({ paymentMethod: m }),
   setLocationData: (data) => set({ locationData: data }),
   setKioskData: (data) => set({ kioskData: data }),
 
@@ -174,6 +176,7 @@ export const useKioskStore = create((set, get) => ({
     favorites: [],
     orderType: null,
     tableNumber: null,
+    paymentMethod: 'card',
     selectedProduct: null,
     hasPlayedPromo: false,
     screen: 'welcome',
