@@ -36,6 +36,7 @@ export default function PaymentScreen() {
   const locationData   = useKioskStore((s) => s.locationData);
   const activeBrandId  = useKioskStore((s) => s.activeBrandId);
   const setPaymentMethod = useKioskStore((s) => s.setPaymentMethod);
+  const setLastOrderNumber = useKioskStore((s) => s.setLastOrderNumber);
 
   const total      = getCartTotal();
   const orderIdRef = useRef(null);
@@ -76,7 +77,8 @@ export default function PaymentScreen() {
           if (!cancelled && result.paid) {
             setTxInfo(result);
             setPayState(STATE.APPROVED);
-            await sendOrder(result);
+            const orderData = await sendOrder(result);
+            if (orderData?.orderNumber) setLastOrderNumber(orderData.orderNumber);
             setTimeout(() => goTo('confirmation'), 2200);
           }
         });
@@ -146,6 +148,7 @@ export default function PaymentScreen() {
     const orderData = await sendOrder(null, 'cash');
     if (orderData) {
       setTxInfo({ orderNumber: orderData.orderNumber });
+      setLastOrderNumber(orderData.orderNumber);
       setPayState(STATE.CASH_SUCCESS);
       setTimeout(() => goTo('confirmation'), 8000); // allow time to read
     } else {
@@ -176,7 +179,8 @@ export default function PaymentScreen() {
         if (result.paid) {
           setTxInfo(result);
           setPayState(STATE.APPROVED);
-          await sendOrder(result);
+          const orderData = await sendOrder(result);
+          if (orderData?.orderNumber) setLastOrderNumber(orderData.orderNumber);
           setTimeout(() => goTo('confirmation'), 2200);
         } else {
           setPayState(STATE.DECLINED);

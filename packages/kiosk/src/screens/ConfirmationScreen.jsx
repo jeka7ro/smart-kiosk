@@ -14,7 +14,7 @@ export default function ConfirmationScreen() {
   const setShowWheel = useKioskStore((s) => s.setShowWheel);
   const wonPrize = useKioskStore((s) => s.wonPrize);
   const [countdown, setCountdown] = useState(30);
-  const [orderNum] = useState(() => Math.floor(1000 + Math.random() * 9000));
+  const orderNum = useKioskStore((s) => s.lastOrderNumber);
   const total = getCartTotal();
 
   useEffect(() => {

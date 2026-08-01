@@ -23,6 +23,8 @@ export const useKioskStore = create((set, get) => ({
   // ─── Session Flags ─────────────────────────────────────────
   hasPlayedPromo: false,
   setHasPlayedPromo: (val) => set({ hasPlayedPromo: val }),
+  lastOrderNumber: null,
+  setLastOrderNumber: (n) => set({ lastOrderNumber: n }),
 
   // ─── Menu Data ─────────────────────────────────────────────
   menuProducts: (() => {
