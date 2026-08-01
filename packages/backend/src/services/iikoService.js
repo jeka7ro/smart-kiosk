@@ -559,11 +559,7 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
         deliveryPoint: null,
         customer: {
           name: 'Kiosk Client',
-          surname: '',
-          comment: '',
-          email: '',
-          gender: '',
-          phone: '40000000000'
+          surname: ''
         },
         items: syrveItems,
         payments: [
@@ -575,7 +571,7 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
             isFiscalizedExternally: false,
           },
         ],
-        phone: null,
+        phone: '40000000000',
         orderServiceType: 'DeliveryByClient',
         externalNumber: `K${order.orderNumber}`,
         comment: orderComment,
