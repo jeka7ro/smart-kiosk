@@ -86,6 +86,8 @@ export default function AdminApp() {
   const [menuStatus,setMenuStatus]= useState(null);
   const [connected, setConnected] = useState(false);
   const [brandFilter, setBrandFilter] = useState('all');
+  const [locationFilter, setLocationFilter] = useState('all');
+  const [paymentFilter, setPaymentFilter] = useState('all');
   const [notifications, setNotifs]= useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [menuImages, setMenuImages] = useState({});
@@ -217,9 +219,14 @@ export default function AdminApp() {
     rollmaster: orders.filter(o => o.brand === 'rollmaster').length,
   };
 
-  const filteredOrders = brandFilter === 'all'
-    ? orders
-    : orders.filter(o => o.brand === brandFilter);
+  const filteredOrders = orders.filter(o => {
+    if (brandFilter !== 'all' && o.brand !== brandFilter) return false;
+    if (locationFilter !== 'all' && (o.locationName || o.locationId) !== locationFilter) return false;
+    if (paymentFilter !== 'all' && o.paymentMethod !== paymentFilter) return false;
+    return true;
+  });
+
+  const uniqueLocations = [...new Set(orders.map(o => o.locationName || o.locationId).filter(Boolean))];
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -360,16 +367,39 @@ export default function AdminApp() {
         {/* ─── ORDERS ─── */}
         {tab === 'orders' && (
           <div className="space-y-6 px-4 md:px-8 pb-10">
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              {['all','smashme','crunch','rollmaster','lovesushi','pokiwoki'].map(b => (
-                <button
-                  key={b}
-                  className={`shrink-0 px-5 h-10 rounded-full text-sm font-bold flex items-center gap-2 border transition-colors ${brandFilter === b ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-                  onClick={() => setBrandFilter(b)}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                {['all','smashme','crunch','rollmaster','lovesushi','pokiwoki'].map(b => (
+                  <button
+                    key={b}
+                    className={`shrink-0 px-5 h-10 rounded-full text-sm font-bold flex items-center gap-2 border transition-colors ${brandFilter === b ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                    onClick={() => setBrandFilter(b)}
+                  >
+                    {b === 'all' ? 'Toate' : <><BrandLogo brandId={b} size={14} /> {b === 'smashme' ? 'SmashMe' : b === 'crunch' ? 'Crunch' : b === 'rollmaster' ? 'Roll Master' : b === 'lovesushi' ? 'Love Sushi' : 'Poki-Woki'}</>}
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center gap-3">
+                <select 
+                  className="px-4 h-10 rounded-full text-sm font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 outline-none hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  value={locationFilter}
+                  onChange={(e) => setLocationFilter(e.target.value)}
                 >
-                  {b === 'all' ? 'Toate' : <><BrandLogo brandId={b} size={14} /> {b === 'smashme' ? 'SmashMe' : b === 'crunch' ? 'Crunch' : b === 'rollmaster' ? 'Roll Master' : b === 'lovesushi' ? 'Love Sushi' : 'Poki-Woki'}</>}
-                </button>
-              ))}
+                  <option value="all">Toate locațiile</option>
+                  {uniqueLocations.map(loc => (
+                    <option key={loc} value={loc}>{loc}</option>
+                  ))}
+                </select>
+                <select 
+                  className="px-4 h-10 rounded-full text-sm font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 outline-none hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  value={paymentFilter}
+                  onChange={(e) => setPaymentFilter(e.target.value)}
+                >
+                  <option value="all">Toate plățile</option>
+                  <option value="cash">Cash</option>
+                  <option value="card">Card</option>
+                </select>
+              </div>
             </div>
             <OrdersTable orders={filteredOrders} full onRowClick={setSelectedOrder} selectedId={selectedOrder?._id} />
           </div>
