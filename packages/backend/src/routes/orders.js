@@ -33,7 +33,8 @@ router.post('/', async (req, res) => {
       const { rows } = await pool.query(`SELECT data->>'orderNumber' as num FROM orders WHERE (data->>'orderNumber') IS NOT NULL`);
       for (const row of rows) {
         const num = parseInt(row.num, 10);
-        if (!isNaN(num) && num !== 946 && num !== 862) {
+        // Exclude specific test numbers and ignore huge numbers from old DB data to keep the Kiosk sequence around 360
+        if (!isNaN(num) && num !== 946 && num !== 862 && num < 1000) {
           maxOrderNumber = Math.max(maxOrderNumber, num);
         }
       }
