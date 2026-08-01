@@ -34,13 +34,16 @@ async function printTicket(order) {
 
     printer.alignCenter();
     
-    // FARA IMAGINI pe Windows (driverul strica codul binar)
     const uniqueBrands = [...new Set(order.items.map(i => i.brandId || order.brand))];
     for (const brand of uniqueBrands) {
+       let brandName = brand.toUpperCase();
+       if (brandName === 'ROLLMASTER') {
+           brandName = 'ROLL-MASTER';
+       }
        // Fallback text
        printer.bold(true);
-       printer.setTextSize(1,1);
-       printer.println(brand.toUpperCase());
+       printer.setTextSize(2,2);
+       printer.println(brandName);
        printer.bold(false);
        printer.setTextNormal();
     }
