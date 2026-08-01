@@ -1,0 +1,62 @@
+[
+  {
+    "_id": "ORD-1785591072980",
+    "orderNumber": 946,
+    "locationId": "loc1",
+    "brand": "rollmaster",
+    "orderType": "takeaway",
+    "tableNumber": null,
+    "items": [
+      {
+        "productId": "8b07a365-e96a-4b0c-887a-19b6a91211a0",
+        "name": "Recuperat",
+        "quantity": 1,
+        "unitPrice": 0.5,
+        "totalPrice": 0.5
+      }
+    ],
+    "totalAmount": 0.5,
+    "lang": "ro",
+    "channel": "kiosk",
+    "paymentMethod": "card",
+    "paymentRef": {
+      "authCode": "RECUPERAT"
+    },
+    "status": "pending",
+    "syrveOrderId": "recovered-from-user-payload",
+    "arrivedAt": 1785591072980,
+    "createdAt": "2026-08-01T13:31:12.980Z"
+  },
+  {
+    "_id": "ORD-1785135728722",
+    "orderNumber": 862,
+    "locationId": "adddb5a0-26e5-4d50-b472-1c74726c3f72",
+    "locationName": "SM BRASOV",
+    "brand": "rollmaster",
+    "orgId": "adddb5a0-26e5-4d50-b472-1c74726c3f72",
+    "orderType": "dine-in",
+    "tableNumber": null,
+    "items": [
+      {
+        "productId": "05c49ce0-0f15-48c6-9602-6f37dcc7add2",
+        "name": "Light Sushi Set",
+        "quantity": 1,
+        "unitPrice": 189,
+        "totalPrice": 189,
+        "brandId": "rollmaster",
+        "imageUrl": null,
+        "selectedModifiers": []
+      }
+    ],
+    "totalAmount": 189,
+    "lang": "ro",
+    "channel": "kiosk",
+    "paymentMethod": "cash",
+    "paymentRef": {},
+    "status": "cancelled",
+    "syrveOrderId": null,
+    "arrivedAt": 1785135728722,
+    "createdAt": "2026-07-27T07:02:08.722Z",
+    "updatedAt": "2026-07-28T07:22:20.271Z"
+  }
+]
