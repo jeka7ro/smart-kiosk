@@ -42,6 +42,11 @@ export function AuthProvider({ children }) {
     const headers = { ...defaultHeaders, ...options.headers };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     
+    // Remove Content-Type for FormData so browser can set boundary automatically
+    if (options.body instanceof FormData) {
+      delete headers['Content-Type'];
+    }
+    
     const res = await fetch(url, { ...options, headers });
     if (res.status === 401) {
       logout();
