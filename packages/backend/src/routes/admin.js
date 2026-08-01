@@ -24,17 +24,28 @@ router.get('/orders', protect, async (req, res) => {
 // GET /api/admin/backup
 router.get('/backup', protect, async (req, res) => {
   try {
-    const dataDir = path.join(__dirname, '../../data');
-    const files = ['orders.json', 'iiko_logs.json', 'pos-logs.json'];
     const backup = {};
-    for (const f of files) {
-      const p = path.join(dataDir, f);
-      if (fs.existsSync(p)) {
-        backup[f] = JSON.parse(fs.readFileSync(p, 'utf8'));
-      }
-    }
+    
+    // Backup Orders
+    try {
+      const { rows } = await pool.query('SELECT data FROM orders');
+      backup['orders.json'] = rows.map(r => r.data);
+    } catch (e) { console.error(e); }
+    
+    // Backup iiko Logs
+    try {
+      const { rows } = await pool.query('SELECT * FROM iiko_logs');
+      backup['iiko_logs.json'] = rows;
+    } catch (e) { console.error(e); }
+    
+    // Backup POS Logs
+    try {
+      const { rows } = await pool.query('SELECT * FROM pos_logs');
+      backup['pos-logs.json'] = rows;
+    } catch (e) { console.error(e); }
+
     // Set headers to trigger a file download in the browser
-    res.setHeader('Content-disposition', `attachment; filename=kiosk_backup_${new Date().toISOString().replace(/[:.]/g, '-')}.json`);
+    res.setHeader('Content-disposition', `attachment; filename=kiosk_backup_DB_${new Date().toISOString().replace(/[:.]/g, '-')}.json`);
     res.setHeader('Content-type', 'application/json');
     res.send(JSON.stringify(backup, null, 2));
   } catch(e) {

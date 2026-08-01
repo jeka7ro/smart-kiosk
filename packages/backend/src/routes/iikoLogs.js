@@ -1,16 +1,22 @@
 const express = require('express');
 const router = express.Router();
-const fs = require('fs');
-const path = require('path');
+const { pool } = require('../db');
 
-const IIKO_LOGS_FILE = path.join(__dirname, '../../data/iiko_logs.json');
-
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    if (!fs.existsSync(IIKO_LOGS_FILE)) {
-      return res.json([]);
-    }
-    const logs = JSON.parse(fs.readFileSync(IIKO_LOGS_FILE, 'utf8'));
+    const { rows } = await pool.query('SELECT * FROM iiko_logs ORDER BY timestamp DESC LIMIT 500');
+    
+    // Map rows to camelCase for frontend
+    const logs = rows.map(r => ({
+      id: r.order_id, // For backward compatibility with frontend
+      orderId: r.order_id,
+      timestamp: r.timestamp,
+      brandId: r.brand_id,
+      status: r.status,
+      payload: r.payload,
+      response: r.response
+    }));
+    
     res.json(logs);
   } catch (err) {
     console.error('[IikoLogs] Error reading logs:', err.message);

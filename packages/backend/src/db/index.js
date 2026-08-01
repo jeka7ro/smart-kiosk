@@ -136,6 +136,48 @@ async function initDb() {
     );
   `);
 
+  // ─── POS Logs (transactions from Raiffeisen, etc) ─────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS pos_logs (
+      id            TEXT PRIMARY KEY,
+      timestamp     TIMESTAMPTZ DEFAULT NOW(),
+      location_id   TEXT,
+      location_name TEXT,
+      order_id      TEXT,
+      amount        NUMERIC,
+      gateway       TEXT,
+      status        TEXT,
+      paid          BOOLEAN,
+      response_code TEXT,
+      auth_code     TEXT,
+      ref_num       TEXT,
+      card_no       TEXT,
+      tx_date       TEXT,
+      error         TEXT,
+      iiko_sent     BOOLEAN,
+      iiko_order_id TEXT,
+      iiko_error    TEXT,
+      raw           JSONB
+    );
+    CREATE INDEX IF NOT EXISTS pos_logs_order_idx ON pos_logs(order_id);
+    CREATE INDEX IF NOT EXISTS pos_logs_timestamp_idx ON pos_logs(timestamp DESC);
+  `);
+
+  // ─── iiko Logs ─────────────────────────────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS iiko_logs (
+      id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      order_id    TEXT,
+      timestamp   TIMESTAMPTZ DEFAULT NOW(),
+      brand_id    TEXT,
+      status      TEXT,
+      payload     JSONB,
+      response    JSONB
+    );
+    CREATE INDEX IF NOT EXISTS iiko_logs_order_idx ON iiko_logs(order_id);
+    CREATE INDEX IF NOT EXISTS iiko_logs_timestamp_idx ON iiko_logs(timestamp DESC);
+  `);
+
   console.log('[DB] Tables initialized (Supabase/PostgreSQL)');
 }
 

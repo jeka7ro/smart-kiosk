@@ -11,8 +11,10 @@
 const API_URL = process.env.SYRVE_API_URL || 'https://api-eu.syrve.live';
 const translator = require('./translatorService.js');
 const { syncProductImages } = require('./imageService.js');
+const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
+const { pool } = require('../db');
 
 // Brand config — each brand has its own API key + org ID
 const BRANDS = {
@@ -473,27 +475,18 @@ const SYRVE_PAYMENT_TYPES = {
   },
 };
 
-const IIKO_LOGS_FILE = path.join(__dirname, '..', '..', 'data', 'iiko_logs.json');
-
-function logIikoRequest(orderId, brandId, payload, response, error = null) {
+async function logIikoRequest(orderId, brandId, payload, response, error = null) {
   try {
-    let logs = [];
-    if (fs.existsSync(IIKO_LOGS_FILE)) {
-      logs = JSON.parse(fs.readFileSync(IIKO_LOGS_FILE, 'utf8'));
-    }
-    const logEntry = {
-      id: orderId,
-      timestamp: new Date().toISOString(),
-      brandId,
-      status: error ? 'error' : 'success',
-      payload,
-      response: error ? { errorDescription: error } : response
-    };
-    logs.unshift(logEntry); // Add to beginning
-    if (logs.length > 500) {
-      logs = logs.slice(0, 500); // Keep last 500
-    }
-    fs.writeFileSync(IIKO_LOGS_FILE, JSON.stringify(logs, null, 2), 'utf8');
+    const status = error ? 'error' : 'success';
+    const respData = error ? { errorDescription: error } : response;
+    
+    // We execute this asynchronously without awaiting to not block the flow
+    pool.query(
+      `INSERT INTO iiko_logs (order_id, brand_id, status, payload, response) VALUES ($1, $2, $3, $4, $5)`,
+      [String(orderId), brandId, status, JSON.stringify(payload || {}), JSON.stringify(respData || {})]
+    ).catch(dbErr => {
+      console.error('[Syrve] Failed to write iiko log to DB:', dbErr.message);
+    });
   } catch (e) {
     console.error('[Syrve] Failed to write iiko log:', e.message);
   }

@@ -10,30 +10,7 @@ const router  = express.Router();
 const fs      = require('fs');
 const path    = require('path');
 const { createOrder: syrveCreateOrder } = require('../services/iikoService');
-
-// ── Persistent JSON store ──────────────────────────────────────
-const STORE_FILE = path.join(__dirname, '../../data/orders.json');
-
-function loadOrders() {
-  try {
-    if (fs.existsSync(STORE_FILE)) {
-      const raw = fs.readFileSync(STORE_FILE, 'utf8');
-      return JSON.parse(raw);
-    }
-  } catch (e) { console.warn('[Orders] Could not load orders.json:', e.message); }
-  return [];
-}
-
-function saveOrders() {
-  try {
-    fs.mkdirSync(path.dirname(STORE_FILE), { recursive: true });
-    fs.writeFileSync(STORE_FILE, JSON.stringify(_orders, null, 2));
-  } catch (e) { console.warn('[Orders] Could not save orders.json:', e.message); }
-}
-
-// In-memory store, seeded from disk
-const _orders = loadOrders();
-console.log(`[Orders] Loaded ${_orders.length} orders from disk`);
+const { pool } = require('../db');
 
 // ── POST /api/orders ──────────────────────────────────────────
 router.post('/', async (req, res) => {
@@ -48,24 +25,36 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'No items in order' });
     }
 
-    const subtotal    = totalAmount || items.reduce((s, i) => s + (i.totalPrice || 0), 0);
+    const subtotal = totalAmount || items.reduce((s, i) => s + (i.totalPrice || 0), 0);
+    
+    // Get max orderNumber from Supabase
     let maxOrderNumber = 358;
-    for (const o of _orders) {
-      if (typeof o.orderNumber === 'number' && o.orderNumber !== 946 && o.orderNumber !== 862) {
-        maxOrderNumber = Math.max(maxOrderNumber, o.orderNumber);
+    try {
+      const { rows } = await pool.query(`SELECT data->>'orderNumber' as num FROM orders WHERE (data->>'orderNumber') IS NOT NULL`);
+      for (const row of rows) {
+        const num = parseInt(row.num, 10);
+        if (!isNaN(num) && num !== 946 && num !== 862) {
+          maxOrderNumber = Math.max(maxOrderNumber, num);
+        }
       }
+    } catch (dbErr) {
+      console.warn('[Orders] DB error getting max orderNumber:', dbErr.message);
     }
+    
     const orderNumber = maxOrderNumber + 1;
     const locId       = locationId || 'loc1';
     const brandName   = brand || brandId || 'smashme';
 
+    const orderId = `ORD-${Date.now()}`;
+    const status = (paymentMethod || 'card') === 'cash' ? 'awaiting_payment' : 'pending';
+
     const order = {
-      _id:         `ORD-${Date.now()}`,
+      _id:         orderId,
       orderNumber,
       locationId:  locId,
       locationName: locationName || null,
       brand:       brandName,
-      orgId:       orgId || null,        // Syrve org ID for this specific restaurant
+      orgId:       orgId || null,
       orderType:   orderType || 'takeaway',
       tableNumber: tableNumber || null,
       items:       items || [],
@@ -73,25 +62,29 @@ router.post('/', async (req, res) => {
       lang:        lang || 'ro',
       channel:      channel || 'kiosk',
       paymentMethod: paymentMethod || 'card',
-      paymentRef: paymentRef || null,  // { authCode, receiptNo, cardNo, refNum } from VeriFone
-      status:      (paymentMethod || 'card') === 'cash' ? 'awaiting_payment' : 'pending',
+      paymentRef: paymentRef || null,
+      status:      status,
       syrveOrderId: null,
       arrivedAt:   Date.now(),
       createdAt:   new Date().toISOString(),
     };
 
-    // Store in memory + persist to disk
-    _orders.unshift(order);
-    if (_orders.length > 500) _orders.splice(500);
-    saveOrders();
+    // Store in Supabase
+    try {
+      await pool.query(
+        `INSERT INTO orders (id, location_id, status, data) VALUES ($1, $2, $3, $4)`,
+        [orderId, locId, status, JSON.stringify(order)]
+      );
+    } catch (dbErr) {
+      console.error('[Orders] Could not save order to DB:', dbErr.message);
+    }
 
-    // Emit to Kitchen Display — both global and location-specific rooms
+    // Emit to Kitchen Display
     const io = req.app.get('io');
     if (io) {
       io.emit('new_order', order);
       io.to(`kitchen-${locId}`).emit('new_order', order);
       io.to('admin').emit('new_order', order);
-      // Trimitem comanda către POS Bridge local pentru tipărire bon fizic
       io.to(`pos-bridge-${locId}`).emit('print_ticket', { order });
     }
 
@@ -99,15 +92,13 @@ router.post('/', async (req, res) => {
     console.log(`[Order]   #${orderNumber} | ${brandName} | ${locationName || orgId || 'no-loc'}`);
     console.log(`[Order]   channel: ${channel} | orderType: ${orderType} | total: ${subtotal} RON`);
     console.log(`[Order]   paymentMethod: ${order.paymentMethod} | items: ${order.items.length}`);
-    console.log(`[Order]   paymentRef: ${JSON.stringify(order.paymentRef || null)}`);
 
-    // Respond immediately to kiosk (don't block on Syrve)
+    // Respond immediately to kiosk
     res.json({ success: true, order });
 
-    // ── Send to Syrve async (fire-and-forget, Split by Brand) ──
+    // ── Send to Syrve async ──
     setImmediate(async () => {
       try {
-        // Read locations to find orgIds dictionary
         const locsPath = path.join(__dirname, '../../data/locations.json');
         let orgIdsDict = {};
         if (fs.existsSync(locsPath)) {
@@ -118,7 +109,6 @@ router.post('/', async (req, res) => {
            } catch(e) {}
         }
 
-        // Group order items by their actual brandId
         const brandsMap = {};
         for (const item of order.items) {
            const bId = item.brandId || brandName;
@@ -128,11 +118,8 @@ router.post('/', async (req, res) => {
         }
         
         const syrveIds = [];
-        
-        // Fire Syrve order creation for EACH brand separately
         for (const [bId, brandData] of Object.entries(brandsMap)) {
            const specificOrgId = orgIdsDict[bId] || orgId || null;
-           
            const splitOrder = {
               ...order,
               brand: bId,
@@ -142,9 +129,7 @@ router.post('/', async (req, res) => {
            };
            
            try {
-              console.log(`[Syrve] ════ TRIMIT LA IIKO ════`);
               console.log(`[Syrve]   brand: ${bId} | orgId: ${specificOrgId}`);
-              console.log(`[Syrve]   items: ${brandData.items.length} | total: ${brandData.totalAmount} RON`);
               const syrveResult = await syrveCreateOrder({
                 brandId: bId,
                 orgId:   specificOrgId,
@@ -163,10 +148,15 @@ router.post('/', async (req, res) => {
             }
         }
         
-        // Link Syracuse IDs back to main order for tracking
         if (syrveIds.length > 0) {
           order.syrveOrderId = syrveIds.join(',');
-          saveOrders(); // Save the fact that it is now synced
+          
+          // Update DB with syrveOrderId
+          await pool.query(
+            `UPDATE orders SET data = jsonb_set(data, '{syrveOrderId}', $1) WHERE id = $2`,
+            [JSON.stringify(order.syrveOrderId), orderId]
+          );
+
           if (io) {
             io.emit('order_syrve_confirmed', { orderId: order._id, syrveOrderId: order.syrveOrderId });
           }
@@ -185,7 +175,6 @@ router.post('/', async (req, res) => {
             }
           }
         }
-        
       } catch (err) {
         console.error(`[Syrve] Grouping logic failed for order #${orderNumber}:`, err.message);
       }
@@ -200,22 +189,58 @@ router.post('/', async (req, res) => {
 // ── GET /api/orders ─────────────────────────────────────────────────────
 router.get('/', async (req, res) => {
   const { status, brand, limit = 50 } = req.query;
-  let result = [..._orders];
-  if (status) {
-    const statuses = status.split(',').map(s => s.trim());
-    result = result.filter(o => statuses.includes(o.status));
+  try {
+    let query = `SELECT data, status FROM orders WHERE 1=1`;
+    const params = [];
+    
+    if (status) {
+      const statuses = status.split(',').map(s => s.trim());
+      query += ` AND status = ANY($${params.length + 1})`;
+      params.push(statuses);
+    }
+    
+    if (brand && brand !== 'all') {
+      query += ` AND data->>'brand' = $${params.length + 1}`;
+      params.push(brand);
+    }
+    
+    query += ` ORDER BY created_at DESC LIMIT $${params.length + 1}`;
+    params.push(Number(limit));
+    
+    const { rows } = await pool.query(query, params);
+    const orders = rows.map(r => r.data);
+    
+    // Also get total count
+    let countQuery = `SELECT COUNT(*) FROM orders WHERE 1=1`;
+    const countParams = [];
+    if (status) {
+      const statuses = status.split(',').map(s => s.trim());
+      countQuery += ` AND status = ANY($${countParams.length + 1})`;
+      countParams.push(statuses);
+    }
+    if (brand && brand !== 'all') {
+      countQuery += ` AND data->>'brand' = $${countParams.length + 1}`;
+      countParams.push(brand);
+    }
+    const countRes = await pool.query(countQuery, countParams);
+    const total = parseInt(countRes.rows[0].count, 10);
+
+    res.json({ orders, total });
+  } catch (err) {
+    console.error('[Orders] GET error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch orders' });
   }
-  if (brand && brand !== 'all') {
-    result = result.filter(o => o.brand === brand);
-  }
-  res.json({ orders: result.slice(0, Number(limit)), total: result.length });
 });
 
 // ── GET /api/orders/:id ─────────────────────────────────────────────
 router.get('/:id', async (req, res) => {
-  const order = _orders.find(o => o._id === req.params.id);
-  if (!order) return res.status(404).json({ error: 'Order not found' });
-  res.json(order);
+  try {
+    const { rows } = await pool.query(`SELECT data FROM orders WHERE id = $1`, [req.params.id]);
+    if (rows.length === 0) return res.status(404).json({ error: 'Order not found' });
+    res.json(rows[0].data);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch order' });
+  }
 });
 
 
@@ -226,19 +251,30 @@ router.patch('/:id/status', async (req, res) => {
   if (!valid.includes(status)) {
     return res.status(400).json({ error: `Invalid status. Valid: ${valid.join(', ')}` });
   }
-  const order = _orders.find(o => o._id === req.params.id);
-  if (order) {
-    // ── Block status changes on cancelled orders ──
-    if (order.status === 'cancelled' && status !== 'cancelled') {
+  
+  try {
+    const { rows } = await pool.query(`SELECT data, status FROM orders WHERE id = $1`, [req.params.id]);
+    if (rows.length === 0) return res.status(404).json({ error: 'Order not found' });
+    
+    const order = rows[0].data;
+    const currentStatus = rows[0].status;
+    
+    if (currentStatus === 'cancelled' && status !== 'cancelled') {
       return res.status(400).json({ error: 'Comanda a fost anulată și nu poate fi modificată.' });
     }
-    const wasCashWaiting = order.status === 'awaiting_payment' && order.paymentMethod === 'cash';
+    
+    const wasCashWaiting = currentStatus === 'awaiting_payment' && order.paymentMethod === 'cash';
+    
     order.status = status;
     order.updatedAt = new Date().toISOString();
     if (status === 'cancelled' && canceledBy) {
       order.canceledBy = canceledBy;
     }
-    saveOrders();
+    
+    await pool.query(
+      `UPDATE orders SET status = $1, data = $2, updated_at = NOW() WHERE id = $3`,
+      [status, JSON.stringify(order), req.params.id]
+    );
 
     // Dacă casierul tocmai a confirmat plata cash → trimitem la iiko acum
     if (wasCashWaiting && (status === 'pending' || status === 'confirmed')) {
@@ -272,18 +308,25 @@ router.patch('/:id/status', async (req, res) => {
           }
           if (syrveIds.length > 0) {
             order.syrveOrderId = syrveIds.join(',');
-            saveOrders();
+            await pool.query(
+              `UPDATE orders SET data = jsonb_set(data, '{syrveOrderId}', $1) WHERE id = $2`,
+              [JSON.stringify(order.syrveOrderId), req.params.id]
+            );
           }
         } catch (err) { console.error(`[Syrve] Cash confirm failed #${order.orderNumber}:`, err.message); }
       });
     }
-  }
 
-  const io = req.app.get('io');
-  if (io) {
-    io.emit('order_status_updated', { orderId: req.params.id, status });
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('order_status_updated', { orderId: req.params.id, status });
+    }
+    res.json({ success: true, id: req.params.id, status });
+    
+  } catch (err) {
+    console.error('[Orders] PATCH status error:', err.message);
+    res.status(500).json({ error: 'Failed to update order status' });
   }
-  res.json({ success: true, id: req.params.id, status });
 });
 
 module.exports = router;
