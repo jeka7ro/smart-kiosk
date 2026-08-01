@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthProvider';
 import { io } from 'socket.io-client';
+import BrandLogo from '../components/BrandLogo.jsx';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
 
@@ -10,7 +11,7 @@ const STATUS_CONFIG = {
   timeout:  { label: 'Timeout',  color: '#f59e0b', bg: '#f59e0b20', icon: '⏱' },
 };
 
-export default function PosLogs({ onGoToOrder }) {
+export default function PosLogs({ orders = [], onGoToOrder }) {
   const { fetchWithAuth } = useAuth();
   const [logs, setLogs]   = useState([]);
   const [stats, setStats] = useState(null);
@@ -144,6 +145,8 @@ export default function PosLogs({ onGoToOrder }) {
             <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 w-12">#</th>
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Data / Ora</th>
+              <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Brand</th>
+              <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">ID Comandă</th>
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Locație</th>
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Sumă</th>
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Status POS</th>
@@ -164,6 +167,7 @@ export default function PosLogs({ onGoToOrder }) {
             ) : paginated.map((log, idx) => {
               const sc = STATUS_CONFIG[log.status] || STATUS_CONFIG.declined;
               const dt = log.timestamp ? new Date(log.timestamp) : null;
+              const order = orders.find(o => o._id === log.orderId);
               return (
                 <tr key={log._id} onClick={() => onGoToOrder && onGoToOrder(log.orderId)} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer">
                   <td className="px-4 py-3 text-sm font-medium text-slate-500">
@@ -174,6 +178,19 @@ export default function PosLogs({ onGoToOrder }) {
                       <div className="flex flex-col">
                         <span className="font-bold">{dt.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
                         <span className="text-xs text-slate-400">{dt.toLocaleDateString('ro-RO')}</span>
+                      </div>
+                    ) : '—'}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="font-mono text-xs text-slate-600 dark:text-slate-400 select-all">
+                      {log.orderId || '—'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    {order?.brand ? (
+                      <div className="flex items-center gap-2">
+                        <BrandLogo brandId={order.brand} size={20} />
+                        <span className="text-sm font-bold text-slate-700 dark:text-slate-300 capitalize">{order.brand}</span>
                       </div>
                     ) : '—'}
                   </td>

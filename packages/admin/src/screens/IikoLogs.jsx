@@ -19,7 +19,7 @@ export default function IikoLogs() {
     try {
       const res = await fetchWithAuth(`${BACKEND}/api/iiko-logs`);
       const data = await res.json();
-      setLogs(data || []);
+      setLogs(Array.isArray(data) ? data : (data.logs || []));
     } catch (e) {
       console.error('Failed to load iiko logs:', e);
     } finally {

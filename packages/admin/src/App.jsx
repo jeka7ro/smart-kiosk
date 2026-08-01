@@ -11,6 +11,7 @@ import TranslationsScreen from './screens/TranslationsScreen';
 import Integrations   from './screens/Integrations';
 import PosLogs        from './screens/PosLogs';
 import IikoLogs       from './screens/IikoLogs';
+import BrandLogo from './components/BrandLogo.jsx';
 import Promotions     from './screens/Promotions';
 import FortuneWheelPreview from './components/FortuneWheelPreview';
 import MenuManager, { MenuProfileEditorModal } from './screens/MenuManager';
@@ -31,25 +32,6 @@ function useKeepAlive() {
 }
 
 const BRAND_COLORS = { smashme: '#ef4444', crunch: '#eab308', rollmaster: '#3b82f6', lovesushi: '#ec4899', pokiwoki: '#f97316' };
-
-function BrandLogo({ brandId, size = 18 }) {
-  const logos = {
-    smashme: '/brands/smashme-logo.png',
-    crunch: '/brands/crunch-logo.png',
-    rollmaster: '/brands/rollmaster-logo.png',
-    lovesushi: '/brands/lovesushi-logo.png',
-    pokiwoki: '/brands/pokiwoki-logo.png'
-  };
-  const src = logos[brandId];
-  if (src) return <img src={src} alt={brandId} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'contain', verticalAlign: 'middle', flexShrink: 0 }} onError={(e) => { e.target.style.display = 'none'; }} /> 
-  
-  // Generic fallback icon instead of uppercase text
-  return (
-    <div style={{ width: size, height: size, borderRadius: '50%', backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-      <span style={{ fontSize: size * 0.5, color: '#94a3b8', fontWeight: 'bold' }}>{brandId ? brandId.charAt(0).toUpperCase() : '?'}</span>
-    </div>
-  );
-}
 
 const STATUS_LABELS = {
   pending:   { label: 'Nou',       color: '#f59e0b' },
@@ -432,13 +414,30 @@ export default function AdminApp() {
           {tab === 'modifiers' && <ModifierImages />}
           {tab === 'products' && <ProductOverrides />}
           {tab === 'integrations' && <Integrations />}
-          {tab === 'pos-logs' && <PosLogs onGoToOrder={(orderId) => {
+          {tab === 'pos-logs' && <PosLogs orders={orders} onGoToOrder={async (orderId) => {
             const foundOrder = orders.find(o => o._id === orderId);
             if (foundOrder) {
               setTab('orders');
               setSelectedOrder(foundOrder);
             } else {
-              alert('Comanda nu a fost gasita in memorie (posibil a fost incarcata pe alta locatie).');
+              try {
+                const res = await fetchWithAuth(`${BACKEND}/api/orders/${orderId}`);
+                if (res.ok) {
+                  const data = await res.json();
+                  setOrders(prev => {
+                    if (!prev.find(o => o._id === data._id)) {
+                      return [data, ...prev];
+                    }
+                    return prev;
+                  });
+                  setTab('orders');
+                  setSelectedOrder(data);
+                } else {
+                  console.error('Order not found on server');
+                }
+              } catch (e) {
+                console.error('Failed to fetch order', e);
+              }
             }
           }} />}
           {tab === 'iiko-logs' && <IikoLogs />}
