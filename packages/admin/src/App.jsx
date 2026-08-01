@@ -424,8 +424,9 @@ export default function AdminApp() {
             </div>
             <div className="text-sm text-slate-500 space-y-1">
               <p><strong>Canal:</strong> {selectedOrder.channel}</p>
-              <p><strong>Tip:</strong> {selectedOrder.orderType === 'dine-in' ? `Masa ${selectedOrder.tableNumber}` : 'La pachet / Caserie'}</p>
-              <p><strong>Ora:</strong> {selectedOrder.createdAt ? new Date(selectedOrder.createdAt).toLocaleString('ro-RO') : '—'}</p>
+              <p><strong>Tip Comandă:</strong> {selectedOrder.orderType === 'dine-in' ? (selectedOrder.tableNumber ? `La masă (Masa ${selectedOrder.tableNumber})` : 'La masă') : 'La pachet'}</p>
+              <p><strong>Plată:</strong> <span className="font-bold">{selectedOrder.paymentMethod === 'cash' ? 'CASH' : (selectedOrder.paymentMethod === 'card' ? 'CARD' : '—')}</span></p>
+              <p><strong>Data/Ora:</strong> {selectedOrder.createdAt ? new Date(selectedOrder.createdAt).toLocaleString('ro-RO') : '—'}</p>
             </div>
 
             <h3 className="text-sm font-bold uppercase text-slate-400 mb-3">Produse ({(selectedOrder.items || []).length})</h3>
@@ -542,7 +543,7 @@ function OrdersTable({ orders, full, onRowClick, selectedId }) {
             <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">#</th>
             <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Brand</th>
             <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Canal</th>
-            <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Tip</th>
+            <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Tip Comandă</th>
             <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Plată</th>
             <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Total</th>
             <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Status</th>
