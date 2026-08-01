@@ -16,6 +16,7 @@
         "unitPrice": 189,
         "totalPrice": 189,
         "brandId": "rollmaster",
+        "imageUrl": null,
         "selectedModifiers": []
       }
     ],
@@ -24,10 +25,11 @@
     "channel": "kiosk",
     "paymentMethod": "cash",
     "paymentRef": {},
-    "status": "pending",
+    "status": "cancelled",
     "syrveOrderId": null,
     "arrivedAt": 1785135728722,
-    "createdAt": "2026-07-27T07:02:08.722Z"
+    "createdAt": "2026-07-27T07:02:08.722Z",
+    "updatedAt": "2026-07-28T07:22:20.271Z"
   },
   {
     "_id": "ORD-1782475355811",
@@ -52,9 +54,11 @@
     "lang": "ro",
     "channel": "kiosk",
     "paymentMethod": "card",
-    "status": "pending",
+    "status": "cancelled",
     "syrveOrderId": null,
     "arrivedAt": 1782475355811,
-    "createdAt": "2026-06-26T12:02:35.811Z"
+    "createdAt": "2026-06-26T12:02:35.811Z",
+    "updatedAt": "2026-07-27T08:38:00.733Z",
+    "canceledBy": "Admin"
   }
 ]

@@ -88,6 +88,7 @@ app.use('/api/brands',       brandsRoutes);
 app.use('/api/admin/translations', translationRoutes);
 app.use('/api/products',     productsRoutes);
 app.use('/api/pos-logs',     posLogsRoutes);
+app.use('/api/iiko-logs',    require('./routes/iikoLogs.js'));
 
 // Serve uploaded brand logos
 const path = require('path');

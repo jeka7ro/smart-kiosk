@@ -126,6 +126,7 @@ export default function PaymentScreen() {
             productId: i.productId, name: i.name, quantity: i.quantity,
             unitPrice: i.unitPrice, totalPrice: i.totalPrice,
             brandId: i.brandId,
+            imageUrl: i.image || null,
             selectedModifiers: i.selectedModifiers || [],
           })),
           totalAmount: total, channel: 'kiosk', paymentMethod: pMethod,

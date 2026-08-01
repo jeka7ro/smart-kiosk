@@ -10,6 +10,7 @@ import ProductOverrides from './screens/ProductOverrides';
 import TranslationsScreen from './screens/TranslationsScreen';
 import Integrations   from './screens/Integrations';
 import PosLogs        from './screens/PosLogs';
+import IikoLogs       from './screens/IikoLogs';
 import Promotions     from './screens/Promotions';
 import FortuneWheelPreview from './components/FortuneWheelPreview';
 import MenuManager, { MenuProfileEditorModal } from './screens/MenuManager';
@@ -56,7 +57,7 @@ export default function AdminApp() {
   
   const [tab, setTabState] = useState(() => {
     const hash = window.location.hash.replace('#', '');
-    const validTabs = ['dashboard', 'orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'modifiers', 'products', 'users', 'integrations', 'promotions', 'brands', 'translations', 'pos-logs'];
+    const validTabs = ['dashboard', 'orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'modifiers', 'products', 'users', 'integrations', 'promotions', 'brands', 'translations', 'pos-logs', 'iiko-logs'];
     return validTabs.includes(hash) ? hash : 'orders';
   });
 
@@ -68,7 +69,7 @@ export default function AdminApp() {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '');
-      const validTabs = ['dashboard', 'orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'modifiers', 'products', 'users', 'integrations', 'promotions', 'brands', 'translations', 'pos-logs'];
+      const validTabs = ['dashboard', 'orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'modifiers', 'products', 'users', 'integrations', 'promotions', 'brands', 'translations', 'pos-logs', 'iiko-logs'];
       if (validTabs.includes(hash)) setTabState(hash);
     };
     window.addEventListener('hashchange', handleHashChange);
@@ -80,6 +81,10 @@ export default function AdminApp() {
   const [connected, setConnected] = useState(false);
   const [brandFilter, setBrandFilter] = useState('all');
   const [notifications, setNotifs]= useState([]);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [menuImages, setMenuImages] = useState({});
+  const [menuProducts, setMenuProducts] = useState({});
+  const [selectedItemDetail, setSelectedItemDetail] = useState(null);
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('admin-theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
   });
@@ -151,6 +156,36 @@ export default function AdminApp() {
   }, []);
   useEffect(() => { if (tab === 'menu') fetchMenuStatus(); }, [tab, fetchMenuStatus]);
 
+  /* ─── Fetch menu products + images for order detail ── */
+  useEffect(() => {
+    if (selectedOrder && selectedOrder.items) {
+      Promise.all([
+        fetch(`${BACKEND}/api/menu/all`).then(r => r.json()),
+        fetch(`${BACKEND}/api/products/overrides/${selectedOrder.brand || 'smashme'}`).then(r => r.json()).catch(() => ({})),
+      ]).then(([allMenuData, overridesData]) => {
+        // Build image map from overrides
+        const imgMap = {};
+        if (overridesData && typeof overridesData === 'object') {
+          Object.entries(overridesData).forEach(([pid, ov]) => {
+            if (ov.imageUrl) imgMap[pid] = ov.imageUrl;
+          });
+        }
+        setMenuImages(imgMap);
+
+        // Build product map from iiko menu
+        const prodMap = {};
+        Object.keys(allMenuData || {}).forEach(b => {
+          const brandMenu = allMenuData[b]?.menu?.products || [];
+          brandMenu.forEach(p => {
+            prodMap[p.id] = p;
+            if (p.name) prodMap[p.name.toLowerCase()] = p;
+          });
+        });
+        setMenuProducts(prodMap);
+      }).catch(() => {});
+    }
+  }, [selectedOrder]);
+
   const addNotif = (msg) => {
     const id = Date.now();
     setNotifs(prev => [{ id, msg }, ...prev.slice(0, 4)]);
@@ -160,10 +195,18 @@ export default function AdminApp() {
   /* ─── Stats ──────────────────────────────────────── */
   const stats = {
     total:     orders.length,
+    todayTotal: orders.filter(o => {
+      if (!o.createdAt) return false;
+      const d = new Date(o.createdAt);
+      const today = new Date();
+      return d.getDate() === today.getDate() && 
+             d.getMonth() === today.getMonth() && 
+             d.getFullYear() === today.getFullYear();
+    }).length,
     pending:   orders.filter(o => o.status === 'pending').length,
     preparing: orders.filter(o => o.status === 'preparing').length,
     ready:     orders.filter(o => o.status === 'ready').length,
-    revenue:   orders.reduce((s, o) => s + (o.totalAmount || 0), 0),
+    revenue:   orders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + (o.totalAmount || 0), 0),
     smashme:   orders.filter(o => o.brand === 'smashme').length,
     sushimaster: orders.filter(o => o.brand === 'sushimaster').length,
   };
@@ -240,12 +283,13 @@ export default function AdminApp() {
               ...(user?.role === 'admin' ? [{ id: 'users', label: 'Echipă', icon: <Users className="w-5 h-5" /> }] : []),
               ...(user?.role === 'admin' ? [{ id: 'integrations', label: 'Integrări POS', icon: <Blocks className="w-5 h-5" /> }] : []),
               ...(user?.role === 'admin' ? [{ id: 'pos-logs', label: 'Loguri POS', icon: <CreditCard className="w-5 h-5" /> }] : []),
+              ...(user?.role === 'admin' ? [{ id: 'iiko-logs', label: 'Loguri iiko', icon: <Receipt className="w-5 h-5" /> }] : []),
               ...(user?.role === 'admin' ? [{ id: 'promotions', label: 'Promoții', icon: <Gift className="w-5 h-5" /> }] : []),
               ...(user?.role === 'admin' ? [{ id: 'brands', label: 'Branduri', icon: <Store className="w-5 h-5" /> }] : []),
             ].map(item => (
               <button
                 key={item.id}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm ${tab === item.id ? 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'}`}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-full transition-all font-medium text-sm ${tab === item.id ? 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'}`}
                 onClick={() => { setTab(item.id); setIsSidebarOpen(false); }}
               >
                 <span className={tab === item.id ? 'opacity-100' : 'opacity-75'}>{item.icon}</span>
@@ -255,7 +299,7 @@ export default function AdminApp() {
           </nav>
 
           <div className="p-4 border-t border-slate-200 dark:border-slate-800">
-            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold ${connected ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400'}`}>
+            <div className={`flex items-center gap-2 px-3 py-2 rounded-full text-sm font-bold ${connected ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400'}`}>
               <div className={`w-2 h-2 rounded-full ${connected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
               {connected ? 'Live' : 'Offline'}
             </div>
@@ -280,6 +324,7 @@ export default function AdminApp() {
               {tab === 'promotions' && 'Promoții / Roată Kiosk'}
               {tab === 'brands' && 'Gestionare Branduri'}
               {tab === 'pos-logs' && 'Loguri Tranzacții POS'}
+              {tab === 'iiko-logs' && 'Loguri iiko Syrve'}
            </h2>
         </div>
 
@@ -294,14 +339,14 @@ export default function AdminApp() {
         {tab === 'dashboard' && (
           <div className="space-y-8 px-4 md:px-8 pb-10">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <StatCard label="Comenzi Azi" value={stats.total} color="var(--primary)" large />
+              <StatCard label="Comenzi Azi" value={stats.todayTotal} color="var(--primary)" large />
               <StatCard label="SmashMe"   value={stats.smashme} color={BRAND_COLORS.smashme} />
               <StatCard label="SushiMaster" value={stats.sushimaster} color={BRAND_COLORS.sushimaster} />
             </div>
 
             <div>
               <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Ultimele 10 comenzi</h3>
-              <OrdersTable orders={orders.slice(0, 10)} />
+              <OrdersTable orders={orders.slice(0, 10)} onRowClick={setSelectedOrder} selectedId={selectedOrder?._id} />
             </div>
           </div>
         )}
@@ -320,7 +365,7 @@ export default function AdminApp() {
                 </button>
               ))}
             </div>
-            <OrdersTable orders={filteredOrders} full />
+            <OrdersTable orders={filteredOrders} full onRowClick={setSelectedOrder} selectedId={selectedOrder?._id} />
           </div>
         )}
 
@@ -351,31 +396,146 @@ export default function AdminApp() {
           {tab === 'products' && <ProductOverrides />}
           {tab === 'integrations' && <Integrations />}
           {tab === 'pos-logs' && <PosLogs />}
+          {tab === 'iiko-logs' && <IikoLogs />}
           {tab === 'promotions' && <Promotions />}
           {tab === 'users' && <UsersManager />}
           {tab === 'brands' && <BrandsManager backend={BACKEND} />}
         </div>
       </main>
       </div>
+
+    {/* ── Order Detail Modal (centered) ── */}
+    {selectedOrder && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setSelectedOrder(null)}>
+        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800">
+            <h2 className="text-xl font-bold">Comandă #{selectedOrder.orderNumber}</h2>
+            <button onClick={() => setSelectedOrder(null)} className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">✕</button>
+          </div>
+
+          <div className="p-6 space-y-4 overflow-y-auto">
+            <div className="flex items-center gap-3">
+              <BrandLogo brandId={selectedOrder.brand} size={24} />
+              <span className="font-bold" style={{ color: BRAND_COLORS[selectedOrder.brand] }}>{selectedOrder.brand}</span>
+              <span className="ml-auto px-3 py-1 rounded-full text-xs font-bold" style={{
+                backgroundColor: `${(STATUS_LABELS[selectedOrder.status]?.color || '#6b7a99')}20`,
+                color: STATUS_LABELS[selectedOrder.status]?.color || '#6b7a99'
+              }}>● {STATUS_LABELS[selectedOrder.status]?.label || selectedOrder.status}</span>
+            </div>
+            <div className="text-sm text-slate-500 space-y-1">
+              <p><strong>Canal:</strong> {selectedOrder.channel}</p>
+              <p><strong>Tip:</strong> {selectedOrder.orderType === 'dine-in' ? `Masa ${selectedOrder.tableNumber}` : 'La pachet / Caserie'}</p>
+              <p><strong>Ora:</strong> {selectedOrder.createdAt ? new Date(selectedOrder.createdAt).toLocaleString('ro-RO') : '—'}</p>
+            </div>
+
+            <h3 className="text-sm font-bold uppercase text-slate-400 mb-3">Produse ({(selectedOrder.items || []).length})</h3>
+            <div className="space-y-3">
+              {(selectedOrder.items || []).map((item, idx) => {
+                const fullProd = menuProducts[item.productId] || (item.name && menuProducts[item.name.toLowerCase()]);
+                const overrideImg = menuImages[item.productId];
+                let imgSrc = overrideImg || item.imageUrl || (fullProd?.imageLinks && fullProd.imageLinks[0]) || fullProd?.image || null;
+                if (imgSrc && imgSrc.startsWith('/uploads')) imgSrc = `${BACKEND}${imgSrc}`;
+
+                return (
+                  <div key={idx} className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                       onClick={() => { if (fullProd) setSelectedItemDetail({ ...fullProd, originalItem: item }); }}>
+                    <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-700 shrink-0 flex items-center justify-center">
+                      {imgSrc
+                        ? <img src={imgSrc} alt={item.name} className="w-full h-full object-cover" />
+                        : <span className="text-2xl">🍽️</span>
+                      }
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-sm truncate">{item.name}</p>
+                      {item.selectedModifiers?.length > 0 && (
+                        <p className="text-xs text-slate-400 truncate">{item.selectedModifiers.map(m => m.optionName || m.modifierName).filter(Boolean).join(' · ')}</p>
+                      )}
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-xs font-bold text-blue-500">{item.quantity}x</span>
+                      <p className="font-bold text-sm">{(item.price || 0).toFixed(2)} lei</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-800">
+              <span className="text-sm font-bold uppercase text-slate-400">Total</span>
+              <span className="text-2xl font-black">{(selectedOrder.totalAmount || 0).toFixed(2)} lei</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* ── Product Detail Modal ── */}
+    {selectedItemDetail && (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setSelectedItemDetail(null)}>
+        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+          <div className="flex items-center justify-between px-8 py-5 border-b border-slate-200 dark:border-slate-800">
+            <h2 className="text-xl font-bold">{selectedItemDetail.name}</h2>
+            <button onClick={() => setSelectedItemDetail(null)} className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">✕</button>
+          </div>
+
+          <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
+            {/* LEFT: Image */}
+            <div className="md:w-2/5 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center p-8 md:border-r border-b md:border-b-0 border-slate-200 dark:border-slate-800">
+              {(() => {
+                let finalImg = menuImages[selectedItemDetail.id] || selectedItemDetail.image || (selectedItemDetail.imageLinks && selectedItemDetail.imageLinks[0]);
+                if (finalImg && finalImg.startsWith('/uploads')) finalImg = `${BACKEND}${finalImg}`;
+                if (finalImg) {
+                  return <img src={finalImg} alt={selectedItemDetail.name} className="w-full max-w-[250px] aspect-square object-cover rounded-3xl" />;
+                }
+                return (
+                  <div className="w-full max-w-[250px] aspect-square rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center">
+                    <span className="text-6xl">🍽️</span>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* RIGHT: Description from iiko */}
+            <div className="md:w-3/5 p-8 overflow-y-auto">
+              {(() => {
+                const trans = selectedItemDetail.translations || {};
+                const desc = trans.ro || trans.en || selectedItemDetail.description || '';
+                if (!desc) return <p className="text-slate-400 italic">Nicio descriere detaliată disponibilă în Syrve.</p>;
+                return <div className="text-sm leading-relaxed text-slate-700 dark:text-slate-300" dangerouslySetInnerHTML={{ __html: desc.replace(/\n/g, '<br/>') }} />;
+              })()}
+
+              <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
+                {selectedItemDetail.weight != null && <p className="text-sm text-slate-500"><strong className="text-slate-700 dark:text-white">Greutate:</strong> {selectedItemDetail.weight} kg</p>}
+                {selectedItemDetail.energyAmount != null && <p className="text-sm text-slate-500"><strong className="text-slate-700 dark:text-white">Energie:</strong> {selectedItemDetail.energyAmount} Kcal</p>}
+                {selectedItemDetail.fatAmount != null && <p className="text-sm text-slate-500"><strong className="text-slate-700 dark:text-white">Grăsimi:</strong> {selectedItemDetail.fatAmount}g</p>}
+                {selectedItemDetail.proteinsAmount != null && <p className="text-sm text-slate-500"><strong className="text-slate-700 dark:text-white">Proteine:</strong> {selectedItemDetail.proteinsAmount}g</p>}
+                {selectedItemDetail.carbohydratesAmount != null && <p className="text-sm text-slate-500"><strong className="text-slate-700 dark:text-white">Carbohidrați:</strong> {selectedItemDetail.carbohydratesAmount}g</p>}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
     </div>
   );
 }
 
 function StatCard({ label, value, color, large }) {
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 flex flex-col justify-center" style={{ borderLeft: `4px solid ${color}` }}>
+    <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 flex flex-col justify-center" style={{ borderLeft: `4px solid ${color}` }}>
       <span className={`font-bold text-slate-900 dark:text-white ${large ? 'text-4xl' : 'text-3xl'}`}>{value}</span>
       <span className="text-sm font-bold uppercase tracking-wider text-slate-500 mt-2">{label}</span>
     </div>
   );
 }
 
-function OrdersTable({ orders, full }) {
+function OrdersTable({ orders, full, onRowClick, selectedId }) {
   if (!orders || orders.length === 0)
-    return <p className="text-slate-500 dark:text-slate-400 py-8 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">Nicio comandă</p>;
+    return <p className="text-slate-500 dark:text-slate-400 py-8 text-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800">Nicio comandă</p>;
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-x-auto">
+    <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-x-auto">
       <table className="w-full text-left border-collapse min-w-[800px]">
         <thead>
           <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
@@ -393,7 +553,7 @@ function OrdersTable({ orders, full }) {
           {orders.map(o => {
             const sc = STATUS_LABELS[o.status] || { label: o.status, color: '#6b7a99' };
             return (
-              <tr key={o._id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+              <tr key={o._id} className={`transition-colors group cursor-pointer ${selectedId === o._id ? 'bg-blue-50 dark:bg-blue-500/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`} onClick={() => onRowClick && onRowClick(o)}>
                 <td className="px-6 py-4 text-sm font-bold text-slate-900 dark:text-white">#{o.orderNumber}</td>
                 <td className="px-6 py-4">
                   <span style={{ color: BRAND_COLORS[o.brand] }} className="flex items-center gap-2 text-sm font-bold">
@@ -401,7 +561,7 @@ function OrdersTable({ orders, full }) {
                   </span>
                 </td>
                 <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300"><span className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-xs font-medium">{o.channel}</span></td>
-                <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">{o.orderType === 'dine-in' ? `Masa ${o.tableNumber}` : 'Caserie'}</td>
+                <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">{o.orderType === 'dine-in' ? (o.tableNumber ? `Masa ${o.tableNumber}` : 'La masă') : 'Caserie'}</td>
                 <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
                   <div className="max-w-[200px] truncate" title={(o.items || []).map(i => `${i.quantity}x ${i.name}`).join(', ')}>
                     {(o.items || []).map(i => `${i.quantity}x ${i.name}`).join(', ').slice(0, 40)}...
@@ -419,6 +579,23 @@ function OrdersTable({ orders, full }) {
           })}
         </tbody>
       </table>
+
+      {full && (
+        <div className="flex flex-col md:flex-row items-center justify-between p-6 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 gap-4">
+          <div>
+            <p className="text-sm font-bold uppercase tracking-wider text-slate-500">Total Comenzi Active</p>
+            <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+              {orders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + (o.totalAmount || 0), 0).toFixed(2)} lei
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-sm font-bold uppercase tracking-wider text-slate-500">Total Comenzi Anulate</p>
+            <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+              {orders.filter(o => o.status === 'cancelled').reduce((s, o) => s + (o.totalAmount || 0), 0).toFixed(2)} lei
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -467,7 +644,7 @@ function KioskPosterCard({ brandId, brandName, emoji, backend }) {
     setEnabled(false);
   };
 
-  if (loading) return <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 animate-pulse h-64"></div>;
+  if (loading) return <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 animate-pulse h-64"></div>;
 
   // Auto-detect type from URL
   const detectType = (u) => {
@@ -484,7 +661,7 @@ function KioskPosterCard({ brandId, brandName, emoji, backend }) {
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
+    <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
       <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
         <span className="flex items-center gap-2 font-bold text-slate-900 dark:text-white"><BrandLogo brandId={brandId} size={20} /> {brandName}</span>
         <label className="flex items-center gap-3 cursor-pointer">
@@ -644,7 +821,7 @@ function KiosksManager({ backend }) {
       </div>
 
       {/* Tabel Business */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-x-auto">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-x-auto">
         <table className="w-full text-left border-collapse min-w-[800px]">
           <thead>
             <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
@@ -754,7 +931,7 @@ function KiosksManager({ backend }) {
             <select
               value={itemsPerPage}
               onChange={e => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-              className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+              className="text-sm border border-slate-200 dark:border-slate-700 rounded-full px-2 py-1 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
             >
               {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
             </select>
@@ -770,7 +947,7 @@ function KiosksManager({ backend }) {
               { label: '»', action: () => setCurrentPage(totalPages),  disabled: currentPage === totalPages, title: 'Ultima pagină' },
             ].map(btn => (
               <button key={btn.label} onClick={btn.action} disabled={btn.disabled} title={btn.title}
-                className={`w-8 h-8 rounded-lg border text-sm font-bold flex items-center justify-center transition-colors ${btn.disabled ? 'border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-slate-300 dark:text-slate-600 cursor-not-allowed' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer'}`}
+                className={`w-8 h-8 rounded-full border text-sm font-bold flex items-center justify-center transition-colors ${btn.disabled ? 'border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-slate-300 dark:text-slate-600 cursor-not-allowed' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer'}`}
               >{btn.label}</button>
             ))}
           </div>
@@ -2008,19 +2185,19 @@ function LocationsManager({ backend }) {
 
       {/* Add form */}
       {showAdd && (
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row gap-4 items-center">
+        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row gap-4 items-center">
           <input
             type="text"
             placeholder="Nume locație (ex: SM Brașov)"
             value={newName}
             onChange={e => setNewName(e.target.value)}
-            className="flex-1 w-full h-10 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
+            className="flex-1 w-full h-10 px-4 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
           />
           <div className="flex items-center gap-2 overflow-x-auto max-w-full">
             {Object.entries(BRAND_LABELS).map(([k, v]) => (
               <button
                 key={k}
-                className={`px-3 h-10 rounded-xl text-sm font-bold flex items-center gap-2 shrink-0 border transition-colors ${newBrands.includes(k) ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400' : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
+                className={`px-3 h-10 rounded-full text-sm font-bold flex items-center gap-2 shrink-0 border transition-colors ${newBrands.includes(k) ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400' : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
                 onClick={() => toggleBrand(k)}
               ><BrandLogo brandId={k} size={14} /> {v}</button>
             ))}
@@ -2030,15 +2207,15 @@ function LocationsManager({ backend }) {
             min="1" max="100"
             value={newTables}
             onChange={e => setNewTables(Number(e.target.value))}
-            className="w-24 h-10 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
+            className="w-24 h-10 px-4 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
             placeholder="Nr. mese"
           />
-          <button className="px-5 h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-sm transition-all" onClick={createLocation}>Salvează</button>
+          <button className="px-5 h-10 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-sm transition-all" onClick={createLocation}>Salvează</button>
         </div>
       )}
 
       {/* Locations table */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[800px]">
             <thead>
@@ -2113,7 +2290,7 @@ function LocationsManager({ backend }) {
             <select
               value={itemsPerPage}
               onChange={e => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-              className="text-sm font-bold border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 bg-white dark:bg-slate-900 text-slate-900 dark:text-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="text-sm font-bold border border-slate-200 dark:border-slate-700 rounded-full px-2 py-1 bg-white dark:bg-slate-900 text-slate-900 dark:text-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
             </select>
@@ -2129,7 +2306,7 @@ function LocationsManager({ backend }) {
               { label: '»', action: () => setCurrentPage(totalPages),  disabled: currentPage === totalPages, title: 'Ultima pagină' },
             ].map(btn => (
               <button key={btn.label} onClick={btn.action} disabled={btn.disabled} title={btn.title}
-                className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold transition-colors ${btn.disabled ? 'text-slate-300 dark:text-slate-700 cursor-not-allowed' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
+                className={`w-8 h-8 rounded-full flex items-center justify-center font-bold transition-colors ${btn.disabled ? 'text-slate-300 dark:text-slate-700 cursor-not-allowed' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
               >{btn.label}</button>
             ))}
           </div>
@@ -2176,7 +2353,7 @@ function LocationEditForm({ loc, backend, onBack, onSave }) {
     <div className="space-y-6 max-w-4xl animate-in fade-in duration-300">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
         <button onClick={onBack}
-          className="px-4 h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-2 shrink-0 shadow-sm"
+          className="px-4 h-10 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-2 shrink-0 shadow-sm"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"></path><polyline points="12 19 5 12 12 5"></polyline></svg>
           Înapoi
@@ -2188,7 +2365,7 @@ function LocationEditForm({ loc, backend, onBack, onSave }) {
           <p className="text-sm text-slate-500 mt-1">Editare locație</p>
         </div>
         <button onClick={saveLoc}
-          className="px-6 h-11 rounded-xl bg-slate-900 hover:bg-black dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-bold text-sm shadow-sm transition-all shrink-0"
+          className="px-6 h-11 rounded-full bg-slate-900 hover:bg-black dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-bold text-sm shadow-sm transition-all shrink-0"
         >
           Salvează Modificările
         </button>
@@ -2196,23 +2373,23 @@ function LocationEditForm({ loc, backend, onBack, onSave }) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Card: Nume & Mese */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-800">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-800">
           <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Informații Generale</h3>
           
           <div className="space-y-5">
             <div>
                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block">Nume Locație</label>
-               <input type="text" className="w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white transition-all" value={formData.name} onChange={e => handleChange('name', e.target.value)} placeholder="Ex: SM Bacău" />
+               <input type="text" className="w-full h-11 px-4 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white transition-all" value={formData.name} onChange={e => handleChange('name', e.target.value)} placeholder="Ex: SM Bacău" />
             </div>
             <div>
                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block">Număr de Mese (Kiosk/QR)</label>
-               <input type="number" className="w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white transition-all" value={formData.tables} onChange={e => handleChange('tables', parseInt(e.target.value)||0)} min="0" />
+               <input type="number" className="w-full h-11 px-4 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white transition-all" value={formData.tables} onChange={e => handleChange('tables', parseInt(e.target.value)||0)} min="0" />
             </div>
           </div>
         </div>
 
         {/* Card: Branduri Asignate */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-800">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-800">
           <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Restaurante Active</h3>
           
           <div className="flex flex-wrap gap-3">
@@ -2222,7 +2399,7 @@ function LocationEditForm({ loc, backend, onBack, onSave }) {
               return (
                 <button
                   key={k}
-                  className={`px-4 h-11 rounded-xl flex items-center gap-3 font-bold text-sm transition-all border-2 ${isActive ? 'text-white shadow-md' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 opacity-80 grayscale hover:grayscale-0 hover:opacity-100'}`}
+                  className={`px-4 h-11 rounded-full flex items-center gap-3 font-bold text-sm transition-all border-2 ${isActive ? 'text-white shadow-md' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 opacity-80 grayscale hover:grayscale-0 hover:opacity-100'}`}
                   style={isActive ? { background: pillColor, borderColor: pillColor, boxShadow: `0 4px 12px ${pillColor}40` } : {}}
                   onClick={() => toggleBrand(k)}
                 >
@@ -2234,7 +2411,7 @@ function LocationEditForm({ loc, backend, onBack, onSave }) {
         </div>
 
         {/* Card: Syrve API Keys */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-800 md:col-span-2">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-800 md:col-span-2">
           <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Setări Syrve (iiko) per locație</h3>
           <p className="text-sm text-slate-500 mb-6 max-w-3xl">Dacă un brand folosește un <code>Organization ID</code> diferit față de cel global (din .env), pune-l aici pentru a trimite comenzile corect la POS-ul locației corespunzătoare.</p>
           
@@ -2244,10 +2421,10 @@ function LocationEditForm({ loc, backend, onBack, onSave }) {
                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
                    <BrandLogo brandId={bId} size={14} /> Org ID ({bId})
                  </label>
-                 <input type="text" className="w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white transition-all font-mono" value={formData.orgIds[bId] || ''} onChange={e => handleOrgChange(bId, e.target.value)} placeholder="ID global implicit" />
+                 <input type="text" className="w-full h-11 px-4 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white transition-all font-mono" value={formData.orgIds[bId] || ''} onChange={e => handleOrgChange(bId, e.target.value)} placeholder="ID global implicit" />
                </div>
              ))}
-             {formData.brands.length === 0 && <span className="text-sm text-amber-600 dark:text-amber-400 font-medium p-4 bg-amber-50 dark:bg-amber-500/10 rounded-xl border border-amber-200 dark:border-amber-500/20 col-span-full">⚠️ Selectează măcar un brand pentru a seta suprascrieri de locație Syrve.</span>}
+             {formData.brands.length === 0 && <span className="text-sm text-amber-600 dark:text-amber-400 font-medium p-4 bg-amber-50 dark:bg-amber-500/10 rounded-full border border-amber-200 dark:border-amber-500/20 col-span-full">⚠️ Selectează măcar un brand pentru a seta suprascrieri de locație Syrve.</span>}
           </div>
         </div>
         

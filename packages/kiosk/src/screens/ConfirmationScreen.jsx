@@ -13,7 +13,7 @@ export default function ConfirmationScreen() {
   const paymentMethod = useKioskStore((s) => s.paymentMethod);
   const setShowWheel = useKioskStore((s) => s.setShowWheel);
   const wonPrize = useKioskStore((s) => s.wonPrize);
-  const [countdown, setCountdown] = useState(15);
+  const [countdown, setCountdown] = useState(30);
   const [orderNum] = useState(() => Math.floor(1000 + Math.random() * 9000));
   const total = getCartTotal();
 
@@ -116,7 +116,7 @@ export default function ConfirmationScreen() {
 
         {/* Auto-reset countdown */}
         <div className="confirm-countdown">
-          <div className="countdown-bar" style={{ '--pct': `${(countdown / 15) * 100}%` }} />
+          <div className="countdown-bar" style={{ '--pct': `${(countdown / 30) * 100}%` }} />
           <p>{t('screen_reset_in', lang)} <strong>{countdown}s</strong></p>
         </div>
 

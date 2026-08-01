@@ -65,7 +65,7 @@ function LocationList({ locations, onSelect }) {
           const hasMob = !!(loc.data?.mobileConfig?.topBannerUrl || loc.data?.mobileConfig?.posterUrl || loc.data?.mobileConfig?.bottomBannerUrl);
           return (
             <button key={loc.id} onClick={() => onSelect(loc)}
-              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 text-left cursor-pointer transition-all hover:-translate-y-1 hover:border-blue-500 dark:hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/10 flex flex-col gap-2 group"
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 text-left cursor-pointer transition-all hover:-translate-y-1 hover:border-blue-500 dark:hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/10 flex flex-col gap-2 group"
             >
               <div className="flex justify-between items-start">
                 <span className="text-base font-bold text-slate-900 dark:text-white">{loc.name}</span>
@@ -241,7 +241,7 @@ function LocationQrForm({ loc, backend, onBack, onRefresh }) {
       {/* ══ QR TAB ══════════════════════════════════ */}
       {activeTab === 'qr' && (
         <>
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm mb-8">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm mb-8">
             <div className="flex flex-wrap gap-6 items-end">
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Brand</label>
@@ -264,7 +264,7 @@ function LocationQrForm({ loc, backend, onBack, onRefresh }) {
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Nr. mese</label>
                 <input type="number" min="1" max="200" value={tableCount}
                   onChange={e => setTableCount(parseInt(e.target.value) || 1)}
-                  className="w-24 px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50" />
+                  className="w-24 px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50" />
               </div>
               <div className="ml-auto">
                 <button className="px-6 py-2.5 rounded-full text-white font-bold text-sm shadow-sm hover:brightness-110 transition-all" onClick={handleGenerate} disabled={savingQr}
@@ -281,7 +281,7 @@ function LocationQrForm({ loc, backend, onBack, onRefresh }) {
                 const n = i + 1;
                 const qrUrl = `${QR_WEB_BASE}/?brand=${brandId}&table=${n}&loc=${loc.id}`;
                 return (
-                  <div key={n} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm flex flex-col items-center">
+                  <div key={n} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm flex flex-col items-center">
                     <div className="w-full py-3 text-center text-white font-bold text-lg" style={{ background: selectedBrand.color }}>Masa {n}</div>
                     <div className="p-6 bg-white w-full flex justify-center">
                       <QRCodeCanvas id={`qr-canvas-${n}`} value={qrUrl} size={180} level="H" includeMargin={true}
@@ -325,10 +325,10 @@ function LocationQrForm({ loc, backend, onBack, onRefresh }) {
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Timeout inactivitate (secunde)</label>
             <input type="number" min="5" max="300" value={mob.inactivityTimeout}
               onChange={e => hm('inactivityTimeout', parseInt(e.target.value) || 30)}
-              className="w-32 px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 mb-6" />
+              className="w-32 px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 mb-6" />
 
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">URL Video / Imagine Screensaver</label>
-            <input type="url" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 mb-6" placeholder="https://... MP4 sau imagine"
+            <input type="url" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 mb-6" placeholder="https://... MP4 sau imagine"
               value={mob.posterUrl} onChange={e => hm('posterUrl', e.target.value)} />
 
             {mob.posterUrl ? (
@@ -339,7 +339,7 @@ function LocationQrForm({ loc, backend, onBack, onRefresh }) {
                 </div>
               </div>
             ) : (
-              <div className="h-24 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-400 text-sm font-medium">Fără screensaver.</div>
+              <div className="h-24 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-400 text-sm font-medium">Fără screensaver.</div>
             )}
           </div>
 
@@ -353,7 +353,7 @@ function LocationQrForm({ loc, backend, onBack, onRefresh }) {
 
             {useBanner && (
               <div className="animate-in fade-in duration-300">
-                <input type="url" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 mb-6" placeholder="URL Video MP4 sau Imagine..."
+                <input type="url" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 mb-6" placeholder="URL Video MP4 sau Imagine..."
                   value={mob.topBannerUrl} onChange={e => hm('topBannerUrl', e.target.value)} />
 
                 {mob.topBannerUrl && (
@@ -381,7 +381,7 @@ function LocationQrForm({ loc, backend, onBack, onRefresh }) {
             )}
 
             {/* Design — mereu vizibil */}
-            <div className="mt-4 p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-800">
+            <div className="mt-4 p-5 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-200 dark:border-slate-800">
               <label className="flex justify-between text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">
                 <span>Înălțime Banner</span><span className="text-slate-900 dark:text-white">Nivel {mob.topBannerHeight} / 5</span>
               </label>
@@ -390,7 +390,7 @@ function LocationQrForm({ loc, backend, onBack, onRefresh }) {
               
               <div className="flex flex-col sm:flex-row gap-3 mt-6">
                 {[['topBannerRadiusTop','Colțuri Sus Rotunde'],['topBannerRadiusBottom','Colțuri Jos Rotunde']].map(([key, lbl]) => (
-                  <label key={key} className="flex-1 bg-white dark:bg-slate-900 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between cursor-pointer shadow-sm">
+                  <label key={key} className="flex-1 bg-white dark:bg-slate-900 px-4 py-3 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-between cursor-pointer shadow-sm">
                     <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{lbl}</span>
                     <Toggle checked={mob[key]} onChange={v => hm(key, v)} />
                   </label>
@@ -410,21 +410,21 @@ function LocationQrForm({ loc, backend, onBack, onRefresh }) {
             {useBottomBanner && (
               <div className="animate-in fade-in duration-300">
                 <h4 className="m-0 mb-2 text-sm font-bold text-slate-900 dark:text-white">1. Reclamă (Video / Imagine)</h4>
-                <input type="url" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 mb-6" placeholder="https://... URL video sau imagine"
+                <input type="url" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 mb-6" placeholder="https://... URL video sau imagine"
                   value={mob.bottomBannerUrl} onChange={e => hm('bottomBannerUrl', e.target.value)} />
 
                 <h4 className="m-0 mb-2 text-sm font-bold text-slate-900 dark:text-white">2. Text Derulant</h4>
-                <textarea className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 mb-4 min-h-[80px] resize-y leading-relaxed" placeholder="Ex: Burger -20% azi! Gratis cartofi la orice combo!"
+                <textarea className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 mb-4 min-h-[80px] resize-y leading-relaxed" placeholder="Ex: Burger -20% azi! Gratis cartofi la orice combo!"
                   value={mob.bottomBannerText} onChange={e => hm('bottomBannerText', e.target.value)} />
 
                 {mob.bottomBannerText.length > 0 && (
-                  <div className="mb-6 p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-800">
+                  <div className="mb-6 p-5 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-200 dark:border-slate-800">
                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Mod Afișare Text</label>
                     <div className="flex gap-2 mb-6">
                       {[['false','Rulant'],['true','Fix']].map(([v, l]) => {
                         const isA = String(mob.bottomBannerTextFixed) === v;
                         return <button key={v} type="button" onClick={() => hm('bottomBannerTextFixed', v === 'true')}
-                          className={`flex-1 py-2 rounded-xl text-sm font-bold border-2 transition-colors ${isA ? 'border-slate-900 bg-slate-900 text-white dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'}`}>{l}</button>;
+                          className={`flex-1 py-2 rounded-full text-sm font-bold border-2 transition-colors ${isA ? 'border-slate-900 bg-slate-900 text-white dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'}`}>{l}</button>;
                       })}
                     </div>
                     
@@ -432,7 +432,7 @@ function LocationQrForm({ loc, backend, onBack, onRefresh }) {
                     <div className="flex gap-2">
                       {[['left','Stânga'],['center','Centru'],['right','Dreapta']].map(([v, l]) => (
                         <button key={v} type="button" onClick={() => hm('bottomBannerTextAlign', v)}
-                          className={`flex-1 py-2 rounded-xl text-sm font-bold border-2 transition-colors ${mob.bottomBannerTextAlign === v ? 'border-slate-900 bg-slate-900 text-white dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'}`}>{l}</button>
+                          className={`flex-1 py-2 rounded-full text-sm font-bold border-2 transition-colors ${mob.bottomBannerTextAlign === v ? 'border-slate-900 bg-slate-900 text-white dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'}`}>{l}</button>
                       ))}
                     </div>
                   </div>
@@ -441,7 +441,7 @@ function LocationQrForm({ loc, backend, onBack, onRefresh }) {
             )}
 
             {/* Design — mereu vizibil */}
-            <div className="mt-4 p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-800">
+            <div className="mt-4 p-5 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-200 dark:border-slate-800">
               <label className="flex justify-between text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">
                 <span>Înălțime Banner</span><span className="text-slate-900 dark:text-white">Nivel {mob.bottomBannerHeight} / 5</span>
               </label>
@@ -450,7 +450,7 @@ function LocationQrForm({ loc, backend, onBack, onRefresh }) {
               
               <div className="flex flex-col sm:flex-row gap-3">
                 {[['bottomBannerRadiusTop','Colțuri Sus Rotunde'],['bottomBannerRadiusBottom','Colțuri Jos Rotunde']].map(([key, lbl]) => (
-                  <label key={key} className="flex-1 bg-white dark:bg-slate-900 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between cursor-pointer shadow-sm">
+                  <label key={key} className="flex-1 bg-white dark:bg-slate-900 px-4 py-3 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-between cursor-pointer shadow-sm">
                     <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{lbl}</span>
                     <Toggle checked={mob[key]} onChange={v => hm(key, v)} />
                   </label>
@@ -511,7 +511,7 @@ export default function QrGenerator({ backend }) {
   );
   
   if (!locations.length) return (
-    <div className="p-12 text-center text-slate-500 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+    <div className="p-12 text-center text-slate-500 bg-slate-50 dark:bg-slate-900 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
       Nu ai nicio locație creată.
     </div>
   );

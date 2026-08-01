@@ -68,7 +68,7 @@ router.post('/', async (req, res) => {
       channel:      channel || 'kiosk',
       paymentMethod: paymentMethod || 'card',
       paymentRef: paymentRef || null,  // { authCode, receiptNo, cardNo, refNum } from VeriFone
-      status:      'pending',
+      status:      (paymentMethod || 'card') === 'cash' ? 'awaiting_payment' : 'pending',
       syrveOrderId: null,
       arrivedAt:   Date.now(),
       createdAt:   new Date().toISOString(),
@@ -99,6 +99,8 @@ router.post('/', async (req, res) => {
     res.json({ success: true, order });
 
     // ── Send to Syrve async (fire-and-forget, Split by Brand) ──
+    // SKIP Syrve for cash orders — they go to iiko only after cashier confirms payment
+    if (order.paymentMethod !== 'cash') {
     setImmediate(async () => {
       try {
         // Read locations to find orgIds dictionary
@@ -170,6 +172,7 @@ router.post('/', async (req, res) => {
         console.error(`[Syrve] Grouping logic failed for order #${orderNumber}:`, err.message);
       }
     });
+    } // end if not cash
 
   } catch (err) {
     console.error('[Orders] POST error:', err);
@@ -201,16 +204,62 @@ router.get('/:id', async (req, res) => {
 
 // ── PATCH /api/orders/:id/status ───────────────────────────────────────
 router.patch('/:id/status', async (req, res) => {
-  const { status } = req.body;
-  const valid = ['pending','confirmed','preparing','ready','delivered','completed'];
+  const { status, canceledBy } = req.body;
+  const valid = ['awaiting_payment','pending','confirmed','preparing','ready','delivered','completed','cancelled'];
   if (!valid.includes(status)) {
     return res.status(400).json({ error: `Invalid status. Valid: ${valid.join(', ')}` });
   }
   const order = _orders.find(o => o._id === req.params.id);
   if (order) {
+    // ── Block status changes on cancelled orders ──
+    if (order.status === 'cancelled' && status !== 'cancelled') {
+      return res.status(400).json({ error: 'Comanda a fost anulată și nu poate fi modificată.' });
+    }
+    const wasCashWaiting = order.status === 'awaiting_payment' && order.paymentMethod === 'cash';
     order.status = status;
     order.updatedAt = new Date().toISOString();
+    if (status === 'cancelled' && canceledBy) {
+      order.canceledBy = canceledBy;
+    }
     saveOrders();
+
+    // Dacă casierul tocmai a confirmat plata cash → trimitem la iiko acum
+    if (wasCashWaiting && (status === 'pending' || status === 'confirmed')) {
+      console.log(`[Order] 💵 Casier a confirmat plata cash #${order.orderNumber} — trimit la iiko`);
+      setImmediate(async () => {
+        try {
+          const locsPath = path.join(__dirname, '../../data/locations.json');
+          let orgIdsDict = {};
+          if (fs.existsSync(locsPath)) {
+            try {
+              const locs = JSON.parse(fs.readFileSync(locsPath, 'utf8'));
+              const locData = locs.find(l => l.id === order.locationId);
+              if (locData?.orgIds) orgIdsDict = locData.orgIds;
+            } catch(e) {}
+          }
+          const brandsMap = {};
+          for (const item of order.items) {
+            const bId = item.brandId || order.brand;
+            if (!brandsMap[bId]) brandsMap[bId] = { items: [], totalAmount: 0 };
+            brandsMap[bId].items.push(item);
+            brandsMap[bId].totalAmount += (item.totalPrice || 0);
+          }
+          const syrveIds = [];
+          for (const [bId, brandData] of Object.entries(brandsMap)) {
+            const specificOrgId = orgIdsDict[bId] || order.orgId || null;
+            const splitOrder = { ...order, brand: bId, orgId: specificOrgId, items: brandData.items, totalAmount: Math.round(brandData.totalAmount * 100) / 100 };
+            try {
+              const syrveResult = await syrveCreateOrder({ brandId: bId, orgId: specificOrgId, order: splitOrder });
+              if (syrveResult?.orderInfo?.id || syrveResult?.id) syrveIds.push(syrveResult?.orderInfo?.id || syrveResult?.id);
+            } catch (e) { console.error(`[Syrve] ❌ cash confirm error ${bId}:`, e.message); }
+          }
+          if (syrveIds.length > 0) {
+            order.syrveOrderId = syrveIds.join(',');
+            saveOrders();
+          }
+        } catch (err) { console.error(`[Syrve] Cash confirm failed #${order.orderNumber}:`, err.message); }
+      });
+    }
   }
 
   const io = req.app.get('io');

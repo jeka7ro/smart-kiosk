@@ -211,13 +211,13 @@ export default function TranslationsScreen({ backend }) {
       </div>
 
       {message && (
-        <div className={`p-4 rounded-xl border font-medium ${message.type === 'error' ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800' : 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'}`}>
+        <div className={`p-4 rounded-full border font-medium ${message.type === 'error' ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800' : 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'}`}>
           {message.text}
         </div>
       )}
 
       {/* Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -281,7 +281,7 @@ export default function TranslationsScreen({ backend }) {
                         <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
                           <td colSpan="5" className="p-6">
                             <div className="flex flex-col xl:flex-row gap-6">
-                              <div className="xl:w-1/3 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm h-fit">
+                              <div className="xl:w-1/3 bg-white dark:bg-slate-900 p-4 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm h-fit">
                                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Descriere Originală (Syrve):</label>
                                 <p className="text-sm text-slate-900 dark:text-white m-0 leading-relaxed">{item.originalDescription || <em className="text-slate-400">Fără descriere la bază.</em>}</p>
                               </div>
@@ -302,7 +302,7 @@ export default function TranslationsScreen({ backend }) {
                                         onChange={e => setEditData({ ...editData, [lang]: e.target.value })}
                                         placeholder={`Traducerea în ${lang}...`}
                                         rows={3}
-                                        className="w-full p-3 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-shadow resize-none"
+                                        className="w-full p-3 text-sm rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-shadow resize-none"
                                       />
                                     </div>
                                   ))}
@@ -336,7 +336,7 @@ export default function TranslationsScreen({ backend }) {
           <select
             value={pageSize}
             onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}
-            className="px-2 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
+            className="px-2 py-1.5 border border-slate-200 dark:border-slate-700 rounded-full bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
           >
             <option value={10}>10</option>
             <option value={25}>25</option>
@@ -352,23 +352,23 @@ export default function TranslationsScreen({ backend }) {
         
         {totalPages > 1 && (
           <div className="flex gap-1.5">
-            <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium" disabled={page === 1} onClick={() => setPage(1)}>«</button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium" disabled={page === 1} onClick={() => setPage(p => p - 1)}>‹</button>
+            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium" disabled={page === 1} onClick={() => setPage(1)}>«</button>
+            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium" disabled={page === 1} onClick={() => setPage(p => p - 1)}>‹</button>
             {Array.from({ length: totalPages }, (_, k) => k + 1)
               .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
               .map((p, idx, arr) => (
                 <React.Fragment key={p}>
                   {idx > 0 && arr[idx - 1] !== p - 1 && <span className="px-2 py-1 text-slate-400">…</span>}
                   <button
-                    className={`min-w-[32px] h-8 px-2 flex items-center justify-center rounded-lg border font-bold transition-colors ${p === page ? 'bg-blue-600 border-blue-600 text-white shadow-sm' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
+                    className={`min-w-[32px] h-8 px-2 flex items-center justify-center rounded-full border font-bold transition-colors ${p === page ? 'bg-blue-600 border-blue-600 text-white shadow-sm' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
                     onClick={() => setPage(p)}
                   >
                     {p}
                   </button>
                 </React.Fragment>
               ))}
-            <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>›</button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium" disabled={page === totalPages} onClick={() => setPage(totalPages)}>»</button>
+            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>›</button>
+            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium" disabled={page === totalPages} onClick={() => setPage(totalPages)}>»</button>
           </div>
         )}
       </div>

@@ -182,7 +182,7 @@ export default function Integrations() {
           syncing={syncing}
         />
         {toast && (
-          <div className={`fixed bottom-6 right-6 px-6 py-3 rounded-2xl text-sm font-bold shadow-xl flex items-center gap-3 z-50 animate-in slide-in-from-bottom-5 ${toast.type === 'err' ? 'bg-red-600 text-white' : 'bg-emerald-600 text-white'}`}>
+          <div className={`fixed bottom-6 right-6 px-6 py-3 rounded-3xl text-sm font-bold shadow-xl flex items-center gap-3 z-50 animate-in slide-in-from-bottom-5 ${toast.type === 'err' ? 'bg-red-600 text-white' : 'bg-emerald-600 text-white'}`}>
             {toast.msg}
           </div>
         )}
@@ -237,7 +237,7 @@ export default function Integrations() {
            <span className="text-slate-500 text-sm font-medium">Se încarcă...</span>
         </div>
       ) : (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -357,18 +357,18 @@ export default function Integrations() {
             {(page-1)*PAGE_SIZE+1}–{Math.min(page*PAGE_SIZE, filtered.length)} din {filtered.length}
           </span>
           <div className="flex gap-1.5">
-            <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium" disabled={page===1} onClick={() => setPage(1)}>«</button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium" disabled={page===1} onClick={() => setPage(p => p-1)}>‹</button>
+            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium" disabled={page===1} onClick={() => setPage(1)}>«</button>
+            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium" disabled={page===1} onClick={() => setPage(p => p-1)}>‹</button>
             {Array.from({ length: totalPages }, (_, k) => k+1)
               .filter(p => p===1 || p===totalPages || Math.abs(p-page)<=2)
               .map((p, idx, arr) => (
                 <React.Fragment key={`frag-${p}`}>
                   {idx>0 && arr[idx-1]!==p-1 && <span key={`e${p}`} className="px-2 py-1 text-slate-400">…</span>}
-                  <button key={p} className={`min-w-[32px] h-8 px-2 flex items-center justify-center rounded-lg border font-bold transition-colors ${p === page ? 'bg-blue-600 border-blue-600 text-white shadow-sm' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`} onClick={() => setPage(p)}>{p}</button>
+                  <button key={p} className={`min-w-[32px] h-8 px-2 flex items-center justify-center rounded-full border font-bold transition-colors ${p === page ? 'bg-blue-600 border-blue-600 text-white shadow-sm' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`} onClick={() => setPage(p)}>{p}</button>
                 </React.Fragment>
               ))}
-            <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium" disabled={page===totalPages} onClick={() => setPage(p => p+1)}>›</button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium" disabled={page===totalPages} onClick={() => setPage(totalPages)}>»</button>
+            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium" disabled={page===totalPages} onClick={() => setPage(p => p+1)}>›</button>
+            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium" disabled={page===totalPages} onClick={() => setPage(totalPages)}>»</button>
           </div>
         </div>
       )}
@@ -389,7 +389,7 @@ export default function Integrations() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <label className="col-span-1 sm:col-span-2 block">
                   <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Nume afișat *</span>
-                  <input className="w-full px-4 h-11 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-shadow" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder='ex: "SmashMe - Syrve Brașov"' />
+                  <input className="w-full px-4 h-11 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-shadow" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder='ex: "SmashMe - Syrve Brașov"' />
                 </label>
 
                 <label className="col-span-1 sm:col-span-2 block">
@@ -400,7 +400,7 @@ export default function Integrations() {
                         key={p.key}
                         type="button"
                         onClick={() => setForm(prev => ({ ...prev, provider: p.key, credentials: {} }))}
-                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border-2 transition-all ${form.provider === p.key ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'}`}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-bold border-2 transition-all ${form.provider === p.key ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'}`}
                       >
                         {PROVIDER_LOGOS[p.key]
                           ? <img src={PROVIDER_LOGOS[p.key]} alt={p.label} className="w-5 h-5 rounded bg-white object-contain" onError={e => { e.target.style.display='none'; }} />
@@ -417,11 +417,11 @@ export default function Integrations() {
 
                 <label className="block">
                   <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Brand ID (kiosk)</span>
-                  <input className="w-full px-4 h-11 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-shadow" value={form.brand_id} onChange={e => setForm(p => ({ ...p, brand_id: e.target.value }))} placeholder="smashme / sushimaster" />
+                  <input className="w-full px-4 h-11 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-shadow" value={form.brand_id} onChange={e => setForm(p => ({ ...p, brand_id: e.target.value }))} placeholder="smashme / sushimaster" />
                 </label>
                 <label className="block">
                   <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Location ID</span>
-                  <input className="w-full px-4 h-11 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-shadow" value={form.location_id} onChange={e => setForm(p => ({ ...p, location_id: e.target.value }))} placeholder="(opțional)" />
+                  <input className="w-full px-4 h-11 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-shadow" value={form.location_id} onChange={e => setForm(p => ({ ...p, location_id: e.target.value }))} placeholder="(opțional)" />
                 </label>
               </div>
 
@@ -439,7 +439,7 @@ export default function Integrations() {
                         <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{f.label}</span>
                         {f.type === 'textarea' ? (
                           <textarea
-                            className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-shadow font-mono text-sm resize-y"
+                            className="w-full p-4 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-shadow font-mono text-sm resize-y"
                             rows={3}
                             value={form.credentials[f.key] || ''}
                             onChange={e => setCredField(f.key, e.target.value)}
@@ -447,7 +447,7 @@ export default function Integrations() {
                           />
                         ) : (
                           <input
-                            className="w-full px-4 h-11 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-shadow font-mono text-sm"
+                            className="w-full px-4 h-11 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-shadow font-mono text-sm"
                             type={f.type}
                             value={form.credentials[f.key] || ''}
                             onChange={e => setCredField(f.key, e.target.value)}
@@ -463,7 +463,7 @@ export default function Integrations() {
 
               {/* Test result */}
               {testResult && (
-                <div className={`mt-6 p-4 rounded-xl border font-medium flex items-center gap-3 ${testResult.ok ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50' : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800/50'}`}>
+                <div className={`mt-6 p-4 rounded-full border font-medium flex items-center gap-3 ${testResult.ok ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50' : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800/50'}`}>
                   <span className="text-xl">{testResult.ok ? '✅' : '❌'}</span>
                   <span>{testResult.msg}</span>
                 </div>
@@ -491,7 +491,7 @@ export default function Integrations() {
 
       {/* Toast */}
       {toast && (
-        <div className={`fixed bottom-6 right-6 px-6 py-3 rounded-2xl text-sm font-bold shadow-xl flex items-center gap-3 z-50 animate-in slide-in-from-bottom-5 ${toast.type === 'err' ? 'bg-red-600 text-white' : 'bg-emerald-600 text-white'}`}>
+        <div className={`fixed bottom-6 right-6 px-6 py-3 rounded-3xl text-sm font-bold shadow-xl flex items-center gap-3 z-50 animate-in slide-in-from-bottom-5 ${toast.type === 'err' ? 'bg-red-600 text-white' : 'bg-emerald-600 text-white'}`}>
           {toast.msg}
         </div>
       )}

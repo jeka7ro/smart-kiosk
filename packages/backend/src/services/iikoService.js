@@ -11,6 +11,8 @@
 const API_URL = process.env.SYRVE_API_URL || 'https://api-eu.syrve.live';
 const translator = require('./translatorService.js');
 const { syncProductImages } = require('./imageService.js');
+const fs = require('fs');
+const path = require('path');
 
 // Brand config — each brand has its own API key + org ID
 const BRANDS = {
@@ -471,6 +473,32 @@ const SYRVE_PAYMENT_TYPES = {
   },
 };
 
+const IIKO_LOGS_FILE = path.join(__dirname, '..', '..', 'data', 'iiko_logs.json');
+
+function logIikoRequest(orderId, brandId, payload, response, error = null) {
+  try {
+    let logs = [];
+    if (fs.existsSync(IIKO_LOGS_FILE)) {
+      logs = JSON.parse(fs.readFileSync(IIKO_LOGS_FILE, 'utf8'));
+    }
+    const logEntry = {
+      id: orderId,
+      timestamp: new Date().toISOString(),
+      brandId,
+      status: error ? 'error' : 'success',
+      payload,
+      response: error ? { errorDescription: error } : response
+    };
+    logs.unshift(logEntry); // Add to beginning
+    if (logs.length > 500) {
+      logs = logs.slice(0, 500); // Keep last 500
+    }
+    fs.writeFileSync(IIKO_LOGS_FILE, JSON.stringify(logs, null, 2), 'utf8');
+  } catch (e) {
+    console.error('[Syrve] Failed to write iiko log:', e.message);
+  }
+}
+
 async function createOrder({ brandId = 'smashme', orgId, order }) {
   const brand = BRANDS[brandId];
 
@@ -486,6 +514,7 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
     return null;
   }
 
+  let payload = {};
   try {
     // Map payment method to Syrve payment type
     const pMethod = (order.paymentMethod || 'card').toLowerCase();
@@ -520,7 +549,7 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
       ? `Masa #${order.tableNumber} | Kiosk #${order.orderNumber}`
       : `La pachet | Kiosk #${order.orderNumber}`;
 
-    const payload = {
+    payload = {
       createOrderSettings: {
         mode: 'Async',
       },
@@ -546,7 +575,7 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
           },
         ],
         phone: null,
-        orderTypeId: null,
+        orderServiceType: 'DeliveryByClient',
         externalNumber: `K${order.orderNumber}`,
         comment: orderComment,
         sourceKey: 'Smart Kiosk',
@@ -558,12 +587,15 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
     const res = await syrvePost('/api/1/deliveries/create', payload, brandId);
     if (res.errorDescription) {
       console.error(`[Syrve] createOrder error [${brandId}]:`, res.errorDescription);
+      logIikoRequest(order.orderNumber || order.id, brandId, payload, res, res.errorDescription);
       return null;
     }
     console.log(`[Syrve] ✅ Order created [${brandId}]:`, res?.orderInfo?.id || res?.id);
+    logIikoRequest(order.orderNumber || order.id, brandId, payload, res);
     return res;
   } catch (err) {
     console.error(`[Syrve] createOrder exception [${brandId}]:`, err.message);
+    logIikoRequest(order?.orderNumber || order?.id || 'unknown', brandId, payload || {}, null, err.message);
     return null;
   }
 }
