@@ -539,7 +539,7 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
 
     // Build comment
     const orderComment = order.orderType === 'dine-in'
-      ? `Masa #${order.tableNumber} | Kiosk #${order.orderNumber}`
+      ? `La masa | Kiosk #${order.orderNumber}`
       : `La pachet | Kiosk #${order.orderNumber}`;
 
     payload = {
@@ -564,7 +564,7 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
             isFiscalizedExternally: false,
           },
         ],
-        phone: '40000000000',
+        phone: '+40000000000',
         orderServiceType: 'DeliveryByClient',
         externalNumber: `K${order.orderNumber}`,
         comment: orderComment,
