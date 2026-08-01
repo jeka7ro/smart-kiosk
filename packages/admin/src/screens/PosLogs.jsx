@@ -54,7 +54,7 @@ export default function PosLogs() {
         today: prev.today + 1,
         todayApproved: entry.paid ? prev.todayApproved + 1 : prev.todayApproved,
         todayDeclined: !entry.paid ? prev.todayDeclined + 1 : prev.todayDeclined,
-        todayRevenue: entry.paid ? prev.todayRevenue + (entry.amount || 0) : prev.todayRevenue,
+        todayRevenue: entry.paid ? prev.todayRevenue + (Number(entry.amount) || 0) : prev.todayRevenue,
       } : prev);
     });
     return () => socket.disconnect();
@@ -183,7 +183,7 @@ export default function PosLogs() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-sm font-bold text-slate-900 dark:text-white">
-                    {(log.amount || 0).toFixed(2)} RON
+                    {(Number(log.amount) || 0).toFixed(2)} RON
                   </td>
                   <td className="px-4 py-3">
                     <span
