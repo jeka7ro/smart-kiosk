@@ -34,20 +34,15 @@ async function printTicket(order) {
 
     printer.alignCenter();
     
-    // Print brand logos based on order.items
+    // FARA IMAGINI pe Windows (driverul strica codul binar)
     const uniqueBrands = [...new Set(order.items.map(i => i.brandId || order.brand))];
     for (const brand of uniqueBrands) {
-       const logoPath = path.join(__dirname, 'assets', 'logos', `${brand}.png`);
-       if (fs.existsSync(logoPath)) {
-         await printer.printImage(logoPath);
-       } else {
-         // Fallback text if logo missing
-         printer.bold(true);
-         printer.setTextSize(1,1);
-         printer.println(brand.toUpperCase());
-         printer.bold(false);
-         printer.setTextNormal();
-       }
+       // Fallback text
+       printer.bold(true);
+       printer.setTextSize(1,1);
+       printer.println(brand.toUpperCase());
+       printer.bold(false);
+       printer.setTextNormal();
     }
     
     printer.newLine();
