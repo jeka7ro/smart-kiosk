@@ -1045,6 +1045,30 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [showWheelPreviewFull, setShowWheelPreviewFull] = useState(false);
   const [editingMenuBrand, setEditingMenuBrand] = useState(null);
+  const [uploadingScreensaver, setUploadingScreensaver] = useState(false);
+
+  const handleScreensaverUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingScreensaver(true);
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      const res = await fetchWithAuth(`${backend}/api/locations/${loc.id}/screensaver`, {
+        method: 'POST',
+        body: fd
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setFormData(prev => ({ ...prev, posterUrl: data.posterUrl }));
+      } else {
+        alert('Eroare: ' + data.error);
+      }
+    } catch (err) {
+      alert('Eroare la încărcare imagine');
+    }
+    setUploadingScreensaver(false);
+  };
 
   const [promosData, setPromosData] = useState({});
   useEffect(() => {
@@ -1658,14 +1682,20 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>Rulare automată reclamă full-screen dacă tableta stă neatinsă 30s.</p>
           
           <div style={{ display: 'flex', gap: '12px', marginBottom: 16 }}>
-            <input 
-              type="url" 
-              className="pc-input" 
-              placeholder="URL Video MP4 sau Imagine..."
-              value={formData.posterUrl}
-              onChange={e => handleChange('posterUrl', e.target.value)}
-              style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', flex: 1, boxSizing: 'border-box' }}
-            />
+            <div style={{ flex: 1, display: 'flex', gap: '8px' }}>
+              <input 
+                type="url" 
+                className="pc-input" 
+                placeholder="URL Video MP4 sau Imagine..."
+                value={formData.posterUrl}
+                onChange={e => handleChange('posterUrl', e.target.value)}
+                style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', flex: 1, boxSizing: 'border-box' }}
+              />
+              <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px', borderRadius: 10, background: 'var(--primary)', color: '#fff', fontSize: '0.85rem', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap', opacity: uploadingScreensaver ? 0.7 : 1 }}>
+                {uploadingScreensaver ? 'Se încarcă...' : '📂 Încarcă'}
+                <input type="file" accept="image/*,video/mp4" style={{ display: 'none' }} onChange={handleScreensaverUpload} disabled={uploadingScreensaver} />
+              </label>
+            </div>
             <select
               className="pc-input"
               value={formData.posterRotation || 0}

@@ -4,6 +4,26 @@ const path = require('path');
 const fs = require('fs');
 const { pool } = require('../db');
 const { protect, requireApiKey } = require('../middleware/authMiddleware');
+const multer = require('multer');
+
+const uploadDir = path.join(__dirname, '../../uploads/screensavers');
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase() || '.png';
+    cb(null, `${req.params.id}_${Date.now()}${ext}`);
+  },
+});
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  fileFilter: (req, file, cb) => {
+    if (/^image\/(jpeg|png|webp|gif)$/.test(file.mimetype)) cb(null, true);
+    else cb(new Error('Only image files allowed'));
+  },
+});
 
 const LOCATIONS_FILE = path.join(__dirname, '../../data/locations.json');
 const hasDb = !!process.env.DATABASE_URL;
@@ -209,6 +229,18 @@ router.post('/:id/restart', protect, async (req, res) => {
     }
   } catch (e) {
     console.error('[Locations RESTART]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/locations/:id/screensaver — upload local screensaver image
+router.post('/:id/screensaver', protect, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    const backendUrl = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 4000}`;
+    const fileUrl = `${backendUrl}/uploads/screensavers/${req.file.filename}`;
+    res.json({ ok: true, posterUrl: fileUrl });
+  } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
