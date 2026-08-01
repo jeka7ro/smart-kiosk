@@ -38,11 +38,17 @@ async function runTest() {
 
     printer.alignCenter();
     
-    // Printeaza logoul de test doar ca TEXT pentru testare
-    printer.bold(true);
-    printer.setTextSize(2,2);
-    printer.println("ROLLMASTER (TEST)");
-    printer.setTextNormal();
+    // Printeaza logoul de test
+    const testLogo = path.join(__dirname, 'assets', 'logos', `smashme.png`);
+    if (fs.existsSync(testLogo)) {
+      console.log('[Test Printer] Printez logo-ul de proba pentru a testa driverul...');
+      await printer.printImage(testLogo);
+    } else {
+      printer.bold(true);
+      printer.setTextSize(2,2);
+      printer.println("SMASHME (TEST)");
+      printer.setTextNormal();
+    }
     
     printer.newLine();
     printer.bold(true);
