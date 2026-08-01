@@ -4,10 +4,18 @@ const fs = require('fs');
 
 const PRINTER_NAME = process.env.PRINTER_NAME || 'EPSON TM-T20II Receipt';
 
+let printerDriver;
+try {
+  printerDriver = require('@thiagoelg/node-printer');
+} catch (e) {
+  console.log('[Printer] Pachetul nativ "@thiagoelg/node-printer" nu a fost gasit.');
+}
+
 async function printTicket(order) {
   let printer = new ThermalPrinter({
     type: PrinterTypes.EPSON,
     interface: `printer:${PRINTER_NAME}`,
+    driver: printerDriver,
     characterSet: CharacterSet.PC852_LATIN2,
     removeSpecialCharacters: false,
     lineCharacter: "-",
