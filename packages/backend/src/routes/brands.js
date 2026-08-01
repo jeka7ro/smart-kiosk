@@ -85,7 +85,7 @@ router.post('/:brandId/logo', protect, upload.single('logo'), async (req, res) =
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
     
     // Build the public URL for the uploaded logo
-    const backendUrl = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 4000}`;
+    const backendUrl = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
     const ext = path.extname(req.file.filename);
     const logoUrl = `${backendUrl}/uploads/brands/${req.params.brandId}${ext}`;
 

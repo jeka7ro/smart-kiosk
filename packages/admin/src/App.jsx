@@ -484,6 +484,9 @@ export default function AdminApp() {
                 return (
                   <div key={idx} className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                        onClick={() => { if (fullProd) setSelectedItemDetail({ ...fullProd, originalItem: item }); }}>
+                    <div className="font-bold text-slate-400 text-sm shrink-0 w-6 text-right">
+                      {idx + 1}.
+                    </div>
                     <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-700 shrink-0 flex items-center justify-center">
                       {imgSrc
                         ? <img src={imgSrc} alt={item.name} className="w-full h-full object-cover" />

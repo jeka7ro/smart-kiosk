@@ -237,7 +237,7 @@ router.post('/:id/restart', protect, async (req, res) => {
 router.post('/:id/screensaver', protect, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-    const backendUrl = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 4000}`;
+    const backendUrl = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
     const fileUrl = `${backendUrl}/uploads/screensavers/${req.file.filename}`;
     res.json({ ok: true, posterUrl: fileUrl });
   } catch (e) {
