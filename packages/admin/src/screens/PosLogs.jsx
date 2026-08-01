@@ -10,7 +10,7 @@ const STATUS_CONFIG = {
   timeout:  { label: 'Timeout',  color: '#f59e0b', bg: '#f59e0b20', icon: '⏱' },
 };
 
-export default function PosLogs() {
+export default function PosLogs({ onGoToOrder }) {
   const { fetchWithAuth } = useAuth();
   const [logs, setLogs]   = useState([]);
   const [stats, setStats] = useState(null);
@@ -165,7 +165,7 @@ export default function PosLogs() {
               const sc = STATUS_CONFIG[log.status] || STATUS_CONFIG.declined;
               const dt = log.timestamp ? new Date(log.timestamp) : null;
               return (
-                <tr key={log._id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                <tr key={log._id} onClick={() => onGoToOrder && onGoToOrder(log.orderId)} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer">
                   <td className="px-4 py-3 text-sm font-medium text-slate-500">
                     {(currentPage - 1) * itemsPerPage + idx + 1}
                   </td>

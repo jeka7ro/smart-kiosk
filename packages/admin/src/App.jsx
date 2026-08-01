@@ -432,7 +432,15 @@ export default function AdminApp() {
           {tab === 'modifiers' && <ModifierImages />}
           {tab === 'products' && <ProductOverrides />}
           {tab === 'integrations' && <Integrations />}
-          {tab === 'pos-logs' && <PosLogs />}
+          {tab === 'pos-logs' && <PosLogs onGoToOrder={(orderId) => {
+            const foundOrder = orders.find(o => o._id === orderId);
+            if (foundOrder) {
+              setTab('orders');
+              setSelectedOrder(foundOrder);
+            } else {
+              alert('Comanda nu a fost gasita in memorie (posibil a fost incarcata pe alta locatie).');
+            }
+          }} />}
           {tab === 'iiko-logs' && <IikoLogs />}
           {tab === 'promotions' && <Promotions />}
           {tab === 'users' && <UsersManager />}
