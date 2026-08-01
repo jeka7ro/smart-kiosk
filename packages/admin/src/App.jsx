@@ -351,14 +351,7 @@ export default function AdminApp() {
         {/* ─── DASHBOARD ─── */}
         {tab === 'dashboard' && (
           <div className="space-y-8 px-4 md:px-8 pb-10">
-            <div className="flex items-center justify-end">
-              <button 
-                onClick={() => window.open(`${BACKEND}/api/admin/backup?token=${localStorage.getItem('admin-token')}`, '_blank')}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-full shadow-sm text-sm flex items-center gap-2 transition-all"
-              >
-                <Download className="w-4 h-4" /> Descarcă Backup Date (.json)
-              </button>
-            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <StatCard label="Comenzi Azi" value={stats.todayTotal} color="var(--primary)" large />
               <StatCard label="SmashMe"   value={stats.smashme} color={BRAND_COLORS.smashme} />
