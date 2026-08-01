@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
 const { protect } = require('../middleware/authMiddleware');
+const fs = require('fs');
+const path = require('path');
 
 // Admin routes — require JWT auth in production
 // GET /api/admin/dashboard
@@ -17,6 +19,27 @@ router.get('/dashboard', protect, async (req, res) => {
 // GET /api/admin/orders?date=&locationId=&status=
 router.get('/orders', protect, async (req, res) => {
   res.json({ orders: [], total: 0 });
+});
+
+// GET /api/admin/backup
+router.get('/backup', protect, async (req, res) => {
+  try {
+    const dataDir = path.join(__dirname, '../../data');
+    const files = ['orders.json', 'iiko_logs.json', 'pos-logs.json'];
+    const backup = {};
+    for (const f of files) {
+      const p = path.join(dataDir, f);
+      if (fs.existsSync(p)) {
+        backup[f] = JSON.parse(fs.readFileSync(p, 'utf8'));
+      }
+    }
+    // Set headers to trigger a file download in the browser
+    res.setHeader('Content-disposition', `attachment; filename=kiosk_backup_${new Date().toISOString().replace(/[:.]/g, '-')}.json`);
+    res.setHeader('Content-type', 'application/json');
+    res.send(JSON.stringify(backup, null, 2));
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ─── POSTER / SCREENSAVER CONFIG (Supabase) ────────────────────────────────
