@@ -546,7 +546,7 @@ function OrdersTable({ orders, full, onRowClick, selectedId }) {
             <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Produse</th>
             <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Total</th>
             <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Status</th>
-            <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Ora</th>
+            <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Data / Ora</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -573,7 +573,7 @@ function OrdersTable({ orders, full, onRowClick, selectedId }) {
                     ● {sc.label}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-sm text-slate-500 whitespace-nowrap">{o.createdAt ? new Date(o.createdAt).toLocaleTimeString('ro-RO') : '—'}</td>
+                <td className="px-6 py-4 text-sm text-slate-500 whitespace-nowrap">{o.createdAt ? new Date(o.createdAt).toLocaleString('ro-RO') : '—'}</td>
               </tr>
             );
           })}
