@@ -1,5 +1,30 @@
 [
   {
+    "_id": "ORD-1785589296689",
+    "orderNumber": 920,
+    "locationId": "loc1",
+    "locationName": null,
+    "brand": "smashme",
+    "orgId": null,
+    "orderType": "takeaway",
+    "tableNumber": null,
+    "items": [
+      {
+        "name": "Test",
+        "quantity": 1
+      }
+    ],
+    "totalAmount": 0,
+    "lang": "ro",
+    "channel": "kiosk",
+    "paymentMethod": "card",
+    "paymentRef": null,
+    "status": "pending",
+    "syrveOrderId": null,
+    "arrivedAt": 1785589296689,
+    "createdAt": "2026-08-01T13:01:36.689Z"
+  },
+  {
     "_id": "ORD-1785588906186",
     "orderNumber": 742,
     "locationId": "loc1",

@@ -164,6 +164,20 @@ router.post('/', async (req, res) => {
           if (io) {
             io.emit('order_syrve_confirmed', { orderId: order._id, syrveOrderId: order.syrveOrderId });
           }
+          
+          if (order.paymentMethod === 'card' && order.paymentRef?.authCode) {
+            const { updateIikoStatusByAuthCode } = require('./posLogs');
+            if (updateIikoStatusByAuthCode) {
+              updateIikoStatusByAuthCode(order.paymentRef.authCode, true, order.syrveOrderId, null);
+            }
+          }
+        } else {
+          if (order.paymentMethod === 'card' && order.paymentRef?.authCode) {
+            const { updateIikoStatusByAuthCode } = require('./posLogs');
+            if (updateIikoStatusByAuthCode) {
+              updateIikoStatusByAuthCode(order.paymentRef.authCode, false, null, "iiko Error");
+            }
+          }
         }
         
       } catch (err) {

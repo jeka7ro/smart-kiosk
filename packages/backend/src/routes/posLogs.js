@@ -80,6 +80,20 @@ function updateIikoStatus(orderId, iikoSent, iikoOrderId, iikoError) {
   }
 }
 
+/**
+ * Update iiko status for an existing POS log entry using authCode.
+ */
+function updateIikoStatusByAuthCode(authCode, iikoSent, iikoOrderId, iikoError) {
+  if (!authCode) return;
+  const log = _logs.find(l => l.authCode === authCode && l.paid);
+  if (log) {
+    log.iikoSent = iikoSent;
+    log.iikoOrderId = iikoOrderId || null;
+    log.iikoError = iikoError || null;
+    saveLogs(_logs);
+  }
+}
+
 // GET /api/pos-logs
 router.get('/', (req, res) => {
   const { locationId, status, limit = 100, offset = 0 } = req.query;
@@ -113,3 +127,4 @@ router.get('/stats', (req, res) => {
 module.exports = router;
 module.exports.addPosLog = addPosLog;
 module.exports.updateIikoStatus = updateIikoStatus;
+module.exports.updateIikoStatusByAuthCode = updateIikoStatusByAuthCode;
