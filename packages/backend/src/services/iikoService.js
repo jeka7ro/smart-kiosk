@@ -554,7 +554,7 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
         mode: 'Async',
       },
       organizationId: resolvedOrgId,
-      terminalGroupId: null,
+      terminalGroupId: 'cf589c4a-37dd-54ed-015a-4e33131300bf',
       order: {
         deliveryPoint: null,
         customer: {
@@ -562,7 +562,8 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
           surname: '',
           comment: '',
           email: '',
-          gender: 'NotSpecified',
+          gender: '',
+          phone: '40000000000'
         },
         items: syrveItems,
         payments: [

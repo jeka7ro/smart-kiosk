@@ -41,8 +41,14 @@ function BrandLogo({ brandId, size = 18 }) {
     pokiwoki: '/brands/pokiwoki-logo.png'
   };
   const src = logos[brandId];
-  if (src) return <img src={src} alt={brandId} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'contain', verticalAlign: 'middle', flexShrink: 0 }} onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'inline-block'; }} /> 
-  return <span style={{ fontSize: size * 0.8, fontWeight: 700, opacity: 0.6, letterSpacing: '0.5px', textTransform: 'uppercase' }}>{brandId}</span>;
+  if (src) return <img src={src} alt={brandId} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'contain', verticalAlign: 'middle', flexShrink: 0 }} onError={(e) => { e.target.style.display = 'none'; }} /> 
+  
+  // Generic fallback icon instead of uppercase text
+  return (
+    <div style={{ width: size, height: size, borderRadius: '50%', backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <span style={{ fontSize: size * 0.5, color: '#94a3b8', fontWeight: 'bold' }}>{brandId ? brandId.charAt(0).toUpperCase() : '?'}</span>
+    </div>
+  );
 }
 
 const STATUS_LABELS = {
@@ -208,7 +214,7 @@ export default function AdminApp() {
     ready:     orders.filter(o => o.status === 'ready').length,
     revenue:   orders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + (o.totalAmount || 0), 0),
     smashme:   orders.filter(o => o.brand === 'smashme').length,
-    sushimaster: orders.filter(o => o.brand === 'sushimaster').length,
+    rollmaster: orders.filter(o => o.brand === 'rollmaster').length,
   };
 
   const filteredOrders = brandFilter === 'all'
@@ -341,7 +347,7 @@ export default function AdminApp() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <StatCard label="Comenzi Azi" value={stats.todayTotal} color="var(--primary)" large />
               <StatCard label="SmashMe"   value={stats.smashme} color={BRAND_COLORS.smashme} />
-              <StatCard label="SushiMaster" value={stats.sushimaster} color={BRAND_COLORS.sushimaster} />
+              <StatCard label="RollMaster" value={stats.rollmaster} color={BRAND_COLORS.rollmaster} />
             </div>
 
             <div>
@@ -761,10 +767,11 @@ function KiosksManager({ backend }) {
   }
 
   const brandMeta = {
-    smashme:     { name: 'SmashMe',       color: '#ef4444' },
-    rollmaster: { name: 'Roll Master', color: '#3b82f6' }, lovesushi: { name: 'Love Sushi', color: '#ec4899' }, pokiwoki: { name: 'Poki-Woki', color: '#f97316' }, crunch: { name: 'Crunch', color: '#eab308' },
-    ikura:       { name: 'Ikura',         color: '#d4af37' },
-    welovesushi: { name: 'WeLoveSushi',   color: '#ec4899' },
+    smashme:    { name: 'SmashMe',     color: '#ef4444' },
+    crunch:     { name: 'Crunch',      color: '#eab308' },
+    rollmaster: { name: 'Roll Master', color: '#3b82f6' },
+    lovesushi:  { name: 'Love Sushi',  color: '#ec4899' },
+    pokiwoki:   { name: 'Poki-Woki',   color: '#f97316' },
   };
 
   const allBrandIds = new Set();
@@ -1569,7 +1576,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                  >
                    <option value="">Alege...</option>
                    <option value="smashme">Roata SmashMe</option>
-                   <option value="welovesushi">Roata SushiMaster</option>
+                   <option value="lovesushi">Roata RollMaster</option>
                  </select>
                </div>
                
