@@ -182,17 +182,17 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                     ) : '—'}
                   </td>
                   <td className="px-4 py-3">
-                    <span className="font-mono text-xs text-slate-600 dark:text-slate-400 select-all">
-                      {log.orderId || '—'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
                     {order?.brand ? (
                       <div className="flex items-center gap-2">
                         <BrandLogo brandId={order.brand} size={20} />
                         <span className="text-sm font-bold text-slate-700 dark:text-slate-300 capitalize">{order.brand}</span>
                       </div>
                     ) : '—'}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="font-mono text-xs text-slate-600 dark:text-slate-400 select-all">
+                      {order?.orderNumber ? `#${order.orderNumber}` : (log.orderId || '—')}
+                    </span>
                   </td>
                   <td className="px-4 py-3">
                     <span className="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300">
