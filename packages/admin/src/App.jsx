@@ -543,7 +543,7 @@ function OrdersTable({ orders, full, onRowClick, selectedId }) {
             <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Brand</th>
             <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Canal</th>
             <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Tip</th>
-            <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Produse</th>
+            <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Plată</th>
             <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Total</th>
             <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Status</th>
             <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Data / Ora</th>
@@ -562,10 +562,8 @@ function OrdersTable({ orders, full, onRowClick, selectedId }) {
                 </td>
                 <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300"><span className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-xs font-medium">{o.channel}</span></td>
                 <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">{o.orderType === 'dine-in' ? (o.tableNumber ? `Masa ${o.tableNumber}` : 'La masă') : 'Caserie'}</td>
-                <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
-                  <div className="max-w-[200px] truncate" title={(o.items || []).map(i => `${i.quantity}x ${i.name}`).join(', ')}>
-                    {(o.items || []).map(i => `${i.quantity}x ${i.name}`).join(', ').slice(0, 40)}...
-                  </div>
+                <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300 font-bold uppercase">
+                  {o.paymentMethod === 'cash' ? 'Cash' : (o.paymentMethod === 'card' ? 'Card' : (o.paymentMethod || '—'))}
                 </td>
                 <td className="px-6 py-4 text-sm font-bold text-slate-900 dark:text-white">{(o.totalAmount || 0).toFixed(2)} lei</td>
                 <td className="px-6 py-4">
