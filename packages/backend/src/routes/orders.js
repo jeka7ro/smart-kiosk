@@ -49,7 +49,13 @@ router.post('/', async (req, res) => {
     }
 
     const subtotal    = totalAmount || items.reduce((s, i) => s + (i.totalPrice || 0), 0);
-    const orderNumber = Math.floor(100 + Math.random() * 900);
+    let maxOrderNumber = 358;
+    for (const o of _orders) {
+      if (typeof o.orderNumber === 'number' && o.orderNumber !== 946 && o.orderNumber !== 862) {
+        maxOrderNumber = Math.max(maxOrderNumber, o.orderNumber);
+      }
+    }
+    const orderNumber = maxOrderNumber + 1;
     const locId       = locationId || 'loc1';
     const brandName   = brand || brandId || 'smashme';
 
