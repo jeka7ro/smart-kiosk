@@ -99,8 +99,6 @@ router.post('/', async (req, res) => {
     res.json({ success: true, order });
 
     // ── Send to Syrve async (fire-and-forget, Split by Brand) ──
-    // SKIP Syrve for cash orders — they go to iiko only after cashier confirms payment
-    if (order.paymentMethod !== 'cash') {
     setImmediate(async () => {
       try {
         // Read locations to find orgIds dictionary
@@ -172,7 +170,6 @@ router.post('/', async (req, res) => {
         console.error(`[Syrve] Grouping logic failed for order #${orderNumber}:`, err.message);
       }
     });
-    } // end if not cash
 
   } catch (err) {
     console.error('[Orders] POST error:', err);
