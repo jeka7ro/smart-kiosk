@@ -572,7 +572,7 @@ function OrdersTable({ orders, full, onRowClick, selectedId }) {
                   {o.locationName || o.locationId || '—'}
                 </td>
                 <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300"><span className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-xs font-medium">{o.channel}</span></td>
-                <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">{o.orderType === 'dine-in' ? (o.tableNumber ? `Masa ${o.tableNumber}` : 'La masă') : 'Caserie'}</td>
+                <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">{o.orderType === 'dine-in' ? (o.tableNumber ? `Masa ${o.tableNumber}` : 'La masă') : 'La pachet'}</td>
                 <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300 font-bold uppercase">
                   {o.paymentMethod === 'cash' ? 'Cash' : (o.paymentMethod === 'card' ? 'Card' : (o.paymentMethod || '—'))}
                 </td>
