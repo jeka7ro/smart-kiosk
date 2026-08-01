@@ -53,14 +53,25 @@ async function printTicket(order) {
     printer.newLine();
 
     if (order.paymentMethod === 'cash') {
-       printer.invert(true);
        printer.bold(true);
-       printer.println(" NEACHITAT - ACHITATI LA CASA ");
-       printer.invert(false);
+       printer.println("NEACHITAT - ACHITATI LA CASA");
        printer.bold(false);
     } else {
+       printer.bold(true);
        printer.println("ACHITAT CARD POS");
+       printer.bold(false);
     }
+    
+    printer.newLine();
+    printer.setTextSize(1,1);
+    printer.bold(true);
+    if (order.orderType === 'takeaway') {
+        printer.println("LA PACHET");
+    } else {
+        printer.println("LA MASA");
+    }
+    printer.bold(false);
+    printer.setTextNormal();
     
     printer.newLine();
     printer.alignLeft();
