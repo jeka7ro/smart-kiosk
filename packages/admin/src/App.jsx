@@ -427,8 +427,8 @@ export default function AdminApp() {
         {/* ─── ORDERS ─── */}
         {tab === 'orders' && (
           <div className="space-y-6 px-4 md:px-8 pb-10">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide shrink-0">
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
                 {['all','smashme','crunch','rollmaster','lovesushi','pokiwoki'].map(b => (
                   <button
                     key={b}
@@ -439,9 +439,9 @@ export default function AdminApp() {
                   </button>
                 ))}
               </div>
-              <div className="flex items-center gap-3 flex-wrap flex-1 justify-start xl:justify-end min-w-[280px]">
+              <div className="flex items-center gap-3 flex-wrap">
                 {/* Global Search Bar */}
-                <div className="relative flex-1 min-w-[200px] max-w-[400px]">
+                <div className="relative w-full md:w-[320px]">
                   <input
                     type="text"
                     value={globalSearch}
