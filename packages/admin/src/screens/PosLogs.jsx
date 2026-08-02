@@ -485,8 +485,30 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                       <span className="text-slate-400 text-xs">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-xs text-red-500 min-w-[200px] max-w-sm break-words whitespace-pre-wrap">
-                    {log.error || '—'}
+                  <td className="px-4 py-3 text-xs">
+                    {log.error ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          confirm(
+                            <div className="flex flex-col gap-3 text-left mt-2">
+                              <p className="text-slate-600 dark:text-slate-300">Detaliu eroare POS:</p>
+                              <div className="bg-red-50 dark:bg-red-950/30 p-3 rounded-xl border border-red-100 dark:border-red-900/50">
+                                <span className="font-mono text-sm text-red-600 dark:text-red-400 break-all select-all whitespace-pre-wrap">
+                                  {log.error}
+                                </span>
+                              </div>
+                            </div>,
+                            { title: 'Eroare POS', icon: '❌', hideCancel: true, okLabel: 'Închide' }
+                          );
+                        }}
+                        className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-transform active:scale-95 cursor-pointer bg-red-50 text-red-600 border border-red-200 hover:bg-red-100"
+                      >
+                        ⚠ Citește
+                      </button>
+                    ) : (
+                      <span className="text-slate-400">—</span>
+                    )}
                   </td>
                 </tr>
               );
