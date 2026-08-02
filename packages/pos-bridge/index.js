@@ -138,17 +138,33 @@ function processPrintecPayment(amount, portPath, onStatus) {
       return reject(new Error(`Nu pot crea portul serial: ${e.message}`));
     }
 
-    /** ECR inițiază: ENQ → aștept ACK → trimit frame → aștept ACK → EOT */
+    let enqRetries = 0;
     const ecrSend = (frame, nextState, label, timeoutMs = 3000) => {
       const hexStr = [...frame].map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
-      log(`📤 ENQ → (${label})`);
-      log(`📤 Frame pregătit [${frame.length} bytes]: ${hexStr}`);
+      
+      if (enqRetries === 0) {
+        log(`📤 Frame pregătit [${frame.length} bytes]: ${hexStr}`);
+      }
+      log(`📤 ENQ → (${label}) [Încercare ${enqRetries + 1}/3]`);
+      
       port.write(Buffer.from([ENQ]));
       setState(`WAIT_ENQ_ACK__${nextState}`);
       port._pendingFrame = frame;
       port._nextLabel    = label;
       port._nextState    = nextState;
-      armTimeout(`ACK la ENQ (${label})`, timeoutMs);
+      
+      clearTimeout(stateTimer);
+      stateTimer = setTimeout(() => {
+        enqRetries++;
+        if (enqRetries < 3) {
+          log(`⚠️ Timeout ACK la ENQ. Reîncercăm (${enqRetries}/3)...`);
+          // Re-trimitem ENQ
+          ecrSend(frame, nextState, label, timeoutMs);
+        } else {
+          enqRetries = 0; // reset pt viitor
+          fail(`POS-ul nu răspunde (Timeout: ACK la ENQ). Verificați cablul sau reporniți POS-ul.`);
+        }
+      }, timeoutMs);
     };
 
     const ecrAck = () => port.write(Buffer.from([ACK]));
@@ -168,6 +184,8 @@ function processPrintecPayment(amount, portPath, onStatus) {
         if (b === ACK && state.startsWith('WAIT_ENQ_ACK__')) {
           rxBuf = rxBuf.subarray(1);
           clearTimeout(stateTimer);
+          enqRetries = 0; // resetăm contorul de retries după succes
+          
           const frame = port._pendingFrame;
           const ns    = port._nextState;
           const lbl   = port._nextLabel;
@@ -334,9 +352,18 @@ function processPrintecPayment(amount, portPath, onStatus) {
             const errCode = data[0];
             log(`❌ Refusal de la POS, cod=0x${errCode.toString(16)}`);
             port.write(Buffer.from([EOT]));
+            
+            let explicitReason = `Tranzacție refuzată de terminal (Cod: 0x${errCode.toString(16).toUpperCase()})`;
+            if (errCode === 0xA0) {
+              explicitReason = 'POS-ul trebuie resetat manual. Vă rugăm faceți Închiderea de Zi (Z-Report) pe POS sau finalizați/anulați orice plată rămasă pe ecranul lui.';
+            }
+
             succeed({
-              success: false, code: errCode.toString(16).toUpperCase(),
-              authCode: '', refNum: '', reason: 'Tranzacție refuzată de terminal',
+              success: false, 
+              code: errCode.toString(16).toUpperCase(),
+              authCode: '', 
+              refNum: '', 
+              reason: explicitReason,
             });
             break;
           }
@@ -377,8 +404,14 @@ function processPrintecPayment(amount, portPath, onStatus) {
       if (err) return fail(`Nu pot deschide portul serial: ${err.message}`);
       log(`Port deschis: ${portPath} @ ${BAUD_RATE} baud (8-N-1)`);
       log(`Sumă: ${amount.toFixed(2)} RON (${cents} bani)`);
-      // Pasul 1: LOGIN (06 00 00) — apoi SALE
-      ecrSend(LOGIN_FRAME, 'LOGIN', 'LOGIN', 3000);
+      
+      log('📤 Trimit EOT pentru WakeUp/Cancel POS...');
+      port.write(Buffer.from([EOT]));
+      
+      // Aștept 500ms ca POS-ul să își curețe ecranul după EOT, apoi încep LOGIN
+      setTimeout(() => {
+        ecrSend(LOGIN_FRAME, 'LOGIN', 'LOGIN', 5000); // 5 secunde timeout pt port in standby
+      }, 500);
     });
   });
 }
