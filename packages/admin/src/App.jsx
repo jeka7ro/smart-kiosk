@@ -70,6 +70,16 @@ export default function AdminApp() {
   const [brandFilter, setBrandFilter] = useState('all');
   const [locationFilter, setLocationFilter] = useState('all');
   const [paymentFilter, setPaymentFilter] = useState('all');
+  const [periodFilter, setPeriodFilter] = useState('all');
+  
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomStr = tomorrow.toISOString().slice(0, 10);
+  
+  const [customStart, setCustomStart] = useState(todayStr);
+  const [customEnd, setCustomEnd] = useState(tomStr);
+
   const [notifications, setNotifs]= useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [menuImages, setMenuImages] = useState({});
@@ -127,7 +137,8 @@ export default function AdminApp() {
   /* ─── Load initial orders + poll every 30s ──────── */
   useEffect(() => {
     const loadOrders = () => {
-      fetchWithAuth(`${BACKEND}/api/orders?limit=100`)
+      let url = `${BACKEND}/api/orders?limit=100`;
+      fetchWithAuth(url)
         .then(r => r.json())
         .then(d => setOrders(d.orders || []))
         .catch(() => {});
@@ -135,7 +146,7 @@ export default function AdminApp() {
     loadOrders();
     const interval = setInterval(loadOrders, 30_000);
     return () => clearInterval(interval);
-  }, []);
+  }, [periodFilter, customStart, customEnd]);
 
   /* ─── Load menu status ───────────────────────────── */
   const fetchMenuStatus = useCallback(() => {
@@ -197,14 +208,63 @@ export default function AdminApp() {
     preparing: orders.filter(o => o.status === 'preparing').length,
     ready:     orders.filter(o => o.status === 'ready').length,
     revenue:   orders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + (o.totalAmount || 0), 0),
-    smashme:   orders.filter(o => o.brand === 'smashme').length,
-    rollmaster: orders.filter(o => o.brand === 'rollmaster').length,
+  };
+  const brandStats = orders.reduce((acc, o) => {
+    if (o.brand) acc[o.brand] = (acc[o.brand] || 0) + 1;
+    return acc;
+  }, {});
+
+  const isDateInPeriod = (dateStr, period) => {
+    if (period === 'all') return true;
+    if (!dateStr) return false;
+    const d = new Date(dateStr);
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    
+    if (period === 'today') return d >= startOfToday;
+    if (period === 'yesterday') return d >= startOfYesterday && d < startOfToday;
+    if (period === 'thisWeek') {
+      const day = now.getDay() || 7;
+      const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1);
+      return d >= startOfWeek;
+    }
+    if (period === 'thisMonth') {
+      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+    }
+    if (period === 'lastMonth') {
+      let m = now.getMonth() - 1;
+      let y = now.getFullYear();
+      if (m < 0) { m = 11; y--; }
+      return d.getFullYear() === y && d.getMonth() === m;
+    }
+    if (period === 'thisYear') {
+      return d.getFullYear() === now.getFullYear();
+    }
+    if (period === 'custom') {
+      if (!customStart && !customEnd) return true;
+      let startValid = true;
+      let endValid = true;
+      if (customStart) {
+        const sd = new Date(customStart);
+        sd.setHours(0, 0, 0, 0);
+        if (d < sd) startValid = false;
+      }
+      if (customEnd) {
+        const ed = new Date(customEnd);
+        ed.setHours(23, 59, 59, 999);
+        if (d > ed) endValid = false;
+      }
+      return startValid && endValid;
+    }
+    return true;
   };
 
   const filteredOrders = orders.filter(o => {
     if (brandFilter !== 'all' && o.brand !== brandFilter) return false;
     if (locationFilter !== 'all' && (o.locationName || o.locationId) !== locationFilter) return false;
     if (paymentFilter !== 'all' && o.paymentMethod !== paymentFilter) return false;
+    if (!isDateInPeriod(o.createdAt, periodFilter)) return false;
     return true;
   });
 
@@ -334,10 +394,15 @@ export default function AdminApp() {
         {tab === 'dashboard' && (
           <div className="space-y-8 px-4 md:px-8 pb-10">
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <StatCard label="Comenzi Azi" value={stats.todayTotal} color="var(--primary)" large />
-              <StatCard label="SmashMe"   value={stats.smashme} color={BRAND_COLORS.smashme} />
-              <StatCard label="RollMaster" value={stats.rollmaster} color={BRAND_COLORS.rollmaster} />
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              <div className="w-full">
+                <StatCard label="Comenzi Azi" value={stats.todayTotal} color="var(--primary)" large />
+              </div>
+              {Object.keys(BRAND_COLORS).map(b => (
+                <div key={b} className="w-full">
+                  <StatCard label={b === 'smashme' ? 'SmashMe' : b === 'crunch' ? 'Crunch' : b === 'rollmaster' ? 'Roll Master' : b === 'lovesushi' ? 'Love Sushi' : 'Poki-Woki'} value={brandStats[b] || 0} color={BRAND_COLORS[b]} />
+                </div>
+              ))}
             </div>
 
             <div>
@@ -362,7 +427,38 @@ export default function AdminApp() {
                   </button>
                 ))}
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
+                <select 
+                  className="px-4 h-10 rounded-full text-sm font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 outline-none hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  value={periodFilter}
+                  onChange={(e) => setPeriodFilter(e.target.value)}
+                >
+                  <option value="all">Toată perioada</option>
+                  <option value="today">Azi</option>
+                  <option value="yesterday">Ieri</option>
+                  <option value="thisWeek">Săptămâna Curentă</option>
+                  <option value="thisMonth">Luna Curentă</option>
+                  <option value="lastMonth">Luna Trecută</option>
+                  <option value="thisYear">Anul Curent</option>
+                  <option value="custom">Personalizat</option>
+                </select>
+                {periodFilter === 'custom' && (
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="date" 
+                      className="px-3 h-10 rounded-full text-sm font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 outline-none hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                      value={customStart}
+                      onChange={(e) => setCustomStart(e.target.value)}
+                    />
+                    <span className="text-slate-400">-</span>
+                    <input 
+                      type="date" 
+                      className="px-3 h-10 rounded-full text-sm font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 outline-none hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                      value={customEnd}
+                      onChange={(e) => setCustomEnd(e.target.value)}
+                    />
+                  </div>
+                )}
                 <select 
                   className="px-4 h-10 rounded-full text-sm font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 outline-none hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                   value={locationFilter}
@@ -417,7 +513,6 @@ export default function AdminApp() {
           {tab === 'pos-logs' && <PosLogs orders={orders} onGoToOrder={async (orderId) => {
             const foundOrder = orders.find(o => o._id === orderId);
             if (foundOrder) {
-              setTab('orders');
               setSelectedOrder(foundOrder);
             } else {
               try {
@@ -430,7 +525,6 @@ export default function AdminApp() {
                     }
                     return prev;
                   });
-                  setTab('orders');
                   setSelectedOrder(data);
                 } else {
                   console.error('Order not found on server');
@@ -471,6 +565,29 @@ export default function AdminApp() {
               <p><strong>Tip Comandă:</strong> {selectedOrder.orderType === 'dine-in' ? (selectedOrder.tableNumber ? `La masă (Masa ${selectedOrder.tableNumber})` : 'La masă') : 'La pachet'}</p>
               <p><strong>Plată:</strong> <span className="font-bold">{selectedOrder.paymentMethod === 'cash' ? 'CASH' : (selectedOrder.paymentMethod === 'card' ? 'CARD' : '—')}</span></p>
               <p><strong>Data/Ora:</strong> {selectedOrder.createdAt ? new Date(selectedOrder.createdAt).toLocaleString('ro-RO') : '—'}</p>
+              {selectedOrder.syrveOrderId && (
+                <div className="flex items-center justify-between gap-3 bg-slate-50 dark:bg-slate-800 p-2 rounded-lg border border-slate-200 dark:border-slate-700 mt-2">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] uppercase font-bold text-slate-500">ID Comandă iiko</span>
+                    <span className="font-mono text-sm text-slate-700 dark:text-slate-300 truncate select-all">{selectedOrder.syrveOrderId}</span>
+                  </div>
+                  <button 
+                    onClick={(e) => {
+                      navigator.clipboard.writeText(selectedOrder.syrveOrderId);
+                      const btn = e.currentTarget;
+                      const originalHTML = btn.innerHTML;
+                      btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#10b981" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>';
+                      setTimeout(() => { btn.innerHTML = originalHTML; }, 1500);
+                    }}
+                    className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    title="Copiază ID iiko"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  </button>
+                </div>
+              )}
             </div>
 
             <h3 className="text-sm font-bold uppercase text-slate-400 mb-3">Produse ({(selectedOrder.items || []).length})</h3>
@@ -571,9 +688,9 @@ export default function AdminApp() {
 
 function StatCard({ label, value, color, large }) {
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 flex flex-col justify-center" style={{ borderLeft: `4px solid ${color}` }}>
-      <span className={`font-bold text-slate-900 dark:text-white ${large ? 'text-4xl' : 'text-3xl'}`}>{value}</span>
-      <span className="text-sm font-bold uppercase tracking-wider text-slate-500 mt-2">{label}</span>
+    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-4 flex flex-col justify-center min-w-[140px] flex-1" style={{ borderLeft: `4px solid ${color}` }}>
+      <span className={`font-bold text-slate-900 dark:text-white ${large ? 'text-3xl' : 'text-2xl'}`}>{value}</span>
+      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mt-1">{label}</span>
     </div>
   );
 }
@@ -595,7 +712,6 @@ function OrdersTable({ orders, full, onRowClick, selectedId }) {
             <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Plată</th>
             <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Total</th>
             <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Status</th>
-            <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Data / Ora</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -603,7 +719,16 @@ function OrdersTable({ orders, full, onRowClick, selectedId }) {
             const sc = STATUS_LABELS[o.status] || { label: o.status, color: '#6b7a99' };
             return (
               <tr key={o._id} className={`transition-colors group cursor-pointer ${selectedId === o._id ? 'bg-blue-50 dark:bg-blue-500/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`} onClick={() => onRowClick && onRowClick(o)}>
-                <td className="px-6 py-4 text-sm font-bold text-slate-900 dark:text-white">#{o.orderNumber}</td>
+                <td className="px-6 py-4">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-sm font-bold text-slate-900 dark:text-white">#{o.orderNumber}</span>
+                    {o.createdAt && (
+                      <span className="text-[10px] text-slate-400">
+                        {new Date(o.createdAt).toLocaleString('ro-RO')}
+                      </span>
+                    )}
+                  </div>
+                </td>
                 <td className="px-6 py-4">
                   <span style={{ color: BRAND_COLORS[o.brand] }} className="flex items-center gap-2 text-sm font-bold">
                     <BrandLogo brandId={o.brand} size={16} /> {o.brand}
@@ -623,7 +748,6 @@ function OrdersTable({ orders, full, onRowClick, selectedId }) {
                     ● {sc.label}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-sm text-slate-500 whitespace-nowrap">{o.createdAt ? new Date(o.createdAt).toLocaleString('ro-RO') : '—'}</td>
               </tr>
             );
           })}

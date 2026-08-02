@@ -31,7 +31,10 @@ async function addPosLog(entry) {
     iiko_sent:   entry.iikoSent || false,
     iiko_order_id: entry.iikoOrderId || null,
     iiko_error:  entry.iikoError || null,
-    raw:         entry.raw || null,
+    raw:         { 
+      ...(typeof entry.raw === 'object' && entry.raw !== null ? entry.raw : { data: entry.raw }), 
+      ...(entry.receiptNo ? { receiptNo: entry.receiptNo } : {}) 
+    },
   };
 
   try {
@@ -148,33 +151,26 @@ router.get('/', async (req, res) => {
 // GET /api/pos-logs/stats
 router.get('/stats', async (req, res) => {
   try {
-    const today = new Date().toISOString().slice(0, 10);
-    
-    const { rows: totalRows } = await pool.query(`SELECT COUNT(*) FROM pos_logs`);
-    const total = parseInt(totalRows[0].count, 10);
-    
-    const { rows: todayRows } = await pool.query(`
+    const { rows } = await pool.query(`
       SELECT 
-        COUNT(*) as today_count,
-        COUNT(CASE WHEN paid = true THEN 1 END) as today_approved,
-        COUNT(CASE WHEN paid = false THEN 1 END) as today_declined,
-        SUM(CASE WHEN paid = true THEN amount ELSE 0 END) as today_revenue,
-        COUNT(CASE WHEN iiko_sent = true THEN 1 END) as today_iiko_sent,
-        COUNT(CASE WHEN paid = true AND (iiko_sent = false OR iiko_sent IS NULL) THEN 1 END) as today_iiko_failed
-      FROM pos_logs 
-      WHERE timestamp::text LIKE $1
-    `, [`${today}%`]);
+        COUNT(*) as total_count,
+        COUNT(CASE WHEN status = 'approved' THEN 1 END) as total_approved,
+        COUNT(CASE WHEN status != 'approved' THEN 1 END) as total_declined,
+        SUM(CASE WHEN status = 'approved' THEN amount ELSE 0 END) as total_revenue,
+        COUNT(CASE WHEN iiko_sent = true THEN 1 END) as total_iiko_sent,
+        COUNT(CASE WHEN status = 'approved' AND (iiko_sent = false OR iiko_sent IS NULL) THEN 1 END) as total_iiko_failed
+      FROM pos_logs
+    `);
     
-    const stats = todayRows[0];
+    const stats = rows[0];
     
     res.json({
-      total: total,
-      today: parseInt(stats.today_count, 10) || 0,
-      todayApproved: parseInt(stats.today_approved, 10) || 0,
-      todayDeclined: parseInt(stats.today_declined, 10) || 0,
-      todayRevenue: parseFloat(stats.today_revenue) || 0,
-      todayIikoSent: parseInt(stats.today_iiko_sent, 10) || 0,
-      todayIikoFailed: parseInt(stats.today_iiko_failed, 10) || 0,
+      total: parseInt(stats.total_count, 10) || 0,
+      totalApproved: parseInt(stats.total_approved, 10) || 0,
+      totalDeclined: parseInt(stats.total_declined, 10) || 0,
+      totalRevenue: parseFloat(stats.total_revenue) || 0,
+      totalIikoSent: parseInt(stats.total_iiko_sent, 10) || 0,
+      totalIikoFailed: parseInt(stats.total_iiko_failed, 10) || 0,
     });
   } catch (err) {
     console.error('[POS Logs] GET stats error:', err.message);

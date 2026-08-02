@@ -189,7 +189,7 @@ router.post('/', async (req, res) => {
 
 // ── GET /api/orders ─────────────────────────────────────────────────────
 router.get('/', async (req, res) => {
-  const { status, brand, limit = 50 } = req.query;
+  const { status, brand, startDate, endDate, limit = 50 } = req.query;
   try {
     let query = `SELECT data, status FROM orders WHERE 1=1`;
     const params = [];
@@ -203,6 +203,16 @@ router.get('/', async (req, res) => {
     if (brand && brand !== 'all') {
       query += ` AND data->>'brand' = $${params.length + 1}`;
       params.push(brand);
+    }
+
+    if (startDate) {
+      query += ` AND data->>'createdAt' >= $${params.length + 1}`;
+      params.push(new Date(startDate).toISOString());
+    }
+
+    if (endDate) {
+      query += ` AND data->>'createdAt' <= $${params.length + 1}`;
+      params.push(new Date(endDate).toISOString());
     }
     
     query += ` ORDER BY created_at DESC LIMIT $${params.length + 1}`;
@@ -222,6 +232,14 @@ router.get('/', async (req, res) => {
     if (brand && brand !== 'all') {
       countQuery += ` AND data->>'brand' = $${countParams.length + 1}`;
       countParams.push(brand);
+    }
+    if (startDate) {
+      countQuery += ` AND data->>'createdAt' >= $${countParams.length + 1}`;
+      countParams.push(new Date(startDate).toISOString());
+    }
+    if (endDate) {
+      countQuery += ` AND data->>'createdAt' <= $${countParams.length + 1}`;
+      countParams.push(new Date(endDate).toISOString());
     }
     const countRes = await pool.query(countQuery, countParams);
     const total = parseInt(countRes.rows[0].count, 10);

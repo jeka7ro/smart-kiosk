@@ -21,52 +21,33 @@ export function ConfirmProvider({ children }) {
     <ConfirmCtx.Provider value={confirm}>
       {children}
       {state && (
-        <div style={{
-          position:'fixed', inset:0, zIndex:99999,
-          background:'rgba(0,0,0,0.35)', backdropFilter:'blur(3px)',
-          display:'flex', alignItems:'center', justifyContent:'center',
-        }}>
-          <div style={{
-            background:'#ffffff',
-            border:'1px solid #e2e8f0',
-            borderRadius:'16px', padding:'32px 36px',
-            minWidth:'320px', maxWidth:'440px',
-            boxShadow:'0 8px 40px rgba(0,0,0,0.15)',
-            color:'#1e293b', textAlign:'center',
-          }}>
-            <div style={{ fontSize:'2.2rem', marginBottom:'10px' }}>
+        <div className="fixed inset-0 z-[99999] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 w-full max-w-[360px] shadow-2xl text-center flex flex-col">
+            <div className="text-4xl mb-3">
               {state.opts?.icon || '⚠️'}
             </div>
             {state.opts?.title && (
-              <h3 style={{ margin:'0 0 8px', fontSize:'1.05rem', fontWeight:700, color:'#0f172a' }}>
+              <h3 className="m-0 mb-2 text-lg font-bold text-slate-900 dark:text-white">
                 {state.opts.title}
               </h3>
             )}
-            <p style={{ margin:'0 0 24px', color:'#64748b', lineHeight:1.6, fontSize:'0.95rem' }}>
+            <div className="m-0 mb-6 text-slate-500 dark:text-slate-400 leading-relaxed text-[0.95rem]">
               {state.message}
-            </p>
-            <div style={{ display:'flex', gap:'10px', justifyContent:'center' }}>
-              <button onClick={handleCancel} style={{
-                flex:1, padding:'10px 20px', borderRadius:'9px',
-                border:'1px solid #e2e8f0',
-                background:'#f8fafc', color:'#64748b',
-                cursor:'pointer', fontSize:'0.9rem', fontWeight:500,
-                transition:'background 0.15s',
-              }}
-              onMouseEnter={e => e.target.style.background='#f1f5f9'}
-              onMouseLeave={e => e.target.style.background='#f8fafc'}
-              >
-                {state.opts?.cancelLabel || 'Anulează'}
-              </button>
-              <button onClick={handleOk} style={{
-                flex:1, padding:'10px 20px', borderRadius:'9px', border:'none',
-                background: state.opts?.danger ? '#ef4444' : '#6366f1',
-                color:'#fff', cursor:'pointer', fontSize:'0.9rem', fontWeight:600,
-                boxShadow: state.opts?.danger ? '0 2px 8px rgba(239,68,68,0.3)' : '0 2px 8px rgba(99,102,241,0.3)',
-                transition:'opacity 0.15s',
-              }}
-              onMouseEnter={e => e.target.style.opacity='0.88'}
-              onMouseLeave={e => e.target.style.opacity='1'}
+            </div>
+            <div className="flex gap-3 justify-center">
+              {!state.opts?.hideCancel && (
+                <button 
+                  onClick={handleCancel}
+                  className="flex-1 py-2.5 px-5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[0.9rem] font-medium hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                >
+                  {state.opts?.cancelLabel || 'Anulează'}
+                </button>
+              )}
+              <button 
+                onClick={handleOk}
+                className={`flex-1 py-2.5 px-5 rounded-xl border-none text-white text-[0.9rem] font-semibold shadow-lg hover:opacity-90 transition-opacity ${
+                  state.opts?.danger ? 'bg-red-500 shadow-red-500/30' : 'bg-indigo-500 shadow-indigo-500/30'
+                }`}
               >
                 {state.opts?.okLabel || 'Confirmă'}
               </button>

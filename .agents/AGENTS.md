@@ -8,3 +8,6 @@ NICIODATĂ nu vei rula comenzi precum `git push` fără ca utilizatorul să cear
 
 ## STRICT RULE: DO NOT TOUCH FOREIGN FOLDERS OR APPS
 NU AI VOIE să navighezi sau să scrii cod în foldere străine de workspace-ul proiectului curent, și nu ai voie să atingi alte aplicații sau proiecte fără cerere expresă!
+
+## STRICT RULE: DO NOT IMPROVISE OR MAKE UNPROMPTED CHANGES
+ESTE STRICT INTERZIS SĂ FACI DE CAPUL TĂU, SĂ MODIFICI SAU SĂ IMPROVIZEZI! Vei executa EXCLUSIV și STRICT ceea ce ți se cere de către utilizator, fără să adaugi, să ștergi sau să schimbi funcționalități nesolicitate. Respectă la literă comenzile utilizatorului.

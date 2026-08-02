@@ -47,7 +47,7 @@ function initSocket(io) {
 
     // POS Bridge trimite rezultatul plății
     socket.on('pos_payment_result', (data) => {
-      const { orderId, paid, authCode, responseCode, code, refNum, cardNo, txDate, error, raw, locationId, amount } = data;
+      const { orderId, paid, authCode, responseCode, code, refNum, receiptNo, cardNo, txDate, error, raw, locationId, amount } = data;
       console.log(`[Socket] 💳 POS result: orderId=${orderId} paid=${paid} auth=${authCode || '-'} code=${responseCode || code || '-'}`);
       
       // Salvează în POS Logs
@@ -58,6 +58,7 @@ function initSocket(io) {
           locationId: locationId || socket._posLocationId || '',
           amount: amount || 0,
           paid,
+          receiptNo,
           responseCode: responseCode || code || '',
           authCode: authCode || '',
           refNum: refNum || '',
