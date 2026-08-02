@@ -730,11 +730,9 @@ function OrdersTable({ orders, full, onRowClick, selectedId }) {
         <thead>
           <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
             <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">#</th>
-            <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Brand</th>
+            <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Brand / Canal</th>
             <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Locație</th>
-            <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Canal</th>
-            <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Tip Comandă</th>
-            <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Plată</th>
+            <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Comandă / Plată</th>
             <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Total</th>
             <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Status</th>
           </tr>
@@ -755,9 +753,12 @@ function OrdersTable({ orders, full, onRowClick, selectedId }) {
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <span style={{ color: BRAND_COLORS[o.brand] }} className="flex items-center gap-2 text-sm font-bold">
-                    <BrandLogo brandId={o.brand} size={16} /> {o.brand}
-                  </span>
+                  <div className="flex flex-col items-start gap-1.5">
+                    <span style={{ color: BRAND_COLORS[o.brand] }} className="flex items-center gap-1.5 text-sm font-bold">
+                      <BrandLogo brandId={o.brand} size={14} /> {o.brand}
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-500 uppercase tracking-wider">{o.channel}</span>
+                  </div>
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex flex-col gap-0.5">
@@ -789,10 +790,15 @@ function OrdersTable({ orders, full, onRowClick, selectedId }) {
                     )}
                   </div>
                 </td>
-                <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300"><span className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-xs font-medium">{o.channel}</span></td>
-                <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">{o.orderType === 'dine-in' ? (o.tableNumber ? `Masa ${o.tableNumber}` : 'La masă') : 'La pachet'}</td>
-                <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300 font-bold uppercase">
-                  {o.paymentMethod === 'cash' ? 'Cash' : (o.paymentMethod === 'card' ? 'Card' : (o.paymentMethod || '—'))}
+                <td className="px-6 py-4">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-sm text-slate-600 dark:text-slate-300 font-medium">
+                      {o.orderType === 'dine-in' ? (o.tableNumber ? `Masa ${o.tableNumber}` : 'La masă') : 'La pachet'}
+                    </span>
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                      Plată: {o.paymentMethod === 'cash' ? 'Cash' : (o.paymentMethod === 'card' ? 'Card' : (o.paymentMethod || '—'))}
+                    </span>
+                  </div>
                 </td>
                 <td className="px-6 py-4 text-sm font-bold text-slate-900 dark:text-white">{(o.totalAmount || 0).toFixed(2)} lei</td>
                 <td className="px-6 py-4">
