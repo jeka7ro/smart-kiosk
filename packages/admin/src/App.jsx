@@ -439,9 +439,7 @@ export default function AdminApp() {
                   </button>
                 ))}
               </div>
-              </div>
-              <div className="flex flex-col gap-3 lg:ml-auto">
-                <div className="flex items-center gap-3 flex-wrap justify-end">
+              <div className="flex items-center gap-3 flex-wrap lg:ml-auto justify-end">
                   {/* Global Search Bar */}
                   <div className="relative w-full sm:w-auto">
                     <input
