@@ -734,8 +734,35 @@ function OrdersTable({ orders, full, onRowClick, selectedId }) {
                     <BrandLogo brandId={o.brand} size={16} /> {o.brand}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300 font-medium">
-                  {o.locationName || o.locationId || '—'}
+                <td className="px-6 py-4">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-sm text-slate-600 dark:text-slate-300 font-medium">
+                      {o.locationName || o.locationId || '—'}
+                    </span>
+                    {o.syrveOrderId && (
+                      <div className="flex items-center gap-1 mt-0.5" title={o.syrveOrderId}>
+                        <span className="text-[10px] font-mono font-medium text-emerald-600 dark:text-emerald-400">
+                          iiko: {o.syrveOrderId.substring(0, 8)}...
+                        </span>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigator.clipboard.writeText(o.syrveOrderId);
+                            const btn = e.currentTarget;
+                            const originalHTML = btn.innerHTML;
+                            btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="#10b981" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>';
+                            setTimeout(() => { btn.innerHTML = originalHTML; }, 1500);
+                          }}
+                          className="text-slate-400 hover:text-emerald-500 transition-colors"
+                          title="Copiază ID iiko"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </td>
                 <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300"><span className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-xs font-medium">{o.channel}</span></td>
                 <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">{o.orderType === 'dine-in' ? (o.tableNumber ? `Masa ${o.tableNumber}` : 'La masă') : 'La pachet'}</td>
