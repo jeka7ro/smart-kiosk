@@ -332,9 +332,8 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
             <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 w-12">Nr. Crt.</th>
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Data / Ora</th>
-              <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Brand</th>
+              <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Brand / Locație</th>
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">ID Comandă</th>
-              <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Locație</th>
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Sumă</th>
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Status POS</th>
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Auth Code</th>
@@ -369,12 +368,17 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                     ) : '—'}
                   </td>
                   <td className="px-4 py-3">
-                    {order?.brand || log.raw?.brand ? (
-                      <div className="flex items-center gap-2">
-                        <BrandLogo brandId={order?.brand || log.raw?.brand} size={20} />
-                        <span className="text-sm font-bold text-slate-700 dark:text-slate-300 capitalize">{order?.brand || log.raw?.brand}</span>
-                      </div>
-                    ) : '—'}
+                    <div className="flex flex-col gap-2 items-start">
+                      {order?.brand || log.raw?.brand ? (
+                        <div className="flex items-center gap-2">
+                          <BrandLogo brandId={order?.brand || log.raw?.brand} size={20} />
+                          <span className="text-sm font-bold text-slate-700 dark:text-slate-300 capitalize">{order?.brand || log.raw?.brand}</span>
+                        </div>
+                      ) : <span className="text-slate-400">—</span>}
+                      <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-400">
+                        {log.locationName || log.locationId || 'Locație necunoscută'}
+                      </span>
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-col gap-0.5">
@@ -391,11 +395,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                       })()}
                     </div>
                   </td>
-                  <td className="px-4 py-3">
-                    <span className="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300">
-                      {log.locationName || log.locationId || '—'}
-                    </span>
-                  </td>
+
                   <td className="px-4 py-3 text-sm font-bold text-slate-900 dark:text-white">
                     {(Number(log.amount) || 0).toFixed(2)} RON
                   </td>
