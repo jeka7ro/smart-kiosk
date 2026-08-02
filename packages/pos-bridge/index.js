@@ -11,13 +11,18 @@ const { SerialPort }   = require('serialport');
 const fs               = require('fs');
 const pathMod          = require('path');
 
-const LOG_FILE = pathMod.join(__dirname, 'pos-bridge.log');
 function log(msg) {
   const now = new Date();
-  const ts = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0') + ' ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ':' + String(now.getSeconds()).padStart(2,'0');
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  
+  const logFile = pathMod.join(__dirname, `pos-bridge-${yyyy}-${mm}-${dd}.log`);
+  
+  const ts = `${yyyy}-${mm}-${dd} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
   const line = `[${ts}] ${msg}`;
   console.log(line);
-  try { fs.appendFileSync(LOG_FILE, line + '\n'); } catch (_) {}
+  try { fs.appendFileSync(logFile, line + '\n'); } catch (_) {}
 }
 
 const RENDER_URL  = process.env.RENDER_URL  || 'https://smart-kiosk-ttut.onrender.com';
