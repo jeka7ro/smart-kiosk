@@ -427,8 +427,8 @@ export default function AdminApp() {
         {/* ─── ORDERS ─── */}
         {tab === 'orders' && (
           <div className="space-y-6 px-4 md:px-8 pb-10">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide shrink-0">
                 {['all','smashme','crunch','rollmaster','lovesushi','pokiwoki'].map(b => (
                   <button
                     key={b}
@@ -439,20 +439,20 @@ export default function AdminApp() {
                   </button>
                 ))}
               </div>
-              <div className="flex items-center gap-3 flex-wrap lg:ml-auto justify-end">
-                  {/* Global Search Bar */}
-                  <div className="relative w-full sm:w-auto">
-                    <input
-                      type="text"
-                      value={globalSearch}
-                      onChange={(e) => setGlobalSearch(e.target.value)}
-                      placeholder="Caută comandă, iiko, locație..."
-                      className="h-10 pl-10 pr-4 rounded-full text-sm font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-[280px] transition-all"
-                    />
-                    <svg className="w-4 h-4 text-slate-400 absolute left-4 top-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                  </div>
-                  <select 
-                  className="px-4 h-10 rounded-full text-sm font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 outline-none hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              <div className="flex items-center gap-3 flex-wrap flex-1 justify-start xl:justify-end min-w-[280px]">
+                {/* Global Search Bar */}
+                <div className="relative flex-1 min-w-[200px] max-w-[400px]">
+                  <input
+                    type="text"
+                    value={globalSearch}
+                    onChange={(e) => setGlobalSearch(e.target.value)}
+                    placeholder="Caută comandă, iiko, locație..."
+                    className="h-10 pl-10 pr-4 rounded-full text-sm font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full transition-all"
+                  />
+                  <svg className="w-4 h-4 text-slate-400 absolute left-4 top-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                </div>
+                <select 
+                  className="shrink-0 px-4 h-10 rounded-full text-sm font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 outline-none hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                   value={periodFilter}
                   onChange={(e) => setPeriodFilter(e.target.value)}
                 >
@@ -466,7 +466,7 @@ export default function AdminApp() {
                   <option value="custom">Personalizat</option>
                 </select>
                 {periodFilter === 'custom' && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
                     <input 
                       type="date" 
                       className="px-3 h-10 rounded-full text-sm font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 outline-none hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
@@ -483,7 +483,7 @@ export default function AdminApp() {
                   </div>
                 )}
                 <select 
-                  className="px-4 h-10 rounded-full text-sm font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 outline-none hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  className="shrink-0 px-4 h-10 rounded-full text-sm font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 outline-none hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                   value={locationFilter}
                   onChange={(e) => setLocationFilter(e.target.value)}
                 >
@@ -493,7 +493,7 @@ export default function AdminApp() {
                   ))}
                 </select>
                 <select 
-                  className="px-4 h-10 rounded-full text-sm font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 outline-none hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  className="shrink-0 px-4 h-10 rounded-full text-sm font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 outline-none hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                   value={paymentFilter}
                   onChange={(e) => setPaymentFilter(e.target.value)}
                 >
