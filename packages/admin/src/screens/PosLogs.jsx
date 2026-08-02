@@ -224,7 +224,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
         <StatCard label="Total POS Logs" value={derivedStats.total} color="#6366f1" />
         <StatCard label="Aprobate (Total)" value={derivedStats.approved} color="#10b981" />
         <StatCard label="Respinse (Total)" value={derivedStats.declined} color="#ef4444" />
-        <StatCard label="iiko Eșuat (Total)" value={derivedStats.iikoFailed} color="#f97316" highlight={derivedStats.iikoFailed > 0} />
+        <StatCard label="iiko Eșuat (Total)" value={derivedStats.iikoFailed} color="#f97316" />
       </div>
 
       {/* Controls */}
