@@ -427,7 +427,7 @@ async function start() {
   log(`Render:    ${RENDER_URL}`);
   log(`COM Port:  ${portPath} @ ${BAUD_RATE} baud (8-N-1)`);
   log(`Locație:   ${LOCATION_ID}`);
-  log(`Log:       ${LOG_FILE}`);
+  log(`Log:       Fișiere zilnice dinamice (ex: pos-bridge-YYYY-MM-DD.log)`);
 
   socket.on('connect', () => {
     log(`✅ Conectat la Render (${socket.id})`);
