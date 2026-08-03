@@ -84,11 +84,12 @@ async function printTicket(order) {
     order.items.forEach(item => {
       printer.tableCustom([
         { text: `${item.quantity}x ${item.name}`, align: "LEFT", width: 0.75 },
-        { text: `${item.totalPrice.toFixed(2)} RON`, align: "RIGHT", width: 0.25 }
+        { text: `${(item.totalPrice || item.price || 0).toFixed(2)} RON`, align: "RIGHT", width: 0.25 }
       ]);
       if (item.selectedModifiers && item.selectedModifiers.length > 0) {
         item.selectedModifiers.forEach(mod => {
-          printer.println(`  + ${mod.name}`);
+          const modName = mod.optionName || mod.modifierName || mod.name || 'Extra';
+          printer.println(`  + ${modName}`);
         });
       }
     });

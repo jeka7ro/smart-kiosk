@@ -82,6 +82,8 @@ export default function AdminApp() {
 
   const [notifications, setNotifs]= useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [modalProductsPage, setModalProductsPage] = useState(1);
+  const [modalProductsPerPage, setModalProductsPerPage] = useState(10);
   const [menuImages, setMenuImages] = useState({});
   const [menuProducts, setMenuProducts] = useState({});
   const [selectedItemDetail, setSelectedItemDetail] = useState(null);
@@ -375,8 +377,8 @@ export default function AdminApp() {
 
         {/* ─── Main ─── */}
         <main className="flex-1 flex flex-col overflow-y-auto bg-slate-50 dark:bg-slate-900 relative">
-        <div className="shrink-0 p-8">
-           <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">
+        <div className="shrink-0 px-4 md:px-8 pt-6 pb-2">
+           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
               {tab === 'dashboard' && 'Dashboard Overview'}
               {tab === 'orders' && 'Gestionare Comenzi'}
               {tab === 'locations' && 'Gestionare Locații'}
@@ -426,22 +428,23 @@ export default function AdminApp() {
 
         {/* ─── ORDERS ─── */}
         {tab === 'orders' && (
-          <div className="space-y-6 px-4 md:px-8 pb-10">
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          <div className="space-y-4 px-4 md:px-8 pb-10">
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide shrink-0">
                 {['all','smashme','crunch','rollmaster','lovesushi','pokiwoki'].map(b => (
                   <button
                     key={b}
-                    className={`shrink-0 px-5 h-10 rounded-full text-sm font-bold flex items-center gap-2 border transition-colors ${brandFilter === b ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                    title={b === 'all' ? 'Toate' : b}
+                    className={`shrink-0 h-10 rounded-full flex items-center justify-center border transition-colors ${b === 'all' ? 'px-5 text-sm font-bold' : 'w-10'} ${brandFilter === b ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
                     onClick={() => setBrandFilter(b)}
                   >
-                    {b === 'all' ? 'Toate' : <><BrandLogo brandId={b} size={14} /> {b === 'smashme' ? 'SmashMe' : b === 'crunch' ? 'Crunch' : b === 'rollmaster' ? 'Roll Master' : b === 'lovesushi' ? 'Love Sushi' : 'Poki-Woki'}</>}
+                    {b === 'all' ? 'Toate' : <BrandLogo brandId={b} size={20} />}
                   </button>
                 ))}
               </div>
-              <div className="flex items-center gap-3 flex-wrap">
-                {/* Global Search Bar */}
-                <div className="relative w-full md:w-[320px]">
+              
+              {/* Global Search Bar */}
+              <div className="relative flex-1 min-w-[200px] max-w-[320px]">
                   <input
                     type="text"
                     value={globalSearch}
@@ -502,7 +505,6 @@ export default function AdminApp() {
                   <option value="card">Card</option>
                 </select>
               </div>
-            </div>
             <OrdersTable orders={filteredOrders} full onRowClick={setSelectedOrder} selectedId={selectedOrder?._id} />
           </div>
         )}
@@ -613,40 +615,73 @@ export default function AdminApp() {
               )}
             </div>
 
-            <h3 className="text-sm font-bold uppercase text-slate-400 mb-3">Produse ({(selectedOrder.items || []).length})</h3>
-            <div className="space-y-3">
-              {(selectedOrder.items || []).map((item, idx) => {
-                const fullProd = menuProducts[item.productId] || (item.name && menuProducts[item.name.toLowerCase()]);
-                const overrideImg = menuImages[item.productId];
-                let imgSrc = overrideImg || item.imageUrl || (fullProd?.imageLinks && fullProd.imageLinks[0]) || fullProd?.image || null;
-                if (imgSrc && imgSrc.startsWith('/uploads')) imgSrc = `${BACKEND}${imgSrc}`;
+            {(() => {
+              const allItems = selectedOrder.items || [];
+              const totalItems = allItems.length;
+              const totalPages = Math.ceil(totalItems / modalProductsPerPage) || 1;
+              const safePage = Math.min(modalProductsPage, totalPages);
+              const paginatedItems = allItems.slice((safePage - 1) * modalProductsPerPage, safePage * modalProductsPerPage);
 
-                return (
-                  <div key={idx} className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                       onClick={() => { if (fullProd) setSelectedItemDetail({ ...fullProd, originalItem: item }); }}>
-                    <div className="font-bold text-slate-400 text-sm shrink-0 w-6 text-right">
-                      {idx + 1}.
-                    </div>
-                    <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-700 shrink-0 flex items-center justify-center">
-                      {imgSrc
-                        ? <img src={imgSrc} alt={item.name} className="w-full h-full object-cover" />
-                        : <span className="text-2xl">🍽️</span>
-                      }
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-sm truncate">{item.name}</p>
-                      {item.selectedModifiers?.length > 0 && (
-                        <p className="text-xs text-slate-400 truncate">{item.selectedModifiers.map(m => m.optionName || m.modifierName).filter(Boolean).join(' · ')}</p>
-                      )}
-                    </div>
-                    <div className="text-right shrink-0">
-                      <span className="text-xs font-bold text-blue-500">{item.quantity}x</span>
-                      <p className="font-bold text-sm">{(item.price || 0).toFixed(2)} lei</p>
-                    </div>
+              return (
+                <>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-bold uppercase text-slate-400">Produse ({totalItems})</h3>
+                    {totalItems > 5 && (
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={modalProductsPerPage}
+                          onChange={e => { setModalProductsPerPage(Number(e.target.value)); setModalProductsPage(1); }}
+                          className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs font-medium outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value={5}>5 / pag</option>
+                          <option value={10}>10 / pag</option>
+                          <option value={20}>20 / pag</option>
+                          <option value={999}>Toate</option>
+                        </select>
+                        <div className="flex gap-1">
+                          <button onClick={() => setModalProductsPage(p => Math.max(1, p - 1))} disabled={safePage === 1} className="w-6 h-6 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs disabled:opacity-50 text-slate-600 dark:text-slate-300">‹</button>
+                          <button onClick={() => setModalProductsPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages} className="w-6 h-6 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs disabled:opacity-50 text-slate-600 dark:text-slate-300">›</button>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                );
-              })}
-            </div>
+                  <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+                    {paginatedItems.map((item, idx) => {
+                      const actualIdx = (safePage - 1) * modalProductsPerPage + idx;
+                      const fullProd = menuProducts[item.productId] || (item.name && menuProducts[item.name.toLowerCase()]);
+                      const overrideImg = menuImages[item.productId];
+                      let imgSrc = overrideImg || item.imageUrl || (fullProd?.imageLinks && fullProd.imageLinks[0]) || fullProd?.image || null;
+                      if (imgSrc && imgSrc.startsWith('/uploads')) imgSrc = `${BACKEND}${imgSrc}`;
+
+                      return (
+                        <div key={idx} className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                             onClick={() => { if (fullProd) setSelectedItemDetail({ ...fullProd, originalItem: item }); }}>
+                          <div className="font-bold text-slate-400 text-sm shrink-0 w-6 text-right">
+                            {actualIdx + 1}.
+                          </div>
+                          <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-700 shrink-0 flex items-center justify-center">
+                            {imgSrc
+                              ? <img src={imgSrc} alt={item.name} className="w-full h-full object-cover" />
+                              : <span className="text-2xl">🍽️</span>
+                            }
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-sm truncate">{item.name}</p>
+                            {item.selectedModifiers?.length > 0 && (
+                              <p className="text-xs text-slate-400 truncate">{item.selectedModifiers.map(m => m.optionName || m.modifierName).filter(Boolean).join(' · ')}</p>
+                            )}
+                          </div>
+                          <div className="text-right shrink-0">
+                            <span className="text-xs font-bold text-blue-500">{item.quantity}x</span>
+                            <p className="font-bold text-sm">{(item.price || 0).toFixed(2)} lei</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              );
+            })()}
 
             <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-800">
               <span className="text-sm font-bold uppercase text-slate-400">Total</span>
@@ -719,8 +754,18 @@ function StatCard({ label, value, color, large }) {
 }
 
 function OrdersTable({ orders, full, onRowClick, selectedId }) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+
   if (!orders || orders.length === 0)
     return <p className="text-slate-500 dark:text-slate-400 py-8 text-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800">Nicio comandă</p>;
+
+  const totalPages = Math.ceil(orders.length / itemsPerPage) || 1;
+  // Ensure we don't exceed max page
+  const safePage = Math.min(currentPage, totalPages);
+  if (safePage !== currentPage) setCurrentPage(safePage);
+
+  const paginated = orders.slice((safePage - 1) * itemsPerPage, safePage * itemsPerPage);
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-x-auto">
@@ -736,7 +781,7 @@ function OrdersTable({ orders, full, onRowClick, selectedId }) {
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-          {orders.map(o => {
+          {paginated.map(o => {
             const sc = STATUS_LABELS[o.status] || { label: o.status, color: '#6b7a99' };
             return (
               <tr key={o._id} className={`transition-colors group cursor-pointer ${selectedId === o._id ? 'bg-blue-50 dark:bg-blue-500/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`} onClick={() => onRowClick && onRowClick(o)}>
@@ -809,6 +854,47 @@ function OrdersTable({ orders, full, onRowClick, selectedId }) {
           })}
         </tbody>
       </table>
+
+      {full && (
+        <div className="flex flex-wrap items-center justify-between px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 gap-4">
+          <div className="flex items-center gap-4 text-sm text-slate-500">
+            <span className="flex items-center gap-2">
+              Afișează
+              <select 
+                value={itemsPerPage} 
+                onChange={e => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full px-2 py-0.5 font-medium outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={999999}>Toate</option>
+              </select>
+            </span>
+            <span>Total: <strong className="text-slate-700 dark:text-slate-300">{orders.length}</strong></span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-slate-500">Pagina {currentPage} din {totalPages}</span>
+            <div className="flex gap-1">
+              {[
+                { label: '«', action: () => setCurrentPage(1),           disabled: currentPage === 1 },
+                { label: '‹', action: () => setCurrentPage(p => p - 1),  disabled: currentPage === 1 },
+                { label: '›', action: () => setCurrentPage(p => p + 1),  disabled: currentPage === totalPages },
+                { label: '»', action: () => setCurrentPage(totalPages),  disabled: currentPage === totalPages },
+              ].map((btn, i) => (
+                <button
+                  key={i}
+                  onClick={btn.action}
+                  disabled={btn.disabled}
+                  className={`w-7 h-7 flex items-center justify-center rounded-full text-sm font-medium transition-colors ${btn.disabled ? 'text-slate-300 dark:text-slate-700 cursor-not-allowed' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95'}`}
+                >
+                  {btn.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {full && (
         <div className="flex flex-col md:flex-row items-center justify-between p-6 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 gap-4">

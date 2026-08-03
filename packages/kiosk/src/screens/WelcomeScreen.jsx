@@ -34,14 +34,19 @@ export default function WelcomeScreen() {
         return 'iframe'; // Default to iframe to support arbitrary web pages, Canva links, and interactive promos
       };
       
+      let finalUrl = locationData.posterUrl;
+      if (finalUrl && finalUrl.startsWith('/uploads')) {
+        finalUrl = `${BACKEND}${finalUrl}`;
+      }
+      
       let rotation = locationData.posterRotation || 0;
-      if (locationData.posterUrl.includes('rotate=true') || locationData.posterUrl.includes('#rotate')) {
+      if (finalUrl.includes('rotate=true') || finalUrl.includes('#rotate')) {
         rotation = 90;
       }
       
       setPoster({
-        url: locationData.posterUrl,
-        type: detectType(locationData.posterUrl),
+        url: finalUrl,
+        type: detectType(finalUrl),
         showLogo: true, // Always show logo based on user requirements for now
         rotation
       });
