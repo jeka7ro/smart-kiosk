@@ -673,7 +673,7 @@ export default function AdminApp() {
                           </div>
                           <div className="text-right shrink-0">
                             <span className="text-xs font-bold text-blue-500">{item.quantity}x</span>
-                            <p className="font-bold text-sm">{(item.price || 0).toFixed(2)} lei</p>
+                            <p className="font-bold text-sm">{((item.unitPrice !== undefined ? item.unitPrice : item.price) || 0).toFixed(2)} lei</p>
                           </div>
                         </div>
                       );
