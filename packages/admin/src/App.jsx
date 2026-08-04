@@ -588,7 +588,7 @@ export default function AdminApp() {
             <div className="text-sm text-slate-500 space-y-1">
               <p><strong>Canal:</strong> {selectedOrder.channel}</p>
               <p><strong>Tip Comandă:</strong> {selectedOrder.orderType === 'dine-in' ? (selectedOrder.tableNumber ? `La masă (Masa ${selectedOrder.tableNumber})` : 'La masă') : 'La pachet'}</p>
-              <p><strong>Plată:</strong> <span className="font-bold">{selectedOrder.paymentMethod === 'cash' ? 'CASH' : (selectedOrder.paymentMethod === 'card' ? 'CARD' : '—')} {selectedOrder.paymentMethod === 'card' ? <span className="text-emerald-500 font-bold ml-1">(Aprobată)</span> : (selectedOrder.paymentMethod === 'cash' ? <span className="text-amber-500 font-bold ml-1">(La Casă)</span> : '')}</span></p>
+              <p className="flex items-center gap-2"><strong>Plată:</strong> <span className="font-bold">{selectedOrder.paymentMethod === 'cash' ? 'CASH' : (selectedOrder.paymentMethod === 'card' ? 'CARD' : '—')}</span> {selectedOrder.paymentMethod === 'card' ? <span className="px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap bg-emerald-500/20 text-emerald-500 border border-emerald-500/40">✓ Aprobat</span> : (selectedOrder.paymentMethod === 'cash' ? <span className="px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap bg-amber-500/20 text-amber-500 border border-amber-500/40">La Casă</span> : '')}</p>
               <p><strong>Data/Ora:</strong> {selectedOrder.createdAt ? new Date(selectedOrder.createdAt).toLocaleString('ro-RO') : '—'}</p>
               {selectedOrder.syrveOrderId && (
                 <div className="flex items-center justify-between gap-3 bg-slate-50 dark:bg-slate-800 p-2 rounded-lg border border-slate-200 dark:border-slate-700 mt-2">
@@ -596,6 +596,12 @@ export default function AdminApp() {
                     <span className="text-[10px] uppercase font-bold text-slate-500">ID Comandă iiko</span>
                     <span className="font-mono text-sm text-slate-700 dark:text-slate-300 truncate select-all">{selectedOrder.syrveOrderId}</span>
                   </div>
+                  {(selectedOrder.paymentRef?.receiptNo || selectedOrder.paymentRef?.refNum) && (
+                    <div className="flex flex-col mt-2">
+                      <span className="text-[10px] uppercase font-bold text-slate-500">Număr Bon POS (Chitanță)</span>
+                      <span className="font-mono text-sm text-slate-700 dark:text-slate-300 select-all">{selectedOrder.paymentRef.receiptNo || selectedOrder.paymentRef.refNum}</span>
+                    </div>
+                  )}
                   <button 
                     onClick={(e) => {
                       navigator.clipboard.writeText(selectedOrder.syrveOrderId);
@@ -839,7 +845,7 @@ function OrdersTable({ orders, full, onRowClick, selectedId }) {
                       {o.orderType === 'dine-in' ? (o.tableNumber ? `Masa ${o.tableNumber}` : 'La masă') : 'La pachet'}
                     </span>
                     <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                      Plată: {o.paymentMethod === 'cash' ? 'Cash' : (o.paymentMethod === 'card' ? 'Card' : (o.paymentMethod || '—'))} {o.paymentMethod === 'card' ? <span className="text-emerald-500 font-bold ml-1">(Aprobată)</span> : (o.paymentMethod === 'cash' ? <span className="text-amber-500 font-bold ml-1">(La Casă)</span> : '')}
+                      <div className="flex items-center gap-1">Plată: {o.paymentMethod === 'cash' ? 'Cash' : (o.paymentMethod === 'card' ? 'Card' : (o.paymentMethod || '—'))} {o.paymentMethod === 'card' ? <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap bg-emerald-500/20 text-emerald-500 border border-emerald-500/40">✓ Aprobat</span> : (o.paymentMethod === 'cash' ? <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap bg-amber-500/20 text-amber-500 border border-amber-500/40">La Casă</span> : '')}</div>
                     </span>
                   </div>
                 </td>

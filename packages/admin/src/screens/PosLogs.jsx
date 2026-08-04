@@ -387,9 +387,10 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                       </span>
                       {(() => {
                         const rNo = extractReceiptNo(log);
-                        return rNo ? (
-                          <span className="text-[10px] font-mono text-slate-400">
-                            Bon: {rNo}
+                        const displayNo = rNo || log.refNum;
+                        return displayNo ? (
+                          <span className="text-[10px] font-mono text-slate-400 mt-0.5 inline-block">
+                            Bon POS: {displayNo}
                           </span>
                         ) : null;
                       })()}
