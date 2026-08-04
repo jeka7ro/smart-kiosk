@@ -614,10 +614,10 @@ export default function AdminApp() {
                     <span className="text-[10px] uppercase font-bold text-slate-500">ID Comandă iiko</span>
                     <span className="font-mono text-sm text-slate-700 dark:text-slate-300 truncate select-all">{selectedOrder.syrveOrderId}</span>
                   </div>
-                  {(selectedOrder.paymentRef?.receiptNo || selectedOrder.paymentRef?.refNum) && (
+                  {selectedOrder.paymentRef?.receiptNo && (
                     <div className="flex flex-col mt-2">
                       <span className="text-[10px] uppercase font-bold text-slate-500">Număr Bon POS (Chitanță)</span>
-                      <span className="font-mono text-sm text-slate-700 dark:text-slate-300 select-all">{selectedOrder.paymentRef.receiptNo || selectedOrder.paymentRef.refNum}</span>
+                      <span className="font-mono text-sm text-slate-700 dark:text-slate-300 select-all">{selectedOrder.paymentRef.receiptNo}</span>
                     </div>
                   )}
                   <button 

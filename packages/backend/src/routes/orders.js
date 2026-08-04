@@ -11,6 +11,7 @@ const fs      = require('fs');
 const path    = require('path');
 const { createOrder: syrveCreateOrder } = require('../services/iikoService');
 const { pool } = require('../db');
+const { addPosLog } = require('./posLogs');
 
 // ── POST /api/orders ──────────────────────────────────────────
 router.post('/', async (req, res) => {
@@ -289,11 +290,27 @@ router.patch('/:id/status', async (req, res) => {
     if (status === 'cancelled' && canceledBy) {
       order.canceledBy = canceledBy;
     }
-    
     await pool.query(
       `UPDATE orders SET status = $1, data = $2, updated_at = NOW() WHERE id = $3`,
       [status, JSON.stringify(order), req.params.id]
     );
+
+    // Daca s-a anulat o comanda platita cu cardul (Refuz POS manual), adaugam un POS Log de retur
+    if (status === 'cancelled' && order.paymentMethod === 'card') {
+      const refundEntry = {
+        locationId: order.locationId,
+        locationName: order.locationName,
+        orderId: order._id,
+        amount: -(order.totalAmount || 0),
+        paid: true, // we set paid: true so it counts as a successful refund
+        status: 'refunded',
+        authCode: order.paymentRef?.authCode || 'REFUND',
+        refNum: order.paymentRef?.refNum || '',
+        cardNo: order.paymentRef?.cardNo || '',
+        raw: { note: 'Storno/Anulare manuală din Admin (Refuz POS)' }
+      };
+      await addPosLog(refundEntry).catch(e => console.error('[Orders] Failed to insert refund POS log:', e));
+    }
 
     // Dacă casierul tocmai a confirmat plata cash → trimitem la iiko acum
     if (wasCashWaiting && (status === 'pending' || status === 'confirmed')) {

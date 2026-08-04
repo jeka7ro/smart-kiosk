@@ -163,8 +163,17 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
       } catch (e) {}
     }
 
-    const match = rawStr.match(/(?:CHITANTA\s+NR|BON\s+NR|RECEIPT\s+NO|TXN)\s*[:\.]?\s*(\d+)/i);
+    const match = rawStr.match(/(?:CHITANTA\s+NR|BON\s+NR|RECEIPT\s+NO|TXN|STAN)\s*[:\.]?\s*(\d+)/i);
     if (match) return match[1];
+
+    if (rawStr.startsWith('MOL11')) {
+      const matches = rawStr.match(/\d{6}/g);
+      if (matches) {
+        const auth = log.authCode || '';
+        const stan = matches.find(m => m !== auth && m !== '000000');
+        if (stan) return stan;
+      }
+    }
     
     return null;
   };
@@ -387,10 +396,9 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                       </span>
                       {(() => {
                         const rNo = extractReceiptNo(log);
-                        const displayNo = rNo || log.refNum;
-                        return displayNo ? (
+                        return rNo ? (
                           <span className="text-[10px] font-mono text-slate-400 mt-0.5 inline-block">
-                            Bon POS: {displayNo}
+                            Bon POS: {rNo}
                           </span>
                         ) : null;
                       })()}
