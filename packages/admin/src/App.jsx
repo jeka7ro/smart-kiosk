@@ -877,7 +877,7 @@ function OrdersTable({ orders, full, onRowClick, selectedId }) {
                       {o.orderType === 'dine-in' ? (o.tableNumber ? `Masa ${o.tableNumber}` : 'La masă') : 'La pachet'}
                     </span>
                     <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                      <div className="flex items-center gap-1">Plată: {o.paymentMethod === 'cash' ? 'Cash' : (o.paymentMethod === 'card' ? 'Card' : (o.paymentMethod || '—'))} {o.paymentMethod === 'card' ? <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap bg-emerald-500/20 text-emerald-500 border border-emerald-500/40">✓ Aprobat</span> : (o.paymentMethod === 'cash' ? <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap bg-amber-500/20 text-amber-500 border border-amber-500/40">La Casă</span> : '')}</div>
+                      Plată: {o.paymentMethod === 'cash' ? 'Cash' : (o.paymentMethod === 'card' ? 'Card' : (o.paymentMethod || '—'))}
                     </span>
                   </div>
                 </td>
