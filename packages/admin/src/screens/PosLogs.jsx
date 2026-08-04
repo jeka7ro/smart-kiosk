@@ -11,6 +11,8 @@ const STATUS_CONFIG = {
   approved: { label: 'Aprobat',  color: '#10b981', bg: '#10b98120', icon: '✓' },
   declined: { label: 'Respins',  color: '#ef4444', bg: '#ef444420', icon: '✕' },
   timeout:  { label: 'Timeout',  color: '#f59e0b', bg: '#f59e0b20', icon: '⏱' },
+  refunded: { label: 'Returnat', color: '#3b82f6', bg: '#3b82f620', icon: '⟲' },
+  unsolicited: { label: 'POS Info', color: '#8b5cf6', bg: '#8b5cf620', icon: 'ℹ' },
 };
 
 export default function PosLogs({ orders = [], onGoToOrder }) {

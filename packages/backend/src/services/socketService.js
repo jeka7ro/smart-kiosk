@@ -84,6 +84,27 @@ function initSocket(io) {
       });
     });
 
+    // POS Bridge unsolicited data (e.g., manual refunds)
+    socket.on('pos_unsolicited_data', (data) => {
+      const { locationId, payload } = data;
+      console.log(`[Socket] ℹ️ Unsolicited POS data from ${locationId}: ${payload}`);
+      
+      try {
+        const { addPosLog } = require('../routes/posLogs');
+        const logEntry = addPosLog({
+          locationId: locationId || socket._posLocationId || '',
+          amount: 0,
+          paid: true,
+          status: 'unsolicited',
+          raw: payload,
+          gateway: 'raiffeisen',
+        });
+        io.to('admin').emit('pos_log_new', logEntry);
+      } catch (e) {
+        console.error('[POS Logs] Error saving unsolicited data:', e.message);
+      }
+    });
+
     // Salvăm locationId pe socket la register
     socket.on('pos_bridge_register', (origHandler => ({ locationId, port }) => {
       socket._posLocationId = locationId;

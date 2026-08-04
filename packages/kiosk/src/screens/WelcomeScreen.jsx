@@ -15,6 +15,7 @@ export default function WelcomeScreen() {
   const lang    = useKioskStore((s) => s.lang);
   const setLang = useKioskStore((s) => s.setLang);
   const isUnlocking = useKioskStore((s) => s.isUnlocking);
+  const screen      = useKioskStore((s) => s.screen);
   const brand   = useBrand();
   const locationData = useKioskStore((s) => s.locationData);
   const [slide, setSlide] = useState(0);
@@ -56,6 +57,13 @@ export default function WelcomeScreen() {
       setPosterVisible(false);
     }
   }, [locationData]);
+
+  // Ensure poster comes back if we return to welcome screen
+  useEffect(() => {
+    if (screen === 'welcome' && locationData && locationData.posterUrl) {
+      setPosterVisible(true);
+    }
+  }, [screen, locationData]);
 
   // Slide timer
   useEffect(() => {
