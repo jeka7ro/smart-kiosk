@@ -150,7 +150,25 @@ export default function AdminApp() {
     return () => clearInterval(interval);
   }, [periodFilter, customStart, customEnd]);
 
-  /* ─── Load menu status ───────────────────────────── */
+  const handleCancelOrder = async (orderId) => {
+    if (!window.confirm('Ești sigur că vrei să anulezi această comandă (anulată din POS)?')) return;
+    try {
+      const res = await fetchWithAuth(`${BACKEND}/api/orders/${orderId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'cancelled', canceledBy: 'admin' })
+      });
+      if (res.ok) {
+        setOrders(prev => prev.map(o => o._id === orderId ? { ...o, status: 'cancelled', canceledBy: 'admin' } : o));
+        alert('Comanda a fost marcată ca anulată.');
+      } else {
+        const err = await res.json();
+        alert('Eroare: ' + (err.error || 'Nu s-a putut anula.'));
+      }
+    } catch (e) {
+      alert('Eroare de rețea.');
+    }
+  };  /* ─── Load menu status ───────────────────────────── */
   const fetchMenuStatus = useCallback(() => {
     fetchWithAuth(`${BACKEND}/api/menu/status`)
       .then(r => r.json())
@@ -620,6 +638,20 @@ export default function AdminApp() {
                 </div>
               )}
             </div>
+
+            {selectedOrder.status !== 'cancelled' && (
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={() => {
+                    handleCancelOrder(selectedOrder._id);
+                    setSelectedOrder({ ...selectedOrder, status: 'cancelled', canceledBy: 'admin' });
+                  }}
+                  className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold rounded-lg transition-colors text-sm"
+                >
+                  ✕ Anulează Comanda (Refuz POS)
+                </button>
+              </div>
+            )}
 
             {(() => {
               const allItems = selectedOrder.items || [];
