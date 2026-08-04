@@ -588,7 +588,7 @@ export default function AdminApp() {
             <div className="text-sm text-slate-500 space-y-1">
               <p><strong>Canal:</strong> {selectedOrder.channel}</p>
               <p><strong>Tip Comandă:</strong> {selectedOrder.orderType === 'dine-in' ? (selectedOrder.tableNumber ? `La masă (Masa ${selectedOrder.tableNumber})` : 'La masă') : 'La pachet'}</p>
-              <p><strong>Plată:</strong> <span className="font-bold">{selectedOrder.paymentMethod === 'cash' ? 'CASH' : (selectedOrder.paymentMethod === 'card' ? 'CARD' : '—')}</span></p>
+              <p><strong>Plată:</strong> <span className="font-bold">{selectedOrder.paymentMethod === 'cash' ? 'CASH' : (selectedOrder.paymentMethod === 'card' ? 'CARD' : '—')} {selectedOrder.paymentStatus === 'paid' ? <span className="text-emerald-500 font-bold ml-1">(Aprobată)</span> : (selectedOrder.paymentStatus === 'unpaid' ? <span className="text-rose-500 font-bold ml-1">(Neachitată)</span> : '')}</span></p>
               <p><strong>Data/Ora:</strong> {selectedOrder.createdAt ? new Date(selectedOrder.createdAt).toLocaleString('ro-RO') : '—'}</p>
               {selectedOrder.syrveOrderId && (
                 <div className="flex items-center justify-between gap-3 bg-slate-50 dark:bg-slate-800 p-2 rounded-lg border border-slate-200 dark:border-slate-700 mt-2">
@@ -839,7 +839,7 @@ function OrdersTable({ orders, full, onRowClick, selectedId }) {
                       {o.orderType === 'dine-in' ? (o.tableNumber ? `Masa ${o.tableNumber}` : 'La masă') : 'La pachet'}
                     </span>
                     <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                      Plată: {o.paymentMethod === 'cash' ? 'Cash' : (o.paymentMethod === 'card' ? 'Card' : (o.paymentMethod || '—'))}
+                      Plată: {o.paymentMethod === 'cash' ? 'Cash' : (o.paymentMethod === 'card' ? 'Card' : (o.paymentMethod || '—'))} {o.paymentStatus === 'paid' ? <span className="text-emerald-500 font-bold ml-1">(Aprobată)</span> : (o.paymentStatus === 'unpaid' ? <span className="text-rose-500 font-bold ml-1">(Neachitată)</span> : '')}
                     </span>
                   </div>
                 </td>
