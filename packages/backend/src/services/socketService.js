@@ -46,32 +46,17 @@ function initSocket(io) {
     });
 
     // POS Bridge trimite rezultatul plății
-    socket.on('pos_payment_result', async (data) => {
+    socket.on('pos_payment_result', (data) => {
       const { orderId, paid, authCode, responseCode, code, refNum, receiptNo, cardNo, txDate, error, raw, locationId, amount } = data;
       console.log(`[Socket] 💳 POS result: orderId=${orderId} paid=${paid} auth=${authCode || '-'} code=${responseCode || code || '-'}`);
       
-      // Fallback la suma din baza de date daca bridge-ul nu o trimite (sau trimite 0)
-      let finalAmount = parseFloat(amount || 0);
-      if (finalAmount === 0 && orderId) {
-        try {
-          const { pool } = require('../db');
-          const dbRes = await pool.query(`SELECT data->>'totalAmount' as total FROM orders WHERE id = $1`, [orderId]);
-          if (dbRes.rows.length > 0 && dbRes.rows[0].total) {
-            finalAmount = parseFloat(dbRes.rows[0].total);
-            console.log(`[Socket] 🔄 S-a folosit suma fallback din BD: ${finalAmount} RON pentru comanda ${orderId}`);
-          }
-        } catch (e) {
-          console.error(`[Socket] ⚠️ Nu s-a putut lua fallback amount pt comanda ${orderId}:`, e.message);
-        }
-      }
-
       // Salvează în POS Logs
       try {
         const { addPosLog } = require('../routes/posLogs');
-        const logEntry = await addPosLog({
+        const logEntry = addPosLog({
           orderId,
           locationId: locationId || socket._posLocationId || '',
-          amount: finalAmount,
+          amount: amount || 0,
           paid,
           receiptNo,
           responseCode: responseCode || code || '',
