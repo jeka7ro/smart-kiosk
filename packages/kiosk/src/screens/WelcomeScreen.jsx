@@ -114,8 +114,8 @@ const FLAG_GRADIENTS = {
     const baseImgStyle = { position: 'absolute', top: 0, left: 0, zIndex: 1, width: '100%', height: '100%', objectFit: 'cover', display: 'block' };
 
     if (r === 0) {
-      if (poster.type === 'video') return <video src={poster.url} autoPlay loop muted playsInline style={baseImgStyle} />;
-      if (poster.type === 'image') return <img src={poster.url} alt="Promo" style={baseImgStyle} />;
+      if (poster.type === 'video') return <video src={poster.url} autoPlay loop muted playsInline style={baseImgStyle} onError={() => setPosterVisible(false)} />;
+      if (poster.type === 'image') return <img src={poster.url} alt="Promo" style={baseImgStyle} onError={() => setPosterVisible(false)} />;
       return <iframe src={poster.url} style={{ ...baseImgStyle, border: 'none' }} title="Promo" frameBorder="0" allow="autoplay; fullscreen" />;
     }
 
@@ -140,14 +140,14 @@ const FLAG_GRADIENTS = {
         border: 'none',
         objectFit: 'cover',
       };
-      if (poster.type === 'video') return <div style={wrapStyle}><video src={poster.url} autoPlay loop muted playsInline style={innerStyle} /></div>;
-      if (poster.type === 'image') return <div style={wrapStyle}><img src={poster.url} alt="Promo" style={innerStyle} /></div>;
+      if (poster.type === 'video') return <div style={wrapStyle}><video src={poster.url} autoPlay loop muted playsInline style={innerStyle} onError={() => setPosterVisible(false)} /></div>;
+      if (poster.type === 'image') return <div style={wrapStyle}><img src={poster.url} alt="Promo" style={innerStyle} onError={() => setPosterVisible(false)} /></div>;
       return <div style={wrapStyle}><iframe src={poster.url} style={innerStyle} title="Promo" frameBorder="0" allow="autoplay; fullscreen" /></div>;
     }
 
     // 180deg
-    if (poster.type === 'video') return <video src={poster.url} autoPlay loop muted playsInline style={{ ...baseImgStyle, transform: 'rotate(180deg)' }} />;
-    if (poster.type === 'image') return <img src={poster.url} alt="Promo" style={{ ...baseImgStyle, transform: 'rotate(180deg)' }} />;
+    if (poster.type === 'video') return <video src={poster.url} autoPlay loop muted playsInline style={{ ...baseImgStyle, transform: 'rotate(180deg)' }} onError={() => setPosterVisible(false)} />;
+    if (poster.type === 'image') return <img src={poster.url} alt="Promo" style={{ ...baseImgStyle, transform: 'rotate(180deg)' }} onError={() => setPosterVisible(false)} />;
     return <iframe src={poster.url} style={{ ...baseImgStyle, border: 'none', transform: 'rotate(180deg)' }} title="Promo" frameBorder="0" allow="autoplay; fullscreen" />;
   };
 
