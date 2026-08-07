@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { QRCodeCanvas } from 'qrcode.react';
 import { useKioskStore } from '../store/kioskStore';
 import { t } from '../i18n/translations.js';
 import { useInactivityTimeout } from '../hooks/useInactivityTimeout.js';
@@ -16,7 +15,7 @@ const STATE = {
   WAITING_CARD: 'waiting_card',
   PIN_ENTRY:    'pin_entry',
   AUTHORIZING:  'authorizing',
-  WAITING_QR:   'waiting_qr',
+
   APPROVED:     'approved',
   DECLINED:     'declined',
   ERROR:        'error',
@@ -45,62 +44,16 @@ export default function PaymentScreen() {
   const [payState, setPayState] = useState(STATE.IDLE);
   const [errorMsg, setErrorMsg] = useState('');
   const [txInfo,   setTxInfo]   = useState(null);
-  const [qrUrl,    setQrUrl]    = useState('');
-  const [qrLoading, setQrLoading] = useState(false);
 
-  const qrOrderIdRef = useRef(null);
-  const qrSocketRef  = useRef(null);
 
   useEffect(() => {
     // cleanup card socket on unmount
     return () => {
       socketRef.current?.disconnect?.();
-      qrSocketRef.current?.disconnect?.();
     };
   }, []);
 
-  // Auto-generate QR when screen loads
-  useEffect(() => {
-    let cancelled = false;
-    const generateQR = async () => {
-      setQrLoading(true);
-      try {
-        const orderId = `kiosk-qr-${Date.now()}`;
-        qrOrderIdRef.current = orderId;
 
-        const { io } = await import('socket.io-client');
-        const socket = io(BACKEND, { transports: ['websocket'], reconnection: false });
-        qrSocketRef.current = socket;
-
-        socket.on(`payment_confirmed_${orderId}`, async (result) => {
-          socket.disconnect(); qrSocketRef.current = null;
-          if (!cancelled && result.paid) {
-            setTxInfo(result);
-            setPayState(STATE.APPROVED);
-            const orderData = await sendOrder(result);
-            if (orderData?.orderNumber) setLastOrderNumber(orderData.orderNumber);
-            setTimeout(() => goTo('confirmation'), 2200);
-          }
-        });
-
-        const res = await fetch(`${BACKEND}/api/payment/qr-link`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ orderId, amount: total }),
-        });
-        if (!res.ok) throw new Error();
-        const data = await res.json();
-        if (!cancelled) setQrUrl(data.paymentUrl);
-      } catch (_) {
-        // QR generation failed silently — card payment still works
-      } finally {
-        if (!cancelled) setQrLoading(false);
-      }
-    };
-    generateQR();
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const sendOrder = useCallback(async (paymentResult, pMethod = 'card') => {
     try {
@@ -206,8 +159,8 @@ export default function PaymentScreen() {
     }
   }, [total, sendOrder, goTo]);
 
-  const handleCancel      = () => { socketRef.current?.disconnect(); qrSocketRef.current?.disconnect(); goTo('cart'); };
-  const handleCancelOrder = () => { socketRef.current?.disconnect(); qrSocketRef.current?.disconnect(); resetOrder(); };
+  const handleCancel      = () => { socketRef.current?.disconnect(); goTo('cart'); };
+  const handleCancelOrder = () => { socketRef.current?.disconnect(); resetOrder(); };
   const handleRetry       = () => { setPayState(STATE.IDLE); setErrorMsg(''); setTxInfo(null); };
 
   const canGoBack = [STATE.IDLE, STATE.ERROR, STATE.DECLINED].includes(payState);
@@ -226,42 +179,14 @@ export default function PaymentScreen() {
 
         {payState === STATE.IDLE && (
           <>
-            {/* ── Randul cu iconul cardului + QR ── */}
-            <div className="payment-icons-row">
-              {/* Stanga: iconul card */}
+            {/* ── Iconul cardului ── */}
+            <div className="payment-icons-row" style={{justifyContent:'center'}}>
               <div className="pir-card">
                 <div className="payment-pos-icon">
                   <span className="pos-emoji">💳</span>
                   <div className="pos-waves"><div className="wave"/><div className="wave"/><div className="wave"/></div>
                 </div>
                 <p className="pir-label">{t('payment_card_title', lang)}</p>
-              </div>
-
-              {/* Separator */}
-              <div className="pir-sep">
-                <div className="pir-sep-line"/>
-                <span>{t('or', lang).toUpperCase()}</span>
-                <div className="pir-sep-line"/>
-              </div>
-
-              {/* Dreapta: QR */}
-              <div className="pir-qr">
-                {qrLoading && (
-                  <div className="qr-loading">
-                    <div className="processing-spinner" style={{width:36,height:36}}/>
-                  </div>
-                )}
-                {!qrLoading && qrUrl && (
-                  <div className="qr-code-wrapper">
-                    <QRCodeCanvas value={qrUrl} size={160} level="H" includeMargin={true}/>
-                  </div>
-                )}
-                {!qrLoading && !qrUrl && (
-                  <div style={{width:160,height:160,display:'flex',alignItems:'center',justifyContent:'center',opacity:0.4}}>
-                    <p style={{fontSize:'0.8rem',color:'var(--text-muted)',textAlign:'center'}}>QR indisponibil</p>
-                  </div>
-                )}
-                <p className="pir-label">{t('scan_phone', lang)}</p>
               </div>
             </div>
 
@@ -304,22 +229,7 @@ export default function PaymentScreen() {
           </div>
         )}
 
-        {payState === STATE.WAITING_QR && qrUrl && (
-          <div className="payment-qr fade-in">
-            <h2 className="processing-title">Scaneaza si plateste</h2>
-            <p className="processing-step" style={{marginBottom:24}}>Deschide camera telefonului si scaneaza codul de mai jos</p>
-            <div className="qr-code-wrapper">
-              <QRCodeCanvas value={qrUrl} size={220} level="H" includeMargin={true} />
-            </div>
-            <p className="qr-link-text">
-              Sau acceseaza link-ul: <a href={qrUrl} target="_blank" rel="noopener noreferrer" className="qr-link">{qrUrl.length > 50 ? qrUrl.slice(0,50) + '...' : qrUrl}</a>
-            </p>
-            <div className="payment-cancel-actions">
-              <button className="btn btn-outline btn-lg" onClick={handleCancel}>{t('back_to_cart', lang)}</button>
-              <button className="btn btn-danger btn-lg" onClick={handleCancelOrder}>{t('cancel_order', lang)}</button>
-            </div>
-          </div>
-        )}
+
 
         {payState === STATE.WAITING_CARD && (
           <div className="payment-processing">

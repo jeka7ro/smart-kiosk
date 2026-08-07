@@ -603,11 +603,15 @@ export default function AdminApp() {
                 color: STATUS_LABELS[selectedOrder.status]?.color || '#6b7a99'
               }}>● {STATUS_LABELS[selectedOrder.status]?.label || selectedOrder.status}</span>
             </div>
-            <div className="text-sm text-slate-500 space-y-1">
-              <p><strong>Canal:</strong> {selectedOrder.channel}</p>
-              <p><strong>Tip Comandă:</strong> {selectedOrder.orderType === 'dine-in' ? (selectedOrder.tableNumber ? `La masă (Masa ${selectedOrder.tableNumber})` : 'La masă') : 'La pachet'}</p>
-              <p className="flex items-center gap-2"><strong>Plată:</strong> <span className="font-bold">{selectedOrder.paymentMethod === 'cash' ? 'CASH' : (selectedOrder.paymentMethod === 'card' ? 'CARD' : '—')}</span> {selectedOrder.paymentMethod === 'card' ? <span className="px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap bg-emerald-500/20 text-emerald-500 border border-emerald-500/40">✓ Aprobat</span> : (selectedOrder.paymentMethod === 'cash' ? <span className="px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap bg-amber-500/20 text-amber-500 border border-amber-500/40">La Casă</span> : '')}</p>
-              <p><strong>Data/Ora:</strong> {selectedOrder.createdAt ? new Date(selectedOrder.createdAt).toLocaleString('ro-RO') : '—'}</p>
+            <div className="text-sm text-slate-500 space-y-2">
+              <div className="flex items-center gap-6">
+                <p><strong>Canal:</strong> {selectedOrder.channel}</p>
+                <p><strong>Tip Comandă:</strong> {selectedOrder.orderType === 'dine-in' ? (selectedOrder.tableNumber ? `La masă (Masa ${selectedOrder.tableNumber})` : 'La masă') : 'La pachet'}</p>
+              </div>
+              <div className="flex items-center gap-6">
+                <p className="flex items-center gap-2"><strong>Plată:</strong> <span className="font-bold">{selectedOrder.paymentMethod === 'cash' ? 'CASH' : (selectedOrder.paymentMethod === 'card' ? 'CARD' : '—')}</span> {selectedOrder.paymentMethod === 'card' ? <span className="px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap bg-emerald-500/20 text-emerald-500 border border-emerald-500/40">✓ Aprobat</span> : (selectedOrder.paymentMethod === 'cash' ? <span className="px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap bg-amber-500/20 text-amber-500 border border-amber-500/40">La Casă</span> : '')}</p>
+                <p><strong>Data/Ora:</strong> {selectedOrder.createdAt ? new Date(selectedOrder.createdAt).toLocaleString('ro-RO') : '—'}</p>
+              </div>
               {selectedOrder.syrveOrderId && (
                 <div className="flex items-center justify-between gap-3 bg-slate-50 dark:bg-slate-800 p-2 rounded-lg border border-slate-200 dark:border-slate-700 mt-2">
                   <div className="flex flex-col">

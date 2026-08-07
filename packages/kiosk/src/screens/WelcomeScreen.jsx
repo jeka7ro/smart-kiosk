@@ -25,7 +25,7 @@ export default function WelcomeScreen() {
 
   // ─── Poster / Screensaver ────────────────────────────────
   const [poster, setPoster] = useState(null);   // { url, type, showLogo }
-  const [posterVisible, setPosterVisible] = useState(false);
+  const [posterVisible, setPosterVisible] = useState(!!locationData?.posterUrl);
 
   useEffect(() => {
     if (locationData && locationData.posterUrl) {
@@ -58,12 +58,14 @@ export default function WelcomeScreen() {
     }
   }, [locationData]);
 
-  // Ensure poster comes back if we return to welcome screen
+  // Ensure poster comes back EVERY time we return to welcome screen
   useEffect(() => {
-    if (screen === 'welcome' && locationData && locationData.posterUrl) {
-      setPosterVisible(true);
+    if (screen === 'welcome' && locationData?.posterUrl) {
+      // Small delay to ensure React state is fully settled after screen transition
+      const t = setTimeout(() => setPosterVisible(true), 50);
+      return () => clearTimeout(t);
     }
-  }, [screen, locationData]);
+  }, [screen, locationData?.posterUrl]);
 
   // Slide timer
   useEffect(() => {
