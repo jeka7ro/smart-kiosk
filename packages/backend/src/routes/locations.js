@@ -6,7 +6,7 @@ const { pool } = require('../db');
 const { protect, requireApiKey } = require('../middleware/authMiddleware');
 const multer = require('multer');
 
-const uploadDir = path.join(__dirname, '../../uploads/screensavers');
+const uploadDir = path.join(__dirname, '../../data/uploads/screensavers');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
 const storage = multer.diskStorage({

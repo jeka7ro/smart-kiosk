@@ -92,7 +92,7 @@ app.use('/api/iiko-logs',    require('./routes/iikoLogs.js'));
 
 // Serve uploaded brand logos
 const path = require('path');
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/uploads', express.static(path.join(__dirname, '../data/uploads')));
 
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));
