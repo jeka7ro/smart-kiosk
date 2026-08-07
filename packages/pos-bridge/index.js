@@ -192,8 +192,20 @@ async function start() {
 
         if (payload.startsWith('MOL11')) {
           clearTimeout(currentTransactionTimer);
-          const approved = payload.includes('000');
-          log(approved ? '✅ Plată APROBATĂ' : '❌ Plată RESPINSĂ');
+          log('✅ MOL11 primit: POS-ul e gata, așteaptă cardul...');
+          state = 'WAIT_MOL12';
+          if (globalPort.currentStatusCallback) globalPort.currentStatusCallback('Urmați instrucțiunile de pe terminal');
+
+          currentTransactionTimer = setTimeout(() => {
+             if (currentTransactionResolve) currentTransactionResolve({ success: false, reason: 'Timeout validare card (2 min)', code: 'DECLINED' });
+          }, 120000);
+        }
+        else if (payload.startsWith('MOL12')) {
+          clearTimeout(currentTransactionTimer);
+          const responseCode = payload.slice(6, 8);
+          const approved = responseCode === '00';
+          
+          log(approved ? '✅ Plată APROBATĂ' : `❌ Plată RESPINSĂ (cod: ${responseCode})`);
           
           setTimeout(() => {
             const mol13 = buildMol('MOL', '13', '');
@@ -201,7 +213,7 @@ async function start() {
             globalPort.write(mol13);
             setTimeout(() => {
               if (currentTransactionResolve) {
-                currentTransactionResolve({ success: approved, authCode: '123456', code: approved ? '0000' : 'REFUSED', raw: payload });
+                currentTransactionResolve({ success: approved, code: approved ? '0000' : responseCode, raw: payload });
               }
             }, 500);
           }, 300);
