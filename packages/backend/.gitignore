@@ -1,3 +1,2 @@
-data/orders.json
-data/pos-logs.json
-data/iiko_logs.json
+data/*.json
+data/*.db
