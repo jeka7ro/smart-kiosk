@@ -332,13 +332,17 @@ async function start() {
           const authCode = payload.subarray(47, 53).toString('ascii').trim();
           const respCode = payload.subarray(53, 57).toString('ascii').trim();
 
+          const varStr    = payload.subarray(57).toString('ascii');
+          const varFields = varStr.split(String.fromCharCode(FS));
+          const cardNo    = (varFields[1] || '').trim();
+
           const approved = respCode === '0000';
-          log(`📥 Auth End: Code=${respCode} Auth=${authCode}`);
+          log(`📥 Auth End: Code=${respCode} Auth=${authCode} Card=${cardNo}`);
 
           globalPort.write(Buffer.from([EOT]));
           succeed({
             success: approved, code: respCode, authCode, refNum,
-            txDate, amount: amtField, currency, termId,
+            txDate, amount: amtField, currency, termId, cardNo,
             raw: payload.toString('hex'),
           });
           break;
@@ -397,8 +401,13 @@ async function start() {
       
       socket.emit('pos_payment_result', { 
         orderId, 
+        locationId: lid || LOCATION_ID,
+        amount,
         paid: res.success, 
         authCode: res.authCode,
+        refNum: res.refNum,
+        cardNo: res.cardNo,
+        txDate: res.txDate,
         code: res.code || (res.success ? '0000' : 'DECLINED'),
         raw: res.raw || '',
         error: res.reason || null
