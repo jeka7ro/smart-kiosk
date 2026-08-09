@@ -153,7 +153,7 @@ function processPrintecPayment(amount, onStatus) {
     globalPort.currentSALE_FRAME = SALE_FRAME;
 
     setTimeout(() => {
-      ecrSend(buildFrame([0x06, 0x00, 0x00]), 'LOGIN', 'LOGIN', 5000);
+      ecrSend(SALE_FRAME, 'SALE', 'SALE', 3000);
     }, 500);
   });
 }
