@@ -127,7 +127,14 @@ function processPrintecPayment(amount, onStatus) {
     };
 
     const fail = (msg) => {
-      if (currentTransactionResolve) currentTransactionResolve({ success: false, reason: msg, code: 'DECLINED' });
+      if (currentTransactionResolve) {
+        clearTimeout(currentTransactionTimer);
+        globalPort.drain(() => {
+          state = 'IDLE';
+          currentTransactionResolve({ success: false, reason: msg, code: 'DECLINED' });
+          currentTransactionResolve = null;
+        });
+      }
     };
 
     const cents   = Math.round(amount * 100);
