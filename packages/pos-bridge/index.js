@@ -358,14 +358,18 @@ async function start() {
           const varStr    = payload.subarray(57).toString('ascii');
           const varFields = varStr.split(String.fromCharCode(FS));
           const cardNo    = (varFields[1] || '').trim();
+          const receiptNo = (varFields[0] || '').trim(); // De obicei primul câmp variabil e numărul chitanței (STAN/Invoice)
 
           const approved = respCode === '0000';
-          log(`📥 Auth End: Code=${respCode} Auth=${authCode} Card=${cardNo}`);
+          
+          log(`📥 Auth End: Code=${respCode} Auth=${authCode} Card=${cardNo} Ref=${refNum} Receipt=${receiptNo}`);
+          log(`📝 Extra POS Fields: ${JSON.stringify(varFields)}`);
 
           globalPort.write(Buffer.from([EOT]));
           succeed({
             success: approved, code: respCode, authCode, refNum,
-            txDate, amount: amtField, currency, termId, cardNo,
+            txDate, amount: amtField, currency, termId, cardNo, receiptNo,
+            extraFields: varFields,
             raw: payload.toString('hex'),
           });
           break;
