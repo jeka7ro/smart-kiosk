@@ -110,7 +110,8 @@ export default function PaymentScreen() {
           })),
           totalAmount: total, channel: 'kiosk', paymentMethod: pMethod,
           paymentRef: { authCode: paymentResult?.authCode, receiptNo: paymentResult?.receiptNo,
-                        cardNo: paymentResult?.cardNo, refNum: paymentResult?.refNum },
+                        cardNo: paymentResult?.cardNo, refNum: paymentResult?.refNum,
+                        extraFields: paymentResult?.extraFields },
         }),
       });
       const data = await res.json();
