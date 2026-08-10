@@ -166,7 +166,7 @@ async function start() {
   const socket = ioClient(RENDER_URL, { auth: { bridgeKey: BRIDGE_KEY, locationId: LOCATION_ID } });
 
   log('════════════════════════════════════════════');
-  log('Bridge v7.4 (Extra fields log)');
+  log('Bridge v7.5 (Admin sync)');
   log(`Port din config: ${COM_PORT}`);
   log(`Render:    ${RENDER_URL}`);
   log(`COM Port:  ${portPath} @ ${BAUD_RATE} baud (8-N-1)`);
@@ -432,9 +432,10 @@ async function start() {
         authCode: res.authCode,
         refNum: res.refNum,
         cardNo: res.cardNo,
+        receiptNo: res.receiptNo,
         txDate: res.txDate,
         code: res.code || (res.success ? '0000' : 'DECLINED'),
-        raw: res.raw || '',
+        raw: { data: res.raw || '', extraFields: res.extraFields || [] },
         error: res.reason || null
       });
     } catch (err) {
