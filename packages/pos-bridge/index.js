@@ -153,7 +153,7 @@ function processPrintecPayment(amount, onStatus) {
     globalPort.currentSALE_FRAME = SALE_FRAME;
 
     setTimeout(() => {
-      ecrSend(SALE_FRAME, 'SALE', 'SALE', 3000);
+      ecrSend(buildFrame([0x06, 0x00, 0x00]), 'LOGIN', 'LOGIN', 5000);
     }, 500);
   });
 }
@@ -163,7 +163,7 @@ async function start() {
   const socket = ioClient(RENDER_URL, { auth: { bridgeKey: BRIDGE_KEY, locationId: LOCATION_ID } });
 
   log('════════════════════════════════════════════');
-  log('Bridge v5.0 (Raiffeisen Printec ECR v3.9.3)');
+  log('Bridge v6.0 (Printec ECR - Proven Working + Fail Fix)');
   log(`Port din config: ${COM_PORT}`);
   log(`Render:    ${RENDER_URL}`);
   log(`COM Port:  ${portPath} @ ${BAUD_RATE} baud (8-N-1)`);
@@ -314,6 +314,7 @@ async function start() {
         if (klasse === 0x05 && instr === 0x01) {
           log('📥 PIN Entry — clientul introduce PIN-ul');
           onStatus && onStatus('Introduceți PIN-ul');
+          globalPort.write(Buffer.from([EOT]));
           state = 'WAIT_POS_ENQ__RESULT';
           currentTransactionTimer = setTimeout(() => fail('Timeout rezultat după PIN'), 120000);
           break;
@@ -322,6 +323,7 @@ async function start() {
         if (klasse === 0x05 && instr === 0x02) {
           log('📥 Begin Auth — comunicare cu banca');
           onStatus && onStatus('Comunicare cu banca...');
+          globalPort.write(Buffer.from([EOT]));
           state = 'WAIT_POS_ENQ__RESULT';
           currentTransactionTimer = setTimeout(() => fail('Timeout rezultat după auth'), 120000);
           break;
@@ -344,6 +346,7 @@ async function start() {
           const approved = respCode === '0000';
           log(`📥 Auth End: Code=${respCode} Auth=${authCode} Card=${cardNo}`);
 
+          globalPort.write(Buffer.from([EOT]));
           succeed({
             success: approved, code: respCode, authCode, refNum,
             txDate, amount: amtField, currency, termId, cardNo,
@@ -355,6 +358,7 @@ async function start() {
         if (klasse === 0x06 && instr === 0x1E) {
           const errCode = data[0];
           log(`❌ Refusal de la POS, cod=0x${errCode.toString(16)}`);
+          globalPort.write(Buffer.from([EOT]));
           
           let explicitReason = `Tranzacție refuzată (Cod: 0x${errCode.toString(16).toUpperCase()})`;
           if (errCode === 0xA0) explicitReason = 'POS-ul trebuie resetat manual sau Închidere de Zi.';
@@ -364,6 +368,7 @@ async function start() {
         }
 
         log(`📥 Frame necunoscut: klasse=0x${klasse.toString(16)}`);
+        globalPort.write(Buffer.from([EOT]));
         state = 'WAIT_POS_ENQ__RESULT';
         currentTransactionTimer = setTimeout(() => fail('Timeout rezultat necunoscut'), 120000);
         break;
