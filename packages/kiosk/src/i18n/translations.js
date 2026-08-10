@@ -646,6 +646,50 @@ export const T = {
     de: "Oder PIN eingeben",
     es: "O ingrese PIN"
   },
+  pos_instructions_title: {
+    ro: 'Verificați ecranul POS-ului',
+    en: 'Check the POS terminal',
+    fr: 'Vérifiez le terminal de paiement',
+    hu: 'Ellenőrizze a POS terminált',
+    ru: 'Проверьте терминал оплаты',
+    uk: 'Перевірте платіжний термінал',
+    bg: "Проверете ПОС терминала",
+    de: "Bitte POS-Terminal prüfen",
+    es: "Verifique el terminal POS"
+  },
+  pos_instructions_desc: {
+    ro: 'Dacă tranzacția durează, vă rugăm urmați instrucțiunile de pe ecranul aparatului de plată (ex: Introduceți PIN sau apăsați butonul Verde pentru confirmare).',
+    en: 'If the transaction takes longer than usual, please follow the instructions on the POS terminal screen (e.g. enter PIN or press the Green button).',
+    fr: 'Si la transaction prend plus de temps que prévu, veuillez suivre les instructions sur l\'écran du terminal de paiement (ex: entrez le code PIN ou appuyez sur le bouton Vert).',
+    hu: 'Ha a tranzakció a szokásosnál tovább tart, kérjük, kövesse a POS terminál képernyőjén megjelenő utasításokat (pl. adja meg a PIN-kódot vagy nyomja meg a zöld gombot).',
+    ru: 'Если транзакция занимает больше времени, следуйте инструкциям на экране терминала (например, введите PIN-код или нажмите зеленую кнопку).',
+    uk: 'Якщо транзакція триває довше, дотримуйтесь інструкцій на екрані терміналу (наприклад, введіть PIN-код або натисніть Зелену кнопку).',
+    bg: "Ако транзакцията се бави, моля следвайте инструкциите на ПОС терминала (напр. въведете ПИН или натиснете Зеления бутон).",
+    de: "Wenn die Transaktion länger dauert, befolgen Sie bitte die Anweisungen auf dem Bildschirm des Zahlungsterminals (z. B. PIN eingeben oder grüne Taste drücken).",
+    es: "Si la transacción tarda más de lo habitual, siga las instrucciones en la pantalla del terminal de pago (por ejemplo, ingrese el PIN o presione el botón Verde)."
+  },
+  timeout: {
+    ro: 'Timp expirat',
+    en: 'Timeout',
+    fr: 'Délai écoulé',
+    hu: 'Időtúllépés',
+    ru: 'Время вышло',
+    uk: 'Час вийшов',
+    bg: "Времето изтече",
+    de: "Zeitüberschreitung",
+    es: "Tiempo de espera agotado"
+  },
+  payment_card_methods: {
+    ro: 'Card fizic • Contactless • Apple Pay • Google Pay',
+    en: 'Physical card • Contactless • Apple Pay • Google Pay',
+    fr: 'Carte physique • Sans contact • Apple Pay • Google Pay',
+    hu: 'Fizikai kártya • Érintésmentes • Apple Pay • Google Pay',
+    ru: 'Физическая карта • Бесконтактно • Apple Pay • Google Pay',
+    uk: 'Фізична картка • Безконтактно • Apple Pay • Google Pay',
+    bg: "Физическа карта • Безконтактно • Apple Pay • Google Pay",
+    de: "Physische Karte • Kontaktlos • Apple Pay • Google Pay",
+    es: "Tarjeta física • Sin contacto • Apple Pay • Google Pay"
+  },
   payment_step_3: {
     ro: 'Așteptați confirmarea pe ecranul terminalului',
     en: 'Wait for confirmation on the terminal screen',

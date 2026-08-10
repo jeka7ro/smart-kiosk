@@ -45,7 +45,31 @@ export default function PaymentScreen() {
   const [errorMsg, setErrorMsg] = useState('');
   const [txInfo,   setTxInfo]   = useState(null);
 
+  const [showPosInstructions, setShowPosInstructions] = useState(false);
+  const [posTimer, setPosTimer] = useState(30);
 
+  useEffect(() => {
+    let timeout;
+    if (payState === STATE.WAITING_CARD) {
+      timeout = setTimeout(() => {
+        setShowPosInstructions(true);
+      }, 7000);
+    } else {
+      setShowPosInstructions(false);
+      setPosTimer(30);
+    }
+    return () => clearTimeout(timeout);
+  }, [payState]);
+
+  useEffect(() => {
+    let interval;
+    if (showPosInstructions && posTimer > 0) {
+      interval = setInterval(() => {
+        setPosTimer(p => p - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [showPosInstructions, posTimer]);
   useEffect(() => {
     // cleanup card socket on unmount
     return () => {
@@ -233,12 +257,25 @@ export default function PaymentScreen() {
 
         {payState === STATE.WAITING_CARD && (
           <div className="payment-processing">
-            <div className="pos-nfc-anim">
-              <span className="pos-emoji" style={{fontSize:'4rem'}}>📱</span>
-              <div className="nfc-ring nfc-ring-1"/><div className="nfc-ring nfc-ring-2"/><div className="nfc-ring nfc-ring-3"/>
-            </div>
-            <h2 className="processing-title">Apropiați sau introduceți cardul</h2>
-            <p className="processing-step">Card fizic • Contactless • Apple Pay • Google Pay</p>
+            {!showPosInstructions ? (
+              <>
+                <div className="pos-nfc-anim">
+                  <span className="pos-emoji" style={{fontSize:'4rem'}}>📱</span>
+                  <div className="nfc-ring nfc-ring-1"/><div className="nfc-ring nfc-ring-2"/><div className="nfc-ring nfc-ring-3"/>
+                </div>
+                <h2 className="processing-title">{t('payment_card_subtitle', lang) || 'Apropiați sau introduceți cardul'}</h2>
+                <p className="processing-step">{t('payment_card_methods', lang) || 'Card fizic • Contactless • Apple Pay • Google Pay'}</p>
+              </>
+            ) : (
+              <div className="pos-instructions-alert fade-in" style={{ backgroundColor: 'var(--brand-surface)', padding: '24px', borderRadius: '16px', border: '2px solid var(--brand-primary)', marginBottom: '24px' }}>
+                <div style={{fontSize:'3rem', marginBottom: '8px'}}>⚠️</div>
+                <h2 className="processing-title" style={{color: 'var(--brand-primary)'}}>{t('pos_instructions_title', lang) || 'Verificați ecranul POS-ului'}</h2>
+                <p className="processing-step" style={{fontSize: '1.2rem'}}>{t('pos_instructions_desc', lang) || 'Dacă tranzacția durează, vă rugăm urmați instrucțiunile de pe ecranul aparatului de plată (ex: Introduceți PIN sau apăsați butonul Verde pentru confirmare)'}</p>
+                <div style={{fontSize: '2.5rem', fontWeight: 'bold', marginTop: '16px', color: posTimer < 10 ? 'red' : 'inherit'}}>
+                  {posTimer > 0 ? `${posTimer}s` : (t('timeout', lang) || 'Timp expirat')}
+                </div>
+              </div>
+            )}
             <div className="payment-cancel-actions">
               <button className="btn btn-outline btn-lg" onClick={handleCancel}>{t('back_to_cart', lang)}</button>
               <button className="btn btn-danger btn-lg" onClick={handleCancelOrder}>{t('cancel_order', lang)}</button>
