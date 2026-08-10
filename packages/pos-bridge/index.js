@@ -166,7 +166,7 @@ async function start() {
   const socket = ioClient(RENDER_URL, { auth: { bridgeKey: BRIDGE_KEY, locationId: LOCATION_ID } });
 
   log('════════════════════════════════════════════');
-  log('Bridge v7.2 (Printec ECR cu LOGIN)');
+  log('Bridge v7.3 (Print fix)');
   log(`Port din config: ${COM_PORT}`);
   log(`Render:    ${RENDER_URL}`);
   log(`COM Port:  ${portPath} @ ${BAUD_RATE} baud (8-N-1)`);
@@ -441,7 +441,8 @@ async function start() {
     }
   });
 
-  socket.on('print_ticket', async (order) => {
+  socket.on('print_ticket', async (payload) => {
+    const order = payload && payload.order ? payload.order : payload;
     if (order && (order.locationId === LOCATION_ID || !order.locationId)) {
       log(`🖨️  Cerere printare bon pentru comanda #${order.orderNumber}`);
       await printTicket(order);
