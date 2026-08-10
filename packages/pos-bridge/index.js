@@ -82,10 +82,11 @@ function processMolPayment(amount, portPath, onStatus) {
     };
 
     const amtCents = Math.round(amount * 100);
-    const amtStr = (amtCents / 100).toFixed(2).padStart(8, '0');
-    const mol10 = buildMol('MOL', '10', amtStr);
+    const amtStr = String(amtCents).padStart(12, '0');
+    // Ensure the separator '.' is sent between '10' and the amount
+    const mol10 = buildMol('MOL', '10.', amtStr);
     
-    log(`📤 TX MOL10 (Cerere Plată): ${amtStr} RON`);
+    log(`📤 TX MOL10 (Cerere Plată): ${amtStr} RON (format intern)`);
     globalPort.write(mol10);
 
     currentTransactionTimer = setTimeout(() => {
