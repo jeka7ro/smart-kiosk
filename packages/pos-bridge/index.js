@@ -121,6 +121,10 @@ async function start() {
   socket.on('connect', () => {
     log(`✅ Conectat la server`);
     socket.emit('pos_bridge_register', { locationId: LOCATION_ID, port: portPath });
+    log(`=========================================`);
+    log(`Bridge v4.0 (Hypercom MOL / 7-E-1)`);
+    log(`Locație: ${LOCATION_ID} | Port: ${portPath}`);
+    log(`=========================================`);
   });
   
   socket.on('disconnect', reason => {
