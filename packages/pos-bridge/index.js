@@ -163,56 +163,12 @@ async function start() {
   const socket = ioClient(RENDER_URL, { auth: { bridgeKey: BRIDGE_KEY, locationId: LOCATION_ID } });
 
   log('════════════════════════════════════════════');
-  log('Bridge v6.2 (Auto-Settlement pe boot pentru golire memorie!)');
+  log('Bridge v7.0 (Curat - fara auto-settlement)');
   log(`Port din config: ${COM_PORT}`);
   log(`Render:    ${RENDER_URL}`);
   log(`COM Port:  ${portPath} @ ${BAUD_RATE} baud (8-N-1)`);
   log(`Locație:   ${LOCATION_ID}`);
   log('════════════════════════════════════════════');
-
-  // AUTO-SETTLEMENT ON BOOT
-  setTimeout(() => {
-    log('🔄 ==== AUTO-SETTLEMENT LA PORNIRE (Pentru a curăța eroarea 0xA0) ====');
-    if (state === 'IDLE' && globalPort && globalPort.isOpen) {
-      state = 'SETTLEMENT_BOOT';
-      rxBuf = Buffer.alloc(0);
-      enqRetries = 0;
-
-      currentTransactionResolve = (res) => {
-        clearTimeout(currentTransactionTimer);
-        globalPort.drain(() => {
-          state = 'IDLE';
-          currentTransactionResolve = null;
-          log(`🔄 Rezultat Auto-Settlement: ${JSON.stringify(res)}`);
-        });
-      };
-
-      globalPort.currentSucceed = (r) => { if (currentTransactionResolve) currentTransactionResolve(r); };
-      globalPort.currentFail = (msg) => {
-        if (currentTransactionResolve) {
-          clearTimeout(currentTransactionTimer);
-          globalPort.drain(() => {
-            state = 'IDLE';
-            currentTransactionResolve({ success: false, reason: msg });
-            currentTransactionResolve = null;
-          });
-        }
-      };
-      
-      const SETTLE_FRAME = buildFrame([0x06, 0x50, 0x00]);
-      log('📤 Trimit EOT pentru WakeUp...');
-      globalPort.write(Buffer.from([EOT]));
-
-      setTimeout(() => {
-        log('📤 Trimit comanda de Settlement (Închidere de zi) automat...');
-        ecrSend(SETTLE_FRAME, 'SETTLEMENT', 'SETTLEMENT', 10000);
-      }, 500);
-      
-      setTimeout(() => {
-        if (currentTransactionResolve) currentTransactionResolve({ success: true, reason: 'Timeout Auto-Settlement (normal)' });
-      }, 120000);
-    }
-  }, 3000);
 
   socket.on('connect', () => {
     log(`✅ Conectat la Render (${socket.id})`);
