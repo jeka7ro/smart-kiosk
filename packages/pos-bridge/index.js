@@ -13,6 +13,9 @@ function log(msg) {
   try { fs.appendFileSync(LOG_FILE, line + '\n'); } catch (_) {}
 }
 
+// Curata fisierul de log la pornire
+try { fs.writeFileSync(LOG_FILE, ''); } catch (_) {}
+
 const RENDER_URL  = process.env.RENDER_URL  || 'https://smart-kiosk-ttut.onrender.com';
 const COM_PORT    = process.env.COM_PORT    || 'auto';
 const BAUD_RATE   = parseInt(process.env.BAUD_RATE || '9600');
@@ -153,7 +156,7 @@ function processPrintecPayment(amount, onStatus) {
     globalPort.currentSALE_FRAME = SALE_FRAME;
 
     setTimeout(() => {
-      ecrSend(buildFrame([0x06, 0x00, 0x00]), 'LOGIN', 'LOGIN', 5000);
+      ecrSend(SALE_FRAME, 'SALE', 'SALE', 5000);
     }, 500);
   });
 }
@@ -163,7 +166,7 @@ async function start() {
   const socket = ioClient(RENDER_URL, { auth: { bridgeKey: BRIDGE_KEY, locationId: LOCATION_ID } });
 
   log('════════════════════════════════════════════');
-  log('Bridge v7.0 (Curat - fara auto-settlement)');
+  log('Bridge v7.1 (Fara LOGIN - SALE direct)');
   log(`Port din config: ${COM_PORT}`);
   log(`Render:    ${RENDER_URL}`);
   log(`COM Port:  ${portPath} @ ${BAUD_RATE} baud (8-N-1)`);
