@@ -19,32 +19,51 @@ const BAUD_RATE   = parseInt(process.env.BAUD_RATE || '9600');
 const LOCATION_ID = process.env.LOCATION_ID || 'sm-brasov';
 const BRIDGE_KEY  = process.env.BRIDGE_KEY  || 'pos-bridge-2024';
 
+const DLE = 0x10;
 const STX = 0x02;
 const ETX = 0x03;
 const ACK = 0x06;
 const NAK = 0x15;
 const EOT = 0x04;
+const ENQ = 0x05;
+const FS  = 0x1C;
 
 let globalPort = null;
 let currentTransactionResolve = null;
 let currentTransactionTimer = null;
 let rxBuf = Buffer.alloc(0);
-let state = 'IDLE'; // IDLE, WAIT_ACK_MOL10, WAIT_MOL11
+let state = 'IDLE';
+let enqRetries = 0;
+let pendingFrame = null;
+let nextState = null;
+let currentLabel = null;
 
-function calcLRC(buf) {
-  let lrc = 0;
-  for (let i = 1; i < buf.length; i++) lrc ^= buf[i];
-  return lrc;
+function calcLRC(cmdBytes) {
+  let b = 0;
+  for (const byte of cmdBytes) b ^= byte;
+  return b;
 }
 
-function buildMol(id, type, dataStr) {
-  const payload = Buffer.from(id + type + dataStr, 'ascii');
-  const buf = Buffer.alloc(payload.length + 2);
-  buf[0] = STX;
-  payload.copy(buf, 1);
-  buf[buf.length - 1] = ETX;
-  const lrc = calcLRC(buf);
-  return Buffer.concat([buf, Buffer.from([lrc])]);
+function buildFrame(cmdBytes) {
+  const lrc = calcLRC(cmdBytes);
+  return Buffer.from([DLE, STX, ...cmdBytes, DLE, ETX, lrc]);
+}
+
+function extractFrame(buf, startOffset = 0) {
+  for (let i = startOffset; i < buf.length - 1; i++) {
+    if (buf[i] === DLE && buf[i + 1] === STX) {
+      for (let j = i + 2; j < buf.length - 1; j++) {
+        if (buf[j] === DLE && buf[j + 1] === ETX && buf.length > j + 2) {
+          const cmdBytes = buf.subarray(i + 2, j);
+          const lrcByte  = buf[j + 2];
+          const frameEnd = j + 3;
+          return { cmdBytes, lrcByte, frameEnd };
+        }
+      }
+      break;
+    }
+  }
+  return null;
 }
 
 async function detectPosPort() {
@@ -53,89 +72,116 @@ async function detectPosPort() {
   return firstCom ? firstCom.path : 'COM3';
 }
 
-function processMolPayment(amount, portPath, onStatus) {
-  return new Promise((resolve, reject) => {
+function ecrSend(frame, ns, label, timeoutMs = 3000) {
+  if (enqRetries === 0) {
+    const hexStr = [...frame].map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+    log(`📤 Frame pregătit [${frame.length} bytes]: ${hexStr}`);
+  }
+  log(`📤 ENQ → (${label}) [Încercare ${enqRetries + 1}/3]`);
+  
+  globalPort.write(Buffer.from([ENQ]));
+  state = `WAIT_ENQ_ACK__${ns}`;
+  pendingFrame = frame;
+  nextState    = ns;
+  currentLabel = label;
+  
+  clearTimeout(currentTransactionTimer);
+  currentTransactionTimer = setTimeout(() => {
+    enqRetries++;
+    if (enqRetries < 3) {
+      log(`⚠️ Timeout ACK la ENQ. Reîncercăm (${enqRetries}/3)...`);
+      ecrSend(frame, ns, label, timeoutMs);
+    } else {
+      enqRetries = 0;
+      if (currentTransactionResolve) {
+        currentTransactionResolve({ success: false, reason: 'POS-ul nu răspunde (Timeout).', code: 'DECLINED' });
+      }
+    }
+  }, timeoutMs);
+}
+
+function processPrintecPayment(amount, onStatus) {
+  return new Promise((resolve) => {
     if (!globalPort || !globalPort.isOpen) {
        return resolve({ success: false, reason: 'Portul POS nu este deschis', code: 'DECLINED' });
     }
-    
     if (state !== 'IDLE') {
        return resolve({ success: false, reason: 'O tranzacție este deja în curs', code: 'DECLINED' });
     }
 
-    state = 'WAIT_ACK_MOL10';
     rxBuf = Buffer.alloc(0);
+    enqRetries = 0;
     
     currentTransactionResolve = (res) => {
       clearTimeout(currentTransactionTimer);
-      state = 'IDLE';
-      currentTransactionResolve = null;
-      resolve(res);
+      // Wait a bit to ensure EOTs are drained to POS before marking IDLE
+      globalPort.drain(() => {
+        state = 'IDLE';
+        currentTransactionResolve = null;
+        resolve(res);
+      });
     };
 
-    const cleanup = (success, errMsg) => {
+    const succeed = (result) => {
+      if (currentTransactionResolve) currentTransactionResolve(result);
+    };
+
+    const fail = (msg) => {
       if (currentTransactionResolve) {
-        if (success === true) currentTransactionResolve({ success: true, authCode: '000000', code: '0000', raw: 'APPROVED' });
-        else if (success && typeof success === 'object') currentTransactionResolve(success);
-        else currentTransactionResolve({ success: false, reason: errMsg, code: 'DECLINED' });
+        clearTimeout(currentTransactionTimer);
+        globalPort.drain(() => {
+          state = 'IDLE';
+          currentTransactionResolve({ success: false, reason: msg, code: 'DECLINED' });
+          currentTransactionResolve = null;
+        });
       }
     };
 
-    const amtCents = Math.round(amount * 100);
-    const amtStr = String(amtCents).padStart(12, '0');
-    // Ensure the separator '.' is sent between '10' and the amount
-    const mol10 = buildMol('MOL', '10.', amtStr);
+    const cents   = Math.round(amount * 100);
+    const amtStr  = String(cents).padStart(12, '0');
+    const saleCmd = [0x06, 0x01, 0x15, ...Buffer.from(amtStr + '000' + '000000', 'ascii')];
+    const SALE_FRAME = buildFrame(saleCmd);
+
+    log(`Sumă: ${amount.toFixed(2)} RON (${cents} bani)`);
+    log('📤 Trimit EOT pentru WakeUp/Cancel POS...');
+    globalPort.write(Buffer.from([EOT]));
     
-    log(`📤 TX MOL10 (Cerere Plată): ${amtStr} RON (format intern)`);
-    globalPort.write(mol10);
-
-    currentTransactionTimer = setTimeout(() => {
-      log('⏱ Timeout răspuns MOL10 (POS nu răspunde)');
-      cleanup(false, 'Timeout POS');
-    }, 5000);
-
-    // Provide onStatus callback to the global listener
+    // Assign status callback to global port so data handler can use it
     globalPort.currentStatusCallback = onStatus;
+    globalPort.currentSucceed = succeed;
+    globalPort.currentFail = fail;
+    globalPort.currentSALE_FRAME = SALE_FRAME;
+
+    setTimeout(() => {
+      ecrSend(SALE_FRAME, 'SALE', 'SALE', 3000);
+    }, 500);
   });
 }
 
 async function start() {
-  let portPath;
-  if (COM_PORT && COM_PORT !== 'auto') {
-    portPath = COM_PORT;
-    log(`Port din config: ${portPath}`);
-  } else {
-    portPath = await detectPosPort();
-  }
+  const portPath = (COM_PORT && COM_PORT !== 'auto') ? COM_PORT : await detectPosPort();
+  const socket = ioClient(RENDER_URL, { auth: { bridgeKey: BRIDGE_KEY, locationId: LOCATION_ID } });
 
-  log(`Render:   ${RENDER_URL}`);
-  log(`COM Port: ${portPath} @ ${BAUD_RATE} baud (7-E-1)`);
-  log(`Locație:  ${LOCATION_ID}`);
-  log(`Log:      ${LOG_FILE}`);
-
-  const socket = ioClient(RENDER_URL, {
-    auth: { bridgeKey: BRIDGE_KEY, locationId: LOCATION_ID },
-    reconnection: true,
-    reconnectionDelay: 3000,
-  });
+  log('════════════════════════════════════════════');
+  log('Bridge v5.0 (Raiffeisen Printec ECR v3.9.3)');
+  log(`Port din config: ${COM_PORT}`);
+  log(`Render:    ${RENDER_URL}`);
+  log(`COM Port:  ${portPath} @ ${BAUD_RATE} baud (8-N-1)`);
+  log(`Locație:   ${LOCATION_ID}`);
+  log(`Log:       ${LOG_FILE}`);
 
   socket.on('connect', () => {
-    log(`✅ Conectat la server`);
+    log(`✅ Conectat la Render (${socket.id})`);
     socket.emit('pos_bridge_register', { locationId: LOCATION_ID, port: portPath });
-    log(`=========================================`);
-    log(`Bridge v4.0 (Hypercom MOL / 7-E-1)`);
-    log(`Locație: ${LOCATION_ID} | Port: ${portPath}`);
-    log(`=========================================`);
-  });
-  
-  socket.on('disconnect', reason => {
-    log(`⚠️  Deconectat: ${reason} — reconectez...`);
   });
 
-  // Open the serial port globally
+  socket.on('disconnect', (reason) => {
+    log(`⚠ Deconectat: ${reason}`);
+  });
+
   globalPort = new SerialPort({
     path: portPath, baudRate: BAUD_RATE,
-    dataBits: 7, parity: 'even', stopBits: 1, autoOpen: true,
+    dataBits: 8, parity: 'none', stopBits: 1, autoOpen: true,
   });
 
   globalPort.on('open', () => {
@@ -149,88 +195,183 @@ async function start() {
     }
   });
 
-  globalPort.on('data', chunk => {
+  globalPort.on('data', (chunk) => {
+    if (state === 'IDLE') return; // Ignore data outside transaction
+
+    const hexStr = [...chunk].map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+    log(`📥 RAW RX [${chunk.length} bytes]: ${hexStr}`);
     rxBuf = Buffer.concat([rxBuf, chunk]);
-    
-    // Process ACK / NAK / EOT if waiting
-    if (rxBuf[0] === ACK && state === 'WAIT_ACK_MOL10') {
-      rxBuf = rxBuf.subarray(1);
-      clearTimeout(currentTransactionTimer);
-      log('✅ ACK primit pt MOL10. Aștept procesare card...');
-      if (globalPort.currentStatusCallback) globalPort.currentStatusCallback('Apropiați cardul de POS');
-      state = 'WAIT_MOL11';
-      currentTransactionTimer = setTimeout(() => {
-        if (currentTransactionResolve) currentTransactionResolve({ success: false, reason: 'Timeout procesare (2 min)', code: 'DECLINED' });
-      }, 120000);
-    }
-    else if (rxBuf[0] === NAK && state !== 'IDLE') {
-      log('❌ NAK primit (format greșit sau eroare LRC).');
-      if (currentTransactionResolve) currentTransactionResolve({ success: false, reason: 'POS a respins comanda (NAK)', code: 'DECLINED' });
-    }
-    else if (rxBuf[0] === EOT && state !== 'IDLE') {
-      log('📥 EOT primit (POS a închis sesiunea / eroare).');
-      if (currentTransactionResolve) currentTransactionResolve({ success: false, reason: 'Tranzacție anulată pe terminal', code: 'DECLINED' });
-    }
-    else if ((rxBuf[0] === ACK || rxBuf[0] === NAK || rxBuf[0] === EOT) && state === 'IDLE') {
-       // Discard stray control bytes when idle
-       rxBuf = rxBuf.subarray(1);
-    }
 
-    if (rxBuf.includes(STX) && rxBuf.includes(ETX)) {
-      const start = rxBuf.indexOf(STX);
-      const end = rxBuf.indexOf(ETX, start);
-      if (end !== -1 && rxBuf.length > end + 1) {
-        const frame = rxBuf.subarray(start, end + 2);
-        rxBuf = rxBuf.subarray(end + 2);
+    const succeed = globalPort.currentSucceed;
+    const fail = globalPort.currentFail;
+    const onStatus = globalPort.currentStatusCallback;
+    const SALE_FRAME = globalPort.currentSALE_FRAME;
+
+    while (rxBuf.length > 0) {
+      const b = rxBuf[0];
+
+      if (b === ACK && state.startsWith('WAIT_ENQ_ACK__')) {
+        rxBuf = rxBuf.subarray(1);
+        clearTimeout(currentTransactionTimer);
+        enqRetries = 0;
         
-        // Acknowledge the frame
-        globalPort.write(Buffer.from([ACK]));
+        log(`✅ ACK ← POS la ENQ (${currentLabel}). Trimit frame...`);
+        globalPort.write(pendingFrame);
+        state = `WAIT_FRAME_ACK__${nextState}`;
         
-        const payload = frame.subarray(1, frame.length - 2).toString('ascii');
-        log(`📥 RX FRAME: ${payload}`);
-
-        if (state === 'IDLE') {
-           log(`📥 Unsolicited POS frame received in IDLE mode! Forwarding to backend.`);
-           socket.emit('pos_unsolicited_data', { locationId: LOCATION_ID, payload });
-           return;
-        }
-
-        if (payload.startsWith('MOL11')) {
-          clearTimeout(currentTransactionTimer);
-          log('✅ MOL11 primit: POS-ul e gata, așteaptă cardul...');
-          state = 'WAIT_MOL12';
-          if (globalPort.currentStatusCallback) globalPort.currentStatusCallback('Urmați instrucțiunile de pe terminal');
-
-          currentTransactionTimer = setTimeout(() => {
-             if (currentTransactionResolve) currentTransactionResolve({ success: false, reason: 'Timeout validare card (2 min)', code: 'DECLINED' });
-          }, 120000);
-        }
-        else if (payload.startsWith('MOL12')) {
-          clearTimeout(currentTransactionTimer);
-          const responseCode = payload.slice(6, 8);
-          const approved = responseCode === '00';
-          
-          log(approved ? '✅ Plată APROBATĂ' : `❌ Plată RESPINSĂ (cod: ${responseCode})`);
-          
-          setTimeout(() => {
-            const mol13 = buildMol('MOL', '13', '');
-            log('📤 TX MOL13 (Confirmare finală)');
-            globalPort.write(mol13);
-            setTimeout(() => {
-              if (currentTransactionResolve) {
-                currentTransactionResolve({ success: approved, code: approved ? '0000' : responseCode, raw: payload });
-              }
-            }, 500);
-          }, 300);
-        }
+        currentTransactionTimer = setTimeout(() => fail(`Timeout ACK la frame (${currentLabel})`), 3000);
+        break;
       }
-    }
-  });
 
-  socket.on('print_ticket', async (order) => {
-    if (order && (order.locationId === LOCATION_ID || !order.locationId)) {
-      log(`🖨️  Cerere printare bon pentru comanda #${order.orderNumber}`);
-      await printTicket(order);
+      if (b === ACK && state.startsWith('WAIT_FRAME_ACK__')) {
+        rxBuf = rxBuf.subarray(1);
+        clearTimeout(currentTransactionTimer);
+        const ns = state.replace('WAIT_FRAME_ACK__', '');
+
+        if (ns === 'LOGIN') {
+          log('✅ LOGIN frame acceptat → EOT');
+          globalPort.write(Buffer.from([EOT]));
+          state = 'WAIT_POS_ENQ__LOGIN_RESP';
+          currentTransactionTimer = setTimeout(() => fail('Timeout ENQ răspuns LOGIN'), 5000);
+        } else if (ns === 'SALE') {
+          log('✅ SALE frame acceptat → EOT. Aștept card (2min)...');
+          onStatus && onStatus('Terminal activat — apropiați cardul');
+          globalPort.write(Buffer.from([EOT]));
+          state = 'WAIT_POS_ENQ__RESULT';
+          currentTransactionTimer = setTimeout(() => fail('Timeout card/rezultat tranzacție'), 120000);
+        } else if (ns === 'FINAL_ACK') {
+          log('✅ Rezultat confirmat → EOT → Done');
+          globalPort.write(Buffer.from([EOT]));
+          // Wait for POS to clear before next transaction
+          setTimeout(() => succeed({ success: true }), 100);
+        }
+        break;
+      }
+
+      if (b === NAK) {
+        rxBuf = rxBuf.subarray(1);
+        log('⚠ NAK primit');
+        break;
+      }
+
+      if (b === EOT) {
+        rxBuf = rxBuf.subarray(1);
+        log('📥 EOT ← POS');
+        break;
+      }
+
+      if (b === ENQ) {
+        rxBuf = rxBuf.subarray(1);
+        clearTimeout(currentTransactionTimer);
+        log(`📥 ENQ ← POS (state=${state})`);
+        globalPort.write(Buffer.from([ACK]));
+
+        if (state === 'WAIT_POS_ENQ__LOGIN_RESP') {
+          state = 'WAIT_POS_FRAME__LOGIN_RESP';
+          currentTransactionTimer = setTimeout(() => fail('Timeout frame LOGIN response'), 3000);
+        } else if (state === 'WAIT_POS_ENQ__RESULT') {
+          state = 'WAIT_POS_FRAME__RESULT';
+          currentTransactionTimer = setTimeout(() => fail('Timeout frame rezultat'), 5000);
+        }
+        break;
+      }
+
+      if (b === DLE && rxBuf.length >= 2 && rxBuf[1] === STX) {
+        const extracted = extractFrame(rxBuf);
+        if (!extracted) break; // incomplete
+
+        const { cmdBytes, lrcByte, frameEnd } = extracted;
+        rxBuf = rxBuf.subarray(frameEnd);
+        clearTimeout(currentTransactionTimer);
+
+        const calcedLRC = calcLRC(cmdBytes);
+        if (lrcByte !== calcedLRC) {
+          log(`⚠ LRC mismatch!`);
+          globalPort.write(Buffer.from([NAK]));
+          break;
+        }
+
+        globalPort.write(Buffer.from([ACK]));
+
+        const klasse = cmdBytes[0];
+        const instr  = cmdBytes[1];
+        const data   = cmdBytes.subarray(3);
+
+        log(`📥 Frame: klasse=0x${klasse.toString(16)} instr=0x${instr.toString(16)}`);
+
+        if ((klasse === 0x80 || klasse === 0x84) && state === 'WAIT_POS_FRAME__LOGIN_RESP') {
+          const ok = (klasse === 0x80) || (klasse === 0x84 && instr === 0x00);
+          if (ok) {
+            log('✅ LOGIN OK → EOT → inițiez SALE');
+            globalPort.write(Buffer.from([EOT]));
+            setTimeout(() => ecrSend(SALE_FRAME, 'SALE', 'SALE', 3000), 1000);
+          } else {
+            fail(`LOGIN refuzat de POS (APRW=0x${instr.toString(16)})`);
+          }
+          break;
+        }
+
+        if (klasse === 0x05 && instr === 0x01) {
+          log('📥 PIN Entry — clientul introduce PIN-ul');
+          onStatus && onStatus('Introduceți PIN-ul');
+          state = 'WAIT_POS_ENQ__RESULT';
+          currentTransactionTimer = setTimeout(() => fail('Timeout rezultat după PIN'), 120000);
+          break;
+        }
+
+        if (klasse === 0x05 && instr === 0x02) {
+          log('📥 Begin Auth — comunicare cu banca');
+          onStatus && onStatus('Comunicare cu banca...');
+          state = 'WAIT_POS_ENQ__RESULT';
+          currentTransactionTimer = setTimeout(() => fail('Timeout rezultat după auth'), 120000);
+          break;
+        }
+
+        if (klasse === 0x06 && instr === 0x0F) {
+          const payload = data;
+          const refNum   = payload.subarray(0, 12).toString('ascii').trim();
+          const termId   = payload.subarray(12, 20).toString('ascii').trim();
+          const txDate   = payload.subarray(20, 32).toString('ascii').trim();
+          const amtField = payload.subarray(32, 44).toString('ascii').trim();
+          const currency = payload.subarray(44, 47).toString('ascii').trim();
+          const authCode = payload.subarray(47, 53).toString('ascii').trim();
+          const respCode = payload.subarray(53, 57).toString('ascii').trim();
+
+          const varStr    = payload.subarray(57).toString('ascii');
+          const varFields = varStr.split(String.fromCharCode(FS));
+          const cardNo    = (varFields[1] || '').trim();
+
+          const approved = respCode === '0000';
+          log(`📥 Auth End: Code=${respCode} Auth=${authCode} Card=${cardNo}`);
+
+          succeed({
+            success: approved, code: respCode, authCode, refNum,
+            txDate, amount: amtField, currency, termId, cardNo,
+            raw: payload.toString('hex'),
+          });
+          break;
+        }
+
+        if (klasse === 0x06 && instr === 0x1E) {
+          const errCode = data[0];
+          log(`❌ Refusal de la POS, cod=0x${errCode.toString(16)}`);
+          
+          let explicitReason = `Tranzacție refuzată (Cod: 0x${errCode.toString(16).toUpperCase()})`;
+          if (errCode === 0xA0) explicitReason = 'POS-ul trebuie resetat manual sau Închidere de Zi.';
+
+          succeed({ success: false, code: errCode.toString(16).toUpperCase(), authCode: '', refNum: '', reason: explicitReason });
+          break;
+        }
+
+        log(`📥 Frame necunoscut: klasse=0x${klasse.toString(16)}`);
+        state = 'WAIT_POS_ENQ__RESULT';
+        currentTransactionTimer = setTimeout(() => fail('Timeout rezultat necunoscut'), 120000);
+        break;
+      }
+
+      if (b === DLE) break;
+
+      rxBuf = rxBuf.subarray(1);
     }
   });
 
@@ -248,14 +389,12 @@ async function start() {
     }
 
     paymentInProgress = true;
-    log(`💳 ==== CERERE PLATĂ ====`); 
-    log(`   orderId: ${orderId}`);
-    log(`   amount:  ${amount} RON`);
+    log(`💳 ==== CERERE PLATĂ ==== orderId: ${orderId} | amount: ${amount} RON`);
     
     socket.emit('pos_bridge_status', { orderId, message: 'Inițiez plata...' });
 
     try {
-      const res = await processMolPayment(amount, portPath, (msg) => {
+      const res = await processPrintecPayment(amount, (msg) => {
         log(`STATUS: ${msg}`);
         socket.emit('pos_bridge_status', { orderId, message: msg });
       });
@@ -264,8 +403,13 @@ async function start() {
       
       socket.emit('pos_payment_result', { 
         orderId, 
+        locationId: lid || LOCATION_ID,
+        amount,
         paid: res.success, 
         authCode: res.authCode,
+        refNum: res.refNum,
+        cardNo: res.cardNo,
+        txDate: res.txDate,
         code: res.code || (res.success ? '0000' : 'DECLINED'),
         raw: res.raw || '',
         error: res.reason || null
@@ -275,6 +419,13 @@ async function start() {
       socket.emit('pos_payment_result', { orderId, paid: false, error: err.message });
     } finally {
       paymentInProgress = false;
+    }
+  });
+
+  socket.on('print_ticket', async (order) => {
+    if (order && (order.locationId === LOCATION_ID || !order.locationId)) {
+      log(`🖨️  Cerere printare bon pentru comanda #${order.orderNumber}`);
+      await printTicket(order);
     }
   });
 }
