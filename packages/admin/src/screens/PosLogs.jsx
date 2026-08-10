@@ -425,7 +425,23 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                     {log.cardNo ? `****${log.cardNo.slice(-4)}` : '—'}
                   </td>
                   <td className="px-4 py-3 text-xs font-mono text-slate-500">
-                    {log.refNum || '—'}
+                    <div className="flex flex-col gap-0.5">
+                      <span>{log.refNum || '—'}</span>
+                      {(() => {
+                        const extra = log.raw?.extraFields;
+                        if (extra && Array.isArray(extra) && extra.length > 2) {
+                          const entryMode = extra[2]; // Usually the 3rd field is the application name or mode
+                          if (entryMode && entryMode.toLowerCase().includes('contactless')) {
+                            return <span className="text-[10px] text-blue-500 font-bold">CONTACTLESS</span>;
+                          } else if (extra.some(f => typeof f === 'string' && f.toLowerCase().includes('contactless'))) {
+                            return <span className="text-[10px] text-blue-500 font-bold">CONTACTLESS</span>;
+                          } else if (extra.some(f => typeof f === 'string' && f.toLowerCase().includes('maestro') || f.toLowerCase().includes('mastercard') || f.toLowerCase().includes('visa'))) {
+                            return <span className="text-[10px] text-slate-400 font-bold">CHIP/INSERT</span>;
+                          }
+                        }
+                        return null;
+                      })()}
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     {log.paid ? (
