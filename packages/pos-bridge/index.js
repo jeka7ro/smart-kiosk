@@ -205,7 +205,7 @@ async function start() {
 
       setTimeout(() => {
         log('📤 Trimit comanda de Settlement (Închidere de zi) automat...');
-        ecrSend(SETTLE_FRAME, 'SALE', 'SETTLEMENT', 10000);
+        ecrSend(SETTLE_FRAME, 'SETTLEMENT', 'SETTLEMENT', 10000);
       }, 500);
       
       setTimeout(() => {
@@ -283,6 +283,11 @@ async function start() {
           globalPort.write(Buffer.from([EOT]));
           state = 'WAIT_POS_ENQ__RESULT';
           currentTransactionTimer = setTimeout(() => fail('Timeout card/rezultat tranzacție'), 120000);
+        } else if (ns === 'SETTLEMENT') {
+          log('✅ SETTLEMENT frame acceptat → EOT. Aștept răspuns...');
+          globalPort.write(Buffer.from([EOT]));
+          state = 'WAIT_POS_ENQ__SETTLEMENT_RESP';
+          currentTransactionTimer = setTimeout(() => fail('Timeout settlement'), 120000);
         } else if (ns === 'FINAL_ACK') {
           log('✅ Rezultat confirmat → EOT → Done');
           globalPort.write(Buffer.from([EOT]));
@@ -316,6 +321,9 @@ async function start() {
         } else if (state === 'WAIT_POS_ENQ__RESULT') {
           state = 'WAIT_POS_FRAME__RESULT';
           currentTransactionTimer = setTimeout(() => fail('Timeout frame rezultat'), 5000);
+        } else if (state === 'WAIT_POS_ENQ__SETTLEMENT_RESP') {
+          state = 'WAIT_POS_FRAME__SETTLEMENT_RESP';
+          currentTransactionTimer = setTimeout(() => fail('Timeout frame settlement'), 5000);
         }
         break;
       }
@@ -352,6 +360,13 @@ async function start() {
           } else {
             fail(`LOGIN refuzat de POS (APRW=0x${instr.toString(16)})`);
           }
+          break;
+        }
+
+        if ((klasse === 0x80 || klasse === 0x84) && state === 'WAIT_POS_FRAME__SETTLEMENT_RESP') {
+          log('✅ SETTLEMENT OK → EOT → Finalizat');
+          globalPort.write(Buffer.from([EOT]));
+          setTimeout(() => succeed({ success: true, reason: 'Settlement OK' }), 100);
           break;
         }
 
@@ -529,7 +544,7 @@ async function start() {
 
         setTimeout(() => {
           log('📤 Trimit Settlement frame...');
-          ecrSend(SETTLE_FRAME, 'SALE', 'SETTLEMENT', 10000);
+          ecrSend(SETTLE_FRAME, 'SETTLEMENT', 'SETTLEMENT', 10000);
         }, 500);
 
         // Long timeout for settlement (can take up to 2 minutes)
