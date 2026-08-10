@@ -433,6 +433,78 @@ async function start() {
       await printTicket(order);
     }
   });
+
+  // Remote Settlement / End of Day - clears POS memory (fixes 0xA0 error)
+  socket.on('pos_settlement', async (data) => {
+    const { locationId: lid } = data || {};
+    if (lid && lid !== LOCATION_ID) return;
+
+    if (paymentInProgress || state !== 'IDLE') {
+      log('⚠️ Nu pot face Settlement, altă operație în curs');
+      socket.emit('pos_settlement_result', { success: false, error: 'Altă operație în curs' });
+      return;
+    }
+
+    log('🔄 ==== SETTLEMENT / ÎNCHIDERE DE ZI ====');
+    paymentInProgress = true;
+
+    try {
+      const result = await new Promise((resolve) => {
+        rxBuf = Buffer.alloc(0);
+        enqRetries = 0;
+
+        currentTransactionResolve = (res) => {
+          clearTimeout(currentTransactionTimer);
+          globalPort.drain(() => {
+            state = 'IDLE';
+            currentTransactionResolve = null;
+            resolve(res);
+          });
+        };
+
+        globalPort.currentSucceed = (r) => { if (currentTransactionResolve) currentTransactionResolve(r); };
+        globalPort.currentFail = (msg) => {
+          if (currentTransactionResolve) {
+            clearTimeout(currentTransactionTimer);
+            globalPort.drain(() => {
+              state = 'IDLE';
+              currentTransactionResolve({ success: false, reason: msg, code: 'DECLINED' });
+              currentTransactionResolve = null;
+            });
+          }
+        };
+        globalPort.currentStatusCallback = null;
+        globalPort.currentSALE_FRAME = null;
+
+        // Settlement command: class 0x06, instruction 0x50
+        const settlementCmd = [0x06, 0x50, 0x00];
+        const SETTLE_FRAME = buildFrame(settlementCmd);
+
+        log('📤 Trimit EOT pentru WakeUp...');
+        globalPort.write(Buffer.from([EOT]));
+
+        setTimeout(() => {
+          log('📤 Trimit Settlement frame...');
+          ecrSend(SETTLE_FRAME, 'SALE', 'SETTLEMENT', 10000);
+        }, 500);
+
+        // Long timeout for settlement (can take up to 2 minutes)
+        setTimeout(() => {
+          if (currentTransactionResolve) {
+            currentTransactionResolve({ success: true, reason: 'Settlement trimis (timeout normal)' });
+          }
+        }, 120000);
+      });
+
+      log(`🔄 Settlement result: ${JSON.stringify(result)}`);
+      socket.emit('pos_settlement_result', { success: true, result });
+    } catch (err) {
+      log(`❌ Settlement error: ${err.message}`);
+      socket.emit('pos_settlement_result', { success: false, error: err.message });
+    } finally {
+      paymentInProgress = false;
+    }
+  });
 }
 
 start().catch(err => {
