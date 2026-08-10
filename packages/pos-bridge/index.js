@@ -156,7 +156,7 @@ function processPrintecPayment(amount, onStatus) {
     globalPort.currentSALE_FRAME = SALE_FRAME;
 
     setTimeout(() => {
-      ecrSend(SALE_FRAME, 'SALE', 'SALE', 5000);
+      ecrSend(buildFrame([0x06, 0x00, 0x00]), 'LOGIN', 'LOGIN', 5000);
     }, 500);
   });
 }
@@ -166,7 +166,7 @@ async function start() {
   const socket = ioClient(RENDER_URL, { auth: { bridgeKey: BRIDGE_KEY, locationId: LOCATION_ID } });
 
   log('════════════════════════════════════════════');
-  log('Bridge v7.1 (Fara LOGIN - SALE direct)');
+  log('Bridge v7.2 (Printec ECR cu LOGIN)');
   log(`Port din config: ${COM_PORT}`);
   log(`Render:    ${RENDER_URL}`);
   log(`COM Port:  ${portPath} @ ${BAUD_RATE} baud (8-N-1)`);
