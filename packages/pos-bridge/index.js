@@ -166,7 +166,7 @@ async function start() {
   const socket = ioClient(RENDER_URL, { auth: { bridgeKey: BRIDGE_KEY, locationId: LOCATION_ID } });
 
   log('════════════════════════════════════════════');
-  log('Bridge v7.5 (Admin sync)');
+  log('Bridge v7.6 (Receipt Fix)');
   log(`Port din config: ${COM_PORT}`);
   log(`Render:    ${RENDER_URL}`);
   log(`COM Port:  ${portPath} @ ${BAUD_RATE} baud (8-N-1)`);
@@ -358,7 +358,10 @@ async function start() {
           const varStr    = payload.subarray(57).toString('ascii');
           const varFields = varStr.split(String.fromCharCode(FS));
           const cardNo    = (varFields[1] || '').trim();
-          const receiptNo = (varFields[0] || '').trim(); // De obicei primul câmp variabil e numărul chitanței (STAN/Invoice)
+          
+          let receiptNo = (varFields[3] || '').trim(); // Field 3 is usually STAN/Receipt
+          if (receiptNo.length >= 7) receiptNo = receiptNo.slice(1); // Trim leading 0 if 7 chars
+          else if (receiptNo.length === 6) receiptNo = receiptNo;
 
           const approved = respCode === '0000';
           
