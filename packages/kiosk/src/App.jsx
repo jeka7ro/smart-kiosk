@@ -279,7 +279,15 @@ export default function App() {
     };
   }, []);
 
-  if (loading) return null;
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', alignItems: 'center', justifyContent: 'center', background: '#111827', color: '#fff', gap: '24px', fontFamily: 'inherit' }}>
+        <div style={{ width: 56, height: 56, border: '4px solid rgba(255,255,255,0.15)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.9s linear infinite' }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        <p style={{ fontSize: '1.1rem', opacity: 0.7, margin: 0 }}>Se conectează la server (trezire sistem)...</p>
+      </div>
+    );
+  }
 
   if (locationData && locationData.notFound) {
     return (
@@ -446,7 +454,7 @@ export default function App() {
             right: 0,
             height: `${bBannerVh}vh`, 
             borderRadius: `${bRadTop ? '24px' : '0'} ${bRadTop ? '24px' : '0'} ${bRadBot ? '24px' : '0'} ${bRadBot ? '24px' : '0'}`,
-            background: locationData.bottomBannerContent.startsWith('http') ? '#000' : (locationData.bottomBannerBg || '#1e293b'), 
+            background: _bbUrl ? '#000' : (locationData.bottomBannerBg || '#1e293b'), 
             zIndex: 50,
             overflow: 'hidden',
             boxShadow: '0 -8px 32px rgba(0,0,0,0.15)' 

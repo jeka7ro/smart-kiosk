@@ -199,8 +199,8 @@ async function start() {
   });
 
   globalPort.on('data', (chunk) => {
-    if (state === 'IDLE') return; // Ignore data outside transaction
-
+    // Înlăturăm return-ul de IDLE pentru a permite POS-ului să se golească
+    // de mesaje întârziate (ex: timeout-uri după ce Kiosk-ul a renunțat deja)
     const hexStr = [...chunk].map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
     log(`📥 RAW RX [${chunk.length} bytes]: ${hexStr}`);
     rxBuf = Buffer.concat([rxBuf, chunk]);
@@ -369,7 +369,7 @@ async function start() {
           log(`📝 Extra POS Fields: ${JSON.stringify(varFields)}`);
 
           globalPort.write(Buffer.from([EOT]));
-          succeed({
+          if (succeed) succeed({
             success: approved, code: respCode, authCode, refNum,
             txDate, amount: amtField, currency, termId, cardNo, receiptNo,
             extraFields: varFields,
@@ -385,13 +385,15 @@ async function start() {
           let explicitReason = `Tranzacție refuzată (Cod: 0x${errCode.toString(16).toUpperCase()})`;
           if (errCode === 0xA0) explicitReason = 'POS-ul trebuie resetat manual sau Închidere de Zi.';
 
-          succeed({ success: false, code: errCode.toString(16).toUpperCase(), authCode: '', refNum: '', reason: explicitReason });
+          if (succeed) succeed({ success: false, code: errCode.toString(16).toUpperCase(), authCode: '', refNum: '', reason: explicitReason });
           break;
         }
 
         log(`📥 Frame necunoscut: klasse=0x${klasse.toString(16)}`);
         state = 'WAIT_POS_ENQ__RESULT';
-        currentTransactionTimer = setTimeout(() => fail('Timeout rezultat necunoscut'), 120000);
+        if (fail) {
+           currentTransactionTimer = setTimeout(() => fail('Timeout rezultat necunoscut'), 120000);
+        }
         break;
       }
 
@@ -449,6 +451,19 @@ async function start() {
     }
   });
 
+  socket.on('cancel_pos_payment', (data) => {
+    const { locationId: lid } = data || {};
+    if (lid && lid !== LOCATION_ID) return;
+    
+    log('🛑 CANCEL payment requested din Kiosk (timeout/anulare)!');
+    if (paymentInProgress && globalPort && globalPort.isOpen) {
+      log('📤 Trimit EOT dublu pentru a forța anularea...');
+      globalPort.write(Buffer.from([EOT]));
+      setTimeout(() => globalPort.write(Buffer.from([EOT])), 200);
+      if (globalPort.currentFail) globalPort.currentFail('Anulat de utilizator (Kiosk timeout)');
+    }
+  });
+
   socket.on('print_ticket', async (payload) => {
     const order = payload && payload.order ? payload.order : payload;
     if (order && (order.locationId === LOCATION_ID || !order.locationId)) {
@@ -457,9 +472,7 @@ async function start() {
     }
   });
 
-  // Remote Settlement / End of Day - clears POS memory (fixes 0xA0 error)
-  socket.on('pos_settlement', async (data) => {
-    const { locationId: lid } = data || {};
+  async function triggerSettlement(lid) {
     if (lid && lid !== LOCATION_ID) return;
 
     if (paymentInProgress || state !== 'IDLE') {
@@ -499,7 +512,6 @@ async function start() {
         globalPort.currentStatusCallback = null;
         globalPort.currentSALE_FRAME = null;
 
-        // Settlement command: class 0x06, instruction 0x50
         const settlementCmd = [0x06, 0x50, 0x00];
         const SETTLE_FRAME = buildFrame(settlementCmd);
 
@@ -511,7 +523,6 @@ async function start() {
           ecrSend(SETTLE_FRAME, 'SETTLEMENT', 'SETTLEMENT', 10000);
         }, 500);
 
-        // Long timeout for settlement (can take up to 2 minutes)
         setTimeout(() => {
           if (currentTransactionResolve) {
             currentTransactionResolve({ success: true, reason: 'Settlement trimis (timeout normal)' });
@@ -527,7 +538,9 @@ async function start() {
     } finally {
       paymentInProgress = false;
     }
-  });
+  }
+
+  socket.on('pos_settlement', (data) => triggerSettlement(data?.locationId));
 }
 
 start().catch(err => {
