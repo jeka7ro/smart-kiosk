@@ -126,10 +126,18 @@ export default function IikoLogs() {
 
                             {/* Response */}
                             <div>
-                              <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: statusInfo.color }}></span> 
-                                Răspuns (Syrve)
-                              </h4>
+                              <div className="flex justify-between items-center mb-2">
+                                <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2 m-0">
+                                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: statusInfo.color }}></span> 
+                                  Răspuns (Syrve)
+                                </h4>
+                                <button 
+                                  onClick={() => navigator.clipboard.writeText(JSON.stringify(log.response, null, 2))}
+                                  className="text-xs px-2 py-1 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+                                >
+                                  Copiază
+                                </button>
+                              </div>
                               <div className="bg-slate-900 rounded-xl p-4 overflow-x-auto border border-slate-700">
                                 <pre className="text-xs text-green-300 font-mono" style={{ margin: 0, color: log.status === 'error' ? '#fca5a5' : '#86efac' }}>
                                   {JSON.stringify(log.response, null, 2)}
