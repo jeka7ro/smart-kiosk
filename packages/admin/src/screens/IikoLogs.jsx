@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthProvider';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Copy } from 'lucide-react';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
 
@@ -133,9 +133,9 @@ export default function IikoLogs() {
                                 </h4>
                                 <button 
                                   onClick={() => navigator.clipboard.writeText(JSON.stringify(log.response, null, 2))}
-                                  className="text-xs px-2 py-1 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+                                  className="text-xs px-2 py-1 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors flex items-center gap-1"
                                 >
-                                  Copiază
+                                  <Copy size={14} /> Copiază
                                 </button>
                               </div>
                               <div className="bg-slate-900 rounded-xl p-4 overflow-x-auto border border-slate-700">
