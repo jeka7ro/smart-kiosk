@@ -2711,6 +2711,7 @@ function LocationsManager({ backend }) {
 function LocationEditForm({ loc, backend, onBack, onSave }) {
   const { fetchWithAuth } = useAuth();
   const [formData, setFormData] = useState({
+    ...loc,
     name: loc.name || '',
     brands: loc.brands || [],
     orgIds: loc.orgIds || {},
