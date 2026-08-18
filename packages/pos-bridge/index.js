@@ -427,6 +427,7 @@ async function start() {
       rxBuf = rxBuf.subarray(1);
     }
   });
+  } // ← end of if (POS_GATEWAY !== 'viva_pos')
 
   let paymentInProgress = false;
 
@@ -572,7 +573,6 @@ async function start() {
   }
 
   socket.on('pos_settlement', (data) => triggerSettlement(data?.locationId));
-}
 }
 
 start().catch(err => {
