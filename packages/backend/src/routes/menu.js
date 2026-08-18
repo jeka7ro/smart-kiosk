@@ -55,7 +55,7 @@ router.get('/', requireApiKey, async (req, res) => {
     const over = productOverrides[p.id] || {};
     return {
       ...p,
-      image: over.custom_image_url || over.local_image_url || over.syrve_image_url || p.image,
+      image: over.custom_image_url || over.syrve_image_url || p.image || over.local_image_url,
       isVegetarian: over.is_vegetarian || false,
       isSpicy: over.is_spicy || false,
       modifierGroups: (p.modifierGroups || []).map(gm => ({
