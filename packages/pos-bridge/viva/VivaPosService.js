@@ -1,9 +1,13 @@
 /**
- * VivaPosService - Viva Wallet PAX ECR Protocol (pipe-delimited TCP)
- * Protocol: LENGTH|CMD|FIELDS...
- * CMD 810 = Terminal Ready, CMD 200 = Sale Request, CMD 210 = Sale Response
+ * VivaPosService - Viva Wallet Local Terminal API (P2P)
+ * Based on: https://developer.viva.com/apis-for-point-of-sale/card-terminals-devices/peer-to-peer-communication/
+ * 
+ * Protocol: HTTPS REST API (self-signed cert)
+ * Endpoint: POST /pos/v1/sale
+ * No authentication needed in closed network.
  */
-const net = require('net');
+const https = require('https');
+const http = require('http');
 
 class VivaPosService {
   constructor(ip, port = 8080) {
@@ -12,157 +16,210 @@ class VivaPosService {
   }
 
   /**
-   * Build ECR message: 4-digit length prefix + pipe-delimited fields
-   */
-  _buildMessage(fields) {
-    const payload = '|' + fields.join('|');
-    const len = payload.length.toString().padStart(4, '0');
-    return len + payload;
-  }
-
-  /**
-   * Parse ECR response
-   */
-  _parseResponse(data) {
-    const str = data.toString('utf8').trim();
-    console.log(`[Viva ECR] Raw response: ${str}`);
-    
-    // Format: LENGTH|CMD|FIELD1|FIELD2|...
-    const parts = str.split('|');
-    if (parts.length < 2) return { raw: str };
-    
-    return {
-      length: parts[0],
-      cmd: parts[1],
-      fields: parts.slice(2),
-      raw: str
-    };
-  }
-
-  /**
-   * Initiates a sale transaction
+   * Initiates a sale transaction on the Viva POS terminal
+   * @param {number} amount - Amount in RON (e.g. 25.50)
+   * @returns {Promise<Object>} The transaction result
    */
   async processPayment(amount) {
     if (!amount || amount <= 0) throw new Error('Invalid payment amount');
     if (!this.ip) throw new Error('Viva POS IP is not configured');
 
+    // Viva API expects amount in cents (integer)
     const amountInCents = Math.round(amount * 100);
-    const amountStr = amountInCents.toString().padStart(8, '0');
-    const ref = Date.now().toString().slice(-6);
 
-    return new Promise((resolve, reject) => {
-      const client = new net.Socket();
-      let responseBuffer = '';
-      let readyReceived = false;
-      let saleResponseReceived = false;
+    const payload = JSON.stringify({
+      amount: amountInCents,
+      currencyCode: 946,  // RON
+      merchantReference: `kiosk-${Date.now()}`,
+      tipAmount: 0,
+      preauth: false,
+      maxInstalments: 0
+    });
+
+    console.log(`[Viva POS] Initiating sale: ${amount} RON (${amountInCents} cents)`);
+
+    // Try HTTPS first (per Viva documentation), then HTTP as fallback
+    let result;
+    try {
+      console.log(`[Viva POS] Trying HTTPS POST https://${this.ip}:${this.port}/pos/v1/sale`);
+      result = await this._request(true, '/pos/v1/sale', payload);
+    } catch (httpsErr) {
+      console.log(`[Viva POS] HTTPS failed: ${httpsErr.message}`);
+      try {
+        console.log(`[Viva POS] Trying HTTP POST http://${this.ip}:${this.port}/pos/v1/sale`);
+        result = await this._request(false, '/pos/v1/sale', payload);
+      } catch (httpErr) {
+        console.log(`[Viva POS] HTTP also failed: ${httpErr.message}`);
+        throw httpsErr; // throw the HTTPS error as primary
+      }
+    }
+
+    console.log(`[Viva POS] Initial response:`, result);
+
+    // Viva returns state: "PROCESSING" — need to poll for result
+    if (result.state === 'PROCESSING' && result.sessionId) {
+      console.log(`[Viva POS] Transaction processing, sessionId: ${result.sessionId}`);
+      console.log(`[Viva POS] Waiting for card tap/insert...`);
+      return await this._pollSession(result.sessionId);
+    }
+
+    // Direct response (success or error)
+    if (result.state === 'COMPLETED' || result.success) {
+      return {
+        success: true,
+        authCode: result.authCode || result.AuthCode || '',
+        refNum: result.rrn || result.RRN || result.referenceNumber || '',
+        receiptNo: result.tid || result.TID || result.terminalId || '',
+        cardNo: result.pan || result.Pan || result.cardNumber || '',
+        raw: result
+      };
+    }
+
+    // Error
+    return {
+      success: false,
+      code: result.eventId || result.Eventid || '',
+      reason: result.message || result.Message || `Terminal error (state: ${result.state})`,
+      raw: result
+    };
+  }
+
+  /**
+   * Poll session status until completed or failed
+   */
+  async _pollSession(sessionId) {
+    const maxWait = 120000; // 2 minutes max
+    const pollInterval = 2000; // poll every 2 seconds
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < maxWait) {
+      await new Promise(r => setTimeout(r, pollInterval));
       
-      const timeout = setTimeout(() => {
-        console.log('[Viva ECR] Timeout after 120 seconds');
-        client.destroy();
-        reject(new Error('POS timeout (120s)'));
-      }, 120000);
-
-      client.connect(this.port, this.ip, () => {
-        console.log(`[Viva ECR] Connected to ${this.ip}:${this.port}`);
-      });
-
-      client.on('data', (data) => {
-        const str = data.toString('utf8');
-        console.log(`[Viva ECR] RECV: ${str}`);
-        
-        const parsed = this._parseResponse(data);
-        
-        if (parsed.cmd === '810' && !readyReceived) {
-          // Terminal Ready - send sale command
-          readyReceived = true;
-          console.log(`[Viva ECR] Terminal ready. Sending SALE for ${amount} RON (${amountInCents} cents)...`);
-          
-          // Try sale command: 200|amount|currency(946=RON)|reference
-          const saleMsg = this._buildMessage(['200', amountStr, '946', ref]);
-          console.log(`[Viva ECR] SEND: ${saleMsg}`);
-          client.write(saleMsg);
-        } 
-        else if (parsed.cmd === '210' || parsed.cmd === '200') {
-          // Sale response
-          saleResponseReceived = true;
-          clearTimeout(timeout);
-          
-          const status = parsed.fields[0] || '';
-          const approved = status === '00' || status === '0000';
-          
-          console.log(`[Viva ECR] Sale response: status=${status}, approved=${approved}`);
-          console.log(`[Viva ECR] Full response fields: ${JSON.stringify(parsed.fields)}`);
-          
-          client.destroy();
-          resolve({
-            success: approved,
-            authCode: parsed.fields[1] || '',
-            refNum: parsed.fields[2] || '',
-            receiptNo: parsed.fields[3] || '',
-            cardNo: parsed.fields[4] || '',
-            code: status,
-            reason: approved ? '' : `Tranzacție refuzată (cod: ${status})`,
-            raw: str,
-            extraFields: parsed.fields
-          });
+      try {
+        // Try HTTPS first
+        let session;
+        try {
+          session = await this._request(true, `/pos/v1/sessions/${sessionId}`, null, 'GET');
+        } catch {
+          session = await this._request(false, `/pos/v1/sessions/${sessionId}`, null, 'GET');
         }
-        else if (parsed.cmd === '820') {
-          // Display message from terminal
-          console.log(`[Viva ECR] Terminal display: ${parsed.fields.join(' ')}`);
+        
+        console.log(`[Viva POS] Session status: ${session.state || session.status}`);
+
+        if (session.state === 'COMPLETED' || session.state === 'APPROVED') {
+          return {
+            success: true,
+            authCode: session.authCode || session.AuthCode || '',
+            refNum: session.rrn || session.RRN || session.retrievalReferenceNumber || '',
+            receiptNo: session.tid || session.TID || '',
+            cardNo: session.pan || session.Pan || session.cardNumber || '',
+            transactionId: session.transactionId || '',
+            raw: session
+          };
         }
-        else if (parsed.cmd === '900' || parsed.cmd === '999') {
-          // Error from terminal
-          clearTimeout(timeout);
-          client.destroy();
-          const errMsg = parsed.fields.join(' ') || 'Terminal error';
-          console.log(`[Viva ECR] Terminal error: ${errMsg}`);
-          resolve({
+
+        if (session.state === 'FAILED' || session.state === 'DECLINED' || session.state === 'CANCELLED') {
+          return {
             success: false,
-            code: parsed.cmd,
-            reason: errMsg,
-            raw: str
-          });
+            code: session.eventId || session.Eventid || '',
+            reason: session.message || session.Message || `Transaction ${session.state}`,
+            raw: session
+          };
         }
-        else {
-          // Unknown command - log it and try to interpret
-          console.log(`[Viva ECR] Unknown CMD ${parsed.cmd}, fields: ${JSON.stringify(parsed.fields)}`);
-          
-          // If we already sent sale, any response might be the result
-          if (readyReceived && !saleResponseReceived) {
-            // Check if any field looks like approval status
-            const allFields = [parsed.cmd, ...parsed.fields];
-            console.log(`[Viva ECR] Treating as possible sale response. All parts: ${JSON.stringify(allFields)}`);
+
+        // Still processing, continue polling
+      } catch (err) {
+        console.log(`[Viva POS] Poll error: ${err.message}`);
+      }
+    }
+
+    throw new Error('Transaction timeout (120s)');
+  }
+
+  /**
+   * Make HTTP/HTTPS request to the terminal
+   */
+  _request(useHttps, path, body, method = 'POST') {
+    return new Promise((resolve, reject) => {
+      const mod = useHttps ? https : http;
+      
+      const options = {
+        hostname: this.ip,
+        port: this.port,
+        path: path,
+        method: method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        timeout: 65000,
+        rejectAuthorized: false, // Accept self-signed certs
+      };
+
+      // For HTTPS with self-signed certificates
+      if (useHttps) {
+        options.rejectUnauthorized = false;
+        options.agent = new https.Agent({ rejectUnauthorized: false });
+      }
+
+      if (body && method === 'POST') {
+        options.headers['Content-Length'] = Buffer.byteLength(body);
+      }
+
+      const req = mod.request(options, (res) => {
+        let data = '';
+        res.on('data', (chunk) => { data += chunk; });
+        res.on('end', () => {
+          console.log(`[Viva POS] Response ${res.statusCode}: ${data.substring(0, 500)}`);
+          try {
+            const parsed = JSON.parse(data);
+            if (res.statusCode >= 200 && res.statusCode < 300) {
+              resolve(parsed);
+            } else {
+              const err = new Error(parsed.message || parsed.Message || `HTTP ${res.statusCode}`);
+              err.statusCode = res.statusCode;
+              err.body = parsed;
+              reject(err);
+            }
+          } catch {
+            if (res.statusCode >= 200 && res.statusCode < 300) {
+              resolve({ raw: data });
+            } else {
+              reject(new Error(`HTTP ${res.statusCode}: ${data}`));
+            }
           }
-        }
+        });
       });
 
-      client.on('error', (err) => {
-        clearTimeout(timeout);
-        console.error(`[Viva ECR] Connection error: ${err.message}`);
+      req.on('error', (err) => {
+        console.error(`[Viva POS] ${useHttps ? 'HTTPS' : 'HTTP'} error: ${err.code || err.message}`);
         reject(err);
       });
 
-      client.on('close', () => {
-        clearTimeout(timeout);
-        if (!saleResponseReceived && readyReceived) {
-          console.log('[Viva ECR] Connection closed before sale response');
-          reject(new Error('Connection closed by terminal before response'));
-        }
+      req.on('timeout', () => {
+        req.destroy();
+        reject(new Error('Request timeout (65s)'));
       });
+
+      if (body && method === 'POST') {
+        req.write(body);
+      }
+      req.end();
     });
   }
 
   async checkStatus() {
-    return new Promise((resolve) => {
-      const client = new net.Socket();
-      client.setTimeout(5000);
-      client.connect(this.port, this.ip, () => {
-        client.destroy();
-        resolve(true);
-      });
-      client.on('error', () => resolve(false));
-      client.on('timeout', () => { client.destroy(); resolve(false); });
-    });
+    try {
+      await this._request(true, '/pos/v1/sale', null, 'GET');
+      return true;
+    } catch {
+      try {
+        await this._request(false, '/pos/v1/sale', null, 'GET');
+        return true;
+      } catch {
+        return false;
+      }
+    }
   }
 }
 
