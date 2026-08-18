@@ -122,8 +122,10 @@ export default function App() {
         });
         const loc = await r.json();
         if (loc && !loc.error) {
-          setLocationData(loc);
-
+          const currentData = useKioskStore.getState().locationData;
+          if (JSON.stringify(currentData) !== JSON.stringify(loc)) {
+            setLocationData(loc);
+          }
           // Apply default language from Admin config
           const { lang: currentLang, setLang } = useKioskStore.getState();
           const defaultLang = loc.defaultLanguage || (loc.languages?.[0]);
