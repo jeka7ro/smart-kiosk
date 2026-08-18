@@ -1,64 +1,72 @@
-/**
- * Quick scan: check if port 8080 is open on other devices in the network
- * Also try: connect and WAIT (don't send anything) to see if terminal sends more
- */
 const net = require('net');
+const ip = process.env.VIVA_POS_IP || '192.168.20.113';
 
-const targets = [
-  { ip: '192.168.20.112', port: 8080, label: 'KIOSK device' },
-  { ip: '192.168.20.112', port: 20002, label: 'KIOSK:20002' },
-  { ip: '192.168.20.115', port: 8080, label: 'Iskra 2' },
-  { ip: '192.168.20.113', port: 8080, label: 'Viva1 (wait mode)' },
+// Try matching EXACT terminal message format: LLLL|CMD|SS|DDDDDD
+const formats = [
+  // Match terminal format exactly: 0018|200|00|00000399
+  { label: 'mirror-fmt', get: (seq) => '0018|200|00|00000399' },
+  // Echo terminal ID with sale cmd
+  { label: 'echo-id', get: (seq) => `0014|200|00|${seq}` },
+  // Use terminal seq, different amount format
+  { label: 'seq-amt', get: (seq) => `0018|200|${seq}|000399` },
+  // No length prefix, same fields
+  { label: 'no-len', get: (seq) => `200|00|00000399` },
+  // Sale with 4-char amount
+  { label: 'short-amt', get: (seq) => '0012|200|00|0399' },
+  // Binary: 4-byte length + pipe message
+  { label: 'bin-len', get: (seq) => { const msg = '|200|00|00000399'; const buf = Buffer.alloc(4 + msg.length); buf.writeUInt32BE(msg.length, 0); buf.write(msg, 4); return buf; }},
+  // Just the number
+  { label: 'just-399', get: () => '399' },
+  // HTTPS attempt via TLS
+  { label: 'tls', tls: true, get: () => null },
 ];
 
 let idx = 0;
 
-function testNext() {
-  if (idx >= targets.length) {
-    console.log('\n=== DONE ===');
-    process.exit(0);
+function tryNext() {
+  if (idx >= formats.length) { console.log('\n=== DONE ==='); process.exit(0); }
+  const f = formats[idx++];
+  console.log(`\n--- ${idx}/${formats.length}: ${f.label} ---`);
+
+  if (f.tls) {
+    const tls = require('tls');
+    const c = tls.connect(8080, ip, {rejectUnauthorized:false}, () => {
+      console.log(`[${f.label}] TLS connected!`);
+    });
+    c.on('data', d => console.log(`[${f.label}] RECV: ${d.toString()}`));
+    c.on('error', e => { console.log(`[${f.label}] ${e.message}`); setTimeout(tryNext, 300); });
+    c.on('close', () => setTimeout(tryNext, 300));
+    setTimeout(() => c.destroy(), 5000);
+    return;
   }
-  
-  const t = targets[idx++];
-  console.log(`\n--- Testing ${t.label} (${t.ip}:${t.port}) ---`);
-  
+
   const client = new net.Socket();
+  const timer = setTimeout(() => { client.destroy(); console.log(`[${f.label}] Timeout`); setTimeout(tryNext, 300); }, 8000);
+
+  client.connect(8080, ip, () => console.log(`[${f.label}] Connected`));
   
-  const timer = setTimeout(() => {
-    console.log(`[${t.label}] No data in 6s`);
-    client.destroy();
-    setTimeout(testNext, 300);
-  }, 6000);
-
-  client.connect(t.port, t.ip, () => {
-    console.log(`[${t.label}] CONNECTED!`);
-    // For Viva1 wait mode: don't send anything, just wait
-    if (t.label.includes('wait')) {
-      console.log(`[${t.label}] Waiting (not sending anything)...`);
-    }
-  });
-
   client.on('data', (data) => {
-    console.log(`[${t.label}] RECV: ${data.toString('utf8')}`);
-    console.log(`[${t.label}] HEX: ${data.toString('hex').match(/.{1,2}/g).join(' ')}`);
+    const str = data.toString('utf8');
+    console.log(`[${f.label}] RECV: ${str}`);
     
-    if (t.label.includes('wait')) {
-      // Keep waiting for more data
-      console.log(`[${t.label}] Still waiting for more data...`);
+    if (str.includes('810')) {
+      const seq = str.split('|')[3] || '000000';
+      const msg = f.get(seq);
+      if (Buffer.isBuffer(msg)) {
+        console.log(`[${f.label}] SEND BIN: ${msg.toString('hex')}`);
+        client.write(msg);
+      } else {
+        console.log(`[${f.label}] SEND: ${msg}`);
+        client.write(msg);
+      }
+    } else {
+      console.log(`[${f.label}] *** NON-810 RESPONSE! ***`);
     }
   });
 
-  client.on('close', () => {
-    clearTimeout(timer);
-    console.log(`[${t.label}] Connection closed`);
-    setTimeout(testNext, 300);
-  });
-
-  client.on('error', (err) => {
-    clearTimeout(timer);
-    console.log(`[${t.label}] Error: ${err.message}`);
-    setTimeout(testNext, 300);
-  });
+  client.on('close', () => { clearTimeout(timer); console.log(`[${f.label}] Closed`); setTimeout(tryNext, 300); });
+  client.on('error', (e) => { clearTimeout(timer); console.log(`[${f.label}] Err: ${e.message}`); setTimeout(tryNext, 300); });
 }
 
-testNext();
+console.log('=== FINAL PROTOCOL DISCOVERY ===\n');
+tryNext();
