@@ -91,8 +91,8 @@ router.post('/initiate', async (req, res) => {
     }
   }
 
-  // ── Raiffeisen ECR — prin POS Bridge (socket) ───────────────────────────
-  else if (paymentGateway === 'raiffeisen' || process.env.DEFAULT_PAYMENT_GATEWAY === 'raiffeisen') {
+  // ── Raiffeisen ECR & Viva POS — prin POS Bridge (socket) ───────────────────────────
+  else if (['raiffeisen', 'viva_pos'].includes(paymentGateway) || ['raiffeisen', 'viva_pos'].includes(process.env.DEFAULT_PAYMENT_GATEWAY)) {
     try {
       const io = req.app.get('io');
       if (!io) {

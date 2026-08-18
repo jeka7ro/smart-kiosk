@@ -542,12 +542,30 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
       ? `La masa | Kiosk #${order.orderNumber}`
       : `La pachet | Kiosk #${order.orderNumber}`;
 
+    // Dynamically fetch terminalGroupId for the target organization
+    let terminalGroupId = 'cf589c4a-37dd-54ed-015a-4e33131300bf'; // Fallback
+    try {
+      const termRes = await syrvePost('/api/1/terminal_groups', {
+        organizationIds: [resolvedOrgId],
+        includeDisabled: false
+      }, brandId);
+      
+      const items = termRes?.terminalGroups?.[0]?.items || [];
+      if (items.length > 0) {
+        terminalGroupId = items[0].id;
+      } else {
+        console.warn(`[Syrve] Warning: No active terminal groups found for org ${resolvedOrgId}. Using fallback.`);
+      }
+    } catch (tErr) {
+      console.warn(`[Syrve] Failed to fetch terminal groups for org ${resolvedOrgId}:`, tErr.message);
+    }
+
     payload = {
       createOrderSettings: {
         mode: 'Async',
       },
       organizationId: resolvedOrgId,
-      terminalGroupId: 'cf589c4a-37dd-54ed-015a-4e33131300bf',
+      terminalGroupId: terminalGroupId,
       order: {
         deliveryPoint: null,
         customer: {
@@ -601,4 +619,6 @@ module.exports = {
   getCachedMenu,
   getAllCachedMenus,
   clearMenuCache,
+  syrveGet,
+  syrvePost,
 };

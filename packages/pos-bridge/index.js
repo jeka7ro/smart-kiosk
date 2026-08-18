@@ -21,6 +21,20 @@ const COM_PORT    = process.env.COM_PORT    || 'auto';
 const BAUD_RATE   = parseInt(process.env.BAUD_RATE || '9600');
 const LOCATION_ID = process.env.LOCATION_ID || 'sm-brasov';
 const BRIDGE_KEY  = process.env.BRIDGE_KEY  || 'pos-bridge-2024';
+const POS_GATEWAY = process.env.POS_GATEWAY || 'raiffeisen'; // 'raiffeisen' sau 'viva_pos'
+const VIVA_POS_IP = process.env.VIVA_POS_IP || '';
+const VIVA_POS_PORT = process.env.VIVA_POS_PORT || '8080';
+
+// Import Viva Service if needed
+const VivaPosService = require('./viva/VivaPosService');
+const vivaPos = new VivaPosService(VIVA_POS_IP, parseInt(VIVA_POS_PORT));
+
+const PrinterServiceDatecsFP950 = require('./viva/PrinterServiceDatecsFP950');
+const DATECS_COM_PORT = process.env.DATECS_COM_PORT || '';
+let datecsPrinter = null;
+if (DATECS_COM_PORT) {
+  datecsPrinter = new PrinterServiceDatecsFP950(DATECS_COM_PORT, parseInt(process.env.DATECS_BAUD_RATE || '9600'));
+}
 
 const DLE = 0x10;
 const STX = 0x02;
@@ -162,44 +176,55 @@ function processPrintecPayment(amount, onStatus) {
 }
 
 async function start() {
-  const portPath = (COM_PORT && COM_PORT !== 'auto') ? COM_PORT : await detectPosPort();
+  let portPath = null;
+
+  if (POS_GATEWAY !== 'viva_pos') {
+    portPath = (COM_PORT && COM_PORT !== 'auto') ? COM_PORT : await detectPosPort();
+  }
+
   const socket = ioClient(RENDER_URL, { auth: { bridgeKey: BRIDGE_KEY, locationId: LOCATION_ID } });
 
   log('════════════════════════════════════════════');
   log('Bridge v7.6 (Receipt Fix)');
-  log(`Port din config: ${COM_PORT}`);
+  if (POS_GATEWAY === 'viva_pos') {
+    log(`POS Gateway: VIVA WALLET (IP: ${VIVA_POS_IP})`);
+  } else {
+    log(`POS Gateway: RAIFFEISEN (Serial)`);
+    log(`Port din config: ${COM_PORT}`);
+    log(`COM Port:  ${portPath} @ ${BAUD_RATE} baud (8-N-1)`);
+  }
   log(`Render:    ${RENDER_URL}`);
-  log(`COM Port:  ${portPath} @ ${BAUD_RATE} baud (8-N-1)`);
   log(`Locație:   ${LOCATION_ID}`);
   log('════════════════════════════════════════════');
 
   socket.on('connect', () => {
     log(`✅ Conectat la Render (${socket.id})`);
-    socket.emit('pos_bridge_register', { locationId: LOCATION_ID, port: portPath });
+    socket.emit('pos_bridge_register', { locationId: LOCATION_ID, port: portPath || 'VIVA_IP' });
   });
 
   socket.on('disconnect', (reason) => {
     log(`⚠ Deconectat: ${reason}`);
   });
 
-  globalPort = new SerialPort({
-    path: portPath, baudRate: BAUD_RATE,
-    dataBits: 8, parity: 'none', stopBits: 1, autoOpen: true,
-  });
+  if (POS_GATEWAY !== 'viva_pos') {
+    globalPort = new SerialPort({
+      path: portPath, baudRate: BAUD_RATE,
+      dataBits: 8, parity: 'none', stopBits: 1, autoOpen: true,
+    });
 
-  globalPort.on('open', () => {
-    log(`✅ Port serial deschis global: ${portPath} @ ${BAUD_RATE}`);
-  });
+    globalPort.on('open', () => {
+      log(`✅ Port serial POS deschis: ${portPath} @ ${BAUD_RATE}`);
+    });
 
-  globalPort.on('error', err => {
-    log(`❌ Eroare port serial: ${err.message}`);
-    if (currentTransactionResolve) {
-      currentTransactionResolve({ success: false, reason: err.message, code: 'DECLINED' });
-    }
-  });
+    globalPort.on('error', err => {
+      log(`❌ Eroare port serial POS: ${err.message}`);
+      if (currentTransactionResolve) {
+        currentTransactionResolve({ success: false, reason: err.message, code: 'DECLINED' });
+      }
+    });
 
-  globalPort.on('data', (chunk) => {
-    // Înlăturăm return-ul de IDLE pentru a permite POS-ului să se golească
+    globalPort.on('data', (chunk) => {
+      // Înlăturăm return-ul de IDLE pentru a permite POS-ului să se golească
     // de mesaje întârziate (ex: timeout-uri după ce Kiosk-ul a renunțat deja)
     const hexStr = [...chunk].map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
     log(`📥 RAW RX [${chunk.length} bytes]: ${hexStr}`);
@@ -422,10 +447,16 @@ async function start() {
     socket.emit('pos_bridge_status', { orderId, message: 'Inițiez plata...' });
 
     try {
-      const res = await processPrintecPayment(amount, (msg) => {
-        log(`STATUS: ${msg}`);
-        socket.emit('pos_bridge_status', { orderId, message: msg });
-      });
+      let res;
+      if (POS_GATEWAY === 'viva_pos') {
+        socket.emit('pos_bridge_status', { orderId, message: 'Comunicare cu terminalul Viva...' });
+        res = await vivaPos.processPayment(amount);
+      } else {
+        res = await processPrintecPayment(amount, (msg) => {
+          log(`STATUS: ${msg}`);
+          socket.emit('pos_bridge_status', { orderId, message: msg });
+        });
+      }
       
       log(`✅ REZULTAT: ${res.success ? 'APROBAT' : 'REFUZAT'} auth=${res.authCode}`);
       
