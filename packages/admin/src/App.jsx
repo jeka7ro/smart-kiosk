@@ -1690,11 +1690,13 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                <option value="none">Fără POS (confirmare automată)</option>
                <option value="verifone_serial">VeriFone V200t — Serial USB</option>
                <option value="raiffeisen">Raiffeisen ECR — Serial COM</option>
+               <option value="viva_pos">Viva Wallet PAX A80 — IP</option>
              </select>
              <div style={{ marginTop: '6px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                {formData.paymentGateway === 'none' && '⚡ Comenzile se confirmă automat (fără terminal fizic)'}
                {formData.paymentGateway === 'verifone_serial' && '🔌 Backend trebuie să ruleze local cu adaptor USB-Serial conectat'}
                {formData.paymentGateway === 'raiffeisen' && '🔌 POS Bridge pe PC local — conectat prin COM serial'}
+               {formData.paymentGateway === 'viva_pos' && '🔌 Comunicare directă prin IP local cu terminalul Viva PAX A80'}
              </div>
            </div>
 
@@ -2707,6 +2709,7 @@ function LocationsManager({ backend }) {
 
 // ─── LocationEditForm (Restored from Git History) ─────────────────────────────────
 function LocationEditForm({ loc, backend, onBack, onSave }) {
+  const { fetchWithAuth } = useAuth();
   const [formData, setFormData] = useState({
     name: loc.name || '',
     brands: loc.brands || [],
@@ -2804,7 +2807,7 @@ function LocationEditForm({ loc, backend, onBack, onSave }) {
           <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Setări Syrve (iiko) per locație</h3>
           <p className="text-sm text-slate-500 mb-6 max-w-3xl">Dacă un brand folosește un <code>Organization ID</code> diferit față de cel global (din .env), pune-l aici pentru a trimite comenzile corect la POS-ul locației corespunzătoare.</p>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
              {formData.brands.map(bId => (
                <div key={bId} className="space-y-2">
                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
