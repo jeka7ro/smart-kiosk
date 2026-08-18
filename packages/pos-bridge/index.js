@@ -573,6 +573,7 @@ async function start() {
 
   socket.on('pos_settlement', (data) => triggerSettlement(data?.locationId));
 }
+}
 
 start().catch(err => {
   log(`❌ EROARE FATALĂ: ${err.message}`);
