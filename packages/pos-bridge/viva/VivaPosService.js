@@ -1,8 +1,9 @@
 /**
- * VivaPosService - Handles communication with Viva Wallet PAX terminals.
- * Uses the Local Terminal API (Peer-to-Peer) on port 8080.
+ * VivaPosService - Viva Wallet PAX ECR Protocol (pipe-delimited TCP)
+ * Protocol: LENGTH|CMD|FIELDS...
+ * CMD 810 = Terminal Ready, CMD 200 = Sale Request, CMD 210 = Sale Response
  */
-const http = require('http');
+const net = require('net');
 
 class VivaPosService {
   constructor(ip, port = 8080) {
@@ -11,132 +12,156 @@ class VivaPosService {
   }
 
   /**
-   * Initiates a sale transaction on the Viva POS terminal
-   * @param {number} amount - Amount in RON (e.g. 25.50)
-   * @returns {Promise<Object>} The transaction result
+   * Build ECR message: 4-digit length prefix + pipe-delimited fields
+   */
+  _buildMessage(fields) {
+    const payload = '|' + fields.join('|');
+    const len = payload.length.toString().padStart(4, '0');
+    return len + payload;
+  }
+
+  /**
+   * Parse ECR response
+   */
+  _parseResponse(data) {
+    const str = data.toString('utf8').trim();
+    console.log(`[Viva ECR] Raw response: ${str}`);
+    
+    // Format: LENGTH|CMD|FIELD1|FIELD2|...
+    const parts = str.split('|');
+    if (parts.length < 2) return { raw: str };
+    
+    return {
+      length: parts[0],
+      cmd: parts[1],
+      fields: parts.slice(2),
+      raw: str
+    };
+  }
+
+  /**
+   * Initiates a sale transaction
    */
   async processPayment(amount) {
     if (!amount || amount <= 0) throw new Error('Invalid payment amount');
     if (!this.ip) throw new Error('Viva POS IP is not configured');
 
-    // Viva API expects amount in cents
     const amountInCents = Math.round(amount * 100);
+    const amountStr = amountInCents.toString().padStart(8, '0');
+    const ref = Date.now().toString().slice(-6);
 
-    const payload = JSON.stringify({
-      amount: amountInCents,
-      currencyCode: 946, // RON
-      merchantReference: `kiosk-${Date.now()}`,
-      tipAmount: 0,
-      preauth: false,
-      maxInstalments: 0
-    });
-
-    // Try multiple endpoint paths
-    const endpoints = [
-      '/pos/v1/sale',
-      '/v1/sale', 
-      '/api/v1/sale',
-      '/sale',
-      '/'
-    ];
-
-    let lastError = null;
-
-    for (const endpoint of endpoints) {
-      try {
-        console.log(`[Viva POS] Trying ${endpoint} on ${this.ip}:${this.port}...`);
-        const result = await this._httpPost(endpoint, payload);
-        console.log(`[Viva POS] SUCCESS on ${endpoint}:`, result);
-        
-        // Parse response
-        let data;
-        try { data = JSON.parse(result); } catch { data = { raw: result }; }
-
-        return {
-          success: true,
-          authCode: data.AuthCode || data.authCode || data.auth_code || '',
-          refNum: data.RRN || data.rrn || data.retrievalReferenceNumber || '',
-          receiptNo: data.TID || data.tid || data.terminalId || '',
-          cardNo: data.Pan || data.pan || data.cardNumber || '',
-          raw: data
-        };
-      } catch (err) {
-        console.log(`[Viva POS] ${endpoint} failed: ${err.message}`);
-        lastError = err;
-        
-        // If we got a response (HTTP error, not connection error), use this endpoint
-        if (err.statusCode) {
-          console.log(`[Viva POS] Got HTTP ${err.statusCode} from ${endpoint} — endpoint exists but returned error`);
-          console.log(`[Viva POS] Response body: ${err.body}`);
-          throw new Error(`POS error ${err.statusCode}: ${err.body}`);
-        }
-      }
-    }
-
-    throw lastError || new Error('All endpoints failed');
-  }
-
-  /**
-   * HTTP POST using Node's http module (more reliable than fetch on older Node)
-   */
-  _httpPost(path, body) {
     return new Promise((resolve, reject) => {
-      const options = {
-        hostname: this.ip,
-        port: this.port,
-        path: path,
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(body)
-        },
-        timeout: 65000
-      };
+      const client = new net.Socket();
+      let responseBuffer = '';
+      let readyReceived = false;
+      let saleResponseReceived = false;
+      
+      const timeout = setTimeout(() => {
+        console.log('[Viva ECR] Timeout after 120 seconds');
+        client.destroy();
+        reject(new Error('POS timeout (120s)'));
+      }, 120000);
 
-      console.log(`[Viva POS] HTTP POST http://${this.ip}:${this.port}${path}`);
-
-      const req = http.request(options, (res) => {
-        let data = '';
-        res.on('data', (chunk) => { data += chunk; });
-        res.on('end', () => {
-          console.log(`[Viva POS] Response ${res.statusCode}: ${data.substring(0, 500)}`);
-          if (res.statusCode >= 200 && res.statusCode < 300) {
-            resolve(data);
-          } else {
-            const err = new Error(`HTTP ${res.statusCode}: ${data}`);
-            err.statusCode = res.statusCode;
-            err.body = data;
-            reject(err);
-          }
-        });
+      client.connect(this.port, this.ip, () => {
+        console.log(`[Viva ECR] Connected to ${this.ip}:${this.port}`);
       });
 
-      req.on('error', (err) => {
-        console.error(`[Viva POS] Connection error: ${err.code || err.message}`);
+      client.on('data', (data) => {
+        const str = data.toString('utf8');
+        console.log(`[Viva ECR] RECV: ${str}`);
+        
+        const parsed = this._parseResponse(data);
+        
+        if (parsed.cmd === '810' && !readyReceived) {
+          // Terminal Ready - send sale command
+          readyReceived = true;
+          console.log(`[Viva ECR] Terminal ready. Sending SALE for ${amount} RON (${amountInCents} cents)...`);
+          
+          // Try sale command: 200|amount|currency(946=RON)|reference
+          const saleMsg = this._buildMessage(['200', amountStr, '946', ref]);
+          console.log(`[Viva ECR] SEND: ${saleMsg}`);
+          client.write(saleMsg);
+        } 
+        else if (parsed.cmd === '210' || parsed.cmd === '200') {
+          // Sale response
+          saleResponseReceived = true;
+          clearTimeout(timeout);
+          
+          const status = parsed.fields[0] || '';
+          const approved = status === '00' || status === '0000';
+          
+          console.log(`[Viva ECR] Sale response: status=${status}, approved=${approved}`);
+          console.log(`[Viva ECR] Full response fields: ${JSON.stringify(parsed.fields)}`);
+          
+          client.destroy();
+          resolve({
+            success: approved,
+            authCode: parsed.fields[1] || '',
+            refNum: parsed.fields[2] || '',
+            receiptNo: parsed.fields[3] || '',
+            cardNo: parsed.fields[4] || '',
+            code: status,
+            reason: approved ? '' : `Tranzacție refuzată (cod: ${status})`,
+            raw: str,
+            extraFields: parsed.fields
+          });
+        }
+        else if (parsed.cmd === '820') {
+          // Display message from terminal
+          console.log(`[Viva ECR] Terminal display: ${parsed.fields.join(' ')}`);
+        }
+        else if (parsed.cmd === '900' || parsed.cmd === '999') {
+          // Error from terminal
+          clearTimeout(timeout);
+          client.destroy();
+          const errMsg = parsed.fields.join(' ') || 'Terminal error';
+          console.log(`[Viva ECR] Terminal error: ${errMsg}`);
+          resolve({
+            success: false,
+            code: parsed.cmd,
+            reason: errMsg,
+            raw: str
+          });
+        }
+        else {
+          // Unknown command - log it and try to interpret
+          console.log(`[Viva ECR] Unknown CMD ${parsed.cmd}, fields: ${JSON.stringify(parsed.fields)}`);
+          
+          // If we already sent sale, any response might be the result
+          if (readyReceived && !saleResponseReceived) {
+            // Check if any field looks like approval status
+            const allFields = [parsed.cmd, ...parsed.fields];
+            console.log(`[Viva ECR] Treating as possible sale response. All parts: ${JSON.stringify(allFields)}`);
+          }
+        }
+      });
+
+      client.on('error', (err) => {
+        clearTimeout(timeout);
+        console.error(`[Viva ECR] Connection error: ${err.message}`);
         reject(err);
       });
 
-      req.on('timeout', () => {
-        req.destroy();
-        reject(new Error('Connection timeout (65s)'));
+      client.on('close', () => {
+        clearTimeout(timeout);
+        if (!saleResponseReceived && readyReceived) {
+          console.log('[Viva ECR] Connection closed before sale response');
+          reject(new Error('Connection closed by terminal before response'));
+        }
       });
-
-      req.write(body);
-      req.end();
     });
   }
 
-  /**
-   * Checks the status of the terminal
-   */
   async checkStatus() {
     return new Promise((resolve) => {
-      const req = http.get(`http://${this.ip}:${this.port}/`, { timeout: 5000 }, (res) => {
+      const client = new net.Socket();
+      client.setTimeout(5000);
+      client.connect(this.port, this.ip, () => {
+        client.destroy();
         resolve(true);
-        res.resume();
       });
-      req.on('error', () => resolve(false));
-      req.on('timeout', () => { req.destroy(); resolve(false); });
+      client.on('error', () => resolve(false));
+      client.on('timeout', () => { client.destroy(); resolve(false); });
     });
   }
 }
