@@ -1441,13 +1441,19 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
   // Derived: active brands for this location
   const activeBrands = formData.brands && formData.brands.length > 0 ? formData.brands : (loc.brands && loc.brands.length > 0 ? loc.brands : Object.keys(brandProfiles));
 
-  // Brand profiles for menu customization
   const [brandProfiles, setBrandProfiles] = useState({});
   useEffect(() => {
     activeBrands.forEach(brandId => {
-      fetchWithAuth(`${backend}/api/menu/profiles/${brandId}`)
+      fetchWithAuth(`${backend}/api/brands/${brandId}`)
         .then(r => r.ok ? r.json() : null)
-        .then(d => setBrandProfiles(prev => ({ ...prev, [brandId]: d })))
+        .then(d => {
+          if (d) {
+             setBrandProfiles(prev => ({ 
+               ...prev, 
+               [brandId]: { brand: d, profiles: d.data?.menuProfiles || [] } 
+             }));
+          }
+        })
         .catch(() => {});
     });
   }, [backend, activeBrands.join(',')]);
