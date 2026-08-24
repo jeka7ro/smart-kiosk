@@ -1439,7 +1439,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
   }, [backend, fetchWithAuth]);
 
   // Derived: active brands for this location
-  const activeBrands = formData.brands && formData.brands.length > 0 ? formData.brands : (loc.brands || []);
+  const activeBrands = formData.brands && formData.brands.length > 0 ? formData.brands : (loc.brands && loc.brands.length > 0 ? loc.brands : Object.keys(brandProfiles));
 
   // Brand profiles for menu customization
   const [brandProfiles, setBrandProfiles] = useState({});
