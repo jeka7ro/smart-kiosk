@@ -103,6 +103,7 @@ export default function ProductOverrides() {
     const payload = {
       is_vegetarian: tagType === 'veg' ? !currentOver.is_vegetarian : !!currentOver.is_vegetarian,
       is_spicy: tagType === 'spicy' ? !currentOver.is_spicy : !!currentOver.is_spicy,
+      is_hidden: tagType === 'hidden' ? !currentOver.is_hidden : !!currentOver.is_hidden,
     };
 
     setOverrides(prev => ({
@@ -132,9 +133,10 @@ export default function ProductOverrides() {
     
     // Optistic UI bulk update
     const updates = {};
+    const fieldName = tagType === 'veg' ? 'is_vegetarian' : tagType === 'spicy' ? 'is_spicy' : 'is_hidden';
     filtered.forEach(p => {
        const currentOver = overrides[p.id] || {};
-       updates[p.id] = { ...currentOver, [tagType === 'veg' ? 'is_vegetarian' : 'is_spicy']: newValue };
+       updates[p.id] = { ...currentOver, [fieldName]: newValue };
     });
     setOverrides(prev => ({ ...prev, ...updates }));
 
@@ -286,6 +288,12 @@ export default function ProductOverrides() {
                   <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Categorie</th>
                   <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Preț</th>
                   <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">
+                    <div className="inline-flex items-center justify-center gap-1.5 cursor-pointer px-2 py-1 rounded bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 transition-colors" onClick={() => handleBulkToggle('hidden', !(filtered.length > 0 && filtered.every(p => !overrides[p.id]?.is_hidden)))} title="Bifează/Debifează pe Toate (Disponibil = Neascuns)">
+                      <input type="checkbox" className="w-3.5 h-3.5 rounded border-blue-300 text-blue-600 focus:ring-blue-500 pointer-events-none" checked={filtered.length > 0 && filtered.every(p => !overrides[p.id]?.is_hidden)} readOnly />
+                      <span>👁️ Disponibil</span>
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">
                     <div className="inline-flex items-center justify-center gap-1.5 cursor-pointer px-2 py-1 rounded bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400 transition-colors" onClick={() => handleBulkToggle('veg', !(filtered.length > 0 && filtered.every(p => overrides[p.id]?.is_vegetarian)))} title="Bifează/Debifează pe Toate">
                       <input type="checkbox" className="w-3.5 h-3.5 rounded border-emerald-300 text-emerald-600 focus:ring-emerald-500 pointer-events-none" checked={filtered.length > 0 && filtered.every(p => overrides[p.id]?.is_vegetarian)} readOnly />
                       <span>🍃 Veg</span>
@@ -351,6 +359,12 @@ export default function ProductOverrides() {
                       <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{categories[prod.categoryId] || 'Necunoscută'}</td>
                       <td className="px-4 py-3"><span className="font-bold text-slate-900 dark:text-white">{prod.price} lei</span></td>
                       
+                      <td className="px-4 py-3 text-center">
+                        <label className="inline-flex cursor-pointer p-2">
+                          <input type="checkbox" className="w-5 h-5 rounded border-slate-300 text-blue-500 focus:ring-blue-500" checked={!over.is_hidden} onChange={() => toggleTag(prod.id, 'hidden')} />
+                        </label>
+                      </td>
+
                       <td className="px-4 py-3 text-center">
                         <label className="inline-flex cursor-pointer p-2">
                           <input type="checkbox" className="w-5 h-5 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500" checked={!!over.is_vegetarian} onChange={() => toggleTag(prod.id, 'veg')} />

@@ -207,11 +207,29 @@ function transformMenu(raw, brandId = 'smashme') {
     productMap[p.id] = p;
   }
 
+  // Load excluded products dynamically
+  let excludedProductNames = [];
+  try {
+    const exPath = path.join(__dirname, '../../excluded_products.json');
+    if (fs.existsSync(exPath)) {
+      excludedProductNames = JSON.parse(fs.readFileSync(exPath, 'utf8')).map(n => n.toLowerCase().trim());
+    }
+  } catch (e) {
+    console.warn('[Syrve] Could not read excluded_products.json:', e.message);
+  }
+
   const mappedProducts = products
     .filter(p => {
       if (!categoryIds.has(p.parentGroup)) return false;
       if (p.isDeleted) return false;
       if (p.type === 'Modifier') return false;
+
+      // Filter by excluded_products.json
+      const pNameLower = (p.name || '').toLowerCase().trim();
+      if (excludedProductNames.length > 0 && excludedProductNames.some(exName => pNameLower === exName || pNameLower.includes(exName))) {
+         return false;
+      }
+
       // Brand-specific visibility rules
       const sp = (p.sizePrices || [])[0];
       const isIncluded = sp?.price?.isIncludedInMenu;

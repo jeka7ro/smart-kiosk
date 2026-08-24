@@ -58,6 +58,7 @@ router.get('/', requireApiKey, async (req, res) => {
       image: over.custom_image_url || over.syrve_image_url || p.image || over.local_image_url,
       isVegetarian: over.is_vegetarian || false,
       isSpicy: over.is_spicy || false,
+      isHidden: over.is_hidden || false,
       modifierGroups: (p.modifierGroups || []).map(gm => ({
         ...gm,
         options: (gm.options || []).map(opt => ({
@@ -66,7 +67,7 @@ router.get('/', requireApiKey, async (req, res) => {
         })),
       })),
     };
-  });
+  }).filter(p => !p.isHidden);
 
   let finalCategories = menu.categories || [];
   let finalProducts = enrichedProducts || [];
