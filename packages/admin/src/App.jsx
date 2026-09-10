@@ -1696,13 +1696,11 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                <option value="none">Fără POS (confirmare automată)</option>
                <option value="verifone_serial">VeriFone V200t — Serial USB</option>
                <option value="raiffeisen">Raiffeisen ECR — Serial COM</option>
-               <option value="viva_pos">Viva Wallet PAX A80 — IP</option>
              </select>
              <div style={{ marginTop: '6px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                {formData.paymentGateway === 'none' && '⚡ Comenzile se confirmă automat (fără terminal fizic)'}
                {formData.paymentGateway === 'verifone_serial' && '🔌 Backend trebuie să ruleze local cu adaptor USB-Serial conectat'}
                {formData.paymentGateway === 'raiffeisen' && '🔌 POS Bridge pe PC local — conectat prin COM serial'}
-               {formData.paymentGateway === 'viva_pos' && '🔌 Comunicare directă prin IP local cu terminalul Viva PAX A80'}
              </div>
            </div>
 

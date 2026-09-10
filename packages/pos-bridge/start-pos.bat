@@ -8,13 +8,9 @@ echo.
 echo Se descarca ultima versiune din Cloud...
 echo.
 
-:: Descarcă ultima versiune a fișierului index.js
+:: Descarcă ultima versiune a fișierelor
 curl -s -L -o index.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/index.js"
-
-:: Crează folderul viva dacă nu există și descarcă serviciul
-if not exist "viva" mkdir viva
-curl -s -L -o viva/VivaPosService.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/viva/VivaPosService.js"
-curl -s -L -o viva/PrinterServiceDatecsFP950.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/viva/PrinterServiceDatecsFP950.js"
+curl -s -L -o PrinterServiceDatecsFP950.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/PrinterServiceDatecsFP950.js"
 
 if %errorlevel% neq 0 (
     color 0C
