@@ -112,10 +112,11 @@ export default function ProductOverrides() {
     }));
 
     try {
-      await fetchWithAuth(`${BACKEND}/api/products/overrides/${activeBrand}/${productId}/tags`, {
+      const res = await fetchWithAuth(`${BACKEND}/api/products/overrides/${activeBrand}/${productId}/tags`, {
         method: 'PUT',
         body: JSON.stringify(payload),
       });
+      if (!res.ok) throw new Error('Eroare de la server');
       showToast('✅ Preferință salvată');
     } catch (e) {
       showToast('❌ Eroare la salvare: ' + e.message, 'err');

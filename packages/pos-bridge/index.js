@@ -25,15 +25,26 @@ const POS_GATEWAY = process.env.POS_GATEWAY || 'raiffeisen'; // 'raiffeisen' sau
 const VIVA_POS_IP = process.env.VIVA_POS_IP || '';
 const VIVA_POS_PORT = process.env.VIVA_POS_PORT || '8080';
 
-// Import Viva Service if needed
-const VivaPosService = require('./viva/VivaPosService');
-const vivaPos = new VivaPosService(VIVA_POS_IP, parseInt(VIVA_POS_PORT));
+// Import Viva Service ONLY if configured
+let vivaPos = null;
+if (POS_GATEWAY === 'viva_pos') {
+  try {
+    const VivaPosService = require('./viva/VivaPosService');
+    vivaPos = new VivaPosService(VIVA_POS_IP, parseInt(VIVA_POS_PORT));
+  } catch (err) {
+    log(`⚠️ Nu s-a putut încărca VivaPosService: ${err.message}`);
+  }
+}
 
-const PrinterServiceDatecsFP950 = require('./viva/PrinterServiceDatecsFP950');
 const DATECS_COM_PORT = process.env.DATECS_COM_PORT || '';
 let datecsPrinter = null;
 if (DATECS_COM_PORT) {
-  datecsPrinter = new PrinterServiceDatecsFP950(DATECS_COM_PORT, parseInt(process.env.DATECS_BAUD_RATE || '9600'));
+  try {
+    const PrinterServiceDatecsFP950 = require('./viva/PrinterServiceDatecsFP950');
+    datecsPrinter = new PrinterServiceDatecsFP950(DATECS_COM_PORT, parseInt(process.env.DATECS_BAUD_RATE || '9600'));
+  } catch (err) {
+    log(`⚠️ Nu s-a putut încărca PrinterServiceDatecsFP950: ${err.message}`);
+  }
 }
 
 const DLE = 0x10;
@@ -450,6 +461,9 @@ async function start() {
     try {
       let res;
       if (POS_GATEWAY === 'viva_pos') {
+        if (!vivaPos) {
+          throw new Error('Modulul Viva POS nu este instalat sau configurat corect pe acest sistem.');
+        }
         socket.emit('pos_bridge_status', { orderId, message: 'Comunicare cu terminalul Viva...' });
         res = await vivaPos.processPayment(amount);
       } else {
