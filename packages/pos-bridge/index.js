@@ -21,6 +21,21 @@ const COM_PORT    = process.env.COM_PORT    || 'auto';
 const BAUD_RATE   = parseInt(process.env.BAUD_RATE || '9600');
 const LOCATION_ID = process.env.LOCATION_ID || 'sm-brasov';
 const BRIDGE_KEY  = process.env.BRIDGE_KEY  || 'pos-bridge-2024';
+const POS_GATEWAY = process.env.POS_GATEWAY || 'raiffeisen'; // 'raiffeisen' sau 'viva_pos'
+const VIVA_POS_IP = process.env.VIVA_POS_IP || '';
+const VIVA_POS_PORT = parseInt(process.env.VIVA_POS_PORT || '8080', 10);
+
+// Viva POS Service (doar dacă acest chioșc este configurat pe viva_pos)
+let vivaPos = null;
+if (POS_GATEWAY === 'viva_pos') {
+  try {
+    const VivaPosService = require('./VivaPosService');
+    vivaPos = new VivaPosService(VIVA_POS_IP, VIVA_POS_PORT);
+    log(`💳 Viva POS Service inițializat pentru terminal IP: ${VIVA_POS_IP}:${VIVA_POS_PORT}`);
+  } catch (err) {
+    log(`⚠️ Nu s-a putut inițializa VivaPosService: ${err.message}`);
+  }
+}
 
 const DATECS_COM_PORT = process.env.DATECS_COM_PORT || '';
 let datecsPrinter = null;
@@ -174,31 +189,40 @@ function processPrintecPayment(amount, onStatus) {
 }
 
 async function start() {
-  const portPath = (COM_PORT && COM_PORT !== 'auto') ? COM_PORT : await detectPosPort();
+  let portPath = null;
+  if (POS_GATEWAY === 'raiffeisen') {
+    portPath = (COM_PORT && COM_PORT !== 'auto') ? COM_PORT : await detectPosPort();
+  }
 
   const socket = ioClient(RENDER_URL, { auth: { bridgeKey: BRIDGE_KEY, locationId: LOCATION_ID } });
 
   log('════════════════════════════════════════════');
-  log('Bridge v7.6 (Raiffeisen Printec ECR)');
-  log(`Port din config: ${COM_PORT}`);
-  log(`COM Port:  ${portPath} @ ${BAUD_RATE} baud (8-N-1)`);
-  log(`Render:    ${RENDER_URL}`);
-  log(`Locație:   ${LOCATION_ID}`);
+  log(`Bridge v7.7 (${POS_GATEWAY === 'viva_pos' ? 'Viva Wallet PAX A80 — IP' : 'Raiffeisen Printec ECR — Serial'})`);
+  log(`Gateway:   ${POS_GATEWAY.toUpperCase()}`);
+  if (POS_GATEWAY === 'raiffeisen') {
+    log(`Port config: ${COM_PORT}`);
+    log(`COM Port:    ${portPath} @ ${BAUD_RATE} baud (8-N-1)`);
+  } else {
+    log(`Terminal IP: ${VIVA_POS_IP}:${VIVA_POS_PORT}`);
+  }
+  log(`Render:      ${RENDER_URL}`);
+  log(`Locație:     ${LOCATION_ID}`);
   log('════════════════════════════════════════════');
 
   socket.on('connect', () => {
     log(`✅ Conectat la Render (${socket.id})`);
-    socket.emit('pos_bridge_register', { locationId: LOCATION_ID, port: portPath });
+    socket.emit('pos_bridge_register', { locationId: LOCATION_ID, port: portPath || `VIVA_${VIVA_POS_IP}` });
   });
 
   socket.on('disconnect', (reason) => {
     log(`⚠ Deconectat: ${reason}`);
   });
 
-  globalPort = new SerialPort({
-    path: portPath, baudRate: BAUD_RATE,
-    dataBits: 8, parity: 'none', stopBits: 1, autoOpen: true,
-  });
+  if (POS_GATEWAY === 'raiffeisen') {
+    globalPort = new SerialPort({
+      path: portPath, baudRate: BAUD_RATE,
+      dataBits: 8, parity: 'none', stopBits: 1, autoOpen: true,
+    });
 
     globalPort.on('open', () => {
       log(`✅ Port serial POS deschis: ${portPath} @ ${BAUD_RATE}`);
@@ -415,6 +439,7 @@ async function start() {
       rxBuf = rxBuf.subarray(1);
     }
   });
+  } // sfarsit bloc raiffeisen serial
 
   let paymentInProgress = false;
 
@@ -430,17 +455,26 @@ async function start() {
     }
 
     paymentInProgress = true;
-    log(`💳 ==== CERERE PLATĂ ==== orderId: ${orderId} | amount: ${amount} RON`);
+    log(`💳 ==== CERERE PLATĂ ==== orderId: ${orderId} | amount: ${amount} RON | gateway: ${POS_GATEWAY}`);
     
     socket.emit('pos_bridge_status', { orderId, message: 'Inițiez plata...' });
 
     try {
-      const res = await processPrintecPayment(amount, (msg) => {
-        log(`STATUS: ${msg}`);
-        socket.emit('pos_bridge_status', { orderId, message: msg });
-      });
+      let res;
+      if (POS_GATEWAY === 'viva_pos') {
+        if (!vivaPos) {
+          throw new Error('Modulul Viva POS nu este configurat sau VIVA_POS_IP lipsește.');
+        }
+        socket.emit('pos_bridge_status', { orderId, message: 'Apropiați sau introduceți cardul în terminalul Viva...' });
+        res = await vivaPos.processPayment(amount);
+      } else {
+        res = await processPrintecPayment(amount, (msg) => {
+          log(`STATUS: ${msg}`);
+          socket.emit('pos_bridge_status', { orderId, message: msg });
+        });
+      }
       
-      log(`✅ REZULTAT: ${res.success ? 'APROBAT' : 'REFUZAT'} auth=${res.authCode}`);
+      log(`✅ REZULTAT: ${res.success ? 'APROBAT' : 'REFUZAT'} auth=${res.authCode || ''}`);
       
       socket.emit('pos_payment_result', { 
         orderId, 
