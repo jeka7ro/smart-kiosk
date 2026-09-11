@@ -6,9 +6,9 @@
  * PATCH /api/orders/:id/status — Update status (kitchen)
  */
 const express = require('express');
-const router  = express.Router();
-const fs      = require('fs');
-const path    = require('path');
+const router = express.Router();
+const fs = require('fs');
+const path = require('path');
 const { createOrder: syrveCreateOrder } = require('../services/iikoService');
 const { pool } = require('../db');
 const { addPosLog } = require('./posLogs');
@@ -19,7 +19,7 @@ router.post('/', async (req, res) => {
     const {
       locationId, brand, brandId, orgId, locationName,
       orderType, tableNumber, items,
-      totalAmount, lang, channel, paymentMethod, paymentRef,
+      totalAmount, lang, channel, paymentMethod, paymentRef, kioskId
     } = req.body;
 
     if (!items || items.length === 0) {
@@ -27,48 +27,65 @@ router.post('/', async (req, res) => {
     }
 
     const subtotal = totalAmount || items.reduce((s, i) => s + (i.totalPrice || 0), 0);
-    
+
     // Get max orderNumber from Supabase
     let maxOrderNumber = 358;
+    let clujMax = 0;
     try {
-      const { rows } = await pool.query(`SELECT data->>'orderNumber' as num FROM orders WHERE (data->>'orderNumber') IS NOT NULL`);
+      const { rows } = await pool.query(`SELECT data->>'orderNumber' as num, location_id FROM orders WHERE (data->>'orderNumber') IS NOT NULL`);
       for (const row of rows) {
-        const num = parseInt(row.num, 10);
-        // Exclude specific test numbers and ignore huge numbers from old DB data to keep the Kiosk sequence around 360
-        if (!isNaN(num) && num !== 946 && num !== 862 && num < 1000) {
-          maxOrderNumber = Math.max(maxOrderNumber, num);
+        if (row.location_id === '9c63cff6-1d66-442d-a98d-2302656e3943') {
+           const str = String(row.num);
+           if (str.startsWith('CJ')) {
+             const baseNumStr = str.substring(str.length - 4);
+             const cjNum = parseInt(baseNumStr, 10);
+             if (!isNaN(cjNum)) clujMax = Math.max(clujMax, cjNum);
+           }
+        } else {
+           const num = parseInt(row.num, 10);
+           // Exclude specific test numbers and ignore huge numbers from old DB data to keep the Kiosk sequence around 360
+           if (!isNaN(num) && num !== 946 && num !== 862 && num < 1000) {
+             maxOrderNumber = Math.max(maxOrderNumber, num);
+           }
         }
       }
     } catch (dbErr) {
       console.warn('[Orders] DB error getting max orderNumber:', dbErr.message);
     }
-    
-    const orderNumber = maxOrderNumber + 1;
-    const locId       = locationId || 'loc1';
-    const brandName   = brand || brandId || 'smashme';
+
+    const locId = locationId || 'loc1';
+    const brandName = brand || brandId || 'smashme';
+
+    let orderNumber;
+    if (locId === '9c63cff6-1d66-442d-a98d-2302656e3943') {
+       const kId = kioskId || '1';
+       orderNumber = `CJ${kId}${String(clujMax + 1).padStart(4, '0')}`;
+    } else {
+       orderNumber = maxOrderNumber + 1;
+    }
 
     const orderId = `ORD-${Date.now()}`;
     const status = (paymentMethod || 'card') === 'cash' ? 'awaiting_payment' : 'pending';
 
     const order = {
-      _id:         orderId,
+      _id: orderId,
       orderNumber,
-      locationId:  locId,
+      locationId: locId,
       locationName: locationName || null,
-      brand:       brandName,
-      orgId:       orgId || null,
-      orderType:   orderType || 'takeaway',
+      brand: brandName,
+      orgId: orgId || null,
+      orderType: orderType || 'takeaway',
       tableNumber: tableNumber || null,
-      items:       items || [],
+      items: items || [],
       totalAmount: Math.round(subtotal * 100) / 100,
-      lang:        lang || 'ro',
-      channel:      channel || 'kiosk',
+      lang: lang || 'ro',
+      channel: channel || 'kiosk',
       paymentMethod: paymentMethod || 'card',
       paymentRef: paymentRef || null,
-      status:      status,
+      status: status,
       syrveOrderId: null,
-      arrivedAt:   Date.now(),
-      createdAt:   new Date().toISOString(),
+      arrivedAt: Date.now(),
+      createdAt: new Date().toISOString(),
     };
 
     // Store in Supabase
@@ -104,55 +121,55 @@ router.post('/', async (req, res) => {
         const locsPath = path.join(__dirname, '../../data/locations.json');
         let orgIdsDict = {};
         if (fs.existsSync(locsPath)) {
-           try {
-             const locs = JSON.parse(fs.readFileSync(locsPath, 'utf8'));
-             const locData = locs.find(l => l.id === locId);
-             if (locData?.orgIds) orgIdsDict = locData.orgIds;
-           } catch(e) {}
+          try {
+            const locs = JSON.parse(fs.readFileSync(locsPath, 'utf8'));
+            const locData = locs.find(l => l.id === locId);
+            if (locData?.orgIds) orgIdsDict = locData.orgIds;
+          } catch (e) { }
         }
 
         const brandsMap = {};
         for (const item of order.items) {
-           const bId = item.brandId || brandName;
-           if (!brandsMap[bId]) brandsMap[bId] = { items: [], totalAmount: 0 };
-           brandsMap[bId].items.push(item);
-           brandsMap[bId].totalAmount += (item.totalPrice || 0);
+          const bId = item.brandId || brandName;
+          if (!brandsMap[bId]) brandsMap[bId] = { items: [], totalAmount: 0 };
+          brandsMap[bId].items.push(item);
+          brandsMap[bId].totalAmount += (item.totalPrice || 0);
         }
-        
+
         const syrveIds = [];
         for (const [bId, brandData] of Object.entries(brandsMap)) {
-           const specificOrgId = orgIdsDict[bId] || orgId || null;
-           const splitOrder = {
-              ...order,
-              brand: bId,
+          const specificOrgId = orgIdsDict[bId] || orgId || null;
+          const splitOrder = {
+            ...order,
+            brand: bId,
+            orgId: specificOrgId,
+            items: brandData.items,
+            totalAmount: Math.round(brandData.totalAmount * 100) / 100
+          };
+
+          try {
+            console.log(`[Syrve]   brand: ${bId} | orgId: ${specificOrgId}`);
+            const syrveResult = await syrveCreateOrder({
+              brandId: bId,
               orgId: specificOrgId,
-              items: brandData.items,
-              totalAmount: Math.round(brandData.totalAmount * 100) / 100
-           };
-           
-           try {
-              console.log(`[Syrve]   brand: ${bId} | orgId: ${specificOrgId}`);
-              const syrveResult = await syrveCreateOrder({
-                brandId: bId,
-                orgId:   specificOrgId,
-                order:   splitOrder,
-              });
-              
-              if (syrveResult?.orderInfo?.id || syrveResult?.id) {
-                const syrveId = syrveResult?.orderInfo?.id || syrveResult?.id;
-                syrveIds.push(syrveId);
-                console.log(`[Syrve] ✅ SUCCES — syrveId: ${syrveId}`);
-              } else {
-                console.log(`[Syrve] ⚠️  Răspuns fără ID: ${JSON.stringify(syrveResult)}`);
-              }
-            } catch (e) {
-              console.error(`[Syrve] ❌ EROARE iiko brand ${bId}: ${e.message}`);
+              order: splitOrder,
+            });
+
+            if (syrveResult?.orderInfo?.id || syrveResult?.id) {
+              const syrveId = syrveResult?.orderInfo?.id || syrveResult?.id;
+              syrveIds.push(syrveId);
+              console.log(`[Syrve] ✅ SUCCES — syrveId: ${syrveId}`);
+            } else {
+              console.log(`[Syrve] ⚠️  Răspuns fără ID: ${JSON.stringify(syrveResult)}`);
             }
+          } catch (e) {
+            console.error(`[Syrve] ❌ EROARE iiko brand ${bId}: ${e.message}`);
+          }
         }
-        
+
         if (syrveIds.length > 0) {
           order.syrveOrderId = syrveIds.join(',');
-          
+
           // Update DB with syrveOrderId
           await pool.query(
             `UPDATE orders SET data = jsonb_set(data, '{syrveOrderId}', $1) WHERE id = $2`,
@@ -162,7 +179,7 @@ router.post('/', async (req, res) => {
           if (io) {
             io.emit('order_syrve_confirmed', { orderId: order._id, syrveOrderId: order.syrveOrderId });
           }
-          
+
           if (order.paymentMethod === 'card' && order.paymentRef?.authCode) {
             const { updateIikoStatusByAuthCode } = require('./posLogs');
             if (updateIikoStatusByAuthCode) {
@@ -194,13 +211,13 @@ router.get('/', async (req, res) => {
   try {
     let query = `SELECT data, status FROM orders WHERE 1=1`;
     const params = [];
-    
+
     if (status) {
       const statuses = status.split(',').map(s => s.trim());
       query += ` AND status = ANY($${params.length + 1})`;
       params.push(statuses);
     }
-    
+
     if (brand && brand !== 'all') {
       query += ` AND data->>'brand' = $${params.length + 1}`;
       params.push(brand);
@@ -215,13 +232,13 @@ router.get('/', async (req, res) => {
       query += ` AND data->>'createdAt' <= $${params.length + 1}`;
       params.push(new Date(endDate).toISOString());
     }
-    
+
     query += ` ORDER BY created_at DESC LIMIT $${params.length + 1}`;
     params.push(Number(limit));
-    
+
     const { rows } = await pool.query(query, params);
     const orders = rows.map(r => r.data);
-    
+
     // Also get total count
     let countQuery = `SELECT COUNT(*) FROM orders WHERE 1=1`;
     const countParams = [];
@@ -267,24 +284,24 @@ router.get('/:id', async (req, res) => {
 // ── PATCH /api/orders/:id/status ───────────────────────────────────────
 router.patch('/:id/status', async (req, res) => {
   const { status, canceledBy } = req.body;
-  const valid = ['awaiting_payment','pending','confirmed','preparing','ready','delivered','completed','cancelled'];
+  const valid = ['awaiting_payment', 'pending', 'confirmed', 'preparing', 'ready', 'delivered', 'completed', 'cancelled'];
   if (!valid.includes(status)) {
     return res.status(400).json({ error: `Invalid status. Valid: ${valid.join(', ')}` });
   }
-  
+
   try {
     const { rows } = await pool.query(`SELECT data, status FROM orders WHERE id = $1`, [req.params.id]);
     if (rows.length === 0) return res.status(404).json({ error: 'Order not found' });
-    
+
     const order = rows[0].data;
     const currentStatus = rows[0].status;
-    
+
     if (currentStatus === 'cancelled' && status !== 'cancelled') {
       return res.status(400).json({ error: 'Comanda a fost anulată și nu poate fi modificată.' });
     }
-    
+
     const wasCashWaiting = currentStatus === 'awaiting_payment' && order.paymentMethod === 'cash';
-    
+
     order.status = status;
     order.updatedAt = new Date().toISOString();
     if (status === 'cancelled' && canceledBy) {
@@ -324,7 +341,7 @@ router.patch('/:id/status', async (req, res) => {
               const locs = JSON.parse(fs.readFileSync(locsPath, 'utf8'));
               const locData = locs.find(l => l.id === order.locationId);
               if (locData?.orgIds) orgIdsDict = locData.orgIds;
-            } catch(e) {}
+            } catch (e) { }
           }
           const brandsMap = {};
           for (const item of order.items) {
@@ -358,7 +375,7 @@ router.patch('/:id/status', async (req, res) => {
       io.emit('order_status_updated', { orderId: req.params.id, status });
     }
     res.json({ success: true, id: req.params.id, status });
-    
+
   } catch (err) {
     console.error('[Orders] PATCH status error:', err.message);
     res.status(500).json({ error: 'Failed to update order status' });

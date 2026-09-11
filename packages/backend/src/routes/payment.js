@@ -51,8 +51,10 @@ router.post('/initiate', async (req, res) => {
   console.log(`[Payment]   locationId: ${req.body.locationId || 'nedefinit'}`);
   console.log(`[Payment]   channel:    ${channel || 'kiosk'}`);
 
+  const gatewayToUse = paymentGateway || process.env.DEFAULT_PAYMENT_GATEWAY || 'none';
+
   // ── VeriFone V200t Serial (Printec ECR v3.9.3) ──────────────────────────
-  if (paymentGateway === 'verifone_serial' || process.env.DEFAULT_PAYMENT_GATEWAY === 'verifone_serial') {
+  if (gatewayToUse === 'verifone_serial') {
     try {
       const serialPort = process.env.VERIFONE_SERIAL_PORT || '/dev/cu.usbserial-FTF2NAV8';
       const baudRate   = parseInt(process.env.VERIFONE_BAUD_RATE || '9600');
@@ -92,7 +94,7 @@ router.post('/initiate', async (req, res) => {
   }
 
   // ── Raiffeisen ECR & Viva POS — prin POS Bridge (socket) ───────────────────────────
-  else if (['raiffeisen', 'viva_pos'].includes(paymentGateway) || ['raiffeisen', 'viva_pos'].includes(process.env.DEFAULT_PAYMENT_GATEWAY)) {
+  else if (['raiffeisen', 'viva_pos'].includes(gatewayToUse)) {
     try {
       const io = req.app.get('io');
       if (!io) {
@@ -100,13 +102,13 @@ router.post('/initiate', async (req, res) => {
         return res.status(500).json({ success: false, error: 'Socket.IO indisponibil' });
       }
 
-      console.log(`[Payment] 📡 Trimit pos_payment_request (${paymentGateway}) la POS Bridge...`);
+      console.log(`[Payment] 📡 Trimit pos_payment_request (${gatewayToUse}) la POS Bridge...`);
       // Trimite cererea de plată spre POS Bridge-ul din locație
       io.emit('pos_payment_request', {
         orderId,
         amount,
         locationId: req.body.locationId || '',
-        paymentGateway: paymentGateway || 'raiffeisen',
+        paymentGateway: gatewayToUse,
       });
       console.log(`[Payment] ✅ Cerere emise via socket — aştept răspuns de la Bridge`);
 
@@ -117,7 +119,7 @@ router.post('/initiate', async (req, res) => {
 
       return res.json({
         success: true, orderId, amount, channel: channel || 'kiosk',
-        status: 'initiated', paymentGateway: paymentGateway || 'raiffeisen',
+        status: 'initiated', paymentGateway: gatewayToUse,
         message: 'Cerere trimisă la POS Bridge — aşteptaţi cardul',
       });
     } catch (err) {

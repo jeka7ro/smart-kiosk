@@ -85,12 +85,13 @@ export default function PaymentScreen() {
       // Priority: locationData.orgIds[brand] > URL param > DEFAULT_ORG
       const urlBrand   = new URLSearchParams(window.location.search).get('brand');
       const urlOrg     = new URLSearchParams(window.location.search).get('orgId');
+      const urlKiosk   = new URLSearchParams(window.location.search).get('kiosk') || '1';
       const effectiveBrand = activeBrandId || urlBrand || DEFAULT_BRAND;
       const locationOrgId  = locationData?.orgIds?.[effectiveBrand];
       const effectiveOrgId = locationOrgId || urlOrg || DEFAULT_ORG;
       const locationName   = locationData?.name || LOCATION_NAME;
 
-      console.log(`[PaymentScreen] Order → brand: ${effectiveBrand}, org: ${effectiveOrgId}, loc: ${locationName}, method: ${pMethod}`);
+      console.log(`[PaymentScreen] Order → brand: ${effectiveBrand}, org: ${effectiveOrgId}, loc: ${locationName}, kiosk: ${urlKiosk}, method: ${pMethod}`);
 
       const res = await fetch(`${BACKEND}/api/orders`, {
         method:  'POST',
@@ -100,6 +101,7 @@ export default function PaymentScreen() {
           orgId:        effectiveOrgId,
           locationId:   locationData?.id,
           locationName: locationName,
+          kioskId:      urlKiosk,
           orderType, tableNumber,
           items: cartItems.map(i => ({
             productId: i.productId, name: i.name, quantity: i.quantity,
