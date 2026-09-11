@@ -223,8 +223,9 @@ async function start() {
     // Resolve location aliases (id + kioskUrl) so bridge matches both
     try {
       const https = require('https');
+      const apiKey = process.env.VITE_API_KEY || 'sk-live-2024-secure';
       const url = `${RENDER_URL}/api/locations/${LOCATION_ID}`;
-      https.get(url, { headers: { 'x-api-key': BRIDGE_KEY } }, (res) => {
+      https.get(url, { headers: { 'x-api-key': apiKey } }, (res) => {
         let body = '';
         res.on('data', (chunk) => body += chunk);
         res.on('end', () => {
