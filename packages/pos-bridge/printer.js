@@ -1,21 +1,27 @@
 const { ThermalPrinter, PrinterTypes, CharacterSet, BreakLine } = require('node-thermal-printer');
+const { execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 
 const PRINTER_NAME = process.env.PRINTER_NAME || 'EPSON TM-T20II Receipt';
 
 let printerDriver;
 try {
   printerDriver = require('@thiagoelg/node-printer');
+  console.log('[Printer] ✅ Driver nativ găsit.');
 } catch (e) {
-  console.log('[Printer] Pachetul nativ "@thiagoelg/node-printer" nu a fost gasit.');
+  console.log('[Printer] ⚠ Driver nativ nu e instalat — voi folosi metoda PowerShell (raw print).');
 }
 
 async function printTicket(order) {
+  // Build the ESC/POS content using node-thermal-printer
+  const tempFile = path.join(os.tmpdir(), `ticket_${Date.now()}.bin`);
+  
   let printer = new ThermalPrinter({
     type: PrinterTypes.EPSON,
-    interface: `printer:${PRINTER_NAME}`,
-    driver: printerDriver,
+    interface: printerDriver ? `printer:${PRINTER_NAME}` : `file:${tempFile}`,
+    driver: printerDriver || undefined,
     characterSet: CharacterSet.PC852_LATIN2,
     removeSpecialCharacters: false,
     lineCharacter: "-",
@@ -26,10 +32,13 @@ async function printTicket(order) {
   });
 
   try {
-    const isConnected = await printer.isPrinterConnected();
-    if (!isConnected) {
-      console.error(`[Printer] Nu ma pot conecta la imprimanta: ${PRINTER_NAME}`);
-      return;
+    // Skip connection check if using file interface
+    if (printerDriver) {
+      const isConnected = await printer.isPrinterConnected();
+      if (!isConnected) {
+        console.error(`[Printer] Nu ma pot conecta la imprimanta: ${PRINTER_NAME}`);
+        return;
+      }
     }
 
     printer.alignCenter();
@@ -109,9 +118,30 @@ async function printTicket(order) {
     printer.cut();
     
     await printer.execute();
-    console.log(`[Printer] Bon printat cu succes pentru comanda #${order.orderNumber}`);
+    
+    // If using file interface, send the file to the Windows printer via PowerShell
+    if (!printerDriver && fs.existsSync(tempFile)) {
+      try {
+        const psCmd = `Get-Content -Encoding Byte -Path '${tempFile}' | Out-Printer -Name '${PRINTER_NAME}'`;
+        execSync(`powershell -Command "${psCmd}"`, { timeout: 10000 });
+        console.log(`[Printer] ✅ Bon printat prin PowerShell pentru comanda #${order.orderNumber}`);
+      } catch (psErr) {
+        // Fallback: try COPY /B to printer share
+        try {
+          execSync(`COPY /B "${tempFile}" "\\\\localhost\\${PRINTER_NAME}"`, { timeout: 10000 });
+          console.log(`[Printer] ✅ Bon printat prin COPY pentru comanda #${order.orderNumber}`);
+        } catch (copyErr) {
+          console.error(`[Printer] ❌ Eroare la printare (PowerShell + COPY): ${psErr.message}`);
+        }
+      } finally {
+        try { fs.unlinkSync(tempFile); } catch (_) {}
+      }
+    } else if (printerDriver) {
+      console.log(`[Printer] ✅ Bon printat cu succes pentru comanda #${order.orderNumber}`);
+    }
   } catch (error) {
     console.error("[Printer] Eroare la printare:", error);
+    try { fs.unlinkSync(tempFile); } catch (_) {}
   }
 }
 
