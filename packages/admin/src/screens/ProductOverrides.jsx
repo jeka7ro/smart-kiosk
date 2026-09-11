@@ -280,17 +280,27 @@ export default function ProductOverrides() {
 
           {activeLocation && (() => {
             const selectedLocObj = locations.find(l => l.id === activeLocation);
-            const locKiosks = selectedLocObj?.kiosks?.length > 0 ? selectedLocObj.kiosks : [{ kioskId: '1', name: 'Kiosk 1' }, { kioskId: '2', name: 'Kiosk 2' }];
+            const knownKiosks = selectedLocObj?.kiosks || [];
             return (
-              <select
-                value={activeKiosk}
-                onChange={e => setActiveKiosk(e.target.value)}
-                className="px-4 py-2.5 rounded-full border border-slate-200 dark:border-slate-800 text-sm outline-none bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 cursor-pointer focus:ring-2 focus:ring-indigo-500/50 appearance-none"
-              >
-                {locKiosks.map(k => (
-                  <option key={k.kioskId} value={k.kioskId}>🖥️ {k.name || `Kiosk ${k.kioskId}`}</option>
-                ))}
-              </select>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Kiosk ID (ex: cluj1)"
+                  value={activeKiosk}
+                  onChange={e => setActiveKiosk(e.target.value)}
+                  list="known-kiosks"
+                  title="Scrie ID-ul kiosk-ului exact cum e în link (ex: cluj1, cj2)"
+                  className="px-4 py-2.5 rounded-full border border-slate-200 dark:border-slate-800 text-sm outline-none bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 cursor-text focus:ring-2 focus:ring-indigo-500/50 min-w-[120px]"
+                />
+                <datalist id="known-kiosks">
+                  {knownKiosks.map(k => (
+                    <option key={k.kioskId} value={k.kioskId}>{k.name}</option>
+                  ))}
+                  {/* Default fallbacks just to hint */}
+                  <option value="1">Kiosk 1</option>
+                  <option value="2">Kiosk 2</option>
+                </datalist>
+              </div>
             );
           })()}
 
