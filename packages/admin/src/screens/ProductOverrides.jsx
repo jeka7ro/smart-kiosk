@@ -296,9 +296,6 @@ export default function ProductOverrides() {
                   {knownKiosks.map(k => (
                     <option key={k.kioskId} value={k.kioskId}>{k.name}</option>
                   ))}
-                  {/* Default fallbacks just to hint */}
-                  <option value="1">Kiosk 1</option>
-                  <option value="2">Kiosk 2</option>
                 </datalist>
               </div>
             );
