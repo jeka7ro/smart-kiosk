@@ -225,24 +225,32 @@ async function start() {
       const https = require('https');
       const apiKey = process.env.VITE_API_KEY || 'sk-live-2024-secure';
       const url = `${RENDER_URL}/api/locations/${LOCATION_ID}`;
+      log(`📡 Rezolv aliases: GET ${url}`);
       https.get(url, { headers: { 'x-api-key': apiKey } }, (res) => {
+        log(`📡 Răspuns status: ${res.statusCode}`);
         let body = '';
         res.on('data', (chunk) => body += chunk);
         res.on('end', () => {
           try {
             const locData = JSON.parse(body);
+            if (locData.error) {
+              log(`⚠ Server a răspuns cu eroare: ${locData.error}`);
+              return;
+            }
             const aliases = new Set([LOCATION_ID]);
             if (locData.id) aliases.add(locData.id);
             if (locData.kioskUrl) aliases.add(locData.kioskUrl);
             LOCATION_ALIASES = [...aliases];
             log(`📍 Locație rezolvată: aliases=[${LOCATION_ALIASES.join(', ')}]`);
-          } catch (_) {}
+          } catch (e) {
+            log(`⚠ Nu am putut parsa răspuns locație: ${e.message} | body: ${body.substring(0, 100)}`);
+          }
         });
       }).on('error', (e) => {
-        log(`⚠ Nu am putut rezolva aliases locație: ${e.message}`);
+        log(`⚠ Eroare HTTP aliases locație: ${e.message}`);
       });
     } catch (e) {
-      log(`⚠ Nu am putut rezolva aliases locație: ${e.message}`);
+      log(`⚠ Eroare aliases locație: ${e.message}`);
     }
   });
 
