@@ -354,8 +354,8 @@ export default function MenuScreen() {
   }
 
   return (
-    <div className="menu-screen screen">
-      {/* ─── TOP BAR ──────────────────────────────── */}
+    <div className={`menu-screen fade-in ui-size-${(locationData?.kioskUiSize || 'S').toLowerCase()}`}>
+      {/* ─── TOP BAR ────────────────────────────────────── */}
       <header className="menu-header">
         <div className="menu-header-left" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <button 
@@ -505,7 +505,7 @@ export default function MenuScreen() {
               <p>{t('cart_empty', lang)}</p>
             </div>
           ) : (
-            <div className={`products-grid ui-size-${(locationData?.kioskUiSize || 'S').toLowerCase()}`}>
+            <div className="products-grid">
               {filteredProducts.map((product, i) => (
                 <ProductCard
                   key={product.id}

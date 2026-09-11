@@ -582,21 +582,28 @@
 /* ─── UI SIZES (S, M, L) ─── */
 
 /* Medium (M) - default look but slightly larger than standard S */
-.products-grid.ui-size-m .product-name { font-size: 0.95rem; }
-.products-grid.ui-size-m .product-desc { font-size: 0.8rem; -webkit-line-clamp: 2; }
-.products-grid.ui-size-m .price-lg { font-size: 1.15rem; }
-.products-grid.ui-size-m .pc-add-btn { width: 44px; height: 44px; font-size: 1.6rem; }
-.products-grid.ui-size-m .pc-qty-control { height: 44px; }
-.products-grid.ui-size-m .pc-qty-btn { width: 42px; height: 44px; font-size: 1.4rem; }
+.ui-size-m .products-grid .product-name { font-size: 0.95rem; }
+.ui-size-m .products-grid .product-desc { font-size: 0.8rem; -webkit-line-clamp: 2; }
+.ui-size-m .products-grid .price-lg { font-size: 1.15rem; }
+.ui-size-m .products-grid .pc-add-btn { width: 44px; height: 44px; font-size: 1.6rem; }
+.ui-size-m .products-grid .pc-qty-control { height: 44px; }
+.ui-size-m .products-grid .pc-qty-btn { width: 42px; height: 44px; font-size: 1.4rem; }
+.ui-size-m .category-sidebar { width: 145px; }
+.ui-size-m .cat-btn-img { width: 50px; height: 50px; }
+.ui-size-m .cat-btn-label { font-size: 0.8rem; }
 
 /* Large (L) - very large images and buttons, matching old kiosk */
-.products-grid.ui-size-l { gap: 16px; }
-.products-grid.ui-size-l .product-card { border-width: 2px; border-radius: 16px; }
-.products-grid.ui-size-l .product-info { padding: 12px 14px 16px; }
-.products-grid.ui-size-l .product-name { font-size: 1.1rem; margin-bottom: 8px; }
-.products-grid.ui-size-l .product-desc { font-size: 0.9rem; -webkit-line-clamp: 2; margin-bottom: 8px; }
-.products-grid.ui-size-l .price-lg { font-size: 1.35rem; }
-.products-grid.ui-size-l .pc-add-btn { width: 52px; height: 52px; font-size: 2rem; border-radius: 14px; }
-.products-grid.ui-size-l .pc-qty-control { height: 52px; border-radius: 14px; }
-.products-grid.ui-size-l .pc-qty-btn { width: 50px; height: 52px; font-size: 1.6rem; }
-.products-grid.ui-size-l .pc-qty-num { font-size: 1.2rem; min-width: 32px; }
+.ui-size-l .products-grid { gap: 16px; }
+.ui-size-l .products-grid .product-card { border-width: 2px; border-radius: 16px; }
+.ui-size-l .products-grid .product-info { padding: 12px 14px 16px; }
+.ui-size-l .products-grid .product-name { font-size: 1.1rem; margin-bottom: 8px; }
+.ui-size-l .products-grid .product-desc { font-size: 0.9rem; -webkit-line-clamp: 2; margin-bottom: 8px; }
+.ui-size-l .products-grid .price-lg { font-size: 1.35rem; }
+.ui-size-l .products-grid .pc-add-btn { width: 52px; height: 52px; font-size: 2rem; border-radius: 14px; }
+.ui-size-l .products-grid .pc-qty-control { height: 52px; border-radius: 14px; }
+.ui-size-l .products-grid .pc-qty-btn { width: 50px; height: 52px; font-size: 1.6rem; }
+.ui-size-l .products-grid .pc-qty-num { font-size: 1.2rem; min-width: 32px; }
+
+.ui-size-l .category-sidebar { width: 160px; }
+.ui-size-l .cat-btn-img { width: 58px; height: 58px; }
+.ui-size-l .cat-btn-label { font-size: 0.85rem; }
