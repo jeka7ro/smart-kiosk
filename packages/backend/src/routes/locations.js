@@ -155,6 +155,34 @@ router.put('/:id', protect, async (req, res) => {
 });
 
 // DELETE /api/locations/:id
+// PUT /api/locations/:id/promos — set promo prices for a location
+router.put('/:id/promos', protect, async (req, res) => {
+  try {
+    if (!hasDb) throw new Error('no db');
+    const { productId, price, start, end } = req.body;
+    if (!productId) return res.status(400).json({ error: 'productId is required' });
+
+    const existing = await pool.query('SELECT * FROM locations WHERE id = $1', [req.params.id]);
+    if (!existing.rows.length) return res.status(404).json({ error: 'Location not found' });
+    
+    const data = existing.rows[0].data || {};
+    const promoOverrides = data.promoOverrides || {};
+    
+    if (price && price > 0) {
+      promoOverrides[productId] = { price: parseFloat(price), start: start || null, end: end || null };
+    } else {
+      delete promoOverrides[productId];
+    }
+    
+    data.promoOverrides = promoOverrides;
+    await pool.query('UPDATE locations SET data = $1, updated_at = NOW() WHERE id = $2', [JSON.stringify(data), req.params.id]);
+    res.json({ ok: true, promoOverrides });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+
 router.delete('/:id', protect, async (req, res) => {
   try {
     const result = await pool.query('DELETE FROM locations WHERE id = $1', [req.params.id]);

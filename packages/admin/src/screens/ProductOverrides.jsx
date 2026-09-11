@@ -38,6 +38,9 @@ export default function ProductOverrides() {
   const [filterCategory, setFilterCategory] = useState(''); // empty = all
   const [previewImage,setPreviewImage]= useState(null);
   const [previewDesc, setPreviewDesc] = useState(null);
+  const [locations,   setLocations]   = useState([]);
+  const [activeLocation, setActiveLocation] = useState('');
+  const [promoOverrides, setPromoOverrides] = useState({});
   
   const fileInputRef = useRef(null);
   const [uploadingId, setUploadingId] = useState(null);
@@ -73,6 +76,31 @@ export default function ProductOverrides() {
     setPage(1);
     fetchAll(); 
   }, [activeBrand]);
+
+  // Fetch locations for promo scoping
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetchWithAuth(`${BACKEND}/api/locations`);
+        const data = await res.json();
+        const locs = (data.locations || data || []).filter(l => l.active !== false);
+        setLocations(locs);
+        if (locs.length > 0 && !activeLocation) setActiveLocation(locs[0].id);
+      } catch (_) {}
+    })();
+  }, []);
+
+  // Fetch promo overrides for selected location
+  useEffect(() => {
+    if (!activeLocation) return;
+    (async () => {
+      try {
+        const res = await fetchWithAuth(`${BACKEND}/api/locations/${activeLocation}`);
+        const loc = await res.json();
+        setPromoOverrides(loc.promoOverrides || {});
+      } catch (_) { setPromoOverrides({}); }
+    })();
+  }, [activeLocation]);
 
   const uniqueCategories = useMemo(() => {
     const set = new Set();
@@ -236,6 +264,18 @@ export default function ProductOverrides() {
         </div>
         
         <div className="flex-1 min-w-[200px] flex flex-wrap md:flex-nowrap gap-3 items-center ml-auto">
+          {locations.length > 0 && (
+            <select
+              value={activeLocation}
+              onChange={e => setActiveLocation(e.target.value)}
+              className="px-4 py-2.5 rounded-full border border-slate-200 dark:border-slate-800 text-sm outline-none bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 cursor-pointer focus:ring-2 focus:ring-blue-500/50 appearance-none"
+            >
+              {locations.map(loc => (
+                <option key={loc.id} value={loc.id}>📍 {loc.name}</option>
+              ))}
+            </select>
+          )}
+
           <select 
             value={filterCategory}
             onChange={e => { setFilterCategory(e.target.value); setPage(1); }}
@@ -368,43 +408,49 @@ export default function ProductOverrides() {
                             type="number"
                             step="0.01"
                             placeholder="—"
-                            value={over.promo_price || ''}
+                            value={promoOverrides[prod.id]?.price || ''}
                             onChange={(e) => {
                               const val = e.target.value;
-                              setOverrides(prev => ({ ...prev, [prod.id]: { ...prev[prod.id], promo_price: val } }));
+                              setPromoOverrides(prev => ({ ...prev, [prod.id]: { ...prev[prod.id], price: val } }));
                             }}
                             style={{ width: 70, padding: '4px 6px', fontSize: '0.85rem', borderRadius: 6, border: '1px solid var(--border, #e2e8f0)', background: 'var(--surface, #fff)', color: 'var(--text, #111)', textAlign: 'center' }}
                           />
                           <button
                             title="Salvează preț promoțional"
                             onClick={async () => {
+                              if (!activeLocation) return showToast('Alege locația mai întâi', 'err');
                               try {
+                                const po = promoOverrides[prod.id] || {};
                                 const payload = {
-                                  promo_price: over.promo_price ? parseFloat(over.promo_price) : null,
-                                  promo_start: over.promo_start || null,
-                                  promo_end: over.promo_end || null,
+                                  productId: prod.id,
+                                  price: po.price ? parseFloat(po.price) : null,
+                                  start: po.start || null,
+                                  end: po.end || null,
                                 };
-                                const res = await fetchWithAuth(`${BACKEND}/api/products/overrides/${activeBrand}/${prod.id}/promo`, {
+                                const res = await fetchWithAuth(`${BACKEND}/api/locations/${activeLocation}/promos`, {
                                   method: 'PUT',
                                   body: JSON.stringify(payload),
                                 });
                                 if (!res.ok) throw new Error('Eroare');
-                                showToast('✅ Preț promoțional salvat');
+                                showToast('✅ Preț promoțional salvat pe locație');
                               } catch (e) { showToast('❌ ' + e.message, 'err'); }
                             }}
                             className="w-7 h-7 inline-flex items-center justify-center rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 transition-colors"
                           >✓</button>
-                          {over.promo_price && (
+                          {promoOverrides[prod.id]?.price && (
                             <button
                               title="Șterge promoția"
                               onClick={async () => {
+                                if (!activeLocation) return;
                                 try {
-                                  const res = await fetchWithAuth(`${BACKEND}/api/products/overrides/${activeBrand}/${prod.id}/promo`, {
+                                  const res = await fetchWithAuth(`${BACKEND}/api/locations/${activeLocation}/promos`, {
                                     method: 'PUT',
-                                    body: JSON.stringify({ promo_price: null, promo_start: null, promo_end: null }),
+                                    body: JSON.stringify({ productId: prod.id, price: null, start: null, end: null }),
                                   });
                                   if (!res.ok) throw new Error('Eroare');
-                                  setOverrides(prev => ({ ...prev, [prod.id]: { ...prev[prod.id], promo_price: null, promo_start: null, promo_end: null } }));
+                                  const newPromo = { ...promoOverrides };
+                                  delete newPromo[prod.id];
+                                  setPromoOverrides(newPromo);
                                   showToast('🗑️ Promoție ștearsă');
                                 } catch (e) { showToast('❌ ' + e.message, 'err'); }
                               }}
