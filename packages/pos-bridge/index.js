@@ -12,7 +12,7 @@ try {
 }
 
 require('dotenv').config();
-const { printTicket } = require('./printer');
+const { printTicket, getActualPrinterName } = require('./printer');
 const { scanPortsPc } = require('./scan_port_pc');
 const { io: ioClient } = require('socket.io-client');
 const { SerialPort }   = require('serialport');
@@ -119,25 +119,55 @@ function extractFrame(buf, startOffset = 0) {
   return null;
 }
 
-async function detectPosPort() {
+async function resolvePosPort() {
   const ports = await SerialPort.list();
-  // 1. Prioritize USB-to-Serial adapters (Prolific, FTDI, CH340, Silabs, or any USB\ PnP)
+  log(`[Port Detective] Porturi seriale detectate pe PC (${ports.length}):`);
+  ports.forEach(p => log(`  → ${p.path} | ${p.manufacturer || 'necunoscut'} | PnP: ${p.pnpId || '-'}`));
+
+  // 1. Căutăm explicit adaptor USB-Serial (Prolific, FTDI, CH340, Silicon Labs, etc.)
   const usbSerial = ports.find(p => {
     const isCom = p.path.startsWith('COM') && !p.path.includes('BT');
     const isUsb = (p.pnpId && p.pnpId.toUpperCase().includes('USB')) ||
                   (p.manufacturer && /prolific|ftdi|ch340|silicon|wch/i.test(p.manufacturer));
     return isCom && isUsb;
   });
-  if (usbSerial) return usbSerial.path;
 
-  // 2. Ignore internal motherboard ports (ACPI PNP0501) if any other port exists
+  // Dacă utilizatorul a configurat un port specific în .env
+  if (COM_PORT && COM_PORT !== 'auto') {
+    const configuredPort = ports.find(p => p.path.toUpperCase() === COM_PORT.toUpperCase());
+    
+    // Verificăm dacă portul din .env este cumva portul intern gol al plăcii de bază (ACPI PNP0501)
+    const isInternalMotherboard = configuredPort && configuredPort.pnpId && configuredPort.pnpId.includes('PNP0501');
+    if (isInternalMotherboard && usbSerial) {
+      log(`⚠️ ATENȚIE: În .env este configurat ${COM_PORT}, dar acesta este portul intern ACPI al plăcii de bază (fără POS)!`);
+      log(`🔄 Comut automat pe adaptorul USB-Serial conectat la POS: ${usbSerial.path} (${usbSerial.manufacturer || 'USB Serial'})`);
+      return usbSerial.path;
+    }
+
+    if (configuredPort) {
+      log(`✅ Folosesc portul COM configurat în .env: ${configuredPort.path}`);
+      return configuredPort.path;
+    }
+    log(`⚠️ Portul configurat în .env (${COM_PORT}) nu a fost găsit printre porturile seriale active.`);
+  }
+
+  // 2. Dacă e 'auto' sau portul configurat nu există, alegem adaptorul USB-Serial
+  if (usbSerial) {
+    log(`✅ Adaptor USB-Serial POS detectat automat: ${usbSerial.path} (${usbSerial.manufacturer || 'USB Serial'})`);
+    return usbSerial.path;
+  }
+
+  // 3. Ignorăm porturile ACPI de pe placa de bază dacă există orice alt port
   const nonAcpi = ports.find(p => p.path.startsWith('COM') && !p.path.includes('BT') && !(p.pnpId && p.pnpId.includes('PNP0501')));
   if (nonAcpi) return nonAcpi.path;
 
-  // 3. Fallback to first available COM port
+  // 4. Fallback ultim
   const firstCom = ports.find(p => p.path.startsWith('COM') && !p.path.includes('BT'));
   return firstCom ? firstCom.path : 'COM3';
 }
+
+const detectPosPort = resolvePosPort;
+
 
 function ecrSend(frame, ns, label, timeoutMs = 3000) {
   if (enqRetries === 0) {
@@ -228,13 +258,13 @@ function processPrintecPayment(amount, onStatus) {
 async function start() {
   let portPath = null;
   if (POS_GATEWAY === 'raiffeisen') {
-    portPath = (COM_PORT && COM_PORT !== 'auto') ? COM_PORT : await detectPosPort();
+    portPath = await resolvePosPort();
   }
 
   const socket = ioClient(RENDER_URL, { auth: { bridgeKey: BRIDGE_KEY, locationId: LOCATION_ID } });
 
   log('════════════════════════════════════════════');
-  log(`Bridge v7.7 (${POS_GATEWAY === 'viva_pos' ? 'Viva Wallet PAX A80 — IP' : 'Raiffeisen Printec ECR — Serial'})`);
+  log(`Bridge v7.8 (${POS_GATEWAY === 'viva_pos' ? 'Viva Wallet PAX A80 — IP' : 'Raiffeisen Printec ECR — Serial'})`);
   log(`Gateway:   ${POS_GATEWAY.toUpperCase()}`);
   if (POS_GATEWAY === 'raiffeisen') {
     log(`Port config: ${COM_PORT}`);
@@ -253,21 +283,21 @@ async function start() {
     // ─── Port/Printer Scan ───────────────────────────────────────────────────
     try {
       const scanData = await scanPortsPc();
-      const PRINTER_NAME = process.env.PRINTER_NAME || 'EPSON TM-T20III Receipt';
-      const matchedPrinter = scanData.printers.find(p => p.Name === PRINTER_NAME || p.Name.toLowerCase().includes('epson') || p.Name.toLowerCase().includes('receipt'));
+      const actualPrinter = typeof getActualPrinterName === 'function' ? getActualPrinterName() : (process.env.PRINTER_NAME || 'EPSON TM-T20III Receipt');
+      const matchedPrinter = scanData.printers.find(p => (p.name || p.Name) === actualPrinter || (p.name || p.Name || '').toLowerCase().includes('epson') || (p.name || p.Name || '').toLowerCase().includes('receipt'));
       if (matchedPrinter) {
-        detectedPrinterPort = matchedPrinter.PortName || '';
+        detectedPrinterPort = matchedPrinter.port || matchedPrinter.PortName || '';
       }
       socket.emit('port_scan', {
         locationId: LOCATION_ID,
         locationName: LOCATION_ID,
         posPort: portPath || `VIVA_${VIVA_POS_IP}`,
         posGateway: POS_GATEWAY,
-        printerName: PRINTER_NAME,
+        printerName: actualPrinter,
         baudRate: BAUD_RATE,
         ...scanData,
       });
-      log(`📡 Scan PC trimis la server (${scanData.comPorts.length} porturi, ${scanData.printers.length} imprimante, port imprimantă: ${detectedPrinterPort || '?'})`);
+      log(`📡 Scan PC trimis la server (POS: ${portPath}, Imprimantă: "${actualPrinter}", Port imprimantă: ${detectedPrinterPort || '?'})`);
     } catch (scanErr) {
       log(`⚠ Eroare la scanare PC: ${scanErr.message}`);
     }

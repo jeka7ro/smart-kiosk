@@ -213,17 +213,16 @@ export default function PrinterLogs() {
                   <div>
                     <p className="text-[10px] font-bold uppercase text-slate-500 mb-1.5">🔌 Porturi COM ({(scan.comPorts||[]).length})</p>
                     <div className="space-y-1">
-                      {(() => {
-                        const prolific = (scan.comPorts || []).find(p => /prolific|ftdi|usb/i.test(p.manufacturer || '') || /prolific|ftdi|usb/i.test(p.pnpId || ''));
-                        const effectivePos = prolific ? prolific.path : scan.posPort;
-                        return (scan.comPorts||[]).map((p,i) => (
-                          <div key={i} className={`flex items-center justify-between text-xs px-2 py-1 rounded-lg ${p.path === effectivePos ? 'bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/30' : 'bg-slate-50 dark:bg-slate-800/50'}`}>
+                      {(scan.comPorts||[]).map((p,i) => {
+                        const isPos = p.path && scan.posPort && p.path.toUpperCase() === scan.posPort.toUpperCase();
+                        return (
+                          <div key={i} className={`flex items-center justify-between text-xs px-2 py-1 rounded-lg ${isPos ? 'bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/30' : 'bg-slate-50 dark:bg-slate-800/50'}`}>
                             <span className="font-bold text-slate-700 dark:text-slate-300">{p.path}</span>
-                            {p.path === effectivePos && <span className="px-1.5 py-0.5 rounded-full bg-purple-500 text-white text-[9px] font-bold">POS</span>}
+                            {isPos && <span className="px-1.5 py-0.5 rounded-full bg-purple-500 text-white text-[9px] font-bold">POS</span>}
                             <span className="text-slate-400 text-[10px]">{p.manufacturer || '—'}</span>
                           </div>
-                        ));
-                      })()}
+                        );
+                      })}
                     </div>
                   </div>
                   {/* Printers */}

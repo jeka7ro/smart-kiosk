@@ -126,15 +126,9 @@ export default function PortScans() {
                       {scan.os || '—'}
                     </td>
                     <td className="px-4 py-3">
-                      {(() => {
-                        const prolific = (scan.comPorts || []).find(p => /prolific|ftdi|usb/i.test(p.manufacturer || '') || /prolific|ftdi|usb/i.test(p.pnpId || ''));
-                        const portToShow = prolific ? prolific.path : (scan.posPort || '—');
-                        return (
-                          <span className="px-2.5 py-1 rounded-full bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 text-xs font-bold">
-                            {portToShow}
-                          </span>
-                        );
-                      })()}
+                      <span className="px-2.5 py-1 rounded-full bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 text-xs font-bold">
+                        {scan.posPort || '—'}
+                      </span>
                     </td>
                     <td className="px-4 py-3 text-xs">
                       <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-medium text-[10px] uppercase">
@@ -170,15 +164,18 @@ export default function PortScans() {
                               <p className="text-slate-400 text-xs">Niciun port COM găsit</p>
                             ) : (
                               <div className="space-y-2">
-                                {(scan.comPorts || []).map((p, i) => (
-                                  <div key={i} className={`flex items-center justify-between p-2 rounded-lg text-xs ${p.path === scan.posPort ? 'bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/30' : 'bg-slate-50 dark:bg-slate-800/50'}`}>
-                                    <div>
-                                      <span className="font-bold text-slate-700 dark:text-slate-300">{p.path}</span>
-                                      {p.path === scan.posPort && <span className="ml-2 px-2 py-0.5 rounded-full bg-purple-500 text-white text-[10px] font-bold">POS</span>}
+                                {(scan.comPorts || []).map((p, i) => {
+                                  const isPos = p.path && scan.posPort && p.path.toUpperCase() === scan.posPort.toUpperCase();
+                                  return (
+                                    <div key={i} className={`flex items-center justify-between p-2 rounded-lg text-xs ${isPos ? 'bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/30' : 'bg-slate-50 dark:bg-slate-800/50'}`}>
+                                      <div>
+                                        <span className="font-bold text-slate-700 dark:text-slate-300">{p.path}</span>
+                                        {isPos && <span className="ml-2 px-2 py-0.5 rounded-full bg-purple-500 text-white text-[10px] font-bold">POS</span>}
+                                      </div>
+                                      <span className="text-slate-400 text-[11px]">{p.manufacturer || p.pnpId || '—'}</span>
                                     </div>
-                                    <span className="text-slate-400 text-[11px]">{p.manufacturer || p.pnpId || '—'}</span>
-                                  </div>
-                                ))}
+                                  );
+                                })}
                               </div>
                             )}
                           </div>

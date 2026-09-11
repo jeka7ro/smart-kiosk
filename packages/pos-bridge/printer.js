@@ -216,4 +216,4 @@ async function printTicket(order) {
   }
 }
 
-module.exports = { printTicket };
+module.exports = { printTicket, getActualPrinterName };
