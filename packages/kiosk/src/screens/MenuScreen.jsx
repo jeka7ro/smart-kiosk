@@ -428,14 +428,14 @@ export default function MenuScreen() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start' }}>
             <span className="fav-bar-label">❤️ {t('saved', lang) || 'Salvate'}</span>
             <button 
+              className="fav-btn fav-btn-add"
               onClick={handleAddAllFavorites}
-              style={{ background: '#10b981', color: '#fff', border: 'none', borderRadius: '8px', padding: '6px 12px', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 8px rgba(16,185,129,0.3)', transition: 'all 0.2s', whiteSpace: 'nowrap' }}
             >
               {t('add_all', lang) || '+ Adaugă toate'}
             </button>
             <button 
+              className="fav-btn fav-btn-clear"
               onClick={() => useKioskStore.getState().clearFavorites()}
-              style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', padding: '6px 12px', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 8px rgba(239,68,68,0.3)', transition: 'all 0.2s', whiteSpace: 'nowrap', marginTop: '4px' }}
             >
               {t('clear_all', lang) || 'Șterge toate'}
             </button>

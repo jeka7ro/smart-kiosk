@@ -167,6 +167,17 @@ export const T = {
     de: '+ Alle hinzufügen',
     es: '+ Añadir todo'
   },
+  clear_all: {
+    ro: 'Șterge toate',
+    en: 'Clear all',
+    fr: 'Tout effacer',
+    hu: 'Összes törlése',
+    ru: 'Очистить все',
+    uk: 'Очистити все',
+    bg: 'Изчисти всички',
+    de: 'Alles löschen',
+    es: 'Borrar todo'
+  },
   add_also: {
     ro: 'Adaugă și...',
     en: 'Also add...',

@@ -607,3 +607,40 @@
 .ui-size-l .category-sidebar { width: 160px; }
 .ui-size-l .cat-btn-img { width: 58px; height: 58px; }
 .ui-size-l .cat-btn-label { font-size: 0.85rem; }
+
+/* ─── FAVORITES BAR BUTTONS ─── */
+.fav-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  color: #fff;
+}
+.fav-btn-add { background: #10b981; box-shadow: 0 2px 8px rgba(16,185,129,0.3); }
+.fav-btn-clear { background: #ef4444; box-shadow: 0 2px 8px rgba(239,68,68,0.3); margin-top: 4px; }
+
+/* Scaling favorites bar for M and L */
+.ui-size-m .fav-btn { padding: 10px 16px; font-size: 1rem; }
+.ui-size-m .fav-bar-label { font-size: 1rem; }
+.ui-size-l .fav-btn { padding: 12px 20px; font-size: 1.15rem; border-radius: 12px; }
+.ui-size-l .fav-bar-label { font-size: 1.15rem; }
+.ui-size-l .fav-item { padding: 8px 12px; border-radius: 12px; }
+.ui-size-l .fav-item img { width: 48px; height: 48px; }
+.ui-size-l .fav-item-info span { font-size: 0.9rem; }
+.ui-size-l .fav-item-info small { font-size: 0.85rem; }
+.ui-size-l .fav-item-add { font-size: 1rem; padding: 6px 12px; }
+
+/* Scaling Cart Bar for M and L */
+.ui-size-m .cart-bar { padding: 24px 44px; min-width: 440px; }
+.ui-size-m .cart-bar-label { font-size: 1.25rem; }
+.ui-size-m .cart-bar-total { font-size: 1.6rem; }
+.ui-size-m .cart-bar-count { font-size: 1.15rem; padding: 8px 16px; }
+
+.ui-size-l .cart-bar { padding: 28px 50px; min-width: 480px; border-radius: 36px; }
+.ui-size-l .cart-bar-label { font-size: 1.45rem; }
+.ui-size-l .cart-bar-total { font-size: 1.9rem; }
+.ui-size-l .cart-bar-count { font-size: 1.35rem; padding: 12px 20px; border-radius: 20px; }
