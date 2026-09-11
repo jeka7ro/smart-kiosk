@@ -37,8 +37,7 @@ router.post('/', async (req, res) => {
         if (row.location_id && (row.location_id.startsWith('cluj') || row.location_id === 'smashme-main')) {
            const str = String(row.num);
            if (str.startsWith('CJ')) {
-             const baseNumStr = str.substring(str.length - 4);
-             const cjNum = parseInt(baseNumStr, 10);
+             const cjNum = parseInt(str.replace(/[^0-9]/g, ''), 10);
              if (!isNaN(cjNum)) clujMax = Math.max(clujMax, cjNum);
            }
         } else {
@@ -59,7 +58,8 @@ router.post('/', async (req, res) => {
 
     let orderNumber;
     if (isCluj) {
-       orderNumber = `CJ-${10000 + clujMax + 1}`;
+       if (clujMax < 10000) clujMax = 10000;
+       orderNumber = `CJ-${clujMax + 1}`;
     } else {
        orderNumber = maxOrderNumber + 1;
     }
