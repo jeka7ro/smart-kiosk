@@ -86,7 +86,7 @@ export default function ProductOverrides() {
         const data = await res.json();
         const locs = (data.locations || data || []).filter(l => l.active !== false);
         setLocations(locs);
-        if (locs.length > 0 && !activeLocation) setActiveLocation(locs[0].id);
+        // Removed auto-select of locs[0] so it stays empty until the user picks one
       } catch (_) {}
     })();
   }, []);
@@ -272,6 +272,7 @@ export default function ProductOverrides() {
               onChange={e => setActiveLocation(e.target.value)}
               className="px-4 py-2.5 rounded-full border border-slate-200 dark:border-slate-800 text-sm outline-none bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 cursor-pointer focus:ring-2 focus:ring-blue-500/50 appearance-none"
             >
+              <option value="" disabled>📍 Alege locația...</option>
               {locations.map(loc => (
                 <option key={loc.id} value={loc.id}>📍 {loc.name}</option>
               ))}
