@@ -21,6 +21,13 @@ const COM_PORT    = process.env.COM_PORT    || 'auto';
 const BAUD_RATE   = parseInt(process.env.BAUD_RATE || '9600');
 const LOCATION_ID = process.env.LOCATION_ID || 'sm-brasov';
 const BRIDGE_KEY  = process.env.BRIDGE_KEY  || 'pos-bridge-2024';
+
+// Resolved location aliases (id + kioskUrl) — populated on startup
+let LOCATION_ALIASES = [LOCATION_ID];
+function isMyLocation(lid) {
+  if (!lid) return true; // no filter = accept
+  return LOCATION_ALIASES.includes(lid);
+}
 const POS_GATEWAY = process.env.POS_GATEWAY || 'raiffeisen'; // 'raiffeisen' sau 'viva_pos'
 const VIVA_POS_IP = process.env.VIVA_POS_IP || '';
 const VIVA_POS_PORT = parseInt(process.env.VIVA_POS_PORT || '8080', 10);
@@ -209,9 +216,26 @@ async function start() {
   log(`Locație:     ${LOCATION_ID}`);
   log('════════════════════════════════════════════');
 
-  socket.on('connect', () => {
+  socket.on('connect', async () => {
     log(`✅ Conectat la Render (${socket.id})`);
     socket.emit('pos_bridge_register', { locationId: LOCATION_ID, port: portPath || `VIVA_${VIVA_POS_IP}` });
+
+    // Resolve location aliases (id + kioskUrl) so bridge matches both
+    try {
+      const locRes = await fetch(`${RENDER_URL}/api/locations/${LOCATION_ID}`, {
+        headers: { 'x-api-key': BRIDGE_KEY }
+      });
+      if (locRes.ok) {
+        const locData = await locRes.json();
+        const aliases = new Set([LOCATION_ID]);
+        if (locData.id) aliases.add(locData.id);
+        if (locData.kioskUrl) aliases.add(locData.kioskUrl);
+        LOCATION_ALIASES = [...aliases];
+        log(`📍 Locație rezolvată: aliases=[${LOCATION_ALIASES.join(', ')}]`);
+      }
+    } catch (e) {
+      log(`⚠ Nu am putut rezolva aliases locație: ${e.message}`);
+    }
   });
 
   socket.on('disconnect', (reason) => {
@@ -446,7 +470,7 @@ async function start() {
   socket.on('pos_payment_request', async (data) => {
     const { orderId, amount, locationId: lid } = data;
     
-    if (lid && lid !== LOCATION_ID) return;
+    if (!isMyLocation(lid)) return;
 
     if (paymentInProgress) {
       log(`⚠️ SKIP: o plată e deja în curs`);
@@ -500,7 +524,7 @@ async function start() {
 
   socket.on('cancel_pos_payment', (data) => {
     const { locationId: lid } = data || {};
-    if (lid && lid !== LOCATION_ID) return;
+    if (!isMyLocation(lid)) return;
     
     log('🛑 CANCEL payment requested din Kiosk (timeout/anulare)!');
     if (paymentInProgress && globalPort && globalPort.isOpen) {
@@ -513,7 +537,7 @@ async function start() {
 
   socket.on('print_ticket', async (payload) => {
     const order = payload && payload.order ? payload.order : payload;
-    if (order && (order.locationId === LOCATION_ID || !order.locationId)) {
+    if (order && (isMyLocation(order.locationId))) {
       log(`🖨️  Cerere printare bon pentru comanda #${order.orderNumber}`);
       if (datecsPrinter) {
         try {
@@ -529,7 +553,7 @@ async function start() {
   });
 
   async function triggerSettlement(lid) {
-    if (lid && lid !== LOCATION_ID) return;
+    if (!isMyLocation(lid)) return;
 
     if (paymentInProgress || state !== 'IDLE') {
       log('⚠️ Nu pot face Settlement, altă operație în curs');
