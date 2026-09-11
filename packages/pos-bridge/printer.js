@@ -168,9 +168,10 @@ async function printTicket(order) {
 
     return { status: 'success', method: 'unknown', printerName: PRINTER_NAME, receiptContent };
   } catch (error) {
-    console.error("[Printer] Eroare la printare:", error);
+    const errMsg = error?.message || error?.toString() || String(error) || 'Eroare necunoscută';
+    console.error("[Printer] Eroare la printare:", errMsg);
     try { fs.unlinkSync(tempFile); } catch (_) {}
-    return { status: 'error', method: 'unknown', printerName: PRINTER_NAME, error: error.message };
+    return { status: 'error', method: 'unknown', printerName: PRINTER_NAME, error: errMsg };
   }
 }
 
