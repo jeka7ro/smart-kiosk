@@ -72,7 +72,7 @@ function getActualPrinterName() {
       if (match) return match;
     } catch (_) {}
   }
-  return configured || 'EPSON TM-T(203dpi) Receipt6';
+  return configured || 'EPSON TM-T20';
 }
 
 let printerDriver;
