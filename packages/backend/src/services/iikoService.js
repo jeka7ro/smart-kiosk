@@ -487,7 +487,12 @@ const SYRVE_PAYMENT_TYPES = {
     isProcessedExternally: false,
   },
   card: {
-    paymentTypeId: '29ee5e97-c1cf-42ad-90e6-b4c876025bc9',
+    paymentTypeId: 'e46b4e6c-10d5-a739-8fb1-b6674d1e65e7',
+    paymentTypeKind: 'Card',
+    isProcessedExternally: true,
+  },
+  viva: {
+    paymentTypeId: '07b0e68b-d19a-4b43-ab9b-75c30fd7edc1',
     paymentTypeKind: 'Card',
     isProcessedExternally: true,
   },
