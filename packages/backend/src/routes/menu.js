@@ -59,6 +59,9 @@ router.get('/', requireApiKey, async (req, res) => {
       isVegetarian: over.is_vegetarian || false,
       isSpicy: over.is_spicy || false,
       isHidden: over.is_hidden || false,
+      promoPrice: over.promo_price ? parseFloat(over.promo_price) : null,
+      promoStart: over.promo_start || null,
+      promoEnd: over.promo_end || null,
       modifierGroups: (p.modifierGroups || []).map(gm => ({
         ...gm,
         options: (gm.options || []).map(opt => ({

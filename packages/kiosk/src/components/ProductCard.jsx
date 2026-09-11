@@ -113,7 +113,22 @@ export default function ProductCard({ product, delay, lang, activeBrand, onQuick
             onClick={handleAdd}
           >
             <span style={{ flexShrink: 0 }}>{t('add_to_cart', lang) || '+ Adaugă'}</span>
-            <span style={{ flexShrink: 0, fontWeight: 800 }}>{product.price} {t('currency', lang) || 'lei'}</span>
+            {(() => {
+              const now = new Date();
+              const hasPromo = product.promoPrice && product.promoPrice > 0
+                && (!product.promoStart || new Date(product.promoStart) <= now)
+                && (!product.promoEnd || new Date(product.promoEnd) >= now);
+              const currency = t('currency', lang) || 'lei';
+              if (hasPromo) {
+                return (
+                  <span style={{ flexShrink: 0, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ textDecoration: 'line-through', color: '#9ca3af', fontWeight: 500, fontSize: '0.8rem' }}>{product.price} {currency}</span>
+                    <span style={{ color: '#fff' }}>{product.promoPrice} {currency}</span>
+                  </span>
+                );
+              }
+              return <span style={{ flexShrink: 0, fontWeight: 800 }}>{product.price} {currency}</span>;
+            })()}
           </button>
         ) : (
           <div style={{ flex: 1, height: 44, borderRadius: 10, border: '1px solid #fca5a5', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }} onClick={e => e.stopPropagation()}>

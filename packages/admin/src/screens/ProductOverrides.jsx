@@ -288,6 +288,7 @@ export default function ProductOverrides() {
                   <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Produs</th>
                   <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Categorie</th>
                   <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Preț</th>
+                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">🏷️ Promoție</th>
                   <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">
                     <div className="inline-flex items-center justify-center gap-1.5 cursor-pointer px-2 py-1 rounded bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 transition-colors" onClick={() => handleBulkToggle('hidden', !(filtered.length > 0 && filtered.every(p => !overrides[p.id]?.is_hidden)))} title="Bifează/Debifează pe Toate (Disponibil = Neascuns)">
                       <input type="checkbox" className="w-3.5 h-3.5 rounded border-blue-300 text-blue-600 focus:ring-blue-500 pointer-events-none" checked={filtered.length > 0 && filtered.every(p => !overrides[p.id]?.is_hidden)} readOnly />
@@ -359,6 +360,59 @@ export default function ProductOverrides() {
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{categories[prod.categoryId] || 'Necunoscută'}</td>
                       <td className="px-4 py-3"><span className="font-bold text-slate-900 dark:text-white">{prod.price} lei</span></td>
+                      
+                      {/* Promo Price Column */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="number"
+                            step="0.01"
+                            placeholder="—"
+                            value={over.promo_price || ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setOverrides(prev => ({ ...prev, [prod.id]: { ...prev[prod.id], promo_price: val } }));
+                            }}
+                            style={{ width: 70, padding: '4px 6px', fontSize: '0.85rem', borderRadius: 6, border: '1px solid var(--border, #e2e8f0)', background: 'var(--surface, #fff)', color: 'var(--text, #111)', textAlign: 'center' }}
+                          />
+                          <button
+                            title="Salvează preț promoțional"
+                            onClick={async () => {
+                              try {
+                                const payload = {
+                                  promo_price: over.promo_price ? parseFloat(over.promo_price) : null,
+                                  promo_start: over.promo_start || null,
+                                  promo_end: over.promo_end || null,
+                                };
+                                const res = await fetchWithAuth(`${BACKEND}/api/products/overrides/${activeBrand}/${prod.id}/promo`, {
+                                  method: 'PUT',
+                                  body: JSON.stringify(payload),
+                                });
+                                if (!res.ok) throw new Error('Eroare');
+                                showToast('✅ Preț promoțional salvat');
+                              } catch (e) { showToast('❌ ' + e.message, 'err'); }
+                            }}
+                            className="w-7 h-7 inline-flex items-center justify-center rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 transition-colors"
+                          >✓</button>
+                          {over.promo_price && (
+                            <button
+                              title="Șterge promoția"
+                              onClick={async () => {
+                                try {
+                                  const res = await fetchWithAuth(`${BACKEND}/api/products/overrides/${activeBrand}/${prod.id}/promo`, {
+                                    method: 'PUT',
+                                    body: JSON.stringify({ promo_price: null, promo_start: null, promo_end: null }),
+                                  });
+                                  if (!res.ok) throw new Error('Eroare');
+                                  setOverrides(prev => ({ ...prev, [prod.id]: { ...prev[prod.id], promo_price: null, promo_start: null, promo_end: null } }));
+                                  showToast('🗑️ Promoție ștearsă');
+                                } catch (e) { showToast('❌ ' + e.message, 'err'); }
+                              }}
+                              className="w-7 h-7 inline-flex items-center justify-center rounded-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 transition-colors"
+                            >✕</button>
+                          )}
+                        </div>
+                      </td>
                       
                       <td className="px-4 py-3 text-center">
                         <label className="inline-flex cursor-pointer p-2">

@@ -22,6 +22,15 @@ const BRAND_ORG_MAP = {
   crunch:      '9c63cff6-1d66-442d-a98d-2302656e3943',
 };
 
+// Helper: returns promo price if promo is active and within date range
+function getEffectivePrice(product) {
+  if (!product.promoPrice || product.promoPrice <= 0) return product.price;
+  const now = new Date();
+  if (product.promoStart && new Date(product.promoStart) > now) return product.price;
+  if (product.promoEnd && new Date(product.promoEnd) < now) return product.price;
+  return product.promoPrice;
+}
+
 // Brand display info for tabs
 const BRAND_TAB_INFO = {
   smashme:     { label: 'SmashMe',      color: '#EE3B24', emoji: '🍔' },
@@ -75,7 +84,7 @@ export default function MenuScreen() {
 
   const handleFavQuickAdd = useCallback((product, btnEl) => {
     const actualBrandId = product._brand || activeBrandId;
-    addToCart(product, 1, [], product.price, actualBrandId, false);
+    addToCart(product, 1, [], getEffectivePrice(product), actualBrandId, false);
     toggleFavoriteStore(product); // remove from favorites
 
     // Fly animation from fav bar button to cart
@@ -105,7 +114,7 @@ export default function MenuScreen() {
         requiresConfig = true;
       } else {
         const actualBrandId = product._brand || activeBrandId;
-        addToCart(product, 1, [], product.price, actualBrandId, false);
+        addToCart(product, 1, [], getEffectivePrice(product), actualBrandId, false);
         toRemove.push(product);
         addedCount++;
       }
@@ -313,7 +322,7 @@ export default function MenuScreen() {
     }
     // Fix: Use product._brand for cross-brand search results
     const actualBrandId = product._brand || activeBrandId;
-    addToCart(product, 1, [], product.price, actualBrandId, false);
+    addToCart(product, 1, [], getEffectivePrice(product), actualBrandId, false);
 
     // Fly animation: get card position and cart bar position
     if (cardEl && cartBarRef.current) {

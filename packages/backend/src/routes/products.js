@@ -102,4 +102,32 @@ router.delete('/overrides/:brandId/:productId/image', protect, async (req, res) 
   }
 });
 
+// PUT /api/products/overrides/:brandId/:productId/promo — set promo price
+router.put('/overrides/:brandId/:productId/promo', protect, async (req, res) => {
+  const { promo_price, promo_start, promo_end } = req.body;
+  const { brandId, productId } = req.params;
+
+  try {
+    // Auto-migrate columns
+    await pool.query(`ALTER TABLE product_overrides ADD COLUMN IF NOT EXISTS promo_price NUMERIC;`).catch(() => {});
+    await pool.query(`ALTER TABLE product_overrides ADD COLUMN IF NOT EXISTS promo_start TIMESTAMPTZ;`).catch(() => {});
+    await pool.query(`ALTER TABLE product_overrides ADD COLUMN IF NOT EXISTS promo_end TIMESTAMPTZ;`).catch(() => {});
+
+    const { rows } = await pool.query(
+      `INSERT INTO product_overrides (id, brand_id, promo_price, promo_start, promo_end, updated_at)
+       VALUES ($1, $2, $3, $4, $5, NOW())
+       ON CONFLICT (id) DO UPDATE SET
+         promo_price = EXCLUDED.promo_price,
+         promo_start = EXCLUDED.promo_start,
+         promo_end = EXCLUDED.promo_end,
+         updated_at = NOW()
+       RETURNING *`,
+      [productId, brandId, promo_price || null, promo_start || null, promo_end || null]
+    );
+    res.json({ override: rows[0] });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 module.exports = router;
