@@ -13,6 +13,8 @@ const { createOrder: syrveCreateOrder } = require('../services/iikoService');
 const { pool } = require('../db');
 const { addPosLog } = require('./posLogs');
 
+const { detectCity, getOrderPrefix, findLocation, getLocationAliases } = require('../utils/locations');
+
 // ── POST /api/orders ──────────────────────────────────────────
 router.post('/', async (req, res) => {
   try {
@@ -35,29 +37,30 @@ router.post('/', async (req, res) => {
     try {
       const { rows } = await pool.query(`SELECT data->>'orderNumber' as num, location_id FROM orders WHERE (data->>'orderNumber') IS NOT NULL`);
       for (const row of rows) {
-        const str = String(row.num);
-        if (row.location_id && (row.location_id.startsWith('cluj') || row.location_id === 'smashme-main')) {
-           if (str.startsWith('CJ')) {
-             const cjNum = parseInt(str.replace(/[^0-9]/g, ''), 10);
-             if (!isNaN(cjNum)) clujMax = Math.max(clujMax, cjNum);
-           }
-        } else if (row.location_id && (row.location_id.startsWith('brasov') || row.location_id === 'sm-brasov')) {
-           if (str.startsWith('BV')) {
-             const bvNum = parseInt(str.replace(/[^0-9]/g, ''), 10);
-             if (!isNaN(bvNum)) brasovMax = Math.max(brasovMax, bvNum);
-           } else {
-             // Old numeric orders from brasov — track for migration
-             const num = parseInt(str, 10);
-             if (!isNaN(num) && num < 1000) {
-               maxOrderNumber = Math.max(maxOrderNumber, num);
-             }
-           }
+        const str = String(row.num || '');
+        const city = detectCity(row.location_id);
+        if (city === 'cluj' || str.startsWith('CJ')) {
+          if (str.startsWith('CJ')) {
+            const cjNum = parseInt(str.replace(/[^0-9]/g, ''), 10);
+            if (!isNaN(cjNum)) clujMax = Math.max(clujMax, cjNum);
+          }
+        } else if (city === 'brasov' || str.startsWith('BV')) {
+          if (str.startsWith('BV')) {
+            const bvNum = parseInt(str.replace(/[^0-9]/g, ''), 10);
+            if (!isNaN(bvNum)) brasovMax = Math.max(brasovMax, bvNum);
+          } else {
+            // Old numeric orders from brasov (or before prefix was added)
+            const num = parseInt(str, 10);
+            if (!isNaN(num) && num < 1000) {
+              brasovMax = Math.max(brasovMax, num);
+            }
+          }
         } else {
-           const num = parseInt(row.num, 10);
-           // Exclude specific test numbers and ignore huge numbers from old DB data to keep the Kiosk sequence around 360
-           if (!isNaN(num) && num !== 946 && num !== 862 && num < 1000) {
-             maxOrderNumber = Math.max(maxOrderNumber, num);
-           }
+          const num = parseInt(row.num, 10);
+          // Exclude specific test numbers and ignore huge numbers from old DB data
+          if (!isNaN(num) && num !== 946 && num !== 862 && num < 1000) {
+            maxOrderNumber = Math.max(maxOrderNumber, num);
+          }
         }
       }
     } catch (dbErr) {
@@ -65,20 +68,21 @@ router.post('/', async (req, res) => {
     }
 
     const locId = locationId || 'loc1';
+    const locRecord = findLocation(locId) || (locationName ? findLocation(locationName) : null);
+    const resolvedLocationName = locationName || locRecord?.name || null;
     const brandName = brand || brandId || 'smashme';
-    const isCluj = locId.startsWith('cluj') || locId === 'smashme-main';
-    const isBrasov = locId.startsWith('brasov') || locId === 'sm-brasov';
+    const city = detectCity(locId, resolvedLocationName);
 
     let orderNumber;
-    if (isCluj) {
-       if (clujMax < 10000) clujMax = 10000;
-       orderNumber = `CJ-${clujMax + 1}`;
-    } else if (isBrasov) {
-       // Continue from old numeric Brașov orders (last was ~539)
-       const bvContinue = Math.max(brasovMax, maxOrderNumber);
-       orderNumber = `BV-${bvContinue + 1}`;
+    if (city === 'cluj') {
+      if (clujMax < 10000) clujMax = 10000;
+      orderNumber = `CJ-${clujMax + 1}`;
+    } else if (city === 'brasov') {
+      // Continue from highest Brașov order (numeric 539-541 or previous BV-...)
+      const bvContinue = Math.max(brasovMax, maxOrderNumber);
+      orderNumber = `BV-${bvContinue + 1}`;
     } else {
-       orderNumber = maxOrderNumber + 1;
+      orderNumber = maxOrderNumber + 1;
     }
 
     const orderId = `ORD-${Date.now()}`;
@@ -88,7 +92,7 @@ router.post('/', async (req, res) => {
       _id: orderId,
       orderNumber,
       locationId: locId,
-      locationName: locationName || null,
+      locationName: resolvedLocationName,
       brand: brandName,
       orgId: orgId || null,
       orderType: orderType || 'takeaway',
@@ -121,11 +125,19 @@ router.post('/', async (req, res) => {
       io.emit('new_order', order);
       io.to(`kitchen-${locId}`).emit('new_order', order);
       io.to('admin').emit('new_order', order);
-      io.to(`pos-bridge-${locId}`).emit('print_ticket', { order });
+
+      // Emit ticket to POS bridge: locId + all known aliases so it never misses
+      const bridgeAliases = getLocationAliases(locId);
+      for (const alias of bridgeAliases) {
+        io.to(`pos-bridge-${alias}`).emit('print_ticket', { order });
+      }
+      if (locRecord?.kioskUrl && !bridgeAliases.includes(locRecord.kioskUrl)) {
+        io.to(`pos-bridge-${locRecord.kioskUrl}`).emit('print_ticket', { order });
+      }
     }
 
     console.log(`[Order] ════ COMANDĂ NOUĂ ════`);
-    console.log(`[Order]   #${orderNumber} | ${brandName} | ${locationName || orgId || 'no-loc'}`);
+    console.log(`[Order]   #${orderNumber} | ${brandName} | ${resolvedLocationName || orgId || 'no-loc'}`);
     console.log(`[Order]   channel: ${channel} | orderType: ${orderType} | total: ${subtotal} RON`);
     console.log(`[Order]   paymentMethod: ${order.paymentMethod} | items: ${order.items.length}`);
 
@@ -135,15 +147,8 @@ router.post('/', async (req, res) => {
     // ── Send to Syrve async ──
     setImmediate(async () => {
       try {
-        const locsPath = path.join(__dirname, '../../data/locations.json');
-        let orgIdsDict = {};
-        if (fs.existsSync(locsPath)) {
-          try {
-            const locs = JSON.parse(fs.readFileSync(locsPath, 'utf8'));
-            const locData = locs.find(l => l.id === locId);
-            if (locData?.orgIds) orgIdsDict = locData.orgIds;
-          } catch (e) { }
-        }
+        const locRecordSyrve = findLocation(locId);
+        let orgIdsDict = locRecordSyrve?.orgIds || {};
 
         const brandsMap = {};
         for (const item of order.items) {
@@ -351,15 +356,8 @@ router.patch('/:id/status', async (req, res) => {
       console.log(`[Order] 💵 Casier a confirmat plata cash #${order.orderNumber} — trimit la iiko`);
       setImmediate(async () => {
         try {
-          const locsPath = path.join(__dirname, '../../data/locations.json');
-          let orgIdsDict = {};
-          if (fs.existsSync(locsPath)) {
-            try {
-              const locs = JSON.parse(fs.readFileSync(locsPath, 'utf8'));
-              const locData = locs.find(l => l.id === order.locationId);
-              if (locData?.orgIds) orgIdsDict = locData.orgIds;
-            } catch (e) { }
-          }
+          const locData = findLocation(order.locationId);
+          const orgIdsDict = locData?.orgIds || {};
           const brandsMap = {};
           for (const item of order.items) {
             const bId = item.brandId || order.brand;

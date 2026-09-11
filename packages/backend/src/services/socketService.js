@@ -110,8 +110,12 @@ function initSocket(io) {
       socket._posLocationId = locationId;
       origHandler({ locationId, port });
     })(({ locationId, port }) => {
-      socket.join(`pos-bridge-${locationId}`);
-      console.log(`[Socket] 🔌 POS Bridge registered: location=${locationId} port=${port || '?'} sid=${socket.id}`);
+      const { getLocationAliases } = require('../utils/locations');
+      const aliases = getLocationAliases(locationId);
+      for (const a of aliases) {
+        socket.join(`pos-bridge-${a}`);
+      }
+      console.log(`[Socket] 🔌 POS Bridge registered: location=${locationId} (${aliases.length} aliases) port=${port || '?'} sid=${socket.id}`);
     }));
 
     // ─── Printer Logs (from bridge) ────────────────────────────────────────────

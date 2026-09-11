@@ -72,22 +72,27 @@ router.get('/', requireApiKey, async (req, res) => {
 
 // GET /api/locations/:id
 router.get('/:id', requireApiKey, async (req, res) => {
+  const { findLocation, getLocationAliases } = require('../utils/locations');
   try {
     if (hasDb) {
       const { rows } = await pool.query('SELECT * FROM locations WHERE id = $1 OR data->>\'kioskUrl\' = $1', [req.params.id]);
-      if (rows.length) return res.json(rowToLoc(rows[0]));
+      if (rows.length) {
+        const loc = rowToLoc(rows[0]);
+        const aliases = getLocationAliases(loc.id || req.params.id);
+        return res.json({ ...loc, aliases });
+      }
     }
     
-    // Fallback to JSON if no DB or not found in DB
-    const locs = readLocFile();
-    const l = locs.find(x => x.id === req.params.id || x.kioskUrl === req.params.id);
+    // Fallback to locations helper (finds by UUID, kioskUrl, name, or city alias)
+    const l = findLocation(req.params.id);
     if (!l) return res.status(404).json({ error: 'Location not found' });
-    res.json(l);
+    const aliases = getLocationAliases(l.id || req.params.id);
+    res.json({ ...l, aliases });
   } catch (e) {
-    const locs = readLocFile();
-    const l = locs.find(x => x.id === req.params.id || x.kioskUrl === req.params.id);
+    const l = findLocation(req.params.id);
     if (!l) return res.status(404).json({ error: 'Location not found' });
-    res.json(l);
+    const aliases = getLocationAliases(l.id || req.params.id);
+    res.json({ ...l, aliases });
   }
 });
 

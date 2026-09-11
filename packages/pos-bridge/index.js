@@ -273,6 +273,9 @@ async function start() {
             const aliases = new Set([LOCATION_ID]);
             if (locData.id) aliases.add(locData.id);
             if (locData.kioskUrl) aliases.add(locData.kioskUrl);
+            if (Array.isArray(locData.aliases)) {
+              locData.aliases.forEach(a => aliases.add(a));
+            }
             LOCATION_ALIASES = [...aliases];
             log(`📍 Locație rezolvată: aliases=[${LOCATION_ALIASES.join(', ')}]`);
           } catch (e) {
