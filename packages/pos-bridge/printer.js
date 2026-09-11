@@ -4,7 +4,20 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
-const PRINTER_NAME = process.env.PRINTER_NAME || 'EPSON TM-T20II Receipt';
+function getActualPrinterName() {
+  const configured = process.env.PRINTER_NAME;
+  try {
+    const raw = execSync('powershell -NoProfile -Command "Get-Printer | Select-Object -ExpandProperty Name"', { timeout: 5000 }).toString();
+    const installed = raw.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+    if (configured && installed.includes(configured)) return configured;
+    const match = installed.find(name => /epson/i.test(name) || /tm-t/i.test(name) || /receipt/i.test(name));
+    if (match) {
+      console.log(`[Printer] 🔄 Auto-detect imprimantă Windows: "${match}" (în .env era "${configured}")`);
+      return match;
+    }
+  } catch (_) {}
+  return configured || 'EPSON TM-T20III Receipt';
+}
 
 let printerDriver;
 try {
@@ -15,6 +28,7 @@ try {
 }
 
 async function printTicket(order) {
+  const PRINTER_NAME = getActualPrinterName();
   // Build the ESC/POS content using node-thermal-printer
   const tempFile = path.join(os.tmpdir(), `ticket_${Date.now()}.bin`);
   

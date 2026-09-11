@@ -126,9 +126,15 @@ export default function PortScans() {
                       {scan.os || '—'}
                     </td>
                     <td className="px-4 py-3">
-                      <span className="px-2.5 py-1 rounded-full bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 text-xs font-bold">
-                        {scan.posPort || '—'}
-                      </span>
+                      {(() => {
+                        const prolific = (scan.comPorts || []).find(p => /prolific|ftdi|usb/i.test(p.manufacturer || '') || /prolific|ftdi|usb/i.test(p.pnpId || ''));
+                        const portToShow = prolific ? prolific.path : (scan.posPort || '—');
+                        return (
+                          <span className="px-2.5 py-1 rounded-full bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 text-xs font-bold">
+                            {portToShow}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-3 text-xs">
                       <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-medium text-[10px] uppercase">

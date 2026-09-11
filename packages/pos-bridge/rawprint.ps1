@@ -3,6 +3,22 @@ param (
     [Parameter(Mandatory=$true)][string]$FilePath
 )
 
+# Auto-resolve printer name if slight difference exists (e.g. 'Receipt' vs 'Receipt6')
+try {
+    $installed = @(Get-Printer | Select-Object -ExpandProperty Name)
+    if (-not ($installed -contains $PrinterName)) {
+        $matched = $installed | Where-Object { 
+            $_ -like "*$PrinterName*" -or 
+            $PrinterName -like "*$_*" -or 
+            ($_ -like "*EPSON*" -and $_ -like "*Receipt*") -or
+            ($_ -like "*EPSON*" -and $_ -like "*TM*")
+        } | Select-Object -First 1
+        if ($matched) {
+            $PrinterName = $matched
+        }
+    }
+} catch {}
+
 $code = @"
 using System;
 using System.IO;
