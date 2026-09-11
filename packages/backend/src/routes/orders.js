@@ -31,14 +31,26 @@ router.post('/', async (req, res) => {
     // Get max orderNumber from Supabase
     let maxOrderNumber = 358;
     let clujMax = 0;
+    let brasovMax = 0;
     try {
       const { rows } = await pool.query(`SELECT data->>'orderNumber' as num, location_id FROM orders WHERE (data->>'orderNumber') IS NOT NULL`);
       for (const row of rows) {
+        const str = String(row.num);
         if (row.location_id && (row.location_id.startsWith('cluj') || row.location_id === 'smashme-main')) {
-           const str = String(row.num);
            if (str.startsWith('CJ')) {
              const cjNum = parseInt(str.replace(/[^0-9]/g, ''), 10);
              if (!isNaN(cjNum)) clujMax = Math.max(clujMax, cjNum);
+           }
+        } else if (row.location_id && row.location_id.startsWith('brasov')) {
+           if (str.startsWith('BV')) {
+             const bvNum = parseInt(str.replace(/[^0-9]/g, ''), 10);
+             if (!isNaN(bvNum)) brasovMax = Math.max(brasovMax, bvNum);
+           } else {
+             // Old numeric orders from brasov — track for migration
+             const num = parseInt(str, 10);
+             if (!isNaN(num) && num < 1000) {
+               maxOrderNumber = Math.max(maxOrderNumber, num);
+             }
            }
         } else {
            const num = parseInt(row.num, 10);
@@ -55,11 +67,15 @@ router.post('/', async (req, res) => {
     const locId = locationId || 'loc1';
     const brandName = brand || brandId || 'smashme';
     const isCluj = locId.startsWith('cluj') || locId === 'smashme-main';
+    const isBrasov = locId.startsWith('brasov');
 
     let orderNumber;
     if (isCluj) {
        if (clujMax < 10000) clujMax = 10000;
        orderNumber = `CJ-${clujMax + 1}`;
+    } else if (isBrasov) {
+       if (brasovMax < 10000) brasovMax = 10000;
+       orderNumber = `BV-${brasovMax + 1}`;
     } else {
        orderNumber = maxOrderNumber + 1;
     }
