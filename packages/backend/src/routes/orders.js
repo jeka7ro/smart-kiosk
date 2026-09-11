@@ -59,8 +59,7 @@ router.post('/', async (req, res) => {
 
     let orderNumber;
     if (isCluj) {
-       const kId = kioskId || '1';
-       orderNumber = `CJ${kId}${String(clujMax + 1).padStart(4, '0')}`;
+       orderNumber = `CJ-${10000 + clujMax + 1}`;
     } else {
        orderNumber = maxOrderNumber + 1;
     }
