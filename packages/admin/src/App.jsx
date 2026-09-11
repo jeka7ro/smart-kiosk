@@ -1714,15 +1714,16 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(180px, 1fr) minmax(180px, 1fr)', gap: '16px', marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid var(--border)' }}>
                 {/* COL: UI Size */}
                 <div style={{ gridColumn: '1 / -1' }}>
-                   <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Mărime Carduri Produse (S, M, L)</label>
-                   <div style={{ display: 'flex', gap: 8 }}>
-                     {[{v:'S',l:'Mic (Standard)'},{v:'M',l:'Mediu'},{v:'L',l:'Mare (Extra Vizibil)'}].map(opt => (
-                       <button key={opt.v} type="button" onClick={() => handleChange('kioskUiSize', opt.v)}
-                         style={{ padding: '8px 16px', borderRadius: 8, fontSize: '0.85rem', fontWeight: 700, border: (formData.kioskUiSize || 'S') === opt.v ? '2px solid var(--primary)' : '1px solid var(--border)', background: (formData.kioskUiSize || 'S') === opt.v ? 'var(--primary)' : 'var(--surface)', color: (formData.kioskUiSize || 'S') === opt.v ? '#fff' : 'var(--text)', cursor: 'pointer' }}>
-                         {opt.l}
-                       </button>
-                     ))}
-                   </div>
+                   <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Mărime Butoane și Poze Produse</label>
+                   <select 
+                     value={formData.kioskUiSize || 'S'} 
+                     onChange={e => handleChange('kioskUiSize', e.target.value)}
+                     style={{ width: '100%', padding: '10px 12px', fontSize: '0.9rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)', cursor: 'pointer' }}
+                   >
+                     <option value="S">Mic (Standard - încap mai multe pe ecran)</option>
+                     <option value="M">Mediu (Echilibrat)</option>
+                     <option value="L">Mare (Foarte vizibil - ca la chioșcul vechi)</option>
+                   </select>
                 </div>
              </div>
 
@@ -1730,85 +1731,86 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                 
                 {/* COL 1: Buton Principal (Fundal) */}
                 <div>
-                   <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Fundal Buton Start Comandă</label>
+                   <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Culoare Fundal "Începe comanda"</label>
                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <input type="color" value={formData.langButtonColor || '#0f172a'} onChange={e => handleChange('langButtonColor', e.target.value)} style={{ width: 28, height: 28, border: '2px solid var(--border)', borderRadius: '6px', cursor: 'pointer', padding: 0 }} />
-                      <input type="text" value={formData.langButtonColor || '#0f172a'} onChange={e => handleChange('langButtonColor', e.target.value)} style={{ width: 70, padding: '4px 8px', fontSize: '0.8rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)' }} />
+                      <input type="text" value={formData.langButtonColor || '#0f172a'} onChange={e => handleChange('langButtonColor', e.target.value)} style={{ width: 90, padding: '6px 8px', fontSize: '0.85rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)' }} />
                    </div>
-                   <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, fontSize: '0.75rem', color: 'var(--text)', cursor: 'pointer', fontWeight: 600 }}>
+                   <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, fontSize: '0.8rem', color: 'var(--text)', cursor: 'pointer', fontWeight: 600 }}>
                      <input type="checkbox" checked={formData.langButtonFlagColors || false} onChange={e => handleChange('langButtonFlagColors', e.target.checked)} />
-                     Culorile Steagului (Suprascrie Fundalul)
+                     Folosește culorile steagului (suprascrie culoarea)
                    </label>
                 </div>
 
                 {/* COL 1B: Buton Principal (Text Color) */}
                 <div>
-                   <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Culoare Text Buton Start</label>
+                   <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Culoare Text "Începe comanda"</label>
                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <input type="color" value={formData.langButtonTextColor || '#ffffff'} onChange={e => handleChange('langButtonTextColor', e.target.value)} style={{ width: 28, height: 28, border: '2px solid var(--border)', borderRadius: '6px', cursor: 'pointer', padding: 0 }} />
-                      <input type="text" value={formData.langButtonTextColor || '#ffffff'} onChange={e => handleChange('langButtonTextColor', e.target.value)} style={{ width: 70, padding: '4px 8px', fontSize: '0.8rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)' }} />
+                      <input type="text" value={formData.langButtonTextColor || '#ffffff'} onChange={e => handleChange('langButtonTextColor', e.target.value)} style={{ width: 90, padding: '6px 8px', fontSize: '0.85rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)' }} />
                    </div>
                 </div>
 
                 {/* COL 1C: Buton Principal (Border) */}
                 <div>
-                   <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Contur Buton Start</label>
+                   <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Culoare Contur "Începe comanda"</label>
                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <input type="color" value={formData.langButtonBorderColor || '#0f172a'} onChange={e => handleChange('langButtonBorderColor', e.target.value)} style={{ width: 28, height: 28, border: '2px solid var(--border)', borderRadius: '6px', cursor: 'pointer', padding: 0 }} />
-                      <input type="text" value={formData.langButtonBorderColor || '#0f172a'} onChange={e => handleChange('langButtonBorderColor', e.target.value)} style={{ width: 70, padding: '4px 8px', fontSize: '0.8rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)' }} />
-                      <button type="button" onClick={() => handleChange('langButtonBorderColor', 'transparent')} style={{ fontSize: '0.65rem', padding: '4px 6px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', color: 'var(--text)' }}>Fără</button>
+                      <input type="text" value={formData.langButtonBorderColor || '#0f172a'} onChange={e => handleChange('langButtonBorderColor', e.target.value)} style={{ width: 90, padding: '6px 8px', fontSize: '0.85rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)' }} />
+                      <button type="button" onClick={() => handleChange('langButtonBorderColor', 'transparent')} style={{ fontSize: '0.75rem', padding: '6px 10px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', color: 'var(--text)' }}>Fără</button>
                    </div>
                 </div>
 
                 {/* COL 1D: Buton Principal (Text) */}
                 <div style={{ gridColumn: '1 / -1' }}>
-                   <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Text Personalizat Buton Start</label>
-                   <input type="text" placeholder="Începe comanda" value={formData.langButtonText || ''} onChange={e => handleChange('langButtonText', e.target.value)} style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)', boxSizing: 'border-box' }} />
+                   <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Text Buton (Dacă vrei să scrie altceva în loc de "Începe comanda")</label>
+                   <input type="text" placeholder="Începe comanda" value={formData.langButtonText || ''} onChange={e => handleChange('langButtonText', e.target.value)} style={{ width: '100%', padding: '10px 12px', fontSize: '0.9rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)', boxSizing: 'border-box' }} />
                 </div>
 
                 {/* COL 2: Pozitie Sus/Jos */}
                 <div>
-                   <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Poziție pe Ecran</label>
-                   <div style={{ display: 'flex', gap: 4 }}>
-                     {[{v:'top',l:'Sus'},{v:'bottom',l:'Jos'}].map(opt => (
-                       <button key={opt.v} type="button" onClick={() => handleChange('langVerticalPosition', opt.v)}
-                         style={{ padding: '4px 12px', borderRadius: 6, fontSize: '0.75rem', fontWeight: 600, border: (formData.langVerticalPosition || 'bottom') === opt.v ? '2px solid var(--primary)' : '1px solid var(--border)', background: (formData.langVerticalPosition || 'bottom') === opt.v ? 'var(--primary)' : 'var(--surface)', color: (formData.langVerticalPosition || 'bottom') === opt.v ? '#fff' : 'var(--text)', cursor: 'pointer' }}>
-                         {opt.l}
-                       </button>
-                     ))}
-                   </div>
-                </div>
-
-                {/* COL 3: Fundal Limbi */}
-                <div>
-                   <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Fundal Etichete Limbi</label>
-                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <input type="color" value={formData.langBgColor || '#ffffff'} onChange={e => handleChange('langBgColor', e.target.value)} style={{ width: 28, height: 28, border: '2px solid var(--border)', borderRadius: '6px', cursor: 'pointer', padding: 0 }} />
-                      <input type="text" value={formData.langBgColor || ''} placeholder="transparent" onChange={e => handleChange('langBgColor', e.target.value)} style={{ width: 70, padding: '4px 8px', fontSize: '0.8rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)' }} />
-                      <button type="button" onClick={() => handleChange('langBgColor', 'transparent')} style={{ fontSize: '0.65rem', padding: '4px 6px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', color: 'var(--text)' }}>Fără</button>
-                   </div>
+                   <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Poziție butoane limbi (Sus sau Jos)</label>
+                   <select 
+                     value={formData.langVerticalPosition || 'bottom'} 
+                     onChange={e => handleChange('langVerticalPosition', e.target.value)}
+                     style={{ width: '100%', padding: '10px 12px', fontSize: '0.9rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)', cursor: 'pointer' }}
+                   >
+                     <option value="bottom">Jos (La baza ecranului)</option>
+                     <option value="top">Sus (La începutul ecranului)</option>
+                   </select>
                 </div>
 
                 {/* COL 4: Cand apar */}
                 <div>
-                   <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Moment Apariție</label>
-                   <div style={{ display: 'flex', gap: 4 }}>
-                     {[{v:'before',l:'Screensaver'},{v:'after',l:'Dupa saver'},{v:'both',l:'Ambele'}].map(opt => (
-                       <button key={opt.v} type="button" onClick={() => handleChange('langSelectorPosition', opt.v)}
-                         style={{ padding: '4px 8px', borderRadius: 6, fontSize: '0.7rem', fontWeight: 600, border: formData.langSelectorPosition === opt.v ? '2px solid var(--primary)' : '1px solid var(--border)', background: formData.langSelectorPosition === opt.v ? 'var(--primary)' : 'var(--surface)', color: formData.langSelectorPosition === opt.v ? '#fff' : 'var(--text)', cursor: 'pointer' }}>
-                         {opt.l}
-                       </button>
-                     ))}
+                   <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Când să apară butoanele de limbi?</label>
+                   <select 
+                     value={formData.langSelectorPosition || 'after'} 
+                     onChange={e => handleChange('langSelectorPosition', e.target.value)}
+                     style={{ width: '100%', padding: '10px 12px', fontSize: '0.9rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)', cursor: 'pointer' }}
+                   >
+                     <option value="after">Doar DUPĂ ce clientul dă click (Recomandat)</option>
+                     <option value="before">Pe ecranul de așteptare (Screensaver)</option>
+                     <option value="both">Tot timpul (Și pe așteptare și după)</option>
+                   </select>
+                </div>
+
+                {/* COL 3: Fundal Limbi */}
+                <div>
+                   <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Culoare Fundal (Pentru limbi individuale)</label>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <input type="color" value={formData.langBgColor || '#ffffff'} onChange={e => handleChange('langBgColor', e.target.value)} style={{ width: 28, height: 28, border: '2px solid var(--border)', borderRadius: '6px', cursor: 'pointer', padding: 0 }} />
+                      <input type="text" value={formData.langBgColor || ''} placeholder="transparent" onChange={e => handleChange('langBgColor', e.target.value)} style={{ width: 90, padding: '6px 8px', fontSize: '0.85rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)' }} />
+                      <button type="button" onClick={() => handleChange('langBgColor', 'transparent')} style={{ fontSize: '0.75rem', padding: '6px 10px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', color: 'var(--text)' }}>Fără</button>
                    </div>
                 </div>
 
                 {/* COL 5: Contur Limbi */}
                 <div>
-                   <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Contur Etichete Limbi</label>
+                   <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Culoare Contur (Pentru limbi individuale)</label>
                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <input type="color" value={formData.langBorderColor || '#e2e8f0'} onChange={e => handleChange('langBorderColor', e.target.value)} style={{ width: 28, height: 28, border: '2px solid var(--border)', borderRadius: '6px', cursor: 'pointer', padding: 0 }} />
-                      <input type="text" value={formData.langBorderColor || ''} placeholder="transparent" onChange={e => handleChange('langBorderColor', e.target.value)} style={{ width: 70, padding: '4px 8px', fontSize: '0.8rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)' }} />
-                      <button type="button" onClick={() => handleChange('langBorderColor', 'transparent')} style={{ fontSize: '0.65rem', padding: '4px 6px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', color: 'var(--text)' }}>Fără</button>
+                      <input type="text" value={formData.langBorderColor || ''} placeholder="transparent" onChange={e => handleChange('langBorderColor', e.target.value)} style={{ width: 90, padding: '6px 8px', fontSize: '0.85rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)' }} />
+                      <button type="button" onClick={() => handleChange('langBorderColor', 'transparent')} style={{ fontSize: '0.75rem', padding: '6px 10px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', color: 'var(--text)' }}>Fără</button>
                    </div>
                 </div>
                 
