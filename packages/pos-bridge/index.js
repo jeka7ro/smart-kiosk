@@ -21,7 +21,8 @@ const pathMod          = require('path');
 
 const LOG_FILE = pathMod.join(__dirname, 'pos-bridge.log');
 function log(msg) {
-  const ts = new Date().toISOString().replace('T', ' ').split('.')[0];
+  const d = new Date();
+  const ts = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
   const line = `[${ts}] ${msg}`;
   console.log(line);
   try { fs.appendFileSync(LOG_FILE, line + '\n'); } catch (_) {}

@@ -43,9 +43,9 @@ async function printTicket(order) {
 
     printer.alignCenter();
     
-    const uniqueBrands = [...new Set(order.items.map(i => i.brandId || order.brand))];
+    const uniqueBrands = [...new Set((order.items || []).map(i => i.brandId || order.brand || 'KIOSK'))];
     for (const brand of uniqueBrands) {
-       let brandName = brand.toUpperCase();
+       let brandName = (brand || 'KIOSK').toUpperCase();
        if (brandName === 'ROLLMASTER') {
            brandName = 'ROLL-MASTER';
        }
@@ -60,7 +60,7 @@ async function printTicket(order) {
     printer.newLine();
     printer.bold(true);
     printer.setTextSize(2,2);
-    printer.println(`Comanda #${order.orderNumber}`);
+    printer.println(`Comanda #${order.orderNumber || '?'}`);
     printer.setTextNormal();
     printer.newLine();
 
@@ -90,10 +90,11 @@ async function printTicket(order) {
     printer.println("Produse:");
     printer.drawLine();
     
-    order.items.forEach(item => {
+    (order.items || []).forEach(item => {
+      const price = Number(item.totalPrice || item.price || 0);
       printer.tableCustom([
-        { text: `${item.quantity}x ${item.name}`, align: "LEFT", width: 0.75 },
-        { text: `${(item.totalPrice || item.price || 0).toFixed(2)} RON`, align: "RIGHT", width: 0.25 }
+        { text: `${item.quantity || 1}x ${item.name || '?'}`, align: "LEFT", width: 0.75 },
+        { text: `${price.toFixed(2)} RON`, align: "RIGHT", width: 0.25 }
       ]);
       if (item.selectedModifiers && item.selectedModifiers.length > 0) {
         item.selectedModifiers.forEach(mod => {
@@ -106,7 +107,7 @@ async function printTicket(order) {
     printer.drawLine();
     printer.alignRight();
     printer.bold(true);
-    printer.println(`TOTAL: ${order.totalAmount.toFixed(2)} RON`);
+    printer.println(`TOTAL: ${Number(order.totalAmount || 0).toFixed(2)} RON`);
     printer.bold(false);
     
     printer.newLine();
