@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthProvider';
 import { useConfirm } from '../components/ConfirmModal.jsx';
 import { io } from 'socket.io-client';
 import * as XLSX from 'xlsx';
+import BrandLogo from '../components/BrandLogo.jsx';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
 
@@ -405,7 +406,13 @@ export default function PrinterLogs() {
                       {log.kioskId && <div className="text-slate-400 text-[10px]">Kiosk: {log.kioskId}</div>}
                     </td>
                     <td className="px-4 py-3 text-xs">
-                      <span className="capitalize font-medium text-slate-600 dark:text-slate-400">{log.brand || '—'}</span>
+                      {log.brand ? (
+                        <div className="flex items-center" title={log.brand}>
+                          <BrandLogo brandId={log.brand} size={28} />
+                        </div>
+                      ) : (
+                        <span className="text-slate-400">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-xs">
                       {log.orderNumber ? (

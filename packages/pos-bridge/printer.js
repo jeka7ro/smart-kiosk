@@ -7,16 +7,72 @@ const os = require('os');
 function getActualPrinterName() {
   const configured = process.env.PRINTER_NAME;
   try {
-    const raw = execSync('powershell -NoProfile -Command "Get-Printer | Select-Object -ExpandProperty Name"', { timeout: 5000 }).toString();
-    const installed = raw.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
-    if (configured && installed.includes(configured)) return configured;
-    const match = installed.find(name => /epson/i.test(name) || /tm-t/i.test(name) || /receipt/i.test(name));
-    if (match) {
-      console.log(`[Printer] 🔄 Auto-detect imprimantă Windows: "${match}" (în .env era "${configured}")`);
-      return match;
+    const psCmd = 'Get-Printer | Select-Object Name, PortName, PrinterStatus | ConvertTo-Json -Compress';
+    const raw = execSync(`powershell -NoProfile -Command "${psCmd}"`, { timeout: 6000 }).toString().trim();
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const list = Array.isArray(parsed) ? parsed : [parsed];
+      
+      const epsonPrinters = list.filter(p => p && p.Name && /epson|tm-t|receipt/i.test(p.Name));
+      
+      // 1. Căutăm imprimanta funcțională de pe USB fizic (ex: EPSON TM-T(203dpi) Receipt6 pe USB006)
+      const physicalUsbPrinter = epsonPrinters.find(p => 
+        (/receipt6/i.test(p.Name) || /^USB\d+/i.test(p.PortName || '')) &&
+        p.PrinterStatus !== 'Error' && p.PrinterStatus !== 1 && p.PrinterStatus !== 2
+      );
+      
+      // 2. Căutăm o imprimantă sănătoasă
+      const healthyEpson = epsonPrinters.find(p => 
+        p.PrinterStatus !== 'Error' && p.PrinterStatus !== 1 && p.PrinterStatus !== 2
+      );
+      
+      const isErr = (status) => {
+        const s = String(status || '').toLowerCase();
+        return s.includes('error') || s === '1' || s === '2' || s === '3';
+      };
+
+      const configuredPrinter = list.find(p => p && p.Name === configured);
+      const configuredHasError = configuredPrinter && isErr(configuredPrinter.PrinterStatus);
+      
+      if (configuredHasError) {
+        console.warn(`[Printer] ⚠ Imprimanta configurată "${configured}" este în stare de EROARE pe Windows!`);
+        if (physicalUsbPrinter) {
+          console.log(`[Printer] 🔄 Folosesc imprimanta fizică sănătoasă (${physicalUsbPrinter.PortName}): "${physicalUsbPrinter.Name}"`);
+          return physicalUsbPrinter.Name;
+        }
+        if (healthyEpson) {
+          console.log(`[Printer] 🔄 Folosesc imprimanta funcțională: "${healthyEpson.Name}"`);
+          return healthyEpson.Name;
+        }
+      }
+      
+      // Dacă imprimanta configurată în .env este instalată și fără erori, o folosim cu prioritate
+      if (configured && list.some(p => p.Name === configured) && !configuredHasError) {
+        return configured;
+      }
+
+      if (physicalUsbPrinter) {
+        return physicalUsbPrinter.Name;
+      }
+      
+      if (healthyEpson) {
+        return healthyEpson.Name;
+      }
+      
+      if (epsonPrinters.length > 0) return epsonPrinters[0].Name;
     }
-  } catch (_) {}
-  return configured || 'EPSON TM-T20III Receipt';
+  } catch (_) {
+    try {
+      const rawNames = execSync('powershell -NoProfile -Command "Get-Printer | Select-Object -ExpandProperty Name"', { timeout: 4000 }).toString();
+      const names = rawNames.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+      const r6 = names.find(n => /receipt6/i.test(n));
+      if (r6) return r6;
+      if (configured && names.includes(configured)) return configured;
+      const match = names.find(name => /epson/i.test(name) || /tm-t/i.test(name) || /receipt/i.test(name));
+      if (match) return match;
+    } catch (_) {}
+  }
+  return configured || 'EPSON TM-T(203dpi) Receipt6';
 }
 
 let printerDriver;
@@ -168,6 +224,12 @@ async function printTicket(order) {
     // If using file interface, send the file to the Windows printer via PowerShell WinSpool script
     if (!printerDriver && fs.existsSync(tempFile)) {
       console.log(`[Printer] 🎯 Trimit la imprimantă: "${PRINTER_NAME}" | Fișier: ${tempFile} (${fs.statSync(tempFile).size} bytes)`);
+      
+      // Deblocăm coada Windows de orice joburi anterioare rămase cu eroare (ex: Test Page)
+      try {
+        execSync(`powershell -NoProfile -Command "Get-PrintJob -PrinterName '${PRINTER_NAME}' -ErrorAction SilentlyContinue | Where-Object { $_.JobStatus -like '*Error*' -or $_.JobStatus -like '*Blocked*' -or $_.JobStatus -like '*Deleting*' } | Remove-PrintJob -ErrorAction SilentlyContinue"`, { timeout: 5000 });
+      } catch (_) {}
+
       let method = 'winspool';
       try {
         const scriptPath = path.join(__dirname, 'rawprint.ps1');

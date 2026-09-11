@@ -126,14 +126,16 @@ router.post('/', async (req, res) => {
       io.to(`kitchen-${locId}`).emit('new_order', order);
       io.to('admin').emit('new_order', order);
 
-      // Emit ticket to POS bridge: locId + all known aliases so it never misses
+      // Emit ticket to POS bridge: chained .to() ensures each connected socket receives the event only ONCE
       const bridgeAliases = getLocationAliases(locId);
+      let bridgeTarget = io;
       for (const alias of bridgeAliases) {
-        io.to(`pos-bridge-${alias}`).emit('print_ticket', { order });
+        bridgeTarget = bridgeTarget.to(`pos-bridge-${alias}`);
       }
       if (locRecord?.kioskUrl && !bridgeAliases.includes(locRecord.kioskUrl)) {
-        io.to(`pos-bridge-${locRecord.kioskUrl}`).emit('print_ticket', { order });
+        bridgeTarget = bridgeTarget.to(`pos-bridge-${locRecord.kioskUrl}`);
       }
+      bridgeTarget.emit('print_ticket', { order });
     }
 
     console.log(`[Order] ════ COMANDĂ NOUĂ ════`);

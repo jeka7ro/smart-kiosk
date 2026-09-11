@@ -636,9 +636,24 @@ async function start() {
     }
   });
 
+  const recentPrintedOrders = new Map();
+
   socket.on('print_ticket', async (payload) => {
     const order = payload && payload.order ? payload.order : payload;
     if (order && (isMyLocation(order.locationId))) {
+      const orderKey = `${order._id || order.id || ''}_${order.orderNumber || ''}`;
+      const now = Date.now();
+      if (orderKey && recentPrintedOrders.has(orderKey) && (now - recentPrintedOrders.get(orderKey) < 60000)) {
+        log(`ℹ️ Comanda #${order.orderNumber} a fost deja tipărită (duplicat ignorat).`);
+        return;
+      }
+      if (orderKey) {
+        recentPrintedOrders.set(orderKey, now);
+        for (const [k, time] of recentPrintedOrders.entries()) {
+          if (now - time > 300000) recentPrintedOrders.delete(k);
+        }
+      }
+
       log(`🖨️  Cerere printare bon pentru comanda #${order.orderNumber}`);
       let printResult = null;
       if (datecsPrinter) {
