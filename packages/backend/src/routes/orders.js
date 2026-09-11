@@ -41,8 +41,15 @@ router.post('/', async (req, res) => {
         const city = detectCity(row.location_id);
         if (city === 'cluj' || str.startsWith('CJ')) {
           if (str.startsWith('CJ')) {
-            const cjNum = parseInt(str.replace(/[^0-9]/g, ''), 10);
-            if (!isNaN(cjNum)) clujMax = Math.max(clujMax, cjNum);
+            const match = str.match(/^CJ[12]?-?(\d+)/i);
+            if (match) {
+              const rawNum = parseInt(match[1], 10);
+              if (!isNaN(rawNum)) {
+                // Support legacy 10000+ orders (e.g. 10021 -> 21) as well as 3-digit orders (022 -> 22)
+                const seq = rawNum >= 10000 ? (rawNum - 10000) : rawNum;
+                clujMax = Math.max(clujMax, seq);
+              }
+            }
           }
         } else if (city === 'brasov' || str.startsWith('BV')) {
           if (str.startsWith('BV')) {
@@ -75,8 +82,17 @@ router.post('/', async (req, res) => {
 
     let orderNumber;
     if (city === 'cluj') {
-      if (clujMax < 10000) clujMax = 10000;
-      orderNumber = `CJ-${clujMax + 1}`;
+      let kioskNum = '1';
+      const kioskIdStr = String(kioskId || '').toLowerCase();
+      const locIdStr = String(locId || '').toLowerCase();
+      if (kioskIdStr.includes('2') || locIdStr.includes('kiosk2') || locIdStr.includes('kiosk-2') || locIdStr === 'cluj2') {
+        kioskNum = '2';
+      } else if (kioskIdStr.includes('1') || locIdStr.includes('kiosk1') || locIdStr.includes('kiosk-1') || locIdStr === 'cluj1') {
+        kioskNum = '1';
+      }
+      const nextSeq = clujMax + 1;
+      const seqPadded = String(nextSeq).padStart(3, '0');
+      orderNumber = `CJ${kioskNum}-${seqPadded}`;
     } else if (city === 'brasov') {
       // Continue from highest Brașov order (numeric 539-541 or previous BV-...)
       const bvContinue = Math.max(brasovMax, maxOrderNumber);

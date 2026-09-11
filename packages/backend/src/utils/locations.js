@@ -15,7 +15,7 @@ const CITY_CONFIG = {
     city: 'cluj',
     cityName: 'Cluj-Napoca',
     prefix: 'CJ',
-    minStart: 10000,
+    minStart: 0,
     aliases: [
       'cluj', 'cluj1', 'cluj2', 'cluj-centru', 'cluj-main',
       'smashme-main', 'sm-cluj', 'smashme-cluj', 'cj',
