@@ -146,10 +146,18 @@ async function printTicket(order) {
        }
     }
     
-    // Kiosk / Location name
-    if (order.locationName || order.locationId) {
-      printer.println(`Kiosk: ${order.locationName || order.locationId}`);
+    // Kiosk label (Kiosk 1 or Kiosk 2) — replaces location name
+    let kioskLabel = 'Kiosk 1';
+    const numMatch = String(order.orderNumber || '').match(/^[a-zA-Z]+(\d+)-/);
+    if (numMatch && numMatch[1]) {
+      kioskLabel = `Kiosk ${numMatch[1]}`;
+    } else if (order.kioskId) {
+      const kDigits = String(order.kioskId).replace(/[^0-9]/g, '');
+      kioskLabel = `Kiosk ${kDigits || '1'}`;
+    } else if (order.locationId && String(order.locationId).includes('2')) {
+      kioskLabel = 'Kiosk 2';
     }
+    printer.println(kioskLabel);
     
     printer.newLine();
     printer.bold(true);
