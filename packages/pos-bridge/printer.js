@@ -119,21 +119,24 @@ async function printTicket(order) {
     
     await printer.execute();
 
-    // Build receipt content for logging
-    const receiptContent = {
-      brands: [...new Set(order.items.map(i => i.brandId || order.brand))],
-      orderNumber: order.orderNumber,
-      paymentMethod: order.paymentMethod,
-      orderType: order.orderType,
-      items: order.items.map(i => ({
-        name: i.name,
-        qty: i.quantity,
-        price: i.totalPrice || i.price || 0,
-        modifiers: (i.selectedModifiers || []).map(m => m.optionName || m.name || 'Extra'),
-      })),
-      total: order.totalAmount,
-      date,
-    };
+    // Build receipt content for logging (safe — never blocks printing)
+    let receiptContent = null;
+    try {
+      receiptContent = {
+        brands: [...new Set((order.items || []).map(i => i.brandId || order.brand || ''))],
+        orderNumber: order.orderNumber || '',
+        paymentMethod: order.paymentMethod || '',
+        orderType: order.orderType || '',
+        items: (order.items || []).map(i => ({
+          name: i.name || '',
+          qty: i.quantity || 1,
+          price: i.totalPrice || i.price || 0,
+          modifiers: (i.selectedModifiers || []).map(m => m.optionName || m.name || 'Extra'),
+        })),
+        total: order.totalAmount || 0,
+        date,
+      };
+    } catch (_) { receiptContent = null; }
     
     // If using file interface, send the file to the Windows printer via PowerShell WinSpool script
     if (!printerDriver && fs.existsSync(tempFile)) {
