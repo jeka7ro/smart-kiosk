@@ -1715,15 +1715,19 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                 {/* COL: UI Size */}
                 <div style={{ gridColumn: '1 / -1' }}>
                    <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Mărime Butoane și Poze Produse</label>
-                   <select 
-                     value={formData.kioskUiSize || 'S'} 
-                     onChange={e => handleChange('kioskUiSize', e.target.value)}
-                     style={{ width: '100%', padding: '10px 12px', fontSize: '0.9rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)', cursor: 'pointer' }}
-                   >
-                     <option value="S">Mic (Standard - încap mai multe pe ecran)</option>
-                     <option value="M">Mediu (Echilibrat)</option>
-                     <option value="L">Mare (Foarte vizibil - ca la chioșcul vechi)</option>
-                   </select>
+                   <div style={{ display: 'flex', gap: 4, background: 'var(--border)', padding: 4, borderRadius: 8 }}>
+                     {[{v:'S',l:'Mic (Standard)'},{v:'M',l:'Mediu (Echilibrat)'},{v:'L',l:'Mare (Extra Vizibil)'}].map(opt => (
+                       <button key={opt.v} type="button" onClick={() => handleChange('kioskUiSize', opt.v)}
+                         style={{ 
+                            flex: 1, padding: '10px 8px', borderRadius: 6, fontSize: '0.85rem', fontWeight: 600, border: 'none',
+                            background: (formData.kioskUiSize || 'S') === opt.v ? 'var(--surface)' : 'transparent', 
+                            color: 'var(--text)', cursor: 'pointer',
+                            boxShadow: (formData.kioskUiSize || 'S') === opt.v ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
+                         }}>
+                         {opt.l}
+                       </button>
+                     ))}
+                   </div>
                 </div>
              </div>
 
@@ -1769,29 +1773,38 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
 
                 {/* COL 2: Pozitie Sus/Jos */}
                 <div>
-                   <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Poziție butoane limbi (Sus sau Jos)</label>
-                   <select 
-                     value={formData.langVerticalPosition || 'bottom'} 
-                     onChange={e => handleChange('langVerticalPosition', e.target.value)}
-                     style={{ width: '100%', padding: '10px 12px', fontSize: '0.9rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)', cursor: 'pointer' }}
-                   >
-                     <option value="bottom">Jos (La baza ecranului)</option>
-                     <option value="top">Sus (La începutul ecranului)</option>
-                   </select>
+                   <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Poziție butoane limbi</label>
+                   <div style={{ display: 'flex', gap: 4, background: 'var(--border)', padding: 4, borderRadius: 8 }}>
+                     {[{v:'top',l:'Sus'},{v:'bottom',l:'Jos'}].map(opt => (
+                       <button key={opt.v} type="button" onClick={() => handleChange('langVerticalPosition', opt.v)}
+                         style={{ 
+                            flex: 1, padding: '8px', borderRadius: 6, fontSize: '0.85rem', fontWeight: 600, border: 'none',
+                            background: (formData.langVerticalPosition || 'bottom') === opt.v ? 'var(--surface)' : 'transparent', 
+                            color: 'var(--text)', cursor: 'pointer',
+                            boxShadow: (formData.langVerticalPosition || 'bottom') === opt.v ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
+                         }}>
+                         {opt.l}
+                       </button>
+                     ))}
+                   </div>
                 </div>
 
                 {/* COL 4: Cand apar */}
-                <div>
+                <div style={{ gridColumn: '1 / -1' }}>
                    <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Când să apară butoanele de limbi?</label>
-                   <select 
-                     value={formData.langSelectorPosition || 'after'} 
-                     onChange={e => handleChange('langSelectorPosition', e.target.value)}
-                     style={{ width: '100%', padding: '10px 12px', fontSize: '0.9rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)', cursor: 'pointer' }}
-                   >
-                     <option value="after">Doar DUPĂ ce clientul dă click (Recomandat)</option>
-                     <option value="before">Pe ecranul de așteptare (Screensaver)</option>
-                     <option value="both">Tot timpul (Și pe așteptare și după)</option>
-                   </select>
+                   <div style={{ display: 'flex', gap: 4, background: 'var(--border)', padding: 4, borderRadius: 8 }}>
+                     {[{v:'after',l:'Dupa click (Recomandat)'},{v:'before',l:'Pe ecranul așteptare'},{v:'both',l:'Ambele'}].map(opt => (
+                       <button key={opt.v} type="button" onClick={() => handleChange('langSelectorPosition', opt.v)}
+                         style={{ 
+                            flex: 1, padding: '8px', borderRadius: 6, fontSize: '0.85rem', fontWeight: 600, border: 'none',
+                            background: formData.langSelectorPosition === opt.v ? 'var(--surface)' : 'transparent', 
+                            color: 'var(--text)', cursor: 'pointer',
+                            boxShadow: formData.langSelectorPosition === opt.v ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
+                         }}>
+                         {opt.l}
+                       </button>
+                     ))}
+                   </div>
                 </div>
 
                 {/* COL 3: Fundal Limbi */}
