@@ -34,7 +34,7 @@ router.post('/', async (req, res) => {
     try {
       const { rows } = await pool.query(`SELECT data->>'orderNumber' as num, location_id FROM orders WHERE (data->>'orderNumber') IS NOT NULL`);
       for (const row of rows) {
-        if (row.location_id === '9c63cff6-1d66-442d-a98d-2302656e3943') {
+        if (row.location_id && (row.location_id.startsWith('cluj') || row.location_id === 'smashme-main')) {
            const str = String(row.num);
            if (str.startsWith('CJ')) {
              const baseNumStr = str.substring(str.length - 4);
@@ -55,9 +55,10 @@ router.post('/', async (req, res) => {
 
     const locId = locationId || 'loc1';
     const brandName = brand || brandId || 'smashme';
+    const isCluj = locId.startsWith('cluj') || locId === 'smashme-main';
 
     let orderNumber;
-    if (locId === '9c63cff6-1d66-442d-a98d-2302656e3943') {
+    if (isCluj) {
        const kId = kioskId || '1';
        orderNumber = `CJ${kId}${String(clujMax + 1).padStart(4, '0')}`;
     } else {
