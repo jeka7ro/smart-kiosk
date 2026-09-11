@@ -31,6 +31,7 @@ export default function PrinterLogs() {
   const [itemsPerPage, setItemsPerPage] = useState(25);
   const [expandedId, setExpandedId] = useState(null);
   const [search, setSearch] = useState('');
+  const [portScans, setPortScans] = useState([]);
   const socketRef = useRef(null);
 
   // Fetch logs
@@ -47,7 +48,17 @@ export default function PrinterLogs() {
     }
   };
 
-  useEffect(() => { fetchLogs(); }, []);
+  const fetchPortScans = async () => {
+    try {
+      const res = await fetchWithAuth(`${BACKEND}/api/port-scans?limit=50`);
+      if (res.ok) {
+        const data = await res.json();
+        setPortScans(data.scans || []);
+      }
+    } catch (_) {}
+  };
+
+  useEffect(() => { fetchLogs(); fetchPortScans(); }, []);
 
   // Live updates via socket
   useEffect(() => {
@@ -163,6 +174,63 @@ export default function PrinterLogs() {
         <StatCard label="Erori" value={derivedStats.errors} color="#ef4444" highlight={derivedStats.errors > 0} />
         <StatCard label="Locații Active" value={derivedStats.locations} color="#3b82f6" />
       </div>
+
+      {/* Hardware Scan Info */}
+      {portScans.length > 0 && (() => {
+        // Group by locationId, keep only latest per location
+        const latestByLoc = {};
+        portScans.forEach(s => {
+          if (!latestByLoc[s.locationId] || new Date(s.timestamp) > new Date(latestByLoc[s.locationId].timestamp)) {
+            latestByLoc[s.locationId] = s;
+          }
+        });
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {Object.values(latestByLoc).map(scan => (
+              <div key={scan.locationId} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                    🖥️ {scan.locationId}
+                    <span className="text-[10px] font-medium text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">{scan.hostname}</span>
+                    <span className="text-[10px] text-slate-400">{scan.os}</span>
+                  </h4>
+                  <span className="text-[10px] text-slate-400">{scan.timestamp ? new Date(scan.timestamp).toLocaleString('ro-RO') : ''}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  {/* COM Ports */}
+                  <div>
+                    <p className="text-[10px] font-bold uppercase text-slate-500 mb-1.5">🔌 Porturi COM ({(scan.comPorts||[]).length})</p>
+                    <div className="space-y-1">
+                      {(scan.comPorts||[]).map((p,i) => (
+                        <div key={i} className={`flex items-center justify-between text-xs px-2 py-1 rounded-lg ${p.path === scan.posPort ? 'bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/30' : 'bg-slate-50 dark:bg-slate-800/50'}`}>
+                          <span className="font-bold text-slate-700 dark:text-slate-300">{p.path}</span>
+                          {p.path === scan.posPort && <span className="px-1.5 py-0.5 rounded-full bg-purple-500 text-white text-[9px] font-bold">POS</span>}
+                          <span className="text-slate-400 text-[10px]">{p.manufacturer || '—'}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  {/* Printers */}
+                  <div>
+                    <p className="text-[10px] font-bold uppercase text-slate-500 mb-1.5">🖨️ Imprimante ({(scan.printers||[]).length})</p>
+                    <div className="space-y-1">
+                      {(scan.printers||[]).map((p,i) => (
+                        <div key={i} className={`text-xs px-2 py-1 rounded-lg ${scan.printerName && p.name.includes(scan.printerName.split(' ').slice(0,2).join(' ')) ? 'bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30' : 'bg-slate-50 dark:bg-slate-800/50'}`}>
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-slate-700 dark:text-slate-300">{p.name}</span>
+                            {scan.printerName && p.name.includes(scan.printerName.split(' ').slice(0,2).join(' ')) && <span className="px-1.5 py-0.5 rounded-full bg-emerald-500 text-white text-[9px] font-bold">ACTIV</span>}
+                          </div>
+                          <span className="text-slate-400 text-[10px]">{p.driver} | {p.port}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* Controls */}
       <div className="flex flex-wrap items-center justify-between gap-2">
