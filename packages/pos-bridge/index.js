@@ -567,15 +567,38 @@ async function start() {
     const order = payload && payload.order ? payload.order : payload;
     if (order && (isMyLocation(order.locationId))) {
       log(`🖨️  Cerere printare bon pentru comanda #${order.orderNumber}`);
+      let printResult = null;
       if (datecsPrinter) {
         try {
           await datecsPrinter.printOrder(order);
           log(`✅ Bon comanda #${order.orderNumber} tipărit pe Datecs FP950`);
+          printResult = { status: 'success', method: 'datecs_fp950', printerName: 'Datecs FP950' };
         } catch (err) {
           log(`❌ Eroare printare Datecs FP950: ${err.message}`);
+          printResult = { status: 'error', method: 'datecs_fp950', printerName: 'Datecs FP950', error: err.message };
         }
       } else {
-        await printTicket(order);
+        printResult = await printTicket(order);
+      }
+
+      // Emit printer log to server
+      if (printResult) {
+        socket.emit('printer_log', {
+          locationId: LOCATION_ID,
+          locationName: order.locationName || LOCATION_ID,
+          brand: order.brand || (order.items && order.items[0] && order.items[0].brandId) || '',
+          kioskId: order.kioskId || '',
+          orderId: order._id || order.id || '',
+          orderNumber: order.orderNumber || '',
+          status: printResult.status,
+          error: printResult.error || null,
+          printerName: printResult.printerName || '',
+          method: printResult.method || '',
+          itemsCount: order.items ? order.items.length : 0,
+          totalAmount: order.totalAmount || 0,
+          paymentMethod: order.paymentMethod || '',
+          receiptContent: printResult.receiptContent || null,
+        });
       }
     }
   });

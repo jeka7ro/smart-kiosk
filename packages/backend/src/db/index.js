@@ -178,6 +178,30 @@ async function initDb() {
     CREATE INDEX IF NOT EXISTS iiko_logs_timestamp_idx ON iiko_logs(timestamp DESC);
   `);
 
+  // ─── Printer Logs ──────────────────────────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS printer_logs (
+      id              TEXT PRIMARY KEY,
+      timestamp       TIMESTAMPTZ DEFAULT NOW(),
+      location_id     TEXT,
+      location_name   TEXT,
+      brand           TEXT,
+      kiosk_id        TEXT,
+      order_id        TEXT,
+      order_number    TEXT,
+      status          TEXT,
+      error           TEXT,
+      printer_name    TEXT,
+      method          TEXT,
+      items_count     INTEGER,
+      total_amount    NUMERIC,
+      payment_method  TEXT,
+      receipt_content JSONB
+    );
+    CREATE INDEX IF NOT EXISTS printer_logs_order_idx ON printer_logs(order_id);
+    CREATE INDEX IF NOT EXISTS printer_logs_timestamp_idx ON printer_logs(timestamp DESC);
+  `);
+
   console.log('[DB] Tables initialized (Supabase/PostgreSQL)');
 }
 

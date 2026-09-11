@@ -114,6 +114,17 @@ function initSocket(io) {
       console.log(`[Socket] 🔌 POS Bridge registered: location=${locationId} port=${port || '?'} sid=${socket.id}`);
     }));
 
+    // ─── Printer Logs (from bridge) ────────────────────────────────────────────
+    socket.on('printer_log', async (entry) => {
+      try {
+        const { addPrinterLog } = require('../routes/printerLogs');
+        const logEntry = await addPrinterLog(entry);
+        io.to('admin').emit('printer_log_new', logEntry);
+      } catch (e) {
+        console.error('[Printer Logs] Error saving printer log:', e.message);
+      }
+    });
+
     socket.on('disconnect', () => {
       console.log(`[Socket] Client disconnected: ${socket.id}`);
     });
