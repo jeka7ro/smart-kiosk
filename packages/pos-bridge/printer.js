@@ -3,6 +3,10 @@ const { execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+let getBrandLogoBuffer = null;
+try {
+  ({ getBrandLogoBuffer } = require('./brandLogos'));
+} catch (_) {}
 
 function getActualPrinterName() {
   const configured = process.env.PRINTER_NAME;
@@ -119,11 +123,27 @@ async function printTicket(order) {
        if (brandName === 'ROLLMASTER') {
            brandName = 'ROLL-MASTER';
        }
-       printer.bold(true);
-       printer.setTextSize(2,2);
-       printer.println(brandName);
-       printer.bold(false);
-       printer.setTextNormal();
+
+       let logoPrinted = false;
+       if (getBrandLogoBuffer) {
+         try {
+           const logoBuf = getBrandLogoBuffer(brand);
+           if (logoBuf) {
+             await printer.printImageBuffer(logoBuf);
+             logoPrinted = true;
+           }
+         } catch (logoErr) {
+           console.warn(`[Printer] Nu am putut tipări logo-ul pentru ${brand}:`, logoErr.message);
+         }
+       }
+
+       if (!logoPrinted) {
+         printer.bold(true);
+         printer.setTextDoubleHeight();
+         printer.println(brandName);
+         printer.bold(false);
+         printer.setTextNormal();
+       }
     }
     
     // Kiosk / Location name
