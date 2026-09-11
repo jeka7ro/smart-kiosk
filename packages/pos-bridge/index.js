@@ -222,17 +222,24 @@ async function start() {
 
     // Resolve location aliases (id + kioskUrl) so bridge matches both
     try {
-      const locRes = await fetch(`${RENDER_URL}/api/locations/${LOCATION_ID}`, {
-        headers: { 'x-api-key': BRIDGE_KEY }
+      const https = require('https');
+      const url = `${RENDER_URL}/api/locations/${LOCATION_ID}`;
+      https.get(url, { headers: { 'x-api-key': BRIDGE_KEY } }, (res) => {
+        let body = '';
+        res.on('data', (chunk) => body += chunk);
+        res.on('end', () => {
+          try {
+            const locData = JSON.parse(body);
+            const aliases = new Set([LOCATION_ID]);
+            if (locData.id) aliases.add(locData.id);
+            if (locData.kioskUrl) aliases.add(locData.kioskUrl);
+            LOCATION_ALIASES = [...aliases];
+            log(`📍 Locație rezolvată: aliases=[${LOCATION_ALIASES.join(', ')}]`);
+          } catch (_) {}
+        });
+      }).on('error', (e) => {
+        log(`⚠ Nu am putut rezolva aliases locație: ${e.message}`);
       });
-      if (locRes.ok) {
-        const locData = await locRes.json();
-        const aliases = new Set([LOCATION_ID]);
-        if (locData.id) aliases.add(locData.id);
-        if (locData.kioskUrl) aliases.add(locData.kioskUrl);
-        LOCATION_ALIASES = [...aliases];
-        log(`📍 Locație rezolvată: aliases=[${LOCATION_ALIASES.join(', ')}]`);
-      }
     } catch (e) {
       log(`⚠ Nu am putut rezolva aliases locație: ${e.message}`);
     }
