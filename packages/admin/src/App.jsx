@@ -1372,6 +1372,7 @@ function RestartKioskBtn({ locId, backend, fetchWithAuth }) {
 function KioskSettingsForm({ loc, backend, onBack, onSave }) {
   const { fetchWithAuth } = useAuth();
   const [formData, setFormData] = useState({
+    name: loc.name || '',
     kioskUrl: loc.kioskUrl || '',
     posterUrl: loc.posterUrl || '',
     posterRotation: loc.posterRotation || 0,
@@ -1567,7 +1568,27 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
       <div className="loc-edit-header" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)', paddingBottom: 16, marginBottom: 24, display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
 
-           <h2 style={{ margin: '8px 0 0 0', fontSize: '1.5rem', color: 'var(--text)' }}>Configurare Kiosk: <span style={{color:'#3b82f6'}}>{loc.name}</span></h2>
+           <h2 style={{ margin: '8px 0 0 0', fontSize: '1.5rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+             Configurare Kiosk: 
+             <input 
+               type="text" 
+               value={formData.name || ''} 
+               onChange={e => handleChange('name', e.target.value)}
+               placeholder="Nume Locație (ex: SmashMe Cluj)"
+               style={{
+                 fontSize: '1.5rem', 
+                 color: '#3b82f6', 
+                 border: 'none', 
+                 borderBottom: '2px dashed #3b82f6', 
+                 background: 'transparent', 
+                 outline: 'none',
+                 padding: '2px 4px',
+                 fontWeight: 'bold',
+                 minWidth: '250px'
+               }}
+               title="Editează numele locației"
+             />
+           </h2>
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <a
