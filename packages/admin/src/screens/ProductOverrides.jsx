@@ -139,8 +139,9 @@ export default function ProductOverrides() {
     });
     if (filterDiet === 'veg')   list = list.filter(p => !!(overrides[p.id]?.is_vegetarian));
     if (filterDiet === 'spicy') list = list.filter(p => !!(overrides[p.id]?.is_spicy));
+    if (filterDiet === 'promo') list = list.filter(p => !!(promoOverrides[p.id]?.price));
     return list;
-  }, [products, search, categories, filterDiet, overrides, filterCategory]);
+  }, [products, search, categories, filterDiet, overrides, promoOverrides, filterCategory]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -355,6 +356,12 @@ export default function ProductOverrides() {
             className={`flex-shrink-0 px-4 py-2.5 rounded-full text-xs font-bold transition-all whitespace-nowrap ${filterDiet === 'spicy' ? 'bg-red-500 text-white shadow-sm' : 'bg-transparent border border-red-500 text-red-600 dark:text-red-400'}`}
           >
             🌶️ Picant
+          </button>
+          <button
+            onClick={() => { setFilterDiet(filterDiet === 'promo' ? null : 'promo'); setPage(1); }}
+            className={`flex-shrink-0 px-4 py-2.5 rounded-full text-xs font-bold transition-all whitespace-nowrap ${filterDiet === 'promo' ? 'bg-blue-500 text-white shadow-sm' : 'bg-transparent border border-blue-500 text-blue-600 dark:text-blue-400'}`}
+          >
+            💰 Doar Promo
           </button>
         </div>
       </div>
