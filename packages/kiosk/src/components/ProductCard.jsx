@@ -122,7 +122,7 @@ export default function ProductCard({ product, delay, lang, activeBrand, onQuick
               if (hasPromo) {
                 return (
                   <span style={{ flexShrink: 0, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ textDecoration: 'line-through', color: '#9ca3af', fontWeight: 500, fontSize: '0.8rem' }}>{product.price} {currency}</span>
+                    <span style={{ textDecoration: 'line-through', color: 'rgba(255,255,255,0.75)', fontWeight: 500, fontSize: '0.85rem' }}>{product.price} {currency}</span>
                     <span style={{ color: '#fff' }}>{product.promoPrice} {currency}</span>
                   </span>
                 );
