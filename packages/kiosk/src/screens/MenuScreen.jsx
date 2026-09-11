@@ -195,7 +195,7 @@ export default function MenuScreen() {
       return;
     }
 
-    const urlKiosk = new URLSearchParams(window.location.search).get('kiosk') || '1';
+    const urlKiosk = new URLSearchParams(window.location.search).get('kiosk') || locationData?.kioskUrl || '1';
     const fetchUrl = `${BACKEND}/api/menu?brandId=${activeBrandId}&orgId=${orgId}&locId=${locationData?.id || ''}&kioskId=${urlKiosk}`;
     
     fetch(fetchUrl, {

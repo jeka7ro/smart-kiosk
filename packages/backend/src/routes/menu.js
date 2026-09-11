@@ -78,9 +78,20 @@ router.get('/', requireApiKey, async (req, res) => {
   const locId = req.query.locId;
   if (locId && brandId) {
     try {
-      const { rows: locRows } = await pool.query('SELECT data FROM locations WHERE id = $1', [locId]);
-      if (locRows.length > 0) {
-        const locData = locRows[0].data || {};
+      let locData = null;
+      try {
+        const { rows: locRows } = await pool.query('SELECT data FROM locations WHERE id = $1', [locId]);
+        if (locRows.length > 0) locData = locRows[0].data;
+      } catch (e) {
+        const fs = require('fs');
+        const path = require('path');
+        const raw = JSON.parse(fs.readFileSync(path.join(__dirname, '../../data/locations.json'), 'utf8'));
+        const locs = Array.isArray(raw) ? raw : (raw.locations || []);
+        const l = locs.find(x => x.id === locId);
+        if (l) locData = l;
+      }
+
+      if (locData) {
         const overrides = locData.menuOverrides?.[brandId];
         
         if (overrides) {
@@ -146,9 +157,22 @@ router.get('/', requireApiKey, async (req, res) => {
     // Apply location & kiosk-specific promo overrides
     try {
       const kioskId = req.query.kioskId || '1';
-      const { rows: locRows2 } = await pool.query('SELECT data FROM locations WHERE id = $1', [locId]);
-      if (locRows2.length > 0) {
-        const kioskPromos = locRows2[0].data?.kioskPromos || {};
+      let locData = null;
+      try {
+        const { rows: locRows2 } = await pool.query('SELECT data FROM locations WHERE id = $1', [locId]);
+        if (locRows2.length > 0) locData = locRows2[0].data;
+      } catch (e) {
+        // JSON fallback
+        const fs = require('fs');
+        const path = require('path');
+        const raw = JSON.parse(fs.readFileSync(path.join(__dirname, '../../data/locations.json'), 'utf8'));
+        const locs = Array.isArray(raw) ? raw : (raw.locations || []);
+        const l = locs.find(x => x.id === locId);
+        if (l) locData = l;
+      }
+
+      if (locData) {
+        const kioskPromos = locData.kioskPromos || {};
         const promoOverrides = kioskPromos[kioskId] || {};
         const now = new Date();
         finalProducts = finalProducts.map(p => {
