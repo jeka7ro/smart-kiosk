@@ -49,12 +49,16 @@ async function printTicket(order) {
        if (brandName === 'ROLLMASTER') {
            brandName = 'ROLL-MASTER';
        }
-       // Fallback text
        printer.bold(true);
        printer.setTextSize(2,2);
        printer.println(brandName);
        printer.bold(false);
        printer.setTextNormal();
+    }
+    
+    // Kiosk / Location name
+    if (order.locationName || order.locationId) {
+      printer.println(`Kiosk: ${order.locationName || order.locationId}`);
     }
     
     printer.newLine();

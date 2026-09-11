@@ -74,8 +74,9 @@ router.post('/', async (req, res) => {
        if (clujMax < 10000) clujMax = 10000;
        orderNumber = `CJ-${clujMax + 1}`;
     } else if (isBrasov) {
-       if (brasovMax < 10000) brasovMax = 10000;
-       orderNumber = `BV-${brasovMax + 1}`;
+       // Continue from old numeric Brașov orders (last was ~539)
+       const bvContinue = Math.max(brasovMax, maxOrderNumber);
+       orderNumber = `BV-${bvContinue + 1}`;
     } else {
        orderNumber = maxOrderNumber + 1;
     }
