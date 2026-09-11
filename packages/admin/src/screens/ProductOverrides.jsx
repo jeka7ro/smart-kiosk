@@ -40,7 +40,7 @@ export default function ProductOverrides() {
   const [previewDesc, setPreviewDesc] = useState(null);
   const [locations,   setLocations]   = useState([]);
   const [activeLocation, setActiveLocation] = useState('');
-  const [activeKiosk, setActiveKiosk] = useState('1');
+  const [activeKiosk, setActiveKiosk] = useState('');
   const [promoOverrides, setPromoOverrides] = useState({});
   
   const fileInputRef = useRef(null);
@@ -444,6 +444,7 @@ export default function ProductOverrides() {
                             title="Salvează preț promoțional"
                             onClick={async () => {
                               if (!activeLocation) return showToast('Alege locația mai întâi', 'err');
+                              if (!activeKiosk) return showToast('Scrie ID-ul Kiosk-ului mai întâi! (ex: cluj1)', 'err');
                               try {
                                 const po = promoOverrides[prod.id] || {};
                                 const payload = {
