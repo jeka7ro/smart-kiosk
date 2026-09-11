@@ -41,7 +41,7 @@ router.post('/', async (req, res) => {
              const cjNum = parseInt(str.replace(/[^0-9]/g, ''), 10);
              if (!isNaN(cjNum)) clujMax = Math.max(clujMax, cjNum);
            }
-        } else if (row.location_id && row.location_id.startsWith('brasov')) {
+        } else if (row.location_id && (row.location_id.startsWith('brasov') || row.location_id === 'sm-brasov')) {
            if (str.startsWith('BV')) {
              const bvNum = parseInt(str.replace(/[^0-9]/g, ''), 10);
              if (!isNaN(bvNum)) brasovMax = Math.max(brasovMax, bvNum);
@@ -67,7 +67,7 @@ router.post('/', async (req, res) => {
     const locId = locationId || 'loc1';
     const brandName = brand || brandId || 'smashme';
     const isCluj = locId.startsWith('cluj') || locId === 'smashme-main';
-    const isBrasov = locId.startsWith('brasov');
+    const isBrasov = locId.startsWith('brasov') || locId === 'sm-brasov';
 
     let orderNumber;
     if (isCluj) {
