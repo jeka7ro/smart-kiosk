@@ -119,19 +119,24 @@ async function printTicket(order) {
     
     await printer.execute();
     
-    // If using file interface, send the file to the Windows printer via PowerShell
+    // If using file interface, send the file to the Windows printer via PowerShell WinSpool script
     if (!printerDriver && fs.existsSync(tempFile)) {
       try {
-        const psCmd = `Get-Content -Encoding Byte -Path '${tempFile}' | Out-Printer -Name '${PRINTER_NAME}'`;
-        execSync(`powershell -Command "${psCmd}"`, { timeout: 10000 });
-        console.log(`[Printer] ✅ Bon printat prin PowerShell pentru comanda #${order.orderNumber}`);
+        const scriptPath = path.join(__dirname, 'rawprint.ps1');
+        const psCmd = `& '${scriptPath}' -PrinterName '${PRINTER_NAME}' -FilePath '${tempFile}'`;
+        const result = execSync(`powershell -NoProfile -ExecutionPolicy Bypass -Command "${psCmd}"`, { timeout: 15000 }).toString();
+        if (result.includes('OK')) {
+          console.log(`[Printer] ✅ Bon printat via WinSpool (PowerShell) pentru comanda #${order.orderNumber}`);
+        } else {
+          throw new Error('Scriptul rawprint a returnat FAIL');
+        }
       } catch (psErr) {
         // Fallback: try COPY /B to printer share
         try {
           execSync(`COPY /B "${tempFile}" "\\\\localhost\\${PRINTER_NAME}"`, { timeout: 10000 });
           console.log(`[Printer] ✅ Bon printat prin COPY pentru comanda #${order.orderNumber}`);
         } catch (copyErr) {
-          console.error(`[Printer] ❌ Eroare la printare (PowerShell + COPY): ${psErr.message}`);
+          console.error(`[Printer] ❌ Eroare la printare (WinSpool + COPY): ${psErr.message}`);
         }
       } finally {
         try { fs.unlinkSync(tempFile); } catch (_) {}
