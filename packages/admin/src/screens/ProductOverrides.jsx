@@ -283,22 +283,19 @@ export default function ProductOverrides() {
             const selectedLocObj = locations.find(l => l.id === activeLocation);
             const knownKiosks = selectedLocObj?.kiosks || [];
             return (
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Kiosk ID (ex: cluj1)"
-                  value={activeKiosk}
-                  onChange={e => setActiveKiosk(e.target.value)}
-                  list="known-kiosks"
-                  title="Scrie ID-ul kiosk-ului exact cum e în link (ex: cluj1, cj2)"
-                  className="px-4 py-2.5 rounded-full border border-slate-200 dark:border-slate-800 text-sm outline-none bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 cursor-text focus:ring-2 focus:ring-indigo-500/50 min-w-[120px]"
-                />
-                <datalist id="known-kiosks">
-                  {knownKiosks.map(k => (
-                    <option key={k.kioskId} value={k.kioskId}>{k.name}</option>
-                  ))}
-                </datalist>
-              </div>
+              <select
+                value={activeKiosk}
+                onChange={e => setActiveKiosk(e.target.value)}
+                className="px-4 py-2.5 rounded-full border border-slate-200 dark:border-slate-800 text-sm outline-none bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 cursor-pointer focus:ring-2 focus:ring-indigo-500/50 appearance-none min-w-[120px]"
+              >
+                <option value="" disabled>🖥️ Alege Kiosk...</option>
+                {knownKiosks.length === 0 && (
+                  <option value="" disabled>⚠️ Adaugă Kiosk-uri din tab-ul 'Kioskuri'!</option>
+                )}
+                {knownKiosks.map(k => (
+                  <option key={k.kioskId} value={k.kioskId}>🖥️ {k.name}</option>
+                ))}
+              </select>
             );
           })()}
 
