@@ -477,26 +477,51 @@ async function syncStopLists() {
  * Called after payment confirmation from orders.js
  *
  * Payment Type IDs (from Valentin):
- *   Cash:  09322f46-578a-d210-add7-eec222a08871
- *   Card (paid at kiosk): 29ee5e97-c1cf-42ad-90e6-b4c876025bc9
+/**
+ * Payment Type IDs per brand/organization:
+ *
+ * SushiMaster / Brașov (rollmaster, lovesushi, pokiwoki):
+ *   Cash: 09322f46-578a-d210-add7-eec222a08871
+ *   Card: 29ee5e97-c1cf-42ad-90e6-b4c876025bc9
+ *
+ * SmashMe / Cluj (smashme, crunch):
+ *   Cash: 09322f46-578a-d210-add7-eec222a08871
+ *   Card: e46b4e6c-10d5-a739-8fb1-b6674d1e65e7
+ *   Viva: 07b0e68b-d19a-4b43-ab9b-75c30fd7edc1
  */
-const SYRVE_PAYMENT_TYPES = {
-  cash: {
-    paymentTypeId: '09322f46-578a-d210-add7-eec222a08871',
-    paymentTypeKind: 'Cash',
-    isProcessedExternally: false,
+const SYRVE_PAYMENT_TYPES_BY_BRAND = {
+  rollmaster: {
+    cash: { paymentTypeId: '09322f46-578a-d210-add7-eec222a08871', paymentTypeKind: 'Cash', isProcessedExternally: false },
+    card: { paymentTypeId: '29ee5e97-c1cf-42ad-90e6-b4c876025bc9', paymentTypeKind: 'Card', isProcessedExternally: true },
+    viva: { paymentTypeId: '07b0e68b-d19a-4b43-ab9b-75c30fd7edc1', paymentTypeKind: 'Card', isProcessedExternally: true },
   },
-  card: {
-    paymentTypeId: 'e46b4e6c-10d5-a739-8fb1-b6674d1e65e7',
-    paymentTypeKind: 'Card',
-    isProcessedExternally: true,
+  lovesushi: {
+    cash: { paymentTypeId: '09322f46-578a-d210-add7-eec222a08871', paymentTypeKind: 'Cash', isProcessedExternally: false },
+    card: { paymentTypeId: '29ee5e97-c1cf-42ad-90e6-b4c876025bc9', paymentTypeKind: 'Card', isProcessedExternally: true },
+    viva: { paymentTypeId: '07b0e68b-d19a-4b43-ab9b-75c30fd7edc1', paymentTypeKind: 'Card', isProcessedExternally: true },
   },
-  viva: {
-    paymentTypeId: '07b0e68b-d19a-4b43-ab9b-75c30fd7edc1',
-    paymentTypeKind: 'Card',
-    isProcessedExternally: true,
+  pokiwoki: {
+    cash: { paymentTypeId: '09322f46-578a-d210-add7-eec222a08871', paymentTypeKind: 'Cash', isProcessedExternally: false },
+    card: { paymentTypeId: '29ee5e97-c1cf-42ad-90e6-b4c876025bc9', paymentTypeKind: 'Card', isProcessedExternally: true },
+    viva: { paymentTypeId: '07b0e68b-d19a-4b43-ab9b-75c30fd7edc1', paymentTypeKind: 'Card', isProcessedExternally: true },
+  },
+  smashme: {
+    cash: { paymentTypeId: '09322f46-578a-d210-add7-eec222a08871', paymentTypeKind: 'Cash', isProcessedExternally: false },
+    card: { paymentTypeId: 'e46b4e6c-10d5-a739-8fb1-b6674d1e65e7', paymentTypeKind: 'Card', isProcessedExternally: true },
+    viva: { paymentTypeId: '07b0e68b-d19a-4b43-ab9b-75c30fd7edc1', paymentTypeKind: 'Card', isProcessedExternally: true },
+  },
+  crunch: {
+    cash: { paymentTypeId: '09322f46-578a-d210-add7-eec222a08871', paymentTypeKind: 'Cash', isProcessedExternally: false },
+    card: { paymentTypeId: 'e46b4e6c-10d5-a739-8fb1-b6674d1e65e7', paymentTypeKind: 'Card', isProcessedExternally: true },
+    viva: { paymentTypeId: '07b0e68b-d19a-4b43-ab9b-75c30fd7edc1', paymentTypeKind: 'Card', isProcessedExternally: true },
   },
 };
+
+function getPaymentConfigForBrand(brandId, paymentMethod) {
+  const pMethod = (paymentMethod || 'card').toLowerCase();
+  const brandTable = SYRVE_PAYMENT_TYPES_BY_BRAND[brandId] || SYRVE_PAYMENT_TYPES_BY_BRAND.smashme;
+  return brandTable[pMethod] || brandTable.card;
+}
 
 async function logIikoRequest(orderId, brandId, payload, response, error = null) {
   try {
@@ -532,9 +557,9 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
 
   let payload = {};
   try {
-    // Map payment method to Syrve payment type
+    // Map payment method to Syrve payment type (brand-aware: Brașov vs Cluj)
     const pMethod = (order.paymentMethod || 'card').toLowerCase();
-    const paymentConfig = SYRVE_PAYMENT_TYPES[pMethod] || SYRVE_PAYMENT_TYPES.card;
+    const paymentConfig = getPaymentConfigForBrand(brandId, pMethod);
 
     // Build items in correct Syrve format
     const syrveItems = order.items.map(item => {

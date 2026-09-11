@@ -39,6 +39,7 @@ const BRIDGE_KEY  = process.env.BRIDGE_KEY  || 'pos-bridge-2024';
 
 // Resolved location aliases (id + kioskUrl) — populated on startup
 let LOCATION_ALIASES = [LOCATION_ID];
+let detectedPrinterPort = process.env.PRINTER_PORT || '';
 function isMyLocation(lid) {
   if (!lid) return true; // no filter = accept
   return LOCATION_ALIASES.includes(lid);
@@ -120,6 +121,20 @@ function extractFrame(buf, startOffset = 0) {
 
 async function detectPosPort() {
   const ports = await SerialPort.list();
+  // 1. Prioritize USB-to-Serial adapters (Prolific, FTDI, CH340, Silabs, or any USB\ PnP)
+  const usbSerial = ports.find(p => {
+    const isCom = p.path.startsWith('COM') && !p.path.includes('BT');
+    const isUsb = (p.pnpId && p.pnpId.toUpperCase().includes('USB')) ||
+                  (p.manufacturer && /prolific|ftdi|ch340|silicon|wch/i.test(p.manufacturer));
+    return isCom && isUsb;
+  });
+  if (usbSerial) return usbSerial.path;
+
+  // 2. Ignore internal motherboard ports (ACPI PNP0501) if any other port exists
+  const nonAcpi = ports.find(p => p.path.startsWith('COM') && !p.path.includes('BT') && !(p.pnpId && p.pnpId.includes('PNP0501')));
+  if (nonAcpi) return nonAcpi.path;
+
+  // 3. Fallback to first available COM port
   const firstCom = ports.find(p => p.path.startsWith('COM') && !p.path.includes('BT'));
   return firstCom ? firstCom.path : 'COM3';
 }
@@ -239,6 +254,10 @@ async function start() {
     try {
       const scanData = await scanPortsPc();
       const PRINTER_NAME = process.env.PRINTER_NAME || 'EPSON TM-T20III Receipt';
+      const matchedPrinter = scanData.printers.find(p => p.Name === PRINTER_NAME || p.Name.toLowerCase().includes('epson') || p.Name.toLowerCase().includes('receipt'));
+      if (matchedPrinter) {
+        detectedPrinterPort = matchedPrinter.PortName || '';
+      }
       socket.emit('port_scan', {
         locationId: LOCATION_ID,
         locationName: LOCATION_ID,
@@ -248,7 +267,7 @@ async function start() {
         baudRate: BAUD_RATE,
         ...scanData,
       });
-      log(`📡 Scan PC trimis la server (${scanData.comPorts.length} porturi, ${scanData.printers.length} imprimante)`);
+      log(`📡 Scan PC trimis la server (${scanData.comPorts.length} porturi, ${scanData.printers.length} imprimante, port imprimantă: ${detectedPrinterPort || '?'})`);
     } catch (scanErr) {
       log(`⚠ Eroare la scanare PC: ${scanErr.message}`);
     }
@@ -617,6 +636,7 @@ async function start() {
           status: printResult.status,
           error: printResult.error || null,
           printerName: printResult.printerName || '',
+          port: detectedPrinterPort || '',
           method: printResult.method || '',
           itemsCount: order.items ? order.items.length : 0,
           totalAmount: order.totalAmount || 0,

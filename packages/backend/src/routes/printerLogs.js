@@ -24,6 +24,7 @@ async function addPrinterLog(entry) {
     status:         entry.status || 'unknown',
     error:          entry.error || null,
     printer_name:   entry.printerName || '',
+    port:           entry.port || '',
     method:         entry.method || '',
     items_count:    entry.itemsCount || 0,
     total_amount:   entry.totalAmount || 0,
@@ -35,16 +36,16 @@ async function addPrinterLog(entry) {
     await pool.query(
       `INSERT INTO printer_logs (
         id, timestamp, location_id, location_name, brand, kiosk_id,
-        order_id, order_number, status, error, printer_name, method,
+        order_id, order_number, status, error, printer_name, port, method,
         items_count, total_amount, payment_method, receipt_content
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
       [
         log.id, log.timestamp, log.location_id, log.location_name, log.brand, log.kiosk_id,
-        log.order_id, log.order_number, log.status, log.error, log.printer_name, log.method,
+        log.order_id, log.order_number, log.status, log.error, log.printer_name, log.port, log.method,
         log.items_count, log.total_amount, log.payment_method, JSON.stringify(log.receipt_content)
       ]
     );
-    console.log(`[Printer Logs] ✅ Saved: ${log.status} | ${log.location_id} | #${log.order_number} | ${log.printer_name}`);
+    console.log(`[Printer Logs] ✅ Saved: ${log.status} | ${log.location_id} | #${log.order_number} | ${log.printer_name} | port: ${log.port}`);
   } catch (err) {
     console.error(`[Printer Logs] ❌ Failed to save log to DB:`, err.message);
   }
@@ -58,6 +59,7 @@ async function addPrinterLog(entry) {
     orderId: log.order_id,
     orderNumber: log.order_number,
     printerName: log.printer_name,
+    port: log.port,
     paymentMethod: log.payment_method,
     itemsCount: log.items_count,
     totalAmount: log.total_amount,
@@ -107,6 +109,7 @@ router.get('/', async (req, res) => {
       status: r.status,
       error: r.error,
       printerName: r.printer_name,
+      port: r.port || '',
       method: r.method,
       itemsCount: r.items_count,
       totalAmount: parseFloat(r.total_amount) || 0,

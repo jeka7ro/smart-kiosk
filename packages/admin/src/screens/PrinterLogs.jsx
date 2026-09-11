@@ -131,6 +131,17 @@ export default function PrinterLogs() {
     locations: new Set(logs.map(l => l.locationId).filter(Boolean)).size,
   }), [logs]);
 
+  const getLogPort = (log) => {
+    if (log.port) return log.port;
+    const scan = portScans.find(s => s.locationId === log.locationId);
+    if (scan?.printers?.length) {
+      const match = scan.printers.find(p => p.Name === log.printerName);
+      if (match?.PortName) return match.PortName;
+      if (scan.printers[0]?.PortName) return scan.printers[0].PortName;
+    }
+    return '—';
+  };
+
   const prepareExportData = () => {
     return filtered.map(log => ({
       'Data/Ora': log.timestamp ? new Date(log.timestamp).toLocaleString('ro-RO') : '',
@@ -140,6 +151,7 @@ export default function PrinterLogs() {
       'Comandă': log.orderNumber ? `#${log.orderNumber}` : '',
       'Status': STATUS_CONFIG[log.status]?.label || log.status,
       'Imprimantă': log.printerName || '',
+      'Port': getLogPort(log),
       'Metoda': log.method || '',
       'Produse': log.itemsCount || 0,
       'Total (RON)': Number((Number(log.totalAmount) || 0).toFixed(2)),
@@ -346,6 +358,7 @@ export default function PrinterLogs() {
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Comandă</th>
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Status</th>
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Imprimantă</th>
+              <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Port</th>
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Metoda</th>
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Produse</th>
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Total</th>
@@ -356,7 +369,7 @@ export default function PrinterLogs() {
           <tbody>
             {paginated.length === 0 && (
               <tr>
-                <td colSpan={12} className="text-center py-12 text-slate-400">
+                <td colSpan={13} className="text-center py-12 text-slate-400">
                   Niciun log de imprimantă găsit
                 </td>
               </tr>
@@ -409,6 +422,11 @@ export default function PrinterLogs() {
                     <td className="px-4 py-3 text-xs font-mono text-slate-600 dark:text-slate-400">
                       {log.printerName || '—'}
                     </td>
+                    <td className="px-4 py-3 text-xs font-mono">
+                      <span className="px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-bold text-[11px]">
+                        {getLogPort(log)}
+                      </span>
+                    </td>
                     <td className="px-4 py-3 text-xs">
                       <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-medium text-[10px] uppercase">
                         {log.method || '—'}
@@ -459,7 +477,7 @@ export default function PrinterLogs() {
                   {/* Expanded row — receipt content */}
                   {isExpanded && log.receiptContent && (
                     <tr key={`${log._id}-expand`} className="bg-slate-50 dark:bg-slate-800/30">
-                      <td colSpan={12} className="px-6 py-4">
+                      <td colSpan={13} className="px-6 py-4">
                         <div className="max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-5 font-mono text-sm">
                           {/* Receipt header */}
                           <div className="text-center mb-3">

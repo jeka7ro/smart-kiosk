@@ -192,12 +192,14 @@ async function initDb() {
       status          TEXT,
       error           TEXT,
       printer_name    TEXT,
+      port            TEXT,
       method          TEXT,
       items_count     INTEGER,
       total_amount    NUMERIC,
       payment_method  TEXT,
       receipt_content JSONB
     );
+    ALTER TABLE printer_logs ADD COLUMN IF NOT EXISTS port TEXT;
     CREATE INDEX IF NOT EXISTS printer_logs_order_idx ON printer_logs(order_id);
     CREATE INDEX IF NOT EXISTS printer_logs_timestamp_idx ON printer_logs(timestamp DESC);
   `);
