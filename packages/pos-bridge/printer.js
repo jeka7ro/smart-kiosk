@@ -153,8 +153,9 @@ async function printTicket(order) {
     
     printer.newLine();
     printer.bold(true);
-    printer.setTextDoubleHeight();
+    printer.setTextSize(1, 1);
     printer.println(`Comanda #${order.orderNumber || '?'}`);
+    printer.bold(false);
     printer.setTextNormal();
     printer.newLine();
 
