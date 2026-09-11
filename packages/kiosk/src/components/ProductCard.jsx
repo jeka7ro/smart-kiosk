@@ -42,10 +42,10 @@ export default function ProductCard({ product, delay, lang, activeBrand, onQuick
     if (onInfo) onInfo();
   };
 
-  // Tapping the card body/image: always quick-add (modifier modal if needed, direct add otherwise)
-  // Info screen is ONLY opened via the 'i' button — never from image click
+  // Tapping the card body/image: opens the product info/modifier screen.
+  // The '+ Adauga' button handles quick-add.
   const handleCardBodyClick = () => {
-    onQuickAdd(product, cardRef.current);
+    if (onInfo) onInfo();
   };
 
   return (
