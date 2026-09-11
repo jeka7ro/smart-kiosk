@@ -1833,6 +1833,16 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                       <button type="button" onClick={() => handleChange('langBorderColor', 'transparent')} style={{ fontSize: '0.75rem', padding: '6px 10px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', color: 'var(--text)' }}>Fără</button>
                    </div>
                 </div>
+
+                {/* COL 6: Fundal Bară Limbi */}
+                <div>
+                   <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Fundal Bară Limbi</label>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <input type="color" value={formData.langBarBg || '#000000'} onChange={e => handleChange('langBarBg', e.target.value)} style={{ width: 28, height: 28, border: '2px solid var(--border)', borderRadius: '6px', cursor: 'pointer', padding: 0 }} />
+                      <input type="text" value={formData.langBarBg || ''} placeholder="rgba(0,0,0,0.35)" onChange={e => handleChange('langBarBg', e.target.value)} style={{ width: 130, padding: '6px 8px', fontSize: '0.85rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)' }} />
+                      <button type="button" onClick={() => handleChange('langBarBg', '')} style={{ fontSize: '0.75rem', padding: '6px 10px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', color: 'var(--text)' }}>Default</button>
+                   </div>
+                </div>
                 
              </div>
           </div>

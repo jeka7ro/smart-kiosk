@@ -158,7 +158,10 @@ const FLAG_GRADIENTS = {
         <div 
           className="poster-langs" 
           onClick={(e) => e.stopPropagation()}
-          style={locationData?.langVerticalPosition === 'top' ? { top: '40px', bottom: 'auto' } : { bottom: '40px', top: 'auto' }}
+          style={{
+            ...(locationData?.langVerticalPosition === 'top' ? { top: '40px', bottom: 'auto' } : { bottom: '40px', top: 'auto' }),
+            ...(locationData?.langBarBg ? { background: locationData.langBarBg } : {}),
+          }}
         >
           {allowedLangs.map(l => (
             <button
