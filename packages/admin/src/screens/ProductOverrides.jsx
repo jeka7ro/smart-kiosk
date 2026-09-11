@@ -99,7 +99,24 @@ export default function ProductOverrides() {
         const res = await fetchWithAuth(`${BACKEND}/api/locations/${activeLocation}`);
         const loc = await res.json();
         const kPromos = loc.kioskPromos || {};
-        setPromoOverrides(kPromos[activeKiosk] || {});
+        
+        // Deduce known kiosks without forcing user to define them in Kiosks tab
+        let known = loc.kiosks?.length > 0 ? [...loc.kiosks] : [];
+        if (known.length === 0 && loc.kioskUrl) {
+          known.push({ kioskId: loc.kioskUrl, name: loc.kioskUrl });
+        }
+        Object.keys(kPromos).forEach(kid => {
+          if (!known.find(k => k.kioskId === kid)) known.push({ kioskId: kid, name: kid });
+        });
+
+        // Auto-select first kiosk to save user a click
+        let currentKiosk = activeKiosk;
+        if (known.length > 0 && (!currentKiosk || !known.find(k => k.kioskId === currentKiosk))) {
+          currentKiosk = known[0].kioskId;
+          setActiveKiosk(currentKiosk);
+        }
+
+        setPromoOverrides(kPromos[currentKiosk] || {});
       } catch (_) {}
     })();
   }, [activeLocation, activeKiosk]);
@@ -281,7 +298,16 @@ export default function ProductOverrides() {
 
           {activeLocation && (() => {
             const selectedLocObj = locations.find(l => l.id === activeLocation);
-            const knownKiosks = selectedLocObj?.kiosks || [];
+            let knownKiosks = selectedLocObj?.kiosks?.length > 0 ? [...selectedLocObj.kiosks] : [];
+            if (knownKiosks.length === 0 && selectedLocObj?.kioskUrl) {
+              knownKiosks.push({ kioskId: selectedLocObj.kioskUrl, name: selectedLocObj.kioskUrl });
+            }
+            if (selectedLocObj?.kioskPromos) {
+              Object.keys(selectedLocObj.kioskPromos).forEach(kid => {
+                if (!knownKiosks.find(k => k.kioskId === kid)) knownKiosks.push({ kioskId: kid, name: kid });
+              });
+            }
+
             return (
               <select
                 value={activeKiosk}
