@@ -118,7 +118,15 @@ async function printTicket(order) {
     
     printer.cut();
     
-    await printer.execute();
+    // Extract raw ESC/POS buffer and write manually (bypass library's file interface)
+    if (!printerDriver) {
+      const buffer = printer.getBuffer();
+      fs.writeFileSync(tempFile, buffer);
+      printer.clear();
+      console.log(`[Printer] Buffer scris manual: ${tempFile} (${buffer.length} bytes)`);
+    } else {
+      await printer.execute();
+    }
 
     // Build receipt content for logging (safe — never blocks printing)
     let receiptContent = null;
