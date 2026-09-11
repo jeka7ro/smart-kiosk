@@ -1400,6 +1400,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
     langSelectorPosition: loc.langSelectorPosition || 'after',
     menuOverrides: loc.menuOverrides || {},
     paymentGateway: loc.paymentGateway || 'none',
+    kioskUiSize: loc.kioskUiSize || 'S',
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -1708,8 +1709,23 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
 
           {/* GRID COMPACT SETARI DESIGN */}
           <div style={{ padding: '16px', background: 'var(--bg-surface)', borderRadius: '12px', border: '1px solid var(--border)' }}>
-             <h4 style={{ margin: '0 0 16px 0', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }}>Aspect & Poziționare Limbi</h4>
+             <h4 style={{ margin: '0 0 16px 0', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }}>Design & Aspect Kiosk</h4>
              
+             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(180px, 1fr) minmax(180px, 1fr)', gap: '16px', marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid var(--border)' }}>
+                {/* COL: UI Size */}
+                <div style={{ gridColumn: '1 / -1' }}>
+                   <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Mărime Carduri Produse (S, M, L)</label>
+                   <div style={{ display: 'flex', gap: 8 }}>
+                     {[{v:'S',l:'Mic (Standard)'},{v:'M',l:'Mediu'},{v:'L',l:'Mare (Extra Vizibil)'}].map(opt => (
+                       <button key={opt.v} type="button" onClick={() => handleChange('kioskUiSize', opt.v)}
+                         style={{ padding: '8px 16px', borderRadius: 8, fontSize: '0.85rem', fontWeight: 700, border: (formData.kioskUiSize || 'S') === opt.v ? '2px solid var(--primary)' : '1px solid var(--border)', background: (formData.kioskUiSize || 'S') === opt.v ? 'var(--primary)' : 'var(--surface)', color: (formData.kioskUiSize || 'S') === opt.v ? '#fff' : 'var(--text)', cursor: 'pointer' }}>
+                         {opt.l}
+                       </button>
+                     ))}
+                   </div>
+                </div>
+             </div>
+
              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(180px, 1fr) minmax(180px, 1fr)', gap: '16px' }}>
                 
                 {/* COL 1: Buton Principal (Fundal) */}

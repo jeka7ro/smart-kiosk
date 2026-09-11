@@ -505,7 +505,7 @@ export default function MenuScreen() {
               <p>{t('cart_empty', lang)}</p>
             </div>
           ) : (
-            <div className="products-grid">
+            <div className={`products-grid ui-size-${(locationData?.kioskUiSize || 'S').toLowerCase()}`}>
               {filteredProducts.map((product, i) => (
                 <ProductCard
                   key={product.id}
