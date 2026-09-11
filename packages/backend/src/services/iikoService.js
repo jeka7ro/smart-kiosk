@@ -561,9 +561,10 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
     });
 
     // Build comment
-    const orderComment = order.orderType === 'dine-in'
-      ? `La masa | Kiosk #${order.orderNumber}`
-      : `La pachet | Kiosk #${order.orderNumber}`;
+    const orderTypeLabel = order.orderType === 'dine-in' ? 'La masă' : 'La pachet';
+    const isPaidLabel = (pMethod === 'card' || pMethod === 'viva') ? 'PLĂTIT' : 'NEPLĂTIT (Cash)';
+    const kioskName = order.kioskId ? `Kiosk ${order.kioskId}` : 'Kiosk';
+    const orderComment = `[${kioskName}] ${orderTypeLabel} | ${isPaidLabel} | Comanda #${order.orderNumber}`;
 
     // Dynamically fetch terminalGroupId for the target organization
     let terminalGroupId = 'cf589c4a-37dd-54ed-015a-4e33131300bf'; // Fallback
