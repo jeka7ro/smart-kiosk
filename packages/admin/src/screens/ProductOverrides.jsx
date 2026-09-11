@@ -486,8 +486,8 @@ export default function ProductOverrides() {
                                 showToast(`✅ Promoție salvată pe Kiosk ${activeKiosk}`);
                               } catch (e) { showToast('❌ ' + e.message, 'err'); }
                             }}
-                            className="w-7 h-7 inline-flex items-center justify-center rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 transition-colors"
-                          >✓</button>
+                            className="px-2 py-1 text-xs font-bold rounded bg-blue-500 hover:bg-blue-600 text-white transition-colors"
+                          >Salvează</button>
                           {promoOverrides[prod.id]?.price && (
                             <button
                               title="Șterge promoția"
@@ -505,8 +505,8 @@ export default function ProductOverrides() {
                                   showToast('🗑️ Promoție ștearsă');
                                 } catch (e) { showToast('❌ ' + e.message, 'err'); }
                               }}
-                              className="w-7 h-7 inline-flex items-center justify-center rounded-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 transition-colors"
-                            >✕</button>
+                              className="px-2 py-1 text-xs font-bold rounded bg-red-500 hover:bg-red-600 text-white transition-colors"
+                            >Șterge</button>
                           )}
                         </div>
                       </td>
