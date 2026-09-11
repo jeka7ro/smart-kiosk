@@ -242,8 +242,8 @@ export default function ProductOverrides() {
       <input type="file" ref={fileInputRef} className="hidden" accept="image/png, image/jpeg, image/webp" onChange={onFileChange} />
 
       {/* ── Toolbar ──────────────────────────────────────────── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
           {BRANDS.map(b => {
             const isActive = activeBrand === b.id;
             return (
@@ -265,7 +265,7 @@ export default function ProductOverrides() {
           })}
         </div>
         
-        <div className="flex-1 min-w-[200px] flex flex-wrap md:flex-nowrap gap-3 items-center ml-auto">
+        <div className="flex flex-wrap gap-3 items-center">
           {locations.length > 0 && (
             <select
               value={activeLocation}
