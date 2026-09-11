@@ -42,6 +42,7 @@ export default function ProductOverrides() {
   const [activeLocation, setActiveLocation] = useState('');
   const [activeKiosk, setActiveKiosk] = useState('');
   const [promoOverrides, setPromoOverrides] = useState({});
+  const [savedPromos, setSavedPromos] = useState({});
   
   const fileInputRef = useRef(null);
   const [uploadingId, setUploadingId] = useState(null);
@@ -116,7 +117,9 @@ export default function ProductOverrides() {
           setActiveKiosk(currentKiosk);
         }
 
-        setPromoOverrides(kPromos[currentKiosk] || {});
+        const pData = kPromos[currentKiosk] || {};
+        setPromoOverrides(pData);
+        setSavedPromos(pData);
       } catch (_) {}
     })();
   }, [activeLocation, activeKiosk]);
@@ -471,31 +474,34 @@ export default function ProductOverrides() {
                             }}
                             style={{ width: 70, padding: '4px 6px', fontSize: '0.85rem', borderRadius: 6, border: '1px solid var(--border, #e2e8f0)', background: 'var(--surface, #fff)', color: 'var(--text, #111)', textAlign: 'center' }}
                           />
-                          <button
-                            title="Salvează preț promoțional"
-                            onClick={async () => {
-                              if (!activeLocation) return showToast('Alege locația mai întâi', 'err');
-                              if (!activeKiosk) return showToast('Scrie ID-ul Kiosk-ului mai întâi! (ex: cluj1)', 'err');
-                              try {
-                                const po = promoOverrides[prod.id] || {};
-                                const payload = {
-                                  productId: prod.id,
-                                  price: po.price ? parseFloat(po.price) : null,
-                                  start: po.start || null,
-                                  end: po.end || null,
-                                  kioskId: activeKiosk
-                                };
-                                const res = await fetchWithAuth(`${BACKEND}/api/locations/${activeLocation}/promos`, {
-                                  method: 'PUT',
-                                  body: JSON.stringify(payload),
-                                });
-                                if (!res.ok) throw new Error('Eroare');
-                                showToast(`✅ Promoție salvată pe Kiosk ${activeKiosk}`);
-                              } catch (e) { showToast('❌ ' + e.message, 'err'); }
-                            }}
-                            className="px-2 py-1 text-xs font-bold rounded bg-blue-500 hover:bg-blue-600 text-white transition-colors"
-                          >Salvează</button>
-                          {promoOverrides[prod.id]?.price && (
+                          {!savedPromos[prod.id]?.price ? (
+                            <button
+                              title="Salvează preț promoțional"
+                              onClick={async () => {
+                                if (!activeLocation) return showToast('Alege locația mai întâi', 'err');
+                                if (!activeKiosk) return showToast('Scrie ID-ul Kiosk-ului mai întâi! (ex: cluj1)', 'err');
+                                try {
+                                  const po = promoOverrides[prod.id] || {};
+                                  if (!po.price) return showToast('Introdu un preț!', 'err');
+                                  const payload = {
+                                    productId: prod.id,
+                                    price: parseFloat(po.price),
+                                    start: po.start || null,
+                                    end: po.end || null,
+                                    kioskId: activeKiosk
+                                  };
+                                  const res = await fetchWithAuth(`${BACKEND}/api/locations/${activeLocation}/promos`, {
+                                    method: 'PUT',
+                                    body: JSON.stringify(payload),
+                                  });
+                                  if (!res.ok) throw new Error('Eroare');
+                                  setSavedPromos(prev => ({ ...prev, [prod.id]: { price: payload.price } }));
+                                  showToast(`✅ Promoție salvată pe Kiosk ${activeKiosk}`);
+                                } catch (e) { showToast('❌ ' + e.message, 'err'); }
+                              }}
+                              className="w-7 h-7 inline-flex items-center justify-center rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 transition-colors"
+                            >✓</button>
+                          ) : (
                             <button
                               title="Șterge promoția"
                               onClick={async () => {
@@ -509,11 +515,14 @@ export default function ProductOverrides() {
                                   const newPromo = { ...promoOverrides };
                                   delete newPromo[prod.id];
                                   setPromoOverrides(newPromo);
+                                  const newSaved = { ...savedPromos };
+                                  delete newSaved[prod.id];
+                                  setSavedPromos(newSaved);
                                   showToast('🗑️ Promoție ștearsă');
                                 } catch (e) { showToast('❌ ' + e.message, 'err'); }
                               }}
-                              className="px-2 py-1 text-xs font-bold rounded bg-red-500 hover:bg-red-600 text-white transition-colors"
-                            >Șterge</button>
+                              className="w-7 h-7 inline-flex items-center justify-center rounded-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 transition-colors"
+                            >✕</button>
                           )}
                         </div>
                       </td>
