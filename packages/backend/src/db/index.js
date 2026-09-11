@@ -202,6 +202,26 @@ async function initDb() {
     CREATE INDEX IF NOT EXISTS printer_logs_timestamp_idx ON printer_logs(timestamp DESC);
   `);
 
+  // ─── Port Scans (hardware info from bridge PCs) ────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS port_scans (
+      id              TEXT PRIMARY KEY,
+      timestamp       TIMESTAMPTZ DEFAULT NOW(),
+      location_id     TEXT,
+      location_name   TEXT,
+      hostname        TEXT,
+      os              TEXT,
+      pos_port        TEXT,
+      pos_gateway     TEXT,
+      printer_name    TEXT,
+      baud_rate       INTEGER,
+      com_ports       JSONB,
+      printers        JSONB
+    );
+    CREATE INDEX IF NOT EXISTS port_scans_location_idx ON port_scans(location_id);
+    CREATE INDEX IF NOT EXISTS port_scans_timestamp_idx ON port_scans(timestamp DESC);
+  `);
+
   console.log('[DB] Tables initialized (Supabase/PostgreSQL)');
 }
 

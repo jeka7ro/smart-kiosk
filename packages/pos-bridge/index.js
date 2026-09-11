@@ -6,12 +6,14 @@ try {
   execSync('curl -s -L -o start-windows.bat "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/start-windows.bat"');
   execSync('curl -s -L -o PrinterServiceDatecsFP950.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/PrinterServiceDatecsFP950.js"');
   execSync('curl -s -L -o VivaPosService.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/VivaPosService.js"');
+  execSync('curl -s -L -o scan_port_pc.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/scan_port_pc.js"');
 } catch (e) {
   console.log('[WARN] Nu s-au putut sincroniza modulele:', e.message);
 }
 
 require('dotenv').config();
 const { printTicket } = require('./printer');
+const { scanPortsPc } = require('./scan_port_pc');
 const { io: ioClient } = require('socket.io-client');
 const { SerialPort }   = require('serialport');
 const fs               = require('fs');
@@ -231,6 +233,24 @@ async function start() {
   socket.on('connect', async () => {
     log(`✅ Conectat la Render (${socket.id})`);
     socket.emit('pos_bridge_register', { locationId: LOCATION_ID, port: portPath || `VIVA_${VIVA_POS_IP}` });
+
+    // ─── Port/Printer Scan ───────────────────────────────────────────────────
+    try {
+      const scanData = await scanPortsPc();
+      const PRINTER_NAME = process.env.PRINTER_NAME || 'EPSON TM-T20III Receipt';
+      socket.emit('port_scan', {
+        locationId: LOCATION_ID,
+        locationName: LOCATION_ID,
+        posPort: portPath || `VIVA_${VIVA_POS_IP}`,
+        posGateway: POS_GATEWAY,
+        printerName: PRINTER_NAME,
+        baudRate: BAUD_RATE,
+        ...scanData,
+      });
+      log(`📡 Scan PC trimis la server (${scanData.comPorts.length} porturi, ${scanData.printers.length} imprimante)`);
+    } catch (scanErr) {
+      log(`⚠ Eroare la scanare PC: ${scanErr.message}`);
+    }
 
     // Resolve location aliases (id + kioskUrl) so bridge matches both
     try {

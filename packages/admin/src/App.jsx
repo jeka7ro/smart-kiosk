@@ -12,6 +12,7 @@ import Integrations   from './screens/Integrations';
 import PosLogs        from './screens/PosLogs';
 import IikoLogs       from './screens/IikoLogs';
 import PrinterLogs    from './screens/PrinterLogs';
+import PortScans      from './screens/PortScans';
 import BrandLogo from './components/BrandLogo.jsx';
 import Promotions     from './screens/Promotions';
 import FortuneWheelPreview from './components/FortuneWheelPreview';
@@ -46,7 +47,7 @@ export default function AdminApp() {
   
   const [tab, setTabState] = useState(() => {
     const hash = window.location.hash.replace('#', '');
-    const validTabs = ['dashboard', 'orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'modifiers', 'products', 'users', 'integrations', 'promotions', 'brands', 'translations', 'pos-logs', 'printer-logs', 'iiko-logs'];
+    const validTabs = ['dashboard', 'orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'modifiers', 'products', 'users', 'integrations', 'promotions', 'brands', 'translations', 'pos-logs', 'printer-logs', 'port-scans', 'iiko-logs'];
     return validTabs.includes(hash) ? hash : 'orders';
   });
 
@@ -58,7 +59,7 @@ export default function AdminApp() {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '');
-      const validTabs = ['dashboard', 'orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'modifiers', 'products', 'users', 'integrations', 'promotions', 'brands', 'translations', 'pos-logs', 'printer-logs', 'iiko-logs'];
+      const validTabs = ['dashboard', 'orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'modifiers', 'products', 'users', 'integrations', 'promotions', 'brands', 'translations', 'pos-logs', 'printer-logs', 'port-scans', 'iiko-logs'];
       if (validTabs.includes(hash)) setTabState(hash);
     };
     window.addEventListener('hashchange', handleHashChange);
@@ -372,6 +373,7 @@ export default function AdminApp() {
               ...(user?.role === 'admin' ? [{ id: 'integrations', label: 'Integrări POS', icon: <Blocks className="w-5 h-5" /> }] : []),
               ...(user?.role === 'admin' ? [{ id: 'pos-logs', label: 'Loguri POS', icon: <CreditCard className="w-5 h-5" /> }] : []),
               ...(user?.role === 'admin' ? [{ id: 'printer-logs', label: 'Loguri Imprimantă', icon: <Printer className="w-5 h-5" /> }] : []),
+              ...(user?.role === 'admin' ? [{ id: 'port-scans', label: 'Scanare Porturi PC', icon: <MonitorSmartphone className="w-5 h-5" /> }] : []),
               ...(user?.role === 'admin' ? [{ id: 'iiko-logs', label: 'Loguri iiko', icon: <Receipt className="w-5 h-5" /> }] : []),
               ...(user?.role === 'admin' ? [{ id: 'promotions', label: 'Promoții', icon: <Gift className="w-5 h-5" /> }] : []),
               ...(user?.role === 'admin' ? [{ id: 'brands', label: 'Branduri', icon: <Store className="w-5 h-5" /> }] : []),
@@ -414,6 +416,7 @@ export default function AdminApp() {
               {tab === 'brands' && 'Gestionare Branduri'}
               {tab === 'pos-logs' && 'Loguri Tranzacții POS'}
               {tab === 'printer-logs' && 'Loguri Imprimantă'}
+              {tab === 'port-scans' && 'Scanare Porturi PC'}
               {tab === 'iiko-logs' && 'Loguri iiko Syrve'}
            </h2>
         </div>
@@ -582,6 +585,7 @@ export default function AdminApp() {
           }} />}
           {tab === 'iiko-logs' && <IikoLogs />}
           {tab === 'printer-logs' && <PrinterLogs />}
+          {tab === 'port-scans' && <PortScans />}
           {tab === 'promotions' && <Promotions />}
           {tab === 'users' && <UsersManager />}
           {tab === 'brands' && <BrandsManager backend={BACKEND} />}

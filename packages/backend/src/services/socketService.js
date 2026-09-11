@@ -125,6 +125,17 @@ function initSocket(io) {
       }
     });
 
+    // ─── Port Scans (from bridge at startup) ─────────────────────────────────
+    socket.on('port_scan', async (entry) => {
+      try {
+        const { addPortScan } = require('../routes/portScans');
+        const scanEntry = await addPortScan(entry);
+        io.to('admin').emit('port_scan_new', scanEntry);
+      } catch (e) {
+        console.error('[Port Scan] Error saving scan:', e.message);
+      }
+    });
+
     socket.on('disconnect', () => {
       console.log(`[Socket] Client disconnected: ${socket.id}`);
     });
