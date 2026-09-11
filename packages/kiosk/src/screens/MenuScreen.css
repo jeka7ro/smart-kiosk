@@ -230,7 +230,7 @@
 .cat-btn:hover { background: var(--bg); }
 
 .cat-btn-img {
-  width: 44px; height: 44px;
+  width: 56px; height: 56px;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid var(--border);
@@ -239,7 +239,7 @@
   border-color: var(--primary);
 }
 .cat-btn-label {
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-weight: 600;
   color: var(--text);
   text-align: center;
@@ -586,9 +586,9 @@
 .ui-size-m .products-grid .pc-add-btn { width: 44px; height: 44px; font-size: 1.6rem; }
 .ui-size-m .products-grid .pc-qty-control { height: 44px; }
 .ui-size-m .products-grid .pc-qty-btn { width: 42px; height: 44px; font-size: 1.4rem; }
-.ui-size-m .category-sidebar { width: 145px; }
-.ui-size-m .cat-btn-img { width: 50px; height: 50px; }
-.ui-size-m .cat-btn-label { font-size: 0.8rem; }
+.ui-size-m .category-sidebar { width: 155px; }
+.ui-size-m .cat-btn-img { width: 62px; height: 62px; }
+.ui-size-m .cat-btn-label { font-size: 0.85rem; }
 
 /* Large (L) - very large images and buttons, matching old kiosk */
 .ui-size-l .products-grid { gap: 16px; }
@@ -602,9 +602,9 @@
 .ui-size-l .products-grid .pc-qty-btn { width: 50px; height: 52px; font-size: 1.6rem; }
 .ui-size-l .products-grid .pc-qty-num { font-size: 1.2rem; min-width: 32px; }
 
-.ui-size-l .category-sidebar { width: 160px; }
-.ui-size-l .cat-btn-img { width: 58px; height: 58px; }
-.ui-size-l .cat-btn-label { font-size: 0.85rem; }
+.ui-size-l .category-sidebar { width: 170px; }
+.ui-size-l .cat-btn-img { width: 70px; height: 70px; }
+.ui-size-l .cat-btn-label { font-size: 0.9rem; }
 
 /* ─── FAVORITES BAR BUTTONS ─── */
 .fav-btn {
