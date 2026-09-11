@@ -221,46 +221,61 @@ async function printTicket(order) {
       };
     } catch (_) { receiptContent = null; }
     
-    // If using file interface, send the file to the Windows printer via PowerShell WinSpool script
+    // If using file interface, send the file to the Windows printer
     if (!printerDriver && fs.existsSync(tempFile)) {
       console.log(`[Printer] 🎯 Trimit la imprimantă: "${PRINTER_NAME}" | Fișier: ${tempFile} (${fs.statSync(tempFile).size} bytes)`);
       
-      // Deblocăm coada Windows de orice joburi anterioare rămase cu eroare (ex: Test Page)
+      const shareName = 'EPSON_RAW';
+      // 1. Asigurăm partajarea imprimantei pentru trimitere directă RAW (by-pass driver)
+      try {
+        execSync(`powershell -NoProfile -Command "Set-Printer -Name '${PRINTER_NAME}' -Shared $true -ShareName '${shareName}' -ErrorAction SilentlyContinue"`, { timeout: 5000 });
+      } catch (_) {}
+
+      // 2. Deblocăm coada Windows de orice joburi anterioare blocate (ex: Test Page)
       try {
         execSync(`powershell -NoProfile -Command "Get-PrintJob -PrinterName '${PRINTER_NAME}' -ErrorAction SilentlyContinue | Where-Object { $_.JobStatus -like '*Error*' -or $_.JobStatus -like '*Blocked*' -or $_.JobStatus -like '*Deleting*' } | Remove-PrintJob -ErrorAction SilentlyContinue"`, { timeout: 5000 });
       } catch (_) {}
 
-      let method = 'winspool';
+      // Metoda 1: Trimitere directă RAW către Spooler Share (100% nativ Windows, fără compilare C#)
+      try {
+        execSync(`cmd.exe /c "copy /b \\"${tempFile}\\" \\"\\\\127.0.0.1\\${shareName}\\""`, { timeout: 8000 });
+        console.log(`[Printer] ✅ Bon printat via RAW Spooler (Share) pentru comanda #${order.orderNumber || '?'}`);
+        return { status: 'success', method: 'raw_share', printerName: PRINTER_NAME, receiptContent };
+      } catch (shareErr) {
+        console.warn(`[Printer] ⚠ RAW Share: ${shareErr.message}. Încerc WinSpool...`);
+      }
+
+      // Metoda 2: WinSpool P/Invoke via rawprint.ps1
       try {
         const scriptPath = path.join(__dirname, 'rawprint.ps1');
         const psCmd = `& '${scriptPath}' -PrinterName '${PRINTER_NAME}' -FilePath '${tempFile}'`;
-        const result = execSync(`powershell -NoProfile -ExecutionPolicy Bypass -Command "${psCmd}"`, { timeout: 15000 }).toString().trim();
+        const result = execSync(`powershell -NoProfile -ExecutionPolicy Bypass -Command "${psCmd}"`, { timeout: 12000 }).toString().trim();
         console.log(`[Printer] WinSpool rezultat: "${result}"`);
         if (result.includes('OK')) {
-          console.log(`[Printer] ✅ Bon printat via WinSpool (PowerShell) pentru comanda #${order.orderNumber || '?'}`);
+          console.log(`[Printer] ✅ Bon printat via WinSpool pentru comanda #${order.orderNumber || '?'}`);
           return { status: 'success', method: 'winspool', printerName: PRINTER_NAME, receiptContent };
-        } else {
-          throw new Error(`Scriptul rawprint a returnat: ${result}`);
         }
       } catch (psErr) {
-        console.error(`[Printer] ⚠ WinSpool eșuat: ${psErr.message}`);
-        // Fallback 2: try COPY /B to printer share
-        try {
-          execSync(`COPY /B "${tempFile}" "\\\\localhost\\${PRINTER_NAME}"`, { timeout: 10000 });
-          console.log(`[Printer] ✅ Bon printat prin COPY pentru comanda #${order.orderNumber || '?'}`);
-          return { status: 'success', method: 'copy', printerName: PRINTER_NAME, receiptContent };
-        } catch (copyErr) {
-          console.error(`[Printer] ⚠ COPY eșuat: ${copyErr.message}`);
-          // Fallback 3: direct PowerShell Out-Printer
-          try {
-            execSync(`powershell -NoProfile -Command "Get-Content -Encoding Byte -Path '${tempFile}' | Out-Printer -Name '${PRINTER_NAME}'"`, { timeout: 15000 });
-            console.log(`[Printer] ✅ Bon printat prin Out-Printer pentru comanda #${order.orderNumber || '?'}`);
-            return { status: 'success', method: 'out-printer', printerName: PRINTER_NAME, receiptContent };
-          } catch (outErr) {
-            console.error(`[Printer] ❌ Toate metodele au eșuat. WinSpool: ${psErr.message} | COPY: ${copyErr.message} | Out-Printer: ${outErr.message}`);
-            return { status: 'error', method: 'winspool+copy+out-printer', printerName: PRINTER_NAME, error: `WinSpool: ${psErr.message}`, receiptContent };
-          }
-        }
+        console.warn(`[Printer] ⚠ WinSpool: ${psErr.message}`);
+      }
+
+      // Metoda 3: COPY către localhost printer name
+      try {
+        execSync(`cmd.exe /c "copy /b \\"${tempFile}\\" \\"\\\\localhost\\${PRINTER_NAME}\\""`, { timeout: 8000 });
+        console.log(`[Printer] ✅ Bon printat prin COPY localhost pentru comanda #${order.orderNumber || '?'}`);
+        return { status: 'success', method: 'copy', printerName: PRINTER_NAME, receiptContent };
+      } catch (copyErr) {
+        console.warn(`[Printer] ⚠ COPY: ${copyErr.message}`);
+      }
+
+      // Metoda 4: direct Out-Printer
+      try {
+        execSync(`powershell -NoProfile -Command "Get-Content -Encoding Byte -Path '${tempFile}' | Out-Printer -Name '${PRINTER_NAME}'"`, { timeout: 10000 });
+        console.log(`[Printer] ✅ Bon printat prin Out-Printer pentru comanda #${order.orderNumber || '?'}`);
+        return { status: 'success', method: 'out-printer', printerName: PRINTER_NAME, receiptContent };
+      } catch (outErr) {
+        console.error(`[Printer] ❌ Toate metodele au eșuat. Share: failed | Out-Printer: ${outErr.message}`);
+        return { status: 'error', method: 'failed', printerName: PRINTER_NAME, error: outErr.message, receiptContent };
       } finally {
         try { fs.unlinkSync(tempFile); } catch (_) {}
       }
