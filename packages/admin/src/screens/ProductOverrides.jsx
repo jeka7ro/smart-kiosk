@@ -40,6 +40,7 @@ export default function ProductOverrides() {
   const [previewDesc, setPreviewDesc] = useState(null);
   const [locations,   setLocations]   = useState([]);
   const [activeLocation, setActiveLocation] = useState('');
+  const [activeKiosk, setActiveKiosk] = useState('1');
   const [promoOverrides, setPromoOverrides] = useState({});
   
   const fileInputRef = useRef(null);
@@ -90,17 +91,18 @@ export default function ProductOverrides() {
     })();
   }, []);
 
-  // Fetch promo overrides for selected location
+  // Fetch promo overrides for selected location and kiosk
   useEffect(() => {
     if (!activeLocation) return;
     (async () => {
       try {
         const res = await fetchWithAuth(`${BACKEND}/api/locations/${activeLocation}`);
         const loc = await res.json();
-        setPromoOverrides(loc.promoOverrides || {});
-      } catch (_) { setPromoOverrides({}); }
+        const kPromos = loc.kioskPromos || {};
+        setPromoOverrides(kPromos[activeKiosk] || {});
+      } catch (_) {}
     })();
-  }, [activeLocation]);
+  }, [activeLocation, activeKiosk]);
 
   const uniqueCategories = useMemo(() => {
     const set = new Set();
@@ -276,6 +278,22 @@ export default function ProductOverrides() {
             </select>
           )}
 
+          {activeLocation && (() => {
+            const selectedLocObj = locations.find(l => l.id === activeLocation);
+            const locKiosks = selectedLocObj?.kiosks?.length > 0 ? selectedLocObj.kiosks : [{ kioskId: '1', name: 'Kiosk 1' }, { kioskId: '2', name: 'Kiosk 2' }];
+            return (
+              <select
+                value={activeKiosk}
+                onChange={e => setActiveKiosk(e.target.value)}
+                className="px-4 py-2.5 rounded-full border border-slate-200 dark:border-slate-800 text-sm outline-none bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 cursor-pointer focus:ring-2 focus:ring-indigo-500/50 appearance-none"
+              >
+                {locKiosks.map(k => (
+                  <option key={k.kioskId} value={k.kioskId}>🖥️ {k.name || `Kiosk ${k.kioskId}`}</option>
+                ))}
+              </select>
+            );
+          })()}
+
           <select 
             value={filterCategory}
             onChange={e => { setFilterCategory(e.target.value); setPage(1); }}
@@ -426,13 +444,14 @@ export default function ProductOverrides() {
                                   price: po.price ? parseFloat(po.price) : null,
                                   start: po.start || null,
                                   end: po.end || null,
+                                  kioskId: activeKiosk
                                 };
                                 const res = await fetchWithAuth(`${BACKEND}/api/locations/${activeLocation}/promos`, {
                                   method: 'PUT',
                                   body: JSON.stringify(payload),
                                 });
                                 if (!res.ok) throw new Error('Eroare');
-                                showToast('✅ Preț promoțional salvat pe locație');
+                                showToast(`✅ Promoție salvată pe Kiosk ${activeKiosk}`);
                               } catch (e) { showToast('❌ ' + e.message, 'err'); }
                             }}
                             className="w-7 h-7 inline-flex items-center justify-center rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 transition-colors"
@@ -445,7 +464,7 @@ export default function ProductOverrides() {
                                 try {
                                   const res = await fetchWithAuth(`${BACKEND}/api/locations/${activeLocation}/promos`, {
                                     method: 'PUT',
-                                    body: JSON.stringify({ productId: prod.id, price: null, start: null, end: null }),
+                                    body: JSON.stringify({ productId: prod.id, price: null, start: null, end: null, kioskId: activeKiosk }),
                                   });
                                   if (!res.ok) throw new Error('Eroare');
                                   const newPromo = { ...promoOverrides };

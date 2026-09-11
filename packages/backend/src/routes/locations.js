@@ -155,28 +155,29 @@ router.put('/:id', protect, async (req, res) => {
 });
 
 // DELETE /api/locations/:id
-// PUT /api/locations/:id/promos — set promo prices for a location
+// PUT /api/locations/:id/promos — set promo prices for a specific kiosk in a location
 router.put('/:id/promos', protect, async (req, res) => {
   try {
     if (!hasDb) throw new Error('no db');
-    const { productId, price, start, end } = req.body;
+    const { productId, price, start, end, kioskId } = req.body;
     if (!productId) return res.status(400).json({ error: 'productId is required' });
+    if (!kioskId) return res.status(400).json({ error: 'kioskId is required' });
 
     const existing = await pool.query('SELECT * FROM locations WHERE id = $1', [req.params.id]);
     if (!existing.rows.length) return res.status(404).json({ error: 'Location not found' });
     
     const data = existing.rows[0].data || {};
-    const promoOverrides = data.promoOverrides || {};
+    data.kioskPromos = data.kioskPromos || {};
+    data.kioskPromos[kioskId] = data.kioskPromos[kioskId] || {};
     
     if (price && price > 0) {
-      promoOverrides[productId] = { price: parseFloat(price), start: start || null, end: end || null };
+      data.kioskPromos[kioskId][productId] = { price: parseFloat(price), start: start || null, end: end || null };
     } else {
-      delete promoOverrides[productId];
+      delete data.kioskPromos[kioskId][productId];
     }
     
-    data.promoOverrides = promoOverrides;
     await pool.query('UPDATE locations SET data = $1, updated_at = NOW() WHERE id = $2', [JSON.stringify(data), req.params.id]);
-    res.json({ ok: true, promoOverrides });
+    res.json({ ok: true, promoOverrides: data.kioskPromos[kioskId] });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

@@ -195,7 +195,8 @@ export default function MenuScreen() {
       return;
     }
 
-    const fetchUrl = `${BACKEND}/api/menu?brandId=${activeBrandId}&orgId=${orgId}&locId=${locationData?.id || ''}`;
+    const urlKiosk = new URLSearchParams(window.location.search).get('kiosk') || '1';
+    const fetchUrl = `${BACKEND}/api/menu?brandId=${activeBrandId}&orgId=${orgId}&locId=${locationData?.id || ''}&kioskId=${urlKiosk}`;
     
     fetch(fetchUrl, {
       headers: { 'x-api-key': import.meta.env.VITE_API_KEY || 'sk-live-2024-secure' },

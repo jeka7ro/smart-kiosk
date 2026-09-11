@@ -143,11 +143,13 @@ router.get('/', requireApiKey, async (req, res) => {
       console.error('[Menu API] Failed to apply kiosk overrides:', e);
     }
 
-    // Apply location-specific promo overrides
+    // Apply location & kiosk-specific promo overrides
     try {
+      const kioskId = req.query.kioskId || '1';
       const { rows: locRows2 } = await pool.query('SELECT data FROM locations WHERE id = $1', [locId]);
       if (locRows2.length > 0) {
-        const promoOverrides = locRows2[0].data?.promoOverrides || {};
+        const kioskPromos = locRows2[0].data?.kioskPromos || {};
+        const promoOverrides = kioskPromos[kioskId] || {};
         const now = new Date();
         finalProducts = finalProducts.map(p => {
           const promo = promoOverrides[p.id];
