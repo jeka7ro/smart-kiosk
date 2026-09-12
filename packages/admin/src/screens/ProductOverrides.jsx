@@ -143,6 +143,7 @@ export default function ProductOverrides() {
     if (filterDiet === 'veg')   list = list.filter(p => !!(overrides[p.id]?.is_vegetarian));
     if (filterDiet === 'spicy') list = list.filter(p => !!(overrides[p.id]?.is_spicy));
     if (filterDiet === 'promo') list = list.filter(p => !!(promoOverrides[p.id]?.price));
+    if (filterDiet === 'featured') list = list.filter(p => !!(overrides[p.id]?.is_featured));
     return list;
   }, [products, search, categories, filterDiet, overrides, promoOverrides, filterCategory]);
 
@@ -155,6 +156,7 @@ export default function ProductOverrides() {
       is_vegetarian: tagType === 'veg' ? !currentOver.is_vegetarian : !!currentOver.is_vegetarian,
       is_spicy: tagType === 'spicy' ? !currentOver.is_spicy : !!currentOver.is_spicy,
       is_hidden: tagType === 'hidden' ? !currentOver.is_hidden : !!currentOver.is_hidden,
+      is_featured: tagType === 'featured' ? !currentOver.is_featured : !!currentOver.is_featured,
     };
 
     setOverrides(prev => ({
@@ -185,7 +187,7 @@ export default function ProductOverrides() {
     
     // Optistic UI bulk update
     const updates = {};
-    const fieldName = tagType === 'veg' ? 'is_vegetarian' : tagType === 'spicy' ? 'is_spicy' : 'is_hidden';
+    const fieldName = tagType === 'veg' ? 'is_vegetarian' : tagType === 'spicy' ? 'is_spicy' : tagType === 'featured' ? 'is_featured' : 'is_hidden';
     filtered.forEach(p => {
        const currentOver = overrides[p.id] || {};
        updates[p.id] = { ...currentOver, [fieldName]: newValue };
@@ -366,6 +368,12 @@ export default function ProductOverrides() {
           >
             💰 Doar Promo
           </button>
+          <button
+            onClick={() => { setFilterDiet(filterDiet === 'featured' ? null : 'featured'); setPage(1); }}
+            className={`flex-shrink-0 px-4 py-2.5 rounded-full text-xs font-bold transition-all whitespace-nowrap ${filterDiet === 'featured' ? 'bg-amber-500 text-white shadow-sm' : 'bg-transparent border border-amber-500 text-amber-600 dark:text-amber-400'}`}
+          >
+            ⭐ Prima Pagină
+          </button>
         </div>
       </div>
 
@@ -404,6 +412,12 @@ export default function ProductOverrides() {
                     <div className="inline-flex items-center justify-center gap-1.5 cursor-pointer px-2 py-1 rounded bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 transition-colors" onClick={() => handleBulkToggle('spicy', !(filtered.length > 0 && filtered.every(p => overrides[p.id]?.is_spicy)))} title="Bifează/Debifează pe Toate">
                       <input type="checkbox" className="w-3.5 h-3.5 rounded border-red-300 text-red-600 focus:ring-red-500 pointer-events-none" checked={filtered.length > 0 && filtered.every(p => overrides[p.id]?.is_spicy)} readOnly />
                       <span>🌶️ Picant</span>
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">
+                    <div className="inline-flex items-center justify-center gap-1.5 cursor-pointer px-2 py-1 rounded bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400 transition-colors" onClick={() => handleBulkToggle('featured', !(filtered.length > 0 && filtered.every(p => overrides[p.id]?.is_featured)))} title="Bifează/Debifează pe Toate (Afișează pe prima pagină)">
+                      <input type="checkbox" className="w-3.5 h-3.5 rounded border-amber-300 text-amber-600 focus:ring-amber-500 pointer-events-none" checked={filtered.length > 0 && filtered.every(p => overrides[p.id]?.is_featured)} readOnly />
+                      <span>⭐ Prima Pagină</span>
                     </div>
                   </th>
                   <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Editează Poză</th>
@@ -542,6 +556,12 @@ export default function ProductOverrides() {
                       <td className="px-4 py-3 text-center">
                         <label className="inline-flex cursor-pointer p-2">
                           <input type="checkbox" className="w-5 h-5 rounded border-slate-300 text-red-500 focus:ring-red-500" checked={!!over.is_spicy} onChange={() => toggleTag(prod.id, 'spicy')} />
+                        </label>
+                      </td>
+
+                      <td className="px-4 py-3 text-center">
+                        <label className="inline-flex cursor-pointer p-2" title="Afișează pe prima pagină">
+                          <input type="checkbox" className="w-5 h-5 rounded border-slate-300 text-amber-500 focus:ring-amber-500" checked={!!over.is_featured} onChange={() => toggleTag(prod.id, 'featured')} />
                         </label>
                       </td>
 

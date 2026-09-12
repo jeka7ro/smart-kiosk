@@ -132,9 +132,13 @@ async function initDb() {
       custom_image_url TEXT,               -- manually uploaded image path
       is_vegetarian    BOOLEAN DEFAULT false,
       is_spicy         BOOLEAN DEFAULT false,
+      is_hidden        BOOLEAN DEFAULT false,
+      is_featured      BOOLEAN DEFAULT false,
       updated_at       TIMESTAMPTZ DEFAULT NOW()
     );
   `);
+  await pool.query(`ALTER TABLE product_overrides ADD COLUMN IF NOT EXISTS is_hidden BOOLEAN DEFAULT false;`).catch(() => {});
+  await pool.query(`ALTER TABLE product_overrides ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT false;`).catch(() => {});
 
   // ─── POS Logs (transactions from Raiffeisen, etc) ─────────────────────────
   await pool.query(`

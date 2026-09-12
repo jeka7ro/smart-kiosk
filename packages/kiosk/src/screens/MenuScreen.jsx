@@ -304,7 +304,8 @@ export default function MenuScreen() {
       });
     }
     
-    return baseProds.filter(p => !activeCategory || activeDiet || p.categoryId === activeCategory);
+    const list = baseProds.filter(p => !activeCategory || activeDiet || p.categoryId === activeCategory);
+    return list.sort((a, b) => (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0));
   }, [search, products, allProducts, activeCategory, activeBrandId, activeDiet]);
 
   const visibleCategories = useMemo(() => {

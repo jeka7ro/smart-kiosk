@@ -69,6 +69,29 @@ export default function ProductCard({ product, delay, lang, activeBrand, onQuick
         >
           {product.image ? (
             <div style={{ width: '100%', aspectRatio: '4/3', borderRadius: 12, overflow: 'hidden', background: '#f3f4f6', marginBottom: 12, position: 'relative' }}>
+              {product.isFeatured && (
+                <div style={{
+                  position: 'absolute',
+                  top: 8,
+                  left: 8,
+                  background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                  color: '#ffffff',
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  padding: '4px 8px',
+                  borderRadius: 8,
+                  boxShadow: '0 2px 8px rgba(217, 119, 6, 0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  zIndex: 10,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}>
+                  <span>⭐</span>
+                  <span>Ofertă</span>
+                </div>
+              )}
               <button className="product-info-btn" onClick={handleInfoClick} style={{ position: 'absolute', top: 8, right: 8, width: 32, height: 32, background: 'rgba(255,255,255,0.9)', border: 'none', borderRadius: '50%', color: '#374151', fontSize: '1rem', fontWeight: 'bold', fontStyle: 'italic', fontFamily: 'serif', zIndex: 10 }}>i</button>
               <img
                 src={proxySyrveImage(product.image)}
@@ -78,8 +101,25 @@ export default function ProductCard({ product, delay, lang, activeBrand, onQuick
               />
             </div>
           ) : (
-            <div style={{ position: 'relative', marginBottom: 12, display: 'flex', justifyContent: 'flex-end' }}>
-               <button className="product-info-btn" onClick={handleInfoClick} style={{ width: 32, height: 32, background: '#f3f4f6', border: 'none', borderRadius: '50%', color: '#374151', fontSize: '1rem', fontWeight: 'bold', fontStyle: 'italic', fontFamily: 'serif' }}>i</button>
+            <div style={{ position: 'relative', marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              {product.isFeatured && (
+                <div style={{
+                  background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                  color: '#ffffff',
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  padding: '4px 8px',
+                  borderRadius: 8,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  textTransform: 'uppercase'
+                }}>
+                  <span>⭐</span>
+                  <span>Ofertă</span>
+                </div>
+              )}
+              <button className="product-info-btn" onClick={handleInfoClick} style={{ width: 32, height: 32, background: '#f3f4f6', border: 'none', borderRadius: '50%', color: '#374151', fontSize: '1rem', fontWeight: 'bold', fontStyle: 'italic', fontFamily: 'serif', marginLeft: 'auto' }}>i</button>
             </div>
           )}
 

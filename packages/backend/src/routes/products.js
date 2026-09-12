@@ -40,23 +40,25 @@ router.get('/overrides/:brandId', protect, async (req, res) => {
 
 // PUT /api/products/overrides/:brandId/:productId/tags — update boolean tags
 router.put('/overrides/:brandId/:productId/tags', protect, async (req, res) => {
-  const { is_vegetarian, is_spicy, is_hidden } = req.body;
+  const { is_vegetarian, is_spicy, is_hidden, is_featured } = req.body;
   const { brandId, productId } = req.params;
 
   try {
     // Auto-migrate column if it doesn't exist
     await pool.query(`ALTER TABLE product_overrides ADD COLUMN IF NOT EXISTS is_hidden BOOLEAN DEFAULT false;`).catch(() => {});
+    await pool.query(`ALTER TABLE product_overrides ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT false;`).catch(() => {});
 
     const { rows } = await pool.query(
-      `INSERT INTO product_overrides (id, brand_id, is_vegetarian, is_spicy, is_hidden, updated_at)
-       VALUES ($1, $2, $3, $4, $5, NOW())
+      `INSERT INTO product_overrides (id, brand_id, is_vegetarian, is_spicy, is_hidden, is_featured, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW())
        ON CONFLICT (id) DO UPDATE SET
          is_vegetarian = EXCLUDED.is_vegetarian,
          is_spicy = EXCLUDED.is_spicy,
          is_hidden = EXCLUDED.is_hidden,
+         is_featured = EXCLUDED.is_featured,
          updated_at = NOW()
        RETURNING *`,
-      [productId, brandId, !!is_vegetarian, !!is_spicy, !!is_hidden]
+      [productId, brandId, !!is_vegetarian, !!is_spicy, !!is_hidden, !!is_featured]
     );
     res.json({ override: rows[0] });
   } catch (e) {
