@@ -337,23 +337,15 @@ export default function ProductScreen() {
         {/* ─── MAIN SCROLLABLE BODY ─── */}
         <div className="ps-card-body scroll-y">
           
-          {/* Poza Mare Produs (Mare și Apetisantă pe tot rândul - Integral Vizibilă) */}
+          {/* Poza Mare Produs (4:3 identică cu cardul din meniu, mare și apetisantă) */}
           <div className="ps-hero-wrap">
             {product.image && !imgError ? (
-              <>
-                <img
-                  src={proxySyrveImage(product.image)}
-                  alt=""
-                  className="ps-hero-bg-blur"
-                  aria-hidden="true"
-                />
-                <img
-                  src={proxySyrveImage(product.image)}
-                  alt={product.name}
-                  className="ps-hero-img"
-                  onError={() => setImgError(true)}
-                />
-              </>
+              <img
+                src={proxySyrveImage(product.image)}
+                alt={product.name}
+                className="ps-hero-img"
+                onError={() => setImgError(true)}
+              />
             ) : (
               <div className="ps-hero-fallback">
                 <img
