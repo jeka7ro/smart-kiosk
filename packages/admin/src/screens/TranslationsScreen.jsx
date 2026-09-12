@@ -6,6 +6,10 @@ const LANGUAGES = ['en', 'fr', 'hu', 'ru', 'bg', 'de', 'es', 'uk'];
 
 const BRAND_LOGOS = {
   smashme: '/brands/smashme-logo.png',
+  crunch: '/brands/crunch-logo.png',
+  rollmaster: '/brands/rollmaster-logo.png',
+  lovesushi: '/brands/lovesushi-logo.png',
+  pokiwoki: '/brands/pokiwoki-logo.png',
   welovesushi: '/brands/welovesushi-logo.png',
   ikura: '/brands/ikura-logo.png',
   sushimaster: '/brands/sushimaster-logo.png'
@@ -13,9 +17,13 @@ const BRAND_LOGOS = {
 
 const BRAND_META = {
   smashme:     { name: 'SmashMe',      color: '#ef4444' },
-  rollmaster: { name: 'Roll Master', color: '#3b82f6' }, lovesushi: { name: 'Love Sushi', color: '#ec4899' }, pokiwoki: { name: 'Poki-Woki', color: '#f97316' }, crunch: { name: 'Crunch', color: '#eab308' },
+  crunch:      { name: 'Crunch',       color: '#eab308' },
+  rollmaster:  { name: 'Roll Master',  color: '#3b82f6' },
+  lovesushi:   { name: 'Love Sushi',   color: '#ec4899' },
+  pokiwoki:    { name: 'Poki-Woki',    color: '#f97316' },
   welovesushi: { name: 'WeLoveSushi',  color: '#f97316' },
   ikura:       { name: 'Ikura',        color: '#1e293b' },
+  sushimaster: { name: 'Sushi Master', color: '#dc2626' }
 };
 
 export default function TranslationsScreen({ backend }) {

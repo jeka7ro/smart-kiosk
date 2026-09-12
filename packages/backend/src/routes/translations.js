@@ -23,22 +23,10 @@ router.post('/update', protect, restrictTo('admin'), async (req, res) => {
       return res.status(400).json({ error: 'Invalid payload. Requires productId and translations object' });
     }
 
-    const dict = translator.loadTranslations();
-    
-    if (!dict[productId]) {
-      dict[productId] = { name: '', originalDescription: '', translations: {} };
-    }
-    
-    // Merge updates
-    dict[productId].translations = {
-      ...dict[productId].translations,
-      ...translations
-    };
-
-    translator.saveTranslations(dict);
+    const updated = await translator.updateProductTranslation(productId, translations);
     
     console.log(`[Admin] Manually updated translations for product ${productId}`);
-    res.json({ success: true, productTranslations: dict[productId] });
+    res.json({ success: true, productTranslations: updated });
   } catch (error) {
     console.error('Failed to update translations:', error.message);
     res.status(500).json({ error: 'Internal server error' });

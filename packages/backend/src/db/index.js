@@ -140,6 +140,20 @@ async function initDb() {
   await pool.query(`ALTER TABLE product_overrides ADD COLUMN IF NOT EXISTS is_hidden BOOLEAN DEFAULT false;`).catch(() => {});
   await pool.query(`ALTER TABLE product_overrides ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT false;`).catch(() => {});
 
+  // ── Product Translations (multilingual descriptions) ─────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS product_translations (
+      id                    TEXT PRIMARY KEY,
+      name                  TEXT,
+      brand_id              TEXT,
+      category_id           TEXT,
+      original_description  TEXT,
+      translations          JSONB NOT NULL DEFAULT '{}',
+      updated_at            TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS product_translations_brand_idx ON product_translations(brand_id);
+  `);
+
   // ─── POS Logs (transactions from Raiffeisen, etc) ─────────────────────────
   await pool.query(`
     CREATE TABLE IF NOT EXISTS pos_logs (

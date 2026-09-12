@@ -150,6 +150,8 @@ async function start() {
   try {
     await initDb();
     console.log('[DB] PostgreSQL connected');
+    const translator = require('./services/translatorService');
+    await translator.syncWithDb();
   } catch (err) {
     console.warn('[DB] PostgreSQL not available — running without DB:', err.message);
   }

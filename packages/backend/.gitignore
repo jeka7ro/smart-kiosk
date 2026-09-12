@@ -1,2 +1,4 @@
 data/*.json
+!data/product_translations.json
 data/*.db
+
