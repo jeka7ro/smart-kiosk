@@ -160,11 +160,6 @@ const REMOVABLE_INGREDIENTS = [
     keywords: ['ceapă', 'ceapa', 'caramelizată', 'caramelizata', 'crispy onion', 'chives', 'praz'],
   },
   {
-    id: 'sos',
-    label: 'Fără sos',
-    keywords: ['sos', 'maioneză', 'maioneza', 'ketchup', 'bbq', 'muștar', 'mustar', 'remoulade', 'aioli', 'dressing'],
-  },
-  {
     id: 'muraturi',
     label: 'Fără murături',
     keywords: ['murături', 'muraturi', 'castraveți', 'castraveti', 'pickles'],
@@ -190,14 +185,9 @@ const REMOVABLE_INGREDIENTS = [
     keywords: ['roșii', 'rosii', 'roșie', 'rosie', 'tomate'],
   },
   {
-    id: 'jalapeno',
-    label: 'Fără jalapeno / iute',
-    keywords: ['jalapeno', 'jalapeño', 'iute', 'chilli', 'chili', 'habanero', 'picant', 'sriracha'],
-  },
-  {
     id: 'sare',
     label: 'Fără sare',
-    keywords: ['sare', 'cartofi', 'fries', 'chips', 'nuggets', 'strips'],
+    keywords: ['sare', 'cartofi', 'fries', 'chips'],
   },
   {
     id: 'piper',
@@ -482,16 +472,88 @@ export default function ProductScreen() {
   const exclusionSuggestions = useMemo(() => {
     if (!product) return [];
 
+    const pName = (product.name || '').toLowerCase();
+    const catObj = (menuCategories || []).find(c => c.id === product.categoryId);
+    const catName = ((catObj?.name) || (product.categoryName) || (product.category) || '').toLowerCase();
+
+    // 1. SOSURI: Sunt amestecate din fabrică/bucătărie, nu se pot exclude ingrediente din ele
+    if (
+      catName.includes('sos') || 
+      pName.startsWith('sos ') || 
+      pName.includes('sauce') ||
+      pName === 'ketchup' || 
+      pName === 'maioneza' || 
+      pName === 'mustar' || 
+      pName === 'sweet chilli'
+    ) {
+      return [];
+    }
+
+    // 2. DESERTURI (Churros etc.): Produse finite dulci
+    if (catName.includes('desert') || pName.includes('churros') || pName.includes('dessert')) {
+      return [];
+    }
+
+    // 3. BĂUTURI: Produse îmbuteliate / pre-mixate
+    if (
+      catName.includes('bautur') || 
+      catName.includes('băutur') || 
+      pName.includes('coca') || 
+      pName.includes('fanta') || 
+      pName.includes('sprite') || 
+      pName.includes('apa') || 
+      pName.includes('schweppes') || 
+      pName.includes('fuzetea') || 
+      pName.includes('cappy')
+    ) {
+      return [];
+    }
+
+    // 4. HOT & CRISPY (Mozzarella Sticks, Fried Cheese simplu, Chicken Nuggets): Se cumpără întregi congelate și se prăjesc în ulei
+    if (
+      catName.includes('hot & crispy') || 
+      pName.includes('mozzarella sticks') || 
+      pName.includes('chicken nuggets') || 
+      (pName.includes('fried cheese') && !pName.includes('fries'))
+    ) {
+      return [];
+    }
+
+    // 5. CUTII PRESTABILITE (Chicken Box, Smart Box)
+    if (catName.includes('box') || pName.includes('smart box') || pName.includes('chicken box')) {
+      return [];
+    }
+
     const textToScan = [
       product.name || '',
       rawDesc || '',
       allergenLabels.join(' '),
     ].join(' ').toLowerCase();
 
-    return REMOVABLE_INGREDIENTS.filter(item =>
-      item.keywords.some(kw => textToScan.includes(kw))
-    );
-  }, [product, rawDesc, allergenLabels]);
+    return REMOVABLE_INGREDIENTS.filter(item => {
+      // Regula 1: Nu arăta "Fără cașcaval / brânză" pe produse a căror bază este brânza/cașcavalul
+      // (ex: Fried Cheese & Fries, Crispy Mozzarella & Fries, Rustic Cheesy Fries)
+      if (item.id === 'branza') {
+        if (pName.includes('fried cheese') || pName.includes('mozzarella') || pName.includes('cheesy')) {
+          return false;
+        }
+      }
+
+      // Regula 2: Nu arăta "Fără ceapă" pe combos care nu conțin ceapă
+      // (ex: Fried Cheese & Fries, Crispy Mozzarella & Fries, Crispy Nuggets & Fries)
+      if (item.id === 'ceapa') {
+        const isFriesOnlyCombo = pName.includes('mozzarella & fries') || 
+                                 pName.includes('fried cheese & fries') || 
+                                 pName.includes('nuggests & fries') || 
+                                 pName.includes('nuggets & fries');
+        if (isFriesOnlyCombo) {
+          return false;
+        }
+      }
+
+      return item.keywords.some(kw => textToScan.includes(kw));
+    });
+  }, [product, rawDesc, allergenLabels, menuCategories]);
 
   const getOptDescription = (opt) => {
     if (!opt) return '';
