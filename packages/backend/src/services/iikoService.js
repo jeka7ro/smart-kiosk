@@ -522,28 +522,28 @@ async function syncStopLists() {
 const SYRVE_PAYMENT_TYPES_BY_BRAND = {
   rollmaster: {
     cash: { paymentTypeId: '09322f46-578a-d210-add7-eec222a08871', paymentTypeKind: 'Cash', isProcessedExternally: false },
-    card: { paymentTypeId: '29ee5e97-c1cf-42ad-90e6-b4c876025bc9', paymentTypeKind: 'Card', isProcessedExternally: true },
-    viva: { paymentTypeId: '07b0e68b-d19a-4b43-ab9b-75c30fd7edc1', paymentTypeKind: 'Card', isProcessedExternally: true },
+    card: { paymentTypeId: '29ee5e97-c1cf-42ad-90e6-b4c876025bc9', paymentTypeKind: 'Card', isProcessedExternally: false },
+    viva: { paymentTypeId: '07b0e68b-d19a-4b43-ab9b-75c30fd7edc1', paymentTypeKind: 'Card', isProcessedExternally: false },
   },
   lovesushi: {
     cash: { paymentTypeId: '09322f46-578a-d210-add7-eec222a08871', paymentTypeKind: 'Cash', isProcessedExternally: false },
-    card: { paymentTypeId: '29ee5e97-c1cf-42ad-90e6-b4c876025bc9', paymentTypeKind: 'Card', isProcessedExternally: true },
-    viva: { paymentTypeId: '07b0e68b-d19a-4b43-ab9b-75c30fd7edc1', paymentTypeKind: 'Card', isProcessedExternally: true },
+    card: { paymentTypeId: '29ee5e97-c1cf-42ad-90e6-b4c876025bc9', paymentTypeKind: 'Card', isProcessedExternally: false },
+    viva: { paymentTypeId: '07b0e68b-d19a-4b43-ab9b-75c30fd7edc1', paymentTypeKind: 'Card', isProcessedExternally: false },
   },
   pokiwoki: {
     cash: { paymentTypeId: '09322f46-578a-d210-add7-eec222a08871', paymentTypeKind: 'Cash', isProcessedExternally: false },
-    card: { paymentTypeId: '29ee5e97-c1cf-42ad-90e6-b4c876025bc9', paymentTypeKind: 'Card', isProcessedExternally: true },
-    viva: { paymentTypeId: '07b0e68b-d19a-4b43-ab9b-75c30fd7edc1', paymentTypeKind: 'Card', isProcessedExternally: true },
+    card: { paymentTypeId: '29ee5e97-c1cf-42ad-90e6-b4c876025bc9', paymentTypeKind: 'Card', isProcessedExternally: false },
+    viva: { paymentTypeId: '07b0e68b-d19a-4b43-ab9b-75c30fd7edc1', paymentTypeKind: 'Card', isProcessedExternally: false },
   },
   smashme: {
     cash: { paymentTypeId: '09322f46-578a-d210-add7-eec222a08871', paymentTypeKind: 'Cash', isProcessedExternally: false },
-    card: { paymentTypeId: 'e46b4e6c-10d5-a739-8fb1-b6674d1e65e7', paymentTypeKind: 'Card', isProcessedExternally: true },
-    viva: { paymentTypeId: '07b0e68b-d19a-4b43-ab9b-75c30fd7edc1', paymentTypeKind: 'Card', isProcessedExternally: true },
+    card: { paymentTypeId: 'e46b4e6c-10d5-a739-8fb1-b6674d1e65e7', paymentTypeKind: 'Card', isProcessedExternally: false },
+    viva: { paymentTypeId: '07b0e68b-d19a-4b43-ab9b-75c30fd7edc1', paymentTypeKind: 'Card', isProcessedExternally: false },
   },
   crunch: {
     cash: { paymentTypeId: '09322f46-578a-d210-add7-eec222a08871', paymentTypeKind: 'Cash', isProcessedExternally: false },
-    card: { paymentTypeId: 'e46b4e6c-10d5-a739-8fb1-b6674d1e65e7', paymentTypeKind: 'Card', isProcessedExternally: true },
-    viva: { paymentTypeId: '07b0e68b-d19a-4b43-ab9b-75c30fd7edc1', paymentTypeKind: 'Card', isProcessedExternally: true },
+    card: { paymentTypeId: 'e46b4e6c-10d5-a739-8fb1-b6674d1e65e7', paymentTypeKind: 'Card', isProcessedExternally: false },
+    viva: { paymentTypeId: '07b0e68b-d19a-4b43-ab9b-75c30fd7edc1', paymentTypeKind: 'Card', isProcessedExternally: false },
   },
 };
 
@@ -637,6 +637,11 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
       .filter(Boolean);
 
     let orderComment = `[${kioskName}] ${orderTypeLabel} | ${isPaidLabel} | Comanda #${order.orderNumber}`;
+    if (order.fiscal?.cui) {
+      const cuiDisplay = order.fiscal.rawCui || order.fiscal.cui;
+      const firmDisplay = order.fiscal.name ? ` (${order.fiscal.name})` : '';
+      orderComment = `🚨 BON FISCAL CU CUI: ${cuiDisplay}${firmDisplay} | ` + orderComment;
+    }
     if (specialNotes.length > 0) {
       orderComment += ` | MENȚIUNI: ${specialNotes.join('; ')}`;
     }
@@ -659,6 +664,15 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
       console.warn(`[Syrve] Failed to fetch terminal groups for org ${resolvedOrgId}:`, tErr.message);
     }
 
+    const customerData = order.fiscal?.cui ? {
+      name: (order.fiscal.name || 'Client').slice(0, 60),
+      surname: String(order.fiscal.rawCui || order.fiscal.cui || '').slice(0, 30),
+      comment: `CUI: ${order.fiscal.rawCui || order.fiscal.cui} | RegCom: ${order.fiscal.regCom || ''} | Adresa: ${order.fiscal.address || ''}`,
+    } : {
+      name: 'Kiosk Client',
+      surname: '',
+    };
+
     payload = {
       createOrderSettings: {
         mode: 'Async',
@@ -667,10 +681,7 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
       terminalGroupId: terminalGroupId,
       order: {
         deliveryPoint: null,
-        customer: {
-          name: 'Kiosk Client',
-          surname: ''
-        },
+        customer: customerData,
         items: syrveItems,
         payments: [
           {
@@ -686,6 +697,12 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
         externalNumber: `K${order.orderNumber}`,
         comment: orderComment,
         sourceKey: 'Smart Kiosk',
+        externalData: order.fiscal?.cui ? [
+          { key: 'cui', value: String(order.fiscal.rawCui || order.fiscal.cui) },
+          { key: 'companyName', value: String(order.fiscal.name || '') },
+          { key: 'companyAddress', value: String(order.fiscal.address || '') },
+          { key: 'regCom', value: String(order.fiscal.regCom || '') },
+        ] : null,
       },
     };
 

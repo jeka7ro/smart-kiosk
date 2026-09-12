@@ -4,6 +4,7 @@ import { t } from '../i18n/translations.js';
 import { useBrand } from '../context/BrandContext.js';
 import { useInactivityTimeout } from '../hooks/useInactivityTimeout.js';
 import { proxySyrveImage } from '../utils/imageUtils.js';
+import FiscalModal from '../components/FiscalModal.jsx';
 import './CartScreen.css';
 
 export default function CartScreen() {
@@ -19,7 +20,11 @@ export default function CartScreen() {
   const setShowWheel   = useKioskStore((s) => s.setShowWheel);
   const setPromoIntendedRoute = useKioskStore((s) => s.setPromoIntendedRoute);
   const hasPlayedPromo = useKioskStore((s) => s.hasPlayedPromo);
-  
+  const fiscalData     = useKioskStore((s) => s.fiscalData);
+  const setFiscalData  = useKioskStore((s) => s.setFiscalData);
+  const clearFiscalData = useKioskStore((s) => s.clearFiscalData);
+
+  const [showFiscalModal, setShowFiscalModal] = useState(false);
   const brand          = useBrand();
   const [imgErrors, setImgErrors] = useState({});
   const [addedIds, setAddedIds]   = useState({});
@@ -216,6 +221,41 @@ export default function CartScreen() {
             </div>
           )}
 
+          {/* Fiscal / CUI Option */}
+          <div className="cart-fiscal-section">
+            {!fiscalData ? (
+              <button 
+                type="button" 
+                className="cart-fiscal-btn"
+                onClick={() => setShowFiscalModal(true)}
+              >
+                <div className="cf-icon">🏢</div>
+                <div className="cf-info">
+                  <span className="cf-title">Doriți bon fiscal cu CUI?</span>
+                  <span className="cf-sub">Persoană Juridică / Factură</span>
+                </div>
+                <div className="cf-arrow">＋</div>
+              </button>
+            ) : (
+              <div className="cart-fiscal-active-card">
+                <div className="cf-active-icon">✓</div>
+                <div className="cf-active-info">
+                  <span className="cf-company-name">{fiscalData.name}</span>
+                  <span className="cf-company-cui">CUI: {fiscalData.rawCui || fiscalData.cui} {fiscalData.isVatPayer ? '• Plătitor TVA' : ''}</span>
+                </div>
+                <button 
+                  type="button" 
+                  className="cf-remove-btn" 
+                  onClick={() => clearFiscalData()}
+                  title="Elimină CUI"
+                  aria-label="Elimină date firmă"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+          </div>
+
           <div className="summary-rows">
             <div className="summary-row">
               <span>{t('subtotal', lang)}</span>
@@ -273,6 +313,15 @@ export default function CartScreen() {
           </button>
         </div>
       </div>
+
+      {/* Fiscal Modal */}
+      <FiscalModal
+        isOpen={showFiscalModal}
+        onClose={() => setShowFiscalModal(false)}
+        onConfirm={(data) => setFiscalData(data)}
+        initialCui={fiscalData?.cui || ''}
+        lang={lang}
+      />
     </div>
   );
 }

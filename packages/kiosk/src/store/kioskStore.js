@@ -182,6 +182,11 @@ export const useKioskStore = create((set, get) => ({
 
   clearCart: () => set({ cartItems: [] }),
 
+  // ─── Fiscal / Company Data ────────────────────────────────
+  fiscalData: null,
+  setFiscalData: (data) => set({ fiscalData: data }),
+  clearFiscalData: () => set({ fiscalData: null }),
+
   // ─── Computed ─────────────────────────────────────────────
   getCartCount: () => get().cartItems.reduce((sum, i) => sum + i.quantity, 0),
   getCartTotal: () => get().cartItems.reduce((sum, i) => sum + i.totalPrice, 0),
@@ -194,6 +199,7 @@ export const useKioskStore = create((set, get) => ({
     tableNumber: null,
     paymentMethod: 'card',
     selectedProduct: null,
+    fiscalData: null,
     hasPlayedPromo: false,
     hasShownStartPromo: false,
     screen: 'welcome',
@@ -206,6 +212,7 @@ export const useKioskStore = create((set, get) => ({
     orderType: null,
     tableNumber: null,
     selectedProduct: null,
+    fiscalData: null,
     hasPlayedPromo: false,
     hasShownStartPromo: false,
     screen: 'welcome',

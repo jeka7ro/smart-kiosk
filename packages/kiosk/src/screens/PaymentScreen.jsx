@@ -36,6 +36,7 @@ export default function PaymentScreen() {
   const activeBrandId  = useKioskStore((s) => s.activeBrandId);
   const setPaymentMethod = useKioskStore((s) => s.setPaymentMethod);
   const setLastOrderNumber = useKioskStore((s) => s.setLastOrderNumber);
+  const fiscalData     = useKioskStore((s) => s.fiscalData);
 
   const total      = getCartTotal();
   const orderIdRef = useRef(null);
@@ -112,6 +113,7 @@ export default function PaymentScreen() {
             comment: i.comment || (i.selectedModifiers?.find(m => m.modId === 'custom_comment')?.optionName) || null,
           })),
           totalAmount: total, channel: 'kiosk', paymentMethod: pMethod,
+          fiscal: fiscalData || null,
           paymentRef: { authCode: paymentResult?.authCode, receiptNo: paymentResult?.receiptNo,
                         cardNo: paymentResult?.cardNo, refNum: paymentResult?.refNum,
                         extraFields: paymentResult?.extraFields },
@@ -120,7 +122,7 @@ export default function PaymentScreen() {
       const data = await res.json();
       return data.order;
     } catch (err) { console.error('[PaymentScreen] sendOrder failed:', err); return null; }
-  }, [cartItems, total, orderType, tableNumber, activeBrandId, locationData]);
+  }, [cartItems, total, orderType, tableNumber, activeBrandId, locationData, fiscalData]);
 
   const handlePayCash = async () => {
     setPayState(STATE.INITIATING);

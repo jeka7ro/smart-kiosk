@@ -189,6 +189,22 @@ async function printTicket(order) {
     printer.bold(false);
     printer.setTextNormal();
     
+    if (order.fiscal?.cui) {
+      printer.newLine();
+      printer.drawLine();
+      printer.bold(true);
+      printer.println("SOLICITARE BON FISCAL CU CUI");
+      printer.bold(false);
+      printer.println(`CUI: ${order.fiscal.rawCui || order.fiscal.cui}`);
+      if (order.fiscal.name) {
+        printer.println(order.fiscal.name);
+      }
+      if (order.fiscal.regCom) {
+        printer.println(`Reg.Com: ${order.fiscal.regCom}`);
+      }
+      printer.drawLine();
+    }
+    
     printer.newLine();
     printer.alignLeft();
     printer.println("Produse:");

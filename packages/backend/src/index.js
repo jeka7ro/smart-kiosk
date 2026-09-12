@@ -26,6 +26,7 @@ const productsRoutes    = require('./routes/products');
 const posLogsRoutes     = require('./routes/posLogs');
 const printerLogsRoutes = require('./routes/printerLogs');
 const portScansRoutes   = require('./routes/portScans');
+const anafRoutes        = require('./routes/anaf');
 
 const app = express();
 const server = http.createServer(app);
@@ -93,6 +94,7 @@ app.use('/api/pos-logs',     posLogsRoutes);
 app.use('/api/printer-logs', printerLogsRoutes);
 app.use('/api/port-scans',   portScansRoutes);
 app.use('/api/iiko-logs',    require('./routes/iikoLogs.js'));
+app.use('/api/anaf',         anafRoutes);
 
 // Serve uploaded brand logos
 const path = require('path');

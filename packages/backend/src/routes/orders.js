@@ -21,7 +21,8 @@ router.post('/', async (req, res) => {
     const {
       locationId, brand, brandId, orgId, locationName,
       orderType, tableNumber, items,
-      totalAmount, lang, channel, paymentMethod, paymentRef, kioskId
+      totalAmount, lang, channel, paymentMethod, paymentRef, kioskId,
+      fiscal
     } = req.body;
 
     if (!items || items.length === 0) {
@@ -120,6 +121,7 @@ router.post('/', async (req, res) => {
       paymentMethod: paymentMethod || 'card',
       paymentRef: paymentRef || null,
       status: status,
+      fiscal: fiscal || null,
       syrveOrderId: null,
       arrivedAt: Date.now(),
       createdAt: new Date().toISOString(),
