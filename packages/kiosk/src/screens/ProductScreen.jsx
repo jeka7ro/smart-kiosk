@@ -320,269 +320,267 @@ export default function ProductScreen() {
         {/* ─── TOP BAR ─── */}
         <div className="ps-modal-top">
           <div className="ps-modal-top-left">
-            <span className="ps-modal-top-tag">{product._brand?.toUpperCase() || brand?.name || 'SMASH ME'}</span>
+            <img 
+              src={`/brands/${product._brand || brand?.id || 'smashme'}-logo.png`} 
+              alt={brand?.name || 'Smash Me'} 
+              className="ps-modal-brand-logo" 
+              onError={(e) => {
+                e.target.style.display = 'none';
+              }}
+            />
           </div>
           <button type="button" className="ps-close-btn" onClick={() => goTo('menu')} aria-label="Închide">
             <IconClose />
           </button>
         </div>
 
-        {/* ─── 2-COLUMN BALANCED KIOSK BODY (2/3 DIN ECRAN) ─── */}
-        <div className="ps-card-body-2col scroll-y">
+        {/* ─── MAIN SCROLLABLE BODY ─── */}
+        <div className="ps-card-body scroll-y">
           
-          {/* ── COLOANA STÂNGA: PRODUS, DESCRIERE & ALERGENI ── */}
-          <div className="ps-col-left">
-            
-            {/* Poza Mare Produs */}
-            <div className="ps-hero-wrap">
-              {product.image && !imgError ? (
-                <img
-                  src={proxySyrveImage(product.image)}
-                  alt={product.name}
-                  className="ps-hero-img"
-                  onError={() => setImgError(true)}
-                />
-              ) : (
-                <div className="ps-hero-fallback">
-                  <img
-                    src={`/brands/${brand?.id || 'smashme'}-logo.png`}
-                    alt=""
-                    className="ps-hero-fallback-logo"
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Nume & Preț */}
-            <div className="ps-header-row">
-              <h1 className="ps-title">{product.name}</h1>
-              <span className="ps-price">{unitPrice.toFixed(2)} lei</span>
-            </div>
-
-            {/* Descriere Comercială Scurtă */}
-            {shortDesc && (
-              <div 
-                className="ps-description"
-                dangerouslySetInnerHTML={{ __html: shortDesc }}
+          {/* Poza Mare Produs (Mare și Apetisantă pe tot rândul) */}
+          <div className="ps-hero-wrap">
+            {product.image && !imgError ? (
+              <img
+                src={proxySyrveImage(product.image)}
+                alt={product.name}
+                className="ps-hero-img"
+                onError={() => setImgError(true)}
               />
-            )}
-
-            {/* Buton discret rotund cu contur pentru Alergeni & Nutriție (FĂRĂ EMOJI) */}
-            {(product.weight || product.energyAmount || allergenLabels.length > 0 || detailedIngredients) && (
-              <div className="ps-allergens-accordion">
-                <button
-                  type="button"
-                  className={`ps-allergens-toggle-btn ${showAllergens ? 'ps-allergens-toggle-btn--open' : ''}`}
-                  onClick={() => setShowAllergens(v => !v)}
-                >
-                  <div className="ps-allergens-toggle-left">
-                    <span className="ps-round-badge">
-                      <IconInfo />
-                    </span>
-                    <span className="ps-allergens-label">
-                      {lang === 'ro' ? 'Alergeni & Valori nutriționale' : (t('allergens', lang) || 'Alergeni')}
-                    </span>
-                  </div>
-                  <span className="ps-chevron-pill">{showAllergens ? 'Închide' : 'Afișează'}</span>
-                </button>
-
-                {showAllergens && (
-                  <div className="ps-allergens-expanded">
-                    <div className="ps-meta-items-row">
-                      {product.weight && <span className="ps-meta-pill">Greutate: {product.weight}g</span>}
-                      {product.energyAmount && <span className="ps-meta-pill">Calorii: {Math.round(product.energyAmount)} kcal</span>}
-                    </div>
-                    {allergenLabels.length > 0 && (
-                      <div className="ps-allergens-tags-row">
-                        <span className="ps-allergens-tags-title">Alergeni declarați:</span>
-                        <div className="ps-allergens-tags-list">
-                          {allergenLabels.map(a => (
-                            <span key={a} className="ps-allergen-tag">{a}</span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {detailedIngredients && (
-                      <div className="ps-detailed-ingredients">
-                        <span className="ps-detailed-ingredients-title">Ingrediente & Detalii complete:</span>
-                        <p className="ps-detailed-ingredients-text">{detailedIngredients}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
+            ) : (
+              <div className="ps-hero-fallback">
+                <img
+                  src={`/brands/${brand?.id || 'smashme'}-logo.png`}
+                  alt=""
+                  className="ps-hero-fallback-logo"
+                />
               </div>
             )}
           </div>
 
-          {/* ── COLOANA DREAPTA: OPȚIUNI, RECOMANDĂRI & CANTITATE ── */}
-          <div className="ps-col-right">
+          {/* Nume & Preț */}
+          <div className="ps-header-row">
+            <h1 className="ps-title">{product.name}</h1>
+            <span className="ps-price">{unitPrice.toFixed(2)} lei</span>
+          </div>
 
-            {/* Modificatori / Opțiuni */}
-            {modifiers.map(mod => {
-              const opts = mod.options || mod.items || [];
-              if (opts.length === 0) return null;
-              const groupLabel = mod.name ? mod.name.toUpperCase() : (t('options', lang) || 'OPȚIUNI').toUpperCase();
-              
-              let reqBadge = null;
-              if (mod.required) {
-                const min = mod.minAmount ?? 1;
-                const max = mod.maxAmount ?? 1;
-                reqBadge = min === max 
-                  ? (t('choose_exact', lang) || 'Alege {amount}').replace('{amount}', min)
-                  : (t('choose_min_max', lang) || 'Alege {min}-{max}').replace('{min}', min).replace('{max}', max);
-              }
-              
-              return (
-                <div key={mod.id} className="ps-mod-group">
-                  <div className="ps-mod-header">
-                    <h3 className="ps-mod-title">{groupLabel}</h3>
-                    {reqBadge && <span className="ps-req-badge">{reqBadge}</span>}
-                  </div>
-                  <div className="ps-mod-options-grid">
-                    {opts.map(opt => {
-                      const isSel = selected[mod.id] === opt.id;
-                      return (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          className={`ps-mod-opt ${isSel ? 'ps-mod-opt--selected' : ''}`}
-                          onClick={() => handleSelect(mod.id, opt.id)}
-                        >
-                          {opt.image && (
-                            <img
-                              src={proxySyrveImage(opt.image)}
-                              alt={opt.name}
-                              className="ps-mod-opt-img"
-                              onError={e => { e.target.style.display = 'none'; }}
-                            />
-                          )}
-                          <span className="ps-mod-opt-name">{opt.name}</span>
-                          {(opt.priceDiff > 0 || opt.price > 0) && (
-                            <span className="ps-mod-opt-price">
-                              +{(opt.priceDiff || opt.price || 0).toFixed(2)} lei
-                            </span>
-                          )}
-                          {isSel && (
-                            <span className="ps-mod-check">
-                              <IconCheck />
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
+          {/* Descriere Comercială Scurtă */}
+          {shortDesc && (
+            <div 
+              className="ps-description"
+              dangerouslySetInnerHTML={{ __html: shortDesc }}
+            />
+          )}
 
-            {/* ─── SECȚIUNEA RECOMANDĂRI ("Se potrivește de minune cu") ─── */}
-            {pairings.length > 0 && (
-              <div className="ps-pairings-section">
-                <div className="ps-pairings-header">
-                  <span className="ps-round-badge ps-round-badge--primary">
-                    <IconStarCircle />
+          {/* Buton discret rotund cu contur pentru Alergeni & Nutriție (FĂRĂ EMOJI) */}
+          {(product.weight || product.energyAmount || allergenLabels.length > 0 || detailedIngredients) && (
+            <div className="ps-allergens-accordion">
+              <button
+                type="button"
+                className={`ps-allergens-toggle-btn ${showAllergens ? 'ps-allergens-toggle-btn--open' : ''}`}
+                onClick={() => setShowAllergens(v => !v)}
+              >
+                <div className="ps-allergens-toggle-left">
+                  <span className="ps-round-badge">
+                    <IconInfo />
                   </span>
-                  <h3 className="ps-pairings-title">Se potrivește de minune cu:</h3>
+                  <span className="ps-allergens-label">
+                    {lang === 'ro' ? 'Alergeni & Valori nutriționale' : (t('allergens', lang) || 'Alergeni')}
+                  </span>
                 </div>
+                <span className="ps-chevron-pill">{showAllergens ? 'Închide' : 'Afișează'}</span>
+              </button>
 
-                <div className="ps-pairings-grid">
-                  {pairings.map(item => {
-                    const isSel = selectedPairings.some(p => p.id === item.id);
-
-                    return (
-                      <div
-                        key={item.id}
-                        className={`ps-pairing-card ${isSel ? 'ps-pairing-card--selected' : ''}`}
-                        onClick={() => togglePairing(item)}
-                      >
-                        <div className="ps-pairing-img-wrap">
-                          {item.image ? (
-                            <img
-                              src={proxySyrveImage(item.image)}
-                              alt={item.name}
-                              className="ps-pairing-img"
-                              onError={e => { e.target.style.display = 'none'; }}
-                            />
-                          ) : (
-                            <div className="ps-pairing-fallback">
-                              {item.type === 'cartofi' && <IconFries />}
-                              {item.type === 'sos' && <IconSauce />}
-                              {item.type === 'bautura' && <IconDrink />}
-                              {item.type === 'burger' && <IconBurger />}
-                            </div>
-                          )}
-                          {isSel && (
-                            <div className="ps-pairing-check-badge">
-                              <IconCheck />
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="ps-pairing-info">
-                          <span className="ps-pairing-name">{item.name}</span>
-                          <span className="ps-pairing-price">+{item.price.toFixed(2)} lei</span>
-                        </div>
-
-                        <button
-                          type="button"
-                          className={`ps-pairing-btn ${isSel ? 'ps-pairing-btn--selected' : ''}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            togglePairing(item);
-                          }}
-                        >
-                          {isSel ? (
-                            <>
-                              <span className="ps-btn-mini-icon"><IconCheck /></span>
-                              <span>Adăugat</span>
-                            </>
-                          ) : (
-                            <>
-                              <span className="ps-btn-mini-icon"><IconPlus /></span>
-                              <span>Adaugă</span>
-                            </>
-                          )}
-                        </button>
+              {showAllergens && (
+                <div className="ps-allergens-expanded">
+                  <div className="ps-meta-items-row">
+                    {product.weight && <span className="ps-meta-pill">Greutate: {product.weight}g</span>}
+                    {product.energyAmount && <span className="ps-meta-pill">Calorii: {Math.round(product.energyAmount)} kcal</span>}
+                  </div>
+                  {allergenLabels.length > 0 && (
+                    <div className="ps-allergens-tags-row">
+                      <span className="ps-allergens-tags-title">Alergeni declarați:</span>
+                      <div className="ps-allergens-tags-list">
+                        {allergenLabels.map(a => (
+                          <span key={a} className="ps-allergen-tag">{a}</span>
+                        ))}
                       </div>
+                    </div>
+                  )}
+                  {detailedIngredients && (
+                    <div className="ps-detailed-ingredients">
+                      <span className="ps-detailed-ingredients-title">Ingrediente & Detalii complete:</span>
+                      <p className="ps-detailed-ingredients-text">{detailedIngredients}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Modificatori / Opțiuni */}
+          {modifiers.map(mod => {
+            const opts = mod.options || mod.items || [];
+            if (opts.length === 0) return null;
+            const groupLabel = mod.name ? mod.name.toUpperCase() : (t('options', lang) || 'OPȚIUNI').toUpperCase();
+            
+            let reqBadge = null;
+            if (mod.required) {
+              const min = mod.minAmount ?? 1;
+              const max = mod.maxAmount ?? 1;
+              reqBadge = min === max 
+                ? (t('choose_exact', lang) || 'Alege {amount}').replace('{amount}', min)
+                : (t('choose_min_max', lang) || 'Alege {min}-{max}').replace('{min}', min).replace('{max}', max);
+            }
+            
+            return (
+              <div key={mod.id} className="ps-mod-group">
+                <div className="ps-mod-header">
+                  <h3 className="ps-mod-title">{groupLabel}</h3>
+                  {reqBadge && <span className="ps-req-badge">{reqBadge}</span>}
+                </div>
+                <div className="ps-mod-options-grid">
+                  {opts.map(opt => {
+                    const isSel = selected[mod.id] === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        className={`ps-mod-opt ${isSel ? 'ps-mod-opt--selected' : ''}`}
+                        onClick={() => handleSelect(mod.id, opt.id)}
+                      >
+                        {opt.image && (
+                          <img
+                            src={proxySyrveImage(opt.image)}
+                            alt={opt.name}
+                            className="ps-mod-opt-img"
+                            onError={e => { e.target.style.display = 'none'; }}
+                          />
+                        )}
+                        <span className="ps-mod-opt-name">{opt.name}</span>
+                        {(opt.priceDiff > 0 || opt.price > 0) && (
+                          <span className="ps-mod-opt-price">
+                            +{(opt.priceDiff || opt.price || 0).toFixed(2)} lei
+                          </span>
+                        )}
+                        {isSel && (
+                          <span className="ps-mod-check">
+                            <IconCheck />
+                          </span>
+                        )}
+                      </button>
                     );
                   })}
                 </div>
               </div>
-            )}
+            );
+          })}
 
-            {/* Câmp Opțional: Mențiuni Speciale */}
-            <div className="ps-comment-wrap">
-              <input
-                type="text"
-                className="ps-comment-input"
-                placeholder="Adaugă mențiuni sau instrucțiuni speciale (opțional)"
-                value={comment}
-                onChange={e => setComment(e.target.value)}
-              />
-            </div>
+          {/* ─── SECȚIUNEA RECOMANDĂRI SUB EA ("Se potrivește de minune cu") ─── */}
+          {pairings.length > 0 && (
+            <div className="ps-pairings-section">
+              <div className="ps-pairings-header">
+                <span className="ps-round-badge ps-round-badge--primary">
+                  <IconStarCircle />
+                </span>
+                <h3 className="ps-pairings-title">Se potrivește de minune cu:</h3>
+              </div>
 
-            {/* Selector Cantitate */}
-            <div className="ps-qty-row">
-              <span className="ps-qty-label">Cantitate:</span>
-              <div className="ps-qty-controls">
-                <button 
-                  type="button"
-                  className="ps-qty-btn ps-qty-minus" 
-                  onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                >
-                  −
-                </button>
-                <span className="ps-qty-val">{quantity}</span>
-                <button 
-                  type="button"
-                  className="ps-qty-btn ps-qty-plus" 
-                  onClick={() => setQuantity(q => Math.min(20, q + 1))}
-                >
-                  +
-                </button>
+              <div className="ps-pairings-grid">
+                {pairings.map(item => {
+                  const isSel = selectedPairings.some(p => p.id === item.id);
+
+                  return (
+                    <div
+                      key={item.id}
+                      className={`ps-pairing-card ${isSel ? 'ps-pairing-card--selected' : ''}`}
+                      onClick={() => togglePairing(item)}
+                    >
+                      <div className="ps-pairing-img-wrap">
+                        {item.image ? (
+                          <img
+                            src={proxySyrveImage(item.image)}
+                            alt={item.name}
+                            className="ps-pairing-img"
+                            onError={e => { e.target.style.display = 'none'; }}
+                          />
+                        ) : (
+                          <div className="ps-pairing-fallback">
+                            {item.type === 'cartofi' && <IconFries />}
+                            {item.type === 'sos' && <IconSauce />}
+                            {item.type === 'bautura' && <IconDrink />}
+                            {item.type === 'burger' && <IconBurger />}
+                          </div>
+                        )}
+                        {isSel && (
+                          <div className="ps-pairing-check-badge">
+                            <IconCheck />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="ps-pairing-info">
+                        <span className="ps-pairing-name">{item.name}</span>
+                        <span className="ps-pairing-price">+{item.price.toFixed(2)} lei</span>
+                      </div>
+
+                      <button
+                        type="button"
+                        className={`ps-pairing-btn ${isSel ? 'ps-pairing-btn--selected' : ''}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          togglePairing(item);
+                        }}
+                      >
+                        {isSel ? (
+                          <>
+                            <span className="ps-btn-mini-icon"><IconCheck /></span>
+                            <span>Adăugat</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="ps-btn-mini-icon"><IconPlus /></span>
+                            <span>Adaugă</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
+          )}
 
+          {/* Câmp Opțional: Mențiuni Speciale */}
+          <div className="ps-comment-wrap">
+            <input
+              type="text"
+              className="ps-comment-input"
+              placeholder="Adaugă mențiuni sau instrucțiuni speciale (opțional)"
+              value={comment}
+              onChange={e => setComment(e.target.value)}
+            />
+          </div>
+
+          {/* Selector Cantitate */}
+          <div className="ps-qty-row">
+            <span className="ps-qty-label">Cantitate:</span>
+            <div className="ps-qty-controls">
+              <button 
+                type="button"
+                className="ps-qty-btn ps-qty-minus" 
+                onClick={() => setQuantity(q => Math.max(1, q - 1))}
+              >
+                −
+              </button>
+              <span className="ps-qty-val">{quantity}</span>
+              <button 
+                type="button"
+                className="ps-qty-btn ps-qty-plus" 
+                onClick={() => setQuantity(q => Math.min(20, q + 1))}
+              >
+                +
+              </button>
+            </div>
           </div>
 
         </div>
