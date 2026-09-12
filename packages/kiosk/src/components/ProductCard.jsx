@@ -94,11 +94,27 @@ export default function ProductCard({ product, delay, lang, activeBrand, onQuick
       {/* Footer: [ ♡ ] [ Vreau / - N buc. + ] */}
       <div style={{ display: 'flex', gap: 12, marginTop: 'auto' }}>
         <button 
-          style={{ width: 44, height: 44, borderRadius: 10, border: '1px solid #e5e7eb', background: isFavorited ? '#fff0f0' : '#fff', color: isFavorited ? '#ef4444' : '#9ca3af', fontSize: '1.4rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, transition: 'all 0.2s' }}
+          style={{ 
+            width: 44, 
+            height: 44, 
+            borderRadius: '50%', 
+            border: '1.5px solid #e2e8f0', 
+            background: isFavorited ? '#fff0f0' : '#ffffff', 
+            color: isFavorited ? '#EE3B24' : '#64748b', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            cursor: 'pointer', 
+            flexShrink: 0, 
+            transition: 'all 0.2s',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.04)'
+          }}
           onClick={(e) => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(product); }}
           title={isFavorited ? 'Scoate din favorite' : 'Salvează'}
         >
-          {isFavorited ? '❤️' : '♡'}
+          <svg width="20" height="20" viewBox="0 0 24 24" fill={isFavorited ? '#EE3B24' : 'none'} stroke={isFavorited ? '#EE3B24' : '#64748b'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+          </svg>
         </button>
 
         {cartQty === 0 ? (

@@ -601,20 +601,26 @@
 
 .ps-pairing-btn {
   width: 100%;
-  min-height: 36px;
-  background: #ffffff;
-  border: 1.5px solid #EE3B24;
-  color: #EE3B24;
+  min-height: 38px;
+  background: #EE3B24;
+  border: none;
+  color: #ffffff;
   border-radius: 20px;
-  padding: 5px 8px;
-  font-size: 0.8rem;
-  font-weight: 700;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 800;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  transition: all 0.15s;
+  gap: 6px;
+  box-shadow: 0 4px 12px rgba(238, 59, 36, 0.28);
+  transition: all 0.15s ease;
+}
+
+.ps-pairing-btn:hover {
+  background: #d32f2f;
+  box-shadow: 0 5px 15px rgba(238, 59, 36, 0.38);
 }
 
 .ps-pairing-btn:active {
@@ -622,9 +628,10 @@
 }
 
 .ps-pairing-btn--selected {
-  background: #EE3B24;
-  border-color: #EE3B24;
+  background: #10b981;
+  border: none;
   color: #ffffff;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
 .ps-btn-mini-icon {
