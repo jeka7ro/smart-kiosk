@@ -337,15 +337,23 @@ export default function ProductScreen() {
         {/* ─── MAIN SCROLLABLE BODY ─── */}
         <div className="ps-card-body scroll-y">
           
-          {/* Poza Mare Produs (Mare și Apetisantă pe tot rândul) */}
+          {/* Poza Mare Produs (Mare și Apetisantă pe tot rândul - Integral Vizibilă) */}
           <div className="ps-hero-wrap">
             {product.image && !imgError ? (
-              <img
-                src={proxySyrveImage(product.image)}
-                alt={product.name}
-                className="ps-hero-img"
-                onError={() => setImgError(true)}
-              />
+              <>
+                <img
+                  src={proxySyrveImage(product.image)}
+                  alt=""
+                  className="ps-hero-bg-blur"
+                  aria-hidden="true"
+                />
+                <img
+                  src={proxySyrveImage(product.image)}
+                  alt={product.name}
+                  className="ps-hero-img"
+                  onError={() => setImgError(true)}
+                />
+              </>
             ) : (
               <div className="ps-hero-fallback">
                 <img
@@ -561,36 +569,33 @@ export default function ProductScreen() {
             />
           </div>
 
-          {/* Selector Cantitate */}
-          <div className="ps-qty-row">
-            <span className="ps-qty-label">Cantitate:</span>
-            <div className="ps-qty-controls">
-              <button 
-                type="button"
-                className="ps-qty-btn ps-qty-minus" 
-                onClick={() => setQuantity(q => Math.max(1, q - 1))}
-              >
-                −
-              </button>
-              <span className="ps-qty-val">{quantity}</span>
-              <button 
-                type="button"
-                className="ps-qty-btn ps-qty-plus" 
-                onClick={() => setQuantity(q => Math.min(20, q + 1))}
-              >
-                +
-              </button>
-            </div>
-          </div>
-
         </div>
 
-        {/* ─── BARA FIXĂ DE JOS (STILUL CURAT KIOSK SMASH ME) ─── */}
+        {/* ─── BARA FIXĂ DE JOS (CU CANTITATE, TOTAL ȘI BUTON VERDE) ─── */}
         <div className="ps-bottom-bar">
           <button type="button" className="ps-back-btn" onClick={() => goTo('menu')}>
             <IconArrowLeft />
             <span>{t('back', lang) || 'Înapoi'}</span>
           </button>
+
+          {/* Selector Cantitate mutată pe rândul de jos */}
+          <div className="ps-bottom-qty">
+            <button 
+              type="button"
+              className="ps-qty-btn ps-qty-minus" 
+              onClick={() => setQuantity(q => Math.max(1, q - 1))}
+            >
+              −
+            </button>
+            <span className="ps-qty-val">{quantity}</span>
+            <button 
+              type="button"
+              className="ps-qty-btn ps-qty-plus" 
+              onClick={() => setQuantity(q => Math.min(20, q + 1))}
+            >
+              +
+            </button>
+          </div>
 
           <div className="ps-total-wrap">
             <span className="ps-total-label">Total de plată</span>
