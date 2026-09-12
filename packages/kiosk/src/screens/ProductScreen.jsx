@@ -5,6 +5,113 @@ import { useBrand } from '../context/BrandContext.js';
 import { proxySyrveImage } from '../utils/imageUtils.js';
 import './ProductScreen.css';
 
+/* ─── Clean Vector SVG Icons (No Emojis) ─── */
+function IconInfo() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="16" x2="12" y2="12" />
+      <line x1="12" y1="8" x2="12.01" y2="8" />
+    </svg>
+  );
+}
+
+function IconStarCircle() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M12 7l1.3 3.3L16.5 12l-3.2 1.7L12 17l-1.3-3.3L7.5 12l3.2-1.7z" fill="currentColor" />
+    </svg>
+  );
+}
+
+function IconFries() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 10V6a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v4" />
+      <path d="M5 10h14l-1.5 11a2 2 0 0 1-2 1.8H8.5a2 2 0 0 1-2-1.8L5 10z" />
+      <line x1="9" y1="3" x2="9" y2="1" />
+      <line x1="12" y1="3" x2="12" y2="1" />
+      <line x1="15" y1="3" x2="15" y2="1" />
+    </svg>
+  );
+}
+
+function IconSauce() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 11h16a8 8 0 0 1-16 0z" />
+      <line x1="12" y1="4" x2="12" y2="8" />
+      <path d="M8 8a4 4 0 0 1 8 0" />
+    </svg>
+  );
+}
+
+function IconDrink() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M7 8h10l-1.2 12a2 2 0 0 1-2 1.8H10.2a2 2 0 0 1-2-1.8L7 8z" />
+      <path d="M6 8V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2" />
+      <line x1="15" y1="2" x2="13" y2="8" />
+    </svg>
+  );
+}
+
+function IconBurger() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 11a8 8 0 0 1 16 0H4z" />
+      <rect x="3" y="14" width="18" height="2" rx="1" />
+      <path d="M4 19a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3H4z" />
+    </svg>
+  );
+}
+
+function IconCheck() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
+function IconPlus() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+
+function IconBag() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+      <line x1="3" y1="6" x2="21" y2="6" />
+      <path d="M16 10a4 4 0 0 1-8 0" />
+    </svg>
+  );
+}
+
+function IconClose() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+}
+
+function IconArrowLeft() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="19" y1="12" x2="5" y2="12" />
+      <polyline points="12 19 5 12 12 5" />
+    </svg>
+  );
+}
+
 export default function ProductScreen() {
   const product        = useKioskStore((s) => s.selectedProduct);
   const addToCart      = useKioskStore((s) => s.addToCart);
@@ -60,7 +167,7 @@ export default function ProductScreen() {
     const isSauce = currCatName.includes('sos') || currName.includes('sos');
     const isDrink = currCatName.includes('bautur') || currName.includes('cola') || currName.includes('apa') || currName.includes('fanta') || currName.includes('sprite');
 
-    // 1. Garnituri / Cartofi
+    // 1. Garnituri
     const sides = pool.filter(p => {
       const c = catMap[p.categoryId] || '';
       return c.includes('garnitur') || p.name.toLowerCase().includes('cartofi') || p.name.toLowerCase().includes('fries');
@@ -151,7 +258,6 @@ export default function ProductScreen() {
       };
     }).filter(m => m.optionName);
 
-    // If user typed custom instructions/notes, include in modifiers
     if (comment && comment.trim()) {
       selectedModifiers.push({
         modId: 'custom_comment',
@@ -162,15 +268,15 @@ export default function ProductScreen() {
 
     const actualBrandId = product._brand || brand?.id;
 
-    // 1. Add main product
+    // 1. Adaugă produsul principal
     addToCart(product, quantity, selectedModifiers, unitPrice, actualBrandId, false);
 
-    // 2. Add each selected companion item
+    // 2. Adaugă fiecare produs recomandat selectat
     selectedPairings.forEach(pair => {
       addToCart(pair, 1, [], pair.price, pair._brand || actualBrandId, false);
     });
 
-    // 3. Return to menu
+    // 3. Mergi înapoi la meniu
     goTo('menu');
   };
 
@@ -178,16 +284,16 @@ export default function ProductScreen() {
     typeof a === 'string' ? a : (a.name || a.id || '')
   ).filter(Boolean);
 
-  const localizedDesc = (lang !== 'ro' && product.translations && product.translations[lang])
+  const rawDesc = (lang !== 'ro' && product.translations && product.translations[lang])
     ? product.translations[lang]
-    : product.description;
+    : (product.description || '');
 
-  // Split marketing appetite description from technical ingredients / nutrition info
+  // Separă descrierea comercială de textul lung cu ingrediente/tabel nutrițional
   const { shortDesc, detailedIngredients } = useMemo(() => {
-    if (!localizedDesc) return { shortDesc: '', detailedIngredients: '' };
+    if (!rawDesc) return { shortDesc: '', detailedIngredients: '' };
 
     const markers = ['ingrediente:', 'declarație nutrițională', 'declaratie nutritionala', 'valori nutritionale'];
-    const lower = localizedDesc.toLowerCase();
+    const lower = rawDesc.toLowerCase();
 
     let splitIndex = -1;
     for (const marker of markers) {
@@ -198,46 +304,57 @@ export default function ProductScreen() {
     }
 
     if (splitIndex !== -1) {
-      const short = localizedDesc.slice(0, splitIndex).trim();
-      const details = localizedDesc.slice(splitIndex).trim();
-      return { shortDesc: short, detailedIngredients: details };
+      return {
+        shortDesc: rawDesc.slice(0, splitIndex).trim(),
+        detailedIngredients: rawDesc.slice(splitIndex).trim(),
+      };
     }
 
-    return { shortDesc: localizedDesc, detailedIngredients: '' };
-  }, [localizedDesc]);
+    return { shortDesc: rawDesc, detailedIngredients: '' };
+  }, [rawDesc]);
 
   return (
-    <div className="product-screen-overlay">
-      <div className="product-screen-card">
-        {/* ─── HERO IMAGE ─── */}
-        <div className="ps-hero-wrap">
-          {product.image && !imgError ? (
-            <img
-              src={proxySyrveImage(product.image)}
-              alt={product.name}
-              className="ps-hero-img"
-              onError={() => setImgError(true)}
-            />
-          ) : (
-            <div className="ps-hero-fallback">
-              <img
-                src={`/brands/${brand?.id || 'smashme'}-logo.png`}
-                alt=""
-                className="ps-hero-fallback-logo"
-              />
-            </div>
-          )}
+    <div className="product-screen-overlay" onClick={() => goTo('menu')}>
+      <div className="product-screen-card" onClick={(e) => e.stopPropagation()}>
+        
+        {/* ─── TOP BAR: BUTON ÎNCHIDERE ─── */}
+        <div className="ps-modal-top">
+          <span className="ps-modal-top-tag">{product._brand?.toUpperCase() || brand?.name || 'SMASH ME'}</span>
+          <button type="button" className="ps-close-btn" onClick={() => goTo('menu')} aria-label="Închide">
+            <IconClose />
+          </button>
         </div>
 
-        {/* ─── SCROLLABLE CONTENT BODY ─── */}
+        {/* ─── CORPUL PRINCIPAL SCROLLABIL ─── */}
         <div className="ps-card-body scroll-y">
-          {/* Header Row: Title on Left, Price on Right */}
+          
+          {/* Poza Mare Produs (Fără bloc roșu masiv) */}
+          <div className="ps-hero-wrap">
+            {product.image && !imgError ? (
+              <img
+                src={proxySyrveImage(product.image)}
+                alt={product.name}
+                className="ps-hero-img"
+                onError={() => setImgError(true)}
+              />
+            ) : (
+              <div className="ps-hero-fallback">
+                <img
+                  src={`/brands/${brand?.id || 'smashme'}-logo.png`}
+                  alt=""
+                  className="ps-hero-fallback-logo"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Rând Nume și Preț */}
           <div className="ps-header-row">
             <h1 className="ps-title">{product.name}</h1>
             <span className="ps-price">{unitPrice.toFixed(2)} lei</span>
           </div>
 
-          {/* Appetizing Marketing Description */}
+          {/* Descriere scurtă apetisantă */}
           {shortDesc && (
             <div 
               className="ps-description"
@@ -245,7 +362,7 @@ export default function ProductScreen() {
             />
           )}
 
-          {/* Compact Allergens Button / Drawer (Doesn't clutter the screen) */}
+          {/* Buton discret rotund cu contur pentru Alergeni & Nutriție (FĂRĂ EMOJI) */}
           {(product.weight || product.energyAmount || allergenLabels.length > 0 || detailedIngredients) && (
             <div className="ps-allergens-accordion">
               <button
@@ -254,23 +371,25 @@ export default function ProductScreen() {
                 onClick={() => setShowAllergens(v => !v)}
               >
                 <div className="ps-allergens-toggle-left">
-                  <span className="ps-allergens-icon">ℹ️</span>
+                  <span className="ps-round-badge">
+                    <IconInfo />
+                  </span>
                   <span className="ps-allergens-label">
                     {lang === 'ro' ? 'Alergeni & Valori nutriționale' : (t('allergens', lang) || 'Alergeni')}
                   </span>
                 </div>
-                <span className="ps-allergens-chevron">{showAllergens ? '▲' : '▼'}</span>
+                <span className="ps-chevron-pill">{showAllergens ? 'Închide' : 'Afișează'}</span>
               </button>
 
               {showAllergens && (
                 <div className="ps-allergens-expanded">
                   <div className="ps-meta-items-row">
-                    {product.weight && <span className="ps-meta-pill">⚖️ Greutate: {product.weight}g</span>}
-                    {product.energyAmount && <span className="ps-meta-pill">🔥 Calorii: {Math.round(product.energyAmount)} kcal</span>}
+                    {product.weight && <span className="ps-meta-pill">Greutate: {product.weight}g</span>}
+                    {product.energyAmount && <span className="ps-meta-pill">Calorii: {Math.round(product.energyAmount)} kcal</span>}
                   </div>
                   {allergenLabels.length > 0 && (
                     <div className="ps-allergens-tags-row">
-                      <span className="ps-allergens-tags-title">Alergeni:</span>
+                      <span className="ps-allergens-tags-title">Alergeni declarați:</span>
                       <div className="ps-allergens-tags-list">
                         {allergenLabels.map(a => (
                           <span key={a} className="ps-allergen-tag">{a}</span>
@@ -280,7 +399,7 @@ export default function ProductScreen() {
                   )}
                   {detailedIngredients && (
                     <div className="ps-detailed-ingredients">
-                      <span className="ps-detailed-ingredients-title">Ingrediente & Detalii:</span>
+                      <span className="ps-detailed-ingredients-title">Ingrediente & Detalii complete:</span>
                       <p className="ps-detailed-ingredients-text">{detailedIngredients}</p>
                     </div>
                   )}
@@ -289,7 +408,7 @@ export default function ProductScreen() {
             </div>
           )}
 
-          {/* Modifiers / Options */}
+          {/* Modificatori (opțiuni produs) */}
           {modifiers.map(mod => {
             const opts = mod.options || mod.items || [];
             if (opts.length === 0) return null;
@@ -334,7 +453,11 @@ export default function ProductScreen() {
                             +{(opt.priceDiff || opt.price || 0).toFixed(2)} lei
                           </span>
                         )}
-                        {isSel && <span className="ps-mod-check">✓</span>}
+                        {isSel && (
+                          <span className="ps-mod-check">
+                            <IconCheck />
+                          </span>
+                        )}
                       </button>
                     );
                   })}
@@ -343,18 +466,19 @@ export default function ProductScreen() {
             );
           })}
 
-          {/* ─── PAIRINGS / RECOMANDĂRI ("Se potrivește de minune cu...") ─── */}
+          {/* ─── SECȚIUNEA RECOMANDĂRI ("Se potrivește de minune cu") ─── */}
           {pairings.length > 0 && (
             <div className="ps-pairings-section">
               <div className="ps-pairings-header">
-                <span className="ps-pairings-sparkle">✨</span>
+                <span className="ps-round-badge ps-round-badge--primary">
+                  <IconStarCircle />
+                </span>
                 <h3 className="ps-pairings-title">Se potrivește de minune cu:</h3>
               </div>
 
               <div className="ps-pairings-grid">
                 {pairings.map(item => {
                   const isSel = selectedPairings.some(p => p.id === item.id);
-                  const typeEmoji = item.type === 'cartofi' ? '🍟' : item.type === 'sos' ? '🧀' : item.type === 'bautura' ? '🥤' : '🍔';
 
                   return (
                     <div
@@ -371,9 +495,18 @@ export default function ProductScreen() {
                             onError={e => { e.target.style.display = 'none'; }}
                           />
                         ) : (
-                          <div className="ps-pairing-fallback">{typeEmoji}</div>
+                          <div className="ps-pairing-fallback">
+                            {item.type === 'cartofi' && <IconFries />}
+                            {item.type === 'sos' && <IconSauce />}
+                            {item.type === 'bautura' && <IconDrink />}
+                            {item.type === 'burger' && <IconBurger />}
+                          </div>
                         )}
-                        {isSel && <div className="ps-pairing-check-badge">✓</div>}
+                        {isSel && (
+                          <div className="ps-pairing-check-badge">
+                            <IconCheck />
+                          </div>
+                        )}
                       </div>
 
                       <div className="ps-pairing-info">
@@ -389,7 +522,17 @@ export default function ProductScreen() {
                           togglePairing(item);
                         }}
                       >
-                        {isSel ? '✓ Adăugat' : '+ Adaugă'}
+                        {isSel ? (
+                          <>
+                            <span className="ps-btn-mini-icon"><IconCheck /></span>
+                            <span>Adăugat</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="ps-btn-mini-icon"><IconPlus /></span>
+                            <span>Adaugă</span>
+                          </>
+                        )}
                       </button>
                     </div>
                   );
@@ -398,49 +541,53 @@ export default function ProductScreen() {
             </div>
           )}
 
-          {/* Comment / Extra Instructions Box */}
+          {/* Câmp Opțional: Mențiuni Speciale */}
           <div className="ps-comment-wrap">
             <input
               type="text"
               className="ps-comment-input"
-              placeholder="Adaugă informații suplimentare"
+              placeholder="Adaugă mențiuni sau instrucțiuni speciale (opțional)"
               value={comment}
               onChange={e => setComment(e.target.value)}
             />
           </div>
 
-          {/* Quantity Controls Centered */}
+          {/* Selector Cantitate Tactil Mare */}
           <div className="ps-qty-row">
-            <button 
-              type="button"
-              className="ps-qty-btn ps-qty-minus" 
-              onClick={() => setQuantity(q => Math.max(1, q - 1))}
-            >
-              −
-            </button>
-            <span className="ps-qty-val">{quantity}</span>
-            <button 
-              type="button"
-              className="ps-qty-btn ps-qty-plus" 
-              onClick={() => setQuantity(q => Math.min(20, q + 1))}
-            >
-              +
-            </button>
+            <span className="ps-qty-label">Cantitate:</span>
+            <div className="ps-qty-controls">
+              <button 
+                type="button"
+                className="ps-qty-btn ps-qty-minus" 
+                onClick={() => setQuantity(q => Math.max(1, q - 1))}
+              >
+                −
+              </button>
+              <span className="ps-qty-val">{quantity}</span>
+              <button 
+                type="button"
+                className="ps-qty-btn ps-qty-plus" 
+                onClick={() => setQuantity(q => Math.min(20, q + 1))}
+              >
+                +
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* ─── FIXED BOTTOM BAR (RED FOOTER) ─── */}
+        {/* ─── BARA FIXĂ DE JOS (STILUL CURAT KIOSK SMASH ME) ─── */}
         <div className="ps-bottom-bar">
           <button type="button" className="ps-back-btn" onClick={() => goTo('menu')}>
-            <span className="ps-back-chevron">‹</span> {t('back', lang) || 'Înapoi'}
+            <IconArrowLeft />
+            <span>{t('back', lang) || 'Înapoi'}</span>
           </button>
 
           <div className="ps-total-wrap">
-            <span className="ps-total-label">Total:</span>
+            <span className="ps-total-label">Total de plată</span>
             <span className="ps-total-amount">{totalPrice.toFixed(2)} lei</span>
             {selectedPairings.length > 0 && (
               <span className="ps-total-extra-hint">
-                (+{selectedPairings.length} {selectedPairings.length === 1 ? 'produs' : 'produse'})
+                include {selectedPairings.length} {selectedPairings.length === 1 ? 'recomandare' : 'recomandări'}
               </span>
             )}
           </div>
@@ -451,14 +598,11 @@ export default function ProductScreen() {
             onClick={handleAdd}
             disabled={!allRequiredSelected}
           >
-            <svg className="ps-bag-icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
-              <line x1="3" y1="6" x2="21" y2="6"/>
-              <path d="M16 10a4 4 0 0 1-8 0"/>
-            </svg>
-            <span>{lang === 'ro' ? 'Adaugă' : (t('add_to_cart', lang)?.replace('+', '').trim() || 'Adaugă')}</span>
+            <IconBag />
+            <span>Adaugă în coș</span>
           </button>
         </div>
+
       </div>
     </div>
   );
