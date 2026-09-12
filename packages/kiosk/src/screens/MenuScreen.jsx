@@ -12,6 +12,18 @@ import { proxySyrveImage } from '../utils/imageUtils.js';
 import { getEffectivePrice } from '../utils/priceUtils.js';
 import './MenuScreen.css';
 
+const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
+
+// Fallback org ID map (used when no location is loaded)
+const BRAND_ORG_MAP = {
+  smashme:     '9c63cff6-1d66-442d-a98d-2302656e3943',
+  sushimaster: 'adddb5a0-26e5-4d50-b472-1c74726c3f72',
+  rollmaster:  'adddb5a0-26e5-4d50-b472-1c74726c3f72',
+  lovesushi:   'adddb5a0-26e5-4d50-b472-1c74726c3f72',
+  pokiwoki:    'adddb5a0-26e5-4d50-b472-1c74726c3f72',
+  crunch:      '9c63cff6-1d66-442d-a98d-2302656e3943',
+};
+
 // Brand display info for tabs
 const BRAND_TAB_INFO = {
   smashme:     { label: 'SmashMe',      color: '#EE3B24', emoji: '🍔' },
