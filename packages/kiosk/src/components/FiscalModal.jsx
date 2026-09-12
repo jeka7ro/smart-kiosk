@@ -2,11 +2,40 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import './FiscalModal.css';
 
 export default function FiscalModal({ isOpen, onClose, onConfirm, initialCui = '', lang = 'ro' }) {
-  const [cuiInput, setCuiInput] = useState(initialCui.replace(/^RO/i, ''));
+  const [cuiInput, setCuiInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [companyResult, setCompanyResult] = useState(null);
   const abortControllerRef = useRef(null);
+
+  const handleClose = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    setCuiInput('');
+    setErrorMsg('');
+    setCompanyResult(null);
+    setLoading(false);
+    onClose();
+  }, [onClose]);
+
+  // Când se deschide sau se închide modalul:
+  useEffect(() => {
+    if (isOpen) {
+      setCuiInput(initialCui ? String(initialCui).replace(/^RO/i, '').trim() : '');
+      setErrorMsg('');
+      setCompanyResult(null);
+      setLoading(false);
+    } else {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      setCuiInput('');
+      setErrorMsg('');
+      setCompanyResult(null);
+      setLoading(false);
+    }
+  }, [isOpen, initialCui]);
 
   const lookupCui = useCallback(async (targetCui, isManual = false) => {
     const cleanCui = (targetCui || cuiInput || '').replace(/\D/g, '');
@@ -81,12 +110,10 @@ export default function FiscalModal({ isOpen, onClose, onConfirm, initialCui = '
       setCuiInput('');
       setCompanyResult(null);
     } else if (char === 'backspace') {
-      setCuiInput((prev) => {
-        const next = prev.slice(0, -1);
-        if (next.length < 2) setCompanyResult(null);
-        return next;
-      });
+      setCompanyResult(null);
+      setCuiInput((prev) => prev.slice(0, -1));
     } else {
+      setCompanyResult(null);
       if (cuiInput.length < 10) {
         setCuiInput((prev) => prev + char);
       }
@@ -96,12 +123,12 @@ export default function FiscalModal({ isOpen, onClose, onConfirm, initialCui = '
   const handleSave = () => {
     if (companyResult) {
       onConfirm(companyResult);
-      onClose();
+      handleClose();
     }
   };
 
   return (
-    <div className="fiscal-modal-overlay" onClick={onClose}>
+    <div className="fiscal-modal-overlay" onClick={handleClose}>
       <div className="fiscal-modal-card" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="fm-header">
@@ -120,7 +147,7 @@ export default function FiscalModal({ isOpen, onClose, onConfirm, initialCui = '
               <p className="fm-subtitle">Introduceți CUI-ul firmei pentru căutare automată</p>
             </div>
           </div>
-          <button className="fm-close-btn" onClick={onClose} aria-label="Închide">
+          <button className="fm-close-btn" onClick={handleClose} aria-label="Închide">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
@@ -250,7 +277,7 @@ export default function FiscalModal({ isOpen, onClose, onConfirm, initialCui = '
 
         {/* Footer */}
         <div className="fm-footer">
-          <button className="fm-cancel-btn" onClick={onClose}>
+          <button className="fm-cancel-btn" onClick={handleClose}>
             Renunță
           </button>
         </div>

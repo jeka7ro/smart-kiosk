@@ -442,13 +442,15 @@ export default function PaymentScreen() {
       </div>
 
       {/* Fiscal Modal */}
-      <FiscalModal
-        isOpen={showFiscalModal}
-        onClose={() => setShowFiscalModal(false)}
-        onConfirm={(data) => setFiscalData(data)}
-        initialCui={fiscalData?.cui || ''}
-        lang={lang}
-      />
+      {showFiscalModal && (
+        <FiscalModal
+          isOpen={showFiscalModal}
+          onClose={() => setShowFiscalModal(false)}
+          onConfirm={(data) => setFiscalData(data)}
+          initialCui={fiscalData?.cui || ''}
+          lang={lang}
+        />
+      )}
     </div>
   );
 }
