@@ -796,17 +796,29 @@
   color: #EE3B24;
 }
 
-.ps-qty-minus:hover,
+@media (hover: hover) {
+  .ps-qty-minus:hover {
+    background: #EE3B24 !important;
+    color: #ffffff !important;
+  }
+}
+
 .ps-qty-minus:active {
   background: #EE3B24 !important;
   color: #ffffff !important;
 }
 
 .ps-qty-plus {
-  color: #059669;
+  color: #1e293b;
 }
 
-.ps-qty-plus:hover,
+@media (hover: hover) {
+  .ps-qty-plus:hover {
+    background: linear-gradient(135deg, #10b981, #059669) !important;
+    color: #ffffff !important;
+  }
+}
+
 .ps-qty-plus:active {
   background: linear-gradient(135deg, #10b981, #059669) !important;
   color: #ffffff !important;
