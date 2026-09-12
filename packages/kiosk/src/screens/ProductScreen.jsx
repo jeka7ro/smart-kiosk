@@ -685,7 +685,55 @@ export default function ProductScreen() {
             );
           })}
 
-          {/* ─── SECȚIUNEA RECOMANDĂRI SUB EA ("Se potrivește de minune cu") ─── */}
+          {/* ─── SECȚIUNEA PERSONALIZARE & INSTRUCȚIUNI BUCĂTĂRIE ─── */}
+          <div className="ps-instructions-card">
+            <div className="ps-instructions-header">
+              <span className="ps-round-badge ps-round-badge--primary">
+                <IconChef />
+              </span>
+              <div className="ps-instructions-titles">
+                <h4 className="ps-instructions-title">Personalizare & Mențiuni bucătărie</h4>
+                {exclusionSuggestions.length > 0 && (
+                  <span className="ps-instructions-subtitle">Exclude ingrediente rapid (opțional):</span>
+                )}
+              </div>
+            </div>
+
+            {/* Chips sugestii rapide filtrate conform ingredientelor acestui produs */}
+            {exclusionSuggestions.length > 0 && (
+              <div className="ps-exclusions-wrap">
+                {exclusionSuggestions.map(item => {
+                  const isExcluded = selectedExclusions.includes(item.label);
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={`ps-exclusion-pill ${isExcluded ? 'ps-exclusion-pill--active' : ''}`}
+                      onClick={() => toggleExclusion(item.label)}
+                    >
+                      <span className="ps-exclusion-icon">
+                        {isExcluded ? <IconXMini /> : <IconMinusMini />}
+                      </span>
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Câmp Opțional: Mențiuni Speciale scrise */}
+            <div className="ps-comment-wrap">
+              <input
+                type="text"
+                className="ps-comment-input"
+                placeholder="Alte instrucțiuni speciale (opțional, ex: sos separat, bine rumenit...)"
+                value={comment}
+                onChange={e => setComment(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* ─── SECȚIUNEA RECOMANDĂRI ("Se potrivește de minune cu") ─── */}
           {pairings.length > 0 && (
             <div className="ps-pairings-section">
               <div className="ps-pairings-header">
@@ -759,54 +807,6 @@ export default function ProductScreen() {
               </div>
             </div>
           )}
-
-          {/* ─── SECȚIUNEA PERSONALIZARE & INSTRUCȚIUNI BUCĂTĂRIE ─── */}
-          <div className="ps-instructions-card">
-            <div className="ps-instructions-header">
-              <span className="ps-round-badge ps-round-badge--primary">
-                <IconChef />
-              </span>
-              <div className="ps-instructions-titles">
-                <h4 className="ps-instructions-title">Personalizare & Mențiuni bucătărie</h4>
-                {exclusionSuggestions.length > 0 && (
-                  <span className="ps-instructions-subtitle">Exclude ingrediente rapid (opțional):</span>
-                )}
-              </div>
-            </div>
-
-            {/* Chips sugestii rapide filtrate conform ingredientelor acestui produs */}
-            {exclusionSuggestions.length > 0 && (
-              <div className="ps-exclusions-wrap">
-                {exclusionSuggestions.map(item => {
-                  const isExcluded = selectedExclusions.includes(item.label);
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className={`ps-exclusion-pill ${isExcluded ? 'ps-exclusion-pill--active' : ''}`}
-                      onClick={() => toggleExclusion(item.label)}
-                    >
-                      <span className="ps-exclusion-icon">
-                        {isExcluded ? <IconXMini /> : <IconMinusMini />}
-                      </span>
-                      <span>{item.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Câmp Opțional: Mențiuni Speciale scrise */}
-            <div className="ps-comment-wrap">
-              <input
-                type="text"
-                className="ps-comment-input"
-                placeholder="Alte instrucțiuni speciale (opțional, ex: sos separat, bine rumenit...)"
-                value={comment}
-                onChange={e => setComment(e.target.value)}
-              />
-            </div>
-          </div>
 
         </div>
 
