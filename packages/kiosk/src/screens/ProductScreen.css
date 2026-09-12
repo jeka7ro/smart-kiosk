@@ -679,13 +679,13 @@
 .ps-exclusion-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
+  gap: 8px;
+  padding: 8px 14px 8px 10px;
   background: #ffffff;
   border: 1.5px solid #cbd5e1;
   border-radius: 999px;
   color: #334155;
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -694,32 +694,37 @@
 }
 
 .ps-exclusion-pill:hover {
-  background: #f1f5f9;
-  border-color: #94a3b8;
-}
-
-.ps-exclusion-pill--active {
-  background: #fef2f2;
-  border-color: #EE3B24;
-  color: #EE3B24;
-  box-shadow: 0 2px 8px rgba(238, 59, 36, 0.16);
-  font-weight: 700;
+  background: #fffafa;
+  border-color: rgba(238, 59, 36, 0.4);
 }
 
 .ps-exclusion-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.05);
+  background: #fff5f5;
+  border: 1px solid rgba(238, 59, 36, 0.25);
+  color: #EE3B24;
   transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.ps-exclusion-pill--active {
+  background: #fff5f5;
+  border-color: #EE3B24;
+  color: #EE3B24;
+  box-shadow: 0 3px 10px rgba(238, 59, 36, 0.18);
+  font-weight: 700;
 }
 
 .ps-exclusion-pill--active .ps-exclusion-icon {
-  background: rgba(238, 59, 36, 0.15);
-  color: #EE3B24;
+  background: #EE3B24;
+  border-color: #EE3B24;
+  color: #ffffff;
+  transform: scale(1.05);
 }
 
 /* ─── COMMENT / SPECIAL INSTRUCTIONS ─── */
