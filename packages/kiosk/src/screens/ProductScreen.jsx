@@ -1,8 +1,7 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo } from 'react';
 import { useKioskStore } from '../store/kioskStore';
 import { t } from '../i18n/translations.js';
 import { useBrand } from '../context/BrandContext.js';
-import ProductCard from '../components/ProductCard.jsx';
 import { proxySyrveImage } from '../utils/imageUtils.js';
 import './ProductScreen.css';
 
@@ -11,17 +10,14 @@ export default function ProductScreen() {
   const addToCart     = useKioskStore((s) => s.addToCart);
   const goTo          = useKioskStore((s) => s.goTo);
   const lang          = useKioskStore((s) => s.lang);
-  const menuProducts  = useKioskStore((s) => s.menuProducts);
-  const setSelectedProduct = useKioskStore((s) => s.setSelectedProduct);
-  const brand = useBrand();
+  const brand         = useBrand();
 
   const modifiers = product?.modifierGroups || product?.modifiers || [];
   const allergens = product?.allergenGroups || product?.allergens || [];
 
   const [quantity, setQuantity] = useState(1);
   const [imgError, setImgError] = useState(false);
-  const [flyAnim, setFlyAnim]   = useState(null);
-  const cartIconRef = useRef(null);
+  const [comment,  setComment]  = useState('');
 
   const [selected, setSelected] = useState(() => {
     const init = {};
@@ -32,31 +28,6 @@ export default function ProductScreen() {
     });
     return init;
   });
-
-  const suggestions = useMemo(() => {
-    if (!product || !menuProducts.length) return [];
-    
-    // Expanded keywords for standard upsell items
-    const ADDONS_REGEX = /sos|sauce|bautur|drink|desert|dessert|cartof|fries|potato|wedges|soup|supă|salat|miso|ceai|tea|mochi|ketchup|mayo|maionez/i;
-    
-    // Filter out the product itself
-    const candidates = menuProducts.filter(p => p.id !== product.id && p.price > 0);
-    
-    const scored = candidates.map(p => {
-      let score = 0;
-      // Bonus: Add-ons / sides are excellent cross-sells
-      if (ADDONS_REGEX.test(p.name)) score += 10;
-      // Bonus: Visuals sell
-      if (p.image) score += 2;
-      // PENALTY: Never suggest from the exact same category as the product the user is currently viewing
-      if (p.categoryId === product.categoryId) score -= 20;
-      
-      return { ...p, _score: score };
-    });
-    
-    scored.sort((a, b) => b._score - a._score);
-    return scored.slice(0, 6);
-  }, [product, menuProducts]);
 
   if (!product) { goTo('menu'); return null; }
 
@@ -80,203 +51,200 @@ export default function ProductScreen() {
     const selectedModifiers = modifiers.map(mod => {
       const opts = mod.options || mod.items || [];
       return {
+        modId: mod.id,
         modifierName: mod.name,
         optionName: opts.find(o => o.id === selected[mod.id])?.name || '',
       };
     }).filter(m => m.optionName);
 
-    // Fix: Use product._brand if it came from cross-brand search/favorites
+    // If user typed custom instructions/notes, include in modifiers or item
+    if (comment && comment.trim()) {
+      selectedModifiers.push({
+        modId: 'custom_comment',
+        modifierName: 'Notă',
+        optionName: comment.trim(),
+      });
+    }
+
     const actualBrandId = product._brand || brand?.id;
     addToCart(product, quantity, selectedModifiers, unitPrice, actualBrandId);
     goTo('menu');
-  };
-
-  const handleQuickAddSug = (sugProd, refElem) => {
-    const hasRequiredModifiers = (sugProd.modifierGroups || []).some(gm => gm.required && gm.options?.length > 0) || (sugProd.modifiers || []).some(m => m.required && (m.options?.length > 0 || m.items?.length > 0));
-    
-    if (hasRequiredModifiers) {
-      setSelectedProduct(sugProd);
-      return;
-    }
-
-    // Fix: Use sugProd._brand if available
-    const sugBrandId = sugProd._brand || brand?.id;
-    addToCart(sugProd, 1, [], sugProd.price, sugBrandId, false);
-    if (!refElem || !cartIconRef.current) return;
-    const fromRect = refElem.getBoundingClientRect();
-    const toRect = cartIconRef.current.getBoundingClientRect();
-    setFlyAnim({
-      img: sugProd.image,
-      startX: fromRect.left + fromRect.width / 2,
-      startY: fromRect.top + fromRect.height / 2,
-      endX: toRect.left + toRect.width / 2,
-      endY: toRect.top + toRect.height / 2,
-    });
-    setTimeout(() => { setFlyAnim(null); }, 850);
   };
 
   const allergenLabels = allergens.map(a =>
     typeof a === 'string' ? a : (a.name || a.id || '')
   ).filter(Boolean);
 
+  const localizedDesc = (lang !== 'ro' && product.translations && product.translations[lang])
+    ? product.translations[lang]
+    : product.description;
+
   return (
-    <div className="product-screen">
-      {/* ─── LEFT PANEL (1/3) ─── */}
-      <div className="ps-left">
-        <button className="back-btn-ps" onClick={() => goTo('menu')}>
-          ← {t('back', lang)} 
-        </button>
-
-        <div className="ps-left-content scroll-y">
-          <div className="pd-hero-img" style={imgError || !product.image ? {background: 'var(--surface)'} : {}}>
-            {product.image && !imgError ? (
+    <div className="product-screen-overlay">
+      <div className="product-screen-card">
+        {/* ─── HERO IMAGE ─── */}
+        <div className="ps-hero-wrap">
+          {product.image && !imgError ? (
+            <img
+              src={proxySyrveImage(product.image)}
+              alt={product.name}
+              className="ps-hero-img"
+              onError={() => setImgError(true)}
+            />
+          ) : (
+            <div className="ps-hero-fallback">
               <img
-                src={proxySyrveImage(product.image)}
-                alt={product.name}
-                className="pd-photo"
-                onError={() => setImgError(true)}
+                src={`/brands/${brand?.id || 'smashme'}-logo.png`}
+                alt=""
+                className="ps-hero-fallback-logo"
               />
-            ) : (
-              <img src={`/brands/${brand?.id || 'smashme'}-logo.png`} style={{ opacity: 0.15, filter: 'grayscale(100%)', width: '50%', objectFit: 'contain' }} alt="" />
-            )}
+            </div>
+          )}
+        </div>
+
+        {/* ─── SCROLLABLE CONTENT BODY ─── */}
+        <div className="ps-card-body scroll-y">
+          {/* Header Row: Title on Left, Price on Right */}
+          <div className="ps-header-row">
+            <h1 className="ps-title">{product.name}</h1>
+            <span className="ps-price">{unitPrice.toFixed(2)} lei</span>
           </div>
 
-          <div className="pd-hero-info">
-            {product.badge && <span className="product-badge">{product.badge}</span>}
-            <h1 className="pd-name">{product.name}</h1>
-            {product.description && (
-              <div 
-                className="pd-desc" 
-                dangerouslySetInnerHTML={{ __html: (lang !== 'ro' && product.translations && product.translations[lang]) ? product.translations[lang] : product.description }} 
-              />
-            )}
-            {product.weight && <span className="pd-weight">⚖️ {product.weight}g</span>}
-            {product.energyAmount && <span className="pd-calories">🔥 {Math.round(product.energyAmount)} kcal</span>}
-            {allergenLabels.length > 0 && (
-              <div className="pd-allergens">
-                <span className="pd-allergen-label">⚠️ Alergeni:</span>
-                {allergenLabels.map(a => (<span key={a} className="allergen-tag">{a}</span>))}
-              </div>
-            )}
-          </div>
+          {/* Description */}
+          {localizedDesc && (
+            <div 
+              className="ps-description"
+              dangerouslySetInnerHTML={{ __html: localizedDesc }}
+            />
+          )}
 
+          {/* Weight & Calories & Allergens */}
+          {(product.weight || product.energyAmount || allergenLabels.length > 0) && (
+            <div className="ps-meta-section">
+              {product.weight && <span className="ps-meta-item">⚖️ {product.weight}g</span>}
+              {product.energyAmount && <span className="ps-meta-item">🔥 {Math.round(product.energyAmount)} kcal</span>}
+              {allergenLabels.length > 0 && (
+                <div className="ps-allergens-wrap">
+                  <span className="ps-allergens-label">⚠️ Alergeni:</span>
+                  {allergenLabels.map(a => (
+                    <span key={a} className="ps-allergen-tag">{a}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Modifiers / Options */}
           {modifiers.map(mod => {
             const opts = mod.options || mod.items || [];
             if (opts.length === 0) return null;
-            const groupLabel = mod.name ? mod.name.toUpperCase() : t('options', lang).toUpperCase();
+            const groupLabel = mod.name ? mod.name.toUpperCase() : (t('options', lang) || 'OPȚIUNI').toUpperCase();
             
             let reqBadge = null;
             if (mod.required) {
               const min = mod.minAmount ?? 1;
               const max = mod.maxAmount ?? 1;
               reqBadge = min === max 
-                ? t('choose_exact', lang).replace('{amount}', min)
-                : t('choose_min_max', lang).replace('{min}', min).replace('{max}', max);
+                ? (t('choose_exact', lang) || 'Alege {amount}').replace('{amount}', min)
+                : (t('choose_min_max', lang) || 'Alege {min}-{max}').replace('{min}', min).replace('{max}', max);
             }
             
             return (
-              <div key={mod.id} className="pd-modifier">
-                <div className="pd-mod-header">
-                  <h3>{groupLabel}</h3>
-                  {reqBadge && (
-                    <span className="req-badge">
-                      {reqBadge}
-                    </span>
-                  )}
+              <div key={mod.id} className="ps-mod-group">
+                <div className="ps-mod-header">
+                  <h3 className="ps-mod-title">{groupLabel}</h3>
+                  {reqBadge && <span className="ps-req-badge">{reqBadge}</span>}
                 </div>
-                <div className="pd-mod-options">
-                  {opts.map(opt => (
-                    <button
-                      key={opt.id}
-                      className={`mod-option ${selected[mod.id] === opt.id ? 'mod-option--selected' : ''}`}
-                      onClick={() => handleSelect(mod.id, opt.id)}
-                    >
-                      {opt.image && (
-                        <img
-                          src={proxySyrveImage(opt.image)}
-                          alt={opt.name}
-                          className="mod-opt-img"
-                          onError={e => { e.target.style.display = 'none'; }}
-                        />
-                      )}
-                      <span className="mod-opt-name">{opt.name}</span>
-                      {(opt.priceDiff > 0 || opt.price > 0) && (
-                        <span className="mod-opt-price">
-                          +{(opt.priceDiff || opt.price || 0).toFixed(2)} lei
-                        </span>
-                      )}
-                      {selected[mod.id] === opt.id && <span className="mod-check">✓</span>}
-                    </button>
-                  ))}
+                <div className="ps-mod-options-grid">
+                  {opts.map(opt => {
+                    const isSel = selected[mod.id] === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        className={`ps-mod-opt ${isSel ? 'ps-mod-opt--selected' : ''}`}
+                        onClick={() => handleSelect(mod.id, opt.id)}
+                      >
+                        {opt.image && (
+                          <img
+                            src={proxySyrveImage(opt.image)}
+                            alt={opt.name}
+                            className="ps-mod-opt-img"
+                            onError={e => { e.target.style.display = 'none'; }}
+                          />
+                        )}
+                        <span className="ps-mod-opt-name">{opt.name}</span>
+                        {(opt.priceDiff > 0 || opt.price > 0) && (
+                          <span className="ps-mod-opt-price">
+                            +{(opt.priceDiff || opt.price || 0).toFixed(2)} lei
+                          </span>
+                        )}
+                        {isSel && <span className="ps-mod-check">✓</span>}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             );
           })}
+
+          {/* Comment / Extra Instructions Box */}
+          <div className="ps-comment-wrap">
+            <input
+              type="text"
+              className="ps-comment-input"
+              placeholder="Adaugă informații suplimentare"
+              value={comment}
+              onChange={e => setComment(e.target.value)}
+            />
+          </div>
+
+          {/* Quantity Controls Centered */}
+          <div className="ps-qty-row">
+            <button 
+              type="button"
+              className="ps-qty-btn ps-qty-minus" 
+              onClick={() => setQuantity(q => Math.max(1, q - 1))}
+            >
+              −
+            </button>
+            <span className="ps-qty-val">{quantity}</span>
+            <button 
+              type="button"
+              className="ps-qty-btn ps-qty-plus" 
+              onClick={() => setQuantity(q => Math.min(20, q + 1))}
+            >
+              +
+            </button>
+          </div>
         </div>
 
-        <div className="pd-footer">
-          <div className="qty-control">
-            <button className="qty-btn" onClick={() => setQuantity(q => Math.max(1, q - 1))}>−</button>
-            <span className="qty-num">{quantity}</span>
-            <button className="qty-btn" onClick={() => setQuantity(q => Math.min(20, q + 1))}>+</button>
+        {/* ─── FIXED BOTTOM BAR (RED FOOTER) ─── */}
+        <div className="ps-bottom-bar">
+          <button type="button" className="ps-back-btn" onClick={() => goTo('menu')}>
+            <span className="ps-back-chevron">‹</span> {t('back', lang) || 'Înapoi'}
+          </button>
+
+          <div className="ps-total-wrap">
+            <span className="ps-total-label">Total:</span>
+            <span className="ps-total-amount">{totalPrice.toFixed(2)} lei</span>
           </div>
+
           <button
-            className="btn btn-primary btn-xl"
-            style={{ flex: 1 }}
+            type="button"
+            className={`ps-add-btn ${!allRequiredSelected ? 'ps-add-btn--disabled' : ''}`}
             onClick={handleAdd}
+            disabled={!allRequiredSelected}
           >
-            <span>{t('add_to_cart', lang)}</span>
-            <span className="pd-total">{totalPrice.toFixed(2)} {t('lei', lang)}</span>
+            <svg className="ps-bag-icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <path d="M16 10a4 4 0 0 1-8 0"/>
+            </svg>
+            <span>{lang === 'ro' ? 'Adaugă' : (t('add_to_cart', lang)?.replace('+', '').trim() || 'Adaugă')}</span>
           </button>
         </div>
       </div>
-
-      {/* ─── RIGHT PANEL (2/3) ─── */}
-      <div className="ps-right scroll-y">
-        <div className="suggestions-header" style={{ marginBottom: '30px', paddingBottom: '20px', borderBottom: '2px solid var(--border)' }}>
-           <h2 style={{ fontSize: '2.4rem', fontWeight: 800, color: '#111827', margin: '0 0 8px 0' }}>Recomandări Pentru Tine 🔥</h2>
-           <p style={{ fontSize: '1.2rem', color: '#4b5563', margin: 0 }}>Ce s-ar mai potrivi cu comanda ta de astăzi?</p>
-        </div>
-        
-        {suggestions.length > 0 ? (
-          <div className="suggestions-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
-            {suggestions.map((sug, i) => (
-               <ProductCard 
-                 key={sug.id} 
-                 product={sug} 
-                 delay={i * 0.05} 
-                 lang={lang} 
-                 activeBrand={brand?.id || 'smashme'} 
-                 onQuickAdd={(p, ref) => handleQuickAddSug(p, ref)}
-                 onInfo={() => setSelectedProduct(sug)} 
-               />
-            ))}
-          </div>
-        ) : (
-          <div style={{ textAlign: 'center', padding: '60px 0', opacity: 0.5 }}>
-            <div style={{ fontSize: '4rem', marginBottom: '16px' }}>🍽️</div>
-            <h3 style={{ color: '#111827', fontSize: '1.4rem' }}>Fără recomandări momentan.</h3>
-          </div>
-        )}
-      </div>
-
-      {/* Invisible cart target for animations in right panel */}
-      <div ref={cartIconRef} style={{ position: 'fixed', bottom: 16, right: 16, opacity: 0, pointerEvents: 'none' }} />
-
-      {/* FLY ANIMATION */}
-      {flyAnim && (
-        <div 
-          className="fly-thumb"
-          style={{
-            '--fly-sx': `${flyAnim.startX}px`,
-            '--fly-sy': `${flyAnim.startY}px`,
-            '--fly-ex': `${flyAnim.endX}px`,
-            '--fly-ey': `${flyAnim.endY}px`,
-          }}
-        >
-          {flyAnim.img && <img src={flyAnim.img} alt="" />}
-        </div>
-      )}
     </div>
   );
 }
