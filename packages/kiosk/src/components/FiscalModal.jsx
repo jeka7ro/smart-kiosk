@@ -72,14 +72,25 @@ export default function FiscalModal({ isOpen, onClose, onConfirm, initialCui = '
         {/* Header */}
         <div className="fm-header">
           <div className="fm-header-title-group">
-            <div className="fm-icon-badge">🏢</div>
+            <div className="fm-icon-badge">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="4" y="2" width="16" height="20" rx="2" />
+                <line x1="9" y1="6" x2="15" y2="6" />
+                <line x1="9" y1="10" x2="15" y2="10" />
+                <line x1="9" y1="14" x2="15" y2="14" />
+                <line x1="9" y1="18" x2="11" y2="18" />
+              </svg>
+            </div>
             <div>
               <h3 className="fm-title">Bon Fiscal cu CUI / Factură</h3>
               <p className="fm-subtitle">Introduceți CUI-ul firmei pentru căutare automată</p>
             </div>
           </div>
           <button className="fm-close-btn" onClick={onClose} aria-label="Închide">
-            ✕
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
           </button>
         </div>
 
@@ -101,14 +112,28 @@ export default function FiscalModal({ isOpen, onClose, onConfirm, initialCui = '
               onClick={handleVerify}
               disabled={loading || cuiInput.length < 2}
             >
-              {loading ? 'Căutare...' : '🔍 Caută Firmă'}
+              {loading ? (
+                'Căutare...'
+              ) : (
+                <>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                  <span>Caută Firmă</span>
+                </>
+              )}
             </button>
           </div>
 
           {/* Error Banner */}
           {errorMsg && (
             <div className="fm-error-banner">
-              <span>⚠️</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" strokeWidth="2.5" />
+              </svg>
               <span>{errorMsg}</span>
             </div>
           )}
@@ -132,7 +157,10 @@ export default function FiscalModal({ isOpen, onClose, onConfirm, initialCui = '
               )}
 
               <button className="fm-confirm-btn" onClick={handleSave}>
-                ✓ Salvează Datele Firmei
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                <span>Salvează Datele Firmei</span>
               </button>
             </div>
           )}
@@ -169,8 +197,13 @@ export default function FiscalModal({ isOpen, onClose, onConfirm, initialCui = '
               className="fm-key-btn fm-key-action"
               onClick={() => handleKeyPress('backspace')}
               title="Șterge ultima cifră"
+              aria-label="Șterge"
             >
-              ⌫
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z" />
+                <line x1="18" y1="9" x2="12" y2="15" />
+                <line x1="12" y1="9" x2="18" y2="15" />
+              </svg>
             </button>
           </div>
         </div>

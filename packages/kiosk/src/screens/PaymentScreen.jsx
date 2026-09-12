@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useKioskStore } from '../store/kioskStore';
 import { t } from '../i18n/translations.js';
 import { useInactivityTimeout } from '../hooks/useInactivityTimeout.js';
+import FiscalModal from '../components/FiscalModal.jsx';
 import './PaymentScreen.css';
 
 const BACKEND       = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
@@ -37,6 +38,10 @@ export default function PaymentScreen() {
   const setPaymentMethod = useKioskStore((s) => s.setPaymentMethod);
   const setLastOrderNumber = useKioskStore((s) => s.setLastOrderNumber);
   const fiscalData     = useKioskStore((s) => s.fiscalData);
+  const setFiscalData  = useKioskStore((s) => s.setFiscalData);
+  const clearFiscalData = useKioskStore((s) => s.clearFiscalData);
+
+  const [showFiscalModal, setShowFiscalModal] = useState(false);
 
   const total      = getCartTotal();
   const orderIdRef = useRef(null);
@@ -209,11 +214,75 @@ export default function PaymentScreen() {
 
         {payState === STATE.IDLE && (
           <>
+            {/* ── Solicitare CUI / Persoană Juridică (Deasupra la Card) ── */}
+            <div className="payment-fiscal-container">
+              {!fiscalData ? (
+                <button
+                  type="button"
+                  className="ps-fiscal-trigger-card"
+                  onClick={() => setShowFiscalModal(true)}
+                >
+                  <div className="ps-fiscal-icon-box">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="4" y="2" width="16" height="20" rx="2" />
+                      <line x1="9" y1="6" x2="15" y2="6" />
+                      <line x1="9" y1="10" x2="15" y2="10" />
+                      <line x1="9" y1="14" x2="15" y2="14" />
+                      <line x1="9" y1="18" x2="11" y2="18" />
+                    </svg>
+                  </div>
+                  <div className="ps-fiscal-text-group">
+                    <span className="ps-fiscal-title">Doriți bon fiscal cu CUI?</span>
+                    <span className="ps-fiscal-subtitle">Persoană Juridică / Factură fiscală</span>
+                  </div>
+                  <div className="ps-fiscal-plus-badge">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="12" y1="5" x2="12" y2="19" />
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                  </div>
+                </button>
+              ) : (
+                <div className="ps-fiscal-active-card">
+                  <div className="ps-fiscal-active-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                  <div className="ps-fiscal-active-info">
+                    <span className="ps-fiscal-active-name">{fiscalData.name}</span>
+                    <span className="ps-fiscal-active-cui">
+                      CUI: {fiscalData.rawCui || fiscalData.cui} {fiscalData.isVatPayer ? '• Plătitor TVA' : ''}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="ps-fiscal-remove-btn"
+                    onClick={() => clearFiscalData()}
+                    title="Elimină CUI"
+                    aria-label="Elimină date firmă"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+            </div>
+
             {/* ── Iconul cardului ── */}
             <div className="payment-icons-row" style={{justifyContent:'center'}}>
               <div className="pir-card">
                 <div className="payment-pos-icon">
-                  <span className="pos-emoji">💳</span>
+                  <div className="pos-card-wrapper">
+                    <svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="pos-card-vector">
+                      <rect x="2" y="5" width="20" height="14" rx="3" />
+                      <line x1="2" y1="10" x2="22" y2="10" strokeWidth="2" />
+                      <line x1="6" y1="15" x2="10" y2="15" strokeWidth="2.2" />
+                      <circle cx="17" cy="15" r="1.5" fill="var(--primary)" stroke="none" />
+                    </svg>
+                  </div>
                   <div className="pos-waves"><div className="wave"/><div className="wave"/><div className="wave"/></div>
                 </div>
                 <p className="pir-label">{t('payment_card_title', lang)}</p>
@@ -259,14 +328,19 @@ export default function PaymentScreen() {
           </div>
         )}
 
-
-
         {payState === STATE.WAITING_CARD && (
           <div className="payment-processing">
             {!showPosInstructions ? (
               <>
                 <div className="pos-nfc-anim">
-                  <span className="pos-emoji" style={{fontSize:'4rem'}}>📱</span>
+                  <div className="pos-phone-vector">
+                    <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="5" y="2" width="14" height="20" rx="3" />
+                      <line x1="12" y1="18" x2="12.01" y2="18" strokeWidth="2.5" />
+                      <path d="M8.5 7.5a4 4 0 0 1 7 0" strokeWidth="1.5" />
+                      <path d="M7 5a6.5 6.5 0 0 1 10 0" strokeWidth="1.5" />
+                    </svg>
+                  </div>
                   <div className="nfc-ring nfc-ring-1"/><div className="nfc-ring nfc-ring-2"/><div className="nfc-ring nfc-ring-3"/>
                 </div>
                 <h2 className="processing-title">{t('payment_card_subtitle', lang) || 'Apropiați sau introduceți cardul'}</h2>
@@ -274,7 +348,13 @@ export default function PaymentScreen() {
               </>
             ) : (
               <div className="pos-instructions-alert fade-in" style={{ backgroundColor: 'var(--brand-surface)', padding: '24px', borderRadius: '16px', border: '2px solid var(--brand-primary)', marginBottom: '24px' }}>
-                <div style={{fontSize:'3rem', marginBottom: '8px'}}>⚠️</div>
+                <div style={{display:'flex', justifyContent:'center', marginBottom: '12px'}}>
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--brand-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" strokeWidth="2.5" />
+                  </svg>
+                </div>
                 <h2 className="processing-title" style={{color: 'var(--brand-primary)'}}>{t('pos_instructions_title', lang) || 'Verificați ecranul POS-ului'}</h2>
                 <p className="processing-step" style={{fontSize: '1.2rem'}}>{t('pos_instructions_desc', lang) || 'Dacă tranzacția durează, vă rugăm urmați instrucțiunile de pe ecranul aparatului de plată (ex: Introduceți PIN sau apăsați butonul Verde pentru confirmare)'}</p>
                 <div style={{fontSize: '2.5rem', fontWeight: 'bold', marginTop: '16px', color: posTimer < 10 ? 'red' : 'inherit'}}>
@@ -291,7 +371,13 @@ export default function PaymentScreen() {
 
         {payState === STATE.PIN_ENTRY && (
           <div className="payment-processing">
-            <div style={{fontSize:'4rem', marginBottom:16}}>🔒</div>
+            <div style={{display:'flex', justifyContent:'center', marginBottom:16}}>
+              <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                <circle cx="12" cy="16" r="1.5" fill="currentColor" stroke="none" />
+              </svg>
+            </div>
             <h2 className="processing-title">Introduceți PIN-ul</h2>
             <p className="processing-step">Urmați instrucțiunile de pe terminal</p>
             <div className="pin-dots">
@@ -315,7 +401,11 @@ export default function PaymentScreen() {
 
         {payState === STATE.APPROVED && (
           <div className="payment-result success fade-in">
-            <div className="result-icon-wrapper"><span className="result-icon success-icon">✅</span></div>
+            <div className="result-icon-wrapper">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </div>
             <h2 className="approved-title">Plata aprobata</h2>
             {txInfo?.authCode && <p className="auth-code">Auth: {txInfo.authCode}</p>}
             <p className="success-msg">Comanda a fost trimisa spre preparare!</p>
@@ -324,7 +414,13 @@ export default function PaymentScreen() {
 
         {payState === STATE.CASH_SUCCESS && (
           <div className="payment-result success fade-in">
-            <div className="result-icon-wrapper" style={{background: '#f59e0b'}}><span className="result-icon success-icon" style={{color: 'white'}}>💵</span></div>
+            <div className="result-icon-wrapper" style={{background: '#f59e0b'}}>
+              <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="6" width="20" height="12" rx="2" />
+                <circle cx="12" cy="12" r="2.5" />
+                <path d="M6 12h.01M18 12h.01" strokeWidth="2.5" />
+              </svg>
+            </div>
             <h2 className="approved-title" style={{color: '#d97706'}}>NEACHITAT</h2>
             <h1 style={{fontSize: '4rem', fontWeight: 900, margin: '16px 0', color: '#1e293b'}}>#{txInfo?.orderNumber}</h1>
             <p className="success-msg" style={{fontSize: '1.5rem', fontWeight: 700}}>ACHITAȚI LA CASĂ</p>
@@ -344,6 +440,15 @@ export default function PaymentScreen() {
           </div>
         )}
       </div>
+
+      {/* Fiscal Modal */}
+      <FiscalModal
+        isOpen={showFiscalModal}
+        onClose={() => setShowFiscalModal(false)}
+        onConfirm={(data) => setFiscalData(data)}
+        initialCui={fiscalData?.cui || ''}
+        lang={lang}
+      />
     </div>
   );
 }

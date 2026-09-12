@@ -157,7 +157,32 @@ const REMOVABLE_INGREDIENTS = [
   {
     id: 'ceapa',
     label: 'Fără ceapă',
-    keywords: ['ceapă', 'ceapa', 'caramelizată', 'caramelizata', 'crispy onion', 'chives', 'praz'],
+    keywords: ['ceapă', 'ceapa', 'caramelizată', 'caramelizata', 'praz'],
+  },
+  {
+    id: 'ceapa_verde',
+    label: 'Fără ceapă verde',
+    keywords: ['ceapă verde', 'ceapa verde', 'chives', 'green onion'],
+  },
+  {
+    id: 'ceapa_tempura',
+    label: 'Fără ceapă tempura',
+    keywords: ['ceapă tempura', 'ceapa tempura', 'tempura', 'crispy onion', 'ceapă crispy', 'ceapa crispy'],
+  },
+  {
+    id: 'pui_crocant',
+    label: 'Fără pui crocant',
+    keywords: ['pui', 'chicken', 'piept de pui'],
+  },
+  {
+    id: 'telemea',
+    label: 'Fără telemea',
+    keywords: ['telemea', 'feta'],
+  },
+  {
+    id: 'carnaciori',
+    label: 'Fără cârnăciori',
+    keywords: ['cârnăciori', 'carnaciori', 'cârnați', 'carnati', 'salsiccia'],
   },
   {
     id: 'muraturi',
@@ -172,7 +197,7 @@ const REMOVABLE_INGREDIENTS = [
   {
     id: 'branza',
     label: 'Fără cașcaval / brânză',
-    keywords: ['cheddar', 'cașcaval', 'cascaval', 'brânză', 'branza', 'mozzarella', 'parmezan', 'gouda', 'gorgonzola', 'feta'],
+    keywords: ['cheddar', 'cașcaval', 'cascaval', 'brânză', 'branza', 'mozzarella', 'parmezan', 'gouda', 'gorgonzola'],
   },
   {
     id: 'salata',
@@ -530,17 +555,31 @@ export default function ProductScreen() {
       allergenLabels.join(' '),
     ].join(' ').toLowerCase();
 
+    // Identificare platouri încărcate cu cartofi (Farmer's Fries, Rustic Cheesy Fries, Smoky Chicken Fries etc.)
+    const isFriesPlatter = (pName.includes('fries') || pName.includes('cartofi') || catName.includes('fries') || catName.includes('cartofi')) &&
+      !pName.includes('fried cheese & fries') &&
+      !pName.includes('mozzarella & fries') &&
+      !pName.includes('nuggets & fries') &&
+      !pName.includes('nuggests & fries');
+
     return REMOVABLE_INGREDIENTS.filter(item => {
-      // Regula 1: Nu arăta "Fără cașcaval / brânză" pe produse a căror bază este brânza/cașcavalul
-      // (ex: Fried Cheese & Fries, Crispy Mozzarella & Fries, Rustic Cheesy Fries)
+      // Regula 1: Pe platourile cu cartofi sau preparate pe bază de brânză prăjită, NU arăta "Fără cașcaval / brânză"
+      // (În loc de cașcaval se afișează exclusiv "Fără telemea" dacă produsul conține telemea)
       if (item.id === 'branza') {
-        if (pName.includes('fried cheese') || pName.includes('mozzarella') || pName.includes('cheesy')) {
+        if (isFriesPlatter || pName.includes('fried cheese') || pName.includes('mozzarella') || pName.includes('cheesy')) {
           return false;
         }
       }
 
-      // Regula 2: Nu arăta "Fără ceapă" pe combos care nu conțin ceapă
-      // (ex: Fried Cheese & Fries, Crispy Mozzarella & Fries, Crispy Nuggets & Fries)
+      // Regula 2: Pe platourile cu cartofi, înlocuiește ceapa generică cu "Fără ceapă verde"
+      if (isFriesPlatter) {
+        if (item.id === 'ceapa') return false;
+        if (item.id === 'ceapa_verde') {
+          return textToScan.includes('ceap') || textToScan.includes('chives') || textToScan.includes('carameliz');
+        }
+      }
+
+      // Regula 3: Nu arăta "Fără ceapă" pe combos simple care nu conțin ceapă
       if (item.id === 'ceapa') {
         const isFriesOnlyCombo = pName.includes('mozzarella & fries') || 
                                  pName.includes('fried cheese & fries') || 
