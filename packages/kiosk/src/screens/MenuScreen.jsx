@@ -400,10 +400,15 @@ export default function MenuScreen() {
       <header className="menu-header">
         <div className="menu-header-left" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <button 
+            className="menu-home-btn"
             onClick={() => { useKioskStore.getState().resetAll(); goTo('welcome'); }}
-            style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', fontSize: '1.5rem', cursor: 'pointer', padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            title="Acasă"
+            aria-label="Acasă"
           >
-            🏠
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              <polyline points="9 22 9 12 15 12 15 22" />
+            </svg>
           </button>
           {locationBrands.length <= 1 && (BRANDS[activeBrandId]?.logoImg
             ? <img src={BRANDS[activeBrandId].logoImg} alt={BRANDS[activeBrandId]?.name} className="menu-logo" />
@@ -426,11 +431,30 @@ export default function MenuScreen() {
         </div>
 
         <div className="menu-order-info" onClick={() => goTo('orderType')} style={{ cursor: 'pointer' }}>
-          {orderType === 'dine-in'
-            ? <span>🍽️ {t('table', lang)} #{tableNumber}</span>
-            : <span>🛍️ {t('takeaway', lang)}</span>
-          }
-          <span style={{ marginLeft: '4px', opacity: 0.4, fontSize: '0.9em' }}>✎</span>
+          {orderType === 'dine-in' ? (
+            <span className="menu-order-info-badge">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <path d="M18 2v20" />
+                <path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
+                <path d="M6 2v20" />
+                <path d="M3 2v6a3 3 0 0 0 6 0V2" />
+              </svg>
+              <span>{t('table', lang)} #{tableNumber}</span>
+            </span>
+          ) : (
+            <span className="menu-order-info-badge">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+                <path d="M3 6h18" />
+                <path d="M16 10a4 4 0 0 1-8 0" />
+              </svg>
+              <span>{t('takeaway', lang)}</span>
+            </span>
+          )}
+          <svg className="menu-order-edit-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+            <path d="m15 5 4 4" />
+          </svg>
         </div>
       </header>
 
@@ -448,14 +472,14 @@ export default function MenuScreen() {
                 style={{ '--brand-color': info.color, flex: `1 1 ${100 / locationBrands.length}%` }}
                 onClick={() => { setActiveBrandId(bId); setSearch(''); import('../config/brands.js').then(m => m.applyBrandTheme(bId)); }}
               >
-                <img 
-                  src={`/brands/${bId}-logo.png`} 
-                  alt={info.label} 
-                  className="brand-tab-logo" 
-                  style={{ maxHeight: '28px', objectFit: 'contain' }}
-                  onError={(e) => { e.target.style.display='none'; }} 
-                />
-                <span className="brand-tab-label" style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text)' }}>{info.label}</span>
+                {brandConfig?.logoImg ? (
+                  <img src={brandConfig.logoImg} alt={info.label} className="brand-tab-logo" />
+                ) : (
+                  <span className="brand-tab-text">{info.label}</span>
+                )}
+                {brandConfig?.slogan && (
+                  <span className="brand-tab-slogan">{brandConfig.slogan}</span>
+                )}
               </button>
             );
           })}
@@ -467,7 +491,12 @@ export default function MenuScreen() {
       {favorites.length > 0 && (
         <div className="favorites-bar">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start' }}>
-            <span className="fav-bar-label">❤️ {t('saved', lang) || 'Salvate'}</span>
+            <span className="fav-bar-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="#ef4444" stroke="#ef4444" strokeWidth="2">
+                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+              </svg>
+              <span>{t('saved', lang) || 'Salvate'}</span>
+            </span>
             <button 
               className="fav-btn fav-btn-add"
               onClick={handleAddAllFavorites}
@@ -486,8 +515,17 @@ export default function MenuScreen() {
               <div key={fav.id} className="fav-item">
                 <div className="fav-item-img">
                   {fav.image
-                    ? <img src={proxySyrveImage(fav.image)} alt={fav.name} onError={e => { e.target.style.display='none'; e.target.parentNode.innerHTML='<span style=\"font-size:1.2rem\">🍽️</span>'; }} />
-                    : <span style={{fontSize:'1.2rem'}}>🍽️</span>
+                    ? <img src={proxySyrveImage(fav.image)} alt={fav.name} onError={e => { e.target.style.display='none'; e.target.parentNode.innerHTML='<span style=\"display:flex;align-items:center;justify-content:center;width:100%;height:100%\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" strokeWidth=\"2\" strokeLinecap=\"round\" strokeLinejoin=\"round\"><path d=\"M18 2v20\"/><path d=\"M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7\"/><path d=\"M6 2v20\"/><path d=\"M3 2v6a3 3 0 0 0 6 0V2\"/></svg></span>'; }} />
+                    : (
+                      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M18 2v20" />
+                          <path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
+                          <path d="M6 2v20" />
+                          <path d="M3 2v6a3 3 0 0 0 6 0V2" />
+                        </svg>
+                      </span>
+                    )
                   }
                 </div>
                 <div className="fav-item-info">
@@ -503,7 +541,12 @@ export default function MenuScreen() {
                       <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
                     </svg>
                   </button>
-                  <button className="fav-del-btn" title={t('delete_short', lang) || "Șterge"} onClick={() => toggleFavorite(fav)}>✕</button>
+                  <button className="fav-del-btn" title={t('delete_short', lang) || "Șterge"} onClick={() => toggleFavorite(fav)}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
                 </div>
               </div>
             ))}

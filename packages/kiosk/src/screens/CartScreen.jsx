@@ -95,7 +95,13 @@ export default function CartScreen() {
     return (
       <div className="cart-screen screen">
         <div className="cart-empty">
-          <span className="cart-empty-icon">🛒</span>
+          <div className="cart-empty-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px', color: 'var(--text-muted)' }}>
+            <svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="8" cy="21" r="1"/>
+              <circle cx="19" cy="21" r="1"/>
+              <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
+            </svg>
+          </div>
           <h2>{t('cart_empty', lang)}</h2>
           <p>{t('add_more', lang)}</p>
           <button className="btn btn-primary btn-xl" onClick={() => goTo('menu')}>← {t('menu', lang)}</button>
@@ -199,7 +205,16 @@ export default function CartScreen() {
                     <div className="cart-sugg-img">
                       {prod.image
                         ? <img src={proxySyrveImage(prod.image)} alt={prod.name} />
-                        : <span style={{ fontSize: '1.8rem' }}>🍽️</span>
+                        : (
+                          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', color: 'var(--text-muted)' }}>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M18 2v20" />
+                              <path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
+                              <path d="M6 2v20" />
+                              <path d="M3 2v6a3 3 0 0 0 6 0V2" />
+                            </svg>
+                          </span>
+                        )
                       }
                       {addedIds[prod.id] && (
                         <div className="cart-sugg-added-overlay">✓</div>

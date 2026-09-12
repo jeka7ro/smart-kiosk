@@ -43,6 +43,24 @@
   font-size: 1.1rem; cursor: pointer;
   padding: 4px 8px;
 }
+.menu-home-btn {
+  background: var(--surface, #f9fafb);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 14px;
+  color: var(--text, #1e293b);
+  cursor: pointer;
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.menu-home-btn:active {
+  transform: scale(0.95);
+  background: var(--border, #e5e7eb);
+  box-shadow: none;
+}
 .menu-order-info {
   flex-shrink: 0;
   font-size: 0.85rem;
@@ -55,7 +73,7 @@
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 4px 10px rgba(0,0,0,0.03);
 }
@@ -63,6 +81,20 @@
   transform: scale(0.95);
   background: var(--border, #e5e7eb);
   box-shadow: none;
+}
+.menu-order-info-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.menu-order-edit-icon {
+  margin-left: 2px;
+  opacity: 0.45;
+  color: var(--text-muted, #64748b);
+  transition: opacity 0.2s;
+}
+.menu-order-info:hover .menu-order-edit-icon {
+  opacity: 0.85;
 }
 
 /* ─── BRAND TABS (multi-brand) ─── */
