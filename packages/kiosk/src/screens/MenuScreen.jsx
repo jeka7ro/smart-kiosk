@@ -7,6 +7,7 @@ import { getMenuData } from '../data/mockMenu.js';
 import { useInactivityTimeout } from '../hooks/useInactivityTimeout.js';
 import ProductCard from '../components/ProductCard.jsx';
 import ModifierModal from '../components/ModifierModal.jsx';
+import StartPromoModal from '../components/StartPromoModal.jsx';
 import { proxySyrveImage } from '../utils/imageUtils.js';
 import './MenuScreen.css';
 
@@ -71,6 +72,9 @@ export default function MenuScreen() {
   const toggleFavoriteStore = useKioskStore((s) => s.toggleFavorite);
   const clearFavorites   = useKioskStore((s) => s.clearFavorites);
   const [modifierModalProduct, setModifierModalProduct] = useState(null);
+  const [startPromoModalProduct, setStartPromoModalProduct] = useState(null);
+  const hasShownStartPromo = useKioskStore((s) => s.hasShownStartPromo);
+  const setHasShownStartPromo = useKioskStore((s) => s.setHasShownStartPromo);
   const cartBarRef = useRef(null);
 
   // Multi-brand state
@@ -234,6 +238,29 @@ export default function MenuScreen() {
         setLoading(false);
       });
   }, [activeBrandId, locationOrgIds, locationData]);
+
+  // Trigger Welcome Promo popup once per session after products load
+  useEffect(() => {
+    if (!loading && products.length > 0 && !hasShownStartPromo) {
+      const candidate = products.find(p => p.promoPrice && p.promoPrice > 0 && p.popupStart !== false);
+      if (candidate) {
+        setStartPromoModalProduct(candidate);
+        setHasShownStartPromo(true);
+      }
+    }
+  }, [loading, products, hasShownStartPromo, setHasShownStartPromo]);
+
+  const handleAcceptStartPromo = useCallback((promoProduct) => {
+    setStartPromoModalProduct(null);
+    const hasRequiredMods = (promoProduct.modifierGroups || []).some(
+      (g) => g.required || (g.min && g.min > 0)
+    );
+    if (hasRequiredMods) {
+      setSelectedProduct(promoProduct);
+    } else {
+      addToCart(promoProduct, 1, [], promoProduct.promoPrice, activeBrandId, false);
+    }
+  }, [setSelectedProduct, addToCart, activeBrandId]);
 
   // SMART DIETARY NAVIGATOR: Automatically select categories/brands with matching products
   useEffect(() => {
@@ -593,6 +620,16 @@ export default function MenuScreen() {
             setModifierModalProduct(null);
           }}
           onClose={() => setModifierModalProduct(null)}
+        />
+      )}
+
+      {/* ─── START PROMO HERO POPUP MODAL ─────────── */}
+      {startPromoModalProduct && (
+        <StartPromoModal
+          product={startPromoModalProduct}
+          onClose={() => setStartPromoModalProduct(null)}
+          onAccept={handleAcceptStartPromo}
+          lang={lang}
         />
       )}
     </div>

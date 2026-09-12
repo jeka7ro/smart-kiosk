@@ -86,6 +86,8 @@ export const useKioskStore = create((set, get) => ({
   setPromoIntendedRoute: (route) => set({ promoIntendedRoute: route }),
   wonPrize: null,
   setWonPrize: (p) => set({ wonPrize: p }),
+  hasShownStartPromo: false,
+  setHasShownStartPromo: (val) => set({ hasShownStartPromo: val }),
 
   // After welcome: slide up screensaver over half a second
   goAfterWelcome: () => {
@@ -193,6 +195,7 @@ export const useKioskStore = create((set, get) => ({
     paymentMethod: 'card',
     selectedProduct: null,
     hasPlayedPromo: false,
+    hasShownStartPromo: false,
     screen: 'welcome',
   }),
 
@@ -204,6 +207,7 @@ export const useKioskStore = create((set, get) => ({
     tableNumber: null,
     selectedProduct: null,
     hasPlayedPromo: false,
+    hasShownStartPromo: false,
     screen: 'welcome',
   }),
 }));

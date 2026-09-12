@@ -174,14 +174,20 @@ router.get('/', requireApiKey, async (req, res) => {
 
       if (locData) {
         const kioskPromos = locData.kioskPromos || {};
-        const promoOverrides = kioskPromos[kioskId] || {};
+        const promoOverrides = kioskPromos[kioskId] || kioskPromos[locData.kioskUrl] || (kioskPromos['cluj1'] || {}) || (Object.keys(kioskPromos).length > 0 ? kioskPromos[Object.keys(kioskPromos)[0]] : {}) || {};
         const now = new Date();
         finalProducts = finalProducts.map(p => {
           const promo = promoOverrides[p.id];
           if (!promo || !promo.price) return p;
           const inRange = (!promo.start || new Date(promo.start) <= now) && (!promo.end || new Date(promo.end) >= now);
           if (!inRange) return p;
-          return { ...p, promoPrice: parseFloat(promo.price), promoStart: promo.start || null, promoEnd: promo.end || null };
+          return { 
+            ...p, 
+            promoPrice: parseFloat(promo.price), 
+            promoStart: promo.start || null, 
+            promoEnd: promo.end || null,
+            popupStart: promo.popupStart !== undefined ? !!promo.popupStart : true
+          };
         });
       }
     } catch (_) { /* graceful */ }

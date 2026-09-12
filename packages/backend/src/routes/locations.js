@@ -163,26 +163,53 @@ router.put('/:id', protect, async (req, res) => {
 // PUT /api/locations/:id/promos — set promo prices for a specific kiosk in a location
 router.put('/:id/promos', protect, async (req, res) => {
   try {
-    if (!hasDb) throw new Error('no db');
-    const { productId, price, start, end, kioskId } = req.body;
+    const { productId, price, start, end, kioskId, popupStart } = req.body;
     if (!productId) return res.status(400).json({ error: 'productId is required' });
     if (!kioskId) return res.status(400).json({ error: 'kioskId is required' });
 
-    const existing = await pool.query('SELECT * FROM locations WHERE id = $1', [req.params.id]);
-    if (!existing.rows.length) return res.status(404).json({ error: 'Location not found' });
-    
-    const data = existing.rows[0].data || {};
-    data.kioskPromos = data.kioskPromos || {};
-    data.kioskPromos[kioskId] = data.kioskPromos[kioskId] || {};
-    
-    if (price && price > 0) {
-      data.kioskPromos[kioskId][productId] = { price: parseFloat(price), start: start || null, end: end || null };
+    if (hasDb) {
+      const existing = await pool.query('SELECT * FROM locations WHERE id = $1', [req.params.id]);
+      if (!existing.rows.length) return res.status(404).json({ error: 'Location not found' });
+      
+      const data = existing.rows[0].data || {};
+      data.kioskPromos = data.kioskPromos || {};
+      data.kioskPromos[kioskId] = data.kioskPromos[kioskId] || {};
+      
+      if (price && price > 0) {
+        data.kioskPromos[kioskId][productId] = { 
+          price: parseFloat(price), 
+          start: start || null, 
+          end: end || null,
+          popupStart: popupStart !== undefined ? !!popupStart : true
+        };
+      } else {
+        delete data.kioskPromos[kioskId][productId];
+      }
+      
+      await pool.query('UPDATE locations SET data = $1, updated_at = NOW() WHERE id = $2', [JSON.stringify(data), req.params.id]);
+      return res.json({ ok: true, promoOverrides: data.kioskPromos[kioskId] });
     } else {
-      delete data.kioskPromos[kioskId][productId];
+      const locs = readLocFile();
+      const idx = locs.findIndex(l => l.id === req.params.id || l.kioskUrl === req.params.id);
+      if (idx === -1) return res.status(404).json({ error: 'Location not found' });
+
+      locs[idx].kioskPromos = locs[idx].kioskPromos || {};
+      locs[idx].kioskPromos[kioskId] = locs[idx].kioskPromos[kioskId] || {};
+
+      if (price && price > 0) {
+        locs[idx].kioskPromos[kioskId][productId] = { 
+          price: parseFloat(price), 
+          start: start || null, 
+          end: end || null,
+          popupStart: popupStart !== undefined ? !!popupStart : true
+        };
+      } else {
+        delete locs[idx].kioskPromos[kioskId][productId];
+      }
+
+      writeLocFile(locs);
+      return res.json({ ok: true, promoOverrides: locs[idx].kioskPromos[kioskId] });
     }
-    
-    await pool.query('UPDATE locations SET data = $1, updated_at = NOW() WHERE id = $2', [JSON.stringify(data), req.params.id]);
-    res.json({ ok: true, promoOverrides: data.kioskPromos[kioskId] });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

@@ -39,8 +39,8 @@ export default function ProductOverrides() {
   const [previewImage,setPreviewImage]= useState(null);
   const [previewDesc, setPreviewDesc] = useState(null);
   const [locations,   setLocations]   = useState([]);
-  const [activeLocation, setActiveLocation] = useState('');
-  const [activeKiosk, setActiveKiosk] = useState('');
+  const [activeLocation, setActiveLocation] = useState(() => localStorage.getItem('admin_active_location') || '');
+  const [activeKiosk, setActiveKiosk] = useState(() => localStorage.getItem('admin_active_kiosk') || '');
   const [promoOverrides, setPromoOverrides] = useState({});
   const [savedPromos, setSavedPromos] = useState({});
   
@@ -87,7 +87,10 @@ export default function ProductOverrides() {
         const data = await res.json();
         const locs = (data.locations || data || []).filter(l => l.active !== false);
         setLocations(locs);
-        // Removed auto-select of locs[0] so it stays empty until the user picks one
+        const savedLoc = localStorage.getItem('admin_active_location');
+        if (savedLoc && locs.some(l => l.id === savedLoc)) {
+          setActiveLocation(savedLoc);
+        }
       } catch (_) {}
     })();
   }, []);
@@ -95,6 +98,7 @@ export default function ProductOverrides() {
   // Fetch promo overrides for selected location and kiosk
   useEffect(() => {
     if (!activeLocation) return;
+    localStorage.setItem('admin_active_location', activeLocation);
     (async () => {
       try {
         const res = await fetchWithAuth(`${BACKEND}/api/locations/${activeLocation}`);
@@ -111,11 +115,12 @@ export default function ProductOverrides() {
         });
 
         // Auto-select first kiosk to save user a click
-        let currentKiosk = activeKiosk;
+        let currentKiosk = activeKiosk || localStorage.getItem('admin_active_kiosk');
         if (known.length > 0 && (!currentKiosk || !known.find(k => k.kioskId === currentKiosk))) {
           currentKiosk = known[0].kioskId;
           setActiveKiosk(currentKiosk);
         }
+        if (currentKiosk) localStorage.setItem('admin_active_kiosk', currentKiosk);
 
         const pData = kPromos[currentKiosk] || {};
         setPromoOverrides(pData);
@@ -476,67 +481,101 @@ export default function ProductOverrides() {
                       
                       {/* Promo Price Column */}
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-1.5">
-                          <input
-                            type="number"
-                            step="0.01"
-                            placeholder="—"
-                            value={promoOverrides[prod.id]?.price || ''}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setPromoOverrides(prev => ({ ...prev, [prod.id]: { ...prev[prod.id], price: val } }));
-                            }}
-                            style={{ width: 70, padding: '4px 6px', fontSize: '0.85rem', borderRadius: 6, border: '1px solid var(--border, #e2e8f0)', background: 'var(--surface, #fff)', color: 'var(--text, #111)', textAlign: 'center' }}
-                          />
-                          {!savedPromos[prod.id]?.price ? (
-                            <button
-                              title="Salvează preț promoțional"
-                              onClick={async () => {
-                                if (!activeLocation) return showToast('Alege locația mai întâi', 'err');
-                                if (!activeKiosk) return showToast('Scrie ID-ul Kiosk-ului mai întâi! (ex: cluj1)', 'err');
-                                try {
-                                  const po = promoOverrides[prod.id] || {};
-                                  if (!po.price) return showToast('Introdu un preț!', 'err');
-                                  const payload = {
-                                    productId: prod.id,
-                                    price: parseFloat(po.price),
-                                    start: po.start || null,
-                                    end: po.end || null,
-                                    kioskId: activeKiosk
-                                  };
-                                  const res = await fetchWithAuth(`${BACKEND}/api/locations/${activeLocation}/promos`, {
-                                    method: 'PUT',
-                                    body: JSON.stringify(payload),
-                                  });
-                                  if (!res.ok) throw new Error('Eroare');
-                                  setSavedPromos(prev => ({ ...prev, [prod.id]: { price: payload.price } }));
-                                  showToast(`✅ Promoție salvată pe Kiosk ${activeKiosk}`);
-                                } catch (e) { showToast('❌ ' + e.message, 'err'); }
+                        <div className="flex flex-col gap-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="number"
+                              step="0.01"
+                              placeholder="—"
+                              value={promoOverrides[prod.id]?.price || ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setPromoOverrides(prev => ({ ...prev, [prod.id]: { ...prev[prod.id], price: val } }));
                               }}
-                              className="w-7 h-7 inline-flex items-center justify-center rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 transition-colors"
-                            >✓</button>
-                          ) : (
-                            <button
-                              title="Șterge promoția"
-                              onClick={async () => {
-                                if (!activeLocation) return;
-                                try {
-                                  const res = await fetchWithAuth(`${BACKEND}/api/locations/${activeLocation}/promos`, {
-                                    method: 'PUT',
-                                    body: JSON.stringify({ productId: prod.id, price: null, start: null, end: null, kioskId: activeKiosk }),
-                                  });
-                                  if (!res.ok) throw new Error('Eroare');
-                                  const newPromo = { ...promoOverrides };
-                                  delete newPromo[prod.id];
-                                  setPromoOverrides(newPromo);
-                                  const newSaved = { ...savedPromos };
-                                  delete newSaved[prod.id];
-                                  setSavedPromos(newSaved);
-                                  showToast('🗑️ Promoție ștearsă');
-                                } catch (e) { showToast('❌ ' + e.message, 'err'); }
-                              }}
-                              className="w-7 h-7 inline-flex items-center justify-center rounded-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 transition-colors"
-                            >✕</button>
+                              style={{ width: 70, padding: '4px 6px', fontSize: '0.85rem', borderRadius: 6, border: '1px solid var(--border, #e2e8f0)', background: 'var(--surface, #fff)', color: 'var(--text, #111)', textAlign: 'center' }}
+                            />
+                            {!savedPromos[prod.id]?.price ? (
+                              <button
+                                title="Salvează preț promoțional"
+                                onClick={async () => {
+                                  if (!activeLocation) return showToast('Alege locația mai întâi', 'err');
+                                  if (!activeKiosk) return showToast('Scrie ID-ul Kiosk-ului mai întâi! (ex: cluj1)', 'err');
+                                  try {
+                                    const po = promoOverrides[prod.id] || {};
+                                    if (!po.price) return showToast('Introdu un preț!', 'err');
+                                    const payload = {
+                                      productId: prod.id,
+                                      price: parseFloat(po.price),
+                                      start: po.start || null,
+                                      end: po.end || null,
+                                      popupStart: po.popupStart !== undefined ? po.popupStart : true,
+                                      kioskId: activeKiosk
+                                    };
+                                    const res = await fetchWithAuth(`${BACKEND}/api/locations/${activeLocation}/promos`, {
+                                      method: 'PUT',
+                                      body: JSON.stringify(payload),
+                                    });
+                                    if (!res.ok) throw new Error('Eroare');
+                                    setSavedPromos(prev => ({ ...prev, [prod.id]: payload }));
+                                    showToast(`✅ Promoție salvată pe Kiosk ${activeKiosk}`);
+                                  } catch (e) { showToast('❌ ' + e.message, 'err'); }
+                                }}
+                                className="w-7 h-7 inline-flex items-center justify-center rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 transition-colors"
+                              >✓</button>
+                            ) : (
+                              <button
+                                title="Șterge promoția"
+                                onClick={async () => {
+                                  if (!activeLocation) return;
+                                  try {
+                                    const res = await fetchWithAuth(`${BACKEND}/api/locations/${activeLocation}/promos`, {
+                                      method: 'PUT',
+                                      body: JSON.stringify({ productId: prod.id, price: null, start: null, end: null, kioskId: activeKiosk }),
+                                    });
+                                    if (!res.ok) throw new Error('Eroare');
+                                    const newPromo = { ...promoOverrides };
+                                    delete newPromo[prod.id];
+                                    setPromoOverrides(newPromo);
+                                    const newSaved = { ...savedPromos };
+                                    delete newSaved[prod.id];
+                                    setSavedPromos(newSaved);
+                                    showToast('🗑️ Promoție ștearsă');
+                                  } catch (e) { showToast('❌ ' + e.message, 'err'); }
+                                }}
+                                className="w-7 h-7 inline-flex items-center justify-center rounded-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 transition-colors"
+                              >✕</button>
+                            )}
+                          </div>
+
+                          {/* Checkbox Pop-up la Start */}
+                          {savedPromos[prod.id]?.price && (
+                            <label className="inline-flex items-center gap-1.5 cursor-pointer select-none" title="Bifează dacă vrei să apară ca fereastră pop-up când clientul începe comanda">
+                              <input 
+                                type="checkbox" 
+                                className="w-3.5 h-3.5 rounded border-slate-300 text-red-600 focus:ring-red-500"
+                                checked={promoOverrides[prod.id]?.popupStart !== false}
+                                onChange={async (e) => {
+                                  const checked = e.target.checked;
+                                  setPromoOverrides(prev => ({ ...prev, [prod.id]: { ...prev[prod.id], popupStart: checked } }));
+                                  setSavedPromos(prev => ({ ...prev, [prod.id]: { ...prev[prod.id], popupStart: checked } }));
+                                  try {
+                                    await fetchWithAuth(`${BACKEND}/api/locations/${activeLocation}/promos`, {
+                                      method: 'PUT',
+                                      body: JSON.stringify({
+                                        productId: prod.id,
+                                        price: parseFloat(promoOverrides[prod.id]?.price),
+                                        popupStart: checked,
+                                        kioskId: activeKiosk
+                                      })
+                                    });
+                                    showToast(checked ? '✅ Pop-up la Start activat' : 'ℹ️ Pop-up la Start oprit');
+                                  } catch (err) {
+                                    showToast('❌ ' + err.message, 'err');
+                                  }
+                                }}
+                              />
+                              <span className="text-[11px] font-bold text-red-600 dark:text-red-400 whitespace-nowrap">🔥 Pop-up Start</span>
+                            </label>
                           )}
                         </div>
                       </td>
