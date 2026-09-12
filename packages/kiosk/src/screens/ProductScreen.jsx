@@ -686,21 +686,19 @@ export default function ProductScreen() {
           })}
 
           {/* ─── SECȚIUNEA PERSONALIZARE & INSTRUCȚIUNI BUCĂTĂRIE ─── */}
-          <div className="ps-instructions-card">
-            <div className="ps-instructions-header">
-              <span className="ps-round-badge ps-round-badge--primary">
-                <IconChef />
-              </span>
-              <div className="ps-instructions-titles">
-                <h4 className="ps-instructions-title">Personalizare & Mențiuni bucătărie</h4>
-                {exclusionSuggestions.length > 0 && (
+          {exclusionSuggestions.length > 0 && (
+            <div className="ps-instructions-card">
+              <div className="ps-instructions-header">
+                <span className="ps-round-badge ps-round-badge--primary">
+                  <IconChef />
+                </span>
+                <div className="ps-instructions-titles">
+                  <h4 className="ps-instructions-title">Personalizare & Mențiuni bucătărie</h4>
                   <span className="ps-instructions-subtitle">Exclude ingrediente rapid (opțional):</span>
-                )}
+                </div>
               </div>
-            </div>
 
-            {/* Chips sugestii rapide filtrate conform ingredientelor acestui produs */}
-            {exclusionSuggestions.length > 0 && (
+              {/* Chips sugestii rapide filtrate conform ingredientelor acestui produs */}
               <div className="ps-exclusions-wrap">
                 {exclusionSuggestions.map(item => {
                   const isExcluded = selectedExclusions.includes(item.label);
@@ -719,19 +717,8 @@ export default function ProductScreen() {
                   );
                 })}
               </div>
-            )}
-
-            {/* Câmp Opțional: Mențiuni Speciale scrise */}
-            <div className="ps-comment-wrap">
-              <input
-                type="text"
-                className="ps-comment-input"
-                placeholder="Alte instrucțiuni speciale (opțional, ex: sos separat, bine rumenit...)"
-                value={comment}
-                onChange={e => setComment(e.target.value)}
-              />
             </div>
-          </div>
+          )}
 
           {/* ─── SECȚIUNEA RECOMANDĂRI ("Se potrivește de minune cu") ─── */}
           {pairings.length > 0 && (
