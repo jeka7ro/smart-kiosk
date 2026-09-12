@@ -181,6 +181,14 @@
   transform: scale(0.96);
 }
 
+.fm-btn-spinner {
+  animation: fmSpin 0.75s linear infinite;
+}
+
+@keyframes fmSpin {
+  to { transform: rotate(360deg); }
+}
+
 /* ─── ERROR BANNER ────────────────────────────────────────── */
 .fm-error-banner {
   background: #fef2f2;

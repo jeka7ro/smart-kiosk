@@ -31,6 +31,10 @@ async function queryAnaf(cleanCui) {
 
     clearTimeout(timeoutId);
 
+    if (response.status === 404) {
+      return { found: false, message: 'Firma nu a fost găsită în baza de date ANAF. Verificați cifrele introduse.' };
+    }
+
     if (!response.ok) {
       throw new Error(`ANAF server responded with status: ${response.status}`);
     }
@@ -39,7 +43,7 @@ async function queryAnaf(cleanCui) {
     const company = json?.found?.[0];
 
     if (!company) {
-      return { found: false, message: 'Firma nu a fost găsită în baza de date ANAF.' };
+      return { found: false, message: 'Firma nu a fost găsită în baza de date ANAF. Verificați cifrele introduse.' };
     }
 
     const dg = company.date_generale || {};
@@ -77,10 +81,10 @@ async function handleLookup(req, res) {
   const rawCui = req.params.cui || req.body.cui || req.query.cui;
   const cleanCui = normalizeCui(rawCui);
 
-  if (!cleanCui) {
+  if (!cleanCui || cleanCui.length < 6) {
     return res.status(400).json({
       success: false,
-      error: 'CUI invalid. Introduceți un cod fiscal valid (2-10 cifre, cu sau fără RO).'
+      error: 'Cod fiscal incomplet. Introduceți un CUI valid (minim 6 cifre).'
     });
   }
 
@@ -101,7 +105,7 @@ async function handleLookup(req, res) {
     console.error(`[ANAF] Lookup error for CUI ${cleanCui}:`, err.message);
     return res.status(502).json({
       success: false,
-      error: `Eroare la comunicarea cu serverul ANAF: ${err.message}`
+      error: 'Serverul ANAF nu a răspuns la timp. Vă rugăm încercați din nou.'
     });
   }
 }

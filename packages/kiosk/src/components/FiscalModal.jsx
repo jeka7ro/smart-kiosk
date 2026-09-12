@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import './FiscalModal.css';
 
 export default function FiscalModal({ isOpen, onClose, onConfirm, initialCui = '', lang = 'ro' }) {
@@ -6,6 +6,72 @@ export default function FiscalModal({ isOpen, onClose, onConfirm, initialCui = '
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [companyResult, setCompanyResult] = useState(null);
+  const abortControllerRef = useRef(null);
+
+  const lookupCui = useCallback(async (targetCui, isManual = false) => {
+    const cleanCui = (targetCui || cuiInput || '').replace(/\D/g, '');
+    if (!cleanCui || cleanCui.length < 6) {
+      if (isManual) {
+        setErrorMsg('Cod fiscal incomplet. Introduceți cel puțin 6 cifre.');
+      }
+      return;
+    }
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    setLoading(true);
+    if (isManual) setErrorMsg('');
+
+    try {
+      const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
+      const response = await fetch(`${BACKEND}/api/anaf/lookup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cui: cleanCui }),
+        signal: controller.signal,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        if (isManual) {
+          setErrorMsg(data.error || 'Firma nu a putut fi identificată.');
+        }
+        setCompanyResult(null);
+        return;
+      }
+
+      setCompanyResult(data.company);
+      setErrorMsg('');
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+      console.error('[FiscalModal] Lookup failed:', err);
+      if (isManual) {
+        setErrorMsg('Nu s-a putut contacta serverul. Vă rugăm încercați din nou.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [cuiInput]);
+
+  // Căutare automată DOAR după ce s-a introdus ultima cifră (CUI complet de 8-10 cifre)
+  useEffect(() => {
+    if (!isOpen) return;
+    const clean = cuiInput.replace(/\D/g, '');
+
+    // NU căutăm la 1-7 cifre pentru a nu mișca ecranul în timp ce clientul tastează!
+    if (clean.length >= 8) {
+      const delay = clean.length === 10 ? 150 : 500;
+      const timer = setTimeout(() => {
+        lookupCui(clean, false);
+      }, delay);
+      return () => clearTimeout(timer);
+    }
+  }, [cuiInput, isOpen, lookupCui]);
 
   if (!isOpen) return null;
 
@@ -15,47 +81,15 @@ export default function FiscalModal({ isOpen, onClose, onConfirm, initialCui = '
       setCuiInput('');
       setCompanyResult(null);
     } else if (char === 'backspace') {
-      setCuiInput((prev) => prev.slice(0, -1));
-      setCompanyResult(null);
+      setCuiInput((prev) => {
+        const next = prev.slice(0, -1);
+        if (next.length < 2) setCompanyResult(null);
+        return next;
+      });
     } else {
       if (cuiInput.length < 10) {
         setCuiInput((prev) => prev + char);
-        setCompanyResult(null);
       }
-    }
-  };
-
-  const handleVerify = async () => {
-    if (!cuiInput || cuiInput.length < 2) {
-      setErrorMsg('Introduceți un CUI format din cel puțin 2 cifre.');
-      return;
-    }
-
-    setLoading(true);
-    setErrorMsg('');
-    setCompanyResult(null);
-
-    try {
-      const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
-      const response = await fetch(`${BACKEND}/api/anaf/lookup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cui: cuiInput }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        setErrorMsg(data.error || 'Firma nu a putut fi identificată.');
-        return;
-      }
-
-      setCompanyResult(data.company);
-    } catch (err) {
-      console.error('[FiscalModal] Lookup failed:', err);
-      setErrorMsg('Nu s-a putut contacta serverul. Vă rugăm încercați din nou.');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -108,19 +142,25 @@ export default function FiscalModal({ isOpen, onClose, onConfirm, initialCui = '
             </div>
 
             <button
+              type="button"
               className="fm-verify-btn"
-              onClick={handleVerify}
+              onClick={() => lookupCui(cuiInput, true)}
               disabled={loading || cuiInput.length < 2}
             >
               {loading ? (
-                'Căutare...'
+                <>
+                  <svg className="fm-btn-spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                  </svg>
+                  <span>Căutare...</span>
+                </>
               ) : (
                 <>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="11" cy="11" r="8" />
                     <line x1="21" y1="21" x2="16.65" y2="16.65" />
                   </svg>
-                  <span>Caută Firmă</span>
+                  <span>Caută</span>
                 </>
               )}
             </button>
