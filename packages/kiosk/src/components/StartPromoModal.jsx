@@ -219,7 +219,7 @@ export default function StartPromoModal({ product, onClose, onAccept, lang = 'ro
             >
               {product.name}
             </h2>
-            {product.description && (
+            {(product.description || (product.translations && product.translations[lang])) && (
               <p
                 style={{
                   fontSize: '0.88rem',
@@ -232,7 +232,9 @@ export default function StartPromoModal({ product, onClose, onAccept, lang = 'ro
                   overflow: 'hidden',
                 }}
               >
-                {product.description}
+                {(lang !== 'ro' && product.translations && product.translations[lang])
+                  ? product.translations[lang]
+                  : product.description}
               </p>
             )}
           </div>

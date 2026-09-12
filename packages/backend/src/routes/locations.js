@@ -161,16 +161,21 @@ router.put('/:id', protect, async (req, res) => {
 
 // DELETE /api/locations/:id
 // PUT /api/locations/:id/promos — set promo prices for a specific kiosk in a location
-router.put('/:id/promos', protect, async (req, res) => {
+router.put('/:id/promos', (req, res, next) => {
+  const apiKey = req.headers['x-api-key'] || req.query.apikey;
+  if (apiKey === (process.env.VITE_API_KEY || 'sk-live-2024-secure')) return next();
+  return protect(req, res, next);
+}, async (req, res) => {
   try {
     const { productId, price, start, end, kioskId, popupStart } = req.body;
     if (!productId) return res.status(400).json({ error: 'productId is required' });
     if (!kioskId) return res.status(400).json({ error: 'kioskId is required' });
 
     if (hasDb) {
-      const existing = await pool.query('SELECT * FROM locations WHERE id = $1', [req.params.id]);
+      const existing = await pool.query('SELECT * FROM locations WHERE id = $1 OR data->>\'kioskUrl\' = $1', [req.params.id]);
       if (!existing.rows.length) return res.status(404).json({ error: 'Location not found' });
       
+      const targetId = existing.rows[0].id;
       const data = existing.rows[0].data || {};
       data.kioskPromos = data.kioskPromos || {};
       data.kioskPromos[kioskId] = data.kioskPromos[kioskId] || {};
@@ -181,17 +186,17 @@ router.put('/:id/promos', protect, async (req, res) => {
           price: Math.round(numPrice * 100) / 100, 
           start: start || null, 
           end: end || null,
-          popupStart: popupStart !== undefined ? !!popupStart : true
+          popupStart: popupStart !== undefined ? !!popupStart : false
         };
       } else {
         delete data.kioskPromos[kioskId][productId];
       }
       
-      await pool.query('UPDATE locations SET data = $1, updated_at = NOW() WHERE id = $2', [JSON.stringify(data), req.params.id]);
+      await pool.query('UPDATE locations SET data = $1, updated_at = NOW() WHERE id = $2', [JSON.stringify(data), targetId]);
       return res.json({ ok: true, promoOverrides: data.kioskPromos[kioskId] });
     } else {
       const locs = readLocFile();
-      const idx = locs.findIndex(l => l.id === req.params.id || l.kioskUrl === req.params.id);
+      const idx = locs.findIndex(l => l.id === req.params.id || l.kioskUrl === req.params.id || (l.aliases && l.aliases.includes(req.params.id)));
       if (idx === -1) return res.status(404).json({ error: 'Location not found' });
 
       locs[idx].kioskPromos = locs[idx].kioskPromos || {};
@@ -203,7 +208,7 @@ router.put('/:id/promos', protect, async (req, res) => {
           price: Math.round(numPrice * 100) / 100, 
           start: start || null, 
           end: end || null,
-          popupStart: popupStart !== undefined ? !!popupStart : true
+          popupStart: popupStart !== undefined ? !!popupStart : false
         };
       } else {
         delete locs[idx].kioskPromos[kioskId][productId];

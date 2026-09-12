@@ -93,31 +93,31 @@ export default function ModifierModal({ product, onConfirm, onClose, activeBrand
                   return <span className="mm-group-badge">{reqBadge}</span>;
                 })()}
               </div>
-              <div className="mm-options">
+              <div className="mm-options-grid">
                 {(gm.options || []).map(opt => {
                   const isSelected = selected[gm.id] === opt.id;
                   const isFree = !opt.price || opt.price === 0;
                   return (
                     <button
                       key={opt.id}
-                      className={`mm-option ${isSelected ? 'mm-option--selected' : ''}`}
+                      className={`mm-grid-opt ${isSelected ? 'mm-grid-opt--selected' : ''}`}
                       onClick={() => handleSelect(gm.id, opt.id)}
                     >
                       {opt.image && (
                         <img
                           src={proxySyrveImage(opt.image)}
                           alt={opt.name}
-                          className="mm-opt-img"
+                          className="mm-grid-opt-img"
                           onError={e => { e.target.style.display = 'none'; }}
                         />
                       )}
-                      <div className="mm-opt-text">
-                        <span className="mm-opt-name">{opt.name}</span>
-                        <span className={`mm-opt-price ${isFree ? 'mm-opt-price--free' : ''}`}>
-                          {isFree ? (t('included', lang) || 'Inclus') : `+${opt.price.toFixed(2)} ${t('currency', lang) || 'lei'}`}
-                        </span>
-                      </div>
-                      <div className={`mm-opt-check ${isSelected ? 'checked' : ''}`} />
+                      <span className="mm-grid-opt-name">{opt.name}</span>
+                      <span className={`mm-grid-opt-price ${isFree ? 'mm-grid-opt-price--free' : ''}`}>
+                        {isFree ? (t('included', lang) || 'Inclus') : `+${opt.price.toFixed(2)} ${t('currency', lang) || 'lei'}`}
+                      </span>
+                      {isSelected && (
+                        <span className="mm-grid-opt-check">✓</span>
+                      )}
                     </button>
                   );
                 })}

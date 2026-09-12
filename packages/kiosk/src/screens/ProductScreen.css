@@ -414,44 +414,45 @@
 
 .ps-mod-options-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
 }
 
 .ps-mod-opt {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   text-align: center;
-  gap: 4px;
+  gap: 6px;
   background: #f8fafc;
   border: 2px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 10px 8px;
+  border-radius: 14px;
+  padding: 12px 8px 10px;
   cursor: pointer;
   transition: all 0.2s;
-  min-height: 54px;
+  min-height: 60px;
   position: relative;
 }
 
 .ps-mod-opt:hover {
   border-color: #EE3B24;
   background: #fff;
+  transform: scale(1.02);
 }
 
 .ps-mod-opt--selected {
   border-color: #EE3B24;
   background: #fff5f5;
-  box-shadow: 0 0 0 1.5px #EE3B24;
+  box-shadow: 0 0 0 2px #EE3B24;
 }
 
 .ps-mod-opt-img {
-  width: 40px;
-  height: 40px;
+  width: 64px;
+  height: 64px;
   object-fit: cover;
-  border-radius: 6px;
-  margin-bottom: 2px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .ps-mod-opt-name {
@@ -481,10 +482,9 @@
 .ps-mod-selected-desc {
   margin-top: 12px;
   padding: 10px 14px;
-  background: #fff9f8;
-  border: 1.5px solid #ffdeda;
-  border-left: 4px solid #EE3B24;
-  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -500,6 +500,22 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.ps-mod-selected-desc-header-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.ps-mod-selected-desc-header-btn:active {
+  opacity: 0.8;
 }
 
 .ps-mod-selected-desc-header {
@@ -524,6 +540,24 @@
   line-height: 1.45;
   margin: 0;
   white-space: pre-line;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.ps-mod-selected-desc-text--expanded {
+  -webkit-line-clamp: unset;
+  overflow: visible;
+}
+.ps-mod-desc-toggle {
+  background: none;
+  border: none;
+  color: #EE3B24;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 0 0;
+  text-align: left;
 }
 
 /* ─── PAIRINGS / RECOMANDĂRI ("Se potrivește de minune cu") ─── */

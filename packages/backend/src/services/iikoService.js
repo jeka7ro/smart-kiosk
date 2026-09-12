@@ -675,6 +675,11 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
       name: (order.fiscal.name || 'Client').slice(0, 60),
       surname: cuiDigits || String(order.fiscal.rawCui || order.fiscal.cui || '').slice(0, 30),
       comment: `CF:${cuiDigits} CIF:${cuiDigits} CUI:${cuiWithRo} | RegCom: ${order.fiscal.regCom || ''} | Adresa: ${order.fiscal.address || ''}`,
+      // Syrve/iiko fiscal fields — 'inn' is the standard taxpayer ID field
+      // that Syrve passes to the fiscal printer driver for buyer identification
+      inn: cuiDigits,
+      cardNumber: cuiWithRo,
+      cardTrack: cuiDigits,
     } : {
       name: 'Kiosk Client',
       surname: '',

@@ -51,6 +51,18 @@ router.get('/', requireApiKey, async (req, res) => {
     rows.forEach(r => { productOverrides[r.id] = r; });
   } catch (_) { /* graceful */ }
 
+  // Build maps of product id/name → image so modifier options can inherit product images
+  const productImageMap = {};
+  const productNameImageMap = {};
+  (menu.products || []).forEach(p => {
+    const over = productOverrides[p.id] || {};
+    const img = over.custom_image_url || over.syrve_image_url || p.image || over.local_image_url;
+    if (img) {
+      productImageMap[p.id] = img;
+      if (p.name) productNameImageMap[p.name.toLowerCase().trim()] = img;
+    }
+  });
+
   const enrichedProducts = menu.products.map(p => {
     const over = productOverrides[p.id] || {};
     return {
@@ -63,11 +75,12 @@ router.get('/', requireApiKey, async (req, res) => {
       promoPrice: over.promo_price ? parseFloat(over.promo_price) : null,
       promoStart: over.promo_start || null,
       promoEnd: over.promo_end || null,
+      popupStart: over.popup_start !== undefined ? !!over.popup_start : false,
       modifierGroups: (p.modifierGroups || []).map(gm => ({
         ...gm,
         options: (gm.options || []).map(opt => ({
           ...opt,
-          image: modifierImages[opt.id] || opt.image || null,
+          image: modifierImages[opt.id] || opt.image || productImageMap[opt.id] || (opt.name ? productNameImageMap[opt.name.toLowerCase().trim()] : null) || null,
         })),
       })),
     };
@@ -160,7 +173,7 @@ router.get('/', requireApiKey, async (req, res) => {
       const kioskId = req.query.kioskId || '1';
       let locData = null;
       try {
-        const { rows: locRows2 } = await pool.query('SELECT data FROM locations WHERE id = $1', [locId]);
+        const { rows: locRows2 } = await pool.query('SELECT data FROM locations WHERE id = $1 OR data->>\'kioskUrl\' = $1', [locId]);
         if (locRows2.length > 0) locData = locRows2[0].data;
       } catch (e) {
         // JSON fallback
@@ -168,7 +181,7 @@ router.get('/', requireApiKey, async (req, res) => {
         const path = require('path');
         const raw = JSON.parse(fs.readFileSync(path.join(__dirname, '../../data/locations.json'), 'utf8'));
         const locs = Array.isArray(raw) ? raw : (raw.locations || []);
-        const l = locs.find(x => x.id === locId);
+        const l = locs.find(x => x.id === locId || x.kioskUrl === locId || (x.aliases && x.aliases.includes(locId)));
         if (l) locData = l;
       }
 

@@ -40,6 +40,18 @@ class PrinterServiceDatecsFP950 {
     buffers.push(Buffer.from(`Tip: ${order.orderType === 'dine-in' ? 'LA MASA' : 'LA PACHET'}\n`));
     if (order.tableNumber) buffers.push(Buffer.from(`Masa: ${order.tableNumber}\n`));
     buffers.push(Buffer.from(`Data: ${new Date().toLocaleString('ro-RO')}\n`));
+
+    // Fiscal CUI
+    if (order.fiscal && order.fiscal.cui) {
+      buffers.push(Buffer.from('--------------------------------\n'));
+      buffers.push(Buffer.from([ESC, 0x45, 0x01])); // Bold
+      buffers.push(Buffer.from('SOLICITARE BON FISCAL CU CUI\n'));
+      buffers.push(Buffer.from([ESC, 0x45, 0x00])); // Bold off
+      buffers.push(Buffer.from(`CUI: ${order.fiscal.rawCui || order.fiscal.cui}\n`));
+      if (order.fiscal.name) buffers.push(Buffer.from(`${this.encodeText(order.fiscal.name)}\n`));
+      if (order.fiscal.regCom) buffers.push(Buffer.from(`Reg.Com: ${order.fiscal.regCom}\n`));
+    }
+
     buffers.push(Buffer.from('--------------------------------\n\n'));
     
     // Items

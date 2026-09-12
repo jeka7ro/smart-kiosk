@@ -263,10 +263,65 @@ export default function ProductOverrides() {
     if (!ok) return;
     try {
       await fetchWithAuth(`${BACKEND}/api/products/overrides/${activeBrand}/${productId}/image`, { method: 'DELETE' });
-      showToast('🗑 Ștearsă! A revenit la baza Syrve.', 'ok');
+      showToast('Ștearsă! A revenit la baza Syrve.', 'ok');
       fetchAll();
     } catch (err) {
-      showToast('❌ Eroare: ' + err.message, 'err');
+      showToast('Eroare: ' + err.message, 'err');
+    }
+  };
+
+  const handleSavePromo = async (prodId, explicitPrice) => {
+    if (!activeLocation) return showToast('Alege locația mai întâi', 'err');
+    if (!activeKiosk) return showToast('Scrie ID-ul Kiosk-ului mai întâi! (ex: cluj1)', 'err');
+    try {
+      const po = promoOverrides[prodId] || {};
+      const rawVal = String(explicitPrice !== undefined ? explicitPrice : (po.price || '')).replace(',', '.').trim();
+      if (!rawVal) return;
+      const parsedPrice = parseFloat(rawVal);
+      if (isNaN(parsedPrice) || parsedPrice <= 0) return showToast('Introdu un preț valid (ex: 32.99)!', 'err');
+      const numPrice = Math.round(parsedPrice * 100) / 100;
+      const payload = {
+        productId: prodId,
+        price: numPrice,
+        start: po.start || null,
+        end: po.end || null,
+        popupStart: po.popupStart !== undefined ? !!po.popupStart : false,
+        kioskId: activeKiosk
+      };
+      const res = await fetchWithAuth(`${BACKEND}/api/locations/${activeLocation}/promos`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error('Eroare la salvare');
+      setSavedPromos(prev => ({ ...prev, [prodId]: payload }));
+      setPromoOverrides(prev => ({ ...prev, [prodId]: { ...prev[prodId], price: numPrice.toFixed(2) } }));
+      showToast(`Promoție salvată: ${numPrice.toFixed(2)} lei pe Kiosk ${activeKiosk}`);
+    } catch (e) {
+      showToast('Eroare: ' + e.message, 'err');
+    }
+  };
+
+  const handleDeletePromo = async (prodId) => {
+    if (!activeLocation) return;
+    try {
+      const res = await fetchWithAuth(`${BACKEND}/api/locations/${activeLocation}/promos`, {
+        method: 'PUT',
+        body: JSON.stringify({ productId: prodId, price: null, start: null, end: null, kioskId: activeKiosk }),
+      });
+      if (!res.ok) throw new Error('Eroare la ștergere');
+      setPromoOverrides(prev => {
+        const copy = { ...prev };
+        delete copy[prodId];
+        return copy;
+      });
+      setSavedPromos(prev => {
+        const copy = { ...prev };
+        delete copy[prodId];
+        return copy;
+      });
+      showToast('Promoție ștearsă');
+    } catch (e) {
+      showToast('Eroare: ' + e.message, 'err');
     }
   };
 
@@ -311,9 +366,9 @@ export default function ProductOverrides() {
               onChange={e => setActiveLocation(e.target.value)}
               className="px-4 py-2.5 rounded-full border border-slate-200 dark:border-slate-800 text-sm outline-none bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 cursor-pointer focus:ring-2 focus:ring-blue-500/50 appearance-none"
             >
-              <option value="" disabled>📍 Alege locația...</option>
+              <option value="" disabled>Alege locația...</option>
               {locations.map(loc => (
-                <option key={loc.id} value={loc.id}>📍 {loc.name}</option>
+                <option key={loc.id} value={loc.id}>{loc.name}</option>
               ))}
             </select>
           )}
@@ -336,12 +391,12 @@ export default function ProductOverrides() {
                 onChange={e => setActiveKiosk(e.target.value)}
                 className="px-4 py-2.5 rounded-full border border-slate-200 dark:border-slate-800 text-sm outline-none bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 cursor-pointer focus:ring-2 focus:ring-indigo-500/50 appearance-none min-w-[120px]"
               >
-                <option value="" disabled>🖥️ Alege Kiosk...</option>
+                <option value="" disabled>Alege Kiosk...</option>
                 {knownKiosks.length === 0 && (
-                  <option value="" disabled>⚠️ Adaugă Kiosk-uri din tab-ul 'Kioskuri'!</option>
+                  <option value="" disabled>Adaugă Kiosk-uri din tab-ul 'Kioskuri'!</option>
                 )}
                 {knownKiosks.map(k => (
-                  <option key={k.kioskId} value={k.kioskId}>🖥️ {k.name}</option>
+                  <option key={k.kioskId} value={k.kioskId}>{k.name}</option>
                 ))}
               </select>
             );
@@ -352,7 +407,7 @@ export default function ProductOverrides() {
             onChange={e => { setFilterCategory(e.target.value); setPage(1); }}
             className="px-4 py-2.5 rounded-full border border-slate-200 dark:border-slate-800 text-sm outline-none bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 cursor-pointer max-w-[180px] focus:ring-2 focus:ring-blue-500/50 appearance-none"
           >
-            <option value="">🗂️ Toate categoriile</option>
+            <option value="">Toate categoriile</option>
             {uniqueCategories.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
 
@@ -370,25 +425,25 @@ export default function ProductOverrides() {
             onClick={() => { setFilterDiet(filterDiet === 'veg' ? null : 'veg'); setPage(1); }}
             className={`flex-shrink-0 px-4 py-2.5 rounded-full text-xs font-bold transition-all whitespace-nowrap ${filterDiet === 'veg' ? 'bg-emerald-500 text-white shadow-sm' : 'bg-transparent border border-emerald-500 text-emerald-600 dark:text-emerald-400'}`}
           >
-            🍃 Vegetarian
+            Vegetarian
           </button>
           <button
             onClick={() => { setFilterDiet(filterDiet === 'spicy' ? null : 'spicy'); setPage(1); }}
             className={`flex-shrink-0 px-4 py-2.5 rounded-full text-xs font-bold transition-all whitespace-nowrap ${filterDiet === 'spicy' ? 'bg-red-500 text-white shadow-sm' : 'bg-transparent border border-red-500 text-red-600 dark:text-red-400'}`}
           >
-            🌶️ Picant
+            Picant
           </button>
           <button
             onClick={() => { setFilterDiet(filterDiet === 'promo' ? null : 'promo'); setPage(1); }}
             className={`flex-shrink-0 px-4 py-2.5 rounded-full text-xs font-bold transition-all whitespace-nowrap ${filterDiet === 'promo' ? 'bg-blue-500 text-white shadow-sm' : 'bg-transparent border border-blue-500 text-blue-600 dark:text-blue-400'}`}
           >
-            💰 Doar Promo
+            Doar Promo
           </button>
           <button
             onClick={() => { setFilterDiet(filterDiet === 'featured' ? null : 'featured'); setPage(1); }}
             className={`flex-shrink-0 px-4 py-2.5 rounded-full text-xs font-bold transition-all whitespace-nowrap ${filterDiet === 'featured' ? 'bg-amber-500 text-white shadow-sm' : 'bg-transparent border border-amber-500 text-amber-600 dark:text-amber-400'}`}
           >
-            ⭐ Prima Pagină
+            Prima Pagină
           </button>
         </div>
       </div>
@@ -411,29 +466,29 @@ export default function ProductOverrides() {
                   <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Produs</th>
                   <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Categorie</th>
                   <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Preț</th>
-                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">🏷️ Promoție</th>
+                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Promoție</th>
                   <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">
                     <div className="inline-flex items-center justify-center gap-1.5 cursor-pointer px-2 py-1 rounded bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 transition-colors" onClick={() => handleBulkToggle('hidden', !(filtered.length > 0 && filtered.every(p => !overrides[p.id]?.is_hidden)))} title="Bifează/Debifează pe Toate (Disponibil = Neascuns)">
                       <input type="checkbox" className="w-3.5 h-3.5 rounded border-blue-300 text-blue-600 focus:ring-blue-500 pointer-events-none" checked={filtered.length > 0 && filtered.every(p => !overrides[p.id]?.is_hidden)} readOnly />
-                      <span>👁️ Disponibil</span>
+                      <span>Disponibil</span>
                     </div>
                   </th>
                   <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">
                     <div className="inline-flex items-center justify-center gap-1.5 cursor-pointer px-2 py-1 rounded bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400 transition-colors" onClick={() => handleBulkToggle('veg', !(filtered.length > 0 && filtered.every(p => overrides[p.id]?.is_vegetarian)))} title="Bifează/Debifează pe Toate">
                       <input type="checkbox" className="w-3.5 h-3.5 rounded border-emerald-300 text-emerald-600 focus:ring-emerald-500 pointer-events-none" checked={filtered.length > 0 && filtered.every(p => overrides[p.id]?.is_vegetarian)} readOnly />
-                      <span>🍃 Veg</span>
+                      <span>Veg</span>
                     </div>
                   </th>
                   <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">
                     <div className="inline-flex items-center justify-center gap-1.5 cursor-pointer px-2 py-1 rounded bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 transition-colors" onClick={() => handleBulkToggle('spicy', !(filtered.length > 0 && filtered.every(p => overrides[p.id]?.is_spicy)))} title="Bifează/Debifează pe Toate">
                       <input type="checkbox" className="w-3.5 h-3.5 rounded border-red-300 text-red-600 focus:ring-red-500 pointer-events-none" checked={filtered.length > 0 && filtered.every(p => overrides[p.id]?.is_spicy)} readOnly />
-                      <span>🌶️ Picant</span>
+                      <span>Picant</span>
                     </div>
                   </th>
                   <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">
                     <div className="inline-flex items-center justify-center gap-1.5 cursor-pointer px-2 py-1 rounded bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400 transition-colors" onClick={() => handleBulkToggle('featured', !(filtered.length > 0 && filtered.every(p => overrides[p.id]?.is_featured)))} title="Bifează/Debifează pe Toate (Afișează pe prima pagină)">
                       <input type="checkbox" className="w-3.5 h-3.5 rounded border-amber-300 text-amber-600 focus:ring-amber-500 pointer-events-none" checked={filtered.length > 0 && filtered.every(p => overrides[p.id]?.is_featured)} readOnly />
-                      <span>⭐ Prima Pagină</span>
+                      <span>Prima Pagină</span>
                     </div>
                   </th>
                   <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Editează Poză</th>
@@ -465,11 +520,11 @@ export default function ProductOverrides() {
                       </td>
                       <td className="px-4 py-3">
                         {hasCustom 
-                          ? <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-violet-100 text-violet-700 border border-violet-200 dark:bg-violet-900/30 dark:border-violet-800 dark:text-violet-300">🛠️ Custom Upload</span>
+                          ? <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-violet-100 text-violet-700 border border-violet-200 dark:bg-violet-900/30 dark:border-violet-800 dark:text-violet-300">Custom Upload</span>
                           : over.local_image_url 
-                            ? <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/30 dark:border-emerald-800 dark:text-emerald-300">⚡ Cache Local</span>
+                            ? <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/30 dark:border-emerald-800 dark:text-emerald-300">Cache Local</span>
                             : displayImage
-                              ? <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300">🇷🇺 Syrve Cloud</span>
+                              ? <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300">Syrve Cloud</span>
                               : <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-red-50 text-red-600 border border-red-200 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400">Fără poză</span>
                         }
                       </td>
@@ -492,117 +547,104 @@ export default function ProductOverrides() {
                       
                       {/* Promo Price Column */}
                       <td className="px-4 py-3">
-                        <div className="flex flex-col gap-1.5">
-                          <div className="flex items-center gap-1.5">
-                            <input
-                              type="text"
-                              inputMode="decimal"
-                              placeholder="—"
-                              value={promoOverrides[prod.id]?.price !== undefined && promoOverrides[prod.id]?.price !== null ? promoOverrides[prod.id]?.price : ''}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setPromoOverrides(prev => ({ ...prev, [prod.id]: { ...prev[prod.id], price: val } }));
-                              }}
-                              onBlur={() => {
-                                const raw = promoOverrides[prod.id]?.price;
-                                if (raw !== undefined && raw !== null && raw !== '') {
-                                  const num = parseFloat(String(raw).replace(',', '.'));
-                                  if (!isNaN(num) && num > 0) {
-                                    const formatted = (Math.round(num * 100) / 100).toFixed(2);
-                                    setPromoOverrides(prev => ({ ...prev, [prod.id]: { ...prev[prod.id], price: formatted } }));
-                                  }
-                                }
-                              }}
-                              style={{ width: 75, padding: '4px 6px', fontSize: '0.85rem', borderRadius: 6, border: '1px solid var(--border, #e2e8f0)', background: 'var(--surface, #fff)', color: 'var(--text, #111)', textAlign: 'center' }}
-                            />
-                            {!savedPromos[prod.id]?.price ? (
-                              <button
-                                title="Salvează preț promoțional"
-                                onClick={async () => {
-                                  if (!activeLocation) return showToast('Alege locația mai întâi', 'err');
-                                  if (!activeKiosk) return showToast('Scrie ID-ul Kiosk-ului mai întâi! (ex: cluj1)', 'err');
-                                  try {
-                                    const po = promoOverrides[prod.id] || {};
-                                    const rawVal = String(po.price || '').replace(',', '.').trim();
-                                    const parsedPrice = parseFloat(rawVal);
-                                    if (isNaN(parsedPrice) || parsedPrice <= 0) return showToast('Introdu un preț valid (ex: 32.99)!', 'err');
-                                    const numPrice = Math.round(parsedPrice * 100) / 100;
-                                    const payload = {
-                                      productId: prod.id,
-                                      price: numPrice,
-                                      start: po.start || null,
-                                      end: po.end || null,
-                                      popupStart: po.popupStart !== undefined ? po.popupStart : true,
-                                      kioskId: activeKiosk
-                                    };
-                                    const res = await fetchWithAuth(`${BACKEND}/api/locations/${activeLocation}/promos`, {
-                                      method: 'PUT',
-                                      body: JSON.stringify(payload),
-                                    });
-                                    if (!res.ok) throw new Error('Eroare');
-                                    setSavedPromos(prev => ({ ...prev, [prod.id]: payload }));
-                                    setPromoOverrides(prev => ({ ...prev, [prod.id]: { ...prev[prod.id], price: numPrice.toFixed(2) } }));
-                                    showToast(`✅ Promoție salvată: ${numPrice.toFixed(2)} lei pe Kiosk ${activeKiosk}`);
-                                  } catch (e) { showToast('❌ ' + e.message, 'err'); }
-                                }}
-                                className="w-7 h-7 inline-flex items-center justify-center rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 transition-colors"
-                              >✓</button>
-                            ) : (
-                              <button
-                                title="Șterge promoția"
-                                onClick={async () => {
-                                  if (!activeLocation) return;
-                                  try {
-                                    const res = await fetchWithAuth(`${BACKEND}/api/locations/${activeLocation}/promos`, {
-                                      method: 'PUT',
-                                      body: JSON.stringify({ productId: prod.id, price: null, start: null, end: null, kioskId: activeKiosk }),
-                                    });
-                                    if (!res.ok) throw new Error('Eroare');
-                                    const newPromo = { ...promoOverrides };
-                                    delete newPromo[prod.id];
-                                    setPromoOverrides(newPromo);
-                                    const newSaved = { ...savedPromos };
-                                    delete newSaved[prod.id];
-                                    setSavedPromos(newSaved);
-                                    showToast('🗑️ Promoție ștearsă');
-                                  } catch (e) { showToast('❌ ' + e.message, 'err'); }
-                                }}
-                                className="w-7 h-7 inline-flex items-center justify-center rounded-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 transition-colors"
-                              >✕</button>
-                            )}
-                          </div>
+                        {(() => {
+                          const rawCurrent = promoOverrides[prod.id]?.price;
+                          const numCurrent = (rawCurrent !== undefined && rawCurrent !== null && rawCurrent !== '') ? parseFloat(String(rawCurrent).replace(',', '.')) : null;
+                          const savedItem = savedPromos[prod.id];
+                          const numSaved = (savedItem?.price !== undefined && savedItem?.price !== null && savedItem?.price !== '') ? parseFloat(String(savedItem.price).replace(',', '.')) : null;
 
-                          {/* Checkbox Pop-up la Start */}
-                          {savedPromos[prod.id]?.price && (
-                            <label className="inline-flex items-center gap-1.5 cursor-pointer select-none" title="Bifează dacă vrei să apară ca fereastră pop-up când clientul începe comanda">
-                              <input 
-                                type="checkbox" 
-                                className="w-3.5 h-3.5 rounded border-slate-300 text-red-600 focus:ring-red-500"
-                                checked={promoOverrides[prod.id]?.popupStart !== false}
-                                onChange={async (e) => {
-                                  const checked = e.target.checked;
-                                  setPromoOverrides(prev => ({ ...prev, [prod.id]: { ...prev[prod.id], popupStart: checked } }));
-                                  setSavedPromos(prev => ({ ...prev, [prod.id]: { ...prev[prod.id], popupStart: checked } }));
-                                  try {
-                                    await fetchWithAuth(`${BACKEND}/api/locations/${activeLocation}/promos`, {
-                                      method: 'PUT',
-                                      body: JSON.stringify({
-                                        productId: prod.id,
-                                        price: parseFloat(promoOverrides[prod.id]?.price),
-                                        popupStart: checked,
-                                        kioskId: activeKiosk
-                                      })
-                                    });
-                                    showToast(checked ? '✅ Pop-up la Start activat' : 'ℹ️ Pop-up la Start oprit');
-                                  } catch (err) {
-                                    showToast('❌ ' + err.message, 'err');
-                                  }
-                                }}
-                              />
-                              <span className="text-[11px] font-bold text-red-600 dark:text-red-400 whitespace-nowrap">🔥 Pop-up Start</span>
-                            </label>
-                          )}
-                        </div>
+                          const isDirty = numCurrent !== null && !isNaN(numCurrent) && (numSaved === null || Math.abs(numCurrent - numSaved) > 0.001);
+                          const hasSaved = numSaved !== null && !isNaN(numSaved) && numSaved > 0;
+
+                          return (
+                            <div className="flex flex-col gap-1.5">
+                              <div className="flex items-center gap-1.5">
+                                <input
+                                  type="text"
+                                  inputMode="decimal"
+                                  placeholder="—"
+                                  value={rawCurrent !== undefined && rawCurrent !== null ? rawCurrent : ''}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setPromoOverrides(prev => ({ ...prev, [prod.id]: { ...prev[prod.id], price: val } }));
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      handleSavePromo(prod.id);
+                                    }
+                                  }}
+                                  onBlur={() => {
+                                    if (rawCurrent !== undefined && rawCurrent !== null && rawCurrent !== '') {
+                                      const num = parseFloat(String(rawCurrent).replace(',', '.'));
+                                      if (!isNaN(num) && num > 0) {
+                                        const formatted = (Math.round(num * 100) / 100).toFixed(2);
+                                        setPromoOverrides(prev => ({ ...prev, [prod.id]: { ...prev[prod.id], price: formatted } }));
+                                        if (isDirty) {
+                                          handleSavePromo(prod.id, formatted);
+                                        }
+                                      }
+                                    }
+                                  }}
+                                  style={{
+                                    width: 75,
+                                    padding: '4px 6px',
+                                    fontSize: '0.85rem',
+                                    borderRadius: 6,
+                                    border: isDirty ? '1.5px solid #10b981' : '1px solid var(--border, #e2e8f0)',
+                                    background: 'var(--surface, #fff)',
+                                    color: 'var(--text, #111)',
+                                    textAlign: 'center'
+                                  }}
+                                />
+                                {isDirty && (
+                                  <button
+                                    title="Salvează preț promoțional (Enter)"
+                                    onClick={() => handleSavePromo(prod.id)}
+                                    className="w-7 h-7 inline-flex items-center justify-center rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 transition-colors shadow-sm font-bold"
+                                  >✓</button>
+                                )}
+                                {hasSaved && (
+                                  <button
+                                    title="Șterge promoția"
+                                    onClick={() => handleDeletePromo(prod.id)}
+                                    className="w-7 h-7 inline-flex items-center justify-center rounded-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 transition-colors"
+                                  >✕</button>
+                                )}
+                              </div>
+
+                              {/* Checkbox Pop-up la Start */}
+                              {hasSaved && (
+                                <label className="inline-flex items-center gap-1.5 cursor-pointer select-none" title="Bifează dacă vrei să apară ca fereastră pop-up când clientul începe comanda">
+                                  <input 
+                                    type="checkbox" 
+                                    className="w-3.5 h-3.5 rounded border-slate-300 text-slate-700 focus:ring-slate-500"
+                                    checked={promoOverrides[prod.id]?.popupStart === true}
+                                    onChange={async (e) => {
+                                      const checked = e.target.checked;
+                                      setPromoOverrides(prev => ({ ...prev, [prod.id]: { ...prev[prod.id], popupStart: checked } }));
+                                      setSavedPromos(prev => ({ ...prev, [prod.id]: { ...prev[prod.id], popupStart: checked } }));
+                                      try {
+                                        await fetchWithAuth(`${BACKEND}/api/locations/${activeLocation}/promos`, {
+                                          method: 'PUT',
+                                          body: JSON.stringify({
+                                            productId: prod.id,
+                                            price: parseFloat(promoOverrides[prod.id]?.price),
+                                            popupStart: checked,
+                                            kioskId: activeKiosk
+                                          })
+                                        });
+                                        showToast(checked ? 'Pop-up la Start activat' : 'Pop-up la Start oprit');
+                                      } catch (err) {
+                                        showToast('Eroare: ' + err.message, 'err');
+                                      }
+                                    }}
+                                  />
+                                  <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 whitespace-nowrap">Pop-up Start</span>
+                                </label>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </td>
                       
                       <td className="px-4 py-3 text-center">

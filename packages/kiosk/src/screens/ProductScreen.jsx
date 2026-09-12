@@ -256,6 +256,11 @@ export default function ProductScreen() {
   const [showIngredients, setShowIngredients] = useState(false);
   const [showAllergens, setShowAllergens] = useState(false);
   const [selectedPairings, setSelectedPairings] = useState([]);
+  const [expandedModDescs, setExpandedModDescs] = useState({});
+
+  const toggleModDesc = (modId) => {
+    setExpandedModDescs(prev => ({ ...prev, [modId]: !prev[modId] }));
+  };
 
   const [selected, setSelected] = useState(() => {
     const init = {};
@@ -828,16 +833,19 @@ export default function ProductScreen() {
                   })}
                 </div>
 
-                {/* Descriere afișată sub opțiuni când una este selectată */}
+                {/* Descriere vizibilă mereu (primele 3 rânduri), expandabilă */}
                 {selectedOpt && selectedDesc && (
                   <div className="ps-mod-selected-desc">
-                    <div className="ps-mod-selected-desc-header">
-                      <span className="ps-mod-selected-desc-tag">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-                        {selectedOpt.name.replace(/^\*+\s*/, '')}
-                      </span>
-                    </div>
-                    <p className="ps-mod-selected-desc-text">{selectedDesc}</p>
+                    <p className={`ps-mod-selected-desc-text ${expandedModDescs[mod.id] ? 'ps-mod-selected-desc-text--expanded' : ''}`}>
+                      {selectedDesc}
+                    </p>
+                    <button
+                      type="button"
+                      className="ps-mod-desc-toggle"
+                      onClick={() => toggleModDesc(mod.id)}
+                    >
+                      {expandedModDescs[mod.id] ? 'Mai puțin ▲' : 'Mai mult ▼'}
+                    </button>
                   </div>
                 )}
               </div>

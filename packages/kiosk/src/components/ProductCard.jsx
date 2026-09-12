@@ -88,7 +88,6 @@ export default function ProductCard({ product, delay, lang, activeBrand, onQuick
                   textTransform: 'uppercase',
                   letterSpacing: '0.5px'
                 }}>
-                  <span>⭐</span>
                   <span>Ofertă</span>
                 </div>
               )}
@@ -115,7 +114,6 @@ export default function ProductCard({ product, delay, lang, activeBrand, onQuick
                   gap: 4,
                   textTransform: 'uppercase'
                 }}>
-                  <span>⭐</span>
                   <span>Ofertă</span>
                 </div>
               )}
@@ -178,12 +176,12 @@ export default function ProductCard({ product, delay, lang, activeBrand, onQuick
               if (hasPromo) {
                 return (
                   <span style={{ flexShrink: 0, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ textDecoration: 'line-through', color: 'rgba(255,255,255,0.75)', fontWeight: 500, fontSize: '0.85rem' }}>{product.price} {currency}</span>
-                    <span style={{ color: '#fff' }}>{product.promoPrice} {currency}</span>
+                    <span style={{ textDecoration: 'line-through', color: 'rgba(255,255,255,0.75)', fontWeight: 500, fontSize: '0.85rem' }}>{(parseFloat(product.price) || 0).toFixed(2)} {currency}</span>
+                    <span style={{ color: '#fff' }}>{(parseFloat(product.promoPrice) || 0).toFixed(2)} {currency}</span>
                   </span>
                 );
               }
-              return <span style={{ flexShrink: 0, fontWeight: 800 }}>{product.price} {currency}</span>;
+              return <span style={{ flexShrink: 0, fontWeight: 800 }}>{(parseFloat(product.price) || 0).toFixed(2)} {currency}</span>;
             })()}
           </button>
         ) : (

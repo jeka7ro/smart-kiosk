@@ -233,10 +233,10 @@ export default function MenuScreen() {
       });
   }, [activeBrandId, locationOrgIds, locationData]);
 
-  // Trigger Welcome Promo popup once per session after products load
+  // Trigger Welcome Promo popup once per session after products load (only if explicitly enabled)
   useEffect(() => {
     if (!loading && products.length > 0 && !hasShownStartPromo) {
-      const candidate = products.find(p => p.promoPrice && p.promoPrice > 0 && p.popupStart !== false);
+      const candidate = products.find(p => p.promoPrice && p.promoPrice > 0 && p.popupStart === true);
       if (candidate) {
         setStartPromoModalProduct(candidate);
         setHasShownStartPromo(true);
@@ -252,9 +252,9 @@ export default function MenuScreen() {
     if (hasRequiredMods) {
       setSelectedProduct(promoProduct);
     } else {
-      addToCart(promoProduct, 1, [], promoProduct.promoPrice, activeBrandId, false);
+      addToCart(promoProduct, 1, [], getEffectivePrice(promoProduct), activeBrandId, false);
     }
-  }, [setSelectedProduct, addToCart, activeBrandId]);
+  }, [addToCart, activeBrandId, setSelectedProduct]);
 
   // SMART DIETARY NAVIGATOR: Automatically select categories/brands with matching products
   useEffect(() => {
@@ -325,7 +325,7 @@ export default function MenuScreen() {
       });
     }
     
-    const list = baseProds.filter(p => !activeCategory || activeDiet || p.categoryId === activeCategory);
+    const list = baseProds.filter(p => !activeCategory || activeDiet || p.categoryId === activeCategory || p.isFeatured);
     return list.sort((a, b) => (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0));
   }, [search, products, allProducts, activeCategory, activeBrandId, activeDiet]);
 
