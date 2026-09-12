@@ -215,11 +215,6 @@ const REMOVABLE_INGREDIENTS = [
     keywords: ['ghimbir', 'ginger'],
   },
   {
-    id: 'susan',
-    label: 'Fără susan',
-    keywords: ['susan', 'sesame'],
-  },
-  {
     id: 'usturoi',
     label: 'Fără usturoi',
     keywords: ['usturoi', 'garlic'],
