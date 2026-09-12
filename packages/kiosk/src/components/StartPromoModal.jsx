@@ -11,28 +11,28 @@ const proxySyrveImage = (url) => {
 
 const TEXTS = {
   ro: {
-    banner: '🔥 OFERTĂ SPECIALĂ DE BUN VENIT!',
+    banner: 'OFERTĂ SPECIALĂ DE BUN VENIT!',
     save: 'Economisești',
     accept: 'Adaugă Oferta în Coș',
     customize: 'Alege Opțiunile & Vreau Oferta',
     dismiss: 'Nu, mulțumesc (Mergi la meniu)',
   },
   en: {
-    banner: '🔥 SPECIAL WELCOME OFFER!',
+    banner: 'SPECIAL WELCOME OFFER!',
     save: 'You save',
     accept: 'Add Deal to Cart',
     customize: 'Choose Options & Get Deal',
     dismiss: 'No, thanks (Go to menu)',
   },
   hu: {
-    banner: '🔥 KÜLÖNLEGES ÜDVÖZLŐ AJÁNLAT!',
+    banner: 'KÜLÖNLEGES ÜDVÖZLŐ AJÁNLAT!',
     save: 'Megtakarítás',
     accept: 'Ajánlat hozzáadása',
     customize: 'Válassz opciókat',
     dismiss: 'Köszönöm, nem (Menü)',
   },
   de: {
-    banner: '🔥 SPEZIELLES WILLKOMMENSANGEBOT!',
+    banner: 'SPEZIELLES WILLKOMMENSANGEBOT!',
     save: 'Sie sparen',
     accept: 'Angebot in den Warenkorb',
     customize: 'Optionen wählen',
@@ -107,8 +107,32 @@ export default function StartPromoModal({ product, onClose, onAccept, lang = 'ro
             color: '#ffffff',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: '1rem', fontWeight: 900, letterSpacing: '0.5px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: '50%',
+                background: '#ffffff',
+                border: '2px solid rgba(255, 255, 255, 0.85)',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+                flexShrink: 0,
+              }}
+            >
+              <img
+                src={`/brands/${product._brand || 'smashme'}-logo.png`}
+                alt="Smash Me"
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                }}
+              />
+            </div>
+            <span style={{ fontSize: '1rem', fontWeight: 900, letterSpacing: '0.4px' }}>
               {t.banner}
             </span>
           </div>
