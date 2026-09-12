@@ -99,7 +99,7 @@ export default function StartPromoModal({ product, onClose, onAccept, lang = 'ro
         {/* Top Banner */}
         <div
           style={{
-            background: 'linear-gradient(135deg, #EE3B24 0%, #ff5722 100%)',
+            background: 'var(--primary, #EE3B24)',
             padding: '14px 20px',
             display: 'flex',
             alignItems: 'center',
@@ -148,7 +148,6 @@ export default function StartPromoModal({ product, onClose, onAccept, lang = 'ro
               border: 'none',
               background: 'rgba(255, 255, 255, 0.2)',
               color: '#ffffff',
-              fontSize: '1.2rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -156,7 +155,10 @@ export default function StartPromoModal({ product, onClose, onAccept, lang = 'ro
               transition: 'background 0.15s',
             }}
           >
-            ✕
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
           </button>
         </div>
 
@@ -296,7 +298,7 @@ export default function StartPromoModal({ product, onClose, onAccept, lang = 'ro
               style={{
                 width: '100%',
                 minHeight: 52,
-                background: 'linear-gradient(135deg, #EE3B24 0%, #d32f2f 100%)',
+                background: 'var(--primary, #EE3B24)',
                 color: '#ffffff',
                 border: 'none',
                 borderRadius: 18,
