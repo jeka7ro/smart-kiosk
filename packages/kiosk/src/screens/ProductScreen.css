@@ -602,7 +602,7 @@
 .ps-pairing-btn {
   width: 100%;
   min-height: 38px;
-  background: #EE3B24;
+  background: linear-gradient(135deg, #10b981, #059669);
   border: none;
   color: #ffffff;
   border-radius: 20px;
@@ -614,13 +614,13 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  box-shadow: 0 4px 12px rgba(238, 59, 36, 0.28);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.28);
   transition: all 0.15s ease;
 }
 
 .ps-pairing-btn:hover {
-  background: #d32f2f;
-  box-shadow: 0 5px 15px rgba(238, 59, 36, 0.38);
+  background: linear-gradient(135deg, #059669, #047857);
+  box-shadow: 0 5px 15px rgba(16, 185, 129, 0.38);
 }
 
 .ps-pairing-btn:active {
@@ -790,8 +790,26 @@
 
 .ps-qty-btn:active {
   transform: scale(0.92);
-  background: #EE3B24;
-  color: #ffffff;
+}
+
+.ps-qty-minus {
+  color: #EE3B24;
+}
+
+.ps-qty-minus:hover,
+.ps-qty-minus:active {
+  background: #EE3B24 !important;
+  color: #ffffff !important;
+}
+
+.ps-qty-plus {
+  color: #059669;
+}
+
+.ps-qty-plus:hover,
+.ps-qty-plus:active {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  color: #ffffff !important;
 }
 
 .ps-qty-val {

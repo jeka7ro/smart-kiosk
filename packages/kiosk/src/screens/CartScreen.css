@@ -76,8 +76,26 @@
 
 .ci-qty-btn:active {
   transform: scale(0.92);
-  background: #EE3B24;
-  color: #ffffff;
+}
+
+.ci-qty-minus {
+  color: #EE3B24;
+}
+
+.ci-qty-minus:hover,
+.ci-qty-minus:active {
+  background: #EE3B24 !important;
+  color: #ffffff !important;
+}
+
+.ci-qty-plus {
+  color: #059669;
+}
+
+.ci-qty-plus:hover,
+.ci-qty-plus:active {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  color: #ffffff !important;
 }
 
 .ci-qty-val {
