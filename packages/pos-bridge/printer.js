@@ -147,6 +147,7 @@ async function printTicket(order) {
     }
     
     // Kiosk label (Kiosk 1 or Kiosk 2) — replaces location name
+    printer.newLine();
     let kioskLabel = 'Kiosk 1';
     const numMatch = String(order.orderNumber || '').match(/^[a-zA-Z]+(\d+)-/);
     if (numMatch && numMatch[1]) {
