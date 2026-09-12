@@ -234,11 +234,14 @@ function transformMenu(raw, brandId = 'smashme') {
       const sp = (p.sizePrices || [])[0];
       const isIncluded = sp?.price?.isIncludedInMenu;
       
-      if (brandId === 'rollmaster' || brandId === 'lovesushi') {
-        // Sushi explicitly requires this flag to be TRUE to hide non-kiosk items
+      // Products disabled in Syrve/iiko (isIncludedInMenu: false) must not appear in kiosk
+      if (isIncluded === false) return false;
+
+      if (brandId === 'rollmaster' || brandId === 'lovesushi' || brandId === 'smashme') {
+        // Explicitly requires this flag to be TRUE to hide non-kiosk or retired items
         if (!isIncluded) return false;
       }
-      // pokiwoki, smashme, crunch: no isIncludedInMenu filter — all non-deleted products shown
+      // pokiwoki, crunch: all non-deleted and included products shown
       
       return true;
     })
