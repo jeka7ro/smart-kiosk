@@ -337,6 +337,11 @@ function OrderCard({ order, onStatusChange, menuProducts, onProductClick }) {
                     {item.selectedModifiers.map(m => m.optionName || m.modifierName).filter(Boolean).join(' · ')}
                   </span>
                 )}
+                {item.comment && !item.selectedModifiers?.some(m => m.optionName === item.comment) && (
+                  <span className="oc-item-mods" style={{ color: '#ef4444', fontWeight: '700' }}>
+                    * {item.comment}
+                  </span>
+                )}
               </div>
             </div>
           );

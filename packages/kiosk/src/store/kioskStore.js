@@ -117,10 +117,13 @@ export const useKioskStore = create((set, get) => ({
   }),
 
   // ─── Cart actions ─────────────────────────────────────────
-  addToCart: (product, quantity, selectedModifiers, totalPrice, brandId, redirect = true) => {
+  addToCart: (product, quantity, selectedModifiers, totalPrice, brandId, redirect = true, comment = null) => {
     set((state) => {
+      const itemComment = comment || (selectedModifiers?.find(m => m.modId === 'custom_comment')?.optionName) || null;
+
       const existingItemIndex = state.cartItems.findIndex(i => {
         if (i.productId !== product.id || i.brandId !== brandId) return false;
+        if ((i.comment || null) !== (itemComment || null)) return false;
         const modsA = i.selectedModifiers || [];
         const modsB = selectedModifiers || [];
         if (modsA.length !== modsB.length) return false;
@@ -147,6 +150,7 @@ export const useKioskStore = create((set, get) => ({
         brandId: brandId || null,
         quantity,
         selectedModifiers,
+        comment: itemComment,
         unitPrice: totalPrice,
         totalPrice: totalPrice * quantity,
       };

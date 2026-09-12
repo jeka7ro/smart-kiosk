@@ -109,6 +109,7 @@ export default function PaymentScreen() {
             brandId: i.brandId,
             imageUrl: i.image || null,
             selectedModifiers: i.selectedModifiers || [],
+            comment: i.comment || (i.selectedModifiers?.find(m => m.modId === 'custom_comment')?.optionName) || null,
           })),
           totalAmount: total, channel: 'kiosk', paymentMethod: pMethod,
           paymentRef: { authCode: paymentResult?.authCode, receiptNo: paymentResult?.receiptNo,

@@ -200,10 +200,26 @@ async function printTicket(order) {
         { text: `${item.quantity || 1}x ${item.name || '?'}`, align: "LEFT", width: 0.75 },
         { text: `${price.toFixed(2)} RON`, align: "RIGHT", width: 0.25 }
       ]);
+      const printedNotes = new Set();
+      if (item.comment) {
+        printer.bold(true);
+        printer.println(`  * NOTA: ${item.comment}`);
+        printer.bold(false);
+        printedNotes.add(item.comment);
+      }
       if (item.selectedModifiers && item.selectedModifiers.length > 0) {
         item.selectedModifiers.forEach(mod => {
-          const modName = mod.optionName || mod.modifierName || mod.name || 'Extra';
-          printer.println(`  + ${modName}`);
+          if (mod.modId === 'custom_comment') {
+            if (!printedNotes.has(mod.optionName)) {
+              printer.bold(true);
+              printer.println(`  * NOTA: ${mod.optionName}`);
+              printer.bold(false);
+              printedNotes.add(mod.optionName);
+            }
+          } else {
+            const modName = mod.optionName || mod.modifierName || mod.name || 'Extra';
+            printer.println(`  + ${modName}`);
+          }
         });
       }
     });

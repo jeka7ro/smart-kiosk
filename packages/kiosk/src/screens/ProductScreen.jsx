@@ -112,6 +112,107 @@ function IconArrowLeft() {
   );
 }
 
+function IconMinusMini() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+
+function IconXMini() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+}
+
+function IconChef() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 13.8a4.4 4.4 0 0 1-2.8-4 4.8 4.8 0 0 1 5.3-4.8A5.3 5.3 0 0 1 18 6a4.8 4.8 0 0 1 3.2 4.4 4.4 4.4 0 0 1-2.4 3.4" />
+      <line x1="6" y1="17" x2="18" y2="17" />
+      <line x1="6" y1="20" x2="18" y2="20" />
+    </svg>
+  );
+}
+
+// Catalog de ingrediente ce pot fi excluse la cererea clientului
+const REMOVABLE_INGREDIENTS = [
+  {
+    id: 'ceapa',
+    label: 'Fără ceapă',
+    keywords: ['ceapă', 'ceapa', 'caramelizată', 'caramelizata', 'crispy onion', 'chives', 'praz'],
+  },
+  {
+    id: 'sos',
+    label: 'Fără sos',
+    keywords: ['sos', 'maioneză', 'maioneza', 'ketchup', 'bbq', 'muștar', 'mustar', 'remoulade', 'aioli', 'dressing'],
+  },
+  {
+    id: 'muraturi',
+    label: 'Fără murături',
+    keywords: ['murături', 'muraturi', 'castraveți', 'castraveti', 'pickles'],
+  },
+  {
+    id: 'bacon',
+    label: 'Fără bacon',
+    keywords: ['bacon', 'pancetta', 'costiță', 'costita', 'șuncă', 'sunca'],
+  },
+  {
+    id: 'branza',
+    label: 'Fără cașcaval / brânză',
+    keywords: ['cheddar', 'cașcaval', 'cascaval', 'brânză', 'branza', 'mozzarella', 'parmezan', 'gouda', 'gorgonzola', 'feta'],
+  },
+  {
+    id: 'salata',
+    label: 'Fără salată',
+    keywords: ['salată', 'salata', 'iceberg', 'rucola', 'varză', 'varza'],
+  },
+  {
+    id: 'rosii',
+    label: 'Fără roșii',
+    keywords: ['roșii', 'rosii', 'roșie', 'rosie', 'tomate'],
+  },
+  {
+    id: 'jalapeno',
+    label: 'Fără jalapeno / iute',
+    keywords: ['jalapeno', 'jalapeño', 'iute', 'chilli', 'chili', 'habanero', 'picant', 'sriracha'],
+  },
+  {
+    id: 'sare',
+    label: 'Fără sare',
+    keywords: ['sare', 'cartofi', 'fries', 'chips', 'nuggets', 'strips'],
+  },
+  {
+    id: 'piper',
+    label: 'Fără piper',
+    keywords: ['piper'],
+  },
+  {
+    id: 'wasabi',
+    label: 'Fără wasabi',
+    keywords: ['wasabi'],
+  },
+  {
+    id: 'ghimbir',
+    label: 'Fără ghimbir',
+    keywords: ['ghimbir', 'ginger'],
+  },
+  {
+    id: 'susan',
+    label: 'Fără susan',
+    keywords: ['susan', 'sesame'],
+  },
+  {
+    id: 'usturoi',
+    label: 'Fără usturoi',
+    keywords: ['usturoi', 'garlic'],
+  },
+];
+
 export default function ProductScreen() {
   const product        = useKioskStore((s) => s.selectedProduct);
   const addToCart      = useKioskStore((s) => s.addToCart);
@@ -127,6 +228,7 @@ export default function ProductScreen() {
   const [quantity, setQuantity] = useState(1);
   const [imgError, setImgError] = useState(false);
   const [comment,  setComment]  = useState('');
+  const [selectedExclusions, setSelectedExclusions] = useState([]);
   const [showAllergens, setShowAllergens] = useState(false);
   const [selectedPairings, setSelectedPairings] = useState([]);
 
@@ -248,6 +350,12 @@ export default function ProductScreen() {
 
   const handleSelect = (modId, optId) => setSelected(s => ({ ...s, [modId]: optId }));
 
+  const toggleExclusion = (label) => {
+    setSelectedExclusions(prev =>
+      prev.includes(label) ? prev.filter(x => x !== label) : [...prev, label]
+    );
+  };
+
   const handleAdd = () => {
     const selectedModifiers = modifiers.map(mod => {
       const opts = mod.options || mod.items || [];
@@ -258,18 +366,25 @@ export default function ProductScreen() {
       };
     }).filter(m => m.optionName);
 
+    // Combină sugestiile rapide bifate cu textul manual introdus
+    const fullNotesList = [...selectedExclusions];
     if (comment && comment.trim()) {
+      fullNotesList.push(comment.trim());
+    }
+    const finalComment = fullNotesList.join(', ');
+
+    if (finalComment) {
       selectedModifiers.push({
         modId: 'custom_comment',
-        modifierName: 'Notă',
-        optionName: comment.trim(),
+        modifierName: 'Instrucțiuni',
+        optionName: finalComment,
       });
     }
 
     const actualBrandId = product._brand || brand?.id;
 
-    // 1. Adaugă produsul principal
-    addToCart(product, quantity, selectedModifiers, unitPrice, actualBrandId, false);
+    // 1. Adaugă produsul principal cu mențiunea completă
+    addToCart(product, quantity, selectedModifiers, unitPrice, actualBrandId, false, finalComment || null);
 
     // 2. Adaugă fiecare produs recomandat selectat
     selectedPairings.forEach(pair => {
@@ -312,6 +427,21 @@ export default function ProductScreen() {
 
     return { shortDesc: rawDesc, detailedIngredients: '' };
   }, [rawDesc]);
+
+  // Sugestii rapide de excludere deduse inteligent din ingredientele și descrierea produsului curent
+  const exclusionSuggestions = useMemo(() => {
+    if (!product) return [];
+
+    const textToScan = [
+      product.name || '',
+      rawDesc || '',
+      allergenLabels.join(' '),
+    ].join(' ').toLowerCase();
+
+    return REMOVABLE_INGREDIENTS.filter(item =>
+      item.keywords.some(kw => textToScan.includes(kw))
+    );
+  }, [product, rawDesc, allergenLabels]);
 
   return (
     <div className="product-screen-overlay" onClick={() => goTo('menu')}>
@@ -550,15 +680,52 @@ export default function ProductScreen() {
             </div>
           )}
 
-          {/* Câmp Opțional: Mențiuni Speciale */}
-          <div className="ps-comment-wrap">
-            <input
-              type="text"
-              className="ps-comment-input"
-              placeholder="Adaugă mențiuni sau instrucțiuni speciale (opțional)"
-              value={comment}
-              onChange={e => setComment(e.target.value)}
-            />
+          {/* ─── SECȚIUNEA PERSONALIZARE & INSTRUCȚIUNI BUCĂTĂRIE ─── */}
+          <div className="ps-instructions-card">
+            <div className="ps-instructions-header">
+              <span className="ps-round-badge ps-round-badge--primary">
+                <IconChef />
+              </span>
+              <div className="ps-instructions-titles">
+                <h4 className="ps-instructions-title">Personalizare & Mențiuni bucătărie</h4>
+                {exclusionSuggestions.length > 0 && (
+                  <span className="ps-instructions-subtitle">Exclude ingrediente rapid (opțional):</span>
+                )}
+              </div>
+            </div>
+
+            {/* Chips sugestii rapide filtrate conform ingredientelor acestui produs */}
+            {exclusionSuggestions.length > 0 && (
+              <div className="ps-exclusions-wrap">
+                {exclusionSuggestions.map(item => {
+                  const isExcluded = selectedExclusions.includes(item.label);
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={`ps-exclusion-pill ${isExcluded ? 'ps-exclusion-pill--active' : ''}`}
+                      onClick={() => toggleExclusion(item.label)}
+                    >
+                      <span className="ps-exclusion-icon">
+                        {isExcluded ? <IconXMini /> : <IconMinusMini />}
+                      </span>
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Câmp Opțional: Mențiuni Speciale scrise */}
+            <div className="ps-comment-wrap">
+              <input
+                type="text"
+                className="ps-comment-input"
+                placeholder="Alte instrucțiuni speciale (opțional, ex: sos separat, bine rumenit...)"
+                value={comment}
+                onChange={e => setComment(e.target.value)}
+              />
+            </div>
           </div>
 
         </div>

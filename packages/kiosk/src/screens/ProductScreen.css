@@ -618,6 +618,95 @@
   justify-content: center;
 }
 
+/* ─── INSTRUCTIONS & EXCLUSIONS SECTION ─── */
+.ps-instructions-card {
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ps-instructions-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ps-instructions-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ps-instructions-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.ps-instructions-subtitle {
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.ps-exclusions-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ps-exclusion-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 999px;
+  color: #334155;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ps-exclusion-pill:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.ps-exclusion-pill--active {
+  background: #fef2f2;
+  border-color: #EE3B24;
+  color: #EE3B24;
+  box-shadow: 0 2px 8px rgba(238, 59, 36, 0.16);
+  font-weight: 700;
+}
+
+.ps-exclusion-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.05);
+  transition: all 0.15s ease;
+}
+
+.ps-exclusion-pill--active .ps-exclusion-icon {
+  background: rgba(238, 59, 36, 0.15);
+  color: #EE3B24;
+}
+
 /* ─── COMMENT / SPECIAL INSTRUCTIONS ─── */
 .ps-comment-wrap {
   margin-top: 2px;
@@ -628,7 +717,7 @@
   padding: 12px 16px;
   border-radius: 12px;
   border: 1.5px solid #e2e8f0;
-  background: #f8fafc;
+  background: #ffffff;
   font-size: 0.9rem;
   color: #1e293b;
   outline: none;

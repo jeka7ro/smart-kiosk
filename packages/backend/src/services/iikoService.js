@@ -566,23 +566,31 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
 
     // Build items in correct Syrve format
     const syrveItems = order.items.map(item => {
+      const itemComment = item.comment || 
+        item.selectedModifiers?.find(m => m.modId === 'custom_comment' || m.id === 'custom_comment')?.optionName || 
+        null;
+
       const syrveItem = {
         productId: item.productId,
         amount: item.quantity || 1,
         price: item.unitPrice,
         type: 'Product',
-        comment: null,
+        comment: itemComment,
       };
 
-      // Map modifiers to Syrve format
+      // Map modifiers to Syrve format (filter out custom_comment)
       if (item.selectedModifiers && item.selectedModifiers.length > 0) {
-        syrveItem.modifiers = item.selectedModifiers.map(mod => ({
-          productId: mod.id || mod.productId,
-          amount: mod.amount || 1,
-          productGroupId: mod.groupId || mod.productGroupId || null,
-          price: mod.price || 0,
-          positionId: null,
-        }));
+        const validMods = item.selectedModifiers
+          .filter(mod => mod.modId !== 'custom_comment' && mod.id !== 'custom_comment' && mod.productId !== 'custom_comment');
+        if (validMods.length > 0) {
+          syrveItem.modifiers = validMods.map(mod => ({
+            productId: mod.id || mod.productId,
+            amount: mod.amount || 1,
+            productGroupId: mod.groupId || mod.productGroupId || null,
+            price: mod.price || 0,
+            positionId: null,
+          }));
+        }
       }
 
       return syrveItem;
@@ -592,7 +600,19 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
     const orderTypeLabel = order.orderType === 'dine-in' ? 'La masă' : 'La pachet';
     const isPaidLabel = (pMethod === 'card' || pMethod === 'viva') ? 'PLĂTIT' : 'NEPLĂTIT (Cash)';
     const kioskName = order.kioskId ? `Kiosk ${order.kioskId}` : 'Kiosk';
-    const orderComment = `[${kioskName}] ${orderTypeLabel} | ${isPaidLabel} | Comanda #${order.orderNumber}`;
+
+    // Aggregate special notes from items to include in order-level comment
+    const specialNotes = (order.items || [])
+      .map(i => {
+        const c = i.comment || i.selectedModifiers?.find(m => m.modId === 'custom_comment')?.optionName;
+        return c ? `${i.name || 'Produs'}: ${c}` : null;
+      })
+      .filter(Boolean);
+
+    let orderComment = `[${kioskName}] ${orderTypeLabel} | ${isPaidLabel} | Comanda #${order.orderNumber}`;
+    if (specialNotes.length > 0) {
+      orderComment += ` | MENȚIUNI: ${specialNotes.join('; ')}`;
+    }
 
     // Dynamically fetch terminalGroupId for the target organization
     let terminalGroupId = 'cf589c4a-37dd-54ed-015a-4e33131300bf'; // Fallback
