@@ -261,9 +261,24 @@ function transformMenu(raw, brandId = 'smashme') {
             // Price for modifier: sizePrice - product base price (priceDiff)
             const childSp = (childProduct.sizePrices || [])[0];
             const childPrice = childSp?.price?.currentPrice || 0;
+            // Resolve description: direct or via matching non-asterisk main product
+            let description = childProduct.description || '';
+            let matchedId = childProduct.id;
+            if (!description && childProduct.name && childProduct.name.startsWith('*')) {
+              const cleanName = childProduct.name.replace(/^\*+\s*/, '').trim().toLowerCase();
+              const matched = products.find(prod => prod.name.trim().toLowerCase() === cleanName);
+              if (matched) {
+                if (matched.description) description = matched.description;
+                matchedId = matched.id;
+              }
+            }
+
             return {
               id: child.id,
               name: childProduct.name,
+              description: description || '',
+              translations: {},
+              _matchedId: matchedId,
               price: Math.round(childPrice * 100) / 100,
               image: childProduct.imageLinks?.[0] || childProduct.imagePaths?.[0] || null,
               minAmount: child.minAmount ?? 0,
@@ -350,6 +365,18 @@ async function fetchMenu(orgId, brandId = 'smashme') {
   menu.products.forEach(p => {
     if (dict[p.id] && dict[p.id].translations) {
       p.translations = dict[p.id].translations;
+    }
+    if (p.modifierGroups) {
+      p.modifierGroups.forEach(gm => {
+        (gm.options || []).forEach(opt => {
+          if (dict[opt.id]?.translations) {
+            opt.translations = dict[opt.id].translations;
+          } else if (opt._matchedId && dict[opt._matchedId]?.translations) {
+            opt.translations = dict[opt._matchedId].translations;
+          }
+          delete opt._matchedId;
+        });
+      });
     }
   });
 

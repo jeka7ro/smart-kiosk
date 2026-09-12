@@ -477,6 +477,55 @@
   justify-content: center;
 }
 
+/* ─── MODIFIER OPTION SELECTED DESCRIPTION ─── */
+.ps-mod-selected-desc {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: #fff9f8;
+  border: 1.5px solid #ffdeda;
+  border-left: 4px solid #EE3B24;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  animation: psDescSlideIn 0.22s ease-out;
+}
+
+@keyframes psDescSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ps-mod-selected-desc-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ps-mod-selected-desc-tag {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #EE3B24;
+  letter-spacing: 0.2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ps-mod-selected-desc-text {
+  font-size: 0.84rem;
+  color: #334155;
+  line-height: 1.45;
+  margin: 0;
+  white-space: pre-line;
+}
+
 /* ─── PAIRINGS / RECOMANDĂRI ("Se potrivește de minune cu") ─── */
 .ps-pairings-section {
   background: #fafafa;

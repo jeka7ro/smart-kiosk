@@ -493,6 +493,36 @@ export default function ProductScreen() {
     );
   }, [product, rawDesc, allergenLabels]);
 
+  const getOptDescription = (opt) => {
+    if (!opt) return '';
+    // 1. Direct description / translation on opt
+    let desc = (lang !== 'ro' && opt.translations?.[lang]) || opt.description || '';
+    if (desc) return desc;
+
+    // 2. Lookup in menuProducts by id
+    const matchedProd = menuProducts.find(p => p.id === opt.id);
+    if (matchedProd) {
+      desc = (lang !== 'ro' && matchedProd.translations?.[lang]) || matchedProd.description || '';
+      if (desc) return desc;
+    }
+
+    // 3. Lookup in menuProducts by normalized name
+    const normalizeName = (s) => (s || '')
+      .replace(/^\*+\s*/, '')
+      .replace(/\bclassic\b/gi, 'clasic')
+      .trim()
+      .toLowerCase();
+
+    const optNorm = normalizeName(opt.name);
+    const matchedByName = menuProducts.find(p => normalizeName(p.name) === optNorm);
+    if (matchedByName) {
+      desc = (lang !== 'ro' && matchedByName.translations?.[lang]) || matchedByName.description || '';
+      if (desc) return desc;
+    }
+
+    return '';
+  };
+
   return (
     <div className="product-screen-overlay" onClick={() => goTo('menu')}>
       <div className="product-screen-card" onClick={(e) => e.stopPropagation()}>
@@ -641,6 +671,10 @@ export default function ProductScreen() {
                 ? (t('choose_exact', lang) || 'Alege {amount}').replace('{amount}', min)
                 : (t('choose_min_max', lang) || 'Alege {min}-{max}').replace('{min}', min).replace('{max}', max);
             }
+
+            const selectedOptId = selected[mod.id];
+            const selectedOpt = opts.find(o => o.id === selectedOptId);
+            const selectedDesc = selectedOpt ? getOptDescription(selectedOpt) : '';
             
             return (
               <div key={mod.id} className="ps-mod-group">
@@ -681,6 +715,19 @@ export default function ProductScreen() {
                     );
                   })}
                 </div>
+
+                {/* Descriere afișată sub opțiuni când una este selectată */}
+                {selectedOpt && selectedDesc && (
+                  <div className="ps-mod-selected-desc">
+                    <div className="ps-mod-selected-desc-header">
+                      <span className="ps-mod-selected-desc-tag">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                        {selectedOpt.name.replace(/^\*+\s*/, '')}
+                      </span>
+                    </div>
+                    <p className="ps-mod-selected-desc-text">{selectedDesc}</p>
+                  </div>
+                )}
               </div>
             );
           })}
