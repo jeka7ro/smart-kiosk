@@ -628,8 +628,8 @@ export default function MenuScreen() {
 
       {/* ─── FLOATING CART BAR ──────────────────────── */}
       {cartCount > 0 && (
-        <div className="cart-bar" ref={cartBarRef} onClick={() => goTo('cart')} style={{ display: 'flex', alignItems: 'center', padding: '16px 24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div className="cart-bar" ref={cartBarRef} onClick={() => goTo('cart')} style={{ display: 'flex', alignItems: 'center', padding: '12px 28px 12px 14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             {activeBrandLogo && (
               <div className="cart-bar-brand-logo">
                 <img src={activeBrandLogo} alt={activeBrandName} onError={(e) => { e.currentTarget.parentElement.style.display = 'none'; }} />
