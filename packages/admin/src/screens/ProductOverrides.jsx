@@ -123,7 +123,18 @@ export default function ProductOverrides() {
         if (currentKiosk) localStorage.setItem('admin_active_kiosk', currentKiosk);
 
         const pData = kPromos[currentKiosk] || {};
-        setPromoOverrides(pData);
+        const formattedPromos = {};
+        Object.keys(pData).forEach(id => {
+          const item = pData[id];
+          if (item && item.price !== undefined && item.price !== null) {
+            const num = parseFloat(String(item.price).replace(',', '.'));
+            formattedPromos[id] = {
+              ...item,
+              price: !isNaN(num) ? num.toFixed(2) : item.price
+            };
+          }
+        });
+        setPromoOverrides(formattedPromos);
         setSavedPromos(pData);
       } catch (_) {}
     })();
@@ -484,15 +495,25 @@ export default function ProductOverrides() {
                         <div className="flex flex-col gap-1.5">
                           <div className="flex items-center gap-1.5">
                             <input
-                              type="number"
-                              step="0.01"
+                              type="text"
+                              inputMode="decimal"
                               placeholder="—"
-                              value={promoOverrides[prod.id]?.price || ''}
+                              value={promoOverrides[prod.id]?.price !== undefined && promoOverrides[prod.id]?.price !== null ? promoOverrides[prod.id]?.price : ''}
                               onChange={(e) => {
                                 const val = e.target.value;
                                 setPromoOverrides(prev => ({ ...prev, [prod.id]: { ...prev[prod.id], price: val } }));
                               }}
-                              style={{ width: 70, padding: '4px 6px', fontSize: '0.85rem', borderRadius: 6, border: '1px solid var(--border, #e2e8f0)', background: 'var(--surface, #fff)', color: 'var(--text, #111)', textAlign: 'center' }}
+                              onBlur={() => {
+                                const raw = promoOverrides[prod.id]?.price;
+                                if (raw !== undefined && raw !== null && raw !== '') {
+                                  const num = parseFloat(String(raw).replace(',', '.'));
+                                  if (!isNaN(num) && num > 0) {
+                                    const formatted = (Math.round(num * 100) / 100).toFixed(2);
+                                    setPromoOverrides(prev => ({ ...prev, [prod.id]: { ...prev[prod.id], price: formatted } }));
+                                  }
+                                }
+                              }}
+                              style={{ width: 75, padding: '4px 6px', fontSize: '0.85rem', borderRadius: 6, border: '1px solid var(--border, #e2e8f0)', background: 'var(--surface, #fff)', color: 'var(--text, #111)', textAlign: 'center' }}
                             />
                             {!savedPromos[prod.id]?.price ? (
                               <button
@@ -502,10 +523,13 @@ export default function ProductOverrides() {
                                   if (!activeKiosk) return showToast('Scrie ID-ul Kiosk-ului mai întâi! (ex: cluj1)', 'err');
                                   try {
                                     const po = promoOverrides[prod.id] || {};
-                                    if (!po.price) return showToast('Introdu un preț!', 'err');
+                                    const rawVal = String(po.price || '').replace(',', '.').trim();
+                                    const parsedPrice = parseFloat(rawVal);
+                                    if (isNaN(parsedPrice) || parsedPrice <= 0) return showToast('Introdu un preț valid (ex: 32.99)!', 'err');
+                                    const numPrice = Math.round(parsedPrice * 100) / 100;
                                     const payload = {
                                       productId: prod.id,
-                                      price: parseFloat(po.price),
+                                      price: numPrice,
                                       start: po.start || null,
                                       end: po.end || null,
                                       popupStart: po.popupStart !== undefined ? po.popupStart : true,
@@ -517,7 +541,8 @@ export default function ProductOverrides() {
                                     });
                                     if (!res.ok) throw new Error('Eroare');
                                     setSavedPromos(prev => ({ ...prev, [prod.id]: payload }));
-                                    showToast(`✅ Promoție salvată pe Kiosk ${activeKiosk}`);
+                                    setPromoOverrides(prev => ({ ...prev, [prod.id]: { ...prev[prod.id], price: numPrice.toFixed(2) } }));
+                                    showToast(`✅ Promoție salvată: ${numPrice.toFixed(2)} lei pe Kiosk ${activeKiosk}`);
                                   } catch (e) { showToast('❌ ' + e.message, 'err'); }
                                 }}
                                 className="w-7 h-7 inline-flex items-center justify-center rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 transition-colors"

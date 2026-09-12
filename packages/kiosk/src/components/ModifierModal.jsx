@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useKioskStore } from '../store/kioskStore';
 import { t } from '../i18n/translations.js';
 import { proxySyrveImage } from '../utils/imageUtils.js';
+import { getEffectivePrice } from '../utils/priceUtils.js';
 import './ModifierModal.css';
 
 export default function ModifierModal({ product, onConfirm, onClose, activeBrandId }) {
@@ -40,7 +41,8 @@ export default function ModifierModal({ product, onConfirm, onClose, activeBrand
     return sum + (opt?.price || 0);
   }, 0);
 
-  const totalPrice = (product?.price || 0) + selectedOptionsDiff;
+  const basePrice = getEffectivePrice(product);
+  const totalPrice = basePrice + selectedOptionsDiff;
 
   const handleConfirm = () => {
     if (!allRequiredSelected) return;

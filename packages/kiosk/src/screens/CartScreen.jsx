@@ -4,6 +4,7 @@ import { t } from '../i18n/translations.js';
 import { useBrand } from '../context/BrandContext.js';
 import { useInactivityTimeout } from '../hooks/useInactivityTimeout.js';
 import { proxySyrveImage } from '../utils/imageUtils.js';
+import { getEffectivePrice } from '../utils/priceUtils.js';
 import './CartScreen.css';
 
 export default function CartScreen() {
@@ -73,7 +74,7 @@ export default function CartScreen() {
     }
 
     const actualBrandId = prod._brand || brand?.id;
-    addToCart(prod, 1, [], prod.price, actualBrandId, false);
+    addToCart(prod, 1, [], getEffectivePrice(prod), actualBrandId, false);
     setAddedIds(prev => ({ ...prev, [prod.id]: true }));
     setTimeout(() => {
       setAddedIds(prev => { 
@@ -222,7 +223,7 @@ export default function CartScreen() {
                     </div>
                     <div className="cart-sugg-info">
                       <span className="cart-sugg-name">{prod.name}</span>
-                      <span className="cart-sugg-price">{prod.price} lei</span>
+                      <span className="cart-sugg-price">{getEffectivePrice(prod).toFixed(2)} lei</span>
                     </div>
                     <div className="cart-sugg-plus">＋</div>
                   </button>

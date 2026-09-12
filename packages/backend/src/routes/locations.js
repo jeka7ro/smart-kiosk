@@ -175,9 +175,10 @@ router.put('/:id/promos', protect, async (req, res) => {
       data.kioskPromos = data.kioskPromos || {};
       data.kioskPromos[kioskId] = data.kioskPromos[kioskId] || {};
       
-      if (price && price > 0) {
+      const numPrice = (price !== undefined && price !== null && price !== '') ? parseFloat(String(price).replace(',', '.')) : null;
+      if (numPrice && numPrice > 0) {
         data.kioskPromos[kioskId][productId] = { 
-          price: parseFloat(price), 
+          price: Math.round(numPrice * 100) / 100, 
           start: start || null, 
           end: end || null,
           popupStart: popupStart !== undefined ? !!popupStart : true
@@ -196,9 +197,10 @@ router.put('/:id/promos', protect, async (req, res) => {
       locs[idx].kioskPromos = locs[idx].kioskPromos || {};
       locs[idx].kioskPromos[kioskId] = locs[idx].kioskPromos[kioskId] || {};
 
-      if (price && price > 0) {
+      const numPrice = (price !== undefined && price !== null && price !== '') ? parseFloat(String(price).replace(',', '.')) : null;
+      if (numPrice && numPrice > 0) {
         locs[idx].kioskPromos[kioskId][productId] = { 
-          price: parseFloat(price), 
+          price: Math.round(numPrice * 100) / 100, 
           start: start || null, 
           end: end || null,
           popupStart: popupStart !== undefined ? !!popupStart : true

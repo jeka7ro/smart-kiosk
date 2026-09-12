@@ -3,6 +3,7 @@ import { useKioskStore } from '../store/kioskStore';
 import { t } from '../i18n/translations.js';
 import { useBrand } from '../context/BrandContext.js';
 import { proxySyrveImage } from '../utils/imageUtils.js';
+import { getEffectivePrice, hasActivePromo } from '../utils/priceUtils.js';
 import './ProductScreen.css';
 
 /* ─── Clean Vector SVG Icons with Round Outlines (Zero Emojis) ─── */
@@ -364,8 +365,9 @@ export default function ProductScreen() {
     return sum + (opt?.priceDiff || opt?.price || 0);
   }, 0);
 
-  const unitPrice       = product.price + selectedOptionsDiff;
-  const pairingsTotal   = selectedPairings.reduce((sum, p) => sum + p.price, 0);
+  const basePrice       = getEffectivePrice(product);
+  const unitPrice       = basePrice + selectedOptionsDiff;
+  const pairingsTotal   = selectedPairings.reduce((sum, p) => sum + getEffectivePrice(p), 0);
   const totalPrice      = (unitPrice * quantity) + pairingsTotal;
 
   const allRequiredSelected = modifiers
@@ -412,7 +414,7 @@ export default function ProductScreen() {
 
     // 2. Adaugă fiecare produs recomandat selectat
     selectedPairings.forEach(pair => {
-      addToCart(pair, 1, [], pair.price, pair._brand || actualBrandId, false);
+      addToCart(pair, 1, [], getEffectivePrice(pair), pair._brand || actualBrandId, false);
     });
 
     // 3. Mergi înapoi la meniu
@@ -671,7 +673,16 @@ export default function ProductScreen() {
           {/* Nume & Preț */}
           <div className="ps-header-row">
             <h1 className="ps-title">{product.name}</h1>
-            <span className="ps-price">{unitPrice.toFixed(2)} lei</span>
+            <div className="ps-price-wrap" style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+              {hasActivePromo(product) && (
+                <span className="ps-old-price" style={{ textDecoration: 'line-through', opacity: 0.5, fontSize: '0.85em' }}>
+                  {(product.price + selectedOptionsDiff).toFixed(2)} lei
+                </span>
+              )}
+              <span className="ps-price" style={hasActivePromo(product) ? { color: '#ef4444' } : {}}>
+                {unitPrice.toFixed(2)} lei
+              </span>
+            </div>
           </div>
 
           {/* Descriere Comercială Scurtă */}
@@ -973,7 +984,16 @@ export default function ProductScreen() {
 
           <div className="ps-total-wrap">
             <span className="ps-total-label">Total de plată</span>
-            <span className="ps-total-amount">{totalPrice.toFixed(2)} lei</span>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+              {hasActivePromo(product) && (
+                <span style={{ textDecoration: 'line-through', opacity: 0.5, fontSize: '0.9rem', fontWeight: 500 }}>
+                  {((product.price + selectedOptionsDiff) * quantity + pairingsTotal).toFixed(2)} lei
+                </span>
+              )}
+              <span className="ps-total-amount" style={hasActivePromo(product) ? { color: '#ef4444' } : {}}>
+                {totalPrice.toFixed(2)} lei
+              </span>
+            </div>
             {selectedPairings.length > 0 && (
               <span className="ps-total-extra-hint">
                 include {selectedPairings.length} {selectedPairings.length === 1 ? 'recomandare' : 'recomandări'}

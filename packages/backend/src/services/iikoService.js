@@ -161,7 +161,7 @@ function transformMenu(raw, brandId = 'smashme') {
   };
 
   // Categories to skip (internal, delivery, promo etc.)
-  const SKIP_CATEGORIES = ['delivery', 'promo', 'scos', 'combo', 'glovo', 'platforme', 'servicii', 'ambalaj', 'sgr'];
+  const SKIP_CATEGORIES = ['delivery', 'promo', 'scos', 'glovo', 'platforme', 'servicii', 'ambalaj', 'sgr'];
 
   let allowedRootId = brandToRootId[brandId] || null;
 
@@ -637,10 +637,17 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
       .filter(Boolean);
 
     let orderComment = `[${kioskName}] ${orderTypeLabel} | ${isPaidLabel} | Comanda #${order.orderNumber}`;
+    let cuiDigits = '';
+    let cuiWithRo = '';
     if (order.fiscal?.cui) {
-      const cuiDisplay = order.fiscal.rawCui || order.fiscal.cui;
+      cuiDigits = String(order.fiscal.cui || order.fiscal.rawCui || '').replace(/\D/g, '');
+      cuiWithRo = cuiDigits ? `RO${cuiDigits}` : String(order.fiscal.rawCui || '');
       const firmDisplay = order.fiscal.name ? ` (${order.fiscal.name})` : '';
-      orderComment = `🚨 BON FISCAL CU CUI: ${cuiDisplay}${firmDisplay} | ` + orderComment;
+
+      // RSISTEMS / Datecs fiscal driver in Romania parses the comment for standard tags:
+      // "CF: <cui_digits>", "CIF: <cui_digits>", or "[CF:<cui_digits>]" strictly numeric (no emojis/unicode).
+      // Datecs hardware protocol ONLY accepts 2-10 digits for client TaxNumber.
+      orderComment = `CF:${cuiDigits} | CIF:${cuiDigits} | [CF:${cuiDigits}] | CUI: ${cuiWithRo}${firmDisplay} | ` + orderComment;
     }
     if (specialNotes.length > 0) {
       orderComment += ` | MENȚIUNI: ${specialNotes.join('; ')}`;
@@ -666,8 +673,8 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
 
     const customerData = order.fiscal?.cui ? {
       name: (order.fiscal.name || 'Client').slice(0, 60),
-      surname: String(order.fiscal.rawCui || order.fiscal.cui || '').slice(0, 30),
-      comment: `CUI: ${order.fiscal.rawCui || order.fiscal.cui} | RegCom: ${order.fiscal.regCom || ''} | Adresa: ${order.fiscal.address || ''}`,
+      surname: cuiDigits || String(order.fiscal.rawCui || order.fiscal.cui || '').slice(0, 30),
+      comment: `CF:${cuiDigits} CIF:${cuiDigits} CUI:${cuiWithRo} | RegCom: ${order.fiscal.regCom || ''} | Adresa: ${order.fiscal.address || ''}`,
     } : {
       name: 'Kiosk Client',
       surname: '',
@@ -698,7 +705,16 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
         comment: orderComment,
         sourceKey: 'Smart Kiosk',
         externalData: order.fiscal?.cui ? [
-          { key: 'cui', value: String(order.fiscal.rawCui || order.fiscal.cui) },
+          { key: 'cui', value: cuiWithRo },
+          { key: 'cif', value: cuiDigits },
+          { key: 'FiscalCode', value: cuiDigits },
+          { key: 'CIF', value: cuiDigits },
+          { key: 'CUI', value: cuiDigits },
+          { key: 'TaxNumber', value: cuiDigits },
+          { key: 'BuyerTaxNumber', value: cuiDigits },
+          { key: 'ClientFiscalCode', value: cuiDigits },
+          { key: 'ClientCIF', value: cuiDigits },
+          { key: 'FiscalReceiptCUI', value: cuiDigits },
           { key: 'companyName', value: String(order.fiscal.name || '') },
           { key: 'companyAddress', value: String(order.fiscal.address || '') },
           { key: 'regCom', value: String(order.fiscal.regCom || '') },

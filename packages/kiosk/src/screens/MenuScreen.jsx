@@ -9,28 +9,8 @@ import ProductCard from '../components/ProductCard.jsx';
 import ModifierModal from '../components/ModifierModal.jsx';
 import StartPromoModal from '../components/StartPromoModal.jsx';
 import { proxySyrveImage } from '../utils/imageUtils.js';
+import { getEffectivePrice } from '../utils/priceUtils.js';
 import './MenuScreen.css';
-
-const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
-
-// Fallback org ID map (used when no location is loaded)
-const BRAND_ORG_MAP = {
-  smashme:     '9c63cff6-1d66-442d-a98d-2302656e3943',
-  sushimaster: 'adddb5a0-26e5-4d50-b472-1c74726c3f72',
-  rollmaster:  'adddb5a0-26e5-4d50-b472-1c74726c3f72',
-  lovesushi:   'adddb5a0-26e5-4d50-b472-1c74726c3f72',
-  pokiwoki:    'adddb5a0-26e5-4d50-b472-1c74726c3f72',
-  crunch:      '9c63cff6-1d66-442d-a98d-2302656e3943',
-};
-
-// Helper: returns promo price if promo is active and within date range
-function getEffectivePrice(product) {
-  if (!product.promoPrice || product.promoPrice <= 0) return product.price;
-  const now = new Date();
-  if (product.promoStart && new Date(product.promoStart) > now) return product.price;
-  if (product.promoEnd && new Date(product.promoEnd) < now) return product.price;
-  return product.promoPrice;
-}
 
 // Brand display info for tabs
 const BRAND_TAB_INFO = {
