@@ -793,15 +793,15 @@ export const T = {
     es: "SU NÚMERO"
   },
   pickup_at_counter: {
-    ro: '🏁 Ridicați comanda la caserie',
-    en: '🏁 Pick up your order at the counter',
-    fr: '🏁 Récupérez votre commande au comptoir',
-    hu: '🏁 Vegye át rendelését a pultnál',
-    ru: '🏁 Заберите заказ у кассы',
-    uk: '🏁 Заберіть замовлення на касі',
-    bg: "🏁 Вземете от касата",
-    de: "🏁 Abholen",
-    es: "🏁 Recoger en caja"
+    ro: 'Ridicați comanda la caserie',
+    en: 'Pick up your order at the counter',
+    fr: 'Récupérez votre commande au comptoir',
+    hu: 'Vegye át rendelését a pultnál',
+    ru: 'Заберите заказ у кассы',
+    uk: 'Заберіть замовлення на касі',
+    bg: "Вземете от касата",
+    de: "Abholen",
+    es: "Recoger en caja"
   },
   products_count: {
     ro: 'produs',
@@ -961,14 +961,14 @@ export const T = {
   try_again: { ro: 'Incearca din nou', en: 'Try again', ru: 'Попробовать снова', fr: 'Réessayer', hu: 'Próbálja újra', uk: 'Спробувати ще раз', bg: 'Опитайте отново', de: 'Erneut versuchen', es: 'Intentar de nuevo' },
   payment_error: { ro: 'Eroare la plata', en: 'Payment error', ru: 'Ошибка оплаты', fr: 'Erreur de paiement', hu: 'Fizetési hiba', uk: 'Помилка оплати', bg: 'Грешка при плащане', de: 'Zahlungsfehler', es: 'Error de pago' },
   pickup_note: {
-    ro: '🏁 Ridicați comanda la caserie după plată',
-    en: '🏁 Pick up your order at the counter after payment',
-    fr: '🏁 Récupérez votre commande au comptoir après le paiement',
-    hu: '🏁 Vegye át rendelését a pultnál fizetés után',
-    ru: '🏁 Заберите заказ у кассы после оплаты',
-    uk: '🏁 Заберіть замовлення на касі після оплати',
-    bg: "�� Вземете от касата",
-    de: "🏁 An der Kasse abholen"
+    ro: "Ridicați comanda la caserie după plată",
+    en: "Pick up your order at the counter after payment",
+    fr: "Récupérez votre commande au comptoir après le paiement",
+    hu: "Vegye át rendelését a pultnál fizetés után",
+    ru: "Заберите заказ у кассы после оплаты",
+    uk: "Заберіть замовлення на касі після оплати",
+    bg: "Вземете от касата",
+    de: "An der Kasse abholen"
   },
   
   // ── Modifiers & Options ──────────────────────────────────────────────

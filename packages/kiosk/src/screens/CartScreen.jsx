@@ -186,7 +186,7 @@ export default function CartScreen() {
           {suggestions.length > 0 && (
             <div className="cart-suggestions">
               <div className="cart-sugg-header">
-                <span className="cart-sugg-title">🔥 {t('add_also', lang) || 'Adaugă și...'}</span>
+                <span className="cart-sugg-title">{t('add_also', lang) || 'Adaugă și...'}</span>
                 <span className="cart-sugg-sub">{t('complete_order', lang) || 'Completează comanda ta'}</span>
               </div>
               <div className="cart-sugg-grid">
