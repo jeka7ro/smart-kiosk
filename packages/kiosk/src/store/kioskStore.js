@@ -35,6 +35,14 @@ export const useKioskStore = create((set, get) => ({
     set({ menuProducts: products });
   },
 
+  menuCategories: (() => {
+    try { return JSON.parse(localStorage.getItem('kiosk_menuCategories') || '[]'); } catch { return []; }
+  })(),
+  setMenuCategories: (categories) => {
+    try { localStorage.setItem('kiosk_menuCategories', JSON.stringify(categories)); } catch {}
+    set({ menuCategories: categories });
+  },
+
 
   // ─── Cart ─────────────────────────────────────────────────
   cartItems: [],

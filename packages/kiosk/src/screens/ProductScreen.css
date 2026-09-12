@@ -123,42 +123,134 @@
   margin: 0;
 }
 
-/* Meta: Weight, kcal, allergens */
-.ps-meta-section {
-  font-size: 0.85rem;
-  color: #6b7280;
-  line-height: 1.5;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding-top: 4px;
+/* ─── COMPACT ALLERGENS ACCORDION ─── */
+.ps-allergens-accordion {
+  margin: 2px 0 6px 0;
 }
 
-.ps-meta-item {
-  font-weight: 600;
-  color: #4b5563;
-}
-
-.ps-allergens-wrap {
+.ps-allergens-toggle-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: space-between;
+  width: 100%;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 9px 14px;
+  font-size: 0.85rem;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ps-allergens-toggle-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.ps-allergens-toggle-btn--open {
+  background: #f1f5f9;
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
+}
+
+.ps-allergens-toggle-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.ps-allergens-chevron {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.ps-allergens-expanded {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-top: none;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: psFadeIn 0.2s ease-out;
+}
+
+@keyframes psFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.ps-meta-items-row {
+  display: flex;
+  gap: 10px;
   flex-wrap: wrap;
+}
+
+.ps-meta-pill {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.ps-allergens-tags-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ps-allergens-tags-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #475569;
   margin-top: 2px;
 }
 
-.ps-allergens-label {
-  font-weight: 600;
-  color: #4b5563;
+.ps-allergens-tags-list {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 .ps-allergen-tag {
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  color: #475569;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
   border-radius: 6px;
   font-size: 0.75rem;
+  font-weight: 600;
   padding: 2px 8px;
+}
+
+.ps-detailed-ingredients {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.ps-detailed-ingredients-title {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 4px;
+}
+
+.ps-detailed-ingredients-text {
+  font-size: 0.78rem;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 /* ─── MODIFIERS / OPTIONS ─── */
@@ -258,6 +350,167 @@
   color: #991b1b;
   font-weight: 800;
   font-size: 0.95rem;
+}
+
+/* ─── PAIRINGS / RECOMANDĂRI ("Se potrivește de minune cu...") ─── */
+.ps-pairings-section {
+  margin-top: 6px;
+  background: #fffbf5;
+  border: 1.5px solid #fed7aa;
+  border-radius: 18px;
+  padding: 16px;
+}
+
+.ps-pairings-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ps-pairings-sparkle {
+  font-size: 1.25rem;
+}
+
+.ps-pairings-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #9a3412;
+  margin: 0;
+  letter-spacing: 0.2px;
+}
+
+.ps-pairings-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.ps-pairing-card {
+  background: #ffffff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.ps-pairing-card:active {
+  transform: scale(0.98);
+}
+
+.ps-pairing-card--selected {
+  border-color: #16a34a;
+  background: #f0fdf4;
+  box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.2), 0 4px 12px rgba(22, 163, 74, 0.08);
+}
+
+.ps-pairing-img-wrap {
+  width: 68px;
+  height: 68px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.ps-pairing-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 2px;
+}
+
+.ps-pairing-fallback {
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+.ps-pairing-check-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  background: #16a34a;
+  color: #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.ps-pairing-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+}
+
+.ps-pairing-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #1f2937;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 2em;
+}
+
+.ps-pairing-price {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #991b1b;
+}
+
+.ps-pairing-card--selected .ps-pairing-price {
+  color: #15803d;
+}
+
+.ps-pairing-btn {
+  width: 100%;
+  background: #ffffff;
+  border: 1.5px solid #dc2626;
+  color: #dc2626;
+  border-radius: 20px;
+  padding: 5px 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.ps-pairing-btn:active {
+  transform: scale(0.96);
+}
+
+.ps-pairing-btn--selected {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #ffffff;
+}
+
+.ps-total-extra-hint {
+  font-size: 0.72rem;
+  opacity: 0.9;
+  font-weight: 600;
+  margin-top: 1px;
 }
 
 /* ─── COMMENT / SPECIAL INSTRUCTIONS ─── */

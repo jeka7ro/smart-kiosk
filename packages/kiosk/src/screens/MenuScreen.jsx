@@ -55,7 +55,8 @@ export default function MenuScreen() {
   const locationData      = useKioskStore((s) => s.locationData);
   const brand             = useBrand();
 
-  const setMenuProducts = useKioskStore(s => s.setMenuProducts);
+  const setMenuProducts   = useKioskStore(s => s.setMenuProducts);
+  const setMenuCategories = useKioskStore(s => s.setMenuCategories);
 
   const [categories, setCategories] = useState([]);
   const [products,   setProducts]   = useState([]);
@@ -212,6 +213,7 @@ export default function MenuScreen() {
         const prods = (data.products || []).filter(p => p.price > 0).map(p => ({ ...p, _brand: activeBrandId }));
         setProducts(prods);
         setMenuProducts(prods);
+        setMenuCategories(cats);
         setActiveCategory(pickDefault(cats, prods));
         // Merge into allProducts for cross-brand global search
         setAllProducts(prev => {
@@ -227,6 +229,7 @@ export default function MenuScreen() {
         setCategories(cats);
         setProducts(prods);
         setMenuProducts(prods);
+        setMenuCategories(cats);
         setActiveCategory(pickDefault(cats, prods));
         setLoading(false);
       });

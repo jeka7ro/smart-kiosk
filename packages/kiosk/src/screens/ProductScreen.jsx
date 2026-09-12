@@ -6,11 +6,13 @@ import { proxySyrveImage } from '../utils/imageUtils.js';
 import './ProductScreen.css';
 
 export default function ProductScreen() {
-  const product       = useKioskStore((s) => s.selectedProduct);
-  const addToCart     = useKioskStore((s) => s.addToCart);
-  const goTo          = useKioskStore((s) => s.goTo);
-  const lang          = useKioskStore((s) => s.lang);
-  const brand         = useBrand();
+  const product        = useKioskStore((s) => s.selectedProduct);
+  const addToCart      = useKioskStore((s) => s.addToCart);
+  const goTo           = useKioskStore((s) => s.goTo);
+  const lang           = useKioskStore((s) => s.lang);
+  const menuProducts   = useKioskStore((s) => s.menuProducts);
+  const menuCategories = useKioskStore((s) => s.menuCategories);
+  const brand          = useBrand();
 
   const modifiers = product?.modifierGroups || product?.modifiers || [];
   const allergens = product?.allergenGroups || product?.allergens || [];
@@ -18,6 +20,8 @@ export default function ProductScreen() {
   const [quantity, setQuantity] = useState(1);
   const [imgError, setImgError] = useState(false);
   const [comment,  setComment]  = useState('');
+  const [showAllergens, setShowAllergens] = useState(false);
+  const [selectedPairings, setSelectedPairings] = useState([]);
 
   const [selected, setSelected] = useState(() => {
     const init = {};
@@ -31,6 +35,95 @@ export default function ProductScreen() {
 
   if (!product) { goTo('menu'); return null; }
 
+  // ─── Pairings calculation ("Se potrivește de minune cu...") ─────────────
+  const pairings = useMemo(() => {
+    if (!product || !menuProducts || menuProducts.length === 0) return [];
+
+    const actualBrandId = product._brand || brand?.id || 'smashme';
+    const pool = menuProducts.filter(p => 
+      p.id !== product.id && 
+      p.price > 0 && 
+      (p._brand === actualBrandId || p.brandId === actualBrandId)
+    );
+
+    if (pool.length === 0) return [];
+
+    const catMap = {};
+    (menuCategories || []).forEach(c => {
+      catMap[c.id] = (c.name || '').toLowerCase();
+    });
+
+    const currCatName = (catMap[product.categoryId] || '').toLowerCase();
+    const currName    = (product.name || '').toLowerCase();
+
+    const isSide  = currCatName.includes('garnitur') || currName.includes('cartofi') || currName.includes('fries');
+    const isSauce = currCatName.includes('sos') || currName.includes('sos');
+    const isDrink = currCatName.includes('bautur') || currName.includes('cola') || currName.includes('apa') || currName.includes('fanta') || currName.includes('sprite');
+
+    // 1. Garnituri / Cartofi
+    const sides = pool.filter(p => {
+      const c = catMap[p.categoryId] || '';
+      return c.includes('garnitur') || p.name.toLowerCase().includes('cartofi') || p.name.toLowerCase().includes('fries');
+    });
+
+    // 2. Sosuri
+    const sauces = pool.filter(p => {
+      const c = catMap[p.categoryId] || '';
+      return c.includes('sos') || p.name.toLowerCase().includes('sos') || p.name.toLowerCase().includes('ketchup') || p.name.toLowerCase().includes('mayo');
+    });
+
+    // 3. Băuturi
+    const drinks = pool.filter(p => {
+      const c = catMap[p.categoryId] || '';
+      return c.includes('bautur') || p.name.toLowerCase().includes('cola') || p.name.toLowerCase().includes('fanta') || p.name.toLowerCase().includes('apa');
+    });
+
+    // 4. Burgers / Main
+    const mains = pool.filter(p => {
+      const c = catMap[p.categoryId] || '';
+      return c.includes('burger') || c.includes('smashed') || c.includes('box');
+    });
+
+    // 5. Desserts
+    const desserts = pool.filter(p => {
+      const c = catMap[p.categoryId] || '';
+      return c.includes('desert') || p.name.toLowerCase().includes('churros');
+    });
+
+    const list = [];
+    if (!isSide && sides.length > 0)  list.push({ type: 'cartofi', ...sides[0] });
+    if (!isSauce && sauces.length > 0) list.push({ type: 'sos',     ...sauces[0] });
+    if (!isDrink && drinks.length > 0) list.push({ type: 'bautura', ...drinks[0] });
+
+    if (list.length < 3) {
+      if (isSide && mains.length > 0 && !list.some(p => p.id === mains[0].id)) {
+        list.unshift({ type: 'burger', ...mains[0] });
+      }
+      if (isSauce && sides.length > 0 && !list.some(p => p.id === sides[0].id)) {
+        list.unshift({ type: 'cartofi', ...sides[0] });
+      }
+      if (isDrink && mains.length > 0 && !list.some(p => p.id === mains[0].id)) {
+        list.unshift({ type: 'burger', ...mains[0] });
+      }
+      if (list.length < 3 && desserts.length > 0 && !list.some(p => p.id === desserts[0].id)) {
+        list.push({ type: 'desert', ...desserts[0] });
+      }
+    }
+
+    return list.slice(0, 3);
+  }, [product, menuProducts, menuCategories, brand?.id]);
+
+  const togglePairing = (pairItem) => {
+    setSelectedPairings(current => {
+      const exists = current.some(p => p.id === pairItem.id);
+      if (exists) {
+        return current.filter(p => p.id !== pairItem.id);
+      } else {
+        return [...current, pairItem];
+      }
+    });
+  };
+
   const selectedOptionsDiff = modifiers.reduce((sum, mod) => {
     const opts = mod.options || mod.items || [];
     const optionId = selected[mod.id];
@@ -38,8 +131,9 @@ export default function ProductScreen() {
     return sum + (opt?.priceDiff || opt?.price || 0);
   }, 0);
 
-  const unitPrice  = product.price + selectedOptionsDiff;
-  const totalPrice = unitPrice * quantity;
+  const unitPrice       = product.price + selectedOptionsDiff;
+  const pairingsTotal   = selectedPairings.reduce((sum, p) => sum + p.price, 0);
+  const totalPrice      = (unitPrice * quantity) + pairingsTotal;
 
   const allRequiredSelected = modifiers
     .filter(m => m.required && ((m.options?.length > 0) || (m.items?.length > 0)))
@@ -57,7 +151,7 @@ export default function ProductScreen() {
       };
     }).filter(m => m.optionName);
 
-    // If user typed custom instructions/notes, include in modifiers or item
+    // If user typed custom instructions/notes, include in modifiers
     if (comment && comment.trim()) {
       selectedModifiers.push({
         modId: 'custom_comment',
@@ -67,7 +161,16 @@ export default function ProductScreen() {
     }
 
     const actualBrandId = product._brand || brand?.id;
-    addToCart(product, quantity, selectedModifiers, unitPrice, actualBrandId);
+
+    // 1. Add main product
+    addToCart(product, quantity, selectedModifiers, unitPrice, actualBrandId, false);
+
+    // 2. Add each selected companion item
+    selectedPairings.forEach(pair => {
+      addToCart(pair, 1, [], pair.price, pair._brand || actualBrandId, false);
+    });
+
+    // 3. Return to menu
     goTo('menu');
   };
 
@@ -78,6 +181,30 @@ export default function ProductScreen() {
   const localizedDesc = (lang !== 'ro' && product.translations && product.translations[lang])
     ? product.translations[lang]
     : product.description;
+
+  // Split marketing appetite description from technical ingredients / nutrition info
+  const { shortDesc, detailedIngredients } = useMemo(() => {
+    if (!localizedDesc) return { shortDesc: '', detailedIngredients: '' };
+
+    const markers = ['ingrediente:', 'declarație nutrițională', 'declaratie nutritionala', 'valori nutritionale'];
+    const lower = localizedDesc.toLowerCase();
+
+    let splitIndex = -1;
+    for (const marker of markers) {
+      const idx = lower.indexOf(marker);
+      if (idx !== -1 && (splitIndex === -1 || idx < splitIndex)) {
+        splitIndex = idx;
+      }
+    }
+
+    if (splitIndex !== -1) {
+      const short = localizedDesc.slice(0, splitIndex).trim();
+      const details = localizedDesc.slice(splitIndex).trim();
+      return { shortDesc: short, detailedIngredients: details };
+    }
+
+    return { shortDesc: localizedDesc, detailedIngredients: '' };
+  }, [localizedDesc]);
 
   return (
     <div className="product-screen-overlay">
@@ -110,25 +237,53 @@ export default function ProductScreen() {
             <span className="ps-price">{unitPrice.toFixed(2)} lei</span>
           </div>
 
-          {/* Description */}
-          {localizedDesc && (
+          {/* Appetizing Marketing Description */}
+          {shortDesc && (
             <div 
               className="ps-description"
-              dangerouslySetInnerHTML={{ __html: localizedDesc }}
+              dangerouslySetInnerHTML={{ __html: shortDesc }}
             />
           )}
 
-          {/* Weight & Calories & Allergens */}
-          {(product.weight || product.energyAmount || allergenLabels.length > 0) && (
-            <div className="ps-meta-section">
-              {product.weight && <span className="ps-meta-item">⚖️ {product.weight}g</span>}
-              {product.energyAmount && <span className="ps-meta-item">🔥 {Math.round(product.energyAmount)} kcal</span>}
-              {allergenLabels.length > 0 && (
-                <div className="ps-allergens-wrap">
-                  <span className="ps-allergens-label">⚠️ Alergeni:</span>
-                  {allergenLabels.map(a => (
-                    <span key={a} className="ps-allergen-tag">{a}</span>
-                  ))}
+          {/* Compact Allergens Button / Drawer (Doesn't clutter the screen) */}
+          {(product.weight || product.energyAmount || allergenLabels.length > 0 || detailedIngredients) && (
+            <div className="ps-allergens-accordion">
+              <button
+                type="button"
+                className={`ps-allergens-toggle-btn ${showAllergens ? 'ps-allergens-toggle-btn--open' : ''}`}
+                onClick={() => setShowAllergens(v => !v)}
+              >
+                <div className="ps-allergens-toggle-left">
+                  <span className="ps-allergens-icon">ℹ️</span>
+                  <span className="ps-allergens-label">
+                    {lang === 'ro' ? 'Alergeni & Valori nutriționale' : (t('allergens', lang) || 'Alergeni')}
+                  </span>
+                </div>
+                <span className="ps-allergens-chevron">{showAllergens ? '▲' : '▼'}</span>
+              </button>
+
+              {showAllergens && (
+                <div className="ps-allergens-expanded">
+                  <div className="ps-meta-items-row">
+                    {product.weight && <span className="ps-meta-pill">⚖️ Greutate: {product.weight}g</span>}
+                    {product.energyAmount && <span className="ps-meta-pill">🔥 Calorii: {Math.round(product.energyAmount)} kcal</span>}
+                  </div>
+                  {allergenLabels.length > 0 && (
+                    <div className="ps-allergens-tags-row">
+                      <span className="ps-allergens-tags-title">Alergeni:</span>
+                      <div className="ps-allergens-tags-list">
+                        {allergenLabels.map(a => (
+                          <span key={a} className="ps-allergen-tag">{a}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {detailedIngredients && (
+                    <div className="ps-detailed-ingredients">
+                      <span className="ps-detailed-ingredients-title">Ingrediente & Detalii:</span>
+                      <p className="ps-detailed-ingredients-text">{detailedIngredients}</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -188,6 +343,61 @@ export default function ProductScreen() {
             );
           })}
 
+          {/* ─── PAIRINGS / RECOMANDĂRI ("Se potrivește de minune cu...") ─── */}
+          {pairings.length > 0 && (
+            <div className="ps-pairings-section">
+              <div className="ps-pairings-header">
+                <span className="ps-pairings-sparkle">✨</span>
+                <h3 className="ps-pairings-title">Se potrivește de minune cu:</h3>
+              </div>
+
+              <div className="ps-pairings-grid">
+                {pairings.map(item => {
+                  const isSel = selectedPairings.some(p => p.id === item.id);
+                  const typeEmoji = item.type === 'cartofi' ? '🍟' : item.type === 'sos' ? '🧀' : item.type === 'bautura' ? '🥤' : '🍔';
+
+                  return (
+                    <div
+                      key={item.id}
+                      className={`ps-pairing-card ${isSel ? 'ps-pairing-card--selected' : ''}`}
+                      onClick={() => togglePairing(item)}
+                    >
+                      <div className="ps-pairing-img-wrap">
+                        {item.image ? (
+                          <img
+                            src={proxySyrveImage(item.image)}
+                            alt={item.name}
+                            className="ps-pairing-img"
+                            onError={e => { e.target.style.display = 'none'; }}
+                          />
+                        ) : (
+                          <div className="ps-pairing-fallback">{typeEmoji}</div>
+                        )}
+                        {isSel && <div className="ps-pairing-check-badge">✓</div>}
+                      </div>
+
+                      <div className="ps-pairing-info">
+                        <span className="ps-pairing-name">{item.name}</span>
+                        <span className="ps-pairing-price">+{item.price.toFixed(2)} lei</span>
+                      </div>
+
+                      <button
+                        type="button"
+                        className={`ps-pairing-btn ${isSel ? 'ps-pairing-btn--selected' : ''}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          togglePairing(item);
+                        }}
+                      >
+                        {isSel ? '✓ Adăugat' : '+ Adaugă'}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Comment / Extra Instructions Box */}
           <div className="ps-comment-wrap">
             <input
@@ -228,6 +438,11 @@ export default function ProductScreen() {
           <div className="ps-total-wrap">
             <span className="ps-total-label">Total:</span>
             <span className="ps-total-amount">{totalPrice.toFixed(2)} lei</span>
+            {selectedPairings.length > 0 && (
+              <span className="ps-total-extra-hint">
+                (+{selectedPairings.length} {selectedPairings.length === 1 ? 'produs' : 'produse'})
+              </span>
+            )}
           </div>
 
           <button
