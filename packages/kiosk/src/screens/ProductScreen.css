@@ -824,8 +824,8 @@
   height: 44px;
   border-radius: 50%;
   border: none;
-  background: #ffffff;
-  color: #1e293b;
+  background: #ffffff !important;
+  color: #1e293b !important;
   font-size: 1.5rem;
   font-weight: 800;
   display: flex;
@@ -835,6 +835,14 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
   transition: all 0.15s;
   line-height: 1;
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ps-qty-btn:focus,
+.ps-qty-btn:focus-visible {
+  outline: none !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08) !important;
 }
 
 .ps-qty-btn:active {
@@ -842,14 +850,8 @@
 }
 
 .ps-qty-minus {
-  color: #EE3B24;
-}
-
-@media (hover: hover) {
-  .ps-qty-minus:hover {
-    background: #EE3B24 !important;
-    color: #ffffff !important;
-  }
+  color: #1e293b !important;
+  background: #ffffff !important;
 }
 
 .ps-qty-minus:active {
@@ -858,14 +860,8 @@
 }
 
 .ps-qty-plus {
-  color: #1e293b;
-}
-
-@media (hover: hover) {
-  .ps-qty-plus:hover {
-    background: linear-gradient(135deg, #10b981, #059669) !important;
-    color: #ffffff !important;
-  }
+  color: #1e293b !important;
+  background: #ffffff !important;
 }
 
 .ps-qty-plus:active {

@@ -61,8 +61,8 @@
   height: 36px;
   border-radius: 50%;
   border: none;
-  background: #ffffff;
-  color: #1e293b;
+  background: #ffffff !important;
+  color: #1e293b !important;
   font-size: 1.35rem;
   font-weight: 800;
   display: flex;
@@ -72,6 +72,14 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
   transition: all 0.15s ease;
   line-height: 1;
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ci-qty-btn:focus,
+.ci-qty-btn:focus-visible {
+  outline: none !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08) !important;
 }
 
 .ci-qty-btn:active {
@@ -79,20 +87,20 @@
 }
 
 .ci-qty-minus {
-  color: #EE3B24;
+  color: #1e293b !important;
+  background: #ffffff !important;
 }
 
-.ci-qty-minus:hover,
 .ci-qty-minus:active {
   background: #EE3B24 !important;
   color: #ffffff !important;
 }
 
 .ci-qty-plus {
-  color: #059669;
+  color: #1e293b !important;
+  background: #ffffff !important;
 }
 
-.ci-qty-plus:hover,
 .ci-qty-plus:active {
   background: linear-gradient(135deg, #10b981, #059669) !important;
   color: #ffffff !important;
