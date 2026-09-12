@@ -139,6 +139,19 @@ function IconChef() {
   );
 }
 
+function IconListLines() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="8" y1="6" x2="21" y2="6" />
+      <line x1="8" y1="12" x2="21" y2="12" />
+      <line x1="8" y1="18" x2="21" y2="18" />
+      <circle cx="3.5" cy="6" r="1.5" fill="currentColor" />
+      <circle cx="3.5" cy="12" r="1.5" fill="currentColor" />
+      <circle cx="3.5" cy="18" r="1.5" fill="currentColor" />
+    </svg>
+  );
+}
+
 // Catalog de ingrediente ce pot fi excluse la cererea clientului
 const REMOVABLE_INGREDIENTS = [
   {
@@ -229,6 +242,7 @@ export default function ProductScreen() {
   const [imgError, setImgError] = useState(false);
   const [comment,  setComment]  = useState('');
   const [selectedExclusions, setSelectedExclusions] = useState([]);
+  const [showIngredients, setShowIngredients] = useState(false);
   const [showAllergens, setShowAllergens] = useState(false);
   const [selectedPairings, setSelectedPairings] = useState([]);
 
@@ -403,30 +417,71 @@ export default function ProductScreen() {
     ? product.translations[lang]
     : (product.description || '');
 
-  // Separă descrierea comercială de textul lung cu ingrediente/tabel nutrițional
-  const { shortDesc, detailedIngredients } = useMemo(() => {
-    if (!rawDesc) return { shortDesc: '', detailedIngredients: '' };
+  // Separă descrierea comercială, ingredientele complete și declarația nutrițională
+  const { shortDesc, ingredientsText, nutritionText } = useMemo(() => {
+    if (!rawDesc) return { shortDesc: '', ingredientsText: '', nutritionText: '' };
 
-    const markers = ['ingrediente:', 'declarație nutrițională', 'declaratie nutritionala', 'valori nutritionale'];
     const lower = rawDesc.toLowerCase();
+    const ingMarkers = ['ingrediente:', 'ingredient:'];
+    const nutMarkers = [
+      'declarație nutrițională', 
+      'declaratie nutritionala', 
+      'declarația nutrițională', 
+      'declaratia nutritionala', 
+      'valori nutritionale', 
+      'valori nutritive',
+      'e-uri:'
+    ];
 
-    let splitIndex = -1;
-    for (const marker of markers) {
-      const idx = lower.indexOf(marker);
-      if (idx !== -1 && (splitIndex === -1 || idx < splitIndex)) {
-        splitIndex = idx;
+    let ingIndex = -1;
+    let ingMarkerLen = 0;
+    for (const m of ingMarkers) {
+      const idx = lower.indexOf(m);
+      if (idx !== -1 && (ingIndex === -1 || idx < ingIndex)) {
+        ingIndex = idx;
+        ingMarkerLen = m.length;
       }
     }
 
-    if (splitIndex !== -1) {
+    let nutIndex = -1;
+    for (const m of nutMarkers) {
+      const idx = lower.indexOf(m);
+      if (idx !== -1 && (nutIndex === -1 || idx < nutIndex)) {
+        nutIndex = idx;
+      }
+    }
+
+    // Cazul 1: Ambele secțiuni sunt prezente
+    if (ingIndex !== -1 && nutIndex !== -1 && nutIndex > ingIndex) {
       return {
-        shortDesc: rawDesc.slice(0, splitIndex).trim(),
-        detailedIngredients: rawDesc.slice(splitIndex).trim(),
+        shortDesc: rawDesc.slice(0, ingIndex).trim(),
+        ingredientsText: rawDesc.slice(ingIndex + ingMarkerLen, nutIndex).trim(),
+        nutritionText: rawDesc.slice(nutIndex).trim(),
       };
     }
 
-    return { shortDesc: rawDesc, detailedIngredients: '' };
+    // Cazul 2: Doar secțiunea de Ingrediente
+    if (ingIndex !== -1) {
+      return {
+        shortDesc: rawDesc.slice(0, ingIndex).trim(),
+        ingredientsText: rawDesc.slice(ingIndex + ingMarkerLen).trim(),
+        nutritionText: '',
+      };
+    }
+
+    // Cazul 3: Doar secțiunea de Nutriție
+    if (nutIndex !== -1) {
+      return {
+        shortDesc: rawDesc.slice(0, nutIndex).trim(),
+        ingredientsText: '',
+        nutritionText: rawDesc.slice(nutIndex).trim(),
+      };
+    }
+
+    return { shortDesc: rawDesc, ingredientsText: '', nutritionText: '' };
   }, [rawDesc]);
+
+  const displayIngredients = ingredientsText || product.ingredients || product.composition || '';
 
   // Sugestii rapide de excludere deduse inteligent din ingredientele și descrierea produsului curent
   const exclusionSuggestions = useMemo(() => {
@@ -501,51 +556,81 @@ export default function ProductScreen() {
             />
           )}
 
-          {/* Buton discret rotund cu contur pentru Alergeni & Nutriție (FĂRĂ EMOJI) */}
-          {(product.weight || product.energyAmount || allergenLabels.length > 0 || detailedIngredients) && (
-            <div className="ps-allergens-accordion">
-              <button
-                type="button"
-                className={`ps-allergens-toggle-btn ${showAllergens ? 'ps-allergens-toggle-btn--open' : ''}`}
-                onClick={() => setShowAllergens(v => !v)}
-              >
-                <div className="ps-allergens-toggle-left">
-                  <span className="ps-round-badge">
-                    <IconInfo />
-                  </span>
-                  <span className="ps-allergens-label">
-                    {lang === 'ro' ? 'Alergeni & Valori nutriționale' : (t('allergens', lang) || 'Alergeni')}
-                  </span>
-                </div>
-                <span className="ps-chevron-pill">{showAllergens ? 'Închide' : 'Afișează'}</span>
-              </button>
-
-              {showAllergens && (
-                <div className="ps-allergens-expanded">
-                  <div className="ps-meta-items-row">
-                    {product.weight && <span className="ps-meta-pill">Greutate: {product.weight}g</span>}
-                    {product.energyAmount && <span className="ps-meta-pill">Calorii: {Math.round(product.energyAmount)} kcal</span>}
+          {/* ─── GRUP BUTOANE ACORDEON: 1. INGREDIENTE (SUS) & 2. ALERGENI (JOS) ─── */}
+          <div className="ps-accordion-group">
+            {/* Buton 1: Ingrediente (DEASUPRA LA ALERGENI, TOT PRIN BUTON) */}
+            {displayIngredients && (
+              <div className="ps-allergens-accordion">
+                <button
+                  type="button"
+                  className={`ps-allergens-toggle-btn ${showIngredients ? 'ps-allergens-toggle-btn--open' : ''}`}
+                  onClick={() => setShowIngredients(v => !v)}
+                >
+                  <div className="ps-allergens-toggle-left">
+                    <span className="ps-round-badge">
+                      <IconListLines />
+                    </span>
+                    <span className="ps-allergens-label">
+                      {lang === 'ro' ? 'Ingrediente complete' : 'Ingredients'}
+                    </span>
                   </div>
-                  {allergenLabels.length > 0 && (
-                    <div className="ps-allergens-tags-row">
-                      <span className="ps-allergens-tags-title">Alergeni declarați:</span>
-                      <div className="ps-allergens-tags-list">
-                        {allergenLabels.map(a => (
-                          <span key={a} className="ps-allergen-tag">{a}</span>
-                        ))}
+                  <span className="ps-chevron-pill">{showIngredients ? 'Închide' : 'Afișează'}</span>
+                </button>
+
+                {showIngredients && (
+                  <div className="ps-allergens-expanded">
+                    <p className="ps-ingredients-content">{displayIngredients}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Buton 2: Alergeni & Valori nutriționale (SUB INGREDIENTE) */}
+            {(product.weight || product.energyAmount || allergenLabels.length > 0 || nutritionText) && (
+              <div className="ps-allergens-accordion">
+                <button
+                  type="button"
+                  className={`ps-allergens-toggle-btn ${showAllergens ? 'ps-allergens-toggle-btn--open' : ''}`}
+                  onClick={() => setShowAllergens(v => !v)}
+                >
+                  <div className="ps-allergens-toggle-left">
+                    <span className="ps-round-badge">
+                      <IconInfo />
+                    </span>
+                    <span className="ps-allergens-label">
+                      {lang === 'ro' ? 'Alergeni & Valori nutriționale' : (t('allergens', lang) || 'Alergeni')}
+                    </span>
+                  </div>
+                  <span className="ps-chevron-pill">{showAllergens ? 'Închide' : 'Afișează'}</span>
+                </button>
+
+                {showAllergens && (
+                  <div className="ps-allergens-expanded">
+                    <div className="ps-meta-items-row">
+                      {product.weight && <span className="ps-meta-pill">Greutate: {product.weight}g</span>}
+                      {product.energyAmount && <span className="ps-meta-pill">Calorii: {Math.round(product.energyAmount)} kcal</span>}
+                    </div>
+                    {allergenLabels.length > 0 && (
+                      <div className="ps-allergens-tags-row">
+                        <span className="ps-allergens-tags-title">Alergeni declarați:</span>
+                        <div className="ps-allergens-tags-list">
+                          {allergenLabels.map(a => (
+                            <span key={a} className="ps-allergen-tag">{a}</span>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                  {detailedIngredients && (
-                    <div className="ps-detailed-ingredients">
-                      <span className="ps-detailed-ingredients-title">Ingrediente & Detalii complete:</span>
-                      <p className="ps-detailed-ingredients-text">{detailedIngredients}</p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+                    )}
+                    {nutritionText && (
+                      <div className="ps-detailed-ingredients">
+                        <span className="ps-detailed-ingredients-title">Valori & Detalii nutriționale:</span>
+                        <p className="ps-detailed-ingredients-text">{nutritionText}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Modificatori / Opțiuni */}
           {modifiers.map(mod => {

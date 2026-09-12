@@ -225,9 +225,24 @@
   background: #fff5f5;
 }
 
-/* ─── COMPACT ALLERGENS TOGGLE BUTTON ─── */
-.ps-allergens-accordion {
+/* ─── COMPACT ACCORDION BUTTONS (INGREDIENTE & ALERGENI) ─── */
+.ps-accordion-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   margin: 2px 0;
+}
+
+.ps-ingredients-content {
+  font-size: 0.85rem;
+  color: #475569;
+  line-height: 1.5;
+  margin: 0;
+  white-space: pre-line;
+}
+
+.ps-allergens-accordion {
+  margin: 0;
 }
 
 .ps-allergens-toggle-btn {
