@@ -263,7 +263,8 @@ export default function IikoLogs() {
               </tr>
             )}
             {paginated.map((log, idx) => {
-              const logKey = log._id || log.id || `${log.order_id || ''}-${log.created_at || ''}-${idx}`;
+              const globalIdx = (currentPage - 1) * itemsPerPage + idx;
+              const logKey = log._id || `${log.id || log.order_id || ''}-${log.created_at || ''}-${globalIdx}`;
               const isExpanded = expandedId === logKey;
               const statusInfo = STATUS_CONFIG[log.status] || STATUS_CONFIG.error;
 
