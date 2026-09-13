@@ -540,14 +540,11 @@
   line-height: 1.45;
   margin: 0;
   white-space: pre-line;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
-.ps-mod-selected-desc-text--expanded {
-  -webkit-line-clamp: unset;
-  overflow: visible;
+.ps-mod-selected-desc-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1e293b;
 }
 .ps-mod-desc-toggle {
   background: none;

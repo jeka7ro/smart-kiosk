@@ -68,6 +68,11 @@ export default function MenuScreen() {
   const hasShownStartPromo = useKioskStore((s) => s.hasShownStartPromo);
   const setHasShownStartPromo = useKioskStore((s) => s.setHasShownStartPromo);
   const cartBarRef = useRef(null);
+  const productsAreaRef = useRef(null);
+  const menuScrollTop = useKioskStore((s) => s.menuScrollTop);
+  const setMenuScrollTop = useKioskStore((s) => s.setMenuScrollTop);
+  const menuActiveCategory = useKioskStore((s) => s.menuActiveCategory);
+  const setMenuActiveCategory = useKioskStore((s) => s.setMenuActiveCategory);
 
   // Multi-brand state
   const activeBrandId = useKioskStore(s => s.activeBrandId);
@@ -184,12 +189,20 @@ export default function MenuScreen() {
       return catWithProds?.id || cats[0]?.id || null;
     };
 
+    // If returning from product detail, restore saved category
+    const restoreOrPick = (cats, prods) => {
+      if (menuActiveCategory && cats.some(c => c.id === menuActiveCategory)) {
+        return menuActiveCategory;
+      }
+      return pickDefault(cats, prods);
+    };
+
     if (!orgId) {
       alert(`[DEBUG] orgId is undefined for activeBrandId=${activeBrandId}. Falling back to mock data.`);
       const { categories: cats, products: prods } = getMenuData(activeBrandId);
       setCategories(cats);
       setProducts(prods);
-      setActiveCategory(pickDefault(cats, prods));
+      setActiveCategory(restoreOrPick(cats, prods));
       setLoading(false);
       return;
     }
@@ -212,7 +225,7 @@ export default function MenuScreen() {
         setProducts(prods);
         setMenuProducts(prods);
         setMenuCategories(cats);
-        setActiveCategory(pickDefault(cats, prods));
+        setActiveCategory(restoreOrPick(cats, prods));
         // Merge into allProducts for cross-brand global search
         setAllProducts(prev => {
           const existingIds = new Set(prev.filter(p => p._brand !== activeBrandId).map(p => p.id));
@@ -228,7 +241,7 @@ export default function MenuScreen() {
         setProducts(prods);
         setMenuProducts(prods);
         setMenuCategories(cats);
-        setActiveCategory(pickDefault(cats, prods));
+        setActiveCategory(restoreOrPick(cats, prods));
         setLoading(false);
       });
   }, [activeBrandId, locationOrgIds, locationData]);
@@ -243,6 +256,17 @@ export default function MenuScreen() {
       }
     }
   }, [loading, products, hasShownStartPromo, setHasShownStartPromo]);
+
+  // Restore scroll position when returning from product detail
+  useEffect(() => {
+    if (menuScrollTop > 0 && productsAreaRef.current) {
+      requestAnimationFrame(() => {
+        if (productsAreaRef.current) {
+          productsAreaRef.current.scrollTop = menuScrollTop;
+        }
+      });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAcceptStartPromo = useCallback((promoProduct) => {
     setStartPromoModalProduct(null);
@@ -577,7 +601,7 @@ export default function MenuScreen() {
         </aside>
 
         {/* ─── PRODUCTS GRID ───────────────────────── */}
-        <main className="products-area">
+        <main className="products-area" ref={productsAreaRef}>
           {filteredProducts.length === 0 ? (
             <div className="empty-cat">
               <p>{t('cart_empty', lang)}</p>
@@ -592,7 +616,11 @@ export default function MenuScreen() {
                   lang={lang}
                   activeBrand={activeBrandId}
                   onQuickAdd={handleQuickAdd}
-                  onInfo={() => setSelectedProduct(product)}
+                  onInfo={() => {
+                    if (productsAreaRef.current) setMenuScrollTop(productsAreaRef.current.scrollTop);
+                    setMenuActiveCategory(activeCategory);
+                    setSelectedProduct(product);
+                  }}
                   isFavorited={favorites.some(f => f.id === product.id)}
                   onToggleFavorite={toggleFavorite}
                 />
@@ -671,6 +699,13 @@ export default function MenuScreen() {
           product={startPromoModalProduct}
           onClose={() => setStartPromoModalProduct(null)}
           onAccept={handleAcceptStartPromo}
+          onInfo={() => {
+            const prod = startPromoModalProduct;
+            setStartPromoModalProduct(null);
+            if (productsAreaRef.current) setMenuScrollTop(productsAreaRef.current.scrollTop);
+            setMenuActiveCategory(activeCategory);
+            setSelectedProduct(prod);
+          }}
           lang={lang}
         />
       )}

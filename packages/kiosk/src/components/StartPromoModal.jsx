@@ -40,7 +40,7 @@ const TEXTS = {
   },
 };
 
-export default function StartPromoModal({ product, onClose, onAccept, lang = 'ro' }) {
+export default function StartPromoModal({ product, onClose, onAccept, onInfo, lang = 'ro' }) {
   if (!product) return null;
 
   const t = TEXTS[lang] || TEXTS.ro;
@@ -202,6 +202,39 @@ export default function StartPromoModal({ product, onClose, onAccept, lang = 'ro
                 >
                   -{discountPercent}%
                 </div>
+              )}
+
+              {/* Buton Info pe poză — navighează la pagina produsului */}
+              {onInfo && (
+                <button
+                  type="button"
+                  onClick={onInfo}
+                  style={{
+                    position: 'absolute',
+                    bottom: 12,
+                    right: 12,
+                    width: 42,
+                    height: 42,
+                    borderRadius: '50%',
+                    border: '2px solid rgba(255,255,255,0.9)',
+                    background: 'rgba(255,255,255,0.92)',
+                    color: '#1e293b',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
+                    backdropFilter: 'blur(6px)',
+                    transition: 'transform 0.15s ease',
+                  }}
+                  aria-label="Detalii produs"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="16" x2="12" y2="12" />
+                    <line x1="12" y1="8" x2="12.01" y2="8" />
+                  </svg>
+                </button>
               )}
             </div>
           )}

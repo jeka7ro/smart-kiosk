@@ -48,7 +48,19 @@ export default function ModifierModal({ product, onConfirm, onClose, activeBrand
     if (!allRequiredSelected) return;
     const selectedModifiers = modifierGroups.map(gm => {
       const opt = gm.options.find(o => o.id === selected[gm.id]);
-      return opt ? { modifierGroupId: gm.id, modifierName: gm.name || '', optionId: selected[gm.id], optionName: opt.name } : null;
+      if (!opt) return null;
+      return {
+        modId: gm.id,
+        id: opt.id,
+        productId: opt.id,
+        groupId: gm.id,
+        modifierGroupId: gm.id,
+        modifierName: gm.name || '',
+        optionId: opt.id,
+        optionName: opt.name,
+        price: opt.priceDiff || opt.price || 0,
+        amount: 1,
+      };
     }).filter(Boolean);
 
     onConfirm(product, 1, selectedModifiers, totalPrice, activeBrandId);

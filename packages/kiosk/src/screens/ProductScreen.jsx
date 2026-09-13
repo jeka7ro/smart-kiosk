@@ -171,11 +171,6 @@ const REMOVABLE_INGREDIENTS = [
     keywords: ['ceapă tempura', 'ceapa tempura', 'tempura', 'crispy onion', 'ceapă crispy', 'ceapa crispy'],
   },
   {
-    id: 'pui_crocant',
-    label: 'Fără pui crocant',
-    keywords: ['pui', 'chicken', 'piept de pui'],
-  },
-  {
     id: 'telemea',
     label: 'Fără telemea',
     keywords: ['telemea', 'feta'],
@@ -212,13 +207,9 @@ const REMOVABLE_INGREDIENTS = [
   },
   {
     id: 'sare',
-    label: 'Fără sare',
-    keywords: ['sare', 'cartofi', 'fries', 'chips'],
-  },
-  {
-    id: 'piper',
-    label: 'Fără piper',
-    keywords: ['piper'],
+    label: 'Cartofi fără sare',
+    keywords: ['cartofi', 'fries', 'cartof'],
+    onlyForFries: true,
   },
   {
     id: 'wasabi',
@@ -257,9 +248,13 @@ export default function ProductScreen() {
   const [showAllergens, setShowAllergens] = useState(false);
   const [selectedPairings, setSelectedPairings] = useState([]);
   const [expandedModDescs, setExpandedModDescs] = useState({});
+  const [modIngredientOpen, setModIngredientOpen] = useState({});
 
   const toggleModDesc = (modId) => {
     setExpandedModDescs(prev => ({ ...prev, [modId]: !prev[modId] }));
+  };
+  const toggleModIngredient = (modId) => {
+    setModIngredientOpen(prev => ({ ...prev, [modId]: !prev[modId] }));
   };
 
   const [selected, setSelected] = useState(() => {
@@ -390,12 +385,19 @@ export default function ProductScreen() {
   const handleAdd = () => {
     const selectedModifiers = modifiers.map(mod => {
       const opts = mod.options || mod.items || [];
+      const selOpt = opts.find(o => o.id === selected[mod.id]);
+      if (!selOpt) return null;
       return {
         modId: mod.id,
+        id: selOpt.id,
+        productId: selOpt.id,
+        groupId: mod.id,
         modifierName: mod.name,
-        optionName: opts.find(o => o.id === selected[mod.id])?.name || '',
+        optionName: selOpt.name || '',
+        price: selOpt.priceDiff || selOpt.price || 0,
+        amount: 1,
       };
-    }).filter(m => m.optionName);
+    }).filter(Boolean);
 
     // Combină sugestiile rapide bifate cu textul manual introdus
     const fullNotesList = [...selectedExclusions];
@@ -571,7 +573,6 @@ export default function ProductScreen() {
 
     return REMOVABLE_INGREDIENTS.filter(item => {
       // Regula 1: Pe platourile cu cartofi sau preparate pe bază de brânză prăjită, NU arăta "Fără cașcaval / brânză"
-      // (În loc de cașcaval se afișează exclusiv "Fără telemea" dacă produsul conține telemea)
       if (item.id === 'branza') {
         if (isFriesPlatter || pName.includes('fried cheese') || pName.includes('mozzarella') || pName.includes('cheesy')) {
           return false;
@@ -595,6 +596,12 @@ export default function ProductScreen() {
         if (isFriesOnlyCombo) {
           return false;
         }
+      }
+
+      // Regula 4: "Cartofi fără sare" — doar pe produse care SUNT cartofi (nu pe burgeri/sandvișuri)
+      if (item.onlyForFries) {
+        const isActuallyFries = pName.includes('cartof') || pName.includes('fries') || pName.includes('chips');
+        if (!isActuallyFries) return false;
       }
 
       return item.keywords.some(kw => textToScan.includes(kw));
@@ -831,23 +838,31 @@ export default function ProductScreen() {
                       </button>
                     );
                   })}
+
                 </div>
 
-                {/* Descriere vizibilă mereu (primele 3 rânduri), expandabilă */}
+                {/* Descriere opțiune selectată — vizibilă implicit, cu buton ascunde/afișează */}
                 {selectedOpt && selectedDesc && (
                   <div className="ps-mod-selected-desc">
-                    <p className={`ps-mod-selected-desc-text ${expandedModDescs[mod.id] ? 'ps-mod-selected-desc-text--expanded' : ''}`}>
-                      {selectedDesc}
-                    </p>
+                    <div className="ps-mod-selected-desc-header">
+                      <span className="ps-round-badge">
+                        <IconListLines />
+                      </span>
+                      <span className="ps-mod-selected-desc-title">{selectedOpt.name}</span>
+                    </div>
+                    {modIngredientOpen[mod.id] !== false && (
+                      <p className="ps-mod-selected-desc-text">{selectedDesc}</p>
+                    )}
                     <button
                       type="button"
                       className="ps-mod-desc-toggle"
-                      onClick={() => toggleModDesc(mod.id)}
+                      onClick={() => setModIngredientOpen(prev => ({ ...prev, [mod.id]: prev[mod.id] === false ? true : false }))}
                     >
-                      {expandedModDescs[mod.id] ? 'Mai puțin ▲' : 'Mai mult ▼'}
+                      {modIngredientOpen[mod.id] === false ? 'Afișează descriere ▼' : 'Ascunde descriere ▲'}
                     </button>
                   </div>
                 )}
+
               </div>
             );
           })}

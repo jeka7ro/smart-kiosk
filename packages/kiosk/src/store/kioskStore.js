@@ -89,6 +89,12 @@ export const useKioskStore = create((set, get) => ({
   hasShownStartPromo: false,
   setHasShownStartPromo: (val) => set({ hasShownStartPromo: val }),
 
+  // ─── Menu scroll position (persist across product detail navigation) ──
+  menuScrollTop: 0,
+  setMenuScrollTop: (val) => set({ menuScrollTop: val }),
+  menuActiveCategory: null,
+  setMenuActiveCategory: (val) => set({ menuActiveCategory: val }),
+
   // After welcome: slide up screensaver over half a second
   goAfterWelcome: () => {
     const loc = get().locationData;
