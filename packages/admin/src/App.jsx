@@ -620,6 +620,24 @@ export default function AdminApp() {
                 <p className="flex items-center gap-2"><strong>Plată:</strong> <span className="font-bold">{selectedOrder.paymentMethod === 'cash' ? 'CASH' : (selectedOrder.paymentMethod === 'card' ? 'CARD' : '—')}</span> {selectedOrder.paymentMethod === 'card' ? <span className="px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap bg-emerald-500/20 text-emerald-500 border border-emerald-500/40">✓ Aprobat</span> : (selectedOrder.paymentMethod === 'cash' ? <span className="px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap bg-amber-500/20 text-amber-500 border border-amber-500/40">La Casă</span> : '')}</p>
                 <p><strong>Data/Ora:</strong> {selectedOrder.createdAt ? new Date(selectedOrder.createdAt).toLocaleString('ro-RO') : '—'}</p>
               </div>
+              {/* CUI / Date Fiscale */}
+              {selectedOrder.fiscal && (
+                <div className="flex items-center gap-3 bg-indigo-50 dark:bg-indigo-900/20 p-2.5 rounded-lg border border-indigo-200 dark:border-indigo-700/50 mt-2">
+                  <span className="text-lg">🏢</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-indigo-700 dark:text-indigo-300 uppercase tracking-wider mb-0.5">Bon Fiscal cu CUI</p>
+                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 truncate">{selectedOrder.fiscal.name || '—'}</p>
+                    <p className="text-xs text-slate-500">
+                      CUI: <span className="font-mono font-bold">{selectedOrder.fiscal.rawCui || selectedOrder.fiscal.cui}</span>
+                      {selectedOrder.fiscal.regCom && <> | Reg.Com: {selectedOrder.fiscal.regCom}</>}
+                      {selectedOrder.fiscal.isVatPayer && <span className="ml-2 px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">Plătitor TVA</span>}
+                    </p>
+                    {selectedOrder.fiscal.address && (
+                      <p className="text-xs text-slate-400 truncate mt-0.5">{selectedOrder.fiscal.address}</p>
+                    )}
+                  </div>
+                </div>
+              )}
               {selectedOrder.syrveOrderId && (
                 <div className="flex items-center justify-between gap-3 bg-slate-50 dark:bg-slate-800 p-2 rounded-lg border border-slate-200 dark:border-slate-700 mt-2">
                   <div className="flex flex-col">
@@ -837,7 +855,7 @@ function OrdersTable({ orders, full, onRowClick, selectedId }) {
               <tr key={o._id} className={`transition-colors group cursor-pointer ${selectedId === o._id ? 'bg-blue-50 dark:bg-blue-500/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`} onClick={() => onRowClick && onRowClick(o)}>
                 <td className="px-6 py-4">
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-sm font-bold text-slate-900 dark:text-white">#{o.orderNumber}</span>
+                    <span className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1">#{o.orderNumber}{o.fiscal && <span title={`CUI: ${o.fiscal.rawCui || o.fiscal.cui}`} className="text-xs">🏢</span>}</span>
                     {o.createdAt && (
                       <span className="text-[10px] text-slate-400">
                         {new Date(o.createdAt).toLocaleString('ro-RO')}
