@@ -841,27 +841,69 @@ export default function ProductScreen() {
 
                 </div>
 
-                {/* Descriere opțiune selectată — vizibilă implicit, cu buton ascunde/afișează */}
-                {selectedOpt && selectedDesc && (
-                  <div className="ps-mod-selected-desc">
-                    <div className="ps-mod-selected-desc-header">
-                      <span className="ps-round-badge">
-                        <IconListLines />
-                      </span>
-                      <span className="ps-mod-selected-desc-title">{selectedOpt.name}</span>
+                {/* Descriere opțiune selectată — parsată: descriere scurtă → ingrediente → alergeni/nutriție */}
+                {selectedOpt && selectedDesc && (() => {
+                  const lower = selectedDesc.toLowerCase();
+                  const ingMarkers = ['ingrediente:', 'ingredient:'];
+                  const nutMarkers = ['declarație nutrițională', 'declaratie nutritionala', 'declarația nutrițională', 'declaratia nutritionala', 'valori nutritionale', 'valori nutritive'];
+                  let ingIdx = -1, ingLen = 0;
+                  for (const m of ingMarkers) { const i = lower.indexOf(m); if (i !== -1 && (ingIdx === -1 || i < ingIdx)) { ingIdx = i; ingLen = m.length; } }
+                  let nutIdx = -1;
+                  for (const m of nutMarkers) { const i = lower.indexOf(m); if (i !== -1 && (nutIdx === -1 || i < nutIdx)) nutIdx = i; }
+                  const modShort = ingIdx !== -1 ? selectedDesc.slice(0, ingIdx).trim() : (nutIdx !== -1 ? selectedDesc.slice(0, nutIdx).trim() : selectedDesc);
+                  const modIng = ingIdx !== -1 ? selectedDesc.slice(ingIdx + ingLen, nutIdx !== -1 && nutIdx > ingIdx ? nutIdx : undefined).trim() : '';
+                  const modNut = nutIdx !== -1 ? selectedDesc.slice(nutIdx).trim() : '';
+                  const descKey = `desc-${mod.id}`;
+                  const ingKey = `ing-${mod.id}`;
+                  const nutKey = `nut-${mod.id}`;
+                  return (
+                    <div className="ps-mod-selected-desc">
+                      <div className="ps-mod-selected-desc-header">
+                        <span className="ps-round-badge">
+                          <IconListLines />
+                        </span>
+                        <span className="ps-mod-selected-desc-title">{selectedOpt.name}</span>
+                      </div>
+                      {/* Descriere comercială scurtă — 2 rânduri implicit */}
+                      {modShort && (
+                        <>
+                          {modIngredientOpen[descKey] ? (
+                            <p className="ps-mod-selected-desc-text">{modShort}</p>
+                          ) : (
+                            <p className="ps-mod-selected-desc-text" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{modShort}</p>
+                          )}
+                          {modShort.length > 120 && (
+                            <button type="button" className="ps-mod-desc-toggle" onClick={() => setModIngredientOpen(prev => ({ ...prev, [descKey]: !prev[descKey] }))}>
+                              {modIngredientOpen[descKey] ? 'Ascunde descriere ▲' : 'Afișează descriere ▼'}
+                            </button>
+                          )}
+                        </>
+                      )}
+                      {/* Ingrediente — buton separat */}
+                      {modIng && (
+                        <>
+                          <button type="button" className="ps-mod-desc-toggle" style={{ marginTop: '6px' }} onClick={() => setModIngredientOpen(prev => ({ ...prev, [ingKey]: !prev[ingKey] }))}>
+                            {modIngredientOpen[ingKey] ? '📋 Ascunde ingrediente ▲' : '📋 Ingrediente ▼'}
+                          </button>
+                          {modIngredientOpen[ingKey] && (
+                            <p className="ps-mod-selected-desc-text" style={{ fontSize: '0.82rem', opacity: 0.85 }}>{modIng}</p>
+                          )}
+                        </>
+                      )}
+                      {/* Alergeni & Valori nutriționale — buton separat, DUPĂ ingrediente */}
+                      {modNut && (
+                        <>
+                          <button type="button" className="ps-mod-desc-toggle" style={{ marginTop: '6px' }} onClick={() => setModIngredientOpen(prev => ({ ...prev, [nutKey]: !prev[nutKey] }))}>
+                            {modIngredientOpen[nutKey] ? 'ⓘ Ascunde valori nutriționale ▲' : 'ⓘ Alergeni & Valori nutriționale ▼'}
+                          </button>
+                          {modIngredientOpen[nutKey] && (
+                            <p className="ps-mod-selected-desc-text" style={{ fontSize: '0.82rem', opacity: 0.85 }}>{modNut}</p>
+                          )}
+                        </>
+                      )}
                     </div>
-                    {modIngredientOpen[mod.id] !== false && (
-                      <p className="ps-mod-selected-desc-text">{selectedDesc}</p>
-                    )}
-                    <button
-                      type="button"
-                      className="ps-mod-desc-toggle"
-                      onClick={() => setModIngredientOpen(prev => ({ ...prev, [mod.id]: prev[mod.id] === false ? true : false }))}
-                    >
-                      {modIngredientOpen[mod.id] === false ? 'Afișează descriere ▼' : 'Ascunde descriere ▲'}
-                    </button>
-                  </div>
-                )}
+                  );
+                })()}
 
               </div>
             );

@@ -263,14 +263,15 @@ export default function IikoLogs() {
               </tr>
             )}
             {paginated.map((log, idx) => {
-              const isExpanded = expandedId === (log._id || log.id || idx);
+              const logKey = log._id || log.id || `${log.order_id || ''}-${log.created_at || ''}-${idx}`;
+              const isExpanded = expandedId === logKey;
               const statusInfo = STATUS_CONFIG[log.status] || STATUS_CONFIG.error;
 
               return (
-                <React.Fragment key={log._id || log.id || idx}>
+                <React.Fragment key={logKey}>
                   <tr
                     className={`border-b border-slate-100 dark:border-slate-800/50 transition-colors cursor-pointer ${isExpanded ? 'bg-blue-50/50 dark:bg-blue-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/30'}`}
-                    onClick={() => setExpandedId(isExpanded ? null : (log._id || log.id || idx))}
+                    onClick={() => setExpandedId(isExpanded ? null : logKey)}
                   >
                     <td className="px-4 py-3 text-center text-slate-400 text-xs font-mono">
                       {(currentPage - 1) * itemsPerPage + idx + 1}
