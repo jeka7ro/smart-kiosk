@@ -417,4 +417,54 @@ router.patch('/:id/status', async (req, res) => {
   }
 });
 
+// ── POST /api/orders/:id/retry — Retry failed Syrve submission ──────
+router.post('/:id/retry', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT data, location_id FROM orders WHERE data->>'_id' = $1 OR data->>'orderNumber' = $1 OR id::text = $1`,
+      [req.params.id]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Order not found' });
+
+    const order = rows[0].data;
+    const locationId = rows[0].location_id || order.locationId;
+
+    console.log(`[Syrve-Retry] Retrying order #${order.orderNumber || order._id}...`);
+
+    // Determine orgId from order data or location
+    const loc = findLocation(locationId);
+    const orgId = order.orgId || loc?.orgId;
+    const brandId = order.brand || order.brandId || 'smashme';
+
+    if (!orgId) {
+      return res.status(400).json({ error: 'Cannot determine orgId for this order' });
+    }
+
+    const syrveResult = await syrveCreateOrder({
+      brandId,
+      orgId,
+      order,
+    });
+
+    if (syrveResult?.orderInfo?.id || syrveResult?.id) {
+      const syrveId = syrveResult?.orderInfo?.id || syrveResult?.id;
+      order.syrveOrderId = syrveId;
+
+      await pool.query(
+        `UPDATE orders SET data = jsonb_set(data, '{syrveOrderId}', $1), status = 'confirmed' WHERE data->>'_id' = $2 OR data->>'orderNumber' = $2`,
+        [JSON.stringify(syrveId), req.params.id]
+      );
+
+      console.log(`[Syrve-Retry] ✅ SUCCES — syrveId: ${syrveId}`);
+      return res.json({ success: true, syrveOrderId: syrveId });
+    } else {
+      console.log(`[Syrve-Retry] ⚠️ Răspuns fără ID:`, JSON.stringify(syrveResult));
+      return res.status(502).json({ error: 'Syrve returned no order ID', response: syrveResult });
+    }
+  } catch (err) {
+    console.error(`[Syrve-Retry] ❌ EROARE:`, err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
