@@ -110,6 +110,7 @@ router.post('/', async (req, res) => {
       orderNumber,
       locationId: locId,
       locationName: resolvedLocationName,
+      kioskId: kioskId || '1',
       brand: brandName,
       orgId: orgId || null,
       orderType: orderType || 'takeaway',

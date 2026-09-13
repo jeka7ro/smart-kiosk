@@ -557,6 +557,72 @@
   text-align: left;
 }
 
+.ps-round-badge--sm {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid #cbd5e1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #475569;
+  background: #ffffff;
+  flex-shrink: 0;
+}
+.ps-round-badge--sm svg {
+  width: 13px;
+  height: 13px;
+}
+
+.ps-mod-accordion-item {
+  margin-top: 6px;
+}
+
+.ps-mod-accordion-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ps-mod-accordion-btn:hover {
+  background: #f1f5f9;
+}
+
+.ps-mod-accordion-btn--open {
+  background: #f1f5f9;
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
+}
+
+.ps-mod-accordion-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ps-mod-accordion-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.ps-mod-accordion-expanded {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-top: none;
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+  padding: 10px 12px;
+  animation: psDrawerOpen 0.2s ease-out;
+}
+
 /* ─── PAIRINGS / RECOMANDĂRI ("Se potrivește de minune cu") ─── */
 .ps-pairings-section {
   background: #fafafa;

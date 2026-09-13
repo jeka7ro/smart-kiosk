@@ -1,4 +1,5 @@
 import { createContext, useContext, useRef, useState, useCallback } from 'react';
+import { AlertTriangle, Trash2, HelpCircle } from 'lucide-react';
 
 /* ── Context ──────────────────────────────────────────────────────────────── */
 const ConfirmCtx = createContext(null);
@@ -22,9 +23,19 @@ export function ConfirmProvider({ children }) {
       {children}
       {state && (
         <div className="fixed inset-0 z-[99999] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 w-full max-w-[360px] shadow-2xl text-center flex flex-col">
-            <div className="text-4xl mb-3">
-              {state.opts?.icon || '⚠️'}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 w-full max-w-[360px] shadow-2xl text-center flex flex-col items-center">
+            <div className="mb-3">
+              {state.opts?.icon && typeof state.opts.icon !== 'string' ? (
+                state.opts.icon
+              ) : state.opts?.danger ? (
+                <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 flex items-center justify-center">
+                  <Trash2 size={24} strokeWidth={2} />
+                </div>
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                  <AlertTriangle size={24} strokeWidth={2} />
+                </div>
+              )}
             </div>
             {state.opts?.title && (
               <h3 className="m-0 mb-2 text-lg font-bold text-slate-900 dark:text-white">

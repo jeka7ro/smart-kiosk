@@ -156,7 +156,7 @@ function transformMenu(raw, brandId = 'smashme') {
     rollmaster: '52428a16-5250-49d1-8886-252f729a53d7', // SUSHI MASTER
     lovesushi:  'a820d72d-f735-4e7a-b6f3-5f984a4cbb9c', // WLS (Love Sushi)
     pokiwoki:   '628f6a2c-32cd-4ccf-b79d-366041f2c9f6', // POKI WOKI (98 produse)
-    smashme:    null, // fallback by name below
+    smashme:    'f57d6a6c-ee60-479c-aa49-6dfab38c2449', // SMASH ME KIOSK (exact root folder)
     crunch:     null,
   };
 
@@ -597,30 +597,54 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
         item.selectedModifiers?.find(m => m.modId === 'custom_comment' || m.id === 'custom_comment')?.optionName || 
         null;
 
-      const syrveItem = {
-        productId: item.productId,
-        amount: item.quantity || 1,
-        price: item.unitPrice,
-        type: 'Product',
-        comment: itemComment,
-      };
-
       // Map modifiers to Syrve format (filter out custom_comment and mods without valid ID)
+      let syrveModifiers = [];
+      let modifiersCostPerUnit = 0;
+
       if (item.selectedModifiers && item.selectedModifiers.length > 0) {
         console.log(`[SYRVE-DEBUG] Item "${item.name}" raw modifiers:`, JSON.stringify(item.selectedModifiers));
         const validMods = item.selectedModifiers
           .filter(mod => mod.modId !== 'custom_comment' && mod.id !== 'custom_comment' && mod.productId !== 'custom_comment')
           .filter(mod => (mod.id || mod.productId || mod.optionId));  // Must have a valid ID for Syrve
         if (validMods.length > 0) {
-          syrveItem.modifiers = validMods.map(mod => ({
-            productId: mod.productId || mod.id || mod.optionId,
-            amount: mod.amount || 1,
-            productGroupId: mod.groupId || mod.productGroupId || mod.modifierGroupId || mod.modId || null,
-            price: mod.price || 0,
-            positionId: null,
-          }));
-          console.log(`[SYRVE-DEBUG] Item "${item.name}" mapped modifiers:`, JSON.stringify(syrveItem.modifiers));
+          syrveModifiers = validMods.map(mod => {
+            const modPrice = Number(mod.price) || 0;
+            const modAmount = Number(mod.amount) || 1;
+            modifiersCostPerUnit += (modPrice * modAmount);
+            return {
+              productId: mod.productId || mod.id || mod.optionId,
+              amount: modAmount,
+              productGroupId: mod.groupId || mod.productGroupId || mod.modifierGroupId || mod.modId || null,
+              price: modPrice,
+              positionId: null,
+            };
+          });
+          console.log(`[SYRVE-DEBUG] Item "${item.name}" mapped modifiers:`, JSON.stringify(syrveModifiers), `modifiersCostPerUnit:`, modifiersCostPerUnit);
         }
+      }
+
+      // Calculate base product price for Syrve:
+      // In iiko: line total = (product.price * amount) + sum(mod.price * mod.amount)
+      // Because kiosk item.unitPrice includes modifiers (basePrice + modifiersCost),
+      // we must send the base price to Syrve so options are not double-calculated.
+      const rawUnitPrice = Number(item.unitPrice !== undefined ? item.unitPrice : (item.price || 0));
+      let productPrice = rawUnitPrice;
+      if (item.basePrice !== undefined && item.basePrice !== null && !isNaN(Number(item.basePrice))) {
+        productPrice = Number(item.basePrice);
+      } else if (modifiersCostPerUnit > 0) {
+        productPrice = Math.max(0, Math.round((rawUnitPrice - modifiersCostPerUnit) * 100) / 100);
+      }
+
+      const syrveItem = {
+        productId: item.productId,
+        amount: item.quantity || 1,
+        price: productPrice,
+        type: 'Product',
+        comment: itemComment,
+      };
+
+      if (syrveModifiers.length > 0) {
+        syrveItem.modifiers = syrveModifiers;
       }
 
       return syrveItem;
@@ -629,7 +653,19 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
     // Build comment
     const orderTypeLabel = order.orderType === 'dine-in' ? 'La masă' : 'La pachet';
     const isPaidLabel = (pMethod === 'card' || pMethod === 'viva') ? 'PLĂTIT' : 'NEPLĂTIT (Cash)';
-    const kioskName = order.kioskId ? `Kiosk ${order.kioskId}` : 'Kiosk';
+    // Determine specific kiosk display name (e.g. SmartKiosk CJ-1)
+    let kioskDisplayName = 'SmartKiosk CJ-1';
+    const ordNumStr = String(order.orderNumber || '');
+    if (ordNumStr.startsWith('CJ1') || String(order.locationId || '').includes('cluj1')) {
+      kioskDisplayName = 'SmartKiosk CJ-1';
+    } else if (ordNumStr.startsWith('CJ2') || String(order.locationId || '').includes('cluj2')) {
+      kioskDisplayName = 'SmartKiosk CJ-2';
+    } else if (ordNumStr.startsWith('BV') || String(order.locationId || '').includes('brasov')) {
+      kioskDisplayName = `SmartKiosk BV-${order.kioskId || '1'}`;
+    } else if (ordNumStr.includes('-')) {
+      const prefix = ordNumStr.split('-')[0];
+      kioskDisplayName = `SmartKiosk ${prefix}`;
+    }
 
     // Aggregate special notes from items to include in order-level comment
     const specialNotes = (order.items || [])
@@ -639,7 +675,7 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
       })
       .filter(Boolean);
 
-    let orderComment = `[${kioskName}] ${orderTypeLabel} | ${isPaidLabel} | Comanda #${order.orderNumber}`;
+    let orderComment = `[${kioskDisplayName}] ${orderTypeLabel} | ${isPaidLabel} | Comanda #${order.orderNumber}`;
     let cuiDigits = '';
     let cuiWithRo = '';
     if (order.fiscal?.cui) {
@@ -684,7 +720,7 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
       cardNumber: cuiWithRo,
       cardTrack: cuiDigits,
     } : {
-      name: 'Kiosk Client',
+      name: kioskDisplayName,
       surname: '',
     };
 

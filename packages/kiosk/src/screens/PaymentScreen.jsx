@@ -111,6 +111,7 @@ export default function PaymentScreen() {
           orderType, tableNumber,
           items: cartItems.map(i => ({
             productId: i.productId, name: i.name, quantity: i.quantity,
+            basePrice: i.basePrice !== undefined ? i.basePrice : null,
             unitPrice: i.unitPrice, totalPrice: i.totalPrice,
             brandId: i.brandId,
             imageUrl: i.image || null,

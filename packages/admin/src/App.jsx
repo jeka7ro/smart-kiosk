@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { io } from 'socket.io-client';
 
@@ -14,12 +14,15 @@ import IikoLogs       from './screens/IikoLogs';
 import PrinterLogs    from './screens/PrinterLogs';
 import PortScans      from './screens/PortScans';
 import BrandLogo from './components/BrandLogo.jsx';
+import DashboardCharts3D from './components/DashboardCharts3D.jsx';
+import OrderToastNotificationStack, { playNewOrderSound } from './components/OrderToastNotification.jsx';
 import Promotions     from './screens/Promotions';
 import FortuneWheelPreview from './components/FortuneWheelPreview';
 import MenuManager, { MenuProfileEditorModal } from './screens/MenuManager';
 import QrGenerator from './screens/QrGenerator';
 import { useConfirm } from './components/ConfirmModal';
-import { LayoutDashboard, Receipt, MapPin, MonitorSmartphone, QrCode, Utensils, Languages, Image as ImageIcon, Tags, Users, Blocks, Gift, Store, Sun, Moon, LogOut, Menu, X, CreditCard, Download, Printer } from 'lucide-react';
+import { LayoutDashboard, Receipt, MapPin, MonitorSmartphone, QrCode, Utensils, Languages, Image as ImageIcon, Tags, Users, Blocks, Gift, Store, Sun, Moon, LogOut, Menu, X, CreditCard, Download, Printer, Building2 } from 'lucide-react';
+import { formatThousands } from './utils/formatters';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
 
@@ -36,10 +39,33 @@ function useKeepAlive() {
 const BRAND_COLORS = { smashme: '#ef4444', crunch: '#eab308', rollmaster: '#3b82f6', lovesushi: '#ec4899', pokiwoki: '#f97316' };
 
 const STATUS_LABELS = {
-  pending:   { label: 'Nou',       color: '#f59e0b' },
-  preparing: { label: 'Pregătire', color: '#3b82f6' },
-  ready:     { label: 'Gata',      color: '#10b981' },
-  delivered: { label: 'Livrat',    color: '#8b5cf6' },
+  pending:          { label: 'Achitată cu succes',  color: '#10b981' },
+  awaiting_payment: { label: 'Trimis la bucătărie', color: '#059669' },
+  confirmed:        { label: 'Trimis la bucătărie', color: '#059669' },
+  preparing:        { label: 'În preparare',        color: '#3b82f6' },
+  ready:            { label: 'Gata',                color: '#10b981' },
+  delivered:        { label: 'Livrat',              color: '#8b5cf6' },
+  cancelled:        { label: 'Anulată',             color: '#ef4444' },
+};
+
+const getOrderStatus = (o) => {
+  if (!o) return { label: '—', color: '#6b7a99' };
+  if (o.status === 'cancelled') return { label: 'Anulată', color: '#ef4444' };
+  if (o.status === 'delivered') return { label: 'Livrat', color: '#8b5cf6' };
+  if (o.status === 'ready')     return { label: 'Gata', color: '#10b981' };
+  if (o.status === 'preparing') return { label: 'În preparare', color: '#3b82f6' };
+
+  // Comenzi plătite cu cardul -> Achitată cu succes
+  if (o.paymentMethod === 'card' || o.paymentRef?.authCode) {
+    return { label: 'Achitată cu succes', color: '#10b981' };
+  }
+
+  // Comenzi trimise la bucătărie (Syrve / iiko) sau cash
+  if (o.syrveOrderId || o.status === 'awaiting_payment' || o.paymentMethod === 'cash') {
+    return { label: 'Trimis la bucătărie', color: '#059669' };
+  }
+
+  return STATUS_LABELS[o.status] || { label: 'Achitată cu succes', color: '#10b981' };
 };
 
 export default function AdminApp() {
@@ -82,7 +108,96 @@ export default function AdminApp() {
   const [customStart, setCustomStart] = useState(todayStr);
   const [customEnd, setCustomEnd] = useState(tomStr);
 
+  // Dashboard-specific filters (Default 'today' - "o zi ca de obicei")
+  const [dashboardPeriod, setDashboardPeriod] = useState('today');
+  const [dashboardBrands, setDashboardBrands] = useState([]);
+  const [dashboardLocation, setDashboardLocation] = useState('all');
+  const [dashboardPayment, setDashboardPayment] = useState('all');
+  const [dashboardSearch, setDashboardSearch] = useState('');
+  const [dashboardCustomStart, setDashboardCustomStart] = useState(todayStr);
+  const [dashboardCustomEnd, setDashboardCustomEnd] = useState(tomStr);
+
+  const [dashboardHour, setDashboardHour] = useState(null); // null or hour number 0..23
+  const [dashboardDay, setDashboardDay] = useState(null);   // null or { type: 'dayOfWeek' | 'date', value: any, label: string }
+
+  const toggleDashboardBrand = (bId) => {
+    if (bId === 'all') {
+      setDashboardBrands([]);
+    } else {
+      const lower = String(bId).toLowerCase();
+      setDashboardBrands(prev => {
+        if (prev.includes(lower)) {
+          return prev.filter(x => x !== lower);
+        } else {
+          return [...prev, lower];
+        }
+      });
+    }
+  };
+
+  const toggleDashboardHour = (h) => {
+    setDashboardHour(prev => prev === h ? null : h);
+  };
+
+  const toggleDashboardDay = (dayObj) => {
+    setDashboardDay(prev => {
+      if (!prev || !dayObj) return dayObj || null;
+      if (prev.type === dayObj.type && prev.value === dayObj.value) return null;
+      return dayObj;
+    });
+  };
+
+  const toggleDashboardPayment = (p) => {
+    setDashboardPayment(prev => prev === p ? 'all' : p);
+  };
+
+  const clearAllDashboardFilters = () => {
+    setDashboardBrands([]);
+    setDashboardHour(null);
+    setDashboardDay(null);
+    setDashboardPayment('all');
+    setDashboardLocation('all');
+    setDashboardSearch('');
+  };
+
   const [notifications, setNotifs]= useState([]);
+  const [orderToasts, setOrderToasts] = useState([]);
+  const knownOrderIdsRef = useRef(null);
+  const toastedOrderKeysRef = useRef(new Set());
+
+  const triggerOrderToast = useCallback((order) => {
+    if (!order) return;
+    const orderKey = String(order._id || order.orderNumber || order.id || '');
+    if (!orderKey) return;
+
+    // Deduplication: ignore if toasted in the last 2 minutes
+    if (toastedOrderKeysRef.current.has(orderKey)) {
+      return;
+    }
+    toastedOrderKeysRef.current.add(orderKey);
+    setTimeout(() => {
+      toastedOrderKeysRef.current.delete(orderKey);
+    }, 120_000);
+
+    const toastId = `${orderKey}-${Date.now()}`;
+    setOrderToasts(prev => {
+      const alreadyActive = prev.some(t => {
+        const tKey = String(t.order._id || t.order.orderNumber || t.order.id || '');
+        return tKey === orderKey;
+      });
+      if (alreadyActive) return prev;
+
+      return [
+        { id: toastId, order, timestamp: Date.now() },
+        ...prev.slice(0, 1) // Keep max 2 toasts
+      ];
+    });
+  }, []);
+
+  const handleDismissOrderToast = useCallback((toastId) => {
+    setOrderToasts(prev => prev.filter(t => t.id !== toastId));
+  }, []);
+
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [modalProductsPage, setModalProductsPage] = useState(1);
   const [modalProductsPerPage, setModalProductsPerPage] = useState(10);
@@ -126,14 +241,52 @@ export default function AdminApp() {
     });
     socket.on('new_order', order => {
       setOrders(prev => [order, ...prev]);
-      addNotif(`Comandă nouă #${order.orderNumber} — ${order.brand} — ${(order.totalAmount||0).toFixed(0)} lei`);
+      if (order._id && knownOrderIdsRef.current) knownOrderIdsRef.current.add(order._id);
+      if (order.orderNumber && knownOrderIdsRef.current) knownOrderIdsRef.current.add(order.orderNumber);
+      triggerOrderToast(order);
+    });
+    socket.on('order_syrve_confirmed', ({ orderId, syrveOrderId }) => {
+      setOrders(prev => prev.map(o => o._id === orderId ? { ...o, syrveOrderId } : o));
+      setOrderToasts(prev => prev.map(t => {
+        if (t.order._id === orderId || t.order.orderNumber === orderId) {
+          return { ...t, order: { ...t.order, syrveOrderId } };
+        }
+        return t;
+      }));
     });
     socket.on('order_status_updated', ({ orderId, status }) => {
       setOrders(prev => prev.map(o => o._id === orderId ? { ...o, status } : o));
+      setOrderToasts(prev => prev.map(t => {
+        if (t.order._id === orderId) {
+          return { ...t, order: { ...t.order, status } };
+        }
+        return t;
+      }));
     });
 
     return () => socket.disconnect();
-  }, []);
+  }, [triggerOrderToast]);
+
+  /* ─── Test Order Toast Event Listener ───────────── */
+  useEffect(() => {
+    const handleTestToast = (e) => {
+      const mockOrder = e.detail || {
+        _id: `mock-${Date.now()}`,
+        orderNumber: 'CJ1-020',
+        brand: 'smashme',
+        totalAmount: 64.50,
+        orderType: 'takeaway',
+        locationName: 'Vivo Cluj',
+        paymentMethod: 'card',
+        paymentRef: { authCode: '782910' },
+        syrveOrderId: 'syrve-99120',
+        items: [{ name: 'Smash Burger Dublu' }, { name: 'Cartofi Prăjiți' }]
+      };
+      triggerOrderToast(mockOrder);
+    };
+    window.addEventListener('test-order-toast', handleTestToast);
+    return () => window.removeEventListener('test-order-toast', handleTestToast);
+  }, [triggerOrderToast]);
 
   /* ─── Load promotions configs for UI Previews ───── */
   // promosData moved to KioskSettingsForm
@@ -141,16 +294,31 @@ export default function AdminApp() {
   /* ─── Load initial orders + poll every 30s ──────── */
   useEffect(() => {
     const loadOrders = () => {
-      let url = `${BACKEND}/api/orders?limit=100`;
+      let url = `${BACKEND}/api/orders?limit=500`;
       fetchWithAuth(url)
         .then(r => r.json())
-        .then(d => setOrders(d.orders || []))
+        .then(d => {
+          const list = d.orders || [];
+          if (knownOrderIdsRef.current !== null) {
+            const newArrivals = list.filter(o => {
+              const id = o._id || o.id;
+              const num = o.orderNumber;
+              const isKnown = (id && knownOrderIdsRef.current.has(id)) || (num && knownOrderIdsRef.current.has(num));
+              return !isKnown;
+            });
+            if (newArrivals.length > 0) {
+              newArrivals.slice(0, 1).forEach(o => triggerOrderToast(o));
+            }
+          }
+          knownOrderIdsRef.current = new Set(list.map(o => o._id || o.orderNumber));
+          setOrders(list);
+        })
         .catch(() => {});
     };
     loadOrders();
     const interval = setInterval(loadOrders, 30_000);
     return () => clearInterval(interval);
-  }, [periodFilter, customStart, customEnd]);
+  }, [periodFilter, customStart, customEnd, dashboardPeriod, dashboardCustomStart, dashboardCustomEnd, triggerOrderToast]);
 
   const handleCancelOrder = async (orderId) => {
     if (!window.confirm('Ești sigur că vrei să anulezi această comandă (anulată din POS)?')) return;
@@ -236,7 +404,7 @@ export default function AdminApp() {
     return acc;
   }, {});
 
-  const isDateInPeriod = (dateStr, period) => {
+  const isDateInPeriod = (dateStr, period, cStart = customStart, cEnd = customEnd) => {
     if (period === 'all') return true;
     if (!dateStr) return false;
     const d = new Date(dateStr);
@@ -264,16 +432,16 @@ export default function AdminApp() {
       return d.getFullYear() === now.getFullYear();
     }
     if (period === 'custom') {
-      if (!customStart && !customEnd) return true;
+      if (!cStart && !cEnd) return true;
       let startValid = true;
       let endValid = true;
-      if (customStart) {
-        const sd = new Date(customStart);
+      if (cStart) {
+        const sd = new Date(cStart);
         sd.setHours(0, 0, 0, 0);
         if (d < sd) startValid = false;
       }
-      if (customEnd) {
-        const ed = new Date(customEnd);
+      if (cEnd) {
+        const ed = new Date(cEnd);
         ed.setHours(23, 59, 59, 999);
         if (d > ed) endValid = false;
       }
@@ -281,6 +449,74 @@ export default function AdminApp() {
     }
     return true;
   };
+
+  /* ─── Dashboard Filtered Data & Stats ─────────────── */
+  const dashboardPeriodOrders = useMemo(() => {
+    return orders.filter(o => {
+      if (dashboardLocation !== 'all' && (o.locationName || o.locationId) !== dashboardLocation) return false;
+      if (dashboardPayment !== 'all') {
+        const isCard = o.paymentMethod === 'card' || !!o.paymentRef?.authCode;
+        if (dashboardPayment === 'card' && !isCard) return false;
+        if (dashboardPayment === 'cash' && isCard) return false;
+      }
+      if (!isDateInPeriod(o.createdAt, dashboardPeriod, dashboardCustomStart, dashboardCustomEnd)) return false;
+      return true;
+    });
+  }, [orders, dashboardLocation, dashboardPayment, dashboardPeriod, dashboardCustomStart, dashboardCustomEnd]);
+
+  const dashboardBrandStats = useMemo(() => {
+    return dashboardPeriodOrders.reduce((acc, o) => {
+      if (o.brand) {
+        const b = o.brand.toLowerCase();
+        acc[b] = (acc[b] || 0) + 1;
+      }
+      return acc;
+    }, {});
+  }, [dashboardPeriodOrders]);
+
+  const dashboardFilteredOrders = useMemo(() => {
+    return dashboardPeriodOrders.filter(o => {
+      if (dashboardBrands.length > 0) {
+        const b = (o.brand || '').toLowerCase();
+        if (!dashboardBrands.includes(b)) return false;
+      }
+
+      if (dashboardHour !== null) {
+        if (!o.createdAt) return false;
+        const h = new Date(o.createdAt).getHours();
+        if (h !== dashboardHour) return false;
+      }
+
+      if (dashboardDay !== null) {
+        if (!o.createdAt) return false;
+        const d = new Date(o.createdAt);
+        if (dashboardDay.type === 'dayOfWeek') {
+          const dayNum = d.getDay() === 0 ? 7 : d.getDay();
+          if (dayNum !== dashboardDay.value) return false;
+        } else if (dashboardDay.type === 'date') {
+          const dateStr = d.toISOString().slice(0, 10);
+          if (dateStr !== dashboardDay.value) return false;
+        }
+      }
+      
+      if (dashboardSearch) {
+        const q = dashboardSearch.toLowerCase();
+        const matchNumber = String(o.orderNumber || '').includes(q);
+        const matchIiko = (o.syrveOrderId || '').toLowerCase().includes(q);
+        const matchLoc = (o.locationName || o.locationId || '').toLowerCase().includes(q);
+        const matchAmount = String(o.totalAmount || '').includes(q);
+        if (!matchNumber && !matchIiko && !matchLoc && !matchAmount) return false;
+      }
+      
+      return true;
+    });
+  }, [dashboardPeriodOrders, dashboardBrands, dashboardHour, dashboardDay, dashboardSearch]);
+
+  const dashboardRevenue = useMemo(() => {
+    return dashboardFilteredOrders
+      .filter(o => o.status !== 'cancelled')
+      .reduce((s, o) => s + (o.totalAmount || 0), 0);
+  }, [dashboardFilteredOrders]);
 
   const [globalSearch, setGlobalSearch] = useState('');
 
@@ -430,22 +666,211 @@ export default function AdminApp() {
 
         {/* ─── DASHBOARD ─── */}
         {tab === 'dashboard' && (
-          <div className="space-y-8 px-4 md:px-8 pb-10">
+          <div className="space-y-6 px-4 md:px-8 pb-10">
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {/* Controls & Period Filter Bar */}
+            <div className="flex items-center gap-3 flex-wrap bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+              {/* Brand Filter Buttons - Compact Icons with Multi-select */}
+              <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide shrink-0">
+                {['all','smashme','crunch','rollmaster','lovesushi','pokiwoki'].map(b => {
+                  const isSelected = b === 'all' ? dashboardBrands.length === 0 : dashboardBrands.includes(b);
+                  return (
+                    <button
+                      key={b}
+                      title={b === 'all' ? 'Toate Brandurile' : b === 'smashme' ? 'SmashMe' : b === 'crunch' ? 'Crunch' : b === 'rollmaster' ? 'Roll Master' : b === 'lovesushi' ? 'Love Sushi' : 'Poki-Woki'}
+                      className={`shrink-0 h-10 rounded-full flex items-center justify-center border transition-all ${
+                        b === 'all' ? 'px-4 text-xs font-bold' : 'w-10'
+                      } ${
+                        isSelected
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-sm ring-2 ring-blue-500/20'
+                          : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                      }`}
+                      onClick={() => toggleDashboardBrand(b)}
+                    >
+                      {b === 'all' ? 'Toate' : <BrandLogo brandId={b} size={18} />}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Period Filter Dropdown - Default Azi */}
+              <select 
+                className="shrink-0 px-4 h-10 rounded-full text-xs font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                value={dashboardPeriod}
+                onChange={(e) => setDashboardPeriod(e.target.value)}
+              >
+                <option value="today">Azi</option>
+                <option value="yesterday">Ieri</option>
+                <option value="thisWeek">Săptămâna Curentă</option>
+                <option value="thisMonth">Luna Curentă</option>
+                <option value="lastMonth">Luna Trecută</option>
+                <option value="thisYear">Anul Curent</option>
+                <option value="all">Toată perioada</option>
+                <option value="custom">Personalizat</option>
+              </select>
+
+              {dashboardPeriod === 'custom' && (
+                <div className="flex items-center gap-2 shrink-0">
+                  <input 
+                    type="date" 
+                    className="px-3 h-10 rounded-full text-xs font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none"
+                    value={dashboardCustomStart}
+                    onChange={(e) => setDashboardCustomStart(e.target.value)}
+                  />
+                  <span className="text-slate-400 text-xs">-</span>
+                  <input 
+                    type="date" 
+                    className="px-3 h-10 rounded-full text-xs font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none"
+                    value={dashboardCustomEnd}
+                    onChange={(e) => setDashboardCustomEnd(e.target.value)}
+                  />
+                </div>
+              )}
+
+              {/* Location Filter */}
+              <select 
+                className="shrink-0 px-4 h-10 rounded-full text-xs font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                value={dashboardLocation}
+                onChange={(e) => setDashboardLocation(e.target.value)}
+              >
+                <option value="all">Toate locațiile</option>
+                {uniqueLocations.map(loc => (
+                  <option key={loc} value={loc}>{loc}</option>
+                ))}
+              </select>
+
+              {/* Payment Filter */}
+              <select 
+                className="shrink-0 px-4 h-10 rounded-full text-xs font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                value={dashboardPayment}
+                onChange={(e) => setDashboardPayment(e.target.value)}
+              >
+                <option value="all">Toate plățile</option>
+                <option value="card">Card (POS)</option>
+                <option value="cash">Numerar (Cash)</option>
+              </select>
+
+              {/* Search Bar */}
+              <div className="relative flex-1 min-w-[200px] max-w-[320px]">
+                <input
+                  type="text"
+                  value={dashboardSearch}
+                  onChange={(e) => setDashboardSearch(e.target.value)}
+                  placeholder="Caută comandă, iiko..."
+                  className="h-10 pl-10 pr-4 rounded-full text-xs font-medium bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full transition-all"
+                />
+                <svg className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+              </div>
+            </div>
+
+            {/* Stat Cards Grid - Fixed 7 columns preserving exact dimensions */}
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
               <div className="w-full">
-                <StatCard label="Comenzi Azi" value={stats.todayTotal} color="var(--primary)" large />
+                <StatCard 
+                  label={`Comenzi ${dashboardPeriod === 'today' ? 'Azi' : dashboardPeriod === 'yesterday' ? 'Ieri' : dashboardPeriod === 'thisWeek' ? 'Săptămână' : dashboardPeriod === 'thisMonth' ? 'Lună' : 'Perioadă'}`} 
+                  value={dashboardFilteredOrders.length} 
+                  color="var(--primary)" 
+                  large 
+                />
+              </div>
+              <div className="w-full">
+                <StatCard 
+                  label="Încasări Total" 
+                  value={`${formatThousands(dashboardRevenue, 0)} lei`} 
+                  color="#10b981" 
+                  large 
+                />
               </div>
               {Object.keys(BRAND_COLORS).map(b => (
                 <div key={b} className="w-full">
-                  <StatCard label={b === 'smashme' ? 'SmashMe' : b === 'crunch' ? 'Crunch' : b === 'rollmaster' ? 'Roll Master' : b === 'lovesushi' ? 'Love Sushi' : 'Poki-Woki'} value={brandStats[b] || 0} color={BRAND_COLORS[b]} />
+                  <StatCard 
+                    label={b === 'smashme' ? 'SmashMe' : b === 'crunch' ? 'Crunch' : b === 'rollmaster' ? 'Roll Master' : b === 'lovesushi' ? 'Love Sushi' : 'Poki-Woki'} 
+                    value={dashboardBrandStats[b] || 0} 
+                    color={BRAND_COLORS[b]} 
+                  />
                 </div>
               ))}
             </div>
 
+            {/* Active Filter Pills Bar (if filtered by chart or toolbar) */}
+            {(dashboardBrands.length > 0 || dashboardHour !== null || dashboardDay !== null || dashboardPayment !== 'all' || dashboardLocation !== 'all' || dashboardSearch) && (
+              <div className="flex items-center gap-2 flex-wrap text-xs bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                <span className="text-slate-400 font-bold">Filtre active:</span>
+                {dashboardBrands.map(b => (
+                  <span key={b} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-bold">
+                    Brand: {b}
+                    <button onClick={() => toggleDashboardBrand(b)} className="hover:text-red-500 font-bold ml-1 cursor-pointer">✕</button>
+                  </span>
+                ))}
+                {dashboardHour !== null && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 font-bold">
+                    Oră: {dashboardHour}:00 - {dashboardHour + 1}:00
+                    <button onClick={() => toggleDashboardHour(dashboardHour)} className="hover:text-red-500 font-bold ml-1 cursor-pointer">✕</button>
+                  </span>
+                )}
+                {dashboardDay !== null && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-bold">
+                    Zi: {dashboardDay.label}
+                    <button onClick={() => toggleDashboardDay(dashboardDay)} className="hover:text-red-500 font-bold ml-1 cursor-pointer">✕</button>
+                  </span>
+                )}
+                {dashboardPayment !== 'all' && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold">
+                    Plată: {dashboardPayment === 'card' ? 'Card POS' : 'Numerar (Cash)'}
+                    <button onClick={() => toggleDashboardPayment(dashboardPayment)} className="hover:text-red-500 font-bold ml-1 cursor-pointer">✕</button>
+                  </span>
+                )}
+                {dashboardLocation !== 'all' && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 font-bold">
+                    Locație: {dashboardLocation}
+                    <button onClick={() => setDashboardLocation('all')} className="hover:text-red-500 font-bold ml-1 cursor-pointer">✕</button>
+                  </span>
+                )}
+                {dashboardSearch && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-500/10 text-slate-700 dark:text-slate-300 border border-slate-500/20 font-bold">
+                    Căutare: "{dashboardSearch}"
+                    <button onClick={() => setDashboardSearch('')} className="hover:text-red-500 font-bold ml-1 cursor-pointer">✕</button>
+                  </span>
+                )}
+                <button 
+                  onClick={clearAllDashboardFilters} 
+                  className="text-xs text-red-500 hover:text-red-600 underline font-bold ml-auto cursor-pointer"
+                >
+                  Resetează toate filtrele
+                </button>
+              </div>
+            )}
+
+            {/* 4 Interactive ZoomCharts with Cross-Filtering & Calendar Heatmap */}
+            <DashboardCharts3D 
+              orders={dashboardPeriodOrders} 
+              period={dashboardPeriod} 
+              selectedBrands={dashboardBrands}
+              onSelectBrand={toggleDashboardBrand}
+              selectedHour={dashboardHour}
+              onSelectHour={toggleDashboardHour}
+              selectedDay={dashboardDay}
+              onSelectDay={toggleDashboardDay}
+              selectedPayment={dashboardPayment}
+              onSelectPayment={toggleDashboardPayment}
+            />
+
+            {/* Orders Table with Pagination & Row Numbers */}
             <div>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Ultimele 10 comenzi</h3>
-              <OrdersTable orders={orders.slice(0, 10)} onRowClick={setSelectedOrder} selectedId={selectedOrder?._id} />
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
+                  Comenzi Perioadă
+                  <span className="px-3 py-1 rounded-full text-xs font-black bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                    Total: {dashboardFilteredOrders.length} înregistrări
+                  </span>
+                </h3>
+              </div>
+              <OrdersTable 
+                orders={dashboardFilteredOrders} 
+                onRowClick={setSelectedOrder} 
+                selectedId={selectedOrder?._id}
+                defaultRows={10}
+              />
             </div>
           </div>
         )}
@@ -593,6 +1018,13 @@ export default function AdminApp() {
       </main>
       </div>
 
+    {/* Real-time Order Popup Toast in Top-Right Corner */}
+    <OrderToastNotificationStack 
+      orderToasts={orderToasts}
+      onDismiss={handleDismissOrderToast}
+      onOpenOrder={(order) => setSelectedOrder(order)}
+    />
+
     {/* ── Order Detail Modal (centered) ── */}
     {selectedOrder && (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setSelectedOrder(null)}>
@@ -606,10 +1038,16 @@ export default function AdminApp() {
             <div className="flex items-center gap-3">
               <BrandLogo brandId={selectedOrder.brand} size={24} />
               <span className="font-bold" style={{ color: BRAND_COLORS[selectedOrder.brand] }}>{selectedOrder.brand}</span>
-              <span className="ml-auto px-3 py-1 rounded-full text-xs font-bold" style={{
-                backgroundColor: `${(STATUS_LABELS[selectedOrder.status]?.color || '#6b7a99')}20`,
-                color: STATUS_LABELS[selectedOrder.status]?.color || '#6b7a99'
-              }}>● {STATUS_LABELS[selectedOrder.status]?.label || selectedOrder.status}</span>
+              {(() => {
+                const sc = getOrderStatus(selectedOrder);
+                return (
+                  <span className="ml-auto px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap" style={{
+                    backgroundColor: `${sc.color}20`,
+                    color: sc.color,
+                    border: `1px solid ${sc.color}40`
+                  }}>● {sc.label}</span>
+                );
+              })()}
             </div>
             <div className="text-sm text-slate-500 space-y-2">
               <div className="flex items-center gap-6">
@@ -623,7 +1061,7 @@ export default function AdminApp() {
               {/* CUI / Date Fiscale */}
               {selectedOrder.fiscal && (
                 <div className="flex items-center gap-3 bg-indigo-50 dark:bg-indigo-900/20 p-2.5 rounded-lg border border-indigo-200 dark:border-indigo-700/50 mt-2">
-                  <span className="text-lg">🏢</span>
+                  <Building2 className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-bold text-indigo-700 dark:text-indigo-300 uppercase tracking-wider mb-0.5">Bon Fiscal cu CUI</p>
                     <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 truncate">{selectedOrder.fiscal.name || '—'}</p>
@@ -730,7 +1168,7 @@ export default function AdminApp() {
                           <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-700 shrink-0 flex items-center justify-center">
                             {imgSrc
                               ? <img src={imgSrc} alt={item.name} className="w-full h-full object-cover" />
-                              : <span className="text-2xl">🍽️</span>
+                              : <Utensils className="w-6 h-6 text-slate-400" />
                             }
                           </div>
                           <div className="flex-1 min-w-0">
@@ -741,7 +1179,7 @@ export default function AdminApp() {
                           </div>
                           <div className="text-right shrink-0">
                             <span className="text-xs font-bold text-blue-500">{item.quantity}x</span>
-                            <p className="font-bold text-sm">{((item.unitPrice !== undefined ? item.unitPrice : item.price) || 0).toFixed(2)} lei</p>
+                            <p className="font-bold text-sm">{formatThousands((item.unitPrice !== undefined ? item.unitPrice : item.price) || 0)} lei</p>
                           </div>
                         </div>
                       );
@@ -753,7 +1191,7 @@ export default function AdminApp() {
 
             <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-800">
               <span className="text-sm font-bold uppercase text-slate-400">Total</span>
-              <span className="text-2xl font-black">{(selectedOrder.totalAmount || 0).toFixed(2)} lei</span>
+              <span className="text-2xl font-black">{formatThousands(selectedOrder.totalAmount || 0)} lei</span>
             </div>
           </div>
         </div>
@@ -780,7 +1218,7 @@ export default function AdminApp() {
                 }
                 return (
                   <div className="w-full max-w-[250px] aspect-square rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center">
-                    <span className="text-6xl">🍽️</span>
+                    <Utensils className="w-16 h-16 text-slate-300 dark:text-slate-600" />
                   </div>
                 );
               })()}
@@ -821,26 +1259,24 @@ function StatCard({ label, value, color, large }) {
   );
 }
 
-function OrdersTable({ orders, full, onRowClick, selectedId }) {
+function OrdersTable({ orders, full, onRowClick, selectedId, defaultRows = 10 }) {
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [itemsPerPage, setItemsPerPage] = useState(defaultRows);
 
-  if (!orders || orders.length === 0)
-    return <p className="text-slate-500 dark:text-slate-400 py-8 text-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800">Nicio comandă</p>;
-
-  const totalPages = Math.ceil(orders.length / itemsPerPage) || 1;
-  // Ensure we don't exceed max page
+  const safeOrders = orders || [];
+  const totalPages = Math.max(1, Math.ceil(safeOrders.length / itemsPerPage));
   const safePage = Math.min(currentPage, totalPages);
   if (safePage !== currentPage) setCurrentPage(safePage);
 
-  const paginated = orders.slice((safePage - 1) * itemsPerPage, safePage * itemsPerPage);
+  const paginated = safeOrders.slice((safePage - 1) * itemsPerPage, safePage * itemsPerPage);
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-x-auto">
       <table className="w-full text-left border-collapse min-w-[800px]">
         <thead>
           <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
-            <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">#</th>
+            <th className="w-14 px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 text-center">Nr.</th>
+            <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500"># Comandă</th>
             <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Brand / Canal</th>
             <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Locație</th>
             <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Comandă / Plată</th>
@@ -849,133 +1285,145 @@ function OrdersTable({ orders, full, onRowClick, selectedId }) {
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-          {paginated.map(o => {
-            const sc = STATUS_LABELS[o.status] || { label: o.status, color: '#6b7a99' };
-            return (
-              <tr key={o._id} className={`transition-colors group cursor-pointer ${selectedId === o._id ? 'bg-blue-50 dark:bg-blue-500/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`} onClick={() => onRowClick && onRowClick(o)}>
-                <td className="px-6 py-4">
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1">#{o.orderNumber}{o.fiscal && <span title={`CUI: ${o.fiscal.rawCui || o.fiscal.cui}`} className="text-xs">🏢</span>}</span>
-                    {o.createdAt && (
-                      <span className="text-[10px] text-slate-400">
-                        {new Date(o.createdAt).toLocaleString('ro-RO')}
-                      </span>
-                    )}
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex flex-col items-start gap-1.5">
-                    <span style={{ color: BRAND_COLORS[o.brand] }} className="flex items-center gap-1.5 text-sm font-bold">
-                      <BrandLogo brandId={o.brand} size={14} /> {o.brand}
-                    </span>
-                    <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-500 uppercase tracking-wider">{o.channel}</span>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-sm text-slate-600 dark:text-slate-300 font-medium">
-                      {o.locationName || o.locationId || '—'}
-                    </span>
-                    {o.syrveOrderId && (
-                      <div className="flex items-center gap-1 mt-0.5" title={o.syrveOrderId}>
-                        <span className="text-[10px] font-mono font-medium text-emerald-600 dark:text-emerald-400">
-                          {o.syrveOrderId}
+          {paginated.length === 0 ? (
+            <tr>
+              <td colSpan={7} className="text-center py-10 text-slate-500 dark:text-slate-400 text-sm font-medium">
+                Nicio comandă găsită în perioada selectată.
+              </td>
+            </tr>
+          ) : (
+            paginated.map((o, index) => {
+              const sc = getOrderStatus(o);
+              const rowNumber = (safePage - 1) * itemsPerPage + index + 1;
+              return (
+                <tr key={o._id} className={`transition-colors group cursor-pointer ${selectedId === o._id ? 'bg-blue-50 dark:bg-blue-500/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`} onClick={() => onRowClick && onRowClick(o)}>
+                  <td className="w-14 px-4 py-4 text-center text-xs font-bold text-slate-500 dark:text-slate-400">
+                    {rowNumber}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1">#{o.orderNumber}{o.fiscal && <span title={`CUI: ${o.fiscal.rawCui || o.fiscal.cui}`} className="inline-flex items-center text-indigo-600 dark:text-indigo-400"><Building2 size={13} /></span>}</span>
+                      {o.createdAt && (
+                        <span className="text-[10px] text-slate-400">
+                          {new Date(o.createdAt).toLocaleString('ro-RO')}
                         </span>
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigator.clipboard.writeText(o.syrveOrderId);
-                            const btn = e.currentTarget;
-                            const originalHTML = btn.innerHTML;
-                            btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="#10b981" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>';
-                            setTimeout(() => { btn.innerHTML = originalHTML; }, 1500);
-                          }}
-                          className="text-slate-400 hover:text-emerald-500 transition-colors"
-                          title="Copiază ID iiko"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                          </svg>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-sm text-slate-600 dark:text-slate-300 font-medium">
-                      {o.orderType === 'dine-in' ? (o.tableNumber ? `Masa ${o.tableNumber}` : 'La masă') : 'La pachet'}
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-col items-start gap-1.5">
+                      <span style={{ color: BRAND_COLORS[o.brand] }} className="flex items-center gap-1.5 text-sm font-bold">
+                        <BrandLogo brandId={o.brand} size={14} /> {o.brand}
+                      </span>
+                      <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-500 uppercase tracking-wider">{o.channel}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-sm text-slate-600 dark:text-slate-300 font-medium">
+                        {o.locationName || o.locationId || '—'}
+                      </span>
+                      {o.syrveOrderId && (
+                        <div className="flex items-center gap-1 mt-0.5" title={o.syrveOrderId}>
+                          <span className="text-[10px] font-mono font-medium text-emerald-600 dark:text-emerald-400">
+                            {o.syrveOrderId}
+                          </span>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigator.clipboard.writeText(o.syrveOrderId);
+                              const btn = e.currentTarget;
+                              const originalHTML = btn.innerHTML;
+                              btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="#10b981" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>';
+                              setTimeout(() => { btn.innerHTML = originalHTML; }, 1500);
+                            }}
+                            className="text-slate-400 hover:text-emerald-500 transition-colors"
+                            title="Copiază ID iiko"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-sm text-slate-600 dark:text-slate-300 font-medium">
+                        {o.orderType === 'dine-in' ? (o.tableNumber ? `Masa ${o.tableNumber}` : 'La masă') : 'La pachet'}
+                      </span>
+                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        Plată: {o.paymentMethod === 'cash' ? 'Cash' : (o.paymentMethod === 'card' ? 'Card' : (o.paymentMethod || '—'))}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-sm font-bold text-slate-900 dark:text-white">{formatThousands(o.totalAmount || 0)} lei</td>
+                  <td className="px-6 py-4">
+                    <span className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap" style={{ backgroundColor: `${sc.color}20`, color: sc.color, border: `1px solid ${sc.color}40` }}>
+                      ● {sc.label}
                     </span>
-                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                      Plată: {o.paymentMethod === 'cash' ? 'Cash' : (o.paymentMethod === 'card' ? 'Card' : (o.paymentMethod || '—'))}
-                    </span>
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-sm font-bold text-slate-900 dark:text-white">{(o.totalAmount || 0).toFixed(2)} lei</td>
-                <td className="px-6 py-4">
-                  <span className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap" style={{ backgroundColor: `${sc.color}20`, color: sc.color, border: `1px solid ${sc.color}40` }}>
-                    ● {sc.label}
-                  </span>
-                </td>
-              </tr>
-            );
-          })}
+                  </td>
+                </tr>
+              );
+            })
+          )}
         </tbody>
       </table>
 
-      {full && (
-        <div className="flex flex-wrap items-center justify-between px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 gap-4">
-          <div className="flex items-center gap-4 text-sm text-slate-500">
-            <span className="flex items-center gap-2">
-              Afișează
-              <select 
-                value={itemsPerPage} 
-                onChange={e => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full px-2 py-0.5 font-medium outline-none focus:ring-2 focus:ring-blue-500"
+      {/* Pagination Footer - Always Visible */}
+      <div className="flex flex-wrap items-center justify-between px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 gap-4">
+        <div className="flex items-center gap-4 text-sm text-slate-500">
+          <span className="flex items-center gap-2">
+            Afișează
+            <select 
+              value={itemsPerPage} 
+              onChange={e => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full px-2 py-0.5 font-medium outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+            >
+              <option value={10}>10</option>
+              <option value={15}>15</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={999999}>Toți</option>
+            </select>
+          </span>
+          <span>Total înregistrări: <strong className="text-slate-700 dark:text-slate-300">{safeOrders.length}</strong></span>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium text-slate-500">Pagina {currentPage} din {totalPages}</span>
+          <div className="flex gap-1">
+            {[
+              { label: '«', action: () => setCurrentPage(1),           disabled: currentPage === 1 },
+              { label: '‹', action: () => setCurrentPage(p => p - 1),  disabled: currentPage === 1 },
+              { label: '›', action: () => setCurrentPage(p => p + 1),  disabled: currentPage === totalPages },
+              { label: '»', action: () => setCurrentPage(totalPages),  disabled: currentPage === totalPages },
+            ].map((btn, i) => (
+              <button
+                key={i}
+                onClick={btn.action}
+                disabled={btn.disabled}
+                className={`w-7 h-7 flex items-center justify-center rounded-full text-sm font-medium transition-colors ${btn.disabled ? 'text-slate-300 dark:text-slate-700 cursor-not-allowed' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95'}`}
               >
-                <option value={10}>10</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-                <option value={999999}>Toate</option>
-              </select>
-            </span>
-            <span>Total: <strong className="text-slate-700 dark:text-slate-300">{orders.length}</strong></span>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-slate-500">Pagina {currentPage} din {totalPages}</span>
-            <div className="flex gap-1">
-              {[
-                { label: '«', action: () => setCurrentPage(1),           disabled: currentPage === 1 },
-                { label: '‹', action: () => setCurrentPage(p => p - 1),  disabled: currentPage === 1 },
-                { label: '›', action: () => setCurrentPage(p => p + 1),  disabled: currentPage === totalPages },
-                { label: '»', action: () => setCurrentPage(totalPages),  disabled: currentPage === totalPages },
-              ].map((btn, i) => (
-                <button
-                  key={i}
-                  onClick={btn.action}
-                  disabled={btn.disabled}
-                  className={`w-7 h-7 flex items-center justify-center rounded-full text-sm font-medium transition-colors ${btn.disabled ? 'text-slate-300 dark:text-slate-700 cursor-not-allowed' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95'}`}
-                >
-                  {btn.label}
-                </button>
-              ))}
-            </div>
+                {btn.label}
+              </button>
+            ))}
           </div>
         </div>
-      )}
+      </div>
 
       {full && (
         <div className="flex flex-col md:flex-row items-center justify-between p-6 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 gap-4">
           <div>
             <p className="text-sm font-bold uppercase tracking-wider text-slate-500">Total Comenzi Active</p>
             <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-              {orders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + (o.totalAmount || 0), 0).toFixed(2)} lei
+              {formatThousands(orders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + (o.totalAmount || 0), 0))} lei
             </p>
           </div>
           <div className="text-right">
             <p className="text-sm font-bold uppercase tracking-wider text-slate-500">Total Comenzi Anulate</p>
             <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-              {orders.filter(o => o.status === 'cancelled').reduce((s, o) => s + (o.totalAmount || 0), 0).toFixed(2)} lei
+              {formatThousands(orders.filter(o => o.status === 'cancelled').reduce((s, o) => s + (o.totalAmount || 0), 0))} lei
             </p>
           </div>
         </div>

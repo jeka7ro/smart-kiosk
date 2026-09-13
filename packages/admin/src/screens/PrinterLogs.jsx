@@ -4,6 +4,7 @@ import { useConfirm } from '../components/ConfirmModal.jsx';
 import { io } from 'socket.io-client';
 import * as XLSX from 'xlsx';
 import BrandLogo from '../components/BrandLogo.jsx';
+import { formatThousands } from '../utils/formatters';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
 
@@ -446,7 +447,7 @@ export default function PrinterLogs() {
                       {log.itemsCount || 0}
                     </td>
                     <td className="px-4 py-3 text-xs font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
-                      {Number(log.totalAmount || 0).toFixed(2)} RON
+                      {formatThousands(Number(log.totalAmount || 0))} RON
                     </td>
                     <td className="px-4 py-3 text-xs">
                       {log.paymentMethod === 'cash' ? (
@@ -512,7 +513,7 @@ export default function PrinterLogs() {
                             <div key={i} className="mb-1">
                               <div className="flex justify-between">
                                 <span className="text-slate-700 dark:text-slate-300">{item.qty}x {item.name}</span>
-                                <span className="text-slate-600 dark:text-slate-400 font-bold">{Number(item.price).toFixed(2)} RON</span>
+                                <span className="text-slate-600 dark:text-slate-400 font-bold">{formatThousands(Number(item.price))} RON</span>
                               </div>
                               {item.modifiers && item.modifiers.length > 0 && item.modifiers.map((m, j) => (
                                 <div key={j} className="text-slate-400 text-[11px] ml-4">+ {m}</div>
@@ -523,7 +524,7 @@ export default function PrinterLogs() {
 
                           {/* Total */}
                           <div className="flex justify-end text-sm font-black text-slate-800 dark:text-slate-200 mt-1">
-                            TOTAL: {Number(log.receiptContent.total || 0).toFixed(2)} RON
+                            TOTAL: {formatThousands(Number(log.receiptContent.total || 0))} RON
                           </div>
 
                           {/* Date */}

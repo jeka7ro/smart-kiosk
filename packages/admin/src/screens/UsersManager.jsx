@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthProvider';
 import { useConfirm } from '../components/ConfirmModal';
+import { Trash2 } from 'lucide-react';
 
 const BACKEND   = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 const PAGE_SIZE = 25;
@@ -94,31 +95,31 @@ export default function UsersManager() {
       const res = await fetchWithAuth(form.id ? `${BACKEND}/api/users/${form.id}` : `${BACKEND}/api/users`, { method: form.id ? 'PUT' : 'POST', body: JSON.stringify(payload) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      showToast(form.id ? '✅ Actualizat!' : '✅ Adăugat!');
+      showToast(form.id ? 'Actualizat!' : 'Adăugat!');
       closeModal(); fetchData();
-    } catch (err) { showToast('❌ ' + err.message, 'err'); }
+    } catch (err) { showToast(err.message, 'err'); }
     finally { setSaving(false); }
   };
 
   const deleteOne = async (u) => {
-    const ok = await confirm(`Ștergi „${u.name || u.email}"?`, { title: 'Ștergere utilizator', icon: '🗑️', okLabel: 'Șterge', danger: true });
+    const ok = await confirm(`Ștergi „${u.name || u.email}"?`, { title: 'Ștergere utilizator', okLabel: 'Șterge', danger: true });
     if (!ok) return;
     try {
       const res = await fetchWithAuth(`${BACKEND}/api/users/${u.id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error((await res.json()).error);
-      showToast('🗑 Șters'); fetchData();
-    } catch (err) { showToast('❌ ' + err.message, 'err'); }
+      showToast('Șters'); fetchData();
+    } catch (err) { showToast(err.message, 'err'); }
   };
 
   const bulkDelete = async () => {
     const ids = [...selected].filter(id => id !== 'env-admin' && id !== 'u-admin');
     if (!ids.length) return;
-    const ok = await confirm(`Ștergi ${ids.length} utilizatori selectați?`, { title: 'Ștergere multiple', icon: '🗑️', okLabel: 'Șterge', danger: true });
+    const ok = await confirm(`Ștergi ${ids.length} utilizatori selectați?`, { title: 'Ștergere multiple', okLabel: 'Șterge', danger: true });
     if (!ok) return;
     try {
       await Promise.all(ids.map(id => fetchWithAuth(`${BACKEND}/api/users/${id}`, { method: 'DELETE' })));
-      setSelected(new Set()); showToast(`🗑 ${ids.length} utilizatori șterși`); fetchData();
-    } catch (err) { showToast('❌ ' + err.message, 'err'); }
+      setSelected(new Set()); showToast(`${ids.length} utilizatori șterși`); fetchData();
+    } catch (err) { showToast(err.message, 'err'); }
   };
 
   const locName = (id) => locations.find(l => l.id === id)?.name || id;
@@ -156,7 +157,9 @@ export default function UsersManager() {
         {selected.size > 0 ? (
           <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 px-4 py-2 rounded-full border border-slate-200 dark:border-slate-700 animate-in slide-in-from-right-4">
             <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{selected.size} selectați</span>
-            <button className="px-4 py-1.5 rounded-full bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-900/20 dark:hover:bg-red-900/40 dark:text-red-500 text-sm font-bold transition-colors" onClick={bulkDelete}>🗑 Șterge ({selected.size})</button>
+            <button className="px-4 py-1.5 rounded-full bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-900/20 dark:hover:bg-red-900/40 dark:text-red-500 text-sm font-bold transition-colors flex items-center gap-1.5" onClick={bulkDelete}>
+              <Trash2 size={14} /> Șterge ({selected.size})
+            </button>
             <button className="px-4 py-1.5 rounded-full bg-transparent hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 text-sm font-bold transition-colors" onClick={() => setSelected(new Set())}>Deselectează</button>
           </div>
         ) : (

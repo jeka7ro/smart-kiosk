@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthProvider';
+import { Folder } from 'lucide-react';
 
 const BRAND_COLORS = { smashme: '#ef4444', crunch: '#eab308', rollmaster: '#3b82f6', lovesushi: '#ec4899', pokiwoki: '#f97316' };
 
@@ -353,8 +354,11 @@ export function MenuProfileEditorModal({ backend, brand, profile, onClose, onSav
           return (
             <div key={cat.id} className="p-4 sm:p-5 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors">
               <div className={`flex items-center justify-between ${hasProds.length ? 'mb-4' : ''}`}>
-                <strong className={`flex items-center gap-3 text-lg text-slate-900 dark:text-white transition-opacity duration-200 ${effectivelyHidden ? 'opacity-40' : 'opacity-100'}`}>
-                   📁 {cat.name}
+                <strong className={`flex items-center gap-2.5 text-lg text-slate-900 dark:text-white transition-opacity duration-200 ${effectivelyHidden ? 'opacity-40' : 'opacity-100'}`}>
+                   <span className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                     <Folder size={15} />
+                   </span>
+                   {cat.name}
                 </strong>
                 <label className="relative inline-flex items-center cursor-pointer shrink-0">
                   <input type="checkbox" className="sr-only peer" checked={!effectivelyHidden} onChange={e => handleToggleHide(cat.id, !e.target.checked)} />

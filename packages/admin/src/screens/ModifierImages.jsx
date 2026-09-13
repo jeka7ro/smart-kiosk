@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthProvider';
 import { useConfirm } from '../components/ConfirmModal';
+import { Sparkles, Trash2, Check } from 'lucide-react';
 
 const BACKEND   = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 const PAGE_SIZE = 25;
@@ -44,7 +45,7 @@ export default function ModifierImages() {
       const sData = await sRes.json();
       setModifiers(mData.modifiers || []);
       setSuggestions(sData.suggestions || []);
-    } catch (e) { showToast('❌ ' + e.message, 'err'); }
+    } catch (e) { showToast(e.message, 'err'); }
     finally { setLoading(false); }
   };
 
@@ -78,31 +79,31 @@ export default function ModifierImages() {
         body: JSON.stringify({ imageUrl: url, name: modName, brandId }),
       });
       if (!res.ok) throw new Error('Salvare eșuată');
-      showToast('✅ Imagine salvată!');
+      showToast('Imagine salvată!');
       setEditingId(null);
       fetchAll();
-    } catch (e) { showToast('❌ ' + e.message, 'err'); }
+    } catch (e) { showToast(e.message, 'err'); }
     finally { setSaving(null); }
   };
 
   const deleteImage = async (modId) => {
-    const ok = await confirm('Ștergi imaginea?', { icon: '🖼️', okLabel: 'Șterge', danger: true });
+    const ok = await confirm('Ștergi imaginea?', { okLabel: 'Șterge', danger: true });
     if (!ok) return;
     try {
       await fetchWithAuth(`${BACKEND}/api/admin/modifier-images/${modId}`, { method: 'DELETE' });
-      showToast('🗑 Șters'); fetchAll();
-    } catch (e) { showToast('❌ ' + e.message, 'err'); }
+      showToast('Șters'); fetchAll();
+    } catch (e) { showToast(e.message, 'err'); }
   };
 
   const bulkDelete = async () => {
     const ids = [...selected];
     if (!ids.length) return;
-    const ok = await confirm(`Ștergi imaginile la ${ids.length} modificatori?`, { title: 'Ștergere multiple', icon: '🖼️', okLabel: 'Șterge', danger: true });
+    const ok = await confirm(`Ștergi imaginile la ${ids.length} modificatori?`, { title: 'Ștergere multiple', okLabel: 'Șterge', danger: true });
     if (!ok) return;
     try {
       await Promise.all(ids.map(id => fetchWithAuth(`${BACKEND}/api/admin/modifier-images/${id}`, { method: 'DELETE' })));
-      setSelected(new Set()); showToast(`🗑 ${ids.length} imagini șterse`); fetchAll();
-    } catch (e) { showToast('❌ ' + e.message, 'err'); }
+      setSelected(new Set()); showToast(`${ids.length} imagini șterse`); fetchAll();
+    } catch (e) { showToast(e.message, 'err'); }
   };
 
   const acceptSuggestion = (sug) => saveImage(sug.modifier.id, sug.modifier.name, sug.modifier.brandId, sug.suggestedProduct.image);
@@ -128,10 +129,10 @@ export default function ModifierImages() {
           body: JSON.stringify({ imageUrl: sug.suggestedProduct.image, name: sug.modifier.name, brandId: sug.modifier.brandId }),
         })
       ));
-      showToast(`✅ ${toAccept.length} imagini acceptate!`);
+      showToast(`${toAccept.length} imagini acceptate!`);
       setSelectedSugs(new Set());
       fetchAll();
-    } catch (e) { showToast('❌ ' + e.message, 'err'); }
+    } catch (e) { showToast(e.message, 'err'); }
     finally { setAcceptingAll(false); }
   };
   const acceptAllSugs = () => bulkAcceptSugs(new Set(suggestions.map(s => s.modifier.id)));
@@ -144,16 +145,21 @@ export default function ModifierImages() {
       {suggestions.length > 0 && (
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4 flex-wrap">
-            <h2 className="m-0 text-base font-bold text-slate-900 dark:text-white">✨ Sugestii Automate</h2>
+            <h2 className="m-0 text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <Sparkles size={18} className="text-amber-500" />
+              Sugestii Automate
+            </h2>
             <span className="bg-amber-100 text-amber-900 text-xs font-bold px-2.5 py-0.5 rounded-full border border-amber-300">{suggestions.length}</span>
             <div className="ml-auto flex gap-2">
               {selectedSugs.size > 0 && (
-                <button className="px-3 h-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all" onClick={acceptSelectedSugs} disabled={acceptingAll}>
-                  {acceptingAll ? '...' : `✓ Acceptă Selectate (${selectedSugs.size})`}
+                <button className="px-3 h-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1" onClick={acceptSelectedSugs} disabled={acceptingAll}>
+                  <Check size={13} />
+                  {acceptingAll ? '...' : `Acceptă Selectate (${selectedSugs.size})`}
                 </button>
               )}
-              <button className="px-4 h-8 rounded-full bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-sm transition-all" onClick={acceptAllSugs} disabled={acceptingAll}>
-                {acceptingAll ? 'Se procesează...' : `✓ Acceptă Tot (${suggestions.length})`}
+              <button className="px-4 h-8 rounded-full bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1" onClick={acceptAllSugs} disabled={acceptingAll}>
+                <Check size={13} />
+                {acceptingAll ? 'Se procesează...' : `Acceptă Tot (${suggestions.length})`}
               </button>
               <button className="px-3 h-8 rounded-full bg-transparent hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 text-xs font-bold transition-all" onClick={() => setSuggestions([])}>Ignoră Toate</button>
             </div>
@@ -263,7 +269,9 @@ export default function ModifierImages() {
         {selected.size > 0 && (
           <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 px-4 py-2 rounded-full border border-slate-200 dark:border-slate-700 animate-in slide-in-from-right-4">
             <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{selected.size} selectați</span>
-            <button className="px-4 py-1.5 rounded-full bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-900/20 dark:hover:bg-red-900/40 dark:text-red-500 text-sm font-bold transition-colors" onClick={bulkDelete}>🗑 Șterge imagini ({selected.size})</button>
+            <button className="px-4 py-1.5 rounded-full bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-900/20 dark:hover:bg-red-900/40 dark:text-red-500 text-sm font-bold transition-colors flex items-center gap-1.5" onClick={bulkDelete}>
+              <Trash2 size={14} /> Șterge imagini ({selected.size})
+            </button>
             <button className="px-4 py-1.5 rounded-full bg-transparent hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 text-sm font-bold transition-colors" onClick={() => setSelected(new Set())}>Deselectează</button>
           </div>
         )}

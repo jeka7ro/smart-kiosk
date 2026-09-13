@@ -417,7 +417,7 @@ export default function ProductScreen() {
     const actualBrandId = product._brand || brand?.id;
 
     // 1. Adaugă produsul principal cu mențiunea completă
-    addToCart(product, quantity, selectedModifiers, unitPrice, actualBrandId, false, finalComment || null);
+    addToCart(product, quantity, selectedModifiers, unitPrice, actualBrandId, false, finalComment || null, basePrice);
 
     // 2. Adaugă fiecare produs recomandat selectat
     selectedPairings.forEach(pair => {
@@ -874,32 +874,56 @@ export default function ProductScreen() {
                           )}
                           {modShort.length > 120 && (
                             <button type="button" className="ps-mod-desc-toggle" onClick={() => setModIngredientOpen(prev => ({ ...prev, [descKey]: !prev[descKey] }))}>
-                              {modIngredientOpen[descKey] ? 'Ascunde descriere ▲' : 'Afișează descriere ▼'}
+                              {modIngredientOpen[descKey] ? 'Ascunde descriere' : 'Afișează descriere'}
                             </button>
                           )}
                         </>
                       )}
                       {/* Ingrediente — buton separat */}
                       {modIng && (
-                        <>
-                          <button type="button" className="ps-mod-desc-toggle" style={{ marginTop: '6px' }} onClick={() => setModIngredientOpen(prev => ({ ...prev, [ingKey]: !prev[ingKey] }))}>
-                            {modIngredientOpen[ingKey] ? '📋 Ascunde ingrediente ▲' : '📋 Ingrediente ▼'}
+                        <div className="ps-mod-accordion-item">
+                          <button
+                            type="button"
+                            className={`ps-mod-accordion-btn ${modIngredientOpen[ingKey] ? 'ps-mod-accordion-btn--open' : ''}`}
+                            onClick={() => setModIngredientOpen(prev => ({ ...prev, [ingKey]: !prev[ingKey] }))}
+                          >
+                            <div className="ps-mod-accordion-left">
+                              <span className="ps-round-badge ps-round-badge--sm">
+                                <IconListLines />
+                              </span>
+                              <span className="ps-mod-accordion-label">Ingrediente</span>
+                            </div>
+                            <span className="ps-chevron-pill">{modIngredientOpen[ingKey] ? 'Închide' : 'Afișează'}</span>
                           </button>
                           {modIngredientOpen[ingKey] && (
-                            <p className="ps-mod-selected-desc-text" style={{ fontSize: '0.82rem', opacity: 0.85 }}>{modIng}</p>
+                            <div className="ps-mod-accordion-expanded">
+                              <p className="ps-mod-selected-desc-text" style={{ fontSize: '0.82rem', opacity: 0.85 }}>{modIng}</p>
+                            </div>
                           )}
-                        </>
+                        </div>
                       )}
                       {/* Alergeni & Valori nutriționale — buton separat, DUPĂ ingrediente */}
                       {modNut && (
-                        <>
-                          <button type="button" className="ps-mod-desc-toggle" style={{ marginTop: '6px' }} onClick={() => setModIngredientOpen(prev => ({ ...prev, [nutKey]: !prev[nutKey] }))}>
-                            {modIngredientOpen[nutKey] ? 'ⓘ Ascunde valori nutriționale ▲' : 'ⓘ Alergeni & Valori nutriționale ▼'}
+                        <div className="ps-mod-accordion-item">
+                          <button
+                            type="button"
+                            className={`ps-mod-accordion-btn ${modIngredientOpen[nutKey] ? 'ps-mod-accordion-btn--open' : ''}`}
+                            onClick={() => setModIngredientOpen(prev => ({ ...prev, [nutKey]: !prev[nutKey] }))}
+                          >
+                            <div className="ps-mod-accordion-left">
+                              <span className="ps-round-badge ps-round-badge--sm">
+                                <IconInfo />
+                              </span>
+                              <span className="ps-mod-accordion-label">Alergeni & Valori nutriționale</span>
+                            </div>
+                            <span className="ps-chevron-pill">{modIngredientOpen[nutKey] ? 'Închide' : 'Afișează'}</span>
                           </button>
                           {modIngredientOpen[nutKey] && (
-                            <p className="ps-mod-selected-desc-text" style={{ fontSize: '0.82rem', opacity: 0.85 }}>{modNut}</p>
+                            <div className="ps-mod-accordion-expanded">
+                              <p className="ps-mod-selected-desc-text" style={{ fontSize: '0.82rem', opacity: 0.85 }}>{modNut}</p>
+                            </div>
                           )}
-                        </>
+                        </div>
                       )}
                     </div>
                   );

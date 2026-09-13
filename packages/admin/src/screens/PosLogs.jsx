@@ -4,6 +4,7 @@ import { useConfirm } from '../components/ConfirmModal.jsx';
 import { io } from 'socket.io-client';
 import * as XLSX from 'xlsx';
 import BrandLogo from '../components/BrandLogo.jsx';
+import { formatThousands } from '../utils/formatters';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
 
@@ -408,7 +409,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                   </td>
 
                   <td className="px-4 py-3 text-sm font-bold text-slate-900 dark:text-white">
-                    {(Number(log.amount) || 0).toFixed(2)} RON
+                    {formatThousands(Number(log.amount) || 0)} RON
                   </td>
                   <td className="px-4 py-3">
                     <span
@@ -497,15 +498,15 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                               log.iikoSent ? successMessage : errorMessage,
                               {
                                 title: log.iikoSent ? 'Status iiko: Succes' : 'Status iiko: Eroare',
-                                icon: log.iikoSent ? '✅' : '❌',
                                 hideCancel: true,
+                                danger: !log.iikoSent,
                                 okLabel: 'Închide'
                               }
                             );
                           }}
                           className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-transform active:scale-95 cursor-pointer ${log.iikoSent ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100' : 'bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-100'}`}
                         >
-                          {log.iikoSent ? '✓ Trimis' : '⚠ Eroare'}
+                          {log.iikoSent ? 'Trimis' : 'Eroare'}
                         </button>
                       </div>
                     ) : (
@@ -526,12 +527,12 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                                 </span>
                               </div>
                             </div>,
-                            { title: 'Eroare POS', icon: '❌', hideCancel: true, okLabel: 'Închide' }
+                            { title: 'Eroare POS', danger: true, hideCancel: true, okLabel: 'Închide' }
                           );
                         }}
                         className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-transform active:scale-95 cursor-pointer bg-red-50 text-red-600 border border-red-200 hover:bg-red-100"
                       >
-                        ⚠ Citește
+                        Detalii
                       </button>
                     ) : (
                       <span className="text-slate-400">—</span>

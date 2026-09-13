@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthProvider';
+import { Store, Utensils, FolderTree, Link2 } from 'lucide-react';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 
@@ -10,7 +11,9 @@ function StatCard({ icon, label, value, sub, onClick, loading }) {
       onClick={onClick}
       className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 flex flex-col gap-2 shadow-sm transition-all duration-200 ${onClick ? 'cursor-pointer hover:-translate-y-1 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-700' : ''}`}
     >
-      <span className="text-3xl mb-1">{icon}</span>
+      <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800/50 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-1">
+        {icon}
+      </div>
       {loading
         ? <div className="w-16 h-8 rounded-lg bg-slate-200 dark:bg-slate-800 animate-pulse" />
         : <span className="text-3xl font-black text-slate-900 dark:text-white leading-none">{value ?? '—'}</span>
@@ -233,13 +236,13 @@ export default function IntegrationDetail({ integ, onBack, onTest, onSync, testi
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard icon="🏪" label="Restaurante" value={stats?.restaurants} loading={loadingStats}
+        <StatCard icon={<Store size={22} />} label="Restaurante" value={stats?.restaurants} loading={loadingStats}
           onClick={() => openDrill('restaurants')} />
-        <StatCard icon="🍽️" label="Produse" value={stats?.products} loading={loadingStats}
+        <StatCard icon={<Utensils size={22} />} label="Produse" value={stats?.products} loading={loadingStats}
           onClick={() => openDrill('products')} />
-        <StatCard icon="📂" label="Categorii" value={stats?.categories} loading={loadingStats}
+        <StatCard icon={<FolderTree size={22} />} label="Categorii" value={stats?.categories} loading={loadingStats}
           onClick={() => openDrill('categories')} />
-        <StatCard icon="🔗" label="Brand ID" value={integ.brand_id || '—'} />
+        <StatCard icon={<Link2 size={22} />} label="Brand ID" value={integ.brand_id || '—'} />
       </div>
 
       {/* Connection details card */}
