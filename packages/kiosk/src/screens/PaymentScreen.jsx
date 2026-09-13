@@ -50,6 +50,9 @@ export default function PaymentScreen() {
   const [payState, setPayState] = useState(STATE.IDLE);
   const [errorMsg, setErrorMsg] = useState('');
   const [txInfo,   setTxInfo]   = useState(null);
+  const [retryNotice, setRetryNotice] = useState('');
+  const autoRetryCountRef = useRef(0);
+  const handlePayRef = useRef(null);
 
   const [showPosInstructions, setShowPosInstructions] = useState(false);
   const [posTimer, setPosTimer] = useState(30);
@@ -166,14 +169,30 @@ export default function PaymentScreen() {
       socket.on(`payment_confirmed_${orderId}`, async (result) => {
         socket.disconnect(); socketRef.current = null;
         if (result.paid) {
+          autoRetryCountRef.current = 0;
+          setRetryNotice('');
           setTxInfo(result);
           setPayState(STATE.APPROVED);
           const orderData = await sendOrder(result);
           if (orderData?.orderNumber) setLastOrderNumber(orderData.orderNumber);
           setTimeout(() => goTo('confirmation'), 2200);
         } else {
-          setPayState(STATE.DECLINED);
-          setErrorMsg(result.error || 'Plată refuzată de bancă');
+          const isRetryable = result.code === 'A0' || 
+            (result.error && (result.error.includes('A0') || result.error.includes('resetat manual') || result.error.includes('Refusal')));
+
+          if (isRetryable && autoRetryCountRef.current < 1) {
+            autoRetryCountRef.current += 1;
+            setRetryNotice('Se reinițializează conexiunea cu POS-ul, vă rugăm așteptați...');
+            setPayState(STATE.INITIATING);
+            setTimeout(() => {
+              handlePayRef.current?.();
+            }, 1500);
+          } else {
+            autoRetryCountRef.current = 0;
+            setRetryNotice('');
+            setPayState(STATE.DECLINED);
+            setErrorMsg(result.error || 'Plată refuzată de bancă');
+          }
         }
       });
 
@@ -195,9 +214,11 @@ export default function PaymentScreen() {
     }
   }, [total, sendOrder, goTo]);
 
-  const handleCancel      = () => { socketRef.current?.disconnect(); goTo('cart'); };
-  const handleCancelOrder = () => { socketRef.current?.disconnect(); resetOrder(); };
-  const handleRetry       = () => { setPayState(STATE.IDLE); setErrorMsg(''); setTxInfo(null); };
+  handlePayRef.current = handlePay;
+
+  const handleCancel      = () => { autoRetryCountRef.current = 0; setRetryNotice(''); socketRef.current?.disconnect(); goTo('cart'); };
+  const handleCancelOrder = () => { autoRetryCountRef.current = 0; setRetryNotice(''); socketRef.current?.disconnect(); resetOrder(); };
+  const handleRetry       = () => { autoRetryCountRef.current = 0; setRetryNotice(''); setPayState(STATE.IDLE); setErrorMsg(''); setTxInfo(null); };
 
   const canGoBack = [STATE.IDLE, STATE.ERROR, STATE.DECLINED].includes(payState);
 
@@ -325,7 +346,7 @@ export default function PaymentScreen() {
         {payState === STATE.INITIATING && (
           <div className="payment-processing">
             <div className="processing-spinner"/>
-            <p className="processing-step">Se pregateste plata...</p>
+            <p className="processing-step">{retryNotice || 'Se pregateste plata...'}</p>
           </div>
         )}
 
@@ -346,6 +367,15 @@ export default function PaymentScreen() {
                 </div>
                 <h2 className="processing-title">{t('payment_card_subtitle', lang) || 'Apropiați sau introduceți cardul'}</h2>
                 <p className="processing-step">{t('payment_card_methods', lang) || 'Card fizic • Contactless • Apple Pay • Google Pay'}</p>
+
+                {/* Ghidaj vizual pentru apropierea corecta a cardului */}
+                <div className="pos-tap-hint-pill">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
+                  </svg>
+                  <span>Țineți cardul sau telefonul lipit de ecranul POS-ului până la semnalul sonor</span>
+                </div>
               </>
             ) : (
               <div className="pos-instructions-alert fade-in" style={{ backgroundColor: 'var(--brand-surface)', padding: '24px', borderRadius: '16px', border: '2px solid var(--brand-primary)', marginBottom: '24px' }}>

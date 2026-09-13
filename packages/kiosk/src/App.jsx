@@ -130,6 +130,18 @@ export default function App() {
             useKioskStore.setState({ visualEffects: loc.visualEffects });
             try { localStorage.setItem('kiosk_visual_effects', JSON.stringify(loc.visualEffects)); } catch {}
           }
+          if (loc.categoryHeroActive !== undefined) {
+            try { localStorage.setItem('kiosk_category_hero', String(loc.categoryHeroActive)); } catch {}
+          }
+          if (loc.categoryHeroSteam !== undefined) {
+            try { localStorage.setItem('kiosk_category_hero_steam', String(loc.categoryHeroSteam)); } catch {}
+          }
+          if (loc.categoryHeroProductId !== undefined) {
+            try { localStorage.setItem('kiosk_category_hero_product_id', String(loc.categoryHeroProductId)); } catch {}
+          }
+          if (loc.upsellActive !== undefined) {
+            try { localStorage.setItem('kiosk_upsell_active', String(loc.upsellActive)); } catch {}
+          }
           // Apply default language from Admin config
           const { lang: currentLang, setLang } = useKioskStore.getState();
           const defaultLang = loc.defaultLanguage || (loc.languages?.[0]);
@@ -237,6 +249,18 @@ export default function App() {
     socket.on('location_updated', (newData) => {
       console.log('[Kiosk] Live config update received from Admin Panel.');
       setLocationData(newData);
+      if (newData.categoryHeroActive !== undefined) {
+        try { localStorage.setItem('kiosk_category_hero', String(newData.categoryHeroActive)); } catch {}
+      }
+      if (newData.categoryHeroSteam !== undefined) {
+        try { localStorage.setItem('kiosk_category_hero_steam', String(newData.categoryHeroSteam)); } catch {}
+      }
+      if (newData.categoryHeroProductId !== undefined) {
+        try { localStorage.setItem('kiosk_category_hero_product_id', String(newData.categoryHeroProductId)); } catch {}
+      }
+      if (newData.upsellActive !== undefined) {
+        try { localStorage.setItem('kiosk_upsell_active', String(newData.upsellActive)); } catch {}
+      }
     });
 
     return () => socket.disconnect();
@@ -350,39 +374,74 @@ export default function App() {
   const activeBrandBannerUrl = locationData?.[`topBannerUrl_${activeBrandId}`] || locationData?.topBannerUrl;
   const showBanner = screen !== 'welcome' && activeBrandBannerUrl;
   // Support new split fields AND legacy bottomBannerContent
-  const _bbUrl  = locationData?.bottomBannerUrl  || (locationData?.bottomBannerContent?.startsWith('http') ? locationData.bottomBannerContent : '') || '';
-  const _bbText = locationData?.bottomBannerText  || (!locationData?.bottomBannerContent?.startsWith('http') ? locationData?.bottomBannerContent || '' : '') || '';
-  const showBottomBanner = screen !== 'welcome' && (_bbUrl || _bbText);
+  const isMediaUrl = (u) => {
+    if (!u || typeof u !== 'string') return false;
+    const clean = u.trim();
+    return /\.(mp4|webm|mov|jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i.test(clean) || clean.includes('/uploads/');
+  };
+
+  const rawBbUrl = (locationData?.bottomBannerUrl || (locationData?.bottomBannerContent?.startsWith('http') ? locationData.bottomBannerContent : '') || '').trim();
+  const _bbUrl = isMediaUrl(rawBbUrl) ? rawBbUrl : '';
+
+  let _bbText = locationData?.bottomBannerText || (!locationData?.bottomBannerContent?.startsWith('http') ? locationData?.bottomBannerContent || '' : '') || '';
+  // If user entered a plain website address like www.getapp.ro into the URL field, display it as part of the text instead of breaking media
+  if (!isMediaUrl(rawBbUrl) && rawBbUrl && !_bbText.includes(rawBbUrl)) {
+    _bbText = _bbText ? `${_bbText} • ${rawBbUrl}` : rawBbUrl;
+  }
+  const _bbLogo = locationData?.bottomBannerLogoUrl || '';
+  const showBottomBanner = screen !== 'welcome' && (_bbUrl || _bbText || _bbLogo);
 
   const renderPromoMedia = (u) => {
-    if (!u) return null;
-    if (/\.(mp4|webm|mov)(\?|$)/i.test(u)) {
-      return <video src={u} autoPlay muted loop playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
-    } else if (/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i.test(u)) {
-      return <img src={u} alt="Promo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
-    } else {
-      return <iframe src={u} title="Promo" style={{ width: '100%', height: '100%', border: 'none', pointerEvents: 'none' }} />;
+    if (!u || typeof u !== 'string') return null;
+    const clean = u.trim();
+    if (!clean) return null;
+    if (/\.(mp4|webm|mov)(\?|$)/i.test(clean)) {
+      return <video src={clean} autoPlay muted loop playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
+    } else if (/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i.test(clean) || clean.startsWith('data:image/') || clean.includes('/uploads/')) {
+      return <img src={clean} alt="Promo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
     }
+    return null;
   };
 
   const renderBottomBanner = () => {
     const align = locationData?.bottomBannerTextAlign || 'center';
     const logoUrl = locationData?.bottomBannerLogoUrl || '';
     const justifyMap = { left: 'flex-start', center: 'center', right: 'flex-end' };
+    const hasOverlay = _bbText || logoUrl;
     return (
-      <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center' }}>
         {/* Media layer (full height) */}
         {_bbUrl && renderPromoMedia(_bbUrl)}
-        {/* Text overlay strip at bottom */}
-        {_bbText && (() => {
+        {/* Text and/or Logo overlay strip */}
+        {hasOverlay && (() => {
           const isFixed = locationData?.bottomBannerTextFixed === true;
           return (
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '8px 28px', background: _bbUrl ? 'linear-gradient(0deg,rgba(0,0,0,0.75) 0%,transparent 100%)' : (locationData?.bottomBannerBg || '#1e293b'), display: 'flex', alignItems: 'center', justifyContent: justifyMap[align] || 'center', gap: 12, minHeight: '40%', overflow: 'hidden' }}>
-              {logoUrl && <img src={logoUrl} alt="" style={{ height: 36, objectFit: 'contain', flexShrink: 0 }} />}
-              {isFixed
-                ? <span style={{ fontSize: '1.35rem', fontWeight: 700, color: '#fff', letterSpacing: '0.5px', textAlign: align }}>{_bbText}</span>
-                : <marquee scrollamount="6" style={{ fontSize: '1.35rem', fontWeight: 700, color: '#fff', letterSpacing: '0.5px' }}>{_bbText}</marquee>
-              }
+            <div style={{ 
+              position: 'absolute', 
+              top: 0,
+              bottom: 0, 
+              left: 0, 
+              right: 0, 
+              padding: '0 28px', 
+              background: _bbUrl ? 'linear-gradient(0deg,rgba(0,0,0,0.82) 0%,rgba(0,0,0,0.45) 100%)' : (locationData?.bottomBannerBg || '#1e293b'), 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: justifyMap[align] || 'center', 
+              gap: 16, 
+              overflow: 'hidden' 
+            }}>
+              {logoUrl && (
+                <img 
+                  src={logoUrl} 
+                  alt="Logo" 
+                  style={{ height: '70%', maxHeight: '44px', objectFit: 'contain', flexShrink: 0 }} 
+                />
+              )}
+              {_bbText && (
+                isFixed
+                  ? <span style={{ fontSize: '1.3rem', fontWeight: 700, color: '#fff', letterSpacing: '0.5px', textAlign: align, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{_bbText}</span>
+                  : <marquee scrollamount="6" style={{ fontSize: '1.3rem', fontWeight: 700, color: '#fff', letterSpacing: '0.5px' }}>{_bbText}</marquee>
+              )}
             </div>
           );
         })()}

@@ -1,0 +1,343 @@
+/* ─── CATEGORY HERO BANNER (KFC Full-Bleed Style - Large Height) ─── */
+.category-hero-kfc-banner {
+  position: relative;
+  width: 100%;
+  height: 1000px;
+  min-height: 950px;
+  border-radius: 36px;
+  overflow: hidden;
+  cursor: pointer;
+  margin-bottom: 28px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.22);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  -webkit-tap-highlight-color: transparent;
+  background: #18181b;
+}
+
+.category-hero-kfc-banner:active {
+  transform: scale(0.994);
+}
+
+/* Background image filling 100% of the banner */
+.hero-kfc-bg-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  z-index: 1;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.category-hero-kfc-banner:hover .hero-kfc-bg-img {
+  transform: scale(1.02);
+}
+
+/* Vignette overlay for text legibility with clear center for food graphics */
+.hero-kfc-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background: linear-gradient(
+    180deg, 
+    rgba(0, 0, 0, 0.45) 0%, 
+    rgba(0, 0, 0, 0.04) 22%, 
+    rgba(0, 0, 0, 0.02) 68%, 
+    rgba(0, 0, 0, 0.82) 100%
+  );
+}
+
+/* Top bar: Brand avatar, badge and KFC price sticker + Info button */
+.hero-kfc-top-bar {
+  position: absolute;
+  top: 32px;
+  left: 36px;
+  right: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 5;
+}
+
+.hero-kfc-top-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Round brand avatar */
+.hero-kfc-brand-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #ffffff;
+  border: 2.5px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.32);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.hero-kfc-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+
+/* Star badge */
+.hero-kfc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 22px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.hero-kfc-badge--promo {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.9), rgba(185, 28, 28, 0.95));
+  border-color: rgba(254, 202, 202, 0.7);
+  box-shadow: 0 4px 18px rgba(239, 68, 68, 0.45);
+}
+
+/* Top right wrapper: Price sticker + Info (i) button */
+.hero-kfc-top-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* KFC style prominent price sticker */
+.hero-kfc-price-sticker {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 12px 30px;
+  border-radius: 999px;
+  background: #EE3B24;
+  color: #ffffff;
+  box-shadow: 0 8px 24px rgba(238, 59, 36, 0.58), 0 2px 10px rgba(0, 0, 0, 0.28);
+  border: 3px solid #ffffff;
+  transition: all 0.2s;
+}
+
+.hero-kfc-price-sticker--promo {
+  background: linear-gradient(135deg, #EF4444, #DC2626);
+  box-shadow: 0 10px 30px rgba(220, 38, 38, 0.65), 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.hero-kfc-price-sticker .kfc-price-old {
+  font-size: 1.45rem;
+  font-weight: 700;
+  text-decoration: line-through;
+  opacity: 0.75;
+  color: #fee2e2;
+  margin-right: 4px;
+}
+
+.hero-kfc-price-sticker .kfc-price-num {
+  font-size: 2.35rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.hero-kfc-price-sticker .kfc-price-curr {
+  font-size: 1.25rem;
+  font-weight: 800;
+  text-transform: lowercase;
+}
+
+/* Info (i) button matching product card style */
+.hero-kfc-info-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2.5px solid #ffffff;
+  background: rgba(255, 255, 255, 0.95);
+  color: #1f2937;
+  font-size: 1.45rem;
+  font-weight: 800;
+  font-style: italic;
+  font-family: Georgia, serif;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  transition: all 0.18s ease;
+  outline: none;
+  flex-shrink: 0;
+}
+
+.hero-kfc-info-btn:hover {
+  background: #EE3B24;
+  color: #ffffff;
+  border-color: #ffffff;
+  transform: scale(1.08);
+}
+
+.hero-kfc-info-btn:active {
+  transform: scale(0.92);
+}
+
+/* Bottom row: Info & + Adaugă button */
+.hero-kfc-bottom-bar {
+  position: absolute;
+  bottom: 36px;
+  left: 36px;
+  right: 36px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 28px;
+  z-index: 5;
+}
+
+.hero-kfc-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 68%;
+}
+
+.hero-kfc-title {
+  margin: 0;
+  font-size: 3rem;
+  font-weight: 900;
+  color: #ffffff;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  text-shadow: 0 3px 12px rgba(0, 0, 0, 0.92);
+}
+
+.hero-kfc-desc {
+  margin: 0;
+  font-size: 1.35rem;
+  color: #ffffff;
+  opacity: 1;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.98);
+  font-weight: 600;
+}
+
+/* Button CTA */
+.hero-kfc-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 42px;
+  border-radius: 999px;
+  border: 2.5px solid rgba(255, 255, 255, 0.92);
+  background: #EE3B24;
+  color: #ffffff;
+  font-size: 1.35rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.48);
+  transition: all 0.15s ease;
+  outline: none;
+  white-space: nowrap;
+}
+
+.hero-kfc-add-btn:active {
+  transform: scale(0.95);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+@media (max-width: 900px) {
+  .category-hero-kfc-banner {
+    height: 800px;
+    min-height: 750px;
+    border-radius: 28px;
+  }
+  .hero-kfc-top-bar {
+    top: 24px;
+    left: 26px;
+    right: 26px;
+  }
+  .hero-kfc-bottom-bar {
+    bottom: 26px;
+    left: 26px;
+    right: 26px;
+  }
+  .hero-kfc-title {
+    font-size: 2.3rem;
+  }
+  .hero-kfc-desc {
+    font-size: 1.1rem;
+  }
+  .hero-kfc-price-sticker .kfc-price-num {
+    font-size: 1.9rem;
+  }
+  .hero-kfc-price-sticker .kfc-price-old {
+    font-size: 1.25rem;
+  }
+  .hero-kfc-info-btn {
+    width: 42px;
+    height: 42px;
+    font-size: 1.25rem;
+  }
+  .hero-kfc-add-btn {
+    padding: 15px 32px;
+    font-size: 1.2rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .category-hero-kfc-banner {
+    height: 620px;
+    min-height: 580px;
+    border-radius: 22px;
+  }
+  .hero-kfc-top-bar {
+    top: 18px;
+    left: 20px;
+    right: 20px;
+  }
+  .hero-kfc-bottom-bar {
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+  }
+  .hero-kfc-title {
+    font-size: 1.8rem;
+  }
+  .hero-kfc-desc {
+    font-size: 0.95rem;
+  }
+  .hero-kfc-price-sticker .kfc-price-num {
+    font-size: 1.55rem;
+  }
+  .hero-kfc-price-sticker .kfc-price-old {
+    font-size: 1.1rem;
+  }
+  .hero-kfc-info-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 1.1rem;
+  }
+  .hero-kfc-add-btn {
+    padding: 12px 24px;
+    font-size: 1.05rem;
+  }
+}

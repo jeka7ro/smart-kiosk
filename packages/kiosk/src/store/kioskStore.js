@@ -20,16 +20,21 @@ export const useKioskStore = create((set, get) => ({
   setLocationData: (data) => set({ locationData: data }),
   setKioskData: (data) => set({ kioskData: data }),
 
-  // ─── Visual Effects (Parallax, Steam, Snow etc.) ──────────
+  // ─── Visual Effects (Parallax, Steam) ──────────────────────
   visualEffects: (() => {
     try {
       const saved = localStorage.getItem('kiosk_visual_effects');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        delete parsed.snow;
+        parsed.steam = true;
+        try { localStorage.setItem('kiosk_visual_effects', JSON.stringify(parsed)); } catch {}
+        return parsed;
+      }
     } catch {}
     return {
       parallax: true,
       steam: true,
-      snow: false,
     };
   })(),
   setVisualEffect: (key, val) => {

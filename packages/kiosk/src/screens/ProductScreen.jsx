@@ -238,7 +238,7 @@ export default function ProductScreen() {
   const menuCategories = useKioskStore((s) => s.menuCategories);
   const brand          = useBrand();
 
-  const visualEffects = useKioskStore((s) => s.visualEffects) || { parallax: true, steam: true, snow: false };
+  const visualEffects = useKioskStore((s) => s.visualEffects) || { parallax: true, steam: true };
   const heroRef = useRef(null);
 
   const isHotProduct = useMemo(() => {
@@ -684,7 +684,7 @@ export default function ProductScreen() {
               <img
                 src={proxySyrveImage(product.image)}
                 alt={product.name}
-                className="ps-hero-img"
+                className="ps-hero-img ps-hero-breathe"
                 onError={() => setImgError(true)}
               />
             ) : (
@@ -697,11 +697,13 @@ export default function ProductScreen() {
               </div>
             )}
 
-            {/* Stratul Efectelor Vizuale (Parallax 3D & Abur & Zăpadă) */}
+            {/* Stratul Efectelor Vizuale (Abur cald, Bule băuturi reci, Slow Breathe Zoom) */}
             <ProductVisualFX 
               heroRef={heroRef}
-              effects={visualEffects}
+              effects={{ steam: true, parallax: false, ice: true, brandFloat: true }}
               isHotProduct={isHotProduct}
+              product={product}
+              brandLogo={`/brands/${product._brand || brand?.id || 'smashme'}-logo.png`}
             />
           </div>
 

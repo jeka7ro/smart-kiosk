@@ -95,7 +95,8 @@ export default function ProductCard({ product, delay, lang, activeBrand, onQuick
               <img
                 src={proxySyrveImage(product.image)}
                 alt={product.name}
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                className="product-card-img"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)' }}
                 onError={(e) => { e.target.style.display = 'none'; e.target.parentNode.style.display = 'none'; }}
               />
             </div>

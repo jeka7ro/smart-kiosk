@@ -18,7 +18,7 @@
   transition: background 0.06s ease-out;
 }
 
-/* Canvas pentru particule (Steam & Snow) */
+/* Canvas pentru particule (Steam & Drinks) */
 .ps-vfx-canvas {
   position: absolute;
   inset: 0;
@@ -27,3 +27,56 @@
   pointer-events: none;
   filter: drop-shadow(0 2px 4px rgba(255, 255, 255, 0.15));
 }
+
+/* ─── Efect Cinematic (Slow Breathe Zoom) pentru Toate Produsele ─── */
+.ps-hero-breathe,
+.ps-dessert-breathe {
+  animation: dessertBreatheZoom 7.5s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate !important;
+  transform-origin: center 48%;
+  will-change: transform;
+}
+
+@keyframes dessertBreatheZoom {
+  0% {
+    transform: scale(1.0) translateY(0);
+  }
+  100% {
+    transform: scale(1.045) translateY(-4px);
+  }
+}
+
+/* Reflexie luminoasă fină de glazură (Caramel/Chocolate Sheen) */
+.ps-dessert-sheen {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.08) 48%,
+    rgba(255, 255, 255, 0.15) 52%,
+    transparent 65%
+  );
+  background-size: 260% 260%;
+  animation: dessertSheenSweep 7.5s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
+  mix-blend-mode: overlay;
+  z-index: 2;
+}
+
+@keyframes dessertSheenSweep {
+  0% {
+    background-position: -130% -130%;
+    opacity: 0;
+  }
+  25% {
+    opacity: 0;
+  }
+  60% {
+    opacity: 0.65;
+  }
+  100% {
+    background-position: 130% 130%;
+    opacity: 0;
+  }
+}
+

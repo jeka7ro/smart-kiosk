@@ -16,12 +16,13 @@ import PortScans      from './screens/PortScans';
 import BrandLogo from './components/BrandLogo.jsx';
 import DashboardCharts3D from './components/DashboardCharts3D.jsx';
 import OrderToastNotificationStack, { playNewOrderSound } from './components/OrderToastNotification.jsx';
+import OrdersNotificationBell from './components/OrdersNotificationBell.jsx';
 import Promotions     from './screens/Promotions';
 import FortuneWheelPreview from './components/FortuneWheelPreview';
 import MenuManager, { MenuProfileEditorModal } from './screens/MenuManager';
 import QrGenerator from './screens/QrGenerator';
 import { useConfirm } from './components/ConfirmModal';
-import { LayoutDashboard, Receipt, TrendingUp, MapPin, MonitorSmartphone, QrCode, Utensils, Languages, Image as ImageIcon, Tags, Users, Blocks, Gift, Store, Sun, Moon, LogOut, Menu, X, CreditCard, Download, Printer, Building2, Palette, Sparkles, Flame, Snowflake, Layers, Upload, Star, ChevronUp, ChevronDown, Check, Zap, Wifi, Sliders, Info, Trash2, AlertTriangle } from 'lucide-react';
+import { LayoutDashboard, Receipt, TrendingUp, MapPin, MonitorSmartphone, QrCode, Utensils, Languages, Image as ImageIcon, Tags, Users, Blocks, Gift, Store, Sun, Moon, LogOut, Menu, X, CreditCard, Download, Printer, Building2, Palette, Sparkles, Flame, Snowflake, Layers, Upload, Star, ChevronUp, ChevronDown, Check, Zap, Wifi, Sliders, Info, Trash2, AlertTriangle, Globe, Phone } from 'lucide-react';
 import { formatThousands } from './utils/formatters';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
@@ -170,14 +171,14 @@ export default function AdminApp() {
     const orderKey = String(order._id || order.orderNumber || order.id || '');
     if (!orderKey) return;
 
-    // Deduplication: ignore if toasted in the last 2 minutes
+    // Deduplication: ignore if toasted in the last 15 seconds
     if (toastedOrderKeysRef.current.has(orderKey)) {
       return;
     }
     toastedOrderKeysRef.current.add(orderKey);
     setTimeout(() => {
       toastedOrderKeysRef.current.delete(orderKey);
-    }, 120_000);
+    }, 15_000);
 
     const toastId = `${orderKey}-${Date.now()}`;
     setOrderToasts(prev => {
@@ -220,13 +221,22 @@ export default function AdminApp() {
     localStorage.setItem('admin-theme', theme);
   }, [theme]);
 
-  /* ─── Socket.IO ─────────────────────────────────── */
+  /* ─── Socket.IO (Primary + Localhost Fallback) ────── */
   useEffect(() => {
+    const handleIncomingOrder = (order) => {
+      if (!order) return;
+      setOrders(prev => [order, ...prev]);
+      if (order._id && knownOrderIdsRef.current) knownOrderIdsRef.current.add(order._id);
+      if (order.orderNumber && knownOrderIdsRef.current) knownOrderIdsRef.current.add(order.orderNumber);
+      triggerOrderToast(order);
+    };
+
     const socket = io(BACKEND, { 
       reconnectionAttempts: 10,
-      transports: ['websocket'] // Force WebSocket to avoid polling issues
+      transports: ['websocket', 'polling'] // Allow polling fallback
     });
     socketRef.current = socket;
+
     socket.on('connect', () => {
       console.log('Socket connected:', socket.id);
       setConnected(true);
@@ -239,12 +249,7 @@ export default function AdminApp() {
       console.log('Socket disconnected');
       setConnected(false);
     });
-    socket.on('new_order', order => {
-      setOrders(prev => [order, ...prev]);
-      if (order._id && knownOrderIdsRef.current) knownOrderIdsRef.current.add(order._id);
-      if (order.orderNumber && knownOrderIdsRef.current) knownOrderIdsRef.current.add(order.orderNumber);
-      triggerOrderToast(order);
-    });
+    socket.on('new_order', handleIncomingOrder);
     socket.on('order_syrve_confirmed', ({ orderId, syrveOrderId }) => {
       setOrders(prev => prev.map(o => o._id === orderId ? { ...o, syrveOrderId } : o));
       setOrderToasts(prev => prev.map(t => {
@@ -264,7 +269,27 @@ export default function AdminApp() {
       }));
     });
 
-    return () => socket.disconnect();
+    // Also connect to localhost:4000 if running locally to catch local kiosk orders
+    let localSocket = null;
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost' && !BACKEND.includes('localhost:4000')) {
+      try {
+        localSocket = io('http://localhost:4000', {
+          reconnectionAttempts: 5,
+          transports: ['websocket', 'polling']
+        });
+        localSocket.on('connect', () => {
+          localSocket.emit('join', { role: 'admin' });
+        });
+        localSocket.on('new_order', handleIncomingOrder);
+      } catch (e) {
+        // Local backend not reachable, ignore
+      }
+    }
+
+    return () => {
+      socket.disconnect();
+      if (localSocket) localSocket.disconnect();
+    };
   }, [triggerOrderToast]);
 
   /* ─── Test Order Toast Event Listener ───────────── */
@@ -272,15 +297,15 @@ export default function AdminApp() {
     const handleTestToast = (e) => {
       const mockOrder = e.detail || {
         _id: `mock-${Date.now()}`,
-        orderNumber: 'CJ1-020',
+        orderNumber: 'CJ1-094',
         brand: 'smashme',
-        totalAmount: 64.50,
+        totalAmount: 62.50,
         orderType: 'takeaway',
-        locationName: 'Vivo Cluj',
+        locationName: 'SmashMe Centru',
         paymentMethod: 'card',
-        paymentRef: { authCode: '782910' },
+        paymentRef: { authCode: '567194' },
         syrveOrderId: 'syrve-99120',
-        items: [{ name: 'Smash Burger Dublu' }, { name: 'Cartofi Prăjiți' }]
+        items: [{ name: 'Spicy Jalapeno Meniu', quantity: 1 }, { name: 'Cartofi Prăjiți', quantity: 1 }]
       };
       triggerOrderToast(mockOrder);
     };
@@ -505,7 +530,8 @@ export default function AdminApp() {
         const matchIiko = (o.syrveOrderId || '').toLowerCase().includes(q);
         const matchLoc = (o.locationName || o.locationId || '').toLowerCase().includes(q);
         const matchAmount = String(o.totalAmount || '').includes(q);
-        if (!matchNumber && !matchIiko && !matchLoc && !matchAmount) return false;
+        const matchItem = (o.items || []).some(i => (i.name || '').toLowerCase().includes(q));
+        if (!matchNumber && !matchIiko && !matchLoc && !matchAmount && !matchItem) return false;
       }
       
       return true;
@@ -566,6 +592,35 @@ export default function AdminApp() {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-3">
+          {/* Notifications Bell with Recent Orders Dropdown */}
+          <OrdersNotificationBell 
+            orders={orders}
+            onOpenOrder={(order) => setSelectedOrder(order)}
+            onViewAllOrders={() => setTab('orders')}
+            onTriggerTestOrder={() => {
+              const testBrands = ['smashme', 'crunch', 'rollmaster', 'lovesushi', 'pokiwoki'];
+              const randomBrand = testBrands[Math.floor(Math.random() * testBrands.length)];
+              const mockOrder = {
+                _id: `mock-${Date.now()}`,
+                orderNumber: `CJ1-0${Math.floor(Math.random() * 89 + 10)}`,
+                brand: randomBrand,
+                totalAmount: Number((Math.random() * 40 + 35).toFixed(2)),
+                orderType: Math.random() > 0.5 ? 'takeaway' : 'dine-in',
+                locationName: 'SmashMe Centru',
+                paymentMethod: 'card',
+                paymentRef: { authCode: `${Math.floor(Math.random() * 899999 + 100000)}` },
+                syrveOrderId: `syrve-${Math.floor(Math.random() * 90000 + 10000)}`,
+                createdAt: new Date().toISOString(),
+                items: [
+                  { name: 'Smash Burger Dublu', quantity: 1 },
+                  { name: 'Cartofi Prăjiți Usturoi', quantity: 1 }
+                ]
+              };
+              setOrders(prev => [mockOrder, ...prev]);
+              triggerOrderToast(mockOrder);
+            }}
+          />
+
           <button 
             title={theme === 'dark' ? 'Mod Luminos' : 'Mod Întunecat'}
             onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
@@ -802,7 +857,8 @@ export default function AdminApp() {
                 <span className="text-slate-400 font-bold">Filtre active:</span>
                 {dashboardBrands.map(b => (
                   <span key={b} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-bold">
-                    Brand: {b}
+                    <BrandLogo brandId={b} size={15} />
+                    <span>Brand: {b}</span>
                     <button onClick={() => toggleDashboardBrand(b)} className="hover:text-red-500 font-bold ml-1 cursor-pointer">✕</button>
                   </span>
                 ))}
@@ -845,7 +901,7 @@ export default function AdminApp() {
               </div>
             )}
 
-            {/* 4 Interactive ZoomCharts with Cross-Filtering & Calendar Heatmap */}
+            {/* 5 Interactive ZoomCharts with Cross-Filtering & Top Products */}
             <DashboardCharts3D 
               orders={dashboardPeriodOrders} 
               period={dashboardPeriod} 
@@ -857,6 +913,8 @@ export default function AdminApp() {
               onSelectDay={toggleDashboardDay}
               selectedPayment={dashboardPayment}
               onSelectPayment={toggleDashboardPayment}
+              selectedProduct={dashboardSearch}
+              onSelectProduct={(prodName) => setDashboardSearch(prev => prev === prodName ? '' : prodName)}
             />
 
             {/* Orders Table with Pagination & Row Numbers */}
@@ -1070,7 +1128,7 @@ export default function AdminApp() {
                     <p className="text-xs font-bold text-indigo-700 dark:text-indigo-300 uppercase tracking-wider mb-0.5">Bon Fiscal cu CUI</p>
                     <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 truncate">{selectedOrder.fiscal.name || '—'}</p>
                     <p className="text-xs text-slate-500">
-                      CUI: <span className="font-mono font-bold">{selectedOrder.fiscal.rawCui || selectedOrder.fiscal.cui}</span>
+                      CUI: <span className="font-bold text-slate-700 dark:text-slate-200">{selectedOrder.fiscal.rawCui || selectedOrder.fiscal.cui}</span>
                       {selectedOrder.fiscal.regCom && <> | Reg.Com: {selectedOrder.fiscal.regCom}</>}
                       {selectedOrder.fiscal.isVatPayer && <span className="ml-2 px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">Plătitor TVA</span>}
                     </p>
@@ -1084,12 +1142,12 @@ export default function AdminApp() {
                 <div className="flex items-center justify-between gap-3 bg-slate-50 dark:bg-slate-800 p-2 rounded-lg border border-slate-200 dark:border-slate-700 mt-2">
                   <div className="flex flex-col">
                     <span className="text-[10px] uppercase font-bold text-slate-500">ID Comandă iiko</span>
-                    <span className="font-mono text-sm text-slate-700 dark:text-slate-300 truncate select-all">{selectedOrder.syrveOrderId}</span>
+                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300 truncate select-all">{selectedOrder.syrveOrderId}</span>
                   </div>
                   {selectedOrder.paymentRef?.receiptNo && (
                     <div className="flex flex-col mt-2">
                       <span className="text-[10px] uppercase font-bold text-slate-500">Număr Bon POS (Chitanță)</span>
-                      <span className="font-mono text-sm text-slate-700 dark:text-slate-300 select-all">{selectedOrder.paymentRef.receiptNo}</span>
+                      <span className="text-sm font-bold text-slate-700 dark:text-slate-300 select-all">{selectedOrder.paymentRef.receiptNo}</span>
                     </div>
                   )}
                   <button 
@@ -1354,7 +1412,7 @@ function OrdersTable({ orders, full, onRowClick, selectedId, defaultRows = 10 })
           <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
             <th className="w-14 px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 text-center">Nr.</th>
             <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500"># Comandă</th>
-            <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Brand / Canal</th>
+            <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Brand</th>
             <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Locație</th>
             <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Comandă / Plată</th>
             <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Total</th>
@@ -1388,11 +1446,11 @@ function OrdersTable({ orders, full, onRowClick, selectedId, defaultRows = 10 })
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex flex-col items-start gap-1.5">
-                      <span style={{ color: BRAND_COLORS[o.brand] }} className="flex items-center gap-1.5 text-sm font-bold">
-                        <BrandLogo brandId={o.brand} size={14} /> {o.brand}
+                    <div className="flex items-center gap-2.5">
+                      <BrandLogo brandId={o.brand} size={28} className="shadow-xs shrink-0" />
+                      <span style={{ color: BRAND_COLORS[o.brand] }} className="text-sm font-bold">
+                        {o.brand}
                       </span>
-                      <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-500 uppercase tracking-wider">{o.channel}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -1402,7 +1460,7 @@ function OrdersTable({ orders, full, onRowClick, selectedId, defaultRows = 10 })
                       </span>
                       {o.syrveOrderId && (
                         <div className="flex items-center gap-1 mt-0.5" title={o.syrveOrderId}>
-                          <span className="text-[10px] font-mono font-medium text-emerald-600 dark:text-emerald-400">
+                          <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
                             {o.syrveOrderId}
                           </span>
                           <button 
@@ -2023,12 +2081,18 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
     paymentGateway: loc.paymentGateway || 'none',
     kioskUiSize: loc.kioskUiSize || 'S',
     visualEffects: loc.visualEffects || { parallax: true, steam: true, snow: false },
+    categoryHeroActive: loc.categoryHeroActive ?? false,
+    categoryHeroSteam: loc.categoryHeroSteam ?? true,
+    categoryHeroProductId: loc.categoryHeroProductId || '',
+    upsellActive: loc.upsellActive ?? false,
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [showWheelPreviewFull, setShowWheelPreviewFull] = useState(false);
   const [editingMenuBrand, setEditingMenuBrand] = useState(null);
   const [uploadingScreensaver, setUploadingScreensaver] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingBottomMedia, setUploadingBottomMedia] = useState(false);
 
   const handleScreensaverUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -2051,6 +2115,52 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
       alert('Eroare la încărcare imagine');
     }
     setUploadingScreensaver(false);
+  };
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingLogo(true);
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      const res = await fetchWithAuth(`${backend}/api/locations/${loc.id}/upload-asset`, {
+        method: 'POST',
+        body: fd
+      });
+      const data = await res.json();
+      if (data.ok && (data.url || data.posterUrl)) {
+        setFormData(prev => ({ ...prev, bottomBannerLogoUrl: data.url || data.posterUrl }));
+      } else {
+        alert('Eroare: ' + (data.error || 'Nu s-a putut încărca sigla'));
+      }
+    } catch (err) {
+      alert('Eroare la încărcare fișier logo');
+    }
+    setUploadingLogo(false);
+  };
+
+  const handleBottomMediaUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingBottomMedia(true);
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      const res = await fetchWithAuth(`${backend}/api/locations/${loc.id}/upload-asset`, {
+        method: 'POST',
+        body: fd
+      });
+      const data = await res.json();
+      if (data.ok && (data.url || data.posterUrl)) {
+        setFormData(prev => ({ ...prev, bottomBannerUrl: data.url || data.posterUrl }));
+      } else {
+        alert('Eroare: ' + (data.error || 'Nu s-a putut încărca fișierul media'));
+      }
+    } catch (err) {
+      alert('Eroare la încărcare fișier media');
+    }
+    setUploadingBottomMedia(false);
   };
 
   const [promosData, setPromosData] = useState({});
@@ -2084,7 +2194,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
   // Toggles for optional sections
   const [usePin, setUsePin] = useState(!!loc.kioskPin);
   const [useBanner, setUseBanner] = useState(!!loc.topBannerUrl);
-  const [useBottomBanner, setUseBottomBanner] = useState(!!(loc.bottomBannerContent || loc.bottomBannerUrl || loc.bottomBannerText));
+  const [useBottomBanner, setUseBottomBanner] = useState(!!(loc.bottomBannerContent || loc.bottomBannerUrl || loc.bottomBannerText || loc.bottomBannerLogoUrl));
 
   const handleChange = (field, val) => setFormData(p => ({ ...p, [field]: val }));
 
@@ -2105,6 +2215,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
       finalData.bottomBannerUrl = ''; 
       finalData.bottomBannerText = ''; 
       finalData.bottomBannerContent = ''; 
+      finalData.bottomBannerLogoUrl = '';
     }
 
     try {
@@ -2343,6 +2454,91 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                 <KioskSwitch
                   checked={formData.visualEffects?.snow ?? false}
                   onChange={val => handleChange('visualEffects', { ...formData.visualEffects, snow: val })}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Card: Experiență Meniu & Upsell (KFC Style) */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2.5">
+                <Star className="w-5 h-5 text-rose-500" />
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Experiență Meniu & Upsell (KFC Style)</h3>
+              </div>
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-50 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400 border border-rose-200/60 dark:border-rose-800/60">
+                Opțiuni Kiosk
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-5">
+              Activează sau dezactivează funcțiile de promovare vizuală și cross-selling pe tableta Kiosk.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Produsul Vedetă */}
+              <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 flex flex-col gap-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
+                      <Star className="w-4 h-4 text-amber-500" />
+                      <span>Produsul Vedetă (Category Hero)</span>
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                      Afișează bannerul mare promoțional în capul fiecărei categorii din meniu cu cel mai recomandat preparat.
+                    </p>
+                  </div>
+                  <KioskSwitch
+                    checked={formData.categoryHeroActive ?? false}
+                    onChange={val => handleChange('categoryHeroActive', val)}
+                  />
+                </div>
+
+                {formData.categoryHeroActive && (
+                  <div className="mt-2 pt-3 border-t border-slate-200/80 dark:border-slate-700/80 flex flex-col gap-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">Efect Abur Cald (Steam FX)</span>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400">Animație organică de abur cald peste poza produsului.</p>
+                      </div>
+                      <KioskSwitch
+                        checked={formData.categoryHeroSteam ?? true}
+                        onChange={val => handleChange('categoryHeroSteam', val)}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-800 dark:text-slate-200 mb-1">
+                        Produs Fix (Opțional)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Lăsați gol pentru primul produs din categorie (Implicit)"
+                        value={formData.categoryHeroProductId || ''}
+                        onChange={e => handleChange('categoryHeroProductId', e.target.value)}
+                        className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                      />
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                        Dacă este lăsat gol, se alege automat primul produs din fiecare categorie.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Upsell Coș */}
+              <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 flex items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
+                    <Sparkles className="w-4 h-4 text-emerald-500" />
+                    <span>Upsell la Coș („Doriți și...”)</span>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                    Deschide ecranul modal cu selector rapid de sosuri, garnituri și băuturi înainte de trecerea la plată.
+                  </p>
+                </div>
+                <KioskSwitch
+                  checked={formData.upsellActive ?? false}
+                  onChange={val => handleChange('upsellActive', val)}
                 />
               </div>
             </div>
@@ -2705,7 +2901,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
               <div>
                 <h3 className="text-base font-bold text-slate-900 dark:text-white">Banner Promo Footer (Jos / Sub Meniu)</h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Bară promoțională inferioară. Suportă video/imagine sau text derulant cu logo.
+                  Bară inferioară continuă. Afișează logo-ul firmei, site-ul web, telefonul, adresa sau promoții speciale.
                 </p>
               </div>
               <KioskSwitch
@@ -2717,39 +2913,112 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
             {useBottomBanner && (
               <div className="mt-5 pt-5 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 lg:grid-cols-12 gap-6">
                 <div className="lg:col-span-7 space-y-4">
+                  {/* Secțiunea 1: Logo Firmă */}
                   <div>
-                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                      1. Reclamă (Video MP4 / Imagine)
+                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between mb-1">
+                      <span className="flex items-center gap-1.5">
+                        <Building2 className="w-3.5 h-3.5 text-blue-500" />
+                        <span>1. Logo Firmă / Brand (Apare în stânga în footer)</span>
+                      </span>
+                      {formData.bottomBannerLogoUrl && (
+                        <button
+                          type="button"
+                          onClick={() => handleChange('bottomBannerLogoUrl', '')}
+                          className="text-[11px] text-red-500 hover:text-red-600 flex items-center gap-1"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          <span>Șterge Logo</span>
+                        </button>
+                      )}
                     </label>
-                    <input
-                      type="url"
-                      placeholder="https://... URL video sau imagine"
-                      value={formData.bottomBannerUrl || ''}
-                      onChange={e => handleChange('bottomBannerUrl', e.target.value)}
-                      className="w-full px-3.5 py-2 text-xs font-mono rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                    />
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
+                      Sigla companiei tale (ex: GetApp, sigla localului) afișată pe fundalul barei.
+                    </p>
+                    <div className="flex items-center gap-2">
+                      {formData.bottomBannerLogoUrl && (
+                        <div className="w-10 h-10 rounded-xl bg-slate-950 border border-slate-700 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                          <img src={formData.bottomBannerLogoUrl} alt="Logo" className="max-w-full max-h-full object-contain" />
+                        </div>
+                      )}
+                      <input
+                        type="url"
+                        placeholder="https://... URL logo (sau încarcă fișier)"
+                        value={formData.bottomBannerLogoUrl || ''}
+                        onChange={e => handleChange('bottomBannerLogoUrl', e.target.value)}
+                        className="flex-1 px-3.5 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      />
+                      <label className="px-3.5 py-2 text-xs font-semibold bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded-xl hover:bg-blue-100 cursor-pointer flex items-center gap-1.5 shrink-0 transition-colors">
+                        {uploadingLogo ? (
+                          <span>Se încarcă...</span>
+                        ) : (
+                          <>
+                            <Upload className="w-3.5 h-3.5" />
+                            <span>Încarcă Logo</span>
+                          </>
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleLogoUpload}
+                          disabled={uploadingLogo}
+                        />
+                      </label>
+                    </div>
                   </div>
 
+                  {/* Secțiunea 2: Text Informații (Site Web, Telefon, Adresă) */}
                   <div>
-                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                      2. Text Derulant / Fix
+                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 mb-1">
+                      <Globe className="w-3.5 h-3.5 text-emerald-500" />
+                      <span>2. Informații Contact & Promoții (Site, Telefon, Adresă)</span>
                     </label>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
+                      Scrie aici adresa site-ului, numărul de telefon sau adresa pe care vrei să le vadă clienții.
+                    </p>
                     <textarea
-                      placeholder="Ex: Burger SmashMe -20% azi! Cartofi gratis la orice combo!"
+                      placeholder="Ex: 0725777712 • www.getapp.ro • Comandă rapid la Kiosk!"
                       value={formData.bottomBannerText || ''}
                       onChange={e => handleChange('bottomBannerText', e.target.value)}
                       rows={2}
-                      className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                      className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     />
+                    {/* Quick insert helpers */}
+                    <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                      <span className="text-[10px] text-slate-400">Adaugă rapid:</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const add = 'www.getapp.ro';
+                          const cur = formData.bottomBannerText ? formData.bottomBannerText.trim() : '';
+                          handleChange('bottomBannerText', cur ? `${cur} • ${add}` : add);
+                        }}
+                        className="px-2 py-0.5 text-[10px] font-medium bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 text-slate-600 dark:text-slate-300 rounded-md border border-slate-200 dark:border-slate-700 transition-colors"
+                      >
+                        + www.getapp.ro
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const add = '0725777712';
+                          const cur = formData.bottomBannerText ? formData.bottomBannerText.trim() : '';
+                          handleChange('bottomBannerText', cur ? `${cur} • ${add}` : add);
+                        }}
+                        className="px-2 py-0.5 text-[10px] font-medium bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 text-slate-600 dark:text-slate-300 rounded-md border border-slate-200 dark:border-slate-700 transition-colors"
+                      >
+                        + 0725777712
+                      </button>
+                    </div>
                   </div>
 
+                  {/* Mod Text & Aliniere */}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">Mod Text</label>
                       <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
                         {[
-                          { v: false, l: 'Rulant' },
-                          { v: true, l: 'Fix' }
+                          { v: false, l: 'Rulant (Animat)' },
+                          { v: true, l: 'Fix (Static)' }
                         ].map(m => (
                           <button
                             key={String(m.v)}
@@ -2788,27 +3057,136 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                     </div>
                   </div>
 
+                  {/* Secțiunea 3: Reclamă Fundal Opțională */}
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between mb-1">
+                      <span className="flex items-center gap-1.5">
+                        <ImageIcon className="w-3.5 h-3.5 text-purple-500" />
+                        <span>3. Reclamă Fundal (Opțional - Video MP4 sau Imagine)</span>
+                      </span>
+                      {formData.bottomBannerUrl && (
+                        <button
+                          type="button"
+                          onClick={() => handleChange('bottomBannerUrl', '')}
+                          className="text-[11px] text-red-500 hover:text-red-600 flex items-center gap-1"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          <span>Șterge Fișier Media</span>
+                        </button>
+                      )}
+                    </label>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
+                      Opțional. Folosiți doar pentru fișiere video (.mp4) sau poze de fundal. Nu introduceți adrese web aici (site-ul se trece la pasul 2).
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="url"
+                        placeholder="https://... URL video .mp4 sau imagine"
+                        value={formData.bottomBannerUrl || ''}
+                        onChange={e => handleChange('bottomBannerUrl', e.target.value)}
+                        className="flex-1 px-3.5 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      />
+                      <label className="px-3.5 py-2 text-xs font-semibold bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800 rounded-xl hover:bg-purple-100 cursor-pointer flex items-center gap-1.5 shrink-0 transition-colors">
+                        {uploadingBottomMedia ? (
+                          <span>Se încarcă...</span>
+                        ) : (
+                          <>
+                            <Upload className="w-3.5 h-3.5" />
+                            <span>Încarcă Media</span>
+                          </>
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*,video/mp4"
+                          className="hidden"
+                          onChange={handleBottomMediaUpload}
+                          disabled={uploadingBottomMedia}
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Culoare Fundal Banner */}
                   <KioskColorPicker
-                    label="Culoare Fundal Banner Footer"
+                    label="4. Culoare Fundal Banner Footer"
                     value={formData.bottomBannerBg || '#1e293b'}
                     onChange={val => handleChange('bottomBannerBg', val)}
                   />
                 </div>
 
+                {/* Simulator Footer */}
                 <div className="lg:col-span-5 flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3">Simulator Banner Footer</span>
-                  <div className="w-[140px] h-[250px] rounded-2xl overflow-hidden border-4 border-slate-800 bg-slate-200 dark:bg-slate-800 relative shadow-md">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3">Simulator Banner Footer (Kiosk)</span>
+                  
+                  {/* Phone Simulator Frame */}
+                  <div className="w-[150px] h-[260px] rounded-2xl overflow-hidden border-4 border-slate-800 bg-slate-900 relative shadow-lg flex flex-col justify-end">
+                    {/* Dummy menu content in simulator */}
+                    <div className="absolute inset-0 p-2 opacity-20 pointer-events-none flex flex-col gap-2">
+                      <div className="h-4 bg-white/40 rounded-md w-3/4"></div>
+                      <div className="grid grid-cols-2 gap-1.5 flex-1">
+                        <div className="bg-white/30 rounded-lg"></div>
+                        <div className="bg-white/30 rounded-lg"></div>
+                        <div className="bg-white/30 rounded-lg"></div>
+                        <div className="bg-white/30 rounded-lg"></div>
+                      </div>
+                    </div>
+
+                    {/* Footer bar inside simulator */}
                     <div 
-                      className="absolute bottom-0 left-0 right-0 overflow-hidden shadow-md transition-all duration-300 flex items-center justify-center p-1"
+                      className="w-full transition-all duration-300 flex items-center px-2 py-1 gap-1.5 relative overflow-hidden z-10"
                       style={{
-                        height: `${10 + ((formData.bottomBannerHeight || 1) - 1) * 5}%`,
+                        height: `${12 + ((formData.bottomBannerHeight || 1) - 1) * 4}%`,
                         backgroundColor: formData.bottomBannerBg || '#1e293b',
-                        borderRadius: `${formData.bottomBannerRadiusTop ? '8px' : '0'} ${formData.bottomBannerRadiusTop ? '8px' : '0'} ${formData.bottomBannerRadiusBottom ? '8px' : '0'} ${formData.bottomBannerRadiusBottom ? '8px' : '0'}`
+                        borderRadius: `${formData.bottomBannerRadiusTop ? '8px' : '0'} ${formData.bottomBannerRadiusTop ? '8px' : '0'} ${formData.bottomBannerRadiusBottom ? '8px' : '0'} ${formData.bottomBannerRadiusBottom ? '8px' : '0'}`,
+                        backgroundImage: formData.bottomBannerUrl && !/\.(mp4|webm)(\?|$)/i.test(formData.bottomBannerUrl) ? `url(${formData.bottomBannerUrl})` : 'none',
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        justifyContent: formData.bottomBannerTextAlign === 'left' ? 'flex-start' : formData.bottomBannerTextAlign === 'right' ? 'flex-end' : 'center'
                       }}
                     >
-                      <span className="text-[8px] font-bold text-white truncate">
-                        {formData.bottomBannerText || 'Text Promoțional'}
+                      {formData.bottomBannerLogoUrl && (
+                        <img 
+                          src={formData.bottomBannerLogoUrl} 
+                          alt="Logo" 
+                          className="h-4 max-w-[32px] object-contain shrink-0" 
+                        />
+                      )}
+                      <span className="text-[7.5px] font-bold text-white truncate max-w-[100px]">
+                        {formData.bottomBannerText || (formData.bottomBannerLogoUrl ? '' : 'Text Promoțional')}
                       </span>
+                    </div>
+                  </div>
+
+                  {/* Real-scale Footer Bar Strip Preview */}
+                  <div className="w-full mt-4 pt-3 border-t border-slate-200 dark:border-slate-800">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5 text-center">
+                      Previzualizare Bară Footer (Reală)
+                    </span>
+                    <div 
+                      className="w-full h-11 px-3 rounded-xl flex items-center gap-2.5 overflow-hidden shadow-sm"
+                      style={{
+                        backgroundColor: formData.bottomBannerBg || '#1e293b',
+                        backgroundImage: formData.bottomBannerUrl && !/\.(mp4|webm)(\?|$)/i.test(formData.bottomBannerUrl) ? `url(${formData.bottomBannerUrl})` : 'none',
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        justifyContent: formData.bottomBannerTextAlign === 'left' ? 'flex-start' : formData.bottomBannerTextAlign === 'right' ? 'flex-end' : 'center'
+                      }}
+                    >
+                      {formData.bottomBannerLogoUrl && (
+                        <img 
+                          src={formData.bottomBannerLogoUrl} 
+                          alt="Logo" 
+                          className="h-6 max-w-[60px] object-contain shrink-0" 
+                        />
+                      )}
+                      <span className="text-xs font-bold text-white truncate">
+                        {formData.bottomBannerText || (formData.bottomBannerLogoUrl ? '' : 'Adaugă text sau logo...')}
+                      </span>
+                      {!formData.bottomBannerTextFixed && formData.bottomBannerText && (
+                        <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-blue-500/30 text-blue-200 shrink-0 ml-auto">
+                          Rulant
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

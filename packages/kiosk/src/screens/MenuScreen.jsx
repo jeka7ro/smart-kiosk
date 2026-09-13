@@ -8,8 +8,9 @@ import { useInactivityTimeout } from '../hooks/useInactivityTimeout.js';
 import ProductCard from '../components/ProductCard.jsx';
 import ModifierModal from '../components/ModifierModal.jsx';
 import StartPromoModal from '../components/StartPromoModal.jsx';
+import CategoryHeroBanner from '../components/CategoryHeroBanner.jsx';
 import { proxySyrveImage } from '../utils/imageUtils.js';
-import { getEffectivePrice } from '../utils/priceUtils.js';
+import { getEffectivePrice, hasActivePromo } from '../utils/priceUtils.js';
 import './MenuScreen.css';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
@@ -353,6 +354,58 @@ export default function MenuScreen() {
     return list.sort((a, b) => (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0));
   }, [search, products, allProducts, activeCategory, activeBrandId, activeDiet]);
 
+  // Category Hero Product (KFC Style "Produsul Vedetă" - On/Off & Config via Settings)
+  const isHeroActive = locationData?.categoryHeroActive !== undefined
+    ? Boolean(locationData.categoryHeroActive)
+    : (localStorage.getItem('kiosk_category_hero') !== 'false');
+
+  const isHeroSteam = locationData?.categoryHeroSteam !== undefined
+    ? Boolean(locationData.categoryHeroSteam)
+    : (localStorage.getItem('kiosk_category_hero_steam') !== 'false');
+
+  const categoryHeroProduct = useMemo(() => {
+    if (!isHeroActive || !filteredProducts || filteredProducts.length === 0 || search) return null;
+    const withImage = filteredProducts.filter(p => !!p.image && Number(p.price) > 0);
+    if (withImage.length === 0) return null;
+
+    // 1. REGULĂ PRIORITARĂ: Dacă în categorie există un produs cu preț redus (promo), acela devine automat Hero!
+    const isDiscounted = (p) => {
+      if (!p) return false;
+      if (hasActivePromo(p)) return true;
+      if (p.oldPrice && Number(p.oldPrice) > Number(p.price)) return true;
+      if (p.discountPrice && Number(p.discountPrice) > 0 && Number(p.discountPrice) < Number(p.price)) return true;
+      if (p.promoPrice && Number(p.promoPrice) > 0 && Number(p.promoPrice) < Number(p.price)) return true;
+      return false;
+    };
+
+    const discountedList = withImage.filter(isDiscounted);
+    if (discountedList.length > 0) {
+      // Dacă sunt mai multe produse cu discount în categorie, îl alegem pe cel cu economia cea mai mare
+      discountedList.sort((a, b) => {
+        const effA = getEffectivePrice(a);
+        const effB = getEffectivePrice(b);
+        const origA = Number(a.oldPrice || a.price || 0);
+        const origB = Number(b.oldPrice || b.price || 0);
+        return (origB - effB) - (origA - effA);
+      });
+      return discountedList[0];
+    }
+
+    // 2. Dacă este setat un produs anume în setări, îl căutăm
+    const customHeroId = (locationData?.categoryHeroProductId || localStorage.getItem('kiosk_category_hero_product_id') || '').trim();
+    if (customHeroId) {
+      const customMatch = withImage.find(p => 
+        p.id === customHeroId || 
+        p.productId === customHeroId || 
+        p.name?.toLowerCase() === customHeroId.toLowerCase()
+      );
+      if (customMatch) return customMatch;
+    }
+
+    // 3. Implicit (default): primul produs din categorie
+    return withImage[0];
+  }, [isHeroActive, filteredProducts, search, locationData?.categoryHeroProductId]);
+
   const visibleCategories = useMemo(() => {
     return categories.filter(cat => {
       return products.some(p => 
@@ -602,6 +655,22 @@ export default function MenuScreen() {
 
         {/* ─── PRODUCTS GRID ───────────────────────── */}
         <main className="products-area" ref={productsAreaRef}>
+          {/* ─── CATEGORY HERO BANNER (KFC Style - Activabil din Setări) ─── */}
+          {categoryHeroProduct && (
+            <CategoryHeroBanner
+              product={categoryHeroProduct}
+              lang={lang}
+              steam={isHeroSteam}
+              brandLogo={activeBrandLogo || locationData?.logoUrl}
+              onSelect={(prod) => {
+                if (productsAreaRef.current) setMenuScrollTop(productsAreaRef.current.scrollTop);
+                setMenuActiveCategory(activeCategory);
+                setSelectedProduct(prod);
+              }}
+              onQuickAdd={(e) => handleQuickAdd(categoryHeroProduct, e.currentTarget)}
+            />
+          )}
+
           {filteredProducts.length === 0 ? (
             <div className="empty-cat">
               <p>{t('cart_empty', lang)}</p>

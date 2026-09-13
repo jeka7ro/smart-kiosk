@@ -5,6 +5,7 @@ import { useBrand } from '../context/BrandContext.js';
 import { useInactivityTimeout } from '../hooks/useInactivityTimeout.js';
 import { proxySyrveImage } from '../utils/imageUtils.js';
 import { getEffectivePrice } from '../utils/priceUtils.js';
+import UpsellModal from '../components/UpsellModal.jsx';
 import './CartScreen.css';
 
 export default function CartScreen() {
@@ -17,6 +18,7 @@ export default function CartScreen() {
   const getCartTotal   = useKioskStore((s) => s.getCartTotal);
   const goTo           = useKioskStore((s) => s.goTo);
   const lang           = useKioskStore((s) => s.lang);
+  const locationData   = useKioskStore((s) => s.locationData);
   const setShowWheel   = useKioskStore((s) => s.setShowWheel);
   const setPromoIntendedRoute = useKioskStore((s) => s.setPromoIntendedRoute);
   const hasPlayedPromo = useKioskStore((s) => s.hasPlayedPromo);
@@ -24,6 +26,8 @@ export default function CartScreen() {
   const brand          = useBrand();
   const [imgErrors, setImgErrors] = useState({});
   const [addedIds, setAddedIds]   = useState({});
+  const [showUpsellModal, setShowUpsellModal] = useState(false);
+  const [hasEvaluatedUpsell, setHasEvaluatedUpsell] = useState(false);
 
   const subtotal  = getCartTotal();
   const VAT_RATE  = 0.09;
@@ -83,6 +87,65 @@ export default function CartScreen() {
         return next; 
       });
     }, 1200);
+  };
+
+  // Upsell candidates for "Doriți și..." modal (KFC style - On/Off via Settings)
+  const isUpsellActive = locationData?.upsellActive !== undefined
+    ? Boolean(locationData.upsellActive)
+    : (localStorage.getItem('kiosk_upsell_active') !== 'false');
+  const upsellCandidates = useMemo(() => {
+    if (!menuProducts || !menuProducts.length) return [];
+    const UPSELL_REGEX = /sos|sauce|ketchup|mayo|maionez|dip|aioli|wasabi|ghimbir|ginger|soia|sweet chili|cartof|fries|potato|wedges|inel|onion|porumb|corn|salat|coleslaw|miso|edamame|bautur|drink|cola|pepsi|apa|apă|water|fanta|sprite|fuze|ceai|tea|bere|beer|shake|smoothie|limonad|lemonade|suc|juice|ayran|mirinda|desert|dessert|muffin|prajit|prăjitur|cake|inghetat|înghețat|sundae|clatit|clătit|donut|mochi|tiramisu|brownie|cheesecake|cookie/i;
+
+    return menuProducts.filter(p => {
+      if (cartProductIds.has(p.id)) return false;
+      if (!p.price || Number(p.price) <= 0) return false;
+      const name = p.name || '';
+      const cat = p.categoryName || '';
+      return UPSELL_REGEX.test(`${name} ${cat}`);
+    });
+  }, [menuProducts, cartProductIds]);
+
+  const executePaymentFlow = async () => {
+    try {
+      const locId = new URLSearchParams(window.location.search).get('loc') || localStorage.getItem('kiosk_loc_id');
+      if (!locId) return goTo('payment');
+      
+      const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
+      const res = await fetch(`${BACKEND}/api/promotions/kiosk/${locId}`);
+      const pData = await res.json();
+      
+      if (pData && pData.available && pData.rules) {
+        const trigger = pData.rules.triggerMoment || 'after_payment';
+        if (trigger === 'before_payment') {
+          const minVal = pData.rules.minOrderValue || 0;
+          const freqEnabled = pData.rules.freqEnabled === undefined ? true : pData.rules.freqEnabled;
+          const ordersToAppear = pData.rules.ordersToAppear || 1;
+          const ordersFinished = parseInt(localStorage.getItem('kiosk_orders_count') || '0', 10);
+          
+          const isRightFreq = freqEnabled ? ((ordersFinished % ordersToAppear) === 0) : true;
+          const hasSpunTooMany = cartItems.filter(i => i.isPromo).length >= 1;
+
+          if (subtotal >= minVal && isRightFreq && !hasSpunTooMany && !hasPlayedPromo) {
+             setPromoIntendedRoute('payment');
+             setShowWheel(true);
+             return;
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Promo eval failed:", e);
+    }
+    // Normal flow
+    goTo('payment');
+  };
+
+  const handlePayClick = () => {
+    if (isUpsellActive && !hasEvaluatedUpsell && upsellCandidates.length > 0) {
+      setShowUpsellModal(true);
+      return;
+    }
+    executePaymentFlow();
   };
 
   const groupedCart = cartItems.reduce((acc, item) => {
@@ -247,41 +310,11 @@ export default function CartScreen() {
               <span className="price price-xl">{subtotal.toFixed(2)} {t('lei', lang)}</span>
             </div>
           </div>
-          <button className="btn btn-pay btn-xl" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={() => {
-            (async () => {
-              try {
-                const locId = new URLSearchParams(window.location.search).get('loc') || localStorage.getItem('kiosk_loc_id');
-                if (!locId) return goTo('payment');
-                
-                const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
-                const res = await fetch(`${BACKEND}/api/promotions/kiosk/${locId}`);
-                const pData = await res.json();
-                
-                if (pData && pData.available && pData.rules) {
-                  const trigger = pData.rules.triggerMoment || 'after_payment';
-                  if (trigger === 'before_payment') {
-                    const minVal = pData.rules.minOrderValue || 0;
-                    const freqEnabled = pData.rules.freqEnabled === undefined ? true : pData.rules.freqEnabled;
-                    const ordersToAppear = pData.rules.ordersToAppear || 1;
-                    const ordersFinished = parseInt(localStorage.getItem('kiosk_orders_count') || '0', 10);
-                    
-                    const isRightFreq = freqEnabled ? ((ordersFinished % ordersToAppear) === 0) : true;
-                    const hasSpunTooMany = cartItems.filter(i => i.isPromo).length >= 1;
-
-                    if (subtotal >= minVal && isRightFreq && !hasSpunTooMany && !hasPlayedPromo) {
-                       setPromoIntendedRoute('payment');
-                       setShowWheel(true);
-                       return;
-                    }
-                  }
-                }
-              } catch (e) {
-                console.error("Promo eval failed:", e);
-              }
-              // Normal flow
-              goTo('payment');
-            })();
-          }}>
+          <button 
+            className="btn btn-pay btn-xl" 
+            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} 
+            onClick={handlePayClick}
+          >
             {t('pay', lang)} {subtotal.toFixed(2)} {t('lei', lang)} →
           </button>
           <button className="btn btn-ghost btn-lg" style={{ width: '100%', marginTop: 10 }} onClick={() => goTo('menu')}>
@@ -289,6 +322,28 @@ export default function CartScreen() {
           </button>
         </div>
       </div>
+
+      {/* ─── UPSELL MODAL (KFC Style: DORIȚI ȘI... - Activabil din Setări) ─── */}
+      {showUpsellModal && (
+        <UpsellModal
+          candidates={upsellCandidates}
+          onConfirm={(selectedList) => {
+            selectedList.forEach(({ product, quantity }) => {
+              const actualBrandId = product._brand || brand?.id;
+              addToCart(product, quantity, [], getEffectivePrice(product), actualBrandId, false);
+            });
+            setShowUpsellModal(false);
+            setHasEvaluatedUpsell(true);
+            executePaymentFlow();
+          }}
+          onSkip={() => {
+            setShowUpsellModal(false);
+            setHasEvaluatedUpsell(true);
+            executePaymentFlow();
+          }}
+          lang={lang}
+        />
+      )}
     </div>
   );
 }

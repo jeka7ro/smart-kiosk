@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import BrandLogo from './BrandLogo';
-import { TrendingUp, PieChart, CreditCard, Clock, Banknote, Calendar, Flame } from 'lucide-react';
+import { TrendingUp, PieChart, CreditCard, Clock, Banknote, Calendar, Flame, Trophy, Award, ShoppingBag, Utensils, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatThousands } from '../utils/formatters';
 
 const BRAND_COLORS = {
@@ -24,6 +24,7 @@ export function SalesTrendChart3D({
 }) {
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const [metricMode, setMetricMode] = useState('revenue'); // 'revenue' | 'count'
+  const [showValues, setShowValues] = useState(true); // Afișare directă a valorilor pe grafic
 
   // Determină buckets în funcție de perioadă
   const isHourly = period === 'today' || period === 'yesterday';
@@ -99,10 +100,10 @@ export function SalesTrendChart3D({
 
   const maxVal = Math.max(...buckets.map(b => metricMode === 'revenue' ? b.revenue : b.count), 10);
   const width = 640;
-  const height = 200;
+  const height = 230;
   const padX = 42;
-  const padTop = 20;
-  const padBottom = 30;
+  const padTop = 36;
+  const padBottom = 32;
   const chartW = width - padX * 2;
   const chartH = height - padTop - padBottom;
   const depth = 14; // 3D isometric z-depth
@@ -177,25 +178,39 @@ export function SalesTrendChart3D({
           </div>
         </div>
 
-        {/* Toggle Mode */}
-        <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-full border border-slate-200 dark:border-slate-700">
+        {/* Toggle Mode & Valori pe Grafic */}
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => setMetricMode('revenue')}
-            className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full transition-all ${metricMode === 'revenue' ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
+            onClick={() => setShowValues(v => !v)}
+            className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full transition-all border ${
+              showValues 
+                ? 'bg-blue-600 text-white border-blue-600 shadow-xs' 
+                : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+            }`}
+            title="Afișează sau ascunde valorile direct pe grafic"
           >
-            Încasări (RON)
+            Valori pe Grafic
           </button>
-          <button
-            onClick={() => setMetricMode('count')}
-            className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full transition-all ${metricMode === 'count' ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
-          >
-            Nr. Comenzi
-          </button>
+
+          <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-full border border-slate-200 dark:border-slate-700">
+            <button
+              onClick={() => setMetricMode('revenue')}
+              className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full transition-all ${metricMode === 'revenue' ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
+            >
+              Încasări (RON)
+            </button>
+            <button
+              onClick={() => setMetricMode('count')}
+              className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full transition-all ${metricMode === 'count' ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
+            >
+              Nr. Comenzi
+            </button>
+          </div>
         </div>
       </div>
 
       {/* SVG 3D Canvas */}
-      <div className="relative w-full h-[200px]">
+      <div className="relative w-full h-[230px]">
         <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible">
           <defs>
             <linearGradient id="gridGradient" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -317,6 +332,10 @@ export function SalesTrendChart3D({
             const isPointSelected = isHourly 
               ? (selectedHour === pt.b.hour) 
               : (selectedDay?.value === pt.b.label);
+            const valText = metricMode === 'revenue' 
+              ? `${formatThousands(Math.round(pt.val))} lei` 
+              : `${pt.val} com.`;
+            const pillW = Math.max(38, valText.length * 6.2 + 12);
 
             return (
               <g 
@@ -368,11 +387,12 @@ export function SalesTrendChart3D({
                   <circle
                     cx={pt.x}
                     cy={pt.y}
-                    r={12}
+                    r={11}
                     fill="none"
                     stroke="#38bdf8"
-                    strokeWidth="2.5"
-                    className="animate-ping"
+                    strokeWidth="1.5"
+                    opacity="0.75"
+                    strokeDasharray="3,2"
                   />
                 )}
 
@@ -386,6 +406,77 @@ export function SalesTrendChart3D({
                   className="transition-all duration-200"
                   style={{ filter: (isPointSelected || isHovered) ? 'drop-shadow(0 0 10px #38bdf8)' : 'none' }}
                 />
+
+                {/* Valoare numerică afișată direct pe grafic (Data Label) */}
+                {showValues && (
+                  pt.val > 0 ? (
+                    <g 
+                      className="transition-all duration-200 pointer-events-none select-none"
+                      style={{ transformOrigin: `${pt.x}px ${pt.y}px` }}
+                    >
+                      {/* Tija / Conector discret de la punct la etichetă */}
+                      <line
+                        x1={pt.x}
+                        y1={pt.y - (isPointSelected ? 9 : 6)}
+                        x2={pt.x}
+                        y2={pt.y - 11}
+                        stroke={isPointSelected ? "#38bdf8" : (isHovered ? "#38bdf8" : "#818cf8")}
+                        strokeWidth="1"
+                        strokeDasharray="2,2"
+                        opacity={isHovered || isPointSelected ? 0.95 : 0.45}
+                      />
+
+                      {/* Pill Badge Glassmorphism 3D */}
+                      <rect
+                        x={pt.x - pillW / 2}
+                        y={pt.y - 28}
+                        width={pillW}
+                        height={17}
+                        rx={8.5}
+                        className={`transition-colors ${
+                          isPointSelected 
+                            ? 'fill-blue-600 stroke-cyan-300' 
+                            : isHovered 
+                            ? 'fill-slate-900 stroke-cyan-400' 
+                            : 'fill-slate-900/90 dark:fill-slate-950/95 stroke-blue-500/40 dark:stroke-cyan-500/40'
+                        }`}
+                        strokeWidth={isPointSelected || isHovered ? "1.5" : "0.75"}
+                        style={{
+                          filter: isPointSelected || isHovered 
+                            ? 'drop-shadow(0 0 8px rgba(56,189,248,0.7))' 
+                            : 'drop-shadow(0 2px 4px rgba(0,0,0,0.35))'
+                        }}
+                      />
+
+                      {/* Valoare numerică proporțională (FĂRĂ font-mono) */}
+                      <text
+                        x={pt.x}
+                        y={pt.y - 16}
+                        textAnchor="middle"
+                        fontSize="9.5"
+                        className={`font-bold tracking-tight select-none ${
+                          isPointSelected 
+                            ? 'fill-white' 
+                            : isHovered 
+                            ? 'fill-white' 
+                            : 'fill-cyan-300 dark:fill-cyan-400'
+                        }`}
+                      >
+                        {valText}
+                      </text>
+                    </g>
+                  ) : (
+                    <text
+                      x={pt.x}
+                      y={pt.y - 8}
+                      textAnchor="middle"
+                      fontSize="8.5"
+                      className="font-semibold fill-slate-400/50 dark:fill-slate-600 select-none"
+                    >
+                      0
+                    </text>
+                  )
+                )}
 
                 <text
                   x={pt.x}
@@ -441,7 +532,9 @@ export function SalesTrendChart3D({
 export function BrandDonutChart3D({ 
   orders = [], 
   selectedBrands = [], 
-  onSelectBrand = () => {} 
+  onSelectBrand = () => {},
+  selectedHour = null,
+  selectedDay = null
 }) {
   const [hoveredBrand, setHoveredBrand] = useState(null);
 
@@ -524,7 +617,11 @@ export function BrandDonutChart3D({
               </span>
             </h4>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Pondere vânzări per brand în perioada selectată
+              {selectedHour !== null 
+                ? `Vânzări pe branduri la ora ${selectedHour}:00 - ${selectedHour + 1}:00` 
+                : selectedDay?.label 
+                ? `Vânzări pe branduri în ziua de ${selectedDay.label}` 
+                : 'Pondere vânzări per brand în perioada selectată'}
             </p>
           </div>
         </div>
@@ -626,6 +723,66 @@ export function BrandDonutChart3D({
               );
             })}
 
+            {/* Slice Labels with Percentage (Data Labels pe Donut 3D) */}
+            {slices.map(s => {
+              if (s.angleSpan < 16) return null;
+              const isHovered = hoveredBrand === s.id;
+              const isSelected = selectedBrands.includes(s.id);
+              const liftY = isSelected ? -12 : (isHovered ? -8 : 0);
+              const midAngle = s.startAngle + s.angleSpan / 2;
+              const midRx = (rx + innerRx) / 2;
+              const midRy = (ry + innerRy) / 2;
+              const pos = getEllipsePoint(midAngle, midRx, midRy, liftY);
+
+              return (
+                <g 
+                  key={`badge-${s.id}`} 
+                  className="pointer-events-none select-none transition-transform duration-200"
+                >
+                  <rect
+                    x={pos.x - 20}
+                    y={pos.y - 9}
+                    width={40}
+                    height={18}
+                    rx={9}
+                    fill="rgba(15, 23, 42, 0.88)"
+                    stroke="#ffffff"
+                    strokeWidth={isSelected || isHovered ? "1.5" : "0.75"}
+                    style={{ filter: 'drop-shadow(0 2px 5px rgba(0,0,0,0.5))' }}
+                  />
+                  <text
+                    x={pos.x}
+                    y={pos.y + 3.5}
+                    textAnchor="middle"
+                    fontSize="9.5"
+                    className="font-bold tracking-tight fill-white select-none"
+                  >
+                    {s.pct.toFixed(0)}%
+                  </text>
+                </g>
+              );
+            })}
+
+            {/* Donut Center Hole Metrics */}
+            <g className="pointer-events-none select-none">
+              <text
+                x={cx}
+                y={cy + 6}
+                textAnchor="middle"
+                className="fill-slate-900 dark:fill-white font-black text-xs tracking-tight select-none"
+              >
+                {formatThousands(brandData.totalRevenue)} lei
+              </text>
+              <text
+                x={cx}
+                y={cy + 19}
+                textAnchor="middle"
+                className="fill-slate-500 dark:fill-slate-400 font-bold text-[9px] select-none"
+              >
+                {brandData.totalCount} comenzi
+              </text>
+            </g>
+
           </svg>
         </div>
 
@@ -687,7 +844,9 @@ export function BrandDonutChart3D({
 export function PaymentMethodsChart3D({ 
   orders = [], 
   selectedPayment = 'all', 
-  onSelectPayment = () => {} 
+  onSelectPayment = () => {},
+  selectedHour = null,
+  selectedDay = null
 }) {
   const [hoveredMethod, setHoveredMethod] = useState(null);
 
@@ -753,7 +912,11 @@ export function PaymentMethodsChart3D({
               </span>
             </h4>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Card POS vs Cash la Casă (click pentru filtrare)
+              {selectedHour !== null 
+                ? `la ora ${selectedHour}:00 - ${selectedHour + 1}:00 • Card POS vs Cash`
+                : selectedDay
+                ? `${selectedDay.label} • Card POS vs Cash`
+                : 'Card POS vs Cash la Casă (click pentru filtrare)'}
             </p>
           </div>
         </div>
@@ -768,29 +931,86 @@ export function PaymentMethodsChart3D({
         )}
       </div>
 
-      {/* ─── Proportional Distribution Track (Dashboard Standard) ─── */}
-      <div className="space-y-1.5 relative z-10">
-        <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400 px-0.5">
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
-            <span>Card POS: {stats.card.pct.toFixed(1)}%</span>
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span>Cash: {stats.cash.pct.toFixed(1)}%</span>
-            <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
-          </span>
+      {/* ─── Apple iOS Style Distribution Bar ─── */}
+      <div className="space-y-2 relative z-10 select-none">
+        {/* Metric Header */}
+        <div className="flex items-center justify-between text-xs font-semibold px-0.5">
+          <div 
+            onClick={() => onSelectPayment(isCardActive ? 'all' : 'card')}
+            className={`flex items-center gap-1.5 cursor-pointer transition-opacity ${isCashActive ? 'opacity-40 hover:opacity-80' : 'opacity-100'}`}
+            title="Filtrează după Card POS"
+          >
+            <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-xs shadow-emerald-500/50" />
+            <span className="text-slate-700 dark:text-slate-200 font-bold">Card POS</span>
+            <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+              {stats.card.pct.toFixed(1)}%
+            </span>
+          </div>
+
+          <div 
+            onClick={() => onSelectPayment(isCashActive ? 'all' : 'cash')}
+            className={`flex items-center gap-1.5 cursor-pointer transition-opacity ${isCardActive ? 'opacity-40 hover:opacity-80' : 'opacity-100'}`}
+            title="Filtrează după Cash"
+          >
+            <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+              {stats.cash.pct.toFixed(1)}%
+            </span>
+            <span className="text-slate-700 dark:text-slate-200 font-bold">Cash</span>
+            <span className="w-2 h-2 rounded-full bg-amber-500 shadow-xs shadow-amber-500/50" />
+          </div>
         </div>
 
-        <div className="w-full h-2.5 rounded-full p-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 flex items-center gap-1 overflow-hidden shadow-inner">
+        {/* 3D Apple-Style Liquid Glass Capsule */}
+        <div 
+          className="relative w-full h-7 sm:h-8 rounded-full p-1 bg-gradient-to-b from-slate-200 via-slate-100 to-slate-300 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 border border-slate-300/90 dark:border-white/20 flex items-center overflow-hidden cursor-pointer select-none"
+          style={{
+            boxShadow: 'inset 0 3px 6px rgba(0,0,0,0.3), inset 0 1px 2px rgba(0,0,0,0.2), 0 4px 12px rgba(0,0,0,0.08), 0 1px 2px rgba(255,255,255,0.8)'
+          }}
+          onClick={() => onSelectPayment(isCardActive ? 'cash' : (isCashActive ? 'all' : 'card'))}
+          title="Click pentru a filtra după metoda de plată"
+        >
+          {/* Background Layer: 3D Cash Amber Cylinder */}
+          <div 
+            className="absolute inset-1 rounded-full overflow-hidden"
+            style={{
+              background: 'linear-gradient(180deg, #fef9c3 0%, #fde047 18%, #f59e0b 50%, #d97706 82%, #92400e 100%)',
+              boxShadow: 'inset 0 2px 2px rgba(255,255,255,0.9), inset 0 -3px 4px rgba(0,0,0,0.45)'
+            }}
+          >
+            {/* Cash Top Specular Reflection */}
+            <div className="absolute inset-x-1 top-0 h-[42%] rounded-t-full bg-gradient-to-b from-white/80 via-white/25 to-transparent pointer-events-none" />
+            {/* Cash Bottom Bounce Light */}
+            <div className="absolute inset-x-2 bottom-0 h-[28%] rounded-b-full bg-gradient-to-t from-amber-200/40 to-transparent pointer-events-none" />
+          </div>
+
+          {/* Foreground Layer: 3D Card POS Emerald Cylinder */}
           <div
-            style={{ width: `${Math.max(stats.card.pct > 0 ? 8 : 0, stats.card.pct)}%` }}
-            className="h-full rounded-full bg-emerald-500 transition-all duration-500"
-            title={`Card POS: ${stats.card.pct.toFixed(1)}%`}
-          />
-          <div
-            style={{ width: `${Math.max(stats.cash.pct > 0 ? 8 : 0, stats.cash.pct)}%` }}
-            className="h-full rounded-full bg-amber-500 transition-all duration-500"
-            title={`Cash la Casă: ${stats.cash.pct.toFixed(1)}%`}
+            style={{ 
+              width: `${stats.card.pct}%`,
+              background: 'linear-gradient(180deg, #d1fae5 0%, #6ee7b7 18%, #10b981 50%, #059669 82%, #064e3b 100%)',
+              boxShadow: 'inset 0 2px 2px rgba(255,255,255,0.95), inset 0 -3px 4px rgba(0,0,0,0.45), 3px 0 10px rgba(0,0,0,0.35)'
+            }}
+            className="relative h-full rounded-l-full flex items-center justify-end overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] z-10"
+          >
+            {/* Top Specular Glass Reflection */}
+            <div className="absolute inset-x-1 top-0 h-[42%] rounded-t-full bg-gradient-to-b from-white/85 via-white/30 to-transparent pointer-events-none" />
+            {/* Bottom Bounce Light */}
+            <div className="absolute inset-x-2 bottom-0 h-[28%] rounded-b-full bg-gradient-to-t from-emerald-200/40 to-transparent pointer-events-none" />
+            {/* 3D Physical Seam Divider Bead */}
+            <div 
+              className="w-1.5 h-full bg-gradient-to-b from-white via-slate-100 to-white/80 shrink-0 z-20"
+              style={{
+                boxShadow: '0 0 6px rgba(255,255,255,0.9), -1.5px 0 3px rgba(0,0,0,0.35)'
+              }}
+            />
+          </div>
+
+          {/* Diagonal Glass Sheen across entire capsule */}
+          <div 
+            className="absolute inset-0 pointer-events-none rounded-full z-30"
+            style={{
+              background: 'linear-gradient(120deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.05) 30%, transparent 60%)'
+            }}
           />
         </div>
       </div>
@@ -918,7 +1138,7 @@ export function PaymentMethodsChart3D({
             {stats.card.pct >= 50 ? 'Plățile cu cardul domină vânzările' : 'Plata în numerar predomină'}
           </span>
         </div>
-        <span className="font-mono font-bold text-slate-900 dark:text-white">
+        <span className="font-bold text-slate-900 dark:text-white tracking-tight text-xs">
           Total: {formatThousands(stats.totalRevenue)} lei
         </span>
       </div>
@@ -1057,15 +1277,15 @@ export function CalendarHeatmapChart({
     }
     const ratio = val / maxVal;
     if (ratio <= 0.25) {
-      return 'bg-indigo-500/20 dark:bg-indigo-500/25 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 font-semibold';
+      return 'bg-rose-500/20 dark:bg-rose-500/25 text-rose-700 dark:text-rose-300 border border-rose-500/35 font-semibold';
     }
     if (ratio <= 0.50) {
-      return 'bg-indigo-500/45 dark:bg-indigo-500/50 text-indigo-950 dark:text-indigo-100 border border-indigo-500/60 font-bold';
+      return 'bg-amber-500/25 dark:bg-amber-500/30 text-amber-800 dark:text-amber-200 border border-amber-500/40 font-bold';
     }
     if (ratio <= 0.75) {
-      return 'bg-indigo-600 text-white font-bold border border-indigo-400 shadow-sm shadow-indigo-500/30';
+      return 'bg-emerald-500/60 dark:bg-emerald-500/70 text-emerald-950 dark:text-white border border-emerald-500/80 font-bold shadow-xs';
     }
-    return 'bg-gradient-to-tr from-purple-600 to-indigo-600 text-white font-black border border-purple-400 shadow-md shadow-purple-500/40';
+    return 'bg-emerald-800 dark:bg-emerald-700 text-white font-black border border-emerald-900 dark:border-emerald-600 shadow-md shadow-emerald-950/30';
   };
 
   const peakDayName = DAYS.find(d => d.id === peakInfo.dayId)?.name || 'Luni';
@@ -1075,18 +1295,18 @@ export function CalendarHeatmapChart({
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-2.5">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-500 text-white flex items-center justify-center shadow-lg shadow-purple-500/25 shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/25 shrink-0">
             <Calendar className="w-4.5 h-4.5" />
           </div>
           <div>
             <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
               Calendar Zile & Ore
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
                 Heatmap Activitate
               </span>
             </h4>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Vârf: <strong className="text-purple-600 dark:text-purple-400">{peakDayName} la {peakInfo.hour}:00</strong> ({peakInfo.count} comenzi)
+              Vârf: <strong className="text-emerald-700 dark:text-emerald-400">{peakDayName} la {peakInfo.hour}:00</strong> ({peakInfo.count} comenzi)
             </p>
           </div>
         </div>
@@ -1097,7 +1317,7 @@ export function CalendarHeatmapChart({
             onClick={() => setMetricMode('count')}
             className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full transition-all ${
               metricMode === 'count' 
-                ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs' 
+                ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs' 
                 : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
             }`}
           >
@@ -1107,7 +1327,7 @@ export function CalendarHeatmapChart({
             onClick={() => setMetricMode('revenue')}
             className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full transition-all ${
               metricMode === 'revenue' 
-                ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs' 
+                ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs' 
                 : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
             }`}
           >
@@ -1133,7 +1353,7 @@ export function CalendarHeatmapChart({
                       title={`Filtrează ora ${h}:00 (Click pentru activare/deselectare)`}
                       className={`w-full py-1 rounded-lg text-[10px] font-bold transition-all ${
                         isHourSelected
-                          ? 'bg-purple-600 text-white shadow-sm ring-2 ring-purple-400 scale-105'
+                          ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-400 scale-105'
                           : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
                       }`}
                     >
@@ -1156,15 +1376,15 @@ export function CalendarHeatmapChart({
                       title={`Filtrează comenzile de ${d.name} (Click pentru activare/deselectare)`}
                       className={`w-full text-left px-2 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-between ${
                         isDaySelected
-                          ? 'bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-400'
+                          ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-400'
                           : isToday && period === 'today'
-                          ? 'bg-purple-500/15 text-purple-600 dark:text-purple-400 font-black border border-purple-500/30'
+                          ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-black border border-emerald-500/30'
                           : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
                       }`}
                     >
                       <span>{d.short}</span>
                       {isToday && period === 'today' && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
                       )}
                     </button>
                   </td>
@@ -1185,9 +1405,9 @@ export function CalendarHeatmapChart({
                           title={`${d.name}, ${h}:00 - ${h+1}:00: ${cell.count} comenzi (${cell.revenue.toFixed(0)} lei)`}
                           className={`w-full h-7 rounded-md flex items-center justify-center text-[10.5px] transition-all cursor-pointer ${colorClass} ${
                             isExactSelected
-                              ? 'ring-2 ring-blue-500 dark:ring-blue-400 scale-110 shadow-lg z-20 font-black'
+                              ? 'ring-2 ring-emerald-500 dark:ring-emerald-400 scale-110 shadow-lg z-20 font-black'
                               : isInSelectedRow || isInSelectedCol
-                              ? 'ring-1 ring-purple-400/60'
+                              ? 'ring-1 ring-emerald-400/60'
                               : 'hover:scale-105 hover:shadow-sm'
                           }`}
                         >
@@ -1216,7 +1436,7 @@ export function CalendarHeatmapChart({
             <span className="font-bold text-slate-900 dark:text-white">
               {hoveredCell.dayName}, ora {hoveredCell.hour}:00:
             </span>
-            <span className="font-semibold text-purple-600 dark:text-purple-400">
+            <span className="font-semibold text-emerald-700 dark:text-emerald-400">
               {hoveredCell.count} {hoveredCell.count === 1 ? 'comandă' : 'comenzi'} ({formatThousands(hoveredCell.revenue)} lei)
             </span>
             <span className="text-[10px] text-slate-400">
@@ -1233,12 +1453,11 @@ export function CalendarHeatmapChart({
         {/* Legend Scale */}
         <div className="flex items-center gap-1.5 ml-auto text-[10px] text-slate-400 font-medium">
           <span>0</span>
-          <div className="w-3 h-3 rounded bg-slate-100 dark:bg-slate-800/40 border border-slate-200/50" />
-          <div className="w-3 h-3 rounded bg-indigo-500/25" />
-          <div className="w-3 h-3 rounded bg-indigo-500/50" />
-          <div className="w-3 h-3 rounded bg-indigo-600" />
-          <div className="w-3 h-3 rounded bg-gradient-to-tr from-purple-600 to-indigo-600" />
-          <span>Vârf</span>
+          <div className="w-3 h-3 rounded bg-slate-100 dark:bg-slate-800/40 border border-slate-200/50" title="0 comenzi" />
+          <div className="w-3 h-3 rounded bg-rose-500/25 border border-rose-500/35" title="Slab (roșu)" />
+          <div className="w-3 h-3 rounded bg-amber-500/30 border border-amber-500/40" title="Mediu (galben)" />
+          <div className="w-3 h-3 rounded bg-emerald-500/60 border border-emerald-500/80" title="Bun (verde)" />
+          <div className="w-3 h-3 rounded bg-emerald-800 dark:bg-emerald-700 border border-emerald-900" title="Vârf (verde închis)" />
         </div>
       </div>
     </div>
@@ -1246,7 +1465,419 @@ export function CalendarHeatmapChart({
 }
 
 /**
- * Wrapper Component to render all 4 3D Charts neatly in a 2x2 grid with interactive cross-filtering
+ * 5. GRAFIC 3D: Top Vânzări Produse (Best Sellers with 3D Apple Liquid Bars & Podium)
+ */
+export function TopProductsChart3D({
+  orders = [],
+  selectedProduct = '',
+  onSelectProduct = () => {},
+  selectedHour = null,
+  selectedDay = null
+}) {
+  const [metricMode, setMetricMode] = useState('quantity'); // 'quantity' | 'revenue'
+  const [limit, setLimit] = useState(10); // 5 | 10
+  const [isExpanded, setIsExpanded] = useState(false); // Lista apare doar la extindere pe buton, nu permanent
+
+  const { topProducts, totalUnits, totalRevenue, maxMetricVal } = React.useMemo(() => {
+    const map = {};
+    let totalU = 0;
+    let totalR = 0;
+
+    orders.forEach(order => {
+      if (order.status === 'cancelled') return;
+      const items = Array.isArray(order.items) ? order.items : [];
+      items.forEach(item => {
+        const rawName = (item.name || '').trim();
+        if (!rawName) return;
+        const qty = Number(item.quantity) || 1;
+        const rev = Number(item.totalPrice) || (Number(item.unitPrice) * qty) || 0;
+        const brand = (item.brandId || order.brand || '').toLowerCase();
+        const imageUrl = item.imageUrl || null;
+
+        totalU += qty;
+        totalR += rev;
+
+        if (!map[rawName]) {
+          map[rawName] = {
+            name: rawName,
+            brand,
+            quantity: 0,
+            revenue: 0,
+            imageUrl
+          };
+        }
+        map[rawName].quantity += qty;
+        map[rawName].revenue += rev;
+        if (!map[rawName].imageUrl && imageUrl) {
+          map[rawName].imageUrl = imageUrl;
+        }
+      });
+    });
+
+    const all = Object.values(map);
+    all.sort((a, b) => {
+      if (metricMode === 'revenue') {
+        return b.revenue - a.revenue;
+      }
+      return b.quantity - a.quantity;
+    });
+
+    const maxVal = all.length > 0 ? (metricMode === 'revenue' ? all[0].revenue : all[0].quantity) : 1;
+
+    return {
+      topProducts: all,
+      totalUnits: totalU,
+      totalRevenue: totalR,
+      maxMetricVal: Math.max(1, maxVal)
+    };
+  }, [orders, metricMode]);
+
+  const displayedProducts = topProducts.slice(0, limit);
+  const podiumTop3 = topProducts.slice(0, 3);
+
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden transition-all duration-300">
+      {/* Ambient background glow */}
+      <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-amber-500/5 via-orange-500/5 to-transparent rounded-full blur-3xl pointer-events-none" />
+
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-5 relative z-10">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-lg shadow-amber-500/25 shrink-0">
+            <Trophy className="w-4.5 h-4.5" />
+          </div>
+          <div>
+            <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              Top Vânzări Produse
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                Clasament Produse
+              </span>
+            </h4>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              {topProducts.length} produse diferite vândute • {formatThousands(totalUnits)} bucăți ({formatThousands(totalRevenue)} lei)
+              {selectedHour !== null ? ` • la ora ${selectedHour}:00 - ${selectedHour + 1}:00` : ''}
+              {selectedDay ? ` • ${selectedDay.label}` : ''}
+            </p>
+          </div>
+        </div>
+
+        {/* Controls: Metric Mode + Limit Switcher */}
+        <div className="flex items-center gap-2">
+
+          {/* Limit Switcher (apare când lista este extinsă) */}
+          {isExpanded && (
+            <div className="bg-slate-100 dark:bg-slate-800 p-0.5 rounded-full flex items-center border border-slate-200/50 dark:border-slate-700/50">
+              <button
+                onClick={() => setLimit(5)}
+                className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full transition-all ${
+                  limit === 5
+                    ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                Top 5
+              </button>
+              <button
+                onClick={() => setLimit(10)}
+                className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full transition-all ${
+                  limit === 10
+                    ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                Top 10
+              </button>
+            </div>
+          )}
+
+          {/* Metric Mode Switcher */}
+          <div className="bg-slate-100 dark:bg-slate-800 p-0.5 rounded-full flex items-center border border-slate-200/50 dark:border-slate-700/50">
+            <button
+              onClick={() => setMetricMode('quantity')}
+              className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full transition-all ${
+                metricMode === 'quantity'
+                  ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
+            >
+              Cantitate (Buc)
+            </button>
+            <button
+              onClick={() => setMetricMode('revenue')}
+              className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full transition-all ${
+                metricMode === 'revenue'
+                  ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
+            >
+              Încasări (RON)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {displayedProducts.length === 0 ? (
+        <div className="py-12 text-center text-slate-400 text-xs">
+          Nu există vânzări în perioada selectată.
+        </div>
+      ) : (
+        <div className="space-y-5 relative z-10">
+          {/* ── Top 3 Podium Cards ── */}
+          {podiumTop3.length >= 2 && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+              {podiumTop3.map((prod, idx) => {
+                const rankNum = idx + 1;
+                const isFirst = rankNum === 1;
+                const isSecond = rankNum === 2;
+
+                const brandColor = BRAND_COLORS[prod.brand] || '#f59e0b';
+                const isSelected = selectedProduct && selectedProduct.toLowerCase() === prod.name.toLowerCase();
+
+                const sharePct = totalUnits > 0 ? ((prod.quantity / totalUnits) * 100).toFixed(1) : 0;
+                const revPct = totalRevenue > 0 ? ((prod.revenue / totalRevenue) * 100).toFixed(1) : 0;
+
+                return (
+                  <div
+                    key={prod.name}
+                    onClick={() => onSelectProduct(prod.name)}
+                    className={`rounded-2xl p-4 border transition-all duration-200 cursor-pointer group relative overflow-hidden select-none ${
+                      isSelected
+                        ? 'ring-2 ring-amber-500 scale-[1.02] shadow-md'
+                        : 'hover:scale-[1.01] hover:shadow-md'
+                    } ${
+                      isFirst
+                        ? 'bg-gradient-to-b from-amber-500/10 via-amber-500/[0.04] to-transparent border-amber-400/60 dark:border-amber-500/40 shadow-xs'
+                        : isSecond
+                        ? 'bg-gradient-to-b from-slate-200/50 via-slate-100/15 to-transparent dark:from-slate-800/40 border-slate-300 dark:border-slate-700'
+                        : 'bg-gradient-to-b from-amber-700/10 via-amber-700/[0.04] to-transparent dark:from-amber-900/20 border-amber-700/30 dark:border-amber-800/40'
+                    }`}
+                  >
+                    {/* Podium Rank Badge */}
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black border shadow-xs ${
+                        isFirst
+                          ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-400/40'
+                          : isSecond
+                          ? 'bg-slate-400/20 text-slate-700 dark:text-slate-300 border-slate-400/30'
+                          : 'bg-amber-800/20 text-amber-800 dark:text-amber-400 border-amber-700/30'
+                      }`}>
+                        <Trophy size={11} className="shrink-0" />
+                        <span>Locul {rankNum}</span>
+                      </span>
+
+                      {/* Brand pill cu avatar */}
+                      <div 
+                        className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border bg-white/90 dark:bg-slate-800/90 shadow-2xs"
+                        style={{ borderColor: `${brandColor}40` }}
+                      >
+                        <BrandLogo brandId={prod.brand} size={15} />
+                        <span 
+                          className="text-[10px] font-bold uppercase tracking-wider"
+                          style={{ color: brandColor }}
+                        >
+                          {prod.brand}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Product Media & Title */}
+                    <div className="flex items-center gap-3 mb-3">
+                      {prod.imageUrl ? (
+                        <img 
+                          src={prod.imageUrl} 
+                          alt={prod.name}
+                          className="w-12 h-12 rounded-2xl object-cover border border-slate-200 dark:border-slate-700 shadow-sm shrink-0 bg-white"
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                      ) : (
+                        <div 
+                          className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-800 flex items-center justify-center p-1 border shadow-xs shrink-0"
+                          style={{ borderColor: `${brandColor}50` }}
+                        >
+                          <BrandLogo brandId={prod.brand} size={28} />
+                        </div>
+                      )}
+
+                      <div className="min-w-0 flex-1">
+                        <h5 className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white truncate leading-tight">
+                          {prod.name}
+                        </h5>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                          {prod.quantity} buc. • {sharePct}% volum
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Metric Values & Mini Bar */}
+                    <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between">
+                      <span className="text-xs font-black text-slate-900 dark:text-white">
+                        {formatThousands(prod.revenue)} <span className="text-[10px] font-bold text-slate-400">lei</span>
+                      </span>
+                      <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                        {metricMode === 'revenue' ? `${revPct}% încasări` : `${prod.quantity} bucăți`}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* ── Buton de Extindere când lista este pliată ── */}
+          {!isExpanded ? (
+            <div className="pt-2 flex justify-center">
+              <button
+                onClick={() => setIsExpanded(true)}
+                className="px-6 py-2.5 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 hover:bg-amber-500 hover:text-white dark:hover:bg-amber-500 hover:border-amber-500 transition-all shadow-xs flex items-center gap-2 border border-slate-200/80 dark:border-slate-700 cursor-pointer group"
+              >
+                <span>Extinde clasament complet ({topProducts.length} produse)</span>
+                <ChevronDown size={14} className="group-hover:translate-y-0.5 transition-transform" />
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4 pt-1">
+              {/* ── Complete Ranking List with 3D Liquid Apple Progress Bars ── */}
+              <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                {displayedProducts.map((prod, index) => {
+                  const rank = index + 1;
+                  const val = metricMode === 'revenue' ? prod.revenue : prod.quantity;
+                  const fillPct = Math.max(8, (val / maxMetricVal) * 100);
+                  const brandColor = BRAND_COLORS[prod.brand] || '#f59e0b';
+                  const isSelected = selectedProduct && selectedProduct.toLowerCase() === prod.name.toLowerCase();
+
+                  const sharePct = totalUnits > 0 ? ((prod.quantity / totalUnits) * 100).toFixed(1) : 0;
+
+                  return (
+                    <div
+                      key={prod.name}
+                      onClick={() => onSelectProduct(prod.name)}
+                      className={`py-3 px-2 rounded-2xl transition-all duration-200 cursor-pointer group flex flex-col sm:flex-row sm:items-center justify-between gap-3 select-none ${
+                        isSelected
+                          ? 'bg-amber-500/10 ring-1 ring-amber-500/40'
+                          : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                      }`}
+                      title={`Click pentru a filtra comenzile cu ${prod.name}`}
+                    >
+                      {/* Left: Rank, Image, Product Info */}
+                      <div className="flex items-center gap-3 min-w-0 sm:w-1/2">
+                        {/* Rank Pill */}
+                        <span className={`w-6 h-6 rounded-full text-xs font-black flex items-center justify-center shrink-0 ${
+                          rank === 1
+                            ? 'bg-amber-500 text-white shadow-xs shadow-amber-500/50'
+                            : rank === 2
+                            ? 'bg-slate-400 text-white'
+                            : rank === 3
+                            ? 'bg-amber-700 text-white'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                        }`}>
+                          {rank}
+                        </span>
+
+                        {/* Image / Icon */}
+                        {prod.imageUrl ? (
+                          <img 
+                            src={prod.imageUrl} 
+                            alt={prod.name}
+                            className="w-9 h-9 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shadow-xs shrink-0 bg-white"
+                            onError={(e) => { e.target.style.display = 'none'; }}
+                          />
+                        ) : (
+                          <div 
+                            className="w-9 h-9 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center p-0.5 border shadow-xs shrink-0"
+                            style={{ borderColor: `${brandColor}40` }}
+                          >
+                            <BrandLogo brandId={prod.brand} size={20} />
+                          </div>
+                        )}
+
+                        {/* Title & Brand */}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200 truncate group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                              {prod.name}
+                            </span>
+                            <div 
+                              className="flex items-center gap-1 px-2 py-0.5 rounded-full border shrink-0 bg-white/70 dark:bg-slate-800/70 shadow-2xs"
+                              style={{ borderColor: `${brandColor}40` }}
+                            >
+                              <BrandLogo brandId={prod.brand} size={13} />
+                              <span 
+                                className="text-[9.5px] font-bold uppercase tracking-wider"
+                                style={{ color: brandColor }}
+                              >
+                                {prod.brand}
+                              </span>
+                            </div>
+                          </div>
+                          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                            {prod.quantity} buc. vândute • {sharePct}% din total
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Right: 3D Liquid Bar & Values */}
+                      <div className="flex items-center gap-3 sm:w-1/2 justify-end">
+                        {/* 3D Liquid Apple Capsule Bar */}
+                        <div 
+                          className="relative flex-1 h-3 rounded-full bg-slate-100 dark:bg-slate-800/80 p-0.5 border border-slate-200/80 dark:border-white/10 overflow-hidden shrink-0"
+                          style={{
+                            boxShadow: 'inset 0 1.5px 3px rgba(0,0,0,0.2)'
+                          }}
+                        >
+                          <div
+                            className="relative h-full rounded-full transition-all duration-500 ease-out flex items-center justify-end overflow-hidden"
+                            style={{
+                              width: `${fillPct}%`,
+                              background: rank === 1
+                                ? 'linear-gradient(180deg, #fde047 0%, #f59e0b 55%, #d97706 100%)'
+                                : 'linear-gradient(180deg, #67e8f9 0%, #06b6d4 55%, #0891b2 100%)',
+                              boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.8), 0 0 6px rgba(6,182,212,0.4)'
+                            }}
+                          >
+                            {/* Top Specular Shine */}
+                            <div className="absolute inset-x-1 top-0 h-[45%] rounded-t-full bg-gradient-to-b from-white/80 to-transparent pointer-events-none" />
+                          </div>
+                        </div>
+
+                        {/* Numeric Stats */}
+                        <div className="text-right shrink-0 min-w-[85px]">
+                          <div className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white">
+                            {metricMode === 'revenue' 
+                              ? `${formatThousands(prod.revenue)} lei`
+                              : `${prod.quantity} buc.`}
+                          </div>
+                          <div className="text-[10px] text-slate-400">
+                            {metricMode === 'revenue' 
+                              ? `${prod.quantity} bucăți`
+                              : `${formatThousands(prod.revenue)} lei`}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Buton Restrângere la finalul listei */}
+              <div className="pt-2 flex justify-center">
+                <button
+                  onClick={() => setIsExpanded(false)}
+                  className="px-6 py-2.5 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all shadow-xs flex items-center gap-2 border border-slate-200/80 dark:border-slate-700 cursor-pointer group"
+                >
+                  <span>Restrânge clasamentul</span>
+                  <ChevronUp size={14} className="group-hover:-translate-y-0.5 transition-transform" />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Wrapper Component to render all 5 3D Charts neatly in a responsive grid with interactive cross-filtering
  */
 export default function DashboardCharts3D({ 
   orders = [], 
@@ -1258,16 +1889,78 @@ export default function DashboardCharts3D({
   selectedDay = null,
   onSelectDay = () => {},
   selectedPayment = 'all',
-  onSelectPayment = () => {}
+  onSelectPayment = () => {},
+  selectedProduct = '',
+  onSelectProduct = () => {}
 }) {
-  // Filtrare comenzi după brandurile selectate pentru celelalte 3 grafice
-  const brandFilteredOrders = React.useMemo(() => {
-    if (!selectedBrands || selectedBrands.length === 0) return orders;
-    return orders.filter(o => {
-      const b = (o.brand || '').toLowerCase();
-      return selectedBrands.includes(b);
-    });
-  }, [orders, selectedBrands]);
+  // Helper filtrare timp (oră & zi)
+  const matchesTime = React.useCallback((o) => {
+    if (selectedHour !== null) {
+      if (!o.createdAt) return false;
+      const h = new Date(o.createdAt).getHours();
+      if (h !== selectedHour) return false;
+    }
+    if (selectedDay !== null) {
+      if (!o.createdAt) return false;
+      const d = new Date(o.createdAt);
+      if (selectedDay.type === 'dayOfWeek') {
+        if (d.getDay() !== selectedDay.value) return false;
+      } else if (selectedDay.type === 'date') {
+        const dateStr = d.toISOString().split('T')[0];
+        if (dateStr !== selectedDay.value) return false;
+      }
+    }
+    return true;
+  }, [selectedHour, selectedDay]);
+
+  // Helper filtrare brand
+  const matchesBrand = React.useCallback((o) => {
+    if (!selectedBrands || selectedBrands.length === 0) return true;
+    const b = (o.brand || '').toLowerCase();
+    return selectedBrands.includes(b);
+  }, [selectedBrands]);
+
+  // Helper filtrare metodă de plată
+  const matchesPayment = React.useCallback((o) => {
+    if (!selectedPayment || selectedPayment === 'all') return true;
+    const isCard = o.paymentMethod === 'card' || !!o.paymentRef?.authCode;
+    if (selectedPayment === 'card') return isCard;
+    if (selectedPayment === 'cash') return !isCard;
+    return true;
+  }, [selectedPayment]);
+
+  // Helper căutare produs
+  const matchesProduct = React.useCallback((o) => {
+    if (!selectedProduct) return true;
+    const q = selectedProduct.toLowerCase().trim();
+    const items = Array.isArray(o.items) ? o.items : [];
+    return items.some(it => (it.name || '').toLowerCase().includes(q));
+  }, [selectedProduct]);
+
+  // 1. Comenzi pentru SalesTrendChart3D (filtrează după brand, plată, produs - menține toate orele/zilele pt curbă)
+  const salesTrendOrders = React.useMemo(() => {
+    return orders.filter(o => o.status !== 'cancelled' && matchesBrand(o) && matchesPayment(o) && matchesProduct(o));
+  }, [orders, matchesBrand, matchesPayment, matchesProduct]);
+
+  // 2. Comenzi pentru BrandDonutChart3D (filtrează după oră, zi, plată, produs - arată toate brandurile pt selecție)
+  const brandDonutOrders = React.useMemo(() => {
+    return orders.filter(o => o.status !== 'cancelled' && matchesTime(o) && matchesPayment(o) && matchesProduct(o));
+  }, [orders, matchesTime, matchesPayment, matchesProduct]);
+
+  // 3. Comenzi pentru CalendarHeatmapChart (filtrează după brand, plată, produs)
+  const calendarOrders = React.useMemo(() => {
+    return orders.filter(o => o.status !== 'cancelled' && matchesBrand(o) && matchesPayment(o) && matchesProduct(o));
+  }, [orders, matchesBrand, matchesPayment, matchesProduct]);
+
+  // 4. Comenzi pentru PaymentMethodsChart3D (filtrează după brand, oră, zi, produs - arată Card vs Cash în acea oră/zi)
+  const paymentOrders = React.useMemo(() => {
+    return orders.filter(o => o.status !== 'cancelled' && matchesBrand(o) && matchesTime(o) && matchesProduct(o));
+  }, [orders, matchesBrand, matchesTime, matchesProduct]);
+
+  // 5. Comenzi pentru TopProductsChart3D (filtrează după brand, oră, zi, plată - arată top produse specifice acelei ore/zile)
+  const topProductsOrders = React.useMemo(() => {
+    return orders.filter(o => o.status !== 'cancelled' && matchesBrand(o) && matchesTime(o) && matchesPayment(o));
+  }, [orders, matchesBrand, matchesTime, matchesPayment]);
 
   return (
     <div className="space-y-5">
@@ -1275,7 +1968,7 @@ export default function DashboardCharts3D({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-stretch">
         <div className="lg:col-span-2 h-full">
           <SalesTrendChart3D 
-            orders={brandFilteredOrders} 
+            orders={salesTrendOrders} 
             period={period} 
             selectedHour={selectedHour}
             onSelectHour={onSelectHour}
@@ -1285,18 +1978,20 @@ export default function DashboardCharts3D({
         </div>
         <div className="lg:col-span-1 h-full">
           <BrandDonutChart3D 
-            orders={orders} 
+            orders={brandDonutOrders} 
             selectedBrands={selectedBrands}
             onSelectBrand={onSelectBrand}
+            selectedHour={selectedHour}
+            selectedDay={selectedDay}
           />
         </div>
       </div>
 
-      {/* Rând 2: Calendar Zile & Ore (2/3) + Metode de Plată 3D (1/3 aliniat spre dreapta după heatmap) */}
+      {/* Rând 2: Calendar Zile & Ore (2/3) + Metode de Plată 3D (1/3) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-stretch">
         <div className="lg:col-span-2 h-full">
           <CalendarHeatmapChart 
-            orders={brandFilteredOrders} 
+            orders={calendarOrders} 
             period={period} 
             selectedHour={selectedHour}
             onSelectHour={onSelectHour}
@@ -1306,12 +2001,23 @@ export default function DashboardCharts3D({
         </div>
         <div className="lg:col-span-1 h-full">
           <PaymentMethodsChart3D 
-            orders={brandFilteredOrders} 
+            orders={paymentOrders} 
             selectedPayment={selectedPayment}
             onSelectPayment={onSelectPayment}
+            selectedHour={selectedHour}
+            selectedDay={selectedDay}
           />
         </div>
       </div>
+
+      {/* Rând 3: Top Vânzări Produse 3D (Full-width Clasament Bestsellers) */}
+      <TopProductsChart3D 
+        orders={topProductsOrders}
+        selectedProduct={selectedProduct}
+        onSelectProduct={onSelectProduct}
+        selectedHour={selectedHour}
+        selectedDay={selectedDay}
+      />
     </div>
   );
 }

@@ -18,10 +18,10 @@ const storage = multer.diskStorage({
 });
 const upload = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  limits: { fileSize: 35 * 1024 * 1024 }, // 35MB
   fileFilter: (req, file, cb) => {
-    if (/^image\/(jpeg|png|webp|gif)$/.test(file.mimetype)) cb(null, true);
-    else cb(new Error('Only image files allowed'));
+    if (/^image\/(jpeg|png|webp|gif|svg\+xml)$/.test(file.mimetype) || /^video\/(mp4|webm|quicktime)$/.test(file.mimetype)) cb(null, true);
+    else cb(new Error('Only image and video files allowed'));
   },
 });
 
@@ -127,26 +127,43 @@ router.post('/', protect, async (req, res) => {
 
 // PUT /api/locations/:id — update location
 router.put('/:id', protect, async (req, res) => {
+  const { findLocation } = require('../utils/locations');
   try {
     if (!hasDb) throw new Error('no db');
-    const existing = await pool.query('SELECT * FROM locations WHERE id = $1', [req.params.id]);
-    if (!existing.rows.length) return res.status(404).json({ error: 'Location not found' });
-    const current = existing.rows[0];
+    const existing = await pool.query('SELECT * FROM locations WHERE id = $1 OR data->>\'kioskUrl\' = $1', [req.params.id]);
+    let current = existing.rows[0];
+    if (!current) {
+      const fl = findLocation(req.params.id);
+      if (fl && fl.id) {
+        const byFl = await pool.query('SELECT * FROM locations WHERE id = $1 OR data->>\'kioskUrl\' = $1', [fl.id]);
+        current = byFl.rows[0];
+      }
+    }
+    if (!current) return res.status(404).json({ error: 'Location not found' });
     const { active, ...bodyRest } = req.body;
     const merged = { ...current.data, ...bodyRest };
     const newActive = active !== undefined ? active : current.active;
     const { rows } = await pool.query(
       `UPDATE locations SET data = $1, active = $2, updated_at = NOW() WHERE id = $3 RETURNING *`,
-      [JSON.stringify(merged), newActive, req.params.id]
+      [JSON.stringify(merged), newActive, current.id]
     );
     const updatedLoc = rowToLoc(rows[0]);
     const io = req.app.get('io');
-    if (io) io.to(`kiosk-${req.params.id}`).emit('location_updated', updatedLoc);
+    if (io) {
+      io.to(`kiosk-${req.params.id}`).emit('location_updated', updatedLoc);
+      io.to(`kiosk-${current.id}`).emit('location_updated', updatedLoc);
+    }
     return res.json(updatedLoc);
   } catch (e) {
     // JSON fallback
     const locs = readLocFile();
-    const idx = locs.findIndex(l => l.id === req.params.id);
+    let idx = locs.findIndex(l => l.id === req.params.id || l.kioskUrl === req.params.id || (l.aliases && l.aliases.includes(req.params.id)));
+    if (idx === -1) {
+      const found = findLocation(req.params.id);
+      if (found) {
+        idx = locs.findIndex(l => l.id === found.id || l.name === found.name);
+      }
+    }
     if (idx === -1) return res.status(404).json({ error: 'Location not found' });
     const { active, ...bodyRest } = req.body;
     const merged = { ...locs[idx], ...bodyRest };
@@ -154,7 +171,10 @@ router.put('/:id', protect, async (req, res) => {
     locs[idx] = merged;
     writeLocFile(locs);
     const io = req.app.get('io');
-    if (io) io.to(`kiosk-${req.params.id}`).emit('location_updated', merged);
+    if (io) {
+      io.to(`kiosk-${req.params.id}`).emit('location_updated', merged);
+      io.to(`kiosk-${locs[idx].id}`).emit('location_updated', merged);
+    }
     return res.json(merged);
   }
 });
@@ -307,7 +327,19 @@ router.post('/:id/screensaver', protect, upload.single('file'), async (req, res)
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
     const backendUrl = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
     const fileUrl = `${backendUrl}/uploads/screensavers/${req.file.filename}`;
-    res.json({ ok: true, posterUrl: fileUrl });
+    res.json({ ok: true, posterUrl: fileUrl, url: fileUrl });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/locations/:id/upload-asset — upload any location media (logo, banner, video, etc.)
+router.post('/:id/upload-asset', protect, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    const backendUrl = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
+    const fileUrl = `${backendUrl}/uploads/screensavers/${req.file.filename}`;
+    res.json({ ok: true, url: fileUrl, posterUrl: fileUrl });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

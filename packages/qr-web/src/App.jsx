@@ -59,6 +59,7 @@ export default function App({ brandId }) {
           bottomBannerTextFixed:    mc.bottomBannerTextFixed    ?? false,
           bottomBannerTextAlign:    mc.bottomBannerTextAlign    || 'center',
           bottomBannerBg:           mc.bottomBannerBg           || '#1e293b',
+          bottomBannerLogoUrl:      mc.bottomBannerLogoUrl      || '',
           posterUrl:                mc.posterUrl                || '',
           inactivityTimeout:        mc.inactivityTimeout        ?? 30,
         };
@@ -83,14 +84,15 @@ export default function App({ brandId }) {
   const showBottomBanner = locationData?.bottomBannerContent;
 
   const renderPromoMedia = (u) => {
-    if (!u) return null;
-    if (/\.(mp4|webm|mov)(\?|$)/i.test(u)) {
-      return <video src={u} autoPlay muted loop playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
-    } else if (/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i.test(u)) {
-      return <img src={u} alt="Promo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
-    } else {
-      return <iframe src={u} title="Promo" style={{ width: '100%', height: '100%', border: 'none', pointerEvents: 'none' }} />;
+    if (!u || typeof u !== 'string') return null;
+    const clean = u.trim();
+    if (!clean) return null;
+    if (/\.(mp4|webm|mov)(\?|$)/i.test(clean)) {
+      return <video src={clean} autoPlay muted loop playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
+    } else if (/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i.test(clean) || clean.startsWith('data:image/') || clean.includes('/uploads/')) {
+      return <img src={clean} alt="Promo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
     }
+    return null;
   };
 
   const renderBottomBanner = (content) => {

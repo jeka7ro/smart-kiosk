@@ -21,6 +21,28 @@ export const T = {
     de: "Tippen zum Bestellen",
     es: "Toque para pedir"
   },
+  order_now: {
+    ro: 'Comandă',
+    en: 'Order',
+    fr: 'Commander',
+    hu: 'Rendelés',
+    ru: 'Заказать',
+    uk: 'Замовити',
+    bg: 'Поръчай',
+    de: 'Bestellen',
+    es: 'Pedir'
+  },
+  hero_product_badge: {
+    ro: 'PRODUSUL VEDETĂ',
+    en: 'STAR PRODUCT',
+    fr: 'PRODUIT VEDETTE',
+    hu: 'KIEMELT TERMÉK',
+    ru: 'ХИТ ПРОДАЖ',
+    uk: 'ХІТ ПРОДАЖУ',
+    bg: 'ТОП ПРОДУКТ',
+    de: 'HIGHLIGHT',
+    es: 'PRODUCTO ESTRELLA'
+  },
   // ── Order Type Screen ──────────────────────────────────────
   how_to_order: {
     ro: 'Cum doriți să comandați?',
@@ -245,15 +267,15 @@ export const T = {
     es: 'uds.'
   },
   currency: {
-    ro: 'RON',
-    en: 'RON',
-    fr: 'RON',
-    hu: 'RON',
-    ru: 'RON',
-    uk: 'RON',
-    bg: 'RON',
-    de: 'RON',
-    es: 'RON'
+    ro: 'lei',
+    en: 'lei',
+    fr: 'lei',
+    hu: 'lei',
+    ru: 'lei',
+    uk: 'lei',
+    bg: 'lei',
+    de: 'lei',
+    es: 'lei'
   },
   lei: {
     ro: 'lei',
@@ -473,14 +495,14 @@ export const T = {
   },
   lei: {
     ro: 'lei',
-    en: 'RON',
-    fr: 'RON',
-    hu: 'RON',
-    ru: 'лей',
-    uk: 'лей',
-    bg: "леи",
-    de: "LEI",
-    es: "LEI"
+    en: 'lei',
+    fr: 'lei',
+    hu: 'lei',
+    ru: 'lei',
+    uk: 'lei',
+    bg: 'lei',
+    de: 'lei',
+    es: 'lei'
   },
   // ── Poster / Screensaver ────────────────────────────────────
   start_order: {
