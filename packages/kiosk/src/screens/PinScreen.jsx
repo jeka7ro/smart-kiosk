@@ -29,7 +29,7 @@ export default function PinScreen({ loc, onUnlock }) {
   return (
     <div className="pin-screen">
       <div className="pin-box">
-        <h2 className="pin-title">🔒 Securitate Kiosk</h2>
+        <h2 className="pin-title">Securitate Kiosk</h2>
         <p className="pin-sub">Această tabletă este parțial restricționată. Te rog să introduci codul PIN pentru locația {loc.name}.</p>
         
         <div className={`pin-display ${error ? 'pin-error' : ''}`}>

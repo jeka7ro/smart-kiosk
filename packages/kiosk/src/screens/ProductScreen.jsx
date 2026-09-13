@@ -1,9 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useKioskStore } from '../store/kioskStore';
 import { t } from '../i18n/translations.js';
 import { useBrand } from '../context/BrandContext.js';
 import { proxySyrveImage } from '../utils/imageUtils.js';
 import { getEffectivePrice, hasActivePromo } from '../utils/priceUtils.js';
+import ProductVisualFX from '../components/ProductVisualFX.jsx';
 import './ProductScreen.css';
 
 /* ─── Clean Vector SVG Icons with Round Outlines (Zero Emojis) ─── */
@@ -236,6 +237,21 @@ export default function ProductScreen() {
   const menuProducts   = useKioskStore((s) => s.menuProducts);
   const menuCategories = useKioskStore((s) => s.menuCategories);
   const brand          = useBrand();
+
+  const visualEffects = useKioskStore((s) => s.visualEffects) || { parallax: true, steam: true, snow: false };
+  const heroRef = useRef(null);
+
+  const isHotProduct = useMemo(() => {
+    if (!product) return false;
+    const catLower = (product.categoryName || product.parentGroupName || '').toLowerCase();
+    const nameLower = (product.name || '').toLowerCase();
+    const isCold = catLower.includes('bautur') || catLower.includes('drink') || 
+                   nameLower.includes('coca') || nameLower.includes('apa') || 
+                   nameLower.includes('fanta') || nameLower.includes('sprite') || 
+                   nameLower.includes('inghetata') || nameLower.includes('shake') ||
+                   nameLower.includes('bere') || nameLower.includes('sos');
+    return !isCold;
+  }, [product]);
 
   const modifiers = product?.modifierGroups || product?.modifiers || [];
   const allergens = product?.allergenGroups || product?.allergens || [];
@@ -663,7 +679,7 @@ export default function ProductScreen() {
         <div className="ps-card-body scroll-y">
           
           {/* Poza Mare Produs (4:3 identică cu cardul din meniu, mare și apetisantă) */}
-          <div className="ps-hero-wrap">
+          <div className="ps-hero-wrap" ref={heroRef}>
             {product.image && !imgError ? (
               <img
                 src={proxySyrveImage(product.image)}
@@ -680,6 +696,13 @@ export default function ProductScreen() {
                 />
               </div>
             )}
+
+            {/* Stratul Efectelor Vizuale (Parallax 3D & Abur & Zăpadă) */}
+            <ProductVisualFX 
+              heroRef={heroRef}
+              effects={visualEffects}
+              isHotProduct={isHotProduct}
+            />
           </div>
 
           {/* Nume & Preț */}

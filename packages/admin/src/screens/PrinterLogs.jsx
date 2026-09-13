@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '../context/AuthProvider';
 import { useConfirm } from '../components/ConfirmModal.jsx';
+import { Printer, CheckCircle2, XCircle, Building2, Monitor, AlertTriangle } from 'lucide-react';
 import { io } from 'socket.io-client';
 import * as XLSX from 'xlsx';
 import BrandLogo from '../components/BrandLogo.jsx';
@@ -104,13 +105,28 @@ export default function PrinterLogs() {
     return true;
   };
 
-  // Filter + search
-  const filtered = useMemo(() => {
+  // ── Filtered by Period, Location & Brands for StatCards ───────
+  const periodFilteredLogs = useMemo(() => {
     return logs.filter(l => {
-      if (filter !== 'all' && l.status !== filter) return false;
       if (locFilter !== 'all' && l.locationId !== locFilter) return false;
       if (brandFilter !== 'all' && l.brand !== brandFilter) return false;
       if (!isDateInPeriod(l.timestamp, periodFilter)) return false;
+      return true;
+    });
+  }, [logs, locFilter, brandFilter, periodFilter, customStart, customEnd]);
+
+  // Derived stats strictly reflect the selected period, location and brand
+  const derivedStats = useMemo(() => ({
+    total: periodFilteredLogs.length,
+    success: periodFilteredLogs.filter(l => l.status === 'success').length,
+    errors: periodFilteredLogs.filter(l => l.status === 'error').length,
+    locations: new Set(periodFilteredLogs.map(l => l.locationId).filter(Boolean)).size,
+  }), [periodFilteredLogs]);
+
+  // Table filtering adds status filter & search on top of periodFilteredLogs
+  const filtered = useMemo(() => {
+    return periodFilteredLogs.filter(l => {
+      if (filter !== 'all' && l.status !== filter) return false;
       if (search) {
         const q = search.toLowerCase();
         const haystack = [l.orderNumber, l.locationId, l.locationName, l.brand, l.printerName, l.kioskId, l.error].filter(Boolean).join(' ').toLowerCase();
@@ -118,20 +134,13 @@ export default function PrinterLogs() {
       }
       return true;
     });
-  }, [logs, filter, locFilter, brandFilter, periodFilter, customStart, customEnd, search]);
+  }, [periodFilteredLogs, filter, search]);
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
   const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const locations = [...new Set(logs.map(l => l.locationId).filter(Boolean))];
   const brands = [...new Set(logs.map(l => l.brand).filter(Boolean))];
-
-  const derivedStats = useMemo(() => ({
-    total: logs.length,
-    success: logs.filter(l => l.status === 'success').length,
-    errors: logs.filter(l => l.status === 'error').length,
-    locations: new Set(logs.map(l => l.locationId).filter(Boolean)).size,
-  }), [logs]);
 
   const getLogPort = (log) => {
     if (log.port) return log.port;
@@ -179,14 +188,50 @@ export default function PrinterLogs() {
     );
   }
 
+  const periodLabel = 
+    periodFilter === 'today' ? 'Printuri Azi' : 
+    periodFilter === 'yesterday' ? 'Printuri Ieri' : 
+    periodFilter === 'this_week' ? 'Printuri Săpt.' : 
+    periodFilter === 'this_month' ? 'Printuri Lună' : 
+    periodFilter === 'last_month' ? 'Printuri Luna Trec.' : 
+    periodFilter === 'this_year' ? 'Printuri An' : 
+    'Total Printuri';
+
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
+      {/* Stats Cards - Identical to Dashboard StatCard */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard label="Total Printuri" value={derivedStats.total} color="#6366f1" />
-        <StatCard label="Reușite" value={derivedStats.success} color="#10b981" />
-        <StatCard label="Erori" value={derivedStats.errors} color="#ef4444" highlight={derivedStats.errors > 0} />
-        <StatCard label="Locații Active" value={derivedStats.locations} color="#3b82f6" />
+        <StatCard 
+          label={periodLabel} 
+          value={derivedStats.total} 
+          color="#6366f1" 
+          icon={Printer}
+          onClick={() => { setFilter('all'); setCurrentPage(1); }}
+          active={filter === 'all'}
+        />
+        <StatCard 
+          label="Reușite" 
+          value={derivedStats.success} 
+          color="#10b981" 
+          icon={CheckCircle2}
+          onClick={() => { setFilter(filter === 'success' ? 'all' : 'success'); setCurrentPage(1); }}
+          active={filter === 'success'}
+        />
+        <StatCard 
+          label="Erori" 
+          value={derivedStats.errors} 
+          color="#ef4444" 
+          icon={XCircle}
+          onClick={() => { setFilter(filter === 'error' ? 'all' : 'error'); setCurrentPage(1); }}
+          active={filter === 'error'}
+          highlight={derivedStats.errors > 0}
+        />
+        <StatCard 
+          label="Locații Active" 
+          value={derivedStats.locations} 
+          color="#3b82f6" 
+          icon={Building2}
+        />
       </div>
 
       {/* Hardware Scan Info */}
@@ -204,7 +249,8 @@ export default function PrinterLogs() {
               <div key={scan.locationId} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-4">
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                    🖥️ {scan.locationId}
+                    <Monitor size={14} className="text-slate-500" />
+                    <span>{scan.locationId}</span>
                     <span className="text-[10px] font-medium text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">{scan.hostname}</span>
                     <span className="text-[10px] text-slate-400">{scan.os}</span>
                   </h4>
@@ -213,7 +259,7 @@ export default function PrinterLogs() {
                 <div className="grid grid-cols-2 gap-3">
                   {/* COM Ports */}
                   <div>
-                    <p className="text-[10px] font-bold uppercase text-slate-500 mb-1.5">🔌 Porturi COM ({(scan.comPorts||[]).length})</p>
+                    <p className="text-[10px] font-bold uppercase text-slate-500 mb-1.5">Porturi COM ({(scan.comPorts||[]).length})</p>
                     <div className="space-y-1">
                       {(scan.comPorts||[]).map((p,i) => {
                         const isPos = p.path && scan.posPort && p.path.toUpperCase() === scan.posPort.toUpperCase();
@@ -229,7 +275,7 @@ export default function PrinterLogs() {
                   </div>
                   {/* Printers */}
                   <div>
-                    <p className="text-[10px] font-bold uppercase text-slate-500 mb-1.5">🖨️ Imprimante ({(scan.printers||[]).length})</p>
+                    <p className="text-[10px] font-bold uppercase text-slate-500 mb-1.5">Imprimante ({(scan.printers||[]).length})</p>
                     <div className="space-y-1">
                       {(scan.printers||[]).map((p,i) => (
                         <div key={i} className={`text-xs px-2 py-1 rounded-lg ${scan.printerName && p.name.includes(scan.printerName.split(' ').slice(0,2).join(' ')) ? 'bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30' : 'bg-slate-50 dark:bg-slate-800/50'}`}>
@@ -472,12 +518,13 @@ export default function PrinterLogs() {
                                   </span>
                                 </div>
                               </div>,
-                              { title: 'Eroare Imprimantă', icon: '❌', hideCancel: true, okLabel: 'Închide' }
+                              { title: 'Eroare Imprimantă', danger: true, hideCancel: true, okLabel: 'Închide' }
                             );
                           }}
-                          className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-transform active:scale-95 cursor-pointer bg-red-50 text-red-600 border border-red-200 hover:bg-red-100"
+                          className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-transform active:scale-95 cursor-pointer bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 flex items-center gap-1"
                         >
-                          ⚠ Citește
+                          <AlertTriangle size={12} />
+                          <span>Citește</span>
                         </button>
                       ) : (
                         <span className="text-slate-400">—</span>
@@ -581,14 +628,82 @@ export default function PrinterLogs() {
   );
 }
 
-function StatCard({ label, value, color, highlight }) {
+function StatCard({ label, value, color, brandId, icon: Icon, onClick, active, highlight }) {
+  const isCurrency = typeof value === 'string' && value.includes('lei');
+  const displayVal = isCurrency ? value.replace('lei', '').trim() : value;
+  const valLength = String(displayVal).length;
+
+  let fontSizeClass = 'text-xl';
+  if (isCurrency) {
+    if (valLength > 8) fontSizeClass = 'text-sm';
+    else if (valLength > 5) fontSizeClass = 'text-base';
+    else fontSizeClass = 'text-lg';
+  } else {
+    fontSizeClass = valLength > 4 ? 'text-xl' : 'text-2xl';
+  }
+
   return (
-    <div
-      className={`bg-white dark:bg-slate-900 rounded-xl shadow-sm border p-4 flex flex-col justify-center ${highlight ? 'border-red-300 dark:border-red-500/50 animate-pulse' : 'border-slate-200 dark:border-slate-800'}`}
-      style={{ borderLeft: `3px solid ${color}` }}
+    <div 
+      onClick={onClick}
+      className={`bg-white dark:bg-slate-900 rounded-2xl shadow-sm border px-4 py-3 flex items-center justify-between min-w-[120px] flex-1 relative overflow-hidden transition-all duration-200 group select-none ${
+        active 
+          ? 'ring-2 ring-blue-500 border-blue-500 shadow-md scale-[1.02]' 
+          : highlight
+          ? 'border-red-300 dark:border-red-500/50'
+          : 'border-slate-200 dark:border-slate-800'
+      } ${onClick ? 'cursor-pointer hover:shadow-md hover:scale-[1.02]' : ''}`} 
+      style={{ borderLeft: `4px solid ${color}` }}
     >
-      <span className="text-2xl font-bold text-slate-900 dark:text-white">{value}</span>
-      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mt-1">{label}</span>
+      <div className="flex flex-col justify-center min-w-0 pr-1 z-10 flex-1">
+        <div className="flex items-baseline gap-1 whitespace-nowrap overflow-visible">
+          <span className={`font-black text-slate-900 dark:text-white tracking-tight ${fontSizeClass}`}>
+            {displayVal}
+          </span>
+          {isCurrency && (
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+              lei
+            </span>
+          )}
+        </div>
+        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis" title={label}>
+          {label}
+        </span>
+      </div>
+
+      {brandId ? (
+        <div className="relative shrink-0 ml-2">
+          {/* 3D Atmosphere Glow behind avatar */}
+          <div 
+            className="absolute -inset-1 rounded-full blur-sm opacity-35 group-hover:opacity-75 transition-opacity pointer-events-none"
+            style={{ backgroundColor: color }}
+          />
+          {/* 3D Raised Bezel Container with Specular Top Highlight */}
+          <div 
+            className="relative w-9 h-9 rounded-full p-0.5 flex items-center justify-center bg-gradient-to-b from-white via-slate-50 to-slate-100 dark:from-slate-700 dark:via-slate-800 dark:to-slate-900 border border-white/80 dark:border-slate-600/60 transition-transform duration-200 group-hover:scale-110 group-hover:-translate-y-0.5"
+            style={{ 
+              boxShadow: `0 3px 8px ${color}40, 0 1px 2px rgba(0,0,0,0.1), inset 0 1.5px 2px rgba(255,255,255,0.85)` 
+            }}
+          >
+            <BrandLogo brandId={brandId} size={24} className="rounded-full shadow-inner" />
+          </div>
+        </div>
+      ) : Icon ? (
+        <div className="relative shrink-0 ml-2">
+          <div 
+            className="absolute -inset-1 rounded-full blur-sm opacity-30 group-hover:opacity-60 transition-opacity pointer-events-none"
+            style={{ backgroundColor: color }}
+          />
+          <div 
+            className="relative w-9 h-9 rounded-full flex items-center justify-center text-white transition-transform duration-200 group-hover:scale-110 group-hover:-translate-y-0.5"
+            style={{ 
+              background: `linear-gradient(135deg, ${color}, ${color}cc)`,
+              boxShadow: `0 3px 8px ${color}35, 0 1px 2px rgba(0,0,0,0.1), inset 0 1.5px 2px rgba(255,255,255,0.4)` 
+            }}
+          >
+            <Icon size={18} strokeWidth={2.5} />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -109,8 +109,8 @@ export default function ConfirmationScreen() {
             <span className="price">{total.toFixed(2)} {t('lei', lang)}</span>
           </div>
           <div className="cs-row cs-paid">
-            <span>{paymentMethod === 'cash' ? '💵 Plată cash la casierie' : t('paid_by_card', lang)}</span>
-            <span className="cs-ok">{paymentMethod === 'cash' ? '⏳ Neachitat' : t('confirmed', lang)}</span>
+            <span>{paymentMethod === 'cash' ? 'Plată cash la casierie' : t('paid_by_card', lang)}</span>
+            <span className="cs-ok">{paymentMethod === 'cash' ? 'Neachitat' : t('confirmed', lang)}</span>
           </div>
         </div>
 

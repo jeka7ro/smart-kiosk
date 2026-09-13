@@ -126,6 +126,10 @@ export default function App() {
           if (JSON.stringify(currentData) !== JSON.stringify(loc)) {
             setLocationData(loc);
           }
+          if (loc.visualEffects) {
+            useKioskStore.setState({ visualEffects: loc.visualEffects });
+            try { localStorage.setItem('kiosk_visual_effects', JSON.stringify(loc.visualEffects)); } catch {}
+          }
           // Apply default language from Admin config
           const { lang: currentLang, setLang } = useKioskStore.getState();
           const defaultLang = loc.defaultLanguage || (loc.languages?.[0]);
@@ -484,7 +488,7 @@ export default function App() {
                 useKioskStore.getState().addToCart(
                   { 
                     id: prize.productId || `promo_${Date.now()}`, 
-                    name: `🎁 ${prize.name}`, 
+                    name: prize.name, 
                     image: prize.image || '', 
                     isPromo: true 
                   },

@@ -20,6 +20,34 @@ export const useKioskStore = create((set, get) => ({
   setLocationData: (data) => set({ locationData: data }),
   setKioskData: (data) => set({ kioskData: data }),
 
+  // ─── Visual Effects (Parallax, Steam, Snow etc.) ──────────
+  visualEffects: (() => {
+    try {
+      const saved = localStorage.getItem('kiosk_visual_effects');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return {
+      parallax: true,
+      steam: true,
+      snow: false,
+    };
+  })(),
+  setVisualEffect: (key, val) => {
+    set((state) => {
+      const updated = { ...(state.visualEffects || {}), [key]: val };
+      try { localStorage.setItem('kiosk_visual_effects', JSON.stringify(updated)); } catch {}
+      return { visualEffects: updated };
+    });
+  },
+  toggleVisualEffect: (key) => {
+    set((state) => {
+      const current = state.visualEffects?.[key] ?? false;
+      const updated = { ...(state.visualEffects || {}), [key]: !current };
+      try { localStorage.setItem('kiosk_visual_effects', JSON.stringify(updated)); } catch {}
+      return { visualEffects: updated };
+    });
+  },
+
   // ─── Session Flags ─────────────────────────────────────────
   hasPlayedPromo: false,
   setHasPlayedPromo: (val) => set({ hasPlayedPromo: val }),

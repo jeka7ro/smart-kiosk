@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '../context/AuthProvider';
 import { useConfirm } from '../components/ConfirmModal.jsx';
+import { CreditCard, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 import { io } from 'socket.io-client';
 import * as XLSX from 'xlsx';
 import BrandLogo from '../components/BrandLogo.jsx';
@@ -116,14 +117,39 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
     return true;
   };
 
-  // Filter
-  const filtered = logs.filter(l => {
-    if (filter !== 'all' && l.status !== filter) return false;
-    if (locFilter !== 'all' && l.locationId !== locFilter) return false;
-    if (brandFilter !== 'all' && getOrderForLog(l)?.brand !== brandFilter) return false;
-    if (!isDateInPeriod(l.timestamp, periodFilter)) return false;
-    return true;
-  });
+  // ── Filtered by Period, Location & Brands for StatCards ───────
+  const periodFilteredLogs = useMemo(() => {
+    return logs.filter(l => {
+      if (locFilter !== 'all' && l.locationId !== locFilter) return false;
+      if (brandFilter !== 'all' && getOrderForLog(l)?.brand !== brandFilter) return false;
+      if (!isDateInPeriod(l.timestamp, periodFilter)) return false;
+      return true;
+    });
+  }, [logs, locFilter, brandFilter, periodFilter, customStart, customEnd, orders]);
+
+  // Derived stats strictly reflect the selected period, location and brand
+  const derivedStats = useMemo(() => {
+    return {
+      total: periodFilteredLogs.length,
+      approved: periodFilteredLogs.filter(l => l.status === 'approved' || l.paid === true).length,
+      declined: periodFilteredLogs.filter(l => l.status === 'declined' || l.status === 'timeout' || (l.status !== 'approved' && l.paid === false)).length,
+      iikoFailed: periodFilteredLogs.filter(l => (l.status === 'approved' || l.paid === true) && !l.iikoSent).length
+    };
+  }, [periodFilteredLogs]);
+
+  // Table filtering adds status filter on top of periodFilteredLogs
+  const filtered = useMemo(() => {
+    return periodFilteredLogs.filter(l => {
+      if (filter !== 'all') {
+        if (filter === 'approved') return l.status === 'approved' || l.paid === true;
+        if (filter === 'declined') return l.status === 'declined' || (l.status !== 'approved' && l.paid === false);
+        if (filter === 'timeout') return l.status === 'timeout';
+        if (filter === 'iikoFailed') return (l.status === 'approved' || l.paid === true) && !l.iikoSent;
+        if (l.status !== filter) return false;
+      }
+      return true;
+    });
+  }, [periodFilteredLogs, filter]);
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
   const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -212,15 +238,6 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
     XLSX.writeFile(workbook, `pos_logs_${new Date().toISOString().slice(0,10)}.xlsx`);
   };
 
-  const derivedStats = useMemo(() => {
-    return {
-      total: logs.length,
-      approved: logs.filter(l => l.status === 'approved' || l.paid === true).length,
-      declined: logs.filter(l => l.status === 'declined' || l.status === 'timeout' || (l.status !== 'approved' && l.paid === false)).length,
-      iikoFailed: logs.filter(l => (l.status === 'approved' || l.paid === true) && !l.iikoSent).length
-    };
-  }, [logs]);
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -229,14 +246,52 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
     );
   }
 
+  const periodLabel = 
+    periodFilter === 'today' ? 'Total POS Azi' : 
+    periodFilter === 'yesterday' ? 'Total POS Ieri' : 
+    periodFilter === 'this_week' ? 'Total POS Săpt.' : 
+    periodFilter === 'this_month' ? 'Total POS Lună' : 
+    periodFilter === 'last_month' ? 'Total POS Luna Trec.' : 
+    periodFilter === 'this_year' ? 'Total POS An' : 
+    'Total POS Logs';
+
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
+      {/* Stats Cards - Identical to Dashboard StatCard */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard label="Total POS Logs" value={derivedStats.total} color="#6366f1" />
-        <StatCard label="Aprobate (Total)" value={derivedStats.approved} color="#10b981" />
-        <StatCard label="Respinse (Total)" value={derivedStats.declined} color="#ef4444" />
-        <StatCard label="iiko Eșuat (Total)" value={derivedStats.iikoFailed} color="#f97316" />
+        <StatCard 
+          label={periodLabel} 
+          value={derivedStats.total} 
+          color="#6366f1" 
+          icon={CreditCard}
+          onClick={() => { setFilter('all'); setCurrentPage(1); }}
+          active={filter === 'all'}
+        />
+        <StatCard 
+          label="Aprobate" 
+          value={derivedStats.approved} 
+          color="#10b981" 
+          icon={CheckCircle2}
+          onClick={() => { setFilter(filter === 'approved' ? 'all' : 'approved'); setCurrentPage(1); }}
+          active={filter === 'approved'}
+        />
+        <StatCard 
+          label="Respinse" 
+          value={derivedStats.declined} 
+          color="#ef4444" 
+          icon={XCircle}
+          onClick={() => { setFilter(filter === 'declined' ? 'all' : 'declined'); setCurrentPage(1); }}
+          active={filter === 'declined'}
+        />
+        <StatCard 
+          label="iiko Eșuat" 
+          value={derivedStats.iikoFailed} 
+          color="#f97316" 
+          icon={AlertTriangle}
+          onClick={() => { setFilter(filter === 'iikoFailed' ? 'all' : 'iikoFailed'); setCurrentPage(1); }}
+          active={filter === 'iikoFailed'}
+          highlight={derivedStats.iikoFailed > 0}
+        />
       </div>
 
       {/* Controls */}
@@ -584,14 +639,82 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
   );
 }
 
-function StatCard({ label, value, color, highlight }) {
+function StatCard({ label, value, color, brandId, icon: Icon, onClick, active, highlight }) {
+  const isCurrency = typeof value === 'string' && value.includes('lei');
+  const displayVal = isCurrency ? value.replace('lei', '').trim() : value;
+  const valLength = String(displayVal).length;
+
+  let fontSizeClass = 'text-xl';
+  if (isCurrency) {
+    if (valLength > 8) fontSizeClass = 'text-sm';
+    else if (valLength > 5) fontSizeClass = 'text-base';
+    else fontSizeClass = 'text-lg';
+  } else {
+    fontSizeClass = valLength > 4 ? 'text-xl' : 'text-2xl';
+  }
+
   return (
     <div 
-      className={`bg-white dark:bg-slate-900 rounded-xl shadow-sm border p-4 flex flex-col justify-center ${highlight ? 'border-orange-300 dark:border-orange-500/50 animate-pulse' : 'border-slate-200 dark:border-slate-800'}`}
-      style={{ borderLeft: `3px solid ${color}` }}
+      onClick={onClick}
+      className={`bg-white dark:bg-slate-900 rounded-2xl shadow-sm border px-4 py-3 flex items-center justify-between min-w-[120px] flex-1 relative overflow-hidden transition-all duration-200 group select-none ${
+        active 
+          ? 'ring-2 ring-blue-500 border-blue-500 shadow-md scale-[1.02]' 
+          : highlight
+          ? 'border-orange-300 dark:border-orange-500/50'
+          : 'border-slate-200 dark:border-slate-800'
+      } ${onClick ? 'cursor-pointer hover:shadow-md hover:scale-[1.02]' : ''}`} 
+      style={{ borderLeft: `4px solid ${color}` }}
     >
-      <span className="text-2xl font-bold text-slate-900 dark:text-white">{value}</span>
-      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mt-1">{label}</span>
+      <div className="flex flex-col justify-center min-w-0 pr-1 z-10 flex-1">
+        <div className="flex items-baseline gap-1 whitespace-nowrap overflow-visible">
+          <span className={`font-black text-slate-900 dark:text-white tracking-tight ${fontSizeClass}`}>
+            {displayVal}
+          </span>
+          {isCurrency && (
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+              lei
+            </span>
+          )}
+        </div>
+        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis" title={label}>
+          {label}
+        </span>
+      </div>
+
+      {brandId ? (
+        <div className="relative shrink-0 ml-2">
+          {/* 3D Atmosphere Glow behind avatar */}
+          <div 
+            className="absolute -inset-1 rounded-full blur-sm opacity-35 group-hover:opacity-75 transition-opacity pointer-events-none"
+            style={{ backgroundColor: color }}
+          />
+          {/* 3D Raised Bezel Container with Specular Top Highlight */}
+          <div 
+            className="relative w-9 h-9 rounded-full p-0.5 flex items-center justify-center bg-gradient-to-b from-white via-slate-50 to-slate-100 dark:from-slate-700 dark:via-slate-800 dark:to-slate-900 border border-white/80 dark:border-slate-600/60 transition-transform duration-200 group-hover:scale-110 group-hover:-translate-y-0.5"
+            style={{ 
+              boxShadow: `0 3px 8px ${color}40, 0 1px 2px rgba(0,0,0,0.1), inset 0 1.5px 2px rgba(255,255,255,0.85)` 
+            }}
+          >
+            <BrandLogo brandId={brandId} size={24} className="rounded-full shadow-inner" />
+          </div>
+        </div>
+      ) : Icon ? (
+        <div className="relative shrink-0 ml-2">
+          <div 
+            className="absolute -inset-1 rounded-full blur-sm opacity-30 group-hover:opacity-60 transition-opacity pointer-events-none"
+            style={{ backgroundColor: color }}
+          />
+          <div 
+            className="relative w-9 h-9 rounded-full flex items-center justify-center text-white transition-transform duration-200 group-hover:scale-110 group-hover:-translate-y-0.5"
+            style={{ 
+              background: `linear-gradient(135deg, ${color}, ${color}cc)`,
+              boxShadow: `0 3px 8px ${color}35, 0 1px 2px rgba(0,0,0,0.1), inset 0 1.5px 2px rgba(255,255,255,0.4)` 
+            }}
+          >
+            <Icon size={18} strokeWidth={2.5} />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

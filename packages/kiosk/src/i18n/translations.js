@@ -713,15 +713,15 @@ export const T = {
     es: "Espere confirmación"
   },
   simulate_payment: {
-    ro: '✅ Simulează plată (DEMO)',
-    en: '✅ Simulate payment (DEMO)',
-    fr: '✅ Simuler paiement (DÉMO)',
-    hu: '✅ Fizetés szimulálása (DEMO)',
-    ru: '✅ Симуляция оплаты (ДЕМО)',
-    uk: '✅ Симуляція оплати (ДЕМО)',
-    bg: "✅ ДЕМО Плащане",
-    de: "✅ DEMO Zahlung",
-    es: "✅ Pago DEMO"
+    ro: 'Simulează plată (DEMO)',
+    en: 'Simulate payment (DEMO)',
+    fr: 'Simuler paiement (DÉMO)',
+    hu: 'Fizetés szimulálása (DEMO)',
+    ru: 'Симуляция оплаты (ДЕМО)',
+    uk: 'Симуляція оплати (ДЕМО)',
+    bg: "ДЕМО Плащане",
+    de: "DEMO Zahlung",
+    es: "Pago DEMO"
   },
   back_to_cart: {
     ro: '← Înapoi la coș',
@@ -824,15 +824,15 @@ export const T = {
     de: "Artikel"
   },
   paid_by_card: {
-    ro: '💳 Plătit cu cardul',
-    en: '💳 Paid by card',
-    fr: '💳 Payé par carte',
-    hu: '💳 Kártyával fizetve',
-    ru: '💳 Оплачено картой',
-    uk: '💳 Оплачено карткою',
-    bg: "💳 Платено",
-    de: "💳 Bezahlt",
-    es: "💳 Pagado"
+    ro: 'Plătit cu cardul',
+    en: 'Paid by card',
+    fr: 'Payé par carte',
+    hu: 'Kártyával fizetve',
+    ru: 'Оплачено картой',
+    uk: 'Оплачено карткою',
+    bg: "Платено",
+    de: "Bezahlt",
+    es: "Pagado"
   },
   confirmed: {
     ro: '✓ Confirmat',

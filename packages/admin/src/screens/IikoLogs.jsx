@@ -274,14 +274,31 @@ export default function IikoLogs() {
     return true;
   };
 
-  const filtered = useMemo(() => {
+  const brands = [...new Set(logs.map(l => l.brandId).filter(Boolean))];
+
+  // ── Filtered by Period & Brands for StatCards ────────────────
+  const periodFilteredLogs = useMemo(() => {
     return logs.filter(l => {
-      if (filter !== 'all' && l.status !== filter) return false;
       if (selectedBrands.length > 0) {
         const bLower = (l.brandId || '').toLowerCase();
         if (!selectedBrands.includes(bLower)) return false;
       }
       if (!isDateInPeriod(l.timestamp, periodFilter)) return false;
+      return true;
+    });
+  }, [logs, selectedBrands, periodFilter, customStart, customEnd]);
+
+  // Derived stats strictly reflect the selected period and brands
+  const derivedStats = useMemo(() => ({
+    total: periodFilteredLogs.length,
+    success: periodFilteredLogs.filter(l => l.status === 'success').length,
+    errors: periodFilteredLogs.filter(l => l.status === 'error').length,
+  }), [periodFilteredLogs]);
+
+  // Table filtering adds status filter & search on top of periodFilteredLogs
+  const filtered = useMemo(() => {
+    return periodFilteredLogs.filter(l => {
+      if (filter !== 'all' && l.status !== filter) return false;
       if (search) {
         const q = search.toLowerCase();
         const amount = getLogAmount(l);
@@ -291,18 +308,10 @@ export default function IikoLogs() {
       }
       return true;
     });
-  }, [logs, filter, selectedBrands, periodFilter, customStart, customEnd, search]);
+  }, [periodFilteredLogs, filter, search]);
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
   const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
-  const brands = [...new Set(logs.map(l => l.brandId).filter(Boolean))];
-
-  const derivedStats = useMemo(() => ({
-    total: logs.length,
-    success: logs.filter(l => l.status === 'success').length,
-    errors: logs.filter(l => l.status === 'error').length,
-  }), [logs]);
 
   const handleExportExcel = () => {
     const data = filtered.map(l => {
@@ -332,13 +341,44 @@ export default function IikoLogs() {
     );
   }
 
+  const periodLabel = 
+    periodFilter === 'today' ? 'Loguri Azi' : 
+    periodFilter === 'yesterday' ? 'Loguri Ieri' : 
+    periodFilter === 'this_week' ? 'Loguri Săptămână' : 
+    periodFilter === 'this_month' ? 'Loguri Lună' : 
+    periodFilter === 'last_month' ? 'Loguri Luna Trecută' : 
+    periodFilter === 'this_year' ? 'Loguri An' : 
+    'Total Loguri iiko';
+
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <StatCard label="Total Loguri iiko" value={derivedStats.total} color="#6366f1" />
-        <StatCard label="Succes" value={derivedStats.success} color="#10b981" />
-        <StatCard label="Erori" value={derivedStats.errors} color="#ef4444" highlight={derivedStats.errors > 0} />
+      {/* Stats Cards - Identical to Dashboard StatCard */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <StatCard 
+          label={periodLabel} 
+          value={derivedStats.total} 
+          color="#6366f1" 
+          icon={FileText}
+          onClick={() => { setFilter('all'); setCurrentPage(1); }}
+          active={filter === 'all'}
+        />
+        <StatCard 
+          label="Succes" 
+          value={derivedStats.success} 
+          color="#10b981" 
+          icon={CheckCircle2}
+          onClick={() => { setFilter(filter === 'success' ? 'all' : 'success'); setCurrentPage(1); }}
+          active={filter === 'success'}
+        />
+        <StatCard 
+          label="Erori" 
+          value={derivedStats.errors} 
+          color="#ef4444" 
+          icon={XCircle}
+          onClick={() => { setFilter(filter === 'error' ? 'all' : 'error'); setCurrentPage(1); }}
+          active={filter === 'error'}
+          highlight={derivedStats.errors > 0}
+        />
       </div>
 
       {/* Controls */}
@@ -832,14 +872,82 @@ export default function IikoLogs() {
   );
 }
 
-function StatCard({ label, value, color, highlight }) {
+function StatCard({ label, value, color, brandId, icon: Icon, onClick, active, highlight }) {
+  const isCurrency = typeof value === 'string' && value.includes('lei');
+  const displayVal = isCurrency ? value.replace('lei', '').trim() : value;
+  const valLength = String(displayVal).length;
+
+  let fontSizeClass = 'text-xl';
+  if (isCurrency) {
+    if (valLength > 8) fontSizeClass = 'text-sm';
+    else if (valLength > 5) fontSizeClass = 'text-base';
+    else fontSizeClass = 'text-lg';
+  } else {
+    fontSizeClass = valLength > 4 ? 'text-xl' : 'text-2xl';
+  }
+
   return (
-    <div
-      className={`bg-white dark:bg-slate-900 rounded-xl shadow-sm border p-4 flex flex-col justify-center ${highlight ? 'border-red-300 dark:border-red-500/50 animate-pulse' : 'border-slate-200 dark:border-slate-800'}`}
-      style={{ borderLeft: `3px solid ${color}` }}
+    <div 
+      onClick={onClick}
+      className={`bg-white dark:bg-slate-900 rounded-2xl shadow-sm border px-4 py-3 flex items-center justify-between min-w-[120px] flex-1 relative overflow-hidden transition-all duration-200 group select-none ${
+        active 
+          ? 'ring-2 ring-blue-500 border-blue-500 shadow-md scale-[1.02]' 
+          : highlight
+          ? 'border-red-300 dark:border-red-500/50'
+          : 'border-slate-200 dark:border-slate-800'
+      } ${onClick ? 'cursor-pointer hover:shadow-md hover:scale-[1.02]' : ''}`} 
+      style={{ borderLeft: `4px solid ${color}` }}
     >
-      <span className="text-2xl font-bold text-slate-900 dark:text-white">{value}</span>
-      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mt-1">{label}</span>
+      <div className="flex flex-col justify-center min-w-0 pr-1 z-10 flex-1">
+        <div className="flex items-baseline gap-1 whitespace-nowrap overflow-visible">
+          <span className={`font-black text-slate-900 dark:text-white tracking-tight ${fontSizeClass}`}>
+            {displayVal}
+          </span>
+          {isCurrency && (
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+              lei
+            </span>
+          )}
+        </div>
+        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis" title={label}>
+          {label}
+        </span>
+      </div>
+
+      {brandId ? (
+        <div className="relative shrink-0 ml-2">
+          {/* 3D Atmosphere Glow behind avatar */}
+          <div 
+            className="absolute -inset-1 rounded-full blur-sm opacity-35 group-hover:opacity-75 transition-opacity pointer-events-none"
+            style={{ backgroundColor: color }}
+          />
+          {/* 3D Raised Bezel Container with Specular Top Highlight */}
+          <div 
+            className="relative w-9 h-9 rounded-full p-0.5 flex items-center justify-center bg-gradient-to-b from-white via-slate-50 to-slate-100 dark:from-slate-700 dark:via-slate-800 dark:to-slate-900 border border-white/80 dark:border-slate-600/60 transition-transform duration-200 group-hover:scale-110 group-hover:-translate-y-0.5"
+            style={{ 
+              boxShadow: `0 3px 8px ${color}40, 0 1px 2px rgba(0,0,0,0.1), inset 0 1.5px 2px rgba(255,255,255,0.85)` 
+            }}
+          >
+            <BrandLogo brandId={brandId} size={24} className="rounded-full shadow-inner" />
+          </div>
+        </div>
+      ) : Icon ? (
+        <div className="relative shrink-0 ml-2">
+          <div 
+            className="absolute -inset-1 rounded-full blur-sm opacity-30 group-hover:opacity-60 transition-opacity pointer-events-none"
+            style={{ backgroundColor: color }}
+          />
+          <div 
+            className="relative w-9 h-9 rounded-full flex items-center justify-center text-white transition-transform duration-200 group-hover:scale-110 group-hover:-translate-y-0.5"
+            style={{ 
+              background: `linear-gradient(135deg, ${color}, ${color}cc)`,
+              boxShadow: `0 3px 8px ${color}35, 0 1px 2px rgba(0,0,0,0.1), inset 0 1.5px 2px rgba(255,255,255,0.4)` 
+            }}
+          >
+            <Icon size={18} strokeWidth={2.5} />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

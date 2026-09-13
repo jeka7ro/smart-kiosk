@@ -21,7 +21,7 @@ import FortuneWheelPreview from './components/FortuneWheelPreview';
 import MenuManager, { MenuProfileEditorModal } from './screens/MenuManager';
 import QrGenerator from './screens/QrGenerator';
 import { useConfirm } from './components/ConfirmModal';
-import { LayoutDashboard, Receipt, MapPin, MonitorSmartphone, QrCode, Utensils, Languages, Image as ImageIcon, Tags, Users, Blocks, Gift, Store, Sun, Moon, LogOut, Menu, X, CreditCard, Download, Printer, Building2 } from 'lucide-react';
+import { LayoutDashboard, Receipt, TrendingUp, MapPin, MonitorSmartphone, QrCode, Utensils, Languages, Image as ImageIcon, Tags, Users, Blocks, Gift, Store, Sun, Moon, LogOut, Menu, X, CreditCard, Download, Printer, Building2, Palette, Sparkles, Flame, Snowflake, Layers, Upload, Star, ChevronUp, ChevronDown, Check, Zap, Wifi, Sliders, Info, Trash2, AlertTriangle } from 'lucide-react';
 import { formatThousands } from './utils/formatters';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
@@ -764,13 +764,14 @@ export default function AdminApp() {
             </div>
 
             {/* Stat Cards Grid - Fixed 7 columns preserving exact dimensions */}
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2.5">
               <div className="w-full">
                 <StatCard 
-                  label={`Comenzi ${dashboardPeriod === 'today' ? 'Azi' : dashboardPeriod === 'yesterday' ? 'Ieri' : dashboardPeriod === 'thisWeek' ? 'Săptămână' : dashboardPeriod === 'thisMonth' ? 'Lună' : 'Perioadă'}`} 
+                  label={dashboardPeriod === 'today' ? 'Comenzi Azi' : dashboardPeriod === 'yesterday' ? 'Comenzi Ieri' : dashboardPeriod === 'thisWeek' ? 'Comenzi Săpt.' : dashboardPeriod === 'thisMonth' ? 'Comenzi Lună' : 'Comenzi'} 
                   value={dashboardFilteredOrders.length} 
                   color="var(--primary)" 
-                  large 
+                  icon={Receipt}
+                  onClick={() => setDashboardBrands([])}
                 />
               </div>
               <div className="w-full">
@@ -778,7 +779,7 @@ export default function AdminApp() {
                   label="Încasări Total" 
                   value={`${formatThousands(dashboardRevenue, 0)} lei`} 
                   color="#10b981" 
-                  large 
+                  icon={TrendingUp}
                 />
               </div>
               {Object.keys(BRAND_COLORS).map(b => (
@@ -787,6 +788,9 @@ export default function AdminApp() {
                     label={b === 'smashme' ? 'SmashMe' : b === 'crunch' ? 'Crunch' : b === 'rollmaster' ? 'Roll Master' : b === 'lovesushi' ? 'Love Sushi' : 'Poki-Woki'} 
                     value={dashboardBrandStats[b] || 0} 
                     color={BRAND_COLORS[b]} 
+                    brandId={b}
+                    onClick={() => toggleDashboardBrand(b)}
+                    active={dashboardBrands.includes(b)}
                   />
                 </div>
               ))}
@@ -1250,11 +1254,84 @@ export default function AdminApp() {
   );
 }
 
-function StatCard({ label, value, color, large }) {
+function StatCard({ label, value, color, large, brandId, icon: Icon, onClick, active }) {
+  // Parse currency if present (e.g. "3 645 lei")
+  const isCurrency = typeof value === 'string' && value.includes('lei');
+  const displayVal = isCurrency ? value.replace('lei', '').trim() : value;
+  const valLength = String(displayVal).length;
+
+  // Adaptive font sizing:
+  // User explicitly asked: "fă mai mic număr comenzi și suma să se vadă întreagă"
+  let fontSizeClass = 'text-lg';
+  if (isCurrency) {
+    if (valLength > 8) fontSizeClass = 'text-sm';
+    else if (valLength > 5) fontSizeClass = 'text-base';
+    else fontSizeClass = 'text-lg';
+  } else {
+    // Number of orders & brand counts: compact, clean and elegant
+    fontSizeClass = valLength > 4 ? 'text-base' : 'text-lg';
+  }
+
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-4 flex flex-col justify-center min-w-[140px] flex-1" style={{ borderLeft: `4px solid ${color}` }}>
-      <span className={`font-bold text-slate-900 dark:text-white ${large ? 'text-3xl' : 'text-2xl'}`}>{value}</span>
-      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mt-1">{label}</span>
+    <div 
+      onClick={onClick}
+      className={`bg-white dark:bg-slate-900 rounded-2xl shadow-sm border px-3 py-2.5 flex items-center justify-between min-w-[120px] flex-1 relative overflow-hidden transition-all duration-200 group select-none ${
+        active 
+          ? 'ring-2 ring-blue-500 border-blue-500 shadow-md scale-[1.02]' 
+          : 'border-slate-200 dark:border-slate-800'
+      } ${onClick ? 'cursor-pointer hover:shadow-md hover:scale-[1.02]' : ''}`} 
+      style={{ borderLeft: `4px solid ${color}` }}
+    >
+      <div className="flex flex-col justify-center min-w-0 pr-1 z-10 flex-1">
+        <div className="flex items-baseline gap-1 whitespace-nowrap overflow-visible">
+          <span className={`font-black text-slate-900 dark:text-white tracking-tight ${fontSizeClass}`}>
+            {displayVal}
+          </span>
+          {isCurrency && (
+            <span className="text-[10.5px] font-bold text-slate-500 dark:text-slate-400">
+              lei
+            </span>
+          )}
+        </div>
+        <span className="text-[9.5px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis" title={label}>
+          {label}
+        </span>
+      </div>
+
+      {brandId ? (
+        <div className="relative shrink-0 ml-1.5">
+          {/* 3D Atmosphere Glow behind avatar */}
+          <div 
+            className="absolute -inset-1 rounded-full blur-sm opacity-35 group-hover:opacity-75 transition-opacity pointer-events-none"
+            style={{ backgroundColor: color }}
+          />
+          {/* 3D Raised Bezel Container with Specular Top Highlight */}
+          <div 
+            className="relative w-8.5 h-8.5 rounded-full p-0.5 flex items-center justify-center bg-gradient-to-b from-white via-slate-50 to-slate-100 dark:from-slate-700 dark:via-slate-800 dark:to-slate-900 border border-white/80 dark:border-slate-600/60 transition-transform duration-200 group-hover:scale-110 group-hover:-translate-y-0.5"
+            style={{ 
+              boxShadow: `0 3px 8px ${color}40, 0 1px 2px rgba(0,0,0,0.1), inset 0 1.5px 2px rgba(255,255,255,0.85)` 
+            }}
+          >
+            <BrandLogo brandId={brandId} size={24} className="rounded-full shadow-inner" />
+          </div>
+        </div>
+      ) : Icon ? (
+        <div className="relative shrink-0 ml-1.5">
+          <div 
+            className="absolute -inset-1 rounded-full blur-sm opacity-30 group-hover:opacity-60 transition-opacity pointer-events-none"
+            style={{ backgroundColor: color }}
+          />
+          <div 
+            className="relative w-8.5 h-8.5 rounded-full flex items-center justify-center text-white transition-transform duration-200 group-hover:scale-110 group-hover:-translate-y-0.5"
+            style={{ 
+              background: `linear-gradient(135deg, ${color}, ${color}cc)`,
+              boxShadow: `0 3px 8px ${color}35, 0 1px 2px rgba(0,0,0,0.1), inset 0 1.5px 2px rgba(255,255,255,0.4)` 
+            }}
+          >
+            <Icon size={16} strokeWidth={2.5} />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -1843,8 +1920,69 @@ function RestartKioskBtn({ locId, backend, fetchWithAuth }) {
   );
 }
 
+/* ─── KIOSK SETTINGS REUSABLE CONTROLS ─── */
+function KioskSwitch({ checked, onChange, disabled }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => !disabled && onChange(!checked)}
+      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+        checked ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'
+      } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+    >
+      <span
+        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+          checked ? 'translate-x-5' : 'translate-x-0'
+        }`}
+      />
+    </button>
+  );
+}
+
+function KioskColorPicker({ label, value, onChange, placeholder, allowClear, clearValue = 'transparent', clearLabel = 'Fără' }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      {label && <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">{label}</label>}
+      <div className="flex items-center gap-2">
+        <div className="relative w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm flex items-center justify-center shrink-0 cursor-pointer bg-slate-100 dark:bg-slate-800">
+          <input
+            type="color"
+            value={value && value.startsWith('#') && value.length === 7 ? value : '#0f172a'}
+            onChange={e => onChange(e.target.value)}
+            className="absolute -inset-2 w-14 h-14 cursor-pointer opacity-0"
+          />
+          <div 
+            className="w-full h-full border border-black/10" 
+            style={{ backgroundColor: value || 'transparent' }} 
+          />
+        </div>
+        <input
+          type="text"
+          value={value || ''}
+          placeholder={placeholder || '#000000'}
+          onChange={e => onChange(e.target.value)}
+          className="w-28 px-3 py-1.5 text-xs font-mono rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+        />
+        {allowClear && (
+          <button
+            type="button"
+            onClick={() => onChange(clearValue)}
+            className="px-2.5 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-700 transition-colors"
+          >
+            {clearLabel}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function KioskSettingsForm({ loc, backend, onBack, onSave }) {
   const { fetchWithAuth } = useAuth();
+  const [activeTab, setActiveTab] = useState('design');
   const [formData, setFormData] = useState({
     name: loc.name || '',
     kioskUrl: loc.kioskUrl || '',
@@ -1880,9 +2018,11 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
     langSelectorPosition: loc.langSelectorPosition || 'after',
     langBgColor: loc.langBgColor || '',
     langBorderColor: loc.langBorderColor || '',
+    langBarBg: loc.langBarBg || '',
     menuOverrides: loc.menuOverrides || {},
     paymentGateway: loc.paymentGateway || 'none',
     kioskUiSize: loc.kioskUiSize || 'S',
+    visualEffects: loc.visualEffects || { parallax: true, steam: true, snow: false },
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -1922,7 +2062,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
   }, [backend, fetchWithAuth]);
 
   // Derived: active brands for this location
-  const activeBrands = formData.brands && formData.brands.length > 0 ? formData.brands : (loc.brands && loc.brands.length > 0 ? loc.brands : Object.keys(brandProfiles));
+  const activeBrands = formData.brands && formData.brands.length > 0 ? formData.brands : (loc.brands && loc.brands.length > 0 ? loc.brands : []);
 
   const [brandProfiles, setBrandProfiles] = useState({});
   useEffect(() => {
@@ -1944,7 +2084,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
   // Toggles for optional sections
   const [usePin, setUsePin] = useState(!!loc.kioskPin);
   const [useBanner, setUseBanner] = useState(!!loc.topBannerUrl);
-  const [useBottomBanner, setUseBottomBanner] = useState(!!loc.bottomBannerContent);
+  const [useBottomBanner, setUseBottomBanner] = useState(!!(loc.bottomBannerContent || loc.bottomBannerUrl || loc.bottomBannerText));
 
   const handleChange = (field, val) => setFormData(p => ({ ...p, [field]: val }));
 
@@ -1958,11 +2098,14 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
 
   const saveSettings = async () => {
     setIsSaving(true);
-    // Sync toggles with data
     const finalData = { ...formData };
     if (!usePin) finalData.kioskPin = '';
     if (!useBanner) finalData.topBannerUrl = '';
-    if (!useBottomBanner) { finalData.bottomBannerUrl = ''; finalData.bottomBannerText = ''; finalData.bottomBannerContent = ''; }
+    if (!useBottomBanner) { 
+      finalData.bottomBannerUrl = ''; 
+      finalData.bottomBannerText = ''; 
+      finalData.bottomBannerContent = ''; 
+    }
 
     try {
       await fetchWithAuth(`${backend}/api/locations/${loc.id}`, {
@@ -1972,12 +2115,9 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
       });
       setSaveSuccess(true);
       onSave();
-      
-      // Toast feel — wait a moment then close
       setTimeout(() => {
         onBack();
       }, 1000);
-      
     } catch(e) {
       console.error('Eroare la salvare.');
       setIsSaving(false);
@@ -1986,14 +2126,12 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
 
   const renderPreview = (u, rotation = 0) => {
     if (!u) return null;
-    
-    // Scale and rotate logic for the preview
     let style = { width: '100%', height: '100%', objectFit: 'contain', border: 'none' };
     
     if (rotation === 90 || rotation === 270) {
       style = { 
         ...style,
-        width: '177.77%',  // aspect ratio inversion for preview
+        width: '177.77%',
         height: '56.25%',
         position: 'absolute',
         top: '50%',
@@ -2035,993 +2173,1228 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
     );
   }
 
-  const finalKioskUrl = formData.kioskUrl ? `https://kiosk-smashme.netlify.app/?loc=${formData.kioskUrl}` : `https://kiosk-smashme.netlify.app/?loc=${loc.id}`;
+  const finalKioskUrl = formData.kioskUrl 
+    ? `https://kiosk-smashme.netlify.app/?loc=${formData.kioskUrl}` 
+    : `https://kiosk-smashme.netlify.app/?loc=${loc.id}`;
+
+  const TABS = [
+    { id: 'design', label: 'Design & Efecte 3D', icon: <Palette className="w-4 h-4" /> },
+    { id: 'screensaver', label: 'Screensaver Standby', icon: <MonitorSmartphone className="w-4 h-4" />, badge: formData.posterUrl ? 'Activ' : null },
+    { id: 'marketing', label: 'Bannere & Promoții', icon: <Tags className="w-4 h-4" />, badge: (useBanner || useBottomBanner || formData.promoActive) ? 'Activat' : null },
+    { id: 'languages', label: 'Limbi & Traduceri', icon: <Languages className="w-4 h-4" />, badge: `${(formData.languages || []).length} limbi` },
+    { id: 'system', label: 'Hardware & Securitate', icon: <Sliders className="w-4 h-4" />, badge: formData.paymentGateway !== 'none' ? 'POS' : null },
+  ];
 
   return (
-    <div className="loc-edit-form" style={{ maxWidth: '1000px', margin: '0 auto' }}>
-      <div className="loc-edit-header" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)', paddingBottom: 16, marginBottom: 24, display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-
-           <h2 style={{ margin: '8px 0 0 0', fontSize: '1.5rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-             Configurare Kiosk: 
-             <input 
-               type="text" 
-               value={formData.name || ''} 
-               onChange={e => handleChange('name', e.target.value)}
-               placeholder="Nume Locație (ex: SmashMe Cluj)"
-               style={{
-                 fontSize: '1.5rem', 
-                 color: '#3b82f6', 
-                 border: 'none', 
-                 borderBottom: '2px dashed #3b82f6', 
-                 background: 'transparent', 
-                 outline: 'none',
-                 padding: '2px 4px',
-                 fontWeight: 'bold',
-                 minWidth: '250px'
-               }}
-               title="Editează numele locației"
-             />
-           </h2>
+    <div className="max-w-6xl mx-auto space-y-6 pb-20">
+      {/* ─── TOP HEADER BAR ─── */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={onBack}
+            className="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-semibold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+            title="Înapoi la lista de Kioskuri"
+          >
+            ← Înapoi
+          </button>
+          <div>
+            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+              <span>Configurare Kiosk</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+              <span className="text-[11px] font-mono text-slate-400">ID: {loc.id}</span>
+            </div>
+            <div className="flex items-center gap-2 mt-0.5">
+              <input 
+                type="text" 
+                value={formData.name || ''} 
+                onChange={e => handleChange('name', e.target.value)}
+                placeholder="Nume Locație (ex: SmashMe Cluj)"
+                className="text-xl font-bold text-slate-900 dark:text-white bg-transparent border-b-2 border-dashed border-blue-500/50 focus:border-blue-500 outline-none pb-0.5 min-w-[260px] transition-colors"
+                title="Editează numele locației"
+              />
+            </div>
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+
+        <div className="flex items-center gap-2.5">
           <a
             href={finalKioskUrl}
-            target="_blank" rel="noreferrer"
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text)',
-              padding: '10px 16px', borderRadius: '12px', fontSize: '0.9rem', fontWeight: 600,
-              textDecoration: 'none', transition: 'all 0.2s'
-            }}
+            target="_blank" 
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-200 px-4 py-2 rounded-xl text-sm font-semibold border border-slate-200 dark:border-slate-700 transition-all shadow-sm"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            Preview Live
+            Deschide Live
           </a>
-          {/* Restart / Refresh remote kiosk */}
           <RestartKioskBtn locId={loc.id} backend={backend} fetchWithAuth={fetchWithAuth} />
           <button 
-            className="loc-save-btn" 
+            type="button"
             onClick={saveSettings} 
             disabled={isSaving || saveSuccess}
-            style={{ 
-              background: saveSuccess ? '#10b981' : '#0f172a', 
-              color: '#fff',
-              padding: '10px 24px', 
-              borderRadius: '12px',
-              fontSize: '0.95rem',
-              border: 'none',
-              cursor: (isSaving || saveSuccess) ? 'default' : 'pointer',
-              boxShadow: saveSuccess ? '0 4px 14px rgba(16, 185, 129, 0.4)' : '0 4px 14px rgba(15, 23, 42, 0.2)',
-              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)' 
-            }}
+            className={`px-6 py-2.5 rounded-xl text-sm font-bold text-white transition-all shadow-md flex items-center gap-2 cursor-pointer ${
+              saveSuccess 
+                ? 'bg-emerald-600 shadow-emerald-500/30 ring-2 ring-emerald-400' 
+                : isSaving 
+                  ? 'bg-slate-700 opacity-80 cursor-wait' 
+                  : 'bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-500 shadow-slate-900/20'
+            }`}
           >
-            {saveSuccess ? '✓ Configurație Salvată' : isSaving ? ' Se procesează...' : ' Salvează Schimbările'}
+            {saveSuccess ? 'Configurație Salvată' : isSaving ? 'Se salvează...' : 'Salvează Schimbările'}
           </button>
         </div>
       </div>
 
-      <div className="loc-edit-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
+      {/* ─── SUB-NAVIGATION TABS ─── */}
+      <div className="flex items-center gap-1.5 p-1.5 bg-slate-100/80 dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 overflow-x-auto">
+        {TABS.map(tab => {
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all cursor-pointer ${
+                isActive
+                  ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm border border-slate-200/80 dark:border-slate-700/80'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-800/50'
+              }`}
+            >
+              <span>{tab.icon}</span>
+              <span>{tab.label}</span>
+              {tab.badge && (
+                <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                  isActive 
+                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' 
+                    : 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                }`}>
+                  {tab.badge}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
 
-        {/* Card: Comportament */}
-        <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
-          <h3 style={{ marginTop: 0, fontSize: '1.1rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>Conținut Kiosk</h3>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>Selectează restaurantele pe care clienții le pot explora din această tabletă.</p>
-          
-          <div className="loc-brand-select" style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
-            {/* Show selected brands first with reorder buttons */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12, paddingBottom: 12, borderBottom: '1px dashed var(--border)' }}>
-              {formData.brands.map((k, index) => {
-                const v = {smashme:'SmashMe', crunch:'Crunch', rollmaster:'Roll Master', lovesushi:'Love Sushi', pokiwoki:'Poki-Woki'}[k] || k;
-                return (
-                  <div key={k} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 10 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700, fontSize: '0.95rem', color: 'var(--text)' }}>
-                      <div style={{ width: 28, height: 28, borderRadius: 6, background: (BRAND_COLORS && BRAND_COLORS[k]) ? BRAND_COLORS[k] : '#cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                         <BrandLogo brandId={k} size={18} />
-                      </div>
-                      {v}
-                    </div>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <button onClick={() => {
-                          const newB = [...formData.brands];
-                          if (index > 0) {
-                            [newB[index-1], newB[index]] = [newB[index], newB[index-1]];
-                            setFormData(p => ({ ...p, brands: newB }));
-                          }
-                        }} disabled={index === 0} style={{ padding: '6px 10px', background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 6, cursor: index===0?'not-allowed':'pointer', fontSize: '0.75rem', fontWeight: 600 }}>↑ Sus</button>
-                      <button onClick={() => {
-                          const newB = [...formData.brands];
-                          if (index < newB.length - 1) {
-                            [newB[index+1], newB[index]] = [newB[index], newB[index+1]];
-                            setFormData(p => ({ ...p, brands: newB }));
-                          }
-                        }} disabled={index === formData.brands.length - 1} style={{ padding: '6px 10px', background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 6, cursor: index===formData.brands.length-1?'not-allowed':'pointer', fontSize: '0.75rem', fontWeight: 600 }}>↓ Jos</button>
-                      <button onClick={() => toggleBrand(k)} style={{ padding: '6px 10px', background: '#fee2e2', color: '#ef4444', border: '1px solid #fca5a5', borderRadius: 6, cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}>Șterge</button>
-                    </div>
+      {/* ─── TAB 1: DESIGN & EFECTE 3D ─── */}
+      {activeTab === 'design' && (
+        <div className="space-y-6">
+          {/* Card 1: Efecte Vizuale Kiosk (VFX) */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2.5">
+                <Sparkles className="w-5 h-5 text-amber-500" />
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Efecte Vizuale Kiosk (VFX)</h3>
+              </div>
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/60">
+                GPU Canvas 60 FPS
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-5">
+              Tehnologii tactile și particule organice rulate direct pe ecranul detaliilor de produs pentru apetit maxim.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Parallax 3D */}
+              <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 flex items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
+                    <Layers className="w-4 h-4 text-purple-500" />
+                    <span>Parallax 3D Tilt</span>
                   </div>
-                );
-              })}
-              {formData.brands.length === 0 && <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontStyle: 'italic' }}>Niciun restaurant selectat</span>}
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                    Înclinare 3D dinamică la atingerea pozei de produs, cu reflexie luminoasă speculară.
+                  </p>
+                </div>
+                <KioskSwitch
+                  checked={formData.visualEffects?.parallax ?? true}
+                  onChange={val => handleChange('visualEffects', { ...formData.visualEffects, parallax: val })}
+                />
+              </div>
+
+              {/* Steam / Abur */}
+              <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 flex items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
+                    <Flame className="w-4 h-4 text-amber-500" />
+                    <span>Abur Cald (Steam)</span>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                    Vapori delicați de abur cald care se ridică peste burgeri și preparatele fierbinți.
+                  </p>
+                </div>
+                <KioskSwitch
+                  checked={formData.visualEffects?.steam ?? true}
+                  onChange={val => handleChange('visualEffects', { ...formData.visualEffects, steam: val })}
+                />
+              </div>
+
+              {/* Snow / Zapada */}
+              <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 flex items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
+                    <Snowflake className="w-4 h-4 text-cyan-500" />
+                    <span>Zăpadă (Snow)</span>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                    Fulgii de zăpadă interactivi pentru campanii tematice de iarnă sau sărbători.
+                  </p>
+                </div>
+                <KioskSwitch
+                  checked={formData.visualEffects?.snow ?? false}
+                  onChange={val => handleChange('visualEffects', { ...formData.visualEffects, snow: val })}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: Mărime Interfață & Buton Principal */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* UI Scaling */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">Mărime Butoane și Poze Produse</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-5">
+                  Reglează densitatea și scara grafică generală pe tableta Kiosk.
+                </p>
+
+                <div className="grid grid-cols-3 gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+                  {[
+                    { v: 'S', l: 'Mic', desc: 'Standard' },
+                    { v: 'M', l: 'Mediu', desc: 'Echilibrat' },
+                    { v: 'L', l: 'Mare', desc: 'Extra Vizibil' }
+                  ].map(opt => {
+                    const isSelected = (formData.kioskUiSize || 'S') === opt.v;
+                    return (
+                      <button
+                        key={opt.v}
+                        type="button"
+                        onClick={() => handleChange('kioskUiSize', opt.v)}
+                        className={`py-3 px-2 rounded-lg text-center transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-white dark:bg-slate-750 text-blue-600 dark:text-blue-400 font-bold shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 font-medium hover:text-slate-900 dark:hover:text-white'
+                        }`}
+                      >
+                        <div className="text-sm">{opt.l}</div>
+                        <div className="text-[10px] opacity-75">{opt.desc}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-400 flex items-center">
+                <Info className="w-3.5 h-3.5 inline mr-1.5 text-blue-500 shrink-0" />
+                <span>Pentru ecrane mai mici de 21" este recomandat modul <strong>Mediu</strong>.</span>
+              </div>
             </div>
 
-            {/* Selection candidates */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-              {Object.entries({smashme:'SmashMe', crunch:'Crunch', rollmaster:'Roll Master', lovesushi:'Love Sushi', pokiwoki:'Poki-Woki'}).map(([k, v]) => {
-                if (formData.brands.includes(k)) return null;
+            {/* Buton Principal Începe Comanda */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">Butonul Principal "Începe comanda"</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Aspectul butonului central vizibil clienților la debutul comenzii.
+                </p>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">Text Buton</label>
+                <input
+                  type="text"
+                  placeholder="Începe comanda"
+                  value={formData.langButtonText || ''}
+                  onChange={e => handleChange('langButtonText', e.target.value)}
+                  className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <KioskColorPicker
+                  label="Culoare Fundal"
+                  value={formData.langButtonColor || '#0f172a'}
+                  onChange={val => handleChange('langButtonColor', val)}
+                />
+                <KioskColorPicker
+                  label="Culoare Text"
+                  value={formData.langButtonTextColor || '#ffffff'}
+                  onChange={val => handleChange('langButtonTextColor', val)}
+                />
+                <div className="sm:col-span-2">
+                  <KioskColorPicker
+                    label="Culoare Contur"
+                    value={formData.langButtonBorderColor || 'transparent'}
+                    onChange={val => handleChange('langButtonBorderColor', val)}
+                    allowClear={true}
+                    clearValue="transparent"
+                  />
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between gap-3">
+                <div className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  Folosește culorile tricolorului (suprascrie fundalul)
+                </div>
+                <KioskSwitch
+                  checked={formData.langButtonFlagColors || false}
+                  onChange={val => handleChange('langButtonFlagColors', val)}
+                />
+              </div>
+
+              {/* Live Button Preview */}
+              <div className="pt-2 flex flex-col items-center">
+                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Previzualizare Buton</span>
+                <div
+                  className="px-6 py-3 rounded-2xl font-bold text-sm shadow-md transition-all flex items-center gap-2"
+                  style={{
+                    background: formData.langButtonFlagColors 
+                      ? 'linear-gradient(90deg, #002B7F 0%, #002B7F 33.3%, #FCD116 33.3%, #FCD116 66.6%, #CE1126 66.6%, #CE1126 100%)'
+                      : (formData.langButtonColor || '#0f172a'),
+                    color: formData.langButtonTextColor || '#ffffff',
+                    border: formData.langButtonBorderColor && formData.langButtonBorderColor !== 'transparent' 
+                      ? `2px solid ${formData.langButtonBorderColor}` 
+                      : 'none'
+                  }}
+                >
+                  <span>{formData.langButtonText || 'Începe comanda'}</span>
+                  <span>→</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: SCREENSAVER STANDBY ─── */}
+      {activeTab === 'screensaver' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Left Column: Setări Standby */}
+          <div className="lg:col-span-7 space-y-5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+            <div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">Screensaver Standby (Reclamă)</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Rulează automat în format full-screen când tableta nu este atinsă timp de 30 de secunde.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl border border-blue-100 dark:border-blue-900/40 bg-blue-50/50 dark:bg-blue-950/20 text-xs text-blue-800 dark:text-blue-300 leading-relaxed flex items-start gap-2">
+              <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+              <div>
+                <strong>Recomandare format:</strong> Video MP4 (codec h264) cu raport 9:16 (vertical) sau 16:9 rotit corespunzător. Fișierele sunt rulate în buclă infinită pe tot ecranul.
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1.5">
+                URL Video MP4 sau Imagine
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  placeholder="https://... sau încarcă din PC"
+                  value={formData.posterUrl || ''}
+                  onChange={e => handleChange('posterUrl', e.target.value)}
+                  className="flex-1 px-3.5 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-mono"
+                />
+                <label className={`px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                  uploadingScreensaver ? 'opacity-70 cursor-wait' : ''
+                }`}>
+                  {uploadingScreensaver ? (
+                    'Se încarcă...'
+                  ) : (
+                    <span className="flex items-center gap-1.5">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Încarcă</span>
+                    </span>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*,video/mp4"
+                    className="hidden"
+                    onChange={handleScreensaverUpload}
+                    disabled={uploadingScreensaver}
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1.5">
+                Rotație Afișare Reclamă
+              </label>
+              <div className="grid grid-cols-4 gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+                {[
+                  { v: 0, l: '0° Normal' },
+                  { v: 90, l: '90° Dreapta' },
+                  { v: 180, l: '180° Invers' },
+                  { v: 270, l: '270° Stânga' }
+                ].map(rot => {
+                  const isSelected = (formData.posterRotation || 0) === rot.v;
+                  return (
+                    <button
+                      key={rot.v}
+                      type="button"
+                      onClick={() => handleChange('posterRotation', rot.v)}
+                      className={`py-2 px-2 rounded-lg text-xs transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-white dark:bg-slate-750 text-blue-600 dark:text-blue-400 font-bold shadow-sm'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-medium'
+                      }`}
+                    >
+                      {rot.l}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {formData.posterUrl && (
+              <div className="pt-2 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => handleChange('posterUrl', '')}
+                  className="text-xs text-rose-500 hover:text-rose-700 font-semibold cursor-pointer flex items-center gap-1"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Șterge Screensaver</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Right Column: Tablet Device Mockup */}
+          <div className="lg:col-span-5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm flex flex-col items-center justify-center">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">
+              Simulator Tabletă Standby (9:16)
+            </span>
+
+            {formData.posterUrl ? (
+              <div className="w-[270px] h-[480px] rounded-[28px] overflow-hidden border-[10px] border-slate-900 bg-black relative shadow-2xl flex items-center justify-center">
+                {renderPreview(formData.posterUrl, formData.posterRotation || 0)}
+                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/95 text-slate-900 px-5 py-2 rounded-full text-xs font-black whitespace-nowrap shadow-xl backdrop-blur-sm pointer-events-none">
+                  Atinge pentru a începe
+                </div>
+              </div>
+            ) : (
+              <div className="w-[270px] h-[480px] rounded-[28px] border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-850 flex flex-col items-center justify-center p-6 text-center text-slate-400">
+                <MonitorSmartphone className="w-12 h-12 text-slate-300 dark:text-slate-600 mb-2" />
+                <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">Niciun screensaver activ</span>
+                <span className="text-xs text-slate-400 mt-1">Încarcă un video MP4 sau o imagine pentru a rula în standby.</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: BANNER & PROMOȚII ─── */}
+      {activeTab === 'marketing' && (
+        <div className="space-y-6">
+          {/* Card 1: Banner Promo Persistent (Top) */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Banner Promo Persistent (Top / Sus)</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Ocupă partea superioară a ecranului (10%-30%) cu reclamă video/imagine permanentă.
+                </p>
+              </div>
+              <KioskSwitch
+                checked={useBanner}
+                onChange={val => setUseBanner(val)}
+              />
+            </div>
+
+            {useBanner && (
+              <div className="mt-5 pt-5 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div className="lg:col-span-7 space-y-4">
+                  {formData.brands && formData.brands.length > 0 ? (
+                    formData.brands.map(brandId => {
+                      const val = formData[`topBannerUrl_${brandId}`] ?? formData.topBannerUrl ?? '';
+                      return (
+                        <div key={brandId} className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 space-y-2">
+                          <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                            <BrandLogo brandId={brandId} size={16} /> Banner pentru {brandId}
+                          </label>
+                          <input
+                            type="url"
+                            placeholder={`URL Video MP4 / Imagine pt ${brandId}...`}
+                            value={val}
+                            onChange={e => handleChange(`topBannerUrl_${brandId}`, e.target.value)}
+                            className="w-full px-3 py-1.5 text-xs font-mono rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                          />
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                        URL Banner Global
+                      </label>
+                      <input
+                        type="url"
+                        placeholder="https://... URL video MP4 sau imagine"
+                        value={formData.topBannerUrl || ''}
+                        onChange={e => handleChange('topBannerUrl', e.target.value)}
+                        className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono"
+                      />
+                    </div>
+                  )}
+
+                  {/* Geometrie & Colțuri */}
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 space-y-4">
+                    <div>
+                      <div className="flex justify-between text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                        <span>Înălțime Banner</span>
+                        <span className="text-blue-600 font-bold">Nivel {formData.topBannerHeight} (din 5)</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="1" max="5" step="1"
+                        value={formData.topBannerHeight || 3}
+                        onChange={e => handleChange('topBannerHeight', parseInt(e.target.value))}
+                        className="w-full cursor-pointer"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-2">
+                      <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Colțuri Sus Rotunjite</span>
+                        <KioskSwitch
+                          checked={formData.topBannerRadiusTop ?? true}
+                          onChange={val => handleChange('topBannerRadiusTop', val)}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Colțuri Jos Rotunjite</span>
+                        <KioskSwitch
+                          checked={formData.topBannerRadiusBottom ?? false}
+                          onChange={val => handleChange('topBannerRadiusBottom', val)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="lg:col-span-5 flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3">Simulator Banner Top</span>
+                  <div className="w-[140px] h-[250px] rounded-2xl overflow-hidden border-4 border-slate-800 bg-slate-200 dark:bg-slate-800 relative shadow-md">
+                    <div className="absolute inset-0 p-1.5 space-y-1">
+                      <div className="w-full h-8 bg-slate-300 dark:bg-slate-700 rounded" />
+                      <div className="w-full h-8 bg-slate-300 dark:bg-slate-700 rounded" />
+                      <div className="w-full h-8 bg-slate-300 dark:bg-slate-700 rounded" />
+                    </div>
+                    <div 
+                      className="absolute top-0 left-0 right-0 overflow-hidden bg-black shadow-md transition-all duration-300"
+                      style={{
+                        height: `${10 + ((formData.topBannerHeight || 1) - 1) * 5}%`,
+                        borderRadius: `${formData.topBannerRadiusTop ? '8px' : '0'} ${formData.topBannerRadiusTop ? '8px' : '0'} ${formData.topBannerRadiusBottom ? '8px' : '0'} ${formData.topBannerRadiusBottom ? '8px' : '0'}`
+                      }}
+                    >
+                      {renderPreview(formData.topBannerUrl)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Card 2: Banner Promo Footer */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Banner Promo Footer (Jos / Sub Meniu)</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Bară promoțională inferioară. Suportă video/imagine sau text derulant cu logo.
+                </p>
+              </div>
+              <KioskSwitch
+                checked={useBottomBanner}
+                onChange={val => setUseBottomBanner(val)}
+              />
+            </div>
+
+            {useBottomBanner && (
+              <div className="mt-5 pt-5 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div className="lg:col-span-7 space-y-4">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                      1. Reclamă (Video MP4 / Imagine)
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="https://... URL video sau imagine"
+                      value={formData.bottomBannerUrl || ''}
+                      onChange={e => handleChange('bottomBannerUrl', e.target.value)}
+                      className="w-full px-3.5 py-2 text-xs font-mono rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                      2. Text Derulant / Fix
+                    </label>
+                    <textarea
+                      placeholder="Ex: Burger SmashMe -20% azi! Cartofi gratis la orice combo!"
+                      value={formData.bottomBannerText || ''}
+                      onChange={e => handleChange('bottomBannerText', e.target.value)}
+                      rows={2}
+                      className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">Mod Text</label>
+                      <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                        {[
+                          { v: false, l: 'Rulant' },
+                          { v: true, l: 'Fix' }
+                        ].map(m => (
+                          <button
+                            key={String(m.v)}
+                            type="button"
+                            onClick={() => handleChange('bottomBannerTextFixed', m.v)}
+                            className={`py-1 text-xs rounded font-semibold transition-all ${
+                              formData.bottomBannerTextFixed === m.v
+                                ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm'
+                                : 'text-slate-500'
+                            }`}
+                          >
+                            {m.l}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">Aliniere Text</label>
+                      <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                        {['left', 'center', 'right'].map(align => (
+                          <button
+                            key={align}
+                            type="button"
+                            onClick={() => handleChange('bottomBannerTextAlign', align)}
+                            className={`py-1 text-xs rounded font-semibold capitalize transition-all ${
+                              (formData.bottomBannerTextAlign || 'center') === align
+                                ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm'
+                                : 'text-slate-500'
+                            }`}
+                          >
+                            {align === 'left' ? 'Stânga' : align === 'center' ? 'Centru' : 'Dreapta'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <KioskColorPicker
+                    label="Culoare Fundal Banner Footer"
+                    value={formData.bottomBannerBg || '#1e293b'}
+                    onChange={val => handleChange('bottomBannerBg', val)}
+                  />
+                </div>
+
+                <div className="lg:col-span-5 flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3">Simulator Banner Footer</span>
+                  <div className="w-[140px] h-[250px] rounded-2xl overflow-hidden border-4 border-slate-800 bg-slate-200 dark:bg-slate-800 relative shadow-md">
+                    <div 
+                      className="absolute bottom-0 left-0 right-0 overflow-hidden shadow-md transition-all duration-300 flex items-center justify-center p-1"
+                      style={{
+                        height: `${10 + ((formData.bottomBannerHeight || 1) - 1) * 5}%`,
+                        backgroundColor: formData.bottomBannerBg || '#1e293b',
+                        borderRadius: `${formData.bottomBannerRadiusTop ? '8px' : '0'} ${formData.bottomBannerRadiusTop ? '8px' : '0'} ${formData.bottomBannerRadiusBottom ? '8px' : '0'} ${formData.bottomBannerRadiusBottom ? '8px' : '0'}`
+                      }}
+                    >
+                      <span className="text-[8px] font-bold text-white truncate">
+                        {formData.bottomBannerText || 'Text Promoțional'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Card 3: Promoție Roată Noroc */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Promoție Kiosk (Roată Noroc)</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Configurează condițiile de apariție și afișare a roții interactive de premii.
+                </p>
+              </div>
+              <KioskSwitch
+                checked={formData.promoActive || false}
+                onChange={val => handleChange('promoActive', val)}
+              />
+            </div>
+
+            {formData.promoActive && (
+              <div className="mt-5 pt-5 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">Alege Roata</label>
+                  <select
+                    value={formData.promoBrandId || ''}
+                    onChange={e => handleChange('promoBrandId', e.target.value)}
+                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                  >
+                    <option value="">Alege...</option>
+                    <option value="smashme">Roata SmashMe</option>
+                    <option value="lovesushi">Roata RollMaster</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">Moment Apariție</label>
+                  <select
+                    value={formData.promoTriggerMoment || 'after_payment'}
+                    onChange={e => handleChange('promoTriggerMoment', e.target.value)}
+                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                  >
+                    <option value="before_payment">Înainte de Plată (Adaugă în coș)</option>
+                    <option value="after_payment">După Confirmare Plată (Prezintă la Casă)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">Sumă Minimă Coș (RON)</label>
+                  <input
+                    type="number"
+                    value={formData.promoMinOrderValue === 0 ? '' : formData.promoMinOrderValue}
+                    onChange={e => handleChange('promoMinOrderValue', Number(e.target.value))}
+                    placeholder="Ex: 50"
+                    className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Limitare Frecvență</label>
+                    <KioskSwitch
+                      checked={formData.promoFreqEnabled || false}
+                      onChange={val => handleChange('promoFreqEnabled', val)}
+                    />
+                  </div>
+                  {formData.promoFreqEnabled ? (
+                    <input
+                      type="number"
+                      value={formData.promoOrdersToAppear === 0 ? '' : formData.promoOrdersToAppear}
+                      onChange={e => handleChange('promoOrdersToAppear', Number(e.target.value))}
+                      placeholder="Ex: Apare la fiecare a 3-a comandă"
+                      className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                    />
+                  ) : (
+                    <div className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold text-blue-600 dark:text-blue-400 text-center">
+                      Roata apare MEREU
+                    </div>
+                  )}
+                </div>
+
+                {formData.promoBrandId && promosData[formData.promoBrandId] && (
+                  <div className="md:col-span-2 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowWheelPreviewFull(true)}
+                      className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-200 text-xs font-bold transition-all border border-slate-200 dark:border-slate-700"
+                    >
+                      Deschide Simulatorul Roții de Noroc
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: LIMBI & TRADUCERI ─── */}
+      {activeTab === 'languages' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Card: Limbi Active */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Limbi Active pe Kiosk</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Limba marcată cu steluță este implicită la pornire</p>
+              </div>
+              <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                {(formData.languages || []).length} active
+              </span>
+            </div>
+
+            {(() => {
+              const ALL_LANGS = ['ro', 'en', 'fr', 'hu', 'ru', 'uk', 'bg', 'de', 'es'];
+              const langNames = { ro: 'RO (Română)', en: 'EN (English)', fr: 'FR (Français)', hu: 'HU (Magyar)', ru: 'RU (Русский)', uk: 'UA (Українська)', bg: 'BG (Български)', de: 'DE (Deutsch)', es: 'ES (Español)' };
+              const currentLangs = formData.languages || ['ro'];
+              const defaultLang = formData.defaultLanguage || currentLangs[0];
+              const inactive = ALL_LANGS.filter(l => !currentLangs.includes(l));
+
+              const moveLang = (idx, dir) => {
+                const arr = [...currentLangs];
+                const newIdx = idx + dir;
+                if (newIdx < 0 || newIdx >= arr.length) return;
+                [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+                handleChange('languages', arr);
+              };
+              const removeLang = (lang) => {
+                const filtered = currentLangs.filter(l => l !== lang);
+                handleChange('languages', filtered);
+                if (defaultLang === lang && filtered.length > 0) handleChange('defaultLanguage', filtered[0]);
+              };
+              const addLang = (lang) => {
+                handleChange('languages', [...currentLangs, lang]);
+              };
+              const setDefault = (lang) => handleChange('defaultLanguage', lang);
+
+              return (
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    {currentLangs.map((lang, idx) => {
+                      const isDefault = lang === defaultLang;
+                      return (
+                        <div
+                          key={lang}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all ${
+                            isDefault 
+                              ? 'bg-blue-50/70 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800' 
+                              : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-800'
+                          }`}
+                        >
+                          <span className="text-xs font-bold text-slate-400 w-5 text-center">{idx + 1}</span>
+                          <span className="flex-1 text-sm font-bold text-slate-800 dark:text-slate-100">{langNames[lang]}</span>
+                          <button
+                            type="button"
+                            title={isDefault ? 'Limbă implicită' : 'Setează ca limbă implicită'}
+                            onClick={() => setDefault(lang)}
+                            className={`p-1 text-base transition-all cursor-pointer ${isDefault ? 'text-amber-500 scale-110' : 'text-slate-300 hover:text-amber-400'}`}
+                          >
+                            <Star className="w-3.5 h-3.5" fill={isDefault ? "#f59e0b" : "none"} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => moveLang(idx, -1)}
+                            disabled={idx === 0}
+                            className="p-1 text-xs font-bold text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-20 cursor-pointer"
+                          >
+                            <ChevronUp className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => moveLang(idx, 1)}
+                            disabled={idx === currentLangs.length - 1}
+                            className="p-1 text-xs font-bold text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-20 cursor-pointer"
+                          >
+                            <ChevronDown className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeLang(lang)}
+                            disabled={currentLangs.length === 1}
+                            className="p-1 text-xs font-bold text-rose-500 hover:text-rose-700 disabled:opacity-20 cursor-pointer"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {inactive.length > 0 && (
+                    <div className="pt-3 border-t border-dashed border-slate-200 dark:border-slate-700">
+                      <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">+ Adaugă Limbi:</div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {inactive.map(l => (
+                          <button
+                            key={l}
+                            type="button"
+                            onClick={() => addLang(l)}
+                            className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 text-slate-600 dark:text-slate-400 hover:text-blue-600 transition-all cursor-pointer"
+                          >
+                            + {langNames[l]}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Card: Stil & Poziționare Bară Limbi */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
+            <div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Stil & Poziționare Bară Limbi</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Personalizează cum și unde apar butoanele de limbă.</p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">Poziție Butoane</label>
+                <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+                  {[
+                    { v: 'top', l: 'Sus' },
+                    { v: 'bottom', l: 'Jos' }
+                  ].map(pos => (
+                    <button
+                      key={pos.v}
+                      type="button"
+                      onClick={() => handleChange('langVerticalPosition', pos.v)}
+                      className={`py-2 text-xs font-bold rounded-lg transition-all ${
+                        (formData.langVerticalPosition || 'bottom') === pos.v
+                          ? 'bg-white dark:bg-slate-750 text-blue-600 shadow-sm'
+                          : 'text-slate-500'
+                      }`}
+                    >
+                      {pos.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">Când să apară butoanele?</label>
+                <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+                  {[
+                    { v: 'after', l: 'După click' },
+                    { v: 'before', l: 'Pe standby' },
+                    { v: 'both', l: 'Ambele' }
+                  ].map(mom => (
+                    <button
+                      key={mom.v}
+                      type="button"
+                      onClick={() => handleChange('langSelectorPosition', mom.v)}
+                      className={`py-2 text-xs font-bold rounded-lg transition-all ${
+                        formData.langSelectorPosition === mom.v
+                          ? 'bg-white dark:bg-slate-750 text-blue-600 shadow-sm'
+                          : 'text-slate-500'
+                      }`}
+                    >
+                      {mom.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <KioskColorPicker
+                  label="Fundal Buton Limbă"
+                  value={formData.langBgColor || '#ffffff'}
+                  onChange={val => handleChange('langBgColor', val)}
+                  allowClear={true}
+                />
+                <KioskColorPicker
+                  label="Contur Buton Limbă"
+                  value={formData.langBorderColor || '#e2e8f0'}
+                  onChange={val => handleChange('langBorderColor', val)}
+                  allowClear={true}
+                />
+              </div>
+
+              <KioskColorPicker
+                label="Fundal Bară Limbi"
+                value={formData.langBarBg || '#000000'}
+                onChange={val => handleChange('langBarBg', val)}
+                placeholder="rgba(0,0,0,0.35)"
+                allowClear={true}
+                clearValue=""
+                clearLabel="Default"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 5: HARDWARE & SECURITATE ─── */}
+      {activeTab === 'system' && (
+        <div className="space-y-6">
+          {/* Card: Terminal POS Plată */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Terminal POS Plată</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Selectează protocolul hardware prin care tableta comunică cu terminalul bancar.
+                </p>
+              </div>
+              <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                Gateway: {formData.paymentGateway || 'none'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
+              {[
+                { id: 'none', title: 'Fără POS', desc: 'Confirmare automată fără terminal bancar fizic', icon: <Zap className="w-5 h-5 text-amber-500" /> },
+                { id: 'raiffeisen', title: 'Raiffeisen ECR', desc: 'Conectat prin Serial COM cu POS Bridge local', icon: <CreditCard className="w-5 h-5 text-emerald-500" /> },
+                { id: 'verifone_serial', title: 'VeriFone V200t', desc: 'Conectat prin cablu USB-Serial la backend local', icon: <Sliders className="w-5 h-5 text-blue-500" /> },
+                { id: 'viva_pos', title: 'Viva PAX A80', desc: 'Comunicare directă prin IP local în rețea', icon: <Wifi className="w-5 h-5 text-purple-500" /> }
+              ].map(pos => {
+                const isSelected = (formData.paymentGateway || 'none') === pos.id;
                 return (
                   <button
-                    key={k}
-                    className="loc-brand-pill"
-                    style={{ 
-                      padding: '8px 12px', borderRadius: '8px', 
-                      display: 'flex', alignItems: 'center', gap: '6px', 
-                      background: 'var(--surface)', color: 'var(--text)', 
-                      border: '1px dashed var(--border)',
-                      fontWeight: 600, fontSize: '0.85rem', transition: 'all 0.2s', 
-                      cursor: 'pointer'
-                    }}
-                    onClick={() => toggleBrand(k)}
+                    key={pos.id}
+                    type="button"
+                    onClick={() => handleChange('paymentGateway', pos.id)}
+                    className={`p-4 rounded-xl text-left border transition-all cursor-pointer flex flex-col justify-between ${
+                      isSelected
+                        ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-950/40 ring-2 ring-blue-500/20'
+                        : 'border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/30 hover:border-slate-300'
+                    }`}
                   >
-                    <span style={{ color: '#3b82f6', fontSize: '1.2rem', lineHeight: 1 }}>+</span>
-                    <BrandLogo brandId={k} size={14} /> <span style={{ opacity: 0.8 }}>{v}</span>
+                    <div>
+                      <div className="mb-2">{pos.icon}</div>
+                      <div className="text-sm font-bold text-slate-900 dark:text-white">{pos.title}</div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">{pos.desc}</p>
+                    </div>
+                    {isSelected && (
+                      <div className="mt-3 text-[11px] font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1">
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Activ pe acest Kiosk</span>
+                      </div>
+                    )}
                   </button>
                 );
               })}
             </div>
           </div>
-          
-          {/* LINK KIOSK SUPER COMPACT */}
-          <div style={{ padding: '16px', background: 'var(--bg-surface)', borderRadius: '12px', border: '1px solid var(--border)', marginBottom: '20px' }}>
-             <h4 style={{ margin: '0 0 16px 0', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }}>Link Kiosk Personalizat</h4>
-             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-               <input 
-                 type="text" 
-                 placeholder="ex: smashme-brasov" 
-                 value={formData.kioskUrl || ''} 
-                 onChange={e => handleChange('kioskUrl', e.target.value)} 
-                 style={{ flex: 1, padding: '8px 12px', fontSize: '0.9rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)' }} 
-               />
-               <button onClick={() => navigator.clipboard.writeText(finalKioskUrl)} style={{ fontSize: '0.75rem', padding: '10px 16px', borderRadius: '6px', background: '#3b82f6', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600, boxShadow: '0 2px 4px rgba(59,130,246,0.3)', whiteSpace: 'nowrap' }}>Copiaza URL</button>
-             </div>
-             <div style={{ marginTop: '8px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-               Va genera linkul: <span style={{ fontFamily: 'monospace', color: 'var(--cyan, #3b82f6)' }}>{finalKioskUrl}</span>
-             </div>
-           </div>
 
-           {/* TERMINAL POS */}
-           <div style={{ padding: '16px', background: 'var(--bg-surface)', borderRadius: '12px', border: '1px solid var(--border)', marginBottom: '20px' }}>
-             <h4 style={{ margin: '0 0 12px 0', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }}>Terminal POS Plată</h4>
-             <select
-               value={formData.paymentGateway || 'none'}
-               onChange={e => handleChange('paymentGateway', e.target.value)}
-               style={{ width: '100%', padding: '8px 12px', fontSize: '0.9rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)', cursor: 'pointer' }}
-             >
-               <option value="none">Fără POS (confirmare automată)</option>
-               <option value="verifone_serial">VeriFone V200t — Serial USB</option>
-               <option value="raiffeisen">Raiffeisen ECR — Serial COM</option>
-               <option value="viva_pos">Viva Wallet PAX A80 — IP</option>
-             </select>
-             <div style={{ marginTop: '6px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-               {formData.paymentGateway === 'none' && '⚡ Comenzile se confirmă automat (fără terminal fizic)'}
-               {formData.paymentGateway === 'verifone_serial' && '🔌 Backend trebuie să ruleze local cu adaptor USB-Serial conectat'}
-               {formData.paymentGateway === 'raiffeisen' && '🔌 POS Bridge pe PC local — conectat prin COM serial'}
-               {formData.paymentGateway === 'viva_pos' && '🔌 Comunicare directă prin IP local cu terminalul Viva PAX A80'}
-             </div>
-           </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Card: Restaurante Active (Branduri) */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Restaurante Active pe Kiosk</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Reordonează brandurile pe care le pot explora clienții.</p>
+              </div>
 
-          {/* GRID COMPACT SETARI DESIGN */}
-          <div style={{ padding: '16px', background: 'var(--bg-surface)', borderRadius: '12px', border: '1px solid var(--border)' }}>
-             <h4 style={{ margin: '0 0 16px 0', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }}>Design & Aspect Kiosk</h4>
-             
-             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(180px, 1fr) minmax(180px, 1fr)', gap: '16px', marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid var(--border)' }}>
-                {/* COL: UI Size */}
-                <div style={{ gridColumn: '1 / -1' }}>
-                   <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Mărime Butoane și Poze Produse</label>
-                   <div style={{ display: 'flex', gap: 4, background: 'var(--border)', padding: 4, borderRadius: 8 }}>
-                     {[{v:'S',l:'Mic (Standard)'},{v:'M',l:'Mediu (Echilibrat)'},{v:'L',l:'Mare (Extra Vizibil)'}].map(opt => (
-                       <button key={opt.v} type="button" onClick={() => handleChange('kioskUiSize', opt.v)}
-                         style={{ 
-                            flex: 1, padding: '10px 8px', borderRadius: 6, fontSize: '0.85rem', fontWeight: 600, border: 'none',
-                            background: (formData.kioskUiSize || 'S') === opt.v ? 'var(--surface)' : 'transparent', 
-                            color: 'var(--text)', cursor: 'pointer',
-                            boxShadow: (formData.kioskUiSize || 'S') === opt.v ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
-                         }}>
-                         {opt.l}
-                       </button>
-                     ))}
-                   </div>
-                </div>
-             </div>
+              <div className="space-y-2">
+                {formData.brands.map((k, index) => {
+                  const v = { smashme: 'SmashMe', crunch: 'Crunch', rollmaster: 'Roll Master', lovesushi: 'Love Sushi', pokiwoki: 'Poki-Woki' }[k] || k;
+                  return (
+                    <div key={k} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl">
+                      <div className="flex items-center gap-3">
+                        <div 
+                          className="w-7 h-7 rounded-lg flex items-center justify-center text-white"
+                          style={{ background: BRAND_COLORS?.[k] || '#64748b' }}
+                        >
+                          <BrandLogo brandId={k} size={18} />
+                        </div>
+                        <span className="text-sm font-bold text-slate-900 dark:text-white">{v}</span>
+                      </div>
 
-             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(180px, 1fr) minmax(180px, 1fr)', gap: '16px' }}>
-                
-                {/* COL 1: Buton Principal (Fundal) */}
-                <div>
-                   <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Culoare Fundal "Începe comanda"</label>
-                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <input type="color" value={formData.langButtonColor || '#0f172a'} onChange={e => handleChange('langButtonColor', e.target.value)} style={{ width: 28, height: 28, border: '2px solid var(--border)', borderRadius: '6px', cursor: 'pointer', padding: 0 }} />
-                      <input type="text" value={formData.langButtonColor || '#0f172a'} onChange={e => handleChange('langButtonColor', e.target.value)} style={{ width: 90, padding: '6px 8px', fontSize: '0.85rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)' }} />
-                   </div>
-                   <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, fontSize: '0.8rem', color: 'var(--text)', cursor: 'pointer', fontWeight: 600 }}>
-                     <input type="checkbox" checked={formData.langButtonFlagColors || false} onChange={e => handleChange('langButtonFlagColors', e.target.checked)} />
-                     Folosește culorile steagului (suprascrie culoarea)
-                   </label>
-                </div>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          disabled={index === 0}
+                          onClick={() => {
+                            const newB = [...formData.brands];
+                            if (index > 0) {
+                              [newB[index-1], newB[index]] = [newB[index], newB[index-1]];
+                              setFormData(p => ({ ...p, brands: newB }));
+                            }
+                          }}
+                          className="p-1.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 disabled:opacity-20 cursor-pointer flex items-center justify-center"
+                        >
+                          <ChevronUp className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={index === formData.brands.length - 1}
+                          onClick={() => {
+                            const newB = [...formData.brands];
+                            if (index < newB.length - 1) {
+                              [newB[index+1], newB[index]] = [newB[index], newB[index+1]];
+                              setFormData(p => ({ ...p, brands: newB }));
+                            }
+                          }}
+                          className="p-1.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 disabled:opacity-20 cursor-pointer flex items-center justify-center"
+                        >
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => toggleBrand(k)}
+                          className="p-1.5 rounded bg-rose-50 text-rose-600 hover:bg-rose-100 cursor-pointer flex items-center justify-center"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
 
-                {/* COL 1B: Buton Principal (Text Color) */}
-                <div>
-                   <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Culoare Text "Începe comanda"</label>
-                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <input type="color" value={formData.langButtonTextColor || '#ffffff'} onChange={e => handleChange('langButtonTextColor', e.target.value)} style={{ width: 28, height: 28, border: '2px solid var(--border)', borderRadius: '6px', cursor: 'pointer', padding: 0 }} />
-                      <input type="text" value={formData.langButtonTextColor || '#ffffff'} onChange={e => handleChange('langButtonTextColor', e.target.value)} style={{ width: 90, padding: '6px 8px', fontSize: '0.85rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)' }} />
-                   </div>
-                </div>
+                {formData.brands.length === 0 && (
+                  <div className="p-4 text-center text-xs text-slate-400 italic">Niciun restaurant selectat</div>
+                )}
+              </div>
 
-                {/* COL 1C: Buton Principal (Border) */}
-                <div>
-                   <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Culoare Contur "Începe comanda"</label>
-                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <input type="color" value={formData.langButtonBorderColor || '#0f172a'} onChange={e => handleChange('langButtonBorderColor', e.target.value)} style={{ width: 28, height: 28, border: '2px solid var(--border)', borderRadius: '6px', cursor: 'pointer', padding: 0 }} />
-                      <input type="text" value={formData.langButtonBorderColor || '#0f172a'} onChange={e => handleChange('langButtonBorderColor', e.target.value)} style={{ width: 90, padding: '6px 8px', fontSize: '0.85rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)' }} />
-                      <button type="button" onClick={() => handleChange('langButtonBorderColor', 'transparent')} style={{ fontSize: '0.75rem', padding: '6px 10px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', color: 'var(--text)' }}>Fără</button>
-                   </div>
-                </div>
-
-                {/* COL 1D: Buton Principal (Text) */}
-                <div style={{ gridColumn: '1 / -1' }}>
-                   <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Text Buton (Dacă vrei să scrie altceva în loc de "Începe comanda")</label>
-                   <input type="text" placeholder="Începe comanda" value={formData.langButtonText || ''} onChange={e => handleChange('langButtonText', e.target.value)} style={{ width: '100%', padding: '10px 12px', fontSize: '0.9rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)', boxSizing: 'border-box' }} />
-                </div>
-
-                {/* COL 2: Pozitie Sus/Jos */}
-                <div>
-                   <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Poziție butoane limbi</label>
-                   <div style={{ display: 'flex', gap: 4, background: 'var(--border)', padding: 4, borderRadius: 8 }}>
-                     {[{v:'top',l:'Sus'},{v:'bottom',l:'Jos'}].map(opt => (
-                       <button key={opt.v} type="button" onClick={() => handleChange('langVerticalPosition', opt.v)}
-                         style={{ 
-                            flex: 1, padding: '8px', borderRadius: 6, fontSize: '0.85rem', fontWeight: 600, border: 'none',
-                            background: (formData.langVerticalPosition || 'bottom') === opt.v ? 'var(--surface)' : 'transparent', 
-                            color: 'var(--text)', cursor: 'pointer',
-                            boxShadow: (formData.langVerticalPosition || 'bottom') === opt.v ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
-                         }}>
-                         {opt.l}
-                       </button>
-                     ))}
-                   </div>
-                </div>
-
-                {/* COL 4: Cand apar */}
-                <div style={{ gridColumn: '1 / -1' }}>
-                   <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Când să apară butoanele de limbi?</label>
-                   <div style={{ display: 'flex', gap: 4, background: 'var(--border)', padding: 4, borderRadius: 8 }}>
-                     {[{v:'after',l:'Dupa click (Recomandat)'},{v:'before',l:'Pe ecranul așteptare'},{v:'both',l:'Ambele'}].map(opt => (
-                       <button key={opt.v} type="button" onClick={() => handleChange('langSelectorPosition', opt.v)}
-                         style={{ 
-                            flex: 1, padding: '8px', borderRadius: 6, fontSize: '0.85rem', fontWeight: 600, border: 'none',
-                            background: formData.langSelectorPosition === opt.v ? 'var(--surface)' : 'transparent', 
-                            color: 'var(--text)', cursor: 'pointer',
-                            boxShadow: formData.langSelectorPosition === opt.v ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
-                         }}>
-                         {opt.l}
-                       </button>
-                     ))}
-                   </div>
-                </div>
-
-                {/* COL 3: Fundal Limbi */}
-                <div>
-                   <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Culoare Fundal (Pentru limbi individuale)</label>
-                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <input type="color" value={formData.langBgColor || '#ffffff'} onChange={e => handleChange('langBgColor', e.target.value)} style={{ width: 28, height: 28, border: '2px solid var(--border)', borderRadius: '6px', cursor: 'pointer', padding: 0 }} />
-                      <input type="text" value={formData.langBgColor || ''} placeholder="transparent" onChange={e => handleChange('langBgColor', e.target.value)} style={{ width: 90, padding: '6px 8px', fontSize: '0.85rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)' }} />
-                      <button type="button" onClick={() => handleChange('langBgColor', 'transparent')} style={{ fontSize: '0.75rem', padding: '6px 10px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', color: 'var(--text)' }}>Fără</button>
-                   </div>
-                </div>
-
-                {/* COL 5: Contur Limbi */}
-                <div>
-                   <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Culoare Contur (Pentru limbi individuale)</label>
-                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <input type="color" value={formData.langBorderColor || '#e2e8f0'} onChange={e => handleChange('langBorderColor', e.target.value)} style={{ width: 28, height: 28, border: '2px solid var(--border)', borderRadius: '6px', cursor: 'pointer', padding: 0 }} />
-                      <input type="text" value={formData.langBorderColor || ''} placeholder="transparent" onChange={e => handleChange('langBorderColor', e.target.value)} style={{ width: 90, padding: '6px 8px', fontSize: '0.85rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)' }} />
-                      <button type="button" onClick={() => handleChange('langBorderColor', 'transparent')} style={{ fontSize: '0.75rem', padding: '6px 10px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', color: 'var(--text)' }}>Fără</button>
-                   </div>
-                </div>
-
-                {/* COL 6: Fundal Bară Limbi */}
-                <div>
-                   <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>Fundal Bară Limbi</label>
-                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <input type="color" value={formData.langBarBg || '#000000'} onChange={e => handleChange('langBarBg', e.target.value)} style={{ width: 28, height: 28, border: '2px solid var(--border)', borderRadius: '6px', cursor: 'pointer', padding: 0 }} />
-                      <input type="text" value={formData.langBarBg || ''} placeholder="rgba(0,0,0,0.35)" onChange={e => handleChange('langBarBg', e.target.value)} style={{ width: 130, padding: '6px 8px', fontSize: '0.85rem', borderRadius: 6, border: '1px solid var(--border)', outline: 'none', background: 'var(--surface)', color: 'var(--text)' }} />
-                      <button type="button" onClick={() => handleChange('langBarBg', '')} style={{ fontSize: '0.75rem', padding: '6px 10px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', color: 'var(--text)' }}>Default</button>
-                   </div>
-                </div>
-                
-             </div>
-          </div>
-        </div>
-
-        {/* Card: Security */}
-        <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
-           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>Securitate PIN</h3>
-            <label className="pc-toggle" style={{ margin: 0 }}>
-              <input type="checkbox" checked={usePin} onChange={e => setUsePin(e.target.checked)} />
-              <span className="toggle-slider" />
-            </label>
-          </div>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>Blochează tableta până la introducerea primei parole de angajat.</p>
-          
-          {usePin && (
-            <div style={{ animation: 'fadeIn 0.3s ease' }}>
-              <input 
-                type="password" 
-                maxLength="6"
-                className="pc-input" 
-                placeholder="Ex: 1234"
-                value={formData.kioskPin}
-                onChange={e => handleChange('kioskPin', e.target.value.replace(/\D/g, ''))}
-                style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', width: '100%', maxWidth: '140px', fontSize: '1.1rem', letterSpacing: '2px', boxSizing: 'border-box' }}
-              />
-            </div>
-          )}
-
-          <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px dashed var(--border)' }}>
-             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-               <h4 style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text)' }}>Limbi Afișate pe Kiosk</h4>
-               <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>★ = limbă implicită</span>
-             </div>
-             {/* Active languages — ordered list with controls */}
-             {(() => {
-               const ALL_LANGS = ['ro', 'en', 'fr', 'hu', 'ru', 'uk', 'bg', 'de', 'es'];
-               const langNames = { ro: 'RO 🇷🇴', en: 'EN 🇬🇧', fr: 'FR 🇫🇷', hu: 'HU 🇭🇺', ru: 'RU 🇷🇺', uk: 'UA 🇺🇦', bg: 'BG 🇧🇬', de: 'DE 🇩🇪', es: 'ES 🇪🇸' };
-               const currentLangs = formData.languages || ['ro', 'en'];
-               const defaultLang = formData.defaultLanguage || currentLangs[0];
-               const inactive = ALL_LANGS.filter(l => !currentLangs.includes(l));
-
-               const moveLang = (idx, dir) => {
-                 const arr = [...currentLangs];
-                 const newIdx = idx + dir;
-                 if (newIdx < 0 || newIdx >= arr.length) return;
-                 [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
-                 handleChange('languages', arr);
-               };
-               const removeLang = (lang) => {
-                 const filtered = currentLangs.filter(l => l !== lang);
-                 handleChange('languages', filtered);
-                 if (defaultLang === lang && filtered.length > 0) handleChange('defaultLanguage', filtered[0]);
-               };
-               const addLang = (lang) => {
-                 handleChange('languages', [...currentLangs, lang]);
-               };
-               const setDefault = (lang) => handleChange('defaultLanguage', lang);
-
-               return (
-                 <div>
-                   {/* Selected languages in order */}
-                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 10 }}>
-                     {currentLangs.map((lang, idx) => {
-                       const isDefault = lang === defaultLang;
-                       return (
-                         <div key={lang} style={{
-                           display: 'flex', alignItems: 'center', gap: 6,
-                           background: isDefault ? '#0f172a' : 'var(--bg-surface)',
-                           border: isDefault ? '1px solid #0f172a' : '1px solid var(--border)',
-                           borderRadius: 10, padding: '6px 10px',
-                           transition: 'all 0.2s',
-                         }}>
-                           {/* Drag order number */}
-                           <span style={{ fontSize: '0.7rem', color: isDefault ? '#94a3b8' : 'var(--text-muted)', width: 16, textAlign: 'center', fontWeight: 700 }}>{idx + 1}</span>
-                           {/* Lang name */}
-                           <span style={{ flex: 1, fontSize: '0.82rem', fontWeight: 800, color: isDefault ? '#fff' : 'var(--text)' }}>{langNames[lang]}</span>
-                           {/* Default star button */}
-                           <button
-                             type="button"
-                             title={isDefault ? 'Limbă implicită (default)' : 'Setează ca limbă implicită'}
-                             onClick={() => setDefault(lang)}
-                             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', fontSize: '0.9rem', opacity: isDefault ? 1 : 0.3, color: isDefault ? '#f59e0b' : '#94a3b8', transition: 'all 0.15s' }}
-                           >★</button>
-                           {/* Up / Down */}
-                           <button type="button" onClick={() => moveLang(idx, -1)} disabled={idx === 0}
-                             style={{ background: 'none', border: 'none', cursor: idx === 0 ? 'default' : 'pointer', padding: '2px 4px', fontSize: '0.7rem', opacity: idx === 0 ? 0.2 : 0.7, color: isDefault ? '#94a3b8' : 'var(--text-muted)', fontWeight: 700 }}>▲</button>
-                           <button type="button" onClick={() => moveLang(idx, 1)} disabled={idx === currentLangs.length - 1}
-                             style={{ background: 'none', border: 'none', cursor: idx === currentLangs.length - 1 ? 'default' : 'pointer', padding: '2px 4px', fontSize: '0.7rem', opacity: idx === currentLangs.length - 1 ? 0.2 : 0.7, color: isDefault ? '#94a3b8' : 'var(--text-muted)', fontWeight: 700 }}>▼</button>
-                           {/* Remove */}
-                           <button type="button" onClick={() => removeLang(lang)} disabled={currentLangs.length === 1}
-                             style={{ background: 'none', border: 'none', cursor: currentLangs.length === 1 ? 'default' : 'pointer', padding: '2px 6px', fontSize: '0.75rem', opacity: currentLangs.length === 1 ? 0.2 : 0.6, color: isDefault ? '#f87171' : '#ef4444', fontWeight: 700 }}>✕</button>
-                         </div>
-                       );
-                     })}
-                   </div>
-                   {/* Pool of inactive languages to add */}
-                   {inactive.length > 0 && (
-                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', paddingTop: 8, borderTop: '1px dashed var(--border)' }}>
-                       <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', alignSelf: 'center', marginRight: 2 }}>+ Adaugă:</span>
-                       {inactive.map(lang => (
-                         <button key={lang} type="button" onClick={() => addLang(lang)}
-                           style={{ padding: '3px 8px', borderRadius: 8, fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', border: '1px dashed #94a3b8', background: 'transparent', color: 'var(--text-muted)', transition: 'all 0.15s' }}>
-                           {langNames[lang]}
-                         </button>
-                       ))}
-                     </div>
-                   )}
-                 </div>
-               );
-             })()}
-          </div>
-        </div>
-
-
-        {/* Card: Promoție (Roată Kiosk) */}
-        <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>Promoție Kiosk (Roată Noroc)</h3>
-            <label className="pc-toggle" style={{ margin: 0 }}>
-              <input type="checkbox" checked={formData.promoActive || false} onChange={e => handleChange('promoActive', e.target.checked)} />
-              <span className="toggle-slider" />
-            </label>
-          </div>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>Configurează condițiile specifice acestui kiosk pentru afișarea roții.</p>
-          
-          {formData.promoActive && (
-             <div style={{ animation: 'fadeIn 0.3s ease', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '16px 20px' }}>
-               <div>
-                 <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: 8 }}>Alege Roata</label>
-                 <select 
-                   value={formData.promoBrandId || ''} 
-                   onChange={e => handleChange('promoBrandId', e.target.value)}
-                   style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text)', fontSize: '0.95rem', outline: 'none' }}
-                 >
-                   <option value="">Alege...</option>
-                   <option value="smashme">Roata SmashMe</option>
-                   <option value="lovesushi">Roata RollMaster</option>
-                 </select>
-               </div>
-               
-               <div>
-                 <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: 8 }}>Moment Apariție Roată</label>
-                 <select 
-                   value={formData.promoTriggerMoment || 'after_payment'} 
-                   onChange={e => handleChange('promoTriggerMoment', e.target.value)}
-                   style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text)', fontSize: '0.95rem', outline: 'none' }}
-                 >
-                   <option value="before_payment">Înainte de Plată (Adaugă în coș)</option>
-                   <option value="after_payment">După Confirmare Plată (Prezintă la Casă)</option>
-                 </select>
-               </div>
-               
-               <div>
-                 <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: 8 }}>Sumă Minimă Coș (RON)</label>
-                 <input 
-                   type="number" 
-                   value={formData.promoMinOrderValue === 0 ? '' : formData.promoMinOrderValue} 
-                   onChange={e => handleChange('promoMinOrderValue', Number(e.target.value))}
-                   placeholder="Ex: 50"
-                   style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text)', fontSize: '0.95rem', outline: 'none' }}
-                 />
-               </div>
-
-               <div>
-                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                   <label style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)' }}>Limitare Frecvență</label>
-                   <label className="pc-toggle" style={{ margin: 0, transform: 'scale(0.8)' }}>
-                     <input type="checkbox" checked={formData.promoFreqEnabled || false} onChange={e => handleChange('promoFreqEnabled', e.target.checked)} />
-                     <span className="toggle-slider" />
-                   </label>
-                 </div>
-                 {formData.promoFreqEnabled ? (
-                   <>
-                     <input 
-                       type="number" 
-                       value={formData.promoOrdersToAppear === 0 ? '' : formData.promoOrdersToAppear} 
-                       onChange={e => handleChange('promoOrdersToAppear', Number(e.target.value))}
-                       placeholder="Ex: Apare la fiecare a 3-a comandă"
-                       style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text)', fontSize: '0.95rem', outline: 'none' }}
-                     />
-                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Ex: Randează doar dacă Comanda % N == 0</span>
-                   </>
-                 ) : (
-                   <div style={{ padding: '10px 14px', borderRadius: 10, background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--primary)', fontWeight: 600, fontSize: '0.9rem', textAlign: 'center' }}>
-                     Roata apare MEREU
-                   </div>
-                 )}
-               </div>
-
-               {/* Previzualizare Roată */}
-               {formData.promoBrandId && promosData[formData.promoBrandId] ? (
-                 <div style={{ gridColumn: '1 / -1', width: '100%', marginTop: 24, padding: 20, background: 'var(--bg-surface)', borderRadius: 12, border: '1px solid var(--border)', textAlign: 'center', boxSizing: 'border-box' }}>
-                   <h4 style={{ margin: '0 0 16px 0', fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1 }}>Previzualizare Roată Live</h4>
-                   {promosData[formData.promoBrandId].active ? (
-                     <>
-                     <div 
-                       style={{ height: 400, overflow: 'hidden', position: 'relative', background: '#0f172a', borderRadius: 16, cursor: 'pointer', transition: 'transform 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                       onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
-                       onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-                       onClick={() => setShowWheelPreviewFull(true)}
-                     >
-                       <FortuneWheelPreview config={promosData[formData.promoBrandId].config} brandId={formData.promoBrandId} />
-                       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(15,23,42,0.9) 0%, transparent 40%)', zIndex: 10, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 20, color: '#fef08a', fontWeight: 800, fontSize: '0.9rem', letterSpacing: 1, textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
-                         Apasă pentru simulare
-                       </div>
-                     </div>
-                     
-                     {/* OVERLAY FULLSCREEN */}
-                     {showWheelPreviewFull && (
-                       <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(15,23,42,0.95)', backdropFilter: 'blur(12px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', animation: 'fadeIn 0.3s ease' }}>
-                         
-                         {/* Close Button top-right */}
-                         <button 
-                           onClick={() => setShowWheelPreviewFull(false)}
-                           style={{ position: 'absolute', top: 30, right: 40, width: 48, height: 48, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', fontSize: '1.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100000, transition: 'all 0.2s' }}
-                           onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.2)'; e.currentTarget.style.transform = 'scale(1.1)'; }}
-                           onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.transform = 'scale(1)'; }}
-                         >
-                           Inchide
-                         </button>
-
-                         <h2 style={{ color: '#fff', fontSize: '2rem', fontWeight: 800, marginBottom: 40, marginTop: -60, textShadow: '0 4px 12px rgba(0,0,0,0.5)', zIndex: 100000 }}>
-                           Așa se vede pe Kiosk!
-                         </h2>
-                         
-                         <div style={{ width: 800, height: 800, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                           <FortuneWheelPreview config={promosData[formData.promoBrandId].config} brandId={formData.promoBrandId} scale={1.2} />
-                         </div>
-                       </div>
-                     )}
-                     </>
-                   ) : (
-                     <div style={{ padding: 20, background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderRadius: 8, fontSize: '0.9rem', fontWeight: 600 }}>
-                       Roata este OPRITĂ din modulul global de Promoții pentru acest brand. Activați-o de acolo mai întâi!
-                     </div>
-                   )}
-                 </div>
-               ) : formData.promoBrandId ? (
-                 <div style={{ width: '100%', marginTop: 24, padding: 20, color: 'var(--text-muted)', fontSize: '0.9rem', textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 12 }}>
-                   Nu există date de promoție salvate pentru {formData.promoBrandId}. Adăugați feliile în pagina Promoții.
-                 </div>
-               ) : null}
-
-             </div>
-          )}
-        </div>
-
-        {/* Card: Screensaver */}
-        <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
-          <h3 style={{ marginTop: 0, fontSize: '1.1rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>Screensaver Standby</h3>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>Rulare automată reclamă full-screen dacă tableta stă neatinsă 30s.</p>
-          
-          <div style={{ display: 'flex', gap: '12px', marginBottom: 16 }}>
-            <div style={{ flex: 1, display: 'flex', gap: '8px' }}>
-              <input 
-                type="url" 
-                className="pc-input" 
-                placeholder="URL Video MP4 sau Imagine..."
-                value={formData.posterUrl}
-                onChange={e => handleChange('posterUrl', e.target.value)}
-                style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', flex: 1, boxSizing: 'border-box' }}
-              />
-              <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px', borderRadius: 10, background: 'var(--primary)', color: '#fff', fontSize: '0.85rem', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap', opacity: uploadingScreensaver ? 0.7 : 1 }}>
-                {uploadingScreensaver ? 'Se încarcă...' : '📂 Încarcă'}
-                <input type="file" accept="image/*,video/mp4" style={{ display: 'none' }} onChange={handleScreensaverUpload} disabled={uploadingScreensaver} />
-              </label>
-            </div>
-            <select
-              className="pc-input"
-              value={formData.posterRotation || 0}
-              onChange={e => handleChange('posterRotation', parseInt(e.target.value))}
-              style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', width: 160, boxSizing: 'border-box', background: '#fff' }}
-            >
-              <option value={0}>0° — Normal</option>
-              <option value={90}>90° — Dreapta</option>
-              <option value={180}>180° — Inversat</option>
-              <option value={270}>270° — Stânga</option>
-            </select>
-          </div>
-          
-          {formData.posterUrl ? (
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
-              <div style={{ width: 270, height: 480, borderRadius: 16, overflow: 'hidden', border: '8px solid #1e293b', background: '#000', position: 'relative', boxShadow: '0 12px 32px rgba(0,0,0,0.25)' }}>
-                {renderPreview(formData.posterUrl, formData.posterRotation || 0)}
-                <div style={{ position: 'absolute', bottom: 30, left: '50%', transform: 'translateX(-50%)', background: 'rgba(255,255,255,0.95)', color: '#0f172a', padding: '8px 16px', borderRadius: 24, fontSize: '0.8rem', fontWeight: 800, whiteSpace: 'nowrap', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
-                  Atinge pentru a începe
+              {/* Pool Branduri Inactive */}
+              <div className="pt-2 border-t border-dashed border-slate-200 dark:border-slate-700">
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">+ Adaugă Restaurant:</div>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries({ smashme: 'SmashMe', crunch: 'Crunch', rollmaster: 'Roll Master', lovesushi: 'Love Sushi', pokiwoki: 'Poki-Woki' }).map(([k, v]) => {
+                    if (formData.brands.includes(k)) return null;
+                    return (
+                      <button
+                        key={k}
+                        type="button"
+                        onClick={() => toggleBrand(k)}
+                        className="px-3 py-1.5 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        <span className="text-blue-500">+</span>
+                        <BrandLogo brandId={k} size={14} />
+                        <span>{v}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
-          ) : (
-             <div style={{ height: 160, borderRadius: 12, border: '2px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 500 }}>Fără screensaver.</div>
-          )}
-        </div>
 
-        {/* Card: Banner Promo (10% Top) */}
-        <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>Banner Promo Persistent (Top)</h3>
-            <label className="pc-toggle" style={{ margin: 0 }}>
-              <input type="checkbox" checked={useBanner} onChange={e => setUseBanner(e.target.checked)} />
-              <span className="toggle-slider" />
-            </label>
-          </div>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>Ocupă deasupra interfeței cu o bandă îngustă (10%) reclamă video/imagine la reducere.</p>
-          
-          {useBanner && (
-             <div style={{ animation: 'fadeIn 0.3s ease', display: 'flex', flexDirection: 'column', gap: '24px', marginBottom: '16px' }}>
-                {formData.brands && formData.brands.length > 0 ? (
-                  formData.brands.map(brandId => {
-                    const val = formData[`topBannerUrl_${brandId}`] ?? formData.topBannerUrl ?? '';
-                    return (
-                      <div key={brandId} style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', background: 'var(--bg-surface)', borderRadius: '12px', border: '1px solid var(--border)' }}>
-                         <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                           <BrandLogo brandId={brandId} size={16} /> Banner pentru {brandId}
-                         </label>
-                         <input 
-                           type="url" 
-                           className="pc-input" 
-                           placeholder={`URL Video MP4 / Imagine pt ${brandId}...`}
-                           value={val}
-                           onChange={e => handleChange(`topBannerUrl_${brandId}`, e.target.value)}
-                           style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', width: '100%', boxSizing: 'border-box' }}
-                         />
-                         
-                         {val ? (
-                           <div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
-                             <div style={{ width: 135, height: 240, borderRadius: 12, overflow: 'hidden', border: '6px solid #1e293b', background: '#e2e8f0', position: 'relative', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}>
-                               <div style={{ position: 'absolute', inset: 0, padding: '4px' }}>
-                                 <div style={{ width: '100%', height: '30%', background: '#cbd5e1', borderRadius: '4px', marginBottom: '4px' }} />
-                                 <div style={{ width: '100%', height: '30%', background: '#cbd5e1', borderRadius: '4px', marginBottom: '4px' }} />
-                                 <div style={{ width: '100%', height: '30%', background: '#cbd5e1', borderRadius: '4px' }} />
-                               </div>
-                               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: `${10 + ((formData.topBannerHeight || 1) - 1) * 5}%`, borderRadius: `${formData.topBannerRadiusTop ? '6px' : '0'} ${formData.topBannerRadiusTop ? '6px' : '0'} ${formData.topBannerRadiusBottom ? '6px' : '0'} ${formData.topBannerRadiusBottom ? '6px' : '0'}`, transition: 'all 0.3s ease', overflow: 'hidden', background: '#000', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
-                                  {renderPreview(val)}
-                               </div>
-                             </div>
-                           </div>
-                         ) : null}
-                      </div>
-                    );
-                  })
-                ) : (
+            {/* Card: Link & Securitate */}
+            <div className="space-y-6">
+              {/* Link Kiosk */}
+              <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-3">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Link Kiosk Personalizat</h3>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="ex: smashme-brasov"
+                    value={formData.kioskUrl || ''}
+                    onChange={e => handleChange('kioskUrl', e.target.value)}
+                    className="flex-1 px-3.5 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => navigator.clipboard.writeText(finalKioskUrl)}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm shrink-0 cursor-pointer"
+                  >
+                    Copiază URL
+                  </button>
+                </div>
+                <div className="text-xs text-slate-400 font-mono truncate">
+                  {finalKioskUrl}
+                </div>
+              </div>
+
+              {/* Securitate PIN */}
+              <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
                   <div>
-                    <input 
-                      type="url" 
-                      className="pc-input" 
-                      placeholder="URL Video MP4 sau Imagine globală..."
-                      value={formData.topBannerUrl || ''} 
-                      onChange={e => handleChange('topBannerUrl', e.target.value)}
-                      style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', width: '100%', marginBottom: 16, boxSizing: 'border-box' }}
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white">Securitate PIN Angajat</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Protejează accesul la setările administrative locale.</p>
+                  </div>
+                  <KioskSwitch
+                    checked={usePin}
+                    onChange={val => setUsePin(val)}
+                  />
+                </div>
+
+                {usePin && (
+                  <div className="pt-2">
+                    <input
+                      type="password"
+                      maxLength={6}
+                      placeholder="Ex: 1234"
+                      value={formData.kioskPin || ''}
+                      onChange={e => handleChange('kioskPin', e.target.value.replace(/\D/g, ''))}
+                      className="w-36 px-4 py-2 text-center text-lg font-mono tracking-widest rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                     />
-                    
-                    {formData.topBannerUrl ? (
-                      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16, marginBottom: 16 }}>
-                        <div style={{ width: 135, height: 240, borderRadius: 12, overflow: 'hidden', border: '6px solid #1e293b', background: '#e2e8f0', position: 'relative', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}>
-                          <div style={{ position: 'absolute', inset: 0, padding: '4px' }}>
-                            <div style={{ width: '100%', height: '30%', background: '#cbd5e1', borderRadius: '4px', marginBottom: '4px' }} />
-                            <div style={{ width: '100%', height: '30%', background: '#cbd5e1', borderRadius: '4px', marginBottom: '4px' }} />
-                            <div style={{ width: '100%', height: '30%', background: '#cbd5e1', borderRadius: '4px' }} />
-                          </div>
-                          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: `${10 + ((formData.topBannerHeight || 1) - 1) * 5}%`, borderRadius: `${formData.topBannerRadiusTop ? '6px' : '0'} ${formData.topBannerRadiusTop ? '6px' : '0'} ${formData.topBannerRadiusBottom ? '6px' : '0'} ${formData.topBannerRadiusBottom ? '6px' : '0'}`, transition: 'all 0.3s ease', overflow: 'hidden', background: '#000', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
-                             {renderPreview(formData.topBannerUrl)}
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                       <div style={{ height: 80, borderRadius: 12, border: '2px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 500 }}>Introdu url-ul campaniei.</div>
-                    )}
                   </div>
                 )}
-
-                <div style={{ marginTop: 24, padding: 20, background: 'var(--bg-surface)', borderRadius: 12, border: '1px solid var(--border)' }}>
-                  <h4 style={{ margin: '0 0 16px 0', fontSize: '0.95rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>Configurare Vizuală (Design)</h4>
-                  
-                  <div style={{ marginBottom: 20 }}>
-                    <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 12 }}>
-                      <span>Înălțime Banner</span>
-                      <span style={{ color: 'var(--text)' }}>Nivel {formData.topBannerHeight} (din 5)</span>
-                    </label>
-                    <input 
-                      type="range" min="1" max="5" step="1"
-                      value={formData.topBannerHeight} 
-                      onChange={e => handleChange('topBannerHeight', parseInt(e.target.value))}
-                      style={{ width: '100%', cursor: 'pointer' }}
-                    />
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 8 }}>
-                      <span>Subțire (10%)</span>
-                      <span>Lat (30%)</span>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: 16 }}>
-                    <label className="pc-toggle" style={{ margin: 0, flex: 1, background: 'var(--surface)', padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)' }}>Colțuri Sus Rotunde</span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <input type="checkbox" checked={formData.topBannerRadiusTop} onChange={e => handleChange('topBannerRadiusTop', e.target.checked)} />
-                        <span className="toggle-slider" style={{ position: 'relative', display: 'inline-block' }} />
-                      </div>
-                    </label>
-                    <label className="pc-toggle" style={{ margin: 0, flex: 1, background: 'var(--surface)', padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)' }}>Colțuri Jos Rotunde</span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <input type="checkbox" checked={formData.topBannerRadiusBottom} onChange={e => handleChange('topBannerRadiusBottom', e.target.checked)} />
-                        <span className="toggle-slider" style={{ position: 'relative', display: 'inline-block' }} />
-                      </div>
-                    </label>
-                  </div>
-                </div>
-
-             </div>
-          )}
-        </div>
-
-        {/* Card: Banner Promo (Footer) */}
-        <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>Banner Promo (Footer / Jos)</h3>
-            <label className="pc-toggle" style={{ margin: 0 }}>
-              <input type="checkbox" checked={useBottomBanner} onChange={e => setUseBottomBanner(e.target.checked)} />
-              <span className="toggle-slider" />
-            </label>
+              </div>
+            </div>
           </div>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>Apare în partea de jos a ecranului (sub meniu). Suportă Link Video/Imagine sau Text lung editabil.</p>
-          
-          {useBottomBanner && (
-             <div style={{ animation: 'fadeIn 0.3s ease' }}>
+
+          {/* Card: Personalizare Meniu Kiosk */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
+            <div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Personalizare Meniu Kiosk</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Configurează profilul de meniu pe care îl preia acest Kiosk pentru fiecare brand activ, sau editează vizibilitatea produselor strict pe această tabletă.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {activeBrands.map(brandId => {
+                const bData = brandProfiles[brandId];
+                if (!bData || !bData.brand) return null;
                 
-                <h4 style={{ margin: '0 0 6px 0', fontSize: '0.85rem', color: 'var(--text)', fontWeight: 700 }}>1. Reclamă (Video / Imagine)</h4>
-                <p style={{ margin: '0 0 10px', fontSize: '0.78rem', color: 'var(--text-muted)' }}>MP4, WebM, imagine — se afișează pe toată înălțimea banerului de jos</p>
-                <input 
-                  type="url" 
-                  className="pc-input" 
-                  placeholder="https://... URL video MP4 sau imagine"
-                  value={formData.bottomBannerUrl || ''}
-                  onChange={e => handleChange('bottomBannerUrl', e.target.value)}
-                  style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', width: '100%', marginBottom: formData.bottomBannerUrl ? 12 : 20, boxSizing: 'border-box' }}
-                />
+                const brandOverrides = (formData.menuOverrides || {})[brandId] || {};
+                const currentProfileId = brandOverrides.profileId || '';
+                const localHiddenCount = Object.keys(brandOverrides.hiddenItems || {}).length;
 
-
-                <h4 style={{ margin: '0 0 6px 0', fontSize: '0.85rem', color: 'var(--text)', fontWeight: 700 }}>2. Text Derulant</h4>
-                <p style={{ margin: '0 0 10px', fontSize: '0.78rem', color: 'var(--text-muted)' }}>Apare deasupra reclamei (overlay) sau singur dacă nu e reclamă</p>
-                <textarea 
-                  className="pc-input" 
-                  placeholder="Ex: Burger SmashMe -20% azi! Gratis cartofi la orice combo!"
-                  value={formData.bottomBannerText || ''}
-                  onChange={e => handleChange('bottomBannerText', e.target.value)}
-                  style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', width: '100%', marginBottom: 12, boxSizing: 'border-box', minHeight: 70, resize: 'vertical' }}
-                />
-
-                {/* Text appearance options */}
-                {(formData.bottomBannerText || '').length > 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 16, padding: 16, background: 'var(--bg-surface)', borderRadius: 10, border: '1px solid var(--border)' }}>
-                    
-                    {/* Mode: Fix / Rulant */}
-                    <div>
-                      <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted,#475569)', display: 'block', marginBottom: 8 }}>MOD AFIȘARE TEXT</label>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        {[['false', 'Rulant (scroll)'], ['true', 'Fix (static)']].map(([val, lbl]) => {
-                          const isActive = String(formData.bottomBannerTextFixed) === val;
-                          return (
-                            <button key={val} type="button"
-                              onClick={() => handleChange('bottomBannerTextFixed', val === 'true')}
-                              style={{ flex: 1, padding: '8px 4px', borderRadius: 8, border: `2px solid ${isActive ? '#0f172a' : '#cbd5e1'}`, background: isActive ? '#0f172a' : 'var(--surface,#fff)', color: isActive ? '#fff' : 'var(--text-muted,#475569)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }}
-                            >{lbl}</button>
-                          );
-                        })}
-                      </div>
+                return (
+                  <div key={brandId} className="p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-xl flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex items-center gap-2.5">
+                      <BrandLogo brandId={brandId} size={22} />
+                      <span className="text-sm font-bold text-slate-900 dark:text-white">Meniu {bData.brand.name}</span>
                     </div>
 
-                    {/* Position */}
-                    <div>
-                      <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 8 }}>POZIȚIE TEXT</label>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        {[['left', 'Stanga'], ['center', 'Centru'], ['right', 'Dreapta']].map(([val, lbl]) => (
-                          <button key={val} type="button"
-                            onClick={() => handleChange('bottomBannerTextAlign', val)}
-                            style={{ flex: 1, padding: '8px 4px', borderRadius: 8, border: `2px solid ${formData.bottomBannerTextAlign === val ? '#0f172a' : '#cbd5e1'}`, background: formData.bottomBannerTextAlign === val ? '#0f172a' : '#fff', color: formData.bottomBannerTextAlign === val ? '#fff' : '#475569', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }}
-                          >{lbl}</button>
+                    <div className="flex items-center gap-3 flex-1 justify-end min-w-[300px]">
+                      <select
+                        value={currentProfileId}
+                        onChange={(e) => {
+                          const newOverrides = { ...formData.menuOverrides };
+                          if (!newOverrides[brandId]) newOverrides[brandId] = { hiddenItems: {} };
+                          newOverrides[brandId] = { ...newOverrides[brandId], profileId: e.target.value };
+                          handleChange('menuOverrides', newOverrides);
+                        }}
+                        className="px-3.5 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white max-w-[260px]"
+                      >
+                        <option value="">Meniu Complet (Implicit)</option>
+                        {bData.profiles.map(p => (
+                          <option key={p.id} value={p.id}>{p.name} ({Object.keys(p.hiddenItems || {}).length} ascunse)</option>
                         ))}
-                      </div>
-                    </div>
+                      </select>
 
-                    {/* Background color */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>CULOARE FUNDAL</label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, flexWrap: 'wrap' }}>
-                        <input type="color" value={formData.bottomBannerBg} onChange={e => handleChange('bottomBannerBg', e.target.value)}
-                          style={{ width: 44, height: 36, borderRadius: 8, border: '1px solid var(--border)', cursor: 'pointer', padding: 2 }} />
-                        {['#1e293b','#d32f2f','#1a237e','#004d40','#4a148c','#e65100','#212121','#ffffff'].map(c => (
-                          <button key={c} type="button" onClick={() => handleChange('bottomBannerBg', c)}
-                            style={{ width: 26, height: 26, borderRadius: 6, background: c, border: formData.bottomBannerBg === c ? '3px solid #0f172a' : '2px solid #e2e8f0', cursor: 'pointer', flexShrink: 0 }} />
-                        ))}
-                        <input type="text" value={formData.bottomBannerBg} onChange={e => handleChange('bottomBannerBg', e.target.value)}
-                          style={{ width: 80, fontSize: '0.8rem', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px', fontFamily: 'monospace' }} />
-                      </div>
-                    </div>
-
-                    {/* Logo URL */}
-                    <div>
-                      <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>LOGO PNG (opțional, poți pune un URL sau poți face upload)</label>
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <input type="text" value={formData.bottomBannerLogoUrl || ''} onChange={e => handleChange('bottomBannerLogoUrl', e.target.value)}
-                          placeholder="https://... URL imagine PNG/SVG"
-                          style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', fontSize: '0.85rem', boxSizing: 'border-box' }} />
-                        <label style={{ cursor: 'pointer', background: '#f1f5f9', color: '#0f172a', padding: '8px 16px', borderRadius: 8, fontSize: '0.85rem', fontWeight: 600, border: '1px solid #cbd5e1', whiteSpace: 'nowrap', transition: 'all 0.15s' }}>
-                          + Upload
-                          <input type="file" accept="image/png, image/jpeg, image/svg+xml, image/webp" style={{ display: 'none' }} onChange={e => {
-                            const file = e.target.files?.[0];
-                            if (!file) return;
-                            if (file.size > 2 * 1024 * 1024) {
-                              alert('Se permit maxim 2MB pentru un logo base64 ca să nu încetinim tableta. Găsește o variantă mai micșorată.');
-                              return;
-                            }
-                            const reader = new FileReader();
-                            reader.onload = (ev) => {
-                              handleChange('bottomBannerLogoUrl', ev.target.result);
-                            };
-                            reader.readAsDataURL(file);
-                          }} />
-                        </label>
-                      </div>
-                      {formData.bottomBannerLogoUrl && (
-                        <img src={formData.bottomBannerLogoUrl} alt="logo preview" style={{ height: 32, marginTop: 8, borderRadius: 4, objectFit: 'contain', border: '1px solid var(--border)', background: formData.bottomBannerBg, padding: '4px 8px' }} />
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const overrides = formData.menuOverrides[brandId] || { hiddenItems: {} };
+                          const profile = bData.profiles.find(p => p.id === overrides.profileId) || { name: 'Meniu Complet (Fără Șablon)', rootFolderId: null, hiddenItems: {} };
+                          setEditingMenuBrand({
+                            brand: bData.brand,
+                            profile,
+                            localHiddenItemsOverride: overrides.hiddenItems || {}
+                          });
+                        }}
+                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                          localHiddenCount > 0 
+                            ? 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/50 dark:border-blue-800' 
+                            : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                        }`}
+                      >
+                        Editează Vizibilitatea {localHiddenCount > 0 && `(${localHiddenCount} specifice)`}
+                      </button>
                     </div>
                   </div>
-                )}
-                
-                {/* BOTTOM BANNER SIMULATOR */}
-                <div style={{ display: 'flex', justifyContent: 'center', marginTop: 24, marginBottom: 8, flexDirection: 'column', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 12, textTransform: 'uppercase' }}>PREVIEW KIOSK DISPLAY (9:16)</span>
-                  <div style={{ width: 135, height: 240, borderRadius: 12, overflow: 'hidden', border: '6px solid #1e293b', background: '#e2e8f0', position: 'relative', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}>
-                    <div style={{ position: 'absolute', inset: 0, padding: '4px' }}>
-                      <div style={{ width: '100%', height: '30%', background: '#cbd5e1', borderRadius: '4px', marginBottom: '4px' }} />
-                      <div style={{ width: '100%', height: '30%', background: '#cbd5e1', borderRadius: '4px', marginBottom: '4px' }} />
-                    </div>
-                    
-                    <div style={{ 
-                      position: 'absolute', bottom: 0, left: 0, right: 0,
-                      height: `${10 + ((formData.bottomBannerHeight || 1) - 1) * 5}%`, 
-                      borderRadius: `${formData.bottomBannerRadiusTop ? '6px' : '0'} ${formData.bottomBannerRadiusTop ? '6px' : '0'} ${formData.bottomBannerRadiusBottom ? '6px' : '0'} ${formData.bottomBannerRadiusBottom ? '6px' : '0'}`,
-                      transition: 'all 0.3s ease',
-                      overflow: 'hidden', background: formData.bottomBannerBg || '#000', boxShadow: '0 -4px 12px rgba(0,0,0,0.2)',
-                      display: 'flex', flexDirection: 'column', justifyContent: 'center'
-                    }}>
-                       {formData.bottomBannerUrl && (
-                         <div style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
-                           {renderPreview(formData.bottomBannerUrl)}
-                         </div>
-                       )}
-                       {formData.bottomBannerText && (
-                         <div style={{ 
-                           position: 'relative', zIndex: 2, padding: '4px 6px', 
-                           display: 'flex', alignItems: 'center', gap: '4px',
-                           justifyContent: formData.bottomBannerTextAlign === 'center' ? 'center' : formData.bottomBannerTextAlign === 'right' ? 'flex-end' : 'flex-start',
-                           background: formData.bottomBannerUrl ? 'rgba(0,0,0,0.45)' : 'transparent',
-                           height: '100%', width: '100%', boxSizing: 'border-box'
-                         }}>
-                           {formData.bottomBannerLogoUrl && <img src={formData.bottomBannerLogoUrl} style={{ height: '60%', objectFit: 'contain' }} alt="Logo" />}
-                           <div style={{ color: ['#ffffff', '#f8fafc'].includes(formData.bottomBannerBg) && !formData.bottomBannerUrl ? '#0f172a' : '#fff', fontSize: '5px', fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden' }}>
-                              {formData.bottomBannerText}
-                           </div>
-                         </div>
-                       )}
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ marginTop: 24, padding: 20, background: 'var(--bg-surface)', borderRadius: 12, border: '1px solid var(--border)' }}>
-                  <h4 style={{ margin: '0 0 16px 0', fontSize: '0.95rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>Configurare Vizuală (Design)</h4>
-                  
-                  <div style={{ marginBottom: 20 }}>
-                    <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 12 }}>
-                      <span>Înălțime Banner</span>
-                      <span style={{ color: 'var(--text)' }}>Nivel {formData.bottomBannerHeight} (din 5)</span>
-                    </label>
-                    <input 
-                      type="range" min="1" max="5" step="1"
-                      value={formData.bottomBannerHeight} 
-                      onChange={e => handleChange('bottomBannerHeight', parseInt(e.target.value))}
-                      style={{ width: '100%', cursor: 'pointer' }}
-                    />
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 8 }}>
-                      <span>Subțire (10%)</span>
-                      <span>Lat (30%)</span>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: 16 }}>
-                    <label className="pc-toggle" style={{ margin: 0, flex: 1, background: 'var(--surface)', padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)' }}>Colțuri Sus Rotunde</span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <input type="checkbox" checked={formData.bottomBannerRadiusTop} onChange={e => handleChange('bottomBannerRadiusTop', e.target.checked)} />
-                        <span className="toggle-slider" style={{ position: 'relative', display: 'inline-block' }} />
-                      </div>
-                    </label>
-                    <label className="pc-toggle" style={{ margin: 0, flex: 1, background: 'var(--surface)', padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)' }}>Colțuri Jos Rotunde</span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <input type="checkbox" checked={formData.bottomBannerRadiusBottom} onChange={e => handleChange('bottomBannerRadiusBottom', e.target.checked)} />
-                        <span className="toggle-slider" style={{ position: 'relative', display: 'inline-block' }} />
-                      </div>
-                    </label>
-                  </div>
-                </div>
-
-             </div>
-          )}
-        </div>
-
-      </div>
-
-        {/* Card: Personalizare Meniu */}
-        <div className="loc-edit-card" style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}>
-          <h3 style={{ margin: '0 0 8px 0', fontSize: '1.1rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>Personalizare Meniu Kiosk</h3>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>
-            Configează profilul de meniu pe care îl preia acest Kiosk pentru fiecare brand activ, sau editează vizibilitatea produselor strict pe această tabletă.
-          </p>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {activeBrands.map(brandId => {
-               const bData = brandProfiles[brandId];
-               if (!bData || !bData.brand) return null;
-               
-               const brandOverrides = (formData.menuOverrides || {})[brandId] || {};
-               const currentProfileId = brandOverrides.profileId || '';
-               const localHiddenCount = Object.keys(brandOverrides.hiddenItems || {}).length;
-
-               return (
-                 <div key={brandId} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                      <BrandLogo brandId={brandId} size={24} />
-                      <strong style={{ fontSize: '1.05rem', color: 'var(--text)' }}>Meniu {bData.brand.name}</strong>
-                    </div>
-
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end' }}>
-                       <div style={{ flex: 1, minWidth: '220px' }}>
-                          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>Aplică un Șablon Global</label>
-                          <select 
-                            className="pc-input"
-                            value={currentProfileId}
-                            onChange={(e) => {
-                               const newOverrides = { ...formData.menuOverrides };
-                               if (!newOverrides[brandId]) newOverrides[brandId] = { hiddenItems: {} };
-                               newOverrides[brandId] = { ...newOverrides[brandId], profileId: e.target.value };
-                               handleChange('menuOverrides', newOverrides);
-                            }}
-                            style={{ padding: '10px 14px', borderRadius: 30, border: '1px solid var(--border)', width: '100%', outline: 'none', background: 'var(--surface)', color: 'var(--text)', fontSize: '0.9rem' }}
-                          >
-                            <option value="">Afișează Meniul Complet (Implicit)</option>
-                            {bData.profiles.map(p => (
-                               <option key={p.id} value={p.id}>{p.name} ({Object.keys(p.hiddenItems || {}).length} ascunse)</option>
-                            ))}
-                          </select>
-                       </div>
-
-                       <div style={{ flex: 1, minWidth: '220px' }}>
-                          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>Suprascriere Manuală Kiosk</label>
-                          <button 
-                            className="um-btn"
-                            onClick={() => {
-                               const overrides = formData.menuOverrides[brandId] || { hiddenItems: {} };
-                               const profile = bData.profiles.find(p => p.id === overrides.profileId) || { name: 'Meniu Complet (Fără Șablon)', rootFolderId: null, hiddenItems: {} };
-                               setEditingMenuBrand({
-                                   brand: bData.brand,
-                                   profile,
-                                   localHiddenItemsOverride: overrides.hiddenItems || {}
-                               });
-                            }}
-                            style={{ padding: '10px 14px', borderRadius: 30, background: localHiddenCount > 0 ? '#eff6ff' : '#fff', color: localHiddenCount > 0 ? '#3b82f6' : 'var(--text)', border: `1px solid ${localHiddenCount > 0 ? '#3b82f6' : 'var(--border)'}`, width: '100%', display: 'flex', justifyContent: 'center', fontWeight: localHiddenCount > 0 ? 700 : 500 }}
-                          >
-                             Editează Vizibilitatea {localHiddenCount > 0 && `(${localHiddenCount} specifice)`}
-                          </button>
-                       </div>
-                    </div>
-                 </div>
-               );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
+      )}
 
-
+      {/* ─── OVERLAY ROATĂ NOROC FULLSCREEN ─── */}
+      {showWheelPreviewFull && formData.promoBrandId && promosData[formData.promoBrandId] && (
+        <div className="fixed inset-0 z-[99999] bg-slate-950/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 animate-fadeIn">
+          <button 
+            type="button"
+            onClick={() => setShowWheelPreviewFull(false)}
+            className="absolute top-6 right-6 px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white text-sm font-bold border border-white/20 transition-all cursor-pointer"
+          >
+            ✕ Închide
+          </button>
+          <h2 className="text-white text-2xl font-black mb-8 drop-shadow-md">
+            Simulare Roată Noroc pe Kiosk
+          </h2>
+          <div className="w-[500px] h-[500px] relative flex items-center justify-center">
+            <FortuneWheelPreview config={promosData[formData.promoBrandId].config} brandId={formData.promoBrandId} scale={1.2} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -3077,7 +3450,7 @@ function LocationsManager({ backend }) {
   };
 
   const deleteLoc = async (id) => {
-    const ok = await confirm('Ștergi această locație?', { title: 'Ștergere locație', icon: '🗑️', okLabel: 'Șterge', danger: true });
+    const ok = await confirm('Ștergi această locație?', { title: 'Ștergere locație', okLabel: 'Șterge', danger: true });
     if (!ok) return;
     fetchWithAuth(`${backend}/api/locations/${id}`, { method: 'DELETE' })
       .then(() => fetchLocs());
@@ -3366,7 +3739,7 @@ function LocationEditForm({ loc, backend, onBack, onSave }) {
                  <input type="text" className="w-full h-11 px-4 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white transition-all font-mono" value={formData.orgIds[bId] || ''} onChange={e => handleOrgChange(bId, e.target.value)} placeholder="ID global implicit" />
                </div>
              ))}
-             {formData.brands.length === 0 && <span className="text-sm text-amber-600 dark:text-amber-400 font-medium p-4 bg-amber-50 dark:bg-amber-500/10 rounded-full border border-amber-200 dark:border-amber-500/20 col-span-full">⚠️ Selectează măcar un brand pentru a seta suprascrieri de locație Syrve.</span>}
+             {formData.brands.length === 0 && <span className="text-sm text-amber-600 dark:text-amber-400 font-medium p-4 bg-amber-50 dark:bg-amber-500/10 rounded-full border border-amber-200 dark:border-amber-500/20 col-span-full">Selectează măcar un brand pentru a seta suprascrieri de locație Syrve.</span>}
           </div>
         </div>
         

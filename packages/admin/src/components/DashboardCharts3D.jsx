@@ -99,13 +99,13 @@ export function SalesTrendChart3D({
 
   const maxVal = Math.max(...buckets.map(b => metricMode === 'revenue' ? b.revenue : b.count), 10);
   const width = 640;
-  const height = 240;
-  const padX = 45;
-  const padTop = 30;
-  const padBottom = 40;
+  const height = 200;
+  const padX = 42;
+  const padTop = 20;
+  const padBottom = 30;
   const chartW = width - padX * 2;
   const chartH = height - padTop - padBottom;
-  const depth = 16; // 3D isometric z-depth
+  const depth = 14; // 3D isometric z-depth
 
   // Compute points
   const pts = buckets.map((b, i) => {
@@ -153,41 +153,41 @@ export function SalesTrendChart3D({
   const totalCnt = buckets.reduce((s, b) => s + b.count, 0);
 
   return (
-    <div className="relative bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden group">
+    <div className="relative bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden group h-full flex flex-col justify-between">
       {/* 3D Background Glow */}
       <div className="absolute -right-20 -top-20 w-64 h-64 bg-blue-500/10 dark:bg-blue-600/15 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-indigo-500/10 dark:bg-indigo-600/15 rounded-full blur-3xl pointer-events-none" />
 
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center shadow-lg shadow-blue-500/25">
-            <TrendingUp className="w-5 h-5" />
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-2.5">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center shadow-lg shadow-blue-500/25 shrink-0">
+            <TrendingUp className="w-4.5 h-4.5" />
           </div>
           <div>
-            <h4 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
               Evoluție Vânzări 3D
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
                 Zoom 3D Flow
               </span>
             </h4>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
               Total: <strong className="text-slate-800 dark:text-slate-200">{formatThousands(totalRev)} lei</strong> ({totalCnt} comenzi)
             </p>
           </div>
         </div>
 
         {/* Toggle Mode */}
-        <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700">
+        <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-full border border-slate-200 dark:border-slate-700">
           <button
             onClick={() => setMetricMode('revenue')}
-            className={`px-3 py-1 text-xs font-bold rounded-full transition-all ${metricMode === 'revenue' ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
+            className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full transition-all ${metricMode === 'revenue' ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
           >
             Încasări (RON)
           </button>
           <button
             onClick={() => setMetricMode('count')}
-            className={`px-3 py-1 text-xs font-bold rounded-full transition-all ${metricMode === 'count' ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
+            className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full transition-all ${metricMode === 'count' ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
           >
             Nr. Comenzi
           </button>
@@ -195,7 +195,7 @@ export function SalesTrendChart3D({
       </div>
 
       {/* SVG 3D Canvas */}
-      <div className="relative w-full h-[240px]">
+      <div className="relative w-full h-[200px]">
         <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible">
           <defs>
             <linearGradient id="gridGradient" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -510,30 +510,30 @@ export function BrandDonutChart3D({
   };
 
   return (
-    <div className="relative bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden group">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-500 to-amber-500 text-white flex items-center justify-center shadow-lg shadow-rose-500/25">
-            <PieChart className="w-5 h-5" />
+    <div className="relative bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden group h-full flex flex-col justify-between">
+      <div className="flex items-center justify-between mb-2.5">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-rose-500 to-amber-500 text-white flex items-center justify-center shadow-lg shadow-rose-500/25 shrink-0">
+            <PieChart className="w-4.5 h-4.5" />
           </div>
           <div>
-            <h4 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
               Vânzări pe Branduri 3D
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
                 Donut 3D Ring
               </span>
             </h4>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
               Pondere vânzări per brand în perioada selectată
             </p>
           </div>
         </div>
       </div>
 
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3">
         {/* 3D Donut SVG Canvas */}
-        <div className="relative flex items-center justify-center min-h-[190px]">
-          <svg viewBox="0 0 300 240" className="w-full max-w-[240px] h-[190px] overflow-visible">
+        <div className="relative flex items-center justify-center min-h-[160px]">
+          <svg viewBox="0 0 300 240" className="w-full max-w-[210px] h-[160px] overflow-visible">
             {/* Base Drop Shadow - Ring with Hollow Hole */}
             <path
               d={`
@@ -630,9 +630,9 @@ export function BrandDonutChart3D({
         </div>
 
         {/* Brand Legend */}
-        <div className="flex flex-col gap-2 max-h-[150px] overflow-y-auto pr-1">
+        <div className="flex flex-col gap-1.5 max-h-[130px] overflow-y-auto pr-1">
           {brandData.list.length === 0 ? (
-            <div className="p-5 text-center text-slate-400 text-xs font-medium bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-800">
+            <div className="p-4 text-center text-slate-400 text-xs font-medium bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800">
               Niciun brand cu vânzări în perioada selectată.
             </div>
           ) : (
@@ -645,11 +645,11 @@ export function BrandDonutChart3D({
                   onClick={() => onSelectBrand(b.id)}
                   onMouseEnter={() => setHoveredBrand(b.id)}
                   onMouseLeave={() => setHoveredBrand(null)}
-                  className={`flex items-center justify-between p-2.5 rounded-2xl border transition-all cursor-pointer ${
+                  className={`flex items-center justify-between p-2 rounded-xl border transition-all cursor-pointer ${
                     isSelected
-                      ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 shadow-md ring-2 ring-blue-500/20 scale-[1.02]'
+                      ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 shadow-sm ring-2 ring-blue-500/20 scale-[1.01]'
                       : isHovered 
-                      ? 'bg-slate-100 dark:bg-slate-800 border-blue-500/40 shadow-md scale-[1.02]' 
+                      ? 'bg-slate-100 dark:bg-slate-800 border-blue-500/40 shadow-sm scale-[1.01]' 
                       : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800'
                   }`}
                 >
@@ -730,173 +730,197 @@ export function PaymentMethodsChart3D({
     };
   }, [orders]);
 
-  const maxVal = Math.max(stats.card.revenue, stats.cash.revenue, 100);
-  const maxBarH = 120;
-  const cardH = Math.max(20, (stats.card.revenue / maxVal) * maxBarH);
-  const cashH = Math.max(20, (stats.cash.revenue / maxVal) * maxBarH);
-
   const isCardActive = selectedPayment === 'card';
   const isCashActive = selectedPayment === 'cash';
 
   return (
-    <div className="relative bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden group">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/25">
-            <CreditCard className="w-5 h-5" />
+    <div className="relative bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden group h-full flex flex-col justify-between space-y-4">
+      {/* Background Ambient Glow Accents */}
+      <div className="absolute -top-16 -right-16 w-36 h-36 bg-emerald-500/10 dark:bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-16 -left-16 w-36 h-36 bg-amber-500/10 dark:bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
+
+      {/* Header */}
+      <div className="flex items-center justify-between relative z-10">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/25 shrink-0">
+            <CreditCard className="w-4.5 h-4.5" />
           </div>
           <div>
-            <h4 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              Metode de Plată 3D
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                3D Cylinders
+            <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              Metode de Plată
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                Distribuție Live
               </span>
             </h4>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Card POS vs Cash la Casă (Click pe cilindru pentru filtrare)
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              Card POS vs Cash la Casă (click pentru filtrare)
             </p>
+          </div>
+        </div>
+
+        {(isCardActive || isCashActive) && (
+          <button
+            onClick={() => onSelectPayment('all')}
+            className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+          >
+            Resetează
+          </button>
+        )}
+      </div>
+
+      {/* ─── Proportional Distribution Track (Dashboard Standard) ─── */}
+      <div className="space-y-1.5 relative z-10">
+        <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400 px-0.5">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
+            <span>Card POS: {stats.card.pct.toFixed(1)}%</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span>Cash: {stats.cash.pct.toFixed(1)}%</span>
+            <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
+          </span>
+        </div>
+
+        <div className="w-full h-2.5 rounded-full p-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 flex items-center gap-1 overflow-hidden shadow-inner">
+          <div
+            style={{ width: `${Math.max(stats.card.pct > 0 ? 8 : 0, stats.card.pct)}%` }}
+            className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+            title={`Card POS: ${stats.card.pct.toFixed(1)}%`}
+          />
+          <div
+            style={{ width: `${Math.max(stats.cash.pct > 0 ? 8 : 0, stats.cash.pct)}%` }}
+            className="h-full rounded-full bg-amber-500 transition-all duration-500"
+            title={`Cash la Casă: ${stats.cash.pct.toFixed(1)}%`}
+          />
+        </div>
+      </div>
+
+      {/* ─── Carduri Metode de Plată (Exact stil StatCard Dashboard) ─── */}
+      <div className="space-y-3 relative z-10">
+        {/* Card POS */}
+        <div
+          onClick={() => onSelectPayment(isCardActive ? 'all' : 'card')}
+          className={`bg-white dark:bg-slate-900 rounded-2xl shadow-sm border p-4 flex items-center justify-between relative overflow-hidden transition-all duration-200 group cursor-pointer select-none ${
+            isCardActive
+              ? 'ring-2 ring-emerald-500 border-emerald-500 shadow-md scale-[1.02]'
+              : isCashActive
+                ? 'opacity-40 border-slate-200 dark:border-slate-800 hover:opacity-75'
+                : 'border-slate-200 dark:border-slate-800 hover:shadow-md hover:scale-[1.01]'
+          }`}
+          style={{ borderLeft: '4px solid #10b981' }}
+        >
+          <div className="flex flex-col justify-center min-w-0 pr-2 z-10 flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Card POS
+              </span>
+              <span className="px-2 py-0.5 rounded-full text-[10.5px] font-black bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+                {stats.card.pct.toFixed(1)}%
+              </span>
+            </div>
+
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                {formatThousands(stats.card.revenue)}
+              </span>
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                lei
+              </span>
+            </div>
+
+            <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-2">
+              <span>{stats.card.count} {stats.card.count === 1 ? 'comandă' : 'comenzi'}</span>
+              <span className="text-slate-300 dark:text-slate-600">•</span>
+              <span className="text-slate-400">Terminal Bancar</span>
+            </div>
+          </div>
+
+          <div className="relative shrink-0 ml-2">
+            {/* 3D Atmosphere Glow */}
+            <div 
+              className="absolute -inset-1.5 rounded-full blur-md opacity-35 group-hover:opacity-75 transition-opacity pointer-events-none"
+              style={{ backgroundColor: '#10b981' }}
+            />
+            {/* 3D Raised Bezel Container */}
+            <div 
+              className="relative w-12 h-12 rounded-full p-0.5 flex items-center justify-center bg-gradient-to-b from-white via-slate-50 to-slate-100 dark:from-slate-700 dark:via-slate-800 dark:to-slate-900 border border-white/80 dark:border-slate-600/60 shadow-md transition-transform duration-200 group-hover:scale-110 group-hover:-translate-y-0.5"
+              style={{ 
+                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25), 0 1px 2px rgba(0,0,0,0.1), inset 0 2px 3px rgba(255,255,255,0.9)' 
+              }}
+            >
+              <CreditCard size={22} strokeWidth={2.2} className="text-emerald-600 dark:text-emerald-400" />
+            </div>
+          </div>
+        </div>
+
+        {/* Cash la Casă */}
+        <div
+          onClick={() => onSelectPayment(isCashActive ? 'all' : 'cash')}
+          className={`bg-white dark:bg-slate-900 rounded-2xl shadow-sm border p-4 flex items-center justify-between relative overflow-hidden transition-all duration-200 group cursor-pointer select-none ${
+            isCashActive
+              ? 'ring-2 ring-amber-500 border-amber-500 shadow-md scale-[1.02]'
+              : isCardActive
+                ? 'opacity-40 border-slate-200 dark:border-slate-800 hover:opacity-75'
+                : 'border-slate-200 dark:border-slate-800 hover:shadow-md hover:scale-[1.01]'
+          }`}
+          style={{ borderLeft: '4px solid #f59e0b' }}
+        >
+          <div className="flex flex-col justify-center min-w-0 pr-2 z-10 flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Cash la Casă
+              </span>
+              <span className="px-2 py-0.5 rounded-full text-[10.5px] font-black bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/25">
+                {stats.cash.pct.toFixed(1)}%
+              </span>
+            </div>
+
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                {formatThousands(stats.cash.revenue)}
+              </span>
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                lei
+              </span>
+            </div>
+
+            <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-2">
+              <span>{stats.cash.count} {stats.cash.count === 1 ? 'comandă' : 'comenzi'}</span>
+              <span className="text-slate-300 dark:text-slate-600">•</span>
+              <span className="text-slate-400">Casa Syrve</span>
+            </div>
+          </div>
+
+          <div className="relative shrink-0 ml-2">
+            {/* 3D Atmosphere Glow */}
+            <div 
+              className="absolute -inset-1.5 rounded-full blur-md opacity-35 group-hover:opacity-75 transition-opacity pointer-events-none"
+              style={{ backgroundColor: '#f59e0b' }}
+            />
+            {/* 3D Raised Bezel Container */}
+            <div 
+              className="relative w-12 h-12 rounded-full p-0.5 flex items-center justify-center bg-gradient-to-b from-white via-slate-50 to-slate-100 dark:from-slate-700 dark:via-slate-800 dark:to-slate-900 border border-white/80 dark:border-slate-600/60 shadow-md transition-transform duration-200 group-hover:scale-110 group-hover:-translate-y-0.5"
+              style={{ 
+                boxShadow: '0 4px 12px rgba(245, 158, 11, 0.25), 0 1px 2px rgba(0,0,0,0.1), inset 0 2px 3px rgba(255,255,255,0.9)' 
+              }}
+            >
+              <Banknote size={22} strokeWidth={2.2} className="text-amber-600 dark:text-amber-400" />
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="flex flex-col gap-4">
-        {/* SVG Cylinders */}
-        <div className="relative h-[190px] flex items-center justify-center">
-          <svg viewBox="0 0 280 200" className="w-full max-w-[240px] h-full overflow-visible">
-            <defs>
-              <linearGradient id="cardCylGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#047857" />
-                <stop offset="35%" stopColor="#10b981" />
-                <stop offset="70%" stopColor="#34d399" />
-                <stop offset="100%" stopColor="#065f46" />
-              </linearGradient>
-
-              <linearGradient id="cashCylGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#b45309" />
-                <stop offset="35%" stopColor="#f59e0b" />
-                <stop offset="70%" stopColor="#fcd34d" />
-                <stop offset="100%" stopColor="#92400e" />
-              </linearGradient>
-            </defs>
-
-            {/* Base Floor Ellipses */}
-            <ellipse cx="80" cy="165" rx="42" ry="16" fill="#000000" opacity="0.12" />
-            <ellipse cx="200" cy="165" rx="42" ry="16" fill="#000000" opacity="0.12" />
-
-            {/* Card Cylinder */}
-            <g
-              className="cursor-pointer transition-all duration-200"
-              onClick={() => onSelectPayment('card')}
-              onMouseEnter={() => setHoveredMethod('card')}
-              onMouseLeave={() => setHoveredMethod(null)}
-              opacity={selectedPayment === 'cash' ? 0.35 : 1}
-              style={{ transform: (hoveredMethod === 'card' || isCardActive) ? 'translateY(-6px)' : 'none' }}
-            >
-              <rect x="38" y={160 - cardH} width="84" height={cardH} fill="url(#cardCylGrad)" />
-              <path d={`M 38,160 A 42 16 0 0 0 122,160 L 122,160 A 42 16 0 0 1 38,160 Z`} fill="#047857" />
-              <ellipse 
-                cx="80" 
-                cy={160 - cardH} 
-                rx="42" 
-                ry="16" 
-                fill={isCardActive ? "#6ee7b7" : "#34d399"} 
-                stroke={isCardActive ? "#10b981" : "#6ee7b7"} 
-                strokeWidth={isCardActive ? 3 : 1.5} 
-              />
-              <text x="80" y={160 - cardH + 4} textAnchor="middle" fontSize="11" fontWeight="bold" fill="#064e3b">
-                {stats.card.pct.toFixed(0)}%
-              </text>
-              <text x="80" y="186" textAnchor="middle" fontSize="11" fontWeight="bold" className={`${isCardActive ? 'fill-emerald-600 font-black' : 'fill-slate-600 dark:fill-slate-300'}`}>
-                Card POS {isCardActive && '●'}
-              </text>
-            </g>
-
-            {/* Cash Cylinder */}
-            <g
-              className="cursor-pointer transition-all duration-200"
-              onClick={() => onSelectPayment('cash')}
-              onMouseEnter={() => setHoveredMethod('cash')}
-              onMouseLeave={() => setHoveredMethod(null)}
-              opacity={selectedPayment === 'card' ? 0.35 : 1}
-              style={{ transform: (hoveredMethod === 'cash' || isCashActive) ? 'translateY(-6px)' : 'none' }}
-            >
-              <rect x="158" y={160 - cashH} width="84" height={cashH} fill="url(#cashCylGrad)" />
-              <path d={`M 158,160 A 42 16 0 0 0 242,160 L 242,160 A 42 16 0 0 1 158,160 Z`} fill="#92400e" />
-              <ellipse 
-                cx="200" 
-                cy={160 - cashH} 
-                rx="42" 
-                ry="16" 
-                fill={isCashActive ? "#fef08a" : "#fcd34d"} 
-                stroke={isCashActive ? "#f59e0b" : "#fef08a"} 
-                strokeWidth={isCashActive ? 3 : 1.5} 
-              />
-              <text x="200" y={160 - cashH + 4} textAnchor="middle" fontSize="11" fontWeight="bold" fill="#78350f">
-                {stats.cash.pct.toFixed(0)}%
-              </text>
-              <text x="200" y="186" textAnchor="middle" fontSize="11" fontWeight="bold" className={`${isCashActive ? 'fill-amber-600 font-black' : 'fill-slate-600 dark:fill-slate-300'}`}>
-                Cash {isCashActive && '●'}
-              </text>
-            </g>
-          </svg>
+      {/* ─── Footer Insight Strip (Dashboard Standard) ─── */}
+      <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 relative z-10">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-emerald-500 shrink-0" />
+          <span className="font-semibold text-slate-700 dark:text-slate-300">
+            {stats.card.pct >= 50 ? 'Plățile cu cardul domină vânzările' : 'Plata în numerar predomină'}
+          </span>
         </div>
-
-        {/* Detailed Stats in 2 columns */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-          <div 
-            onClick={() => onSelectPayment('card')}
-            className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
-              isCardActive
-                ? 'bg-emerald-100/70 dark:bg-emerald-500/20 border-emerald-500 ring-2 ring-emerald-500/30 shadow-md scale-[1.02]'
-                : 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 hover:scale-[1.01]'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5 whitespace-nowrap">
-                <span className="w-5 h-5 rounded-lg bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
-                  <CreditCard size={12} strokeWidth={2.5} />
-                </span>
-                Card POS
-              </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-200 dark:bg-emerald-500/30 text-emerald-900 dark:text-emerald-200 shrink-0">
-                {stats.card.pct.toFixed(1)}%
-              </span>
-            </div>
-            <div className="text-lg font-black text-emerald-700 dark:text-emerald-400 mt-1">
-              {formatThousands(stats.card.revenue)} lei
-            </div>
-            <div className="text-[11px] text-emerald-600 dark:text-emerald-500 font-medium">
-              {stats.card.count} {stats.card.count === 1 ? 'comandă' : 'comenzi'}
-            </div>
-          </div>
-
-          <div 
-            onClick={() => onSelectPayment('cash')}
-            className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
-              isCashActive
-                ? 'bg-amber-100/70 dark:bg-amber-500/20 border-amber-500 ring-2 ring-amber-500/30 shadow-md scale-[1.02]'
-                : 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 hover:scale-[1.01]'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1.5 whitespace-nowrap">
-                <span className="w-5 h-5 rounded-lg bg-amber-500/15 border border-amber-500/25 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
-                  <Banknote size={12} strokeWidth={2.5} />
-                </span>
-                Cash
-              </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-200 dark:bg-amber-500/30 text-amber-900 dark:text-amber-200 shrink-0">
-                {stats.cash.pct.toFixed(1)}%
-              </span>
-            </div>
-            <div className="text-lg font-black text-amber-700 dark:text-amber-400 mt-1">
-              {formatThousands(stats.cash.revenue)} lei
-            </div>
-            <div className="text-[11px] text-amber-600 dark:text-amber-500 font-medium">
-              {stats.cash.count} {stats.cash.count === 1 ? 'comandă' : 'comenzi'}
-            </div>
-          </div>
-        </div>
+        <span className="font-mono font-bold text-slate-900 dark:text-white">
+          Total: {formatThousands(stats.totalRevenue)} lei
+        </span>
       </div>
     </div>
   );
@@ -1047,33 +1071,33 @@ export function CalendarHeatmapChart({
   const peakDayName = DAYS.find(d => d.id === peakInfo.dayId)?.name || 'Luni';
 
   return (
-    <div className="relative bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden group">
+    <div className="relative bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden group h-full flex flex-col justify-between">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-500 text-white flex items-center justify-center shadow-lg shadow-purple-500/25">
-            <Calendar className="w-5 h-5" />
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-2.5">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-500 text-white flex items-center justify-center shadow-lg shadow-purple-500/25 shrink-0">
+            <Calendar className="w-4.5 h-4.5" />
           </div>
           <div>
-            <h4 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
               Calendar Zile & Ore
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
                 Heatmap Activitate
               </span>
             </h4>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
               Vârf: <strong className="text-purple-600 dark:text-purple-400">{peakDayName} la {peakInfo.hour}:00</strong> ({peakInfo.count} comenzi)
             </p>
           </div>
         </div>
 
         {/* Mode Switcher */}
-        <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700">
+        <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-full border border-slate-200 dark:border-slate-700">
           <button
             onClick={() => setMetricMode('count')}
-            className={`px-3 py-1 text-xs font-bold rounded-full transition-all ${
+            className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full transition-all ${
               metricMode === 'count' 
-                ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-sm' 
+                ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs' 
                 : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
             }`}
           >
@@ -1081,13 +1105,13 @@ export function CalendarHeatmapChart({
           </button>
           <button
             onClick={() => setMetricMode('revenue')}
-            className={`px-3 py-1 text-xs font-bold rounded-full transition-all ${
+            className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full transition-all ${
               metricMode === 'revenue' 
-                ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-sm' 
+                ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs' 
                 : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
             }`}
           >
-            Încasări (lei)
+            Încasări (RON)
           </button>
         </div>
       </div>
@@ -1159,7 +1183,7 @@ export function CalendarHeatmapChart({
                           onMouseEnter={() => setHoveredCell({ dayId: d.id, dayName: d.name, hour: h, count: cell.count, revenue: cell.revenue })}
                           onMouseLeave={() => setHoveredCell(null)}
                           title={`${d.name}, ${h}:00 - ${h+1}:00: ${cell.count} comenzi (${cell.revenue.toFixed(0)} lei)`}
-                          className={`w-full h-8 rounded-lg flex items-center justify-center text-[11px] transition-all cursor-pointer ${colorClass} ${
+                          className={`w-full h-7 rounded-md flex items-center justify-center text-[10.5px] transition-all cursor-pointer ${colorClass} ${
                             isExactSelected
                               ? 'ring-2 ring-blue-500 dark:ring-blue-400 scale-110 shadow-lg z-20 font-black'
                               : isInSelectedRow || isInSelectedCol
@@ -1246,39 +1270,47 @@ export default function DashboardCharts3D({
   }, [orders, selectedBrands]);
 
   return (
-    <div className="space-y-6">
-      {/* Rând 1: 3 Coloane Egale (Evoluție Vânzări 3D, Vânzări pe Branduri 3D, Metode de Plată 3D) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <SalesTrendChart3D 
-          orders={brandFilteredOrders} 
-          period={period} 
-          selectedHour={selectedHour}
-          onSelectHour={onSelectHour}
-          selectedDay={selectedDay}
-          onSelectDay={onSelectDay}
-        />
-        <BrandDonutChart3D 
-          orders={orders} 
-          selectedBrands={selectedBrands}
-          onSelectBrand={onSelectBrand}
-        />
-        <PaymentMethodsChart3D 
-          orders={brandFilteredOrders} 
-          selectedPayment={selectedPayment}
-          onSelectPayment={onSelectPayment}
-        />
+    <div className="space-y-5">
+      {/* Rând 1: Evoluție Vânzări 3D (2/3) + Vânzări pe Branduri 3D (1/3) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-stretch">
+        <div className="lg:col-span-2 h-full">
+          <SalesTrendChart3D 
+            orders={brandFilteredOrders} 
+            period={period} 
+            selectedHour={selectedHour}
+            onSelectHour={onSelectHour}
+            selectedDay={selectedDay}
+            onSelectDay={onSelectDay}
+          />
+        </div>
+        <div className="lg:col-span-1 h-full">
+          <BrandDonutChart3D 
+            orders={orders} 
+            selectedBrands={selectedBrands}
+            onSelectBrand={onSelectBrand}
+          />
+        </div>
       </div>
 
-      {/* Rând 2: Pe toată lungimea rândului (Calendar Zile & Ore Heatmap) */}
-      <div className="w-full">
-        <CalendarHeatmapChart 
-          orders={brandFilteredOrders} 
-          period={period} 
-          selectedHour={selectedHour}
-          onSelectHour={onSelectHour}
-          selectedDay={selectedDay}
-          onSelectDay={onSelectDay}
-        />
+      {/* Rând 2: Calendar Zile & Ore (2/3) + Metode de Plată 3D (1/3 aliniat spre dreapta după heatmap) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-stretch">
+        <div className="lg:col-span-2 h-full">
+          <CalendarHeatmapChart 
+            orders={brandFilteredOrders} 
+            period={period} 
+            selectedHour={selectedHour}
+            onSelectHour={onSelectHour}
+            selectedDay={selectedDay}
+            onSelectDay={onSelectDay}
+          />
+        </div>
+        <div className="lg:col-span-1 h-full">
+          <PaymentMethodsChart3D 
+            orders={brandFilteredOrders} 
+            selectedPayment={selectedPayment}
+            onSelectPayment={onSelectPayment}
+          />
+        </div>
       </div>
     </div>
   );
