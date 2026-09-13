@@ -607,17 +607,19 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
 
       // Map modifiers to Syrve format (filter out custom_comment and mods without valid ID)
       if (item.selectedModifiers && item.selectedModifiers.length > 0) {
+        console.log(`[SYRVE-DEBUG] Item "${item.name}" raw modifiers:`, JSON.stringify(item.selectedModifiers));
         const validMods = item.selectedModifiers
           .filter(mod => mod.modId !== 'custom_comment' && mod.id !== 'custom_comment' && mod.productId !== 'custom_comment')
-          .filter(mod => (mod.id || mod.productId));  // Must have a valid ID for Syrve
+          .filter(mod => (mod.id || mod.productId || mod.optionId));  // Must have a valid ID for Syrve
         if (validMods.length > 0) {
           syrveItem.modifiers = validMods.map(mod => ({
-            productId: mod.id || mod.productId,
+            productId: mod.productId || mod.id || mod.optionId,
             amount: mod.amount || 1,
-            productGroupId: mod.groupId || mod.productGroupId || null,
+            productGroupId: mod.groupId || mod.productGroupId || mod.modifierGroupId || mod.modId || null,
             price: mod.price || 0,
             positionId: null,
           }));
+          console.log(`[SYRVE-DEBUG] Item "${item.name}" mapped modifiers:`, JSON.stringify(syrveItem.modifiers));
         }
       }
 
