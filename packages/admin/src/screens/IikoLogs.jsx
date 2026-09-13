@@ -28,6 +28,28 @@ export default function IikoLogs() {
   const [customEnd, setCustomEnd] = useState(tomorrowStr);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [retryingId, setRetryingId] = useState(null);
+
+  const handleRetry = async (log, e) => {
+    e.stopPropagation();
+    const orderId = log.id || log.order_id;
+    if (!orderId) return;
+    setRetryingId(orderId);
+    try {
+      const res = await fetchWithAuth(`${BACKEND}/api/orders/${encodeURIComponent(orderId)}/retry`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        alert(`✅ Comanda #${orderId} a fost retrimisă cu succes!\nSyrve ID: ${data.syrveOrderId}`);
+        fetchLogs();
+      } else {
+        alert(`❌ Eroare la retriimitere: ${data.error || JSON.stringify(data)}`);
+      }
+    } catch (err) {
+      alert(`❌ Eroare: ${err.message}`);
+    } finally {
+      setRetryingId(null);
+    }
+  };
 
   const fetchLogs = async () => {
     try {
@@ -276,9 +298,34 @@ export default function IikoLogs() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button className="text-slate-400 hover:text-slate-600 transition-colors">
-                        {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        {log.status === 'error' && (
+                          <button
+                            onClick={(e) => handleRetry(log, e)}
+                            disabled={retryingId === (log.id || log.order_id)}
+                            className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
+                              retryingId === (log.id || log.order_id)
+                                ? 'bg-amber-100 text-amber-600 cursor-wait'
+                                : 'bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400'
+                            }`}
+                          >
+                            {retryingId === (log.id || log.order_id) ? (
+                              <>
+                                <span className="w-3 h-3 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                                Se trimite...
+                              </>
+                            ) : (
+                              <>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                                Retrimite
+                              </>
+                            )}
+                          </button>
+                        )}
+                        <button className="text-slate-400 hover:text-slate-600 transition-colors">
+                          {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                        </button>
+                      </div>
                     </td>
                   </tr>
 
