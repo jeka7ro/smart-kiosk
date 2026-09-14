@@ -235,7 +235,7 @@ export default function StartPromoModal({ product, onClose, onAccept, onInfo, la
                 <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800, color: '#0f172a' }}>{product.name}</h3>
                 <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#EE3B24' }}>{promoPrice.toFixed(2)} lei</span>
-                  <span style={{ fontSize: '0.88rem', textDecoration: 'line-through', color: '#94a3b8', fontWeight: 600 }}>{originalPrice.toFixed(2)} lei</span>
+                  <span style={{ fontSize: '1.05rem', textDecoration: 'line-through', textDecorationThickness: '2px', color: '#0f172a', fontWeight: 800 }}>{originalPrice.toFixed(2)} lei</span>
                   {savings > 0 && (
                     <span
                       style={{
@@ -468,11 +468,12 @@ export default function StartPromoModal({ product, onClose, onAccept, onInfo, la
               <div>
                 <span
                   style={{
-                    fontSize: '0.85rem',
-                    color: '#94a3b8',
+                    fontSize: '1.25rem',
+                    color: '#0f172a',
                     textDecoration: 'line-through',
-                    marginRight: 8,
-                    fontWeight: 600,
+                    textDecorationThickness: '2px',
+                    marginRight: 10,
+                    fontWeight: 800,
                   }}
                 >
                   {originalPrice.toFixed(2)} lei
