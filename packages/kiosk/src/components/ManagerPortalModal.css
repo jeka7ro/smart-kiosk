@@ -1486,15 +1486,31 @@
 @media (max-width: 768px) {
   .mgr-modal-backdrop {
     padding: 0 !important;
+    display: block !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
   }
 
   .mgr-portal-container {
     width: 100vw !important;
     max-width: 100vw !important;
-    height: 100% !important;
-    height: 100dvh !important;
+    min-height: 100% !important;
+    min-height: 100dvh !important;
+    height: auto !important;
     border-radius: 0 !important;
     border: none !important;
+    overflow: visible !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  /* Partea de sus nu mai este sticky, deruleaza natural cu pagina */
+  .mgr-portal-header,
+  .mgr-nav-tabs,
+  .mgr-stats-grid,
+  .mgr-filter-toolbar {
+    position: static !important;
+    flex-shrink: 0 !important;
   }
 
   /* Header compact pe 1 rand */
@@ -1668,15 +1684,24 @@
     display: none !important;
   }
 
-  /* Afișează Cardurile Mobile */
+  /* Conținutul tab-ului curge natural pe pagină */
+  .mgr-tab-content {
+    flex: none !important;
+    overflow: visible !important;
+    height: auto !important;
+    min-height: auto !important;
+  }
+
+  /* Afișează Cardurile Mobile fără scroll intern blocat */
   .mgr-mobile-cards-list {
     display: flex !important;
-    flex-direction: column;
-    gap: 8px;
-    padding: 6px 10px 24px 10px;
-    flex: 1;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    flex-direction: column !important;
+    gap: 8px !important;
+    padding: 6px 10px 30px 10px !important;
+    flex: none !important;
+    overflow: visible !important;
+    height: auto !important;
+    min-height: auto !important;
   }
 
   .mgr-m-card {
