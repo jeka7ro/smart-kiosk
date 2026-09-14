@@ -1170,29 +1170,38 @@ const KIOSK_EVENT_META = {
         {/* Footer Pagination */}
         <div className="mgr-table-footer">
           <div className="mgr-footer-left">
-            <span>Afișează</span>
-            <select
-              value={itemsPerPage}
-              onChange={e => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-              className="mgr-footer-select"
-            >
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-              <option value={300}>Toate</option>
-            </select>
-            <span>Total înregistrări: <strong>{finalOrders.length}</strong></span>
+            <span className="mgr-footer-total">
+              Total înregistrări: <strong>{finalOrders.length}</strong>
+            </span>
+            <div className="mgr-footer-perpage">
+              <span>Afișează:</span>
+              <select
+                value={itemsPerPage}
+                onChange={e => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                className="mgr-footer-select"
+                aria-label="Număr comenzi pe pagină"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+                <option value={300}>Toate</option>
+              </select>
+            </div>
           </div>
 
           <div className="mgr-footer-right">
-            <span>Pagina {currentPage} din {totalPages}</span>
+            <span className="mgr-footer-page-info">
+              Pagina <strong>{currentPage}</strong> din <strong>{totalPages}</strong>
+            </span>
             <div className="mgr-pager-buttons">
               <button
                 type="button"
                 onClick={() => setCurrentPage(1)}
                 disabled={currentPage === 1}
                 className="mgr-pager-btn"
+                title="Prima pagină"
+                aria-label="Prima pagină"
               >
                 «
               </button>
@@ -1201,6 +1210,8 @@ const KIOSK_EVENT_META = {
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
                 className="mgr-pager-btn"
+                title="Pagina anterioară"
+                aria-label="Pagina anterioară"
               >
                 ‹
               </button>
@@ -1209,6 +1220,8 @@ const KIOSK_EVENT_META = {
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
                 className="mgr-pager-btn"
+                title="Pagina următoare"
+                aria-label="Pagina următoare"
               >
                 ›
               </button>
@@ -1217,6 +1230,8 @@ const KIOSK_EVENT_META = {
                 onClick={() => setCurrentPage(totalPages)}
                 disabled={currentPage === totalPages}
                 className="mgr-pager-btn"
+                title="Ultima pagină"
+                aria-label="Ultima pagină"
               >
                 »
               </button>
