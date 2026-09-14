@@ -43,12 +43,15 @@ router.post('/', async (req, res) => {
 
     // Get max orderNumber from Postgres
     let maxOrderNumber = 358;
-    let clujMax = Math.max(93, memoryClujMax); // Continuare sigura de la comanda 093
+    let clujMax = 93;
     let brasovMax = 0;
     const maxByPrefix = {};
     const usedClujSeqs = new Set();
 
     try {
+      // Auto-corectie: comanda 544 generata eronat din cauza testului vechi se actualizeaza la CJ1-094
+      await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-094"') WHERE data->>'orderNumber' = 'CJ1-544'`).catch(() => {});
+
       const { rows } = await pool.query(`SELECT data->>'orderNumber' as num, location_id FROM orders WHERE (data->>'orderNumber') IS NOT NULL`);
       for (const row of rows) {
         const str = String(row.num || '').trim();
@@ -63,9 +66,10 @@ router.post('/', async (req, res) => {
 
           if (!isNaN(seqNum) && seqNum < 1000000) {
             if (letterPrefix === 'CJ') {
-              usedClujSeqs.add(seqNum);
-              // Ignorăm lotul vechi de teste (10000-10025) la calculul maximului curent
-              if (seqNum < 10000 || seqNum > 10025) {
+              // Pentru Cluj: luăm în calcul STRICT numerele reale din secvența curentă (< 500)
+              // Ignorăm saltul eronat (544) și testele vechi (10000+)
+              if (seqNum < 500) {
+                usedClujSeqs.add(seqNum);
                 clujMax = Math.max(clujMax, seqNum);
                 maxByPrefix[fullPrefix] = Math.max(maxByPrefix[fullPrefix] || 0, seqNum);
                 maxByPrefix[letterPrefix] = Math.max(maxByPrefix[letterPrefix] || 0, seqNum);
@@ -79,18 +83,13 @@ router.post('/', async (req, res) => {
             }
           }
         } else {
-          // Format numeric pur sau comenzi vechi
+          // Format numeric pur sau comenzi vechi - NU afectează Cluj!
           const numOnly = parseInt(str.replace(/[^0-9]/g, ''), 10);
           if (!isNaN(numOnly) && numOnly < 1000000 && numOnly !== 946 && numOnly !== 862) {
             const city = detectCity(row.location_id);
-            if (city === 'cluj') {
-              usedClujSeqs.add(numOnly);
-              if (numOnly < 10000 || numOnly > 10025) {
-                clujMax = Math.max(clujMax, numOnly);
-              }
-            } else if (city === 'brasov') {
+            if (city === 'brasov') {
               brasovMax = Math.max(brasovMax, numOnly);
-            } else {
+            } else if (city !== 'cluj') {
               maxOrderNumber = Math.max(maxOrderNumber, numOnly);
             }
           }
@@ -291,6 +290,7 @@ router.post('/', async (req, res) => {
 router.get('/', async (req, res) => {
   const { status, brand, startDate, endDate, limit = 50, locationId } = req.query;
   try {
+    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-094"') WHERE data->>'orderNumber' = 'CJ1-544'`).catch(() => {});
     let query = `SELECT data, status FROM orders WHERE 1=1`;
     const params = [];
 
