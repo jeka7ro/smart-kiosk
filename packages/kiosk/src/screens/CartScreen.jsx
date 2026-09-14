@@ -374,6 +374,19 @@ export default function CartScreen() {
 
 
 
+                        {/* Buton Info (i) */}
+                        <button
+                          type="button"
+                          className="cart-upsell-info-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedProduct(prod);
+                          }}
+                          aria-label={`Informații ${prod.name}`}
+                        >
+                          i
+                        </button>
+
                         {/* Feedback overlay la adăugare */}
                         {isAdded && (
                           <div className="cart-upsell-card-overlay">
