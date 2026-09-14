@@ -242,6 +242,23 @@ async function initDb() {
     CREATE INDEX IF NOT EXISTS port_scans_timestamp_idx ON port_scans(timestamp DESC);
   `);
 
+  // ─── Kiosk Logs (PIN unlocks, failed attempts, scheduled lock/unlock) ──────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS kiosk_logs (
+      id              TEXT PRIMARY KEY,
+      timestamp       TIMESTAMPTZ DEFAULT NOW(),
+      location_id     TEXT,
+      location_name   TEXT,
+      kiosk_id        TEXT,
+      event_type      TEXT NOT NULL,
+      role            TEXT,
+      details         JSONB DEFAULT '{}',
+      created_at      TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS kiosk_logs_location_idx ON kiosk_logs(location_id);
+    CREATE INDEX IF NOT EXISTS kiosk_logs_timestamp_idx ON kiosk_logs(timestamp DESC);
+  `);
+
   console.log('[DB] Tables initialized (Supabase/PostgreSQL)');
 }
 

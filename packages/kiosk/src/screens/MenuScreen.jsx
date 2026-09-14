@@ -9,6 +9,7 @@ import ProductCard from '../components/ProductCard.jsx';
 import ModifierModal from '../components/ModifierModal.jsx';
 import StartPromoModal from '../components/StartPromoModal.jsx';
 import CategoryHeroBanner from '../components/CategoryHeroBanner.jsx';
+import ManagerPortalModal from '../components/ManagerPortalModal.jsx';
 import { proxySyrveImage } from '../utils/imageUtils.js';
 import { getEffectivePrice, hasActivePromo } from '../utils/priceUtils.js';
 import './MenuScreen.css';
@@ -66,6 +67,7 @@ export default function MenuScreen() {
   const clearFavorites   = useKioskStore((s) => s.clearFavorites);
   const [modifierModalProduct, setModifierModalProduct] = useState(null);
   const [startPromoModalProduct, setStartPromoModalProduct] = useState(null);
+  const [showManagerPortal, setShowManagerPortal] = useState(false);
   const hasShownStartPromo = useKioskStore((s) => s.hasShownStartPromo);
   const setHasShownStartPromo = useKioskStore((s) => s.setHasShownStartPromo);
   const cartBarRef = useRef(null);
@@ -527,6 +529,20 @@ export default function MenuScreen() {
             <path d="m15 5 4 4" />
           </svg>
         </div>
+
+        {/* Buton discret Manager (după Masă #) */}
+        <button
+          type="button"
+          className="menu-manager-btn"
+          onClick={() => setShowManagerPortal(true)}
+          title="Acces Manager"
+          aria-label="Acces Manager"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+        </button>
       </header>
 
       {/* ─── BRAND TABS (multi-brand locations only) ─── */}
@@ -776,6 +792,14 @@ export default function MenuScreen() {
             setSelectedProduct(prod);
           }}
           lang={lang}
+        />
+      )}
+
+      {/* ─── SECRET MANAGER PORTAL MODAL ─────────── */}
+      {showManagerPortal && (
+        <ManagerPortalModal
+          locationData={locationData}
+          onClose={() => setShowManagerPortal(false)}
         />
       )}
     </div>

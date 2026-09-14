@@ -250,10 +250,15 @@ router.post('/', async (req, res) => {
 
 // ── GET /api/orders ─────────────────────────────────────────────────────
 router.get('/', async (req, res) => {
-  const { status, brand, startDate, endDate, limit = 50 } = req.query;
+  const { status, brand, startDate, endDate, limit = 50, locationId } = req.query;
   try {
     let query = `SELECT data, status FROM orders WHERE 1=1`;
     const params = [];
+
+    if (locationId && locationId !== 'all') {
+      query += ` AND (location_id = $${params.length + 1} OR data->>'locationId' = $${params.length + 1})`;
+      params.push(locationId);
+    }
 
     if (status) {
       const statuses = status.split(',').map(s => s.trim());
@@ -285,6 +290,10 @@ router.get('/', async (req, res) => {
     // Also get total count
     let countQuery = `SELECT COUNT(*) FROM orders WHERE 1=1`;
     const countParams = [];
+    if (locationId && locationId !== 'all') {
+      countQuery += ` AND (location_id = $${countParams.length + 1} OR data->>'locationId' = $${countParams.length + 1})`;
+      countParams.push(locationId);
+    }
     if (status) {
       const statuses = status.split(',').map(s => s.trim());
       countQuery += ` AND status = ANY($${countParams.length + 1})`;

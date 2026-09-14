@@ -10,6 +10,7 @@ import ProductOverrides from './screens/ProductOverrides';
 import TranslationsScreen from './screens/TranslationsScreen';
 import Integrations   from './screens/Integrations';
 import PosLogs        from './screens/PosLogs';
+import KioskLogs      from './screens/KioskLogs';
 import IikoLogs       from './screens/IikoLogs';
 import PrinterLogs    from './screens/PrinterLogs';
 import PortScans      from './screens/PortScans';
@@ -22,7 +23,7 @@ import FortuneWheelPreview from './components/FortuneWheelPreview';
 import MenuManager, { MenuProfileEditorModal } from './screens/MenuManager';
 import QrGenerator from './screens/QrGenerator';
 import { useConfirm } from './components/ConfirmModal';
-import { LayoutDashboard, Receipt, TrendingUp, MapPin, MonitorSmartphone, QrCode, Utensils, Languages, Image as ImageIcon, Tags, Users, Blocks, Gift, Store, Sun, Moon, LogOut, Menu, X, CreditCard, Download, Printer, Building2, Palette, Sparkles, Flame, Snowflake, Layers, Upload, Star, ChevronUp, ChevronDown, Check, Zap, Wifi, Sliders, Info, Trash2, AlertTriangle, Globe, Phone } from 'lucide-react';
+import { LayoutDashboard, Receipt, TrendingUp, MapPin, MonitorSmartphone, QrCode, Utensils, Languages, Image as ImageIcon, Tags, Users, Blocks, Gift, Store, Sun, Moon, LogOut, Menu, X, CreditCard, Download, Printer, Building2, Palette, Sparkles, Flame, Snowflake, Layers, Upload, Star, ChevronUp, ChevronDown, Check, Zap, Wifi, Sliders, Info, Trash2, AlertTriangle, Globe, Phone, Lock, Clock, ShieldCheck, ShieldAlert, Unlock, Eye, EyeOff } from 'lucide-react';
 import { formatThousands } from './utils/formatters';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
@@ -74,7 +75,7 @@ export default function AdminApp() {
   
   const [tab, setTabState] = useState(() => {
     const hash = window.location.hash.replace('#', '');
-    const validTabs = ['dashboard', 'orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'modifiers', 'products', 'users', 'integrations', 'promotions', 'brands', 'translations', 'pos-logs', 'printer-logs', 'port-scans', 'iiko-logs'];
+    const validTabs = ['dashboard', 'orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'modifiers', 'products', 'users', 'integrations', 'promotions', 'brands', 'translations', 'pos-logs', 'printer-logs', 'port-scans', 'iiko-logs', 'kiosk-logs'];
     return validTabs.includes(hash) ? hash : 'orders';
   });
 
@@ -86,7 +87,7 @@ export default function AdminApp() {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '');
-      const validTabs = ['dashboard', 'orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'modifiers', 'products', 'users', 'integrations', 'promotions', 'brands', 'translations', 'pos-logs', 'printer-logs', 'port-scans', 'iiko-logs'];
+      const validTabs = ['dashboard', 'orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'modifiers', 'products', 'users', 'integrations', 'promotions', 'brands', 'translations', 'pos-logs', 'printer-logs', 'port-scans', 'iiko-logs', 'kiosk-logs'];
       if (validTabs.includes(hash)) setTabState(hash);
     };
     window.addEventListener('hashchange', handleHashChange);
@@ -666,6 +667,7 @@ export default function AdminApp() {
               ...(user?.role === 'admin' ? [{ id: 'printer-logs', label: 'Loguri Imprimantă', icon: <Printer className="w-5 h-5" /> }] : []),
               ...(user?.role === 'admin' ? [{ id: 'port-scans', label: 'Scanare Porturi PC', icon: <MonitorSmartphone className="w-5 h-5" /> }] : []),
               ...(user?.role === 'admin' ? [{ id: 'iiko-logs', label: 'Loguri iiko', icon: <Receipt className="w-5 h-5" /> }] : []),
+              ...(user?.role === 'admin' ? [{ id: 'kiosk-logs', label: 'Loguri Kiosk (PIN)', icon: <Lock className="w-5 h-5" /> }] : []),
               ...(user?.role === 'admin' ? [{ id: 'promotions', label: 'Promoții', icon: <Gift className="w-5 h-5" /> }] : []),
               ...(user?.role === 'admin' ? [{ id: 'brands', label: 'Branduri', icon: <Store className="w-5 h-5" /> }] : []),
             ].map(item => (
@@ -709,6 +711,7 @@ export default function AdminApp() {
               {tab === 'printer-logs' && 'Loguri Imprimantă'}
               {tab === 'port-scans' && 'Scanare Porturi PC'}
               {tab === 'iiko-logs' && 'Loguri iiko Syrve'}
+              {tab === 'kiosk-logs' && 'Loguri Kiosk & Deblocare PIN'}
            </h2>
         </div>
 
@@ -1073,6 +1076,7 @@ export default function AdminApp() {
           {tab === 'iiko-logs' && <IikoLogs />}
           {tab === 'printer-logs' && <PrinterLogs />}
           {tab === 'port-scans' && <PortScans />}
+          {tab === 'kiosk-logs' && <KioskLogs />}
           {tab === 'promotions' && <Promotions />}
           {tab === 'users' && <UsersManager />}
           {tab === 'brands' && <BrandsManager backend={BACKEND} />}
@@ -2038,6 +2042,46 @@ function KioskColorPicker({ label, value, onChange, placeholder, allowClear, cle
   );
 }
 
+function parseFooterDetails(rawText, explicitWebsite, explicitPhone) {
+  let website = (explicitWebsite || '').trim();
+  let phone = (explicitPhone || '').trim();
+  let extra = '';
+
+  const fullText = (rawText || '').trim();
+  if (!fullText && !website && !phone) return { website: '', phone: '', extra: '' };
+
+  if (!website && fullText) {
+    const webMatch = fullText.match(/(?:https?:\/\/|(?:www\w*\.))[^\s•|,;]+|[a-zA-Z0-9-]+\.(?:ro|com|eu|net|org|io|app|menu|site|info)\b[^\s•|,;]*/i);
+    if (webMatch) {
+      website = webMatch[0].trim();
+    }
+  }
+
+  if (!phone && fullText) {
+    const textWithoutWeb = website ? fullText.replace(website, '') : fullText;
+    const phoneMatch = textWithoutWeb.match(/(?:\+?4?0\s*)?(?:0[1-9][\d\s\.\-]{7,15}|\+?[\d\s\.\-]{9,16})/);
+    if (phoneMatch) {
+      const candidate = phoneMatch[0].trim();
+      const digitCount = (candidate.match(/\d/g) || []).length;
+      if (digitCount >= 8) {
+        phone = candidate;
+      }
+    }
+  }
+
+  if (fullText) {
+    let rem = fullText;
+    if (website) rem = rem.replace(website, '');
+    if (phone) rem = rem.replace(phone, '');
+    rem = rem.replace(/^[•\s\-\|,;:]+|[•\s\-\|,;:]+$/g, '').trim();
+    if (rem && rem.length > 1) {
+      extra = rem;
+    }
+  }
+
+  return { website, phone, extra };
+}
+
 function KioskSettingsForm({ loc, backend, onBack, onSave }) {
   const { fetchWithAuth } = useAuth();
   const [activeTab, setActiveTab] = useState('design');
@@ -2060,6 +2104,13 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
     bottomBannerBg: loc.bottomBannerBg || '#1e293b',
     bottomBannerLogoUrl: loc.bottomBannerLogoUrl || '',
     kioskPin: loc.kioskPin || '',
+    vendorPin: loc.vendorPin || '',
+    lockScheduleActive: loc.lockScheduleActive || false,
+    lockScheduleMode: loc.lockScheduleMode || 'daily',
+    lockDays: Array.isArray(loc.lockDays) ? loc.lockDays : [1, 2, 3, 4, 5, 6, 0],
+    lockStartTime: loc.lockStartTime || '22:00',
+    lockEndTime: loc.lockEndTime || '09:00',
+    lockAutoUnlock: loc.lockAutoUnlock !== undefined ? loc.lockAutoUnlock : true,
     brands: loc.brands || [],
     promoActive: loc.promoActive || false,
     promoBrandId: loc.promoBrandId || '',
@@ -2192,8 +2243,14 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
   }, [backend, activeBrands.join(',')]);
 
   // Toggles for optional sections
-  const [usePin, setUsePin] = useState(!!loc.kioskPin);
-  const [useBanner, setUseBanner] = useState(!!loc.topBannerUrl);
+  const [usePin, setUsePin] = useState(!!loc.kioskPin || !!loc.vendorPin || !!loc.lockScheduleActive);
+  const [showManagerPin, setShowManagerPin] = useState(false);
+  const [showVendorPin, setShowVendorPin] = useState(false);
+  const [useBanner, setUseBanner] = useState(() => {
+    if (loc.topBannerActive !== undefined) return Boolean(loc.topBannerActive);
+    if (loc.topBannerUrl && String(loc.topBannerUrl).trim()) return true;
+    return Object.keys(loc).some(k => k.startsWith('topBannerUrl_') && loc[k] && String(loc[k]).trim());
+  });
   const [useBottomBanner, setUseBottomBanner] = useState(!!(loc.bottomBannerContent || loc.bottomBannerUrl || loc.bottomBannerText || loc.bottomBannerLogoUrl));
 
   const handleChange = (field, val) => setFormData(p => ({ ...p, [field]: val }));
@@ -2209,8 +2266,20 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
   const saveSettings = async () => {
     setIsSaving(true);
     const finalData = { ...formData };
-    if (!usePin) finalData.kioskPin = '';
-    if (!useBanner) finalData.topBannerUrl = '';
+    if (!usePin && !formData.kioskPin && !formData.vendorPin) {
+      finalData.kioskPin = '';
+      finalData.vendorPin = '';
+      finalData.lockScheduleActive = false;
+    }
+    finalData.topBannerActive = Boolean(useBanner);
+    if (!useBanner) {
+      finalData.topBannerUrl = '';
+      Object.keys(finalData).forEach(k => {
+        if (k.startsWith('topBannerUrl_')) {
+          finalData[k] = '';
+        }
+      });
+    }
     if (!useBottomBanner) { 
       finalData.bottomBannerUrl = ''; 
       finalData.bottomBannerText = ''; 
@@ -2797,7 +2866,18 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
               </div>
               <KioskSwitch
                 checked={useBanner}
-                onChange={val => setUseBanner(val)}
+                onChange={val => {
+                  setUseBanner(val);
+                  handleChange('topBannerActive', val);
+                  if (!val) {
+                    handleChange('topBannerUrl', '');
+                    if (formData.brands) {
+                      formData.brands.forEach(bId => {
+                        handleChange(`topBannerUrl_${bId}`, '');
+                      });
+                    }
+                  }
+                }}
               />
             </div>
 
@@ -2971,13 +3051,13 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                   <div>
                     <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 mb-1">
                       <Globe className="w-3.5 h-3.5 text-emerald-500" />
-                      <span>2. Informații Contact & Promoții (Site, Telefon, Adresă)</span>
+                      <span>2. Informații Contact (Site Web & Telefon)</span>
                     </label>
                     <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
-                      Scrie aici adresa site-ului, numărul de telefon sau adresa pe care vrei să le vadă clienții.
+                      În footer, elementele sunt așezate automat vertical: <b>1. Logo sus</b>, sub el <b>2. Site-ul web</b>, iar sub ele <b>3. Telefonul</b>.
                     </p>
                     <textarea
-                      placeholder="Ex: 0725777712 • www.getapp.ro • Comandă rapid la Kiosk!"
+                      placeholder="Ex: 0727 77 77 12 • wwww.getapp.ro"
                       value={formData.bottomBannerText || ''}
                       onChange={e => handleChange('bottomBannerText', e.target.value)}
                       rows={2}
@@ -2989,24 +3069,24 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                       <button
                         type="button"
                         onClick={() => {
-                          const add = 'www.getapp.ro';
+                          const add = 'wwww.getapp.ro';
                           const cur = formData.bottomBannerText ? formData.bottomBannerText.trim() : '';
                           handleChange('bottomBannerText', cur ? `${cur} • ${add}` : add);
                         }}
                         className="px-2 py-0.5 text-[10px] font-medium bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 text-slate-600 dark:text-slate-300 rounded-md border border-slate-200 dark:border-slate-700 transition-colors"
                       >
-                        + www.getapp.ro
+                        + wwww.getapp.ro
                       </button>
                       <button
                         type="button"
                         onClick={() => {
-                          const add = '0725777712';
+                          const add = '0727 77 77 12';
                           const cur = formData.bottomBannerText ? formData.bottomBannerText.trim() : '';
                           handleChange('bottomBannerText', cur ? `${cur} • ${add}` : add);
                         }}
                         className="px-2 py-0.5 text-[10px] font-medium bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 text-slate-600 dark:text-slate-300 rounded-md border border-slate-200 dark:border-slate-700 transition-colors"
                       >
-                        + 0725777712
+                        + 0727 77 77 12
                       </button>
                     </div>
                   </div>
@@ -3132,62 +3212,105 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                     </div>
 
                     {/* Footer bar inside simulator */}
-                    <div 
-                      className="w-full transition-all duration-300 flex items-center px-2 py-1 gap-1.5 relative overflow-hidden z-10"
-                      style={{
-                        height: `${12 + ((formData.bottomBannerHeight || 1) - 1) * 4}%`,
-                        backgroundColor: formData.bottomBannerBg || '#1e293b',
-                        borderRadius: `${formData.bottomBannerRadiusTop ? '8px' : '0'} ${formData.bottomBannerRadiusTop ? '8px' : '0'} ${formData.bottomBannerRadiusBottom ? '8px' : '0'} ${formData.bottomBannerRadiusBottom ? '8px' : '0'}`,
-                        backgroundImage: formData.bottomBannerUrl && !/\.(mp4|webm)(\?|$)/i.test(formData.bottomBannerUrl) ? `url(${formData.bottomBannerUrl})` : 'none',
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                        justifyContent: formData.bottomBannerTextAlign === 'left' ? 'flex-start' : formData.bottomBannerTextAlign === 'right' ? 'flex-end' : 'center'
-                      }}
-                    >
-                      {formData.bottomBannerLogoUrl && (
-                        <img 
-                          src={formData.bottomBannerLogoUrl} 
-                          alt="Logo" 
-                          className="h-4 max-w-[32px] object-contain shrink-0" 
-                        />
-                      )}
-                      <span className="text-[7.5px] font-bold text-white truncate max-w-[100px]">
-                        {formData.bottomBannerText || (formData.bottomBannerLogoUrl ? '' : 'Text Promoțional')}
-                      </span>
-                    </div>
+                    {(() => {
+                      const { website: simWeb, phone: simPhone, extra: simExtra } = parseFooterDetails(formData.bottomBannerText);
+                      const hasSimContact = Boolean(simWeb || simPhone);
+                      return (
+                        <div 
+                          className="w-full transition-all duration-300 flex flex-col items-center justify-center px-1 py-0.5 relative overflow-hidden z-10 text-center"
+                          style={{
+                            height: `${14 + ((formData.bottomBannerHeight || 1) - 1) * 4}%`,
+                            backgroundColor: formData.bottomBannerBg || '#1e293b',
+                            borderRadius: `${formData.bottomBannerRadiusTop ? '8px' : '0'} ${formData.bottomBannerRadiusTop ? '8px' : '0'} ${formData.bottomBannerRadiusBottom ? '8px' : '0'} ${formData.bottomBannerRadiusBottom ? '8px' : '0'}`,
+                            backgroundImage: formData.bottomBannerUrl && !/\.(mp4|webm)(\?|$)/i.test(formData.bottomBannerUrl) ? `url(${formData.bottomBannerUrl})` : 'none',
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                            gap: '1px'
+                          }}
+                        >
+                          {formData.bottomBannerLogoUrl && (
+                            <img 
+                              src={formData.bottomBannerLogoUrl} 
+                              alt="Logo" 
+                              className="h-2.5 max-w-[28px] object-contain shrink-0" 
+                            />
+                          )}
+                          {simWeb && (
+                            <span className="text-[6.5px] font-bold text-white truncate max-w-[120px] leading-none">
+                              {simWeb}
+                            </span>
+                          )}
+                          {simPhone && (
+                            <span className="text-[6px] font-semibold text-slate-200 truncate max-w-[120px] leading-none">
+                              {simPhone}
+                            </span>
+                          )}
+                          {simExtra && (
+                            <span className="text-[5.5px] text-slate-300 truncate max-w-[120px] leading-none">
+                              {simExtra}
+                            </span>
+                          )}
+                          {!hasSimContact && !simExtra && (
+                            <span className="text-[7px] font-bold text-white truncate max-w-[120px]">
+                              {formData.bottomBannerText || (formData.bottomBannerLogoUrl ? '' : 'Text Promoțional')}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Real-scale Footer Bar Strip Preview */}
                   <div className="w-full mt-4 pt-3 border-t border-slate-200 dark:border-slate-800">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5 text-center">
-                      Previzualizare Bară Footer (Reală)
+                      Previzualizare Bară Footer (Reală: Logo ➔ Site ➔ Telefon)
                     </span>
-                    <div 
-                      className="w-full h-11 px-3 rounded-xl flex items-center gap-2.5 overflow-hidden shadow-sm"
-                      style={{
-                        backgroundColor: formData.bottomBannerBg || '#1e293b',
-                        backgroundImage: formData.bottomBannerUrl && !/\.(mp4|webm)(\?|$)/i.test(formData.bottomBannerUrl) ? `url(${formData.bottomBannerUrl})` : 'none',
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                        justifyContent: formData.bottomBannerTextAlign === 'left' ? 'flex-start' : formData.bottomBannerTextAlign === 'right' ? 'flex-end' : 'center'
-                      }}
-                    >
-                      {formData.bottomBannerLogoUrl && (
-                        <img 
-                          src={formData.bottomBannerLogoUrl} 
-                          alt="Logo" 
-                          className="h-6 max-w-[60px] object-contain shrink-0" 
-                        />
-                      )}
-                      <span className="text-xs font-bold text-white truncate">
-                        {formData.bottomBannerText || (formData.bottomBannerLogoUrl ? '' : 'Adaugă text sau logo...')}
-                      </span>
-                      {!formData.bottomBannerTextFixed && formData.bottomBannerText && (
-                        <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-blue-500/30 text-blue-200 shrink-0 ml-auto">
-                          Rulant
-                        </span>
-                      )}
-                    </div>
+                    {(() => {
+                      const { website: pWeb, phone: pPhone, extra: pExtra } = parseFooterDetails(formData.bottomBannerText);
+                      const hasContact = Boolean(pWeb || pPhone);
+                      return (
+                        <div 
+                          className="w-full min-h-[64px] py-2 px-3 rounded-xl flex flex-col items-center justify-center gap-1 overflow-hidden shadow-sm"
+                          style={{
+                            backgroundColor: formData.bottomBannerBg || '#1e293b',
+                            backgroundImage: formData.bottomBannerUrl && !/\.(mp4|webm)(\?|$)/i.test(formData.bottomBannerUrl) ? `url(${formData.bottomBannerUrl})` : 'none',
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                            alignItems: formData.bottomBannerTextAlign === 'left' ? 'flex-start' : formData.bottomBannerTextAlign === 'right' ? 'flex-end' : 'center',
+                            textAlign: formData.bottomBannerTextAlign || 'center'
+                          }}
+                        >
+                          {formData.bottomBannerLogoUrl && (
+                            <img 
+                              src={formData.bottomBannerLogoUrl} 
+                              alt="Logo" 
+                              className="h-5 max-w-[80px] object-contain shrink-0" 
+                            />
+                          )}
+                          {pWeb && (
+                            <span className="text-xs font-bold text-white leading-tight flex items-center gap-1">
+                              <Globe className="w-3 h-3 text-white/80 shrink-0" />
+                              <span>{pWeb}</span>
+                            </span>
+                          )}
+                          {pPhone && (
+                            <span className="text-[11px] font-semibold text-slate-200 leading-tight">
+                              {pPhone}
+                            </span>
+                          )}
+                          {pExtra && (
+                            <span className="text-[10px] text-slate-300 leading-tight">
+                              {pExtra}
+                            </span>
+                          )}
+                          {!hasContact && !pExtra && (
+                            <span className="text-xs font-bold text-white truncate">
+                              {formData.bottomBannerText || (formData.bottomBannerLogoUrl ? '' : 'Adaugă text sau logo...')}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
@@ -3656,12 +3779,15 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                 </div>
               </div>
 
-              {/* Securitate PIN */}
-              <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-3">
+              {/* Securitate PIN & Blocare Programată Kiosk */}
+              <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-base font-bold text-slate-900 dark:text-white">Securitate PIN Angajat</h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Protejează accesul la setările administrative locale.</p>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      <Lock className="w-4 h-4 text-blue-500" />
+                      Securitate PIN & Blocare Kiosk
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Protejează setările locale și permite blocarea ecranului pe timpul nopții sau în afara programului.</p>
                   </div>
                   <KioskSwitch
                     checked={usePin}
@@ -3670,15 +3796,219 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                 </div>
 
                 {usePin && (
-                  <div className="pt-2">
-                    <input
-                      type="password"
-                      maxLength={6}
-                      placeholder="Ex: 1234"
-                      value={formData.kioskPin || ''}
-                      onChange={e => handleChange('kioskPin', e.target.value.replace(/\D/g, ''))}
-                      className="w-36 px-4 py-2 text-center text-lg font-mono tracking-widest rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                    />
+                  <div className="pt-2 space-y-6">
+                    {/* PIN-uri: Manager și Vânzător */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/60">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1.5">
+                          <ShieldCheck className="w-3.5 h-3.5 text-blue-500" />
+                          PIN Manager (Principal)
+                        </label>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
+                          Acces complet la setările administrative locale și deblocare ecran.
+                        </p>
+                        <div className="relative inline-flex items-center">
+                          <input
+                            type={showManagerPin ? 'text' : 'password'}
+                            maxLength={4}
+                            placeholder="Ex: 1234"
+                            value={formData.kioskPin || ''}
+                            onChange={e => {
+                              const val = e.target.value.replace(/\D/g, '').slice(0, 4);
+                              handleChange('kioskPin', val);
+                              if (val && !usePin) setUsePin(true);
+                            }}
+                            className="w-36 px-4 py-2 pr-10 text-center text-lg font-mono tracking-widest rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowManagerPin(p => !p)}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1"
+                            title={showManagerPin ? 'Ascunde PIN' : 'Arată PIN'}
+                          >
+                            {showManagerPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1.5">
+                          <ShieldAlert className="w-3.5 h-3.5 text-amber-500" />
+                          PIN Vânzător / Casier (Opțional)
+                        </label>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
+                          Permite personalului deblocarea ecranului, fără acces la setările admin.
+                        </p>
+                        <div className="relative inline-flex items-center">
+                          <input
+                            type={showVendorPin ? 'text' : 'password'}
+                            maxLength={4}
+                            placeholder="Ex: 5678"
+                            value={formData.vendorPin || ''}
+                            onChange={e => {
+                              const val = e.target.value.replace(/\D/g, '').slice(0, 4);
+                              handleChange('vendorPin', val);
+                              if (val && !usePin) setUsePin(true);
+                            }}
+                            className="w-36 px-4 py-2 pr-10 text-center text-lg font-mono tracking-widest rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowVendorPin(p => !p)}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1"
+                            title={showVendorPin ? 'Ascunde PIN' : 'Arată PIN'}
+                          >
+                            {showVendorPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Secțiune Blocare Kiosk după Program */}
+                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/60 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-indigo-500" />
+                            Blocare automată pe interval orar (Ex: noapte / mall)
+                          </div>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            Blochează ecranul Kiosk cu ecran PIN în afara orelor de funcționare pentru a preveni atingerile neautorizate.
+                          </p>
+                        </div>
+                        <KioskSwitch
+                          checked={Boolean(formData.lockScheduleActive)}
+                          onChange={val => handleChange('lockScheduleActive', val)}
+                        />
+                      </div>
+
+                      {formData.lockScheduleActive && (
+                        <div className="pt-2 border-t border-slate-200 dark:border-slate-700/60 space-y-4">
+                          {/* Frecvență: Zilnic vs Personalizat */}
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-2">
+                              Frecvență activare:
+                            </label>
+                            <div className="inline-flex rounded-xl p-1 bg-slate-200/70 dark:bg-slate-700/60 text-xs font-semibold">
+                              <button
+                                type="button"
+                                onClick={() => handleChange('lockScheduleMode', 'daily')}
+                                className={`px-4 py-1.5 rounded-lg transition-all ${
+                                  (formData.lockScheduleMode || 'daily') === 'daily'
+                                    ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm'
+                                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                                }`}
+                              >
+                                Zilnic (Luni - Duminică)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleChange('lockScheduleMode', 'custom')}
+                                className={`px-4 py-1.5 rounded-lg transition-all ${
+                                  formData.lockScheduleMode === 'custom'
+                                    ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm'
+                                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                                }`}
+                              >
+                                Zile selectate
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Selector Zile dacă e custom */}
+                          {formData.lockScheduleMode === 'custom' && (
+                            <div>
+                              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-2">
+                                Zile în care se aplică blocarea:
+                              </label>
+                              <div className="flex flex-wrap gap-2">
+                                {[
+                                  { id: 1, label: 'Luni' },
+                                  { id: 2, label: 'Marți' },
+                                  { id: 3, label: 'Miercuri' },
+                                  { id: 4, label: 'Joi' },
+                                  { id: 5, label: 'Vineri' },
+                                  { id: 6, label: 'Sâmbătă' },
+                                  { id: 0, label: 'Duminică' },
+                                ].map(day => {
+                                  const currentDays = Array.isArray(formData.lockDays) ? formData.lockDays : [1, 2, 3, 4, 5, 6, 0];
+                                  const isSelected = currentDays.includes(day.id);
+                                  return (
+                                    <button
+                                      key={day.id}
+                                      type="button"
+                                      onClick={() => {
+                                        let updated;
+                                        if (isSelected) {
+                                          updated = currentDays.filter(d => d !== day.id);
+                                        } else {
+                                          updated = [...currentDays, day.id];
+                                        }
+                                        handleChange('lockDays', updated);
+                                      }}
+                                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                                        isSelected
+                                          ? 'bg-blue-500 text-white border-blue-600 shadow-sm'
+                                          : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-300'
+                                      }`}
+                                    >
+                                      {day.label}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Ore start și stop */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                                Ora început blocare (Seara):
+                              </label>
+                              <input
+                                type="time"
+                                value={formData.lockStartTime || '22:00'}
+                                onChange={e => handleChange('lockStartTime', e.target.value)}
+                                className="w-full px-3 py-2 text-sm font-mono rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                                Ora sfârșit blocare (Dimineața):
+                              </label>
+                              <input
+                                type="time"
+                                value={formData.lockEndTime || '09:00'}
+                                onChange={e => handleChange('lockEndTime', e.target.value)}
+                                className="w-full px-3 py-2 text-sm font-mono rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 p-2.5 rounded-lg border border-slate-200/60 dark:border-slate-700/60">
+                            Exemplu: între <strong>{formData.lockStartTime || '22:00'}</strong> și <strong>{formData.lockEndTime || '09:00'}</strong>, Kiosk-ul va fi protejat cu PIN. Dacă un angajat deblochează ecranul în acest interval, ecranul rămâne deblocat pe tura respectivă până la următorul interval.
+                          </div>
+
+                          {/* Opțiune deblocare automată */}
+                          <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-700/60">
+                            <div>
+                              <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                                <Unlock className="w-3.5 h-3.5 text-emerald-500" />
+                                Deblocare automată la final de interval
+                              </span>
+                              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                                Când se termină timpul de blocare (ex: la ora {formData.lockEndTime || '09:00'}), ecranul iese automat din PIN și devine gata de comenzi.
+                              </p>
+                            </div>
+                            <KioskSwitch
+                              checked={formData.lockAutoUnlock !== false}
+                              onChange={val => handleChange('lockAutoUnlock', val)}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

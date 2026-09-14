@@ -22,7 +22,60 @@ import { proxySyrveImage } from './utils/imageUtils.js';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
 
+function isWithinLockSchedule(loc, now = new Date()) {
+  if (!loc || !loc.lockScheduleActive) return false;
 
+  const mode = loc.lockScheduleMode || 'daily';
+  const startStr = loc.lockStartTime || '22:00';
+  const endStr = loc.lockEndTime || '09:00';
+
+  const [sH, sM] = startStr.split(':').map(Number);
+  const [eH, eM] = endStr.split(':').map(Number);
+
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const startMinutes = (sH || 0) * 60 + (sM || 0);
+  const endMinutes = (eH || 0) * 60 + (eM || 0);
+
+  const days = Array.isArray(loc.lockDays) ? loc.lockDays.map(Number) : [1, 2, 3, 4, 5, 6, 0];
+
+  if (startMinutes > endMinutes) {
+    // Overnight window (e.g. 22:00 -> 09:00)
+    if (currentMinutes >= startMinutes) {
+      if (mode === 'daily') return true;
+      return days.includes(now.getDay());
+    } else if (currentMinutes < endMinutes) {
+      if (mode === 'daily') return true;
+      const yesterday = (now.getDay() + 6) % 7;
+      return days.includes(yesterday);
+    }
+    return false;
+  } else {
+    // Same-day window (e.g. 14:00 -> 18:00)
+    if (currentMinutes >= startMinutes && currentMinutes < endMinutes) {
+      if (mode === 'daily') return true;
+      return days.includes(now.getDay());
+    }
+    return false;
+  }
+}
+
+function getLockWindowId(loc, now = new Date()) {
+  if (!loc || !loc.lockScheduleActive) return null;
+  const startStr = loc.lockStartTime || '22:00';
+  const endStr = loc.lockEndTime || '09:00';
+  const [sH, sM] = startStr.split(':').map(Number);
+  const [eH, eM] = endStr.split(':').map(Number);
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const startMinutes = (sH || 0) * 60 + (sM || 0);
+  const endMinutes = (eH || 0) * 60 + (eM || 0);
+
+  let windowDate = new Date(now);
+  if (startMinutes > endMinutes && currentMinutes < endMinutes) {
+    windowDate.setDate(windowDate.getDate() - 1);
+  }
+  const dateKey = `${windowDate.getFullYear()}-${windowDate.getMonth()+1}-${windowDate.getDate()}`;
+  return `kiosk_win_${loc.id}_${dateKey}_${startStr}_${endStr}`;
+}
 
 export default function App() {
   const screen = useKioskStore((s) => s.screen);
@@ -36,6 +89,7 @@ export default function App() {
   const setActiveBrandId = useKioskStore((s) => s.setActiveBrandId);
   const brand = getBrand(activeBrandId);
   const [isLocked, setIsLocked] = useState(false);
+  const [isScheduleLocked, setIsScheduleLocked] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Promoții Roată Noroc
@@ -44,6 +98,80 @@ export default function App() {
   const setShowWheel = useKioskStore((s) => s.setShowWheel);
 
   useInactivityTimeout();
+
+  const evaluateLockState = (loc) => {
+    if (!loc || !loc.id) return;
+
+    if (loc.lockScheduleActive) {
+      const inSchedule = isWithinLockSchedule(loc);
+      const windowId = getLockWindowId(loc);
+
+      if (inSchedule) {
+        const isManuallyUnlocked = windowId && sessionStorage.getItem(windowId) === 'true';
+        if (!isManuallyUnlocked) {
+          setIsScheduleLocked(true);
+          setIsLocked(prev => {
+            if (!prev) {
+              try {
+                fetch(`${BACKEND}/api/kiosk-logs`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    locationId: loc.id,
+                    locationName: loc.name,
+                    kioskId: loc.kioskId || localStorage.getItem('kiosk_device_id') || 'kiosk-main',
+                    eventType: 'auto_lock',
+                    role: 'system',
+                    details: { schedule: `${loc.lockStartTime || '22:00'} - ${loc.lockEndTime || '09:00'}` }
+                  })
+                }).catch(() => {});
+              } catch {}
+            }
+            return true;
+          });
+        }
+      } else {
+        setIsScheduleLocked(false);
+        if (windowId) sessionStorage.removeItem(windowId);
+        if (loc.lockAutoUnlock !== false) {
+          setIsLocked(prev => {
+            if (prev) {
+              try {
+                fetch(`${BACKEND}/api/kiosk-logs`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    locationId: loc.id,
+                    locationName: loc.name,
+                    kioskId: loc.kioskId || localStorage.getItem('kiosk_device_id') || 'kiosk-main',
+                    eventType: 'auto_unlock',
+                    role: 'system',
+                    details: { schedule: `${loc.lockStartTime || '22:00'} - ${loc.lockEndTime || '09:00'}` }
+                  })
+                }).catch(() => {});
+              } catch {}
+            }
+            return false;
+          });
+        }
+      }
+    } else if (loc.kioskPin) {
+      setIsScheduleLocked(false);
+      const unlocked = localStorage.getItem(`kiosk_unlocked_${loc.id}_${loc.kioskPin}`);
+      setIsLocked(unlocked !== 'true');
+    } else {
+      setIsScheduleLocked(false);
+      setIsLocked(false);
+    }
+  };
+
+  // Periodically evaluate lock schedule (every 15s) for smooth transitions
+  useEffect(() => {
+    if (!locationData?.id) return;
+    evaluateLockState(locationData);
+    const interval = setInterval(() => evaluateLockState(locationData), 15_000);
+    return () => clearInterval(interval);
+  }, [locationData]);
 
   // ─── KIOSK SECURITY: Block right-click, refresh & pull-to-refresh ───────────
   useEffect(() => {
@@ -122,6 +250,25 @@ export default function App() {
         });
         const loc = await r.json();
         if (loc && !loc.error) {
+          // Daca backend-ul local nu are kioskPin configurat, verificam fallback pe cloud
+          if (!loc.kioskPin && BACKEND !== 'https://smart-kiosk-v7ws.onrender.com') {
+            try {
+              const cloudR = await fetch(`https://smart-kiosk-v7ws.onrender.com/api/locations/${locId}?t=${Date.now()}`, {
+                headers: { 'x-api-key': 'sk-live-2024-secure' }
+              });
+              const cloudLoc = await cloudR.json();
+              if (cloudLoc && cloudLoc.kioskPin) {
+                loc.kioskPin = cloudLoc.kioskPin;
+                if (cloudLoc.vendorPin) loc.vendorPin = cloudLoc.vendorPin;
+                if (cloudLoc.lockScheduleActive !== undefined) loc.lockScheduleActive = cloudLoc.lockScheduleActive;
+                if (cloudLoc.lockStartTime) loc.lockStartTime = cloudLoc.lockStartTime;
+                if (cloudLoc.lockEndTime) loc.lockEndTime = cloudLoc.lockEndTime;
+                if (cloudLoc.lockDays) loc.lockDays = cloudLoc.lockDays;
+                if (cloudLoc.lockAutoUnlock !== undefined) loc.lockAutoUnlock = cloudLoc.lockAutoUnlock;
+              }
+            } catch (err) {}
+          }
+
           const currentData = useKioskStore.getState().locationData;
           if (JSON.stringify(currentData) !== JSON.stringify(loc)) {
             setLocationData(loc);
@@ -138,6 +285,9 @@ export default function App() {
           }
           if (loc.categoryHeroProductId !== undefined) {
             try { localStorage.setItem('kiosk_category_hero_product_id', String(loc.categoryHeroProductId)); } catch {}
+          }
+          if (loc.topBannerActive !== undefined) {
+            try { localStorage.setItem('kiosk_top_banner_active', String(loc.topBannerActive)); } catch {}
           }
           if (loc.upsellActive !== undefined) {
             try { localStorage.setItem('kiosk_upsell_active', String(loc.upsellActive)); } catch {}
@@ -158,10 +308,7 @@ export default function App() {
             applyBrandTheme(bId);
             isInitialBoot = false;
           }
-          if (loc.kioskPin) {
-            const unlocked = localStorage.getItem(`kiosk_unlocked_${loc.id}_${loc.kioskPin}`);
-            setIsLocked(unlocked !== 'true');
-          }
+          evaluateLockState(loc);
         } else if (loc.error) {
           // If the location is not found, clear it from localStorage so it doesn't stay stuck
           localStorage.removeItem('kiosk_loc_id');
@@ -249,6 +396,7 @@ export default function App() {
     socket.on('location_updated', (newData) => {
       console.log('[Kiosk] Live config update received from Admin Panel.');
       setLocationData(newData);
+      evaluateLockState(newData);
       if (newData.categoryHeroActive !== undefined) {
         try { localStorage.setItem('kiosk_category_hero', String(newData.categoryHeroActive)); } catch {}
       }
@@ -257,6 +405,9 @@ export default function App() {
       }
       if (newData.categoryHeroProductId !== undefined) {
         try { localStorage.setItem('kiosk_category_hero_product_id', String(newData.categoryHeroProductId)); } catch {}
+      }
+      if (newData.topBannerActive !== undefined) {
+        try { localStorage.setItem('kiosk_top_banner_active', String(newData.topBannerActive)); } catch {}
       }
       if (newData.upsellActive !== undefined) {
         try { localStorage.setItem('kiosk_upsell_active', String(newData.upsellActive)); } catch {}
@@ -363,22 +514,40 @@ export default function App() {
     return (
       <PinScreen 
         loc={locationData} 
-        onUnlock={() => {
-          localStorage.setItem(`kiosk_unlocked_${locationData.id}_${locationData.kioskPin}`, 'true');
+        isScheduleLock={isScheduleLocked}
+        backendUrl={BACKEND}
+        onUnlock={(role) => {
+          if (locationData) {
+            const windowId = getLockWindowId(locationData);
+            if (windowId) {
+              sessionStorage.setItem(windowId, 'true');
+            }
+            localStorage.setItem(`kiosk_unlocked_${locationData.id}_${locationData.kioskPin}`, 'true');
+          }
           setIsLocked(false);
         }} 
       />
     );
   }
 
-  const activeBrandBannerUrl = locationData?.[`topBannerUrl_${activeBrandId}`] || locationData?.topBannerUrl;
-  const showBanner = screen !== 'welcome' && activeBrandBannerUrl;
   // Support new split fields AND legacy bottomBannerContent
   const isMediaUrl = (u) => {
     if (!u || typeof u !== 'string') return false;
     const clean = u.trim();
-    return /\.(mp4|webm|mov|jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i.test(clean) || clean.includes('/uploads/');
+    return /\.(mp4|webm|mov|jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i.test(clean) || clean.startsWith('data:image/') || clean.includes('/uploads/');
   };
+
+  // Top Persistent Banner: afișat DOAR dacă este activ și are un URL media valid (fără ecrane negre goale)
+  const isTopBannerActive = locationData?.topBannerActive !== undefined
+    ? Boolean(locationData.topBannerActive)
+    : (localStorage.getItem('kiosk_top_banner_active') !== 'false' && Boolean(locationData?.topBannerUrl || (activeBrandId && locationData?.[`topBannerUrl_${activeBrandId}`])));
+
+  const rawTopBanner = isTopBannerActive 
+    ? (locationData?.[`topBannerUrl_${activeBrandId}`] || locationData?.topBannerUrl || '').trim() 
+    : '';
+
+  const activeBrandBannerUrl = isMediaUrl(rawTopBanner) ? rawTopBanner : '';
+  const showBanner = screen !== 'welcome' && isTopBannerActive && Boolean(activeBrandBannerUrl);
 
   const rawBbUrl = (locationData?.bottomBannerUrl || (locationData?.bottomBannerContent?.startsWith('http') ? locationData.bottomBannerContent : '') || '').trim();
   const _bbUrl = isMediaUrl(rawBbUrl) ? rawBbUrl : '';
@@ -396,17 +565,80 @@ export default function App() {
     const clean = u.trim();
     if (!clean) return null;
     if (/\.(mp4|webm|mov)(\?|$)/i.test(clean)) {
-      return <video src={clean} autoPlay muted loop playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
+      return (
+        <video 
+          src={clean} 
+          autoPlay 
+          muted 
+          loop 
+          playsInline 
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+          onError={(e) => {
+            if (e.currentTarget?.parentElement) e.currentTarget.parentElement.style.display = 'none';
+          }}
+        />
+      );
     } else if (/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i.test(clean) || clean.startsWith('data:image/') || clean.includes('/uploads/')) {
-      return <img src={clean} alt="Promo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
+      return (
+        <img 
+          src={clean} 
+          alt="Promo" 
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+          onError={(e) => {
+            if (e.currentTarget?.parentElement) e.currentTarget.parentElement.style.display = 'none';
+          }}
+        />
+      );
     }
     return null;
+  };
+
+  const parseFooterDetails = (rawText, explicitWebsite, explicitPhone) => {
+    let website = (explicitWebsite || '').trim();
+    let phone = (explicitPhone || '').trim();
+    let extra = '';
+
+    const fullText = (rawText || '').trim();
+    if (!fullText && !website && !phone) return { website: '', phone: '', extra: '' };
+
+    // 1. Website detection (e.g. wwww.getapp.ro, www.getapp.ro, https://..., getapp.ro)
+    if (!website && fullText) {
+      const webMatch = fullText.match(/(?:https?:\/\/|(?:www\w*\.))[^\s•|,;]+|[a-zA-Z0-9-]+\.(?:ro|com|eu|net|org|io|app|menu|site|info)\b[^\s•|,;]*/i);
+      if (webMatch) {
+        website = webMatch[0].trim();
+      }
+    }
+
+    // 2. Phone detection (e.g. 0727 77 77 12, 0725777712, +40 727 77 77 12)
+    if (!phone && fullText) {
+      const textWithoutWeb = website ? fullText.replace(website, '') : fullText;
+      const phoneMatch = textWithoutWeb.match(/(?:\+?4?0\s*)?(?:0[1-9][\d\s\.\-]{7,15}|\+?[\d\s\.\-]{9,16})/);
+      if (phoneMatch) {
+        const candidate = phoneMatch[0].trim();
+        const digitCount = (candidate.match(/\d/g) || []).length;
+        if (digitCount >= 8) {
+          phone = candidate;
+        }
+      }
+    }
+
+    // 3. Extra text (anything remaining after removing website and phone)
+    if (fullText) {
+      let rem = fullText;
+      if (website) rem = rem.replace(website, '');
+      if (phone) rem = rem.replace(phone, '');
+      rem = rem.replace(/^[•\s\-\|,;:]+|[•\s\-\|,;:]+$/g, '').trim();
+      if (rem && rem.length > 1) {
+        extra = rem;
+      }
+    }
+
+    return { website, phone, extra };
   };
 
   const renderBottomBanner = () => {
     const align = locationData?.bottomBannerTextAlign || 'center';
     const logoUrl = locationData?.bottomBannerLogoUrl || '';
-    const justifyMap = { left: 'flex-start', center: 'center', right: 'flex-end' };
     const hasOverlay = _bbText || logoUrl;
     return (
       <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center' }}>
@@ -415,6 +647,13 @@ export default function App() {
         {/* Text and/or Logo overlay strip */}
         {hasOverlay && (() => {
           const isFixed = locationData?.bottomBannerTextFixed === true;
+          const { website, phone, extra } = parseFooterDetails(
+            _bbText, 
+            locationData?.bottomBannerWebsite, 
+            locationData?.bottomBannerPhone
+          );
+          const hasStructuredContact = Boolean(website || phone);
+
           return (
             <div style={{ 
               position: 'absolute', 
@@ -422,25 +661,91 @@ export default function App() {
               bottom: 0, 
               left: 0, 
               right: 0, 
-              padding: '0 28px', 
-              background: _bbUrl ? 'linear-gradient(0deg,rgba(0,0,0,0.82) 0%,rgba(0,0,0,0.45) 100%)' : (locationData?.bottomBannerBg || '#1e293b'), 
+              padding: '6px 20px', 
+              background: _bbUrl ? 'linear-gradient(0deg,rgba(0,0,0,0.85) 0%,rgba(0,0,0,0.5) 100%)' : (locationData?.bottomBannerBg || '#1e293b'), 
               display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: justifyMap[align] || 'center', 
-              gap: 16, 
-              overflow: 'hidden' 
+              flexDirection: 'column',
+              alignItems: align === 'left' ? 'flex-start' : align === 'right' ? 'flex-end' : 'center', 
+              justifyContent: 'center', 
+              gap: 'clamp(2px, 0.4vh, 4px)', 
+              overflow: 'hidden',
+              textAlign: align
             }}>
+              {/* 1. Logo (sus) */}
               {logoUrl && (
                 <img 
                   src={logoUrl} 
                   alt="Logo" 
-                  style={{ height: '70%', maxHeight: '44px', objectFit: 'contain', flexShrink: 0 }} 
+                  style={{ 
+                    height: hasStructuredContact ? 'clamp(24px, 2.6vh, 34px)' : 'clamp(32px, 4vh, 46px)', 
+                    maxHeight: hasStructuredContact ? 'clamp(28px, 3vh, 38px)' : 'clamp(36px, 4.5vh, 50px)', 
+                    maxWidth: '220px',
+                    objectFit: 'contain', 
+                    flexShrink: 0 
+                  }} 
                 />
               )}
-              {_bbText && (
+
+              {/* 2. Sub el: Site-ul */}
+              {website && (
+                <div style={{ 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  gap: '6px',
+                  fontSize: 'clamp(0.92rem, 1.1vh, 1.12rem)', 
+                  fontWeight: 700, 
+                  color: '#ffffff', 
+                  letterSpacing: '0.4px',
+                  lineHeight: 1.15,
+                  textShadow: '0 1px 3px rgba(0,0,0,0.45)'
+                }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.9, flexShrink: 0 }}>
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="2" y1="12" x2="22" y2="12" />
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                  </svg>
+                  <span>{website}</span>
+                </div>
+              )}
+
+              {/* 3. Sub ele: Telefonul */}
+              {phone && (
+                <div style={{ 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  gap: '6px',
+                  fontSize: 'clamp(0.85rem, 0.98vh, 1.02rem)', 
+                  fontWeight: 600, 
+                  color: 'rgba(255, 255, 255, 0.94)', 
+                  letterSpacing: '0.3px',
+                  lineHeight: 1.15,
+                  textShadow: '0 1px 3px rgba(0,0,0,0.45)'
+                }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.9, flexShrink: 0 }}>
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                  </svg>
+                  <span>{phone}</span>
+                </div>
+              )}
+
+              {/* Text adițional dacă există */}
+              {extra && (
+                <div style={{ 
+                  fontSize: 'clamp(0.78rem, 0.9vh, 0.92rem)', 
+                  fontWeight: 500, 
+                  color: 'rgba(255, 255, 255, 0.85)',
+                  lineHeight: 1.15,
+                  letterSpacing: '0.2px'
+                }}>
+                  {extra}
+                </div>
+              )}
+
+              {/* Text simplu dacă nu conține contacte structurate */}
+              {!hasStructuredContact && !extra && _bbText && (
                 isFixed
-                  ? <span style={{ fontSize: '1.3rem', fontWeight: 700, color: '#fff', letterSpacing: '0.5px', textAlign: align, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{_bbText}</span>
-                  : <marquee scrollamount="6" style={{ fontSize: '1.3rem', fontWeight: 700, color: '#fff', letterSpacing: '0.5px' }}>{_bbText}</marquee>
+                  ? <span style={{ fontSize: '1.2rem', fontWeight: 700, color: '#fff', letterSpacing: '0.5px' }}>{_bbText}</span>
+                  : <marquee scrollamount="6" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#fff', letterSpacing: '0.5px' }}>{_bbText}</marquee>
               )}
             </div>
           );
@@ -472,7 +777,7 @@ export default function App() {
         overflow: 'hidden', background: 'var(--bg, #f8fafc)', 
         padding: screen === 'welcome' ? '0' : '16px', 
         boxSizing: 'border-box',
-        '--kiosk-banner-bottom': showBottomBanner ? `${bBannerVh}vh` : '0px',
+        '--kiosk-banner-bottom': showBottomBanner ? `max(${bBannerVh}vh, 86px)` : '0px',
       }}>
         
         {showBanner && (
@@ -498,7 +803,7 @@ export default function App() {
           borderRadius: screen === 'welcome' && !isUnlocking ? '0' : `${mainRadTop} ${mainRadTop} ${mainRadBot} ${mainRadBot}`,
           boxShadow: (showBanner || showBottomBanner) ? '0 8px 32px rgba(0,0,0,0.05)' : 'none',
           background: screen === 'welcome' && !isUnlocking ? 'transparent' : '#fff',
-          paddingBottom: showBottomBanner ? `${bBannerVh + 2}vh` : 0,
+          paddingBottom: showBottomBanner ? `max(${bBannerVh + 2}vh, 102px)` : 0,
         }}>
           {screen === 'orderType'    && <OrderTypeScreen />}
           {screen === 'brandSelect'  && <BrandSelectScreen />}
@@ -517,7 +822,7 @@ export default function App() {
             bottom: 0,
             left: 0,
             right: 0,
-            height: `${bBannerVh}vh`, 
+            height: `max(${bBannerVh}vh, 86px)`, 
             borderRadius: `${bRadTop ? '24px' : '0'} ${bRadTop ? '24px' : '0'} ${bRadBot ? '24px' : '0'} ${bRadBot ? '24px' : '0'}`,
             background: _bbUrl ? '#000' : (locationData.bottomBannerBg || '#1e293b'), 
             zIndex: 50,

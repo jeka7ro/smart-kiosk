@@ -97,6 +97,30 @@
   opacity: 0.85;
 }
 
+.menu-manager-btn {
+  flex-shrink: 0;
+  background: var(--surface, #f9fafb);
+  border: 1px solid var(--border, #e5e7eb);
+  padding: 8px 11px;
+  border-radius: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted, #64748b);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+}
+.menu-manager-btn:hover {
+  color: var(--primary, #111827);
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+}
+.menu-manager-btn:active {
+  transform: scale(0.92);
+  background: var(--border, #e5e7eb);
+}
+
 /* ─── BRAND TABS (multi-brand) ─── */
 .brand-tabs {
   display: flex;
