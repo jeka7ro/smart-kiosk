@@ -177,14 +177,20 @@ function initSocket(io) {
     });
 
     // POS Bridge trimite rezultatul plății
-    socket.on('pos_payment_result', (data) => {
+    socket.on('pos_payment_result', async (data) => {
       const { orderId, paid, authCode, responseCode, code, refNum, receiptNo, cardNo, txDate, error, raw, locationId, amount } = data;
       console.log(`[Socket] 💳 POS result: orderId=${orderId} paid=${paid} auth=${authCode || '-'} code=${responseCode || code || '-'}`);
       
+      // Dacă este doar un skip intern de mutex ("Altă plată în curs"), nu îl înregistrăm ca tranzacție POS eșuată
+      if (error === 'Altă plată în curs') {
+        io.emit(`payment_confirmed_${orderId}`, { paid: false, error });
+        return;
+      }
+
       // Salvează în POS Logs
       try {
         const { addPosLog } = require('../routes/posLogs');
-        const logEntry = addPosLog({
+        const logEntry = await addPosLog({
           orderId,
           locationId: locationId || socket._posLocationId || '',
           amount: amount || 0,
@@ -200,7 +206,9 @@ function initSocket(io) {
           raw: raw || null,
         });
         // Emit to admin for live updates
-        io.to('admin').emit('pos_log_new', logEntry);
+        if (logEntry && logEntry._id) {
+          io.to('admin').emit('pos_log_new', logEntry);
+        }
       } catch (e) {
         console.error('[POS Logs] Error saving:', e.message);
       }
@@ -216,13 +224,13 @@ function initSocket(io) {
     });
 
     // POS Bridge unsolicited data (e.g., manual refunds)
-    socket.on('pos_unsolicited_data', (data) => {
+    socket.on('pos_unsolicited_data', async (data) => {
       const { locationId, payload } = data;
       console.log(`[Socket] ℹ️ Unsolicited POS data from ${locationId}: ${payload}`);
       
       try {
         const { addPosLog } = require('../routes/posLogs');
-        const logEntry = addPosLog({
+        const logEntry = await addPosLog({
           locationId: locationId || socket._posLocationId || '',
           amount: 0,
           paid: true,
@@ -230,7 +238,9 @@ function initSocket(io) {
           raw: payload,
           gateway: 'raiffeisen',
         });
-        io.to('admin').emit('pos_log_new', logEntry);
+        if (logEntry && logEntry._id) {
+          io.to('admin').emit('pos_log_new', logEntry);
+        }
       } catch (e) {
         console.error('[POS Logs] Error saving unsolicited data:', e.message);
       }

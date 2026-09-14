@@ -59,6 +59,8 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
     socketRef.current = socket;
     socket.on('connect', () => socket.emit('join', { role: 'admin' }));
     socket.on('pos_log_new', (entry) => {
+      if (!entry || !entry._id || !entry.timestamp) return;
+      if ((Number(entry.amount) === 0 || !entry.amount) && !entry.paid && !entry.authCode) return;
       setLogs(prev => [entry, ...prev]);
     });
     return () => socket.disconnect();
@@ -146,6 +148,8 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
   // ── Filtered by Period, Location & Brands for StatCards ───────
   const periodFilteredLogs = useMemo(() => {
     return logs.filter(l => {
+      if (!l || !l._id || !l.timestamp) return false;
+      if ((Number(l.amount) === 0 || !l.amount) && l.status !== 'approved' && !l.paid && !l.authCode) return false;
       if (isSupersededRetry(l, logs)) return false;
       if (locFilter !== 'all' && l.locationId !== locFilter) return false;
       if (brandFilter !== 'all' && getOrderForLog(l)?.brand !== brandFilter) return false;
