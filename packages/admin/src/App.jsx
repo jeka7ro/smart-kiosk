@@ -23,7 +23,7 @@ import FortuneWheelPreview from './components/FortuneWheelPreview';
 import MenuManager, { MenuProfileEditorModal } from './screens/MenuManager';
 import QrGenerator from './screens/QrGenerator';
 import { useConfirm } from './components/ConfirmModal';
-import { LayoutDashboard, Receipt, TrendingUp, MapPin, MonitorSmartphone, QrCode, Utensils, Languages, Image as ImageIcon, Tags, Users, Blocks, Gift, Store, Sun, Moon, LogOut, Menu, X, CreditCard, Download, Printer, Building2, Palette, Sparkles, Flame, Snowflake, Layers, Upload, Star, ChevronUp, ChevronDown, Check, Zap, Wifi, Sliders, Info, Trash2, AlertTriangle, Globe, Phone, Lock, Clock, ShieldCheck, ShieldAlert, Unlock, Eye, EyeOff, Activity } from 'lucide-react';
+import { LayoutDashboard, Receipt, TrendingUp, MapPin, MonitorSmartphone, QrCode, Utensils, Languages, Image as ImageIcon, Tags, Users, Blocks, Gift, Store, Sun, Moon, LogOut, Menu, X, CreditCard, Download, Printer, Building2, Palette, Sparkles, Flame, Snowflake, Layers, Upload, Star, ChevronUp, ChevronDown, Check, Zap, Wifi, Sliders, Info, Trash2, AlertTriangle, Globe, Phone, Lock, Clock, ShieldCheck, ShieldAlert, Unlock, Eye, EyeOff, Activity, RotateCcw } from 'lucide-react';
 import { formatThousands } from './utils/formatters';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
@@ -1868,6 +1868,17 @@ function KiosksManager({ backend, kiosksLiveStatus = {} }) {
                               )}
                             </div>
                           )}
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {loc.kioskPin ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800" title={`PIN: ${loc.kioskPin}`}>
+                                <Lock className="w-2.5 h-2.5" /> PIN: {loc.kioskPin}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/60">
+                                Fără PIN
+                              </span>
+                            )}
+                          </div>
                           {loc.lockScheduleActive && (
                             <span className="text-[10px] text-slate-500 font-mono">
                               Orar: {loc.lockStartTime || '22:00'} - {loc.lockEndTime || '09:00'}
@@ -1879,6 +1890,33 @@ function KiosksManager({ backend, kiosksLiveStatus = {} }) {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2">
+                      {loc.kioskPin && (
+                        <button 
+                          title={`Resetează PIN (${loc.kioskPin}) la Fără PIN`}
+                          className="w-8 h-8 rounded-full border border-rose-200 dark:border-rose-800/60 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 flex items-center justify-center transition-colors shadow-sm active:scale-95"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (!window.confirm(`Resetați codul PIN pentru locația "${loc.name}"? Kioskul va funcționa direct, fără solicitare de PIN.`)) return;
+                            try {
+                              const res = await fetchWithAuth(`${backend}/api/locations/${loc.id}`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ kioskPin: '', vendorPin: '', lockScheduleActive: false })
+                              });
+                              if (res.ok) {
+                                showToast(`PIN-ul pentru ${loc.name} a fost resetat cu succes!`);
+                                fetchLocs();
+                              } else {
+                                showToast('Eroare la resetarea PIN-ului', 'error');
+                              }
+                            } catch {
+                              showToast('Eroare la conectare', 'error');
+                            }
+                          }}
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                       <button 
                         title="Restartare Ecrane Remote"
                         className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 dark:hover:bg-orange-500/10 dark:hover:text-orange-400 text-slate-600 dark:text-slate-400 flex items-center justify-center transition-colors"
@@ -2311,7 +2349,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
   const saveSettings = async () => {
     setIsSaving(true);
     const finalData = { ...formData };
-    if (!usePin && !formData.kioskPin && !formData.vendorPin) {
+    if (!usePin) {
       finalData.kioskPin = '';
       finalData.vendorPin = '';
       finalData.lockScheduleActive = false;
@@ -3934,7 +3972,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
 
               {/* Securitate PIN & Blocare Programată Kiosk */}
               <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-5">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
                     <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                       <Lock className="w-4 h-4 text-blue-500" />
@@ -3942,10 +3980,35 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                     </h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400">Protejează setările locale și permite blocarea ecranului pe timpul nopții sau în afara programului.</p>
                   </div>
-                  <KioskSwitch
-                    checked={usePin}
-                    onChange={val => setUsePin(val)}
-                  />
+                  <div className="flex items-center gap-3">
+                    {(formData.kioskPin || formData.vendorPin || usePin) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleChange('kioskPin', '');
+                          handleChange('vendorPin', '');
+                          handleChange('lockScheduleActive', false);
+                          setUsePin(false);
+                        }}
+                        className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+                        title="Resetează complet PIN-ul (Acces direct pe kiosk)"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        Resetează la Fără PIN
+                      </button>
+                    )}
+                    <KioskSwitch
+                      checked={usePin}
+                      onChange={val => {
+                        setUsePin(val);
+                        if (!val) {
+                          handleChange('kioskPin', '');
+                          handleChange('vendorPin', '');
+                          handleChange('lockScheduleActive', false);
+                        }
+                      }}
+                    />
+                  </div>
                 </div>
 
                 {usePin && (
@@ -3960,27 +4023,44 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                         <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
                           Acces complet la setările administrative locale și deblocare ecran.
                         </p>
-                        <div className="relative inline-flex items-center">
-                          <input
-                            type={showManagerPin ? 'text' : 'password'}
-                            maxLength={4}
-                            placeholder="Ex: 1234"
-                            value={formData.kioskPin || ''}
-                            onChange={e => {
-                              const val = e.target.value.replace(/\D/g, '').slice(0, 4);
-                              handleChange('kioskPin', val);
-                              if (val && !usePin) setUsePin(true);
-                            }}
-                            className="w-36 px-4 py-2 pr-10 text-center text-lg font-mono tracking-widest rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowManagerPin(p => !p)}
-                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1"
-                            title={showManagerPin ? 'Ascunde PIN' : 'Arată PIN'}
-                          >
-                            {showManagerPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </button>
+                        <div className="flex items-center gap-2">
+                          <div className="relative inline-flex items-center">
+                            <input
+                              type={showManagerPin ? 'text' : 'password'}
+                              maxLength={4}
+                              placeholder="Fără PIN"
+                              value={formData.kioskPin || ''}
+                              onChange={e => {
+                                const val = e.target.value.replace(/\D/g, '').slice(0, 4);
+                                handleChange('kioskPin', val);
+                                if (val && !usePin) setUsePin(true);
+                              }}
+                              className="w-36 px-4 py-2 pr-10 text-center text-lg font-mono tracking-widest rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowManagerPin(p => !p)}
+                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1"
+                              title={showManagerPin ? 'Ascunde PIN' : 'Arată PIN'}
+                            >
+                              {showManagerPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          </div>
+                          {formData.kioskPin ? (
+                            <button
+                              type="button"
+                              onClick={() => handleChange('kioskPin', '')}
+                              className="px-3 py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 shrink-0"
+                              title="Șterge PIN Manager (Kioskul va funcționa fără PIN)"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              Resetează
+                            </button>
+                          ) : (
+                            <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 px-2.5 py-1.5 rounded-xl flex items-center gap-1">
+                              Fără PIN
+                            </span>
+                          )}
                         </div>
                       </div>
 
@@ -3992,27 +4072,40 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                         <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
                           Permite personalului deblocarea ecranului, fără acces la setările admin.
                         </p>
-                        <div className="relative inline-flex items-center">
-                          <input
-                            type={showVendorPin ? 'text' : 'password'}
-                            maxLength={4}
-                            placeholder="Ex: 5678"
-                            value={formData.vendorPin || ''}
-                            onChange={e => {
-                              const val = e.target.value.replace(/\D/g, '').slice(0, 4);
-                              handleChange('vendorPin', val);
-                              if (val && !usePin) setUsePin(true);
-                            }}
-                            className="w-36 px-4 py-2 pr-10 text-center text-lg font-mono tracking-widest rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowVendorPin(p => !p)}
-                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1"
-                            title={showVendorPin ? 'Ascunde PIN' : 'Arată PIN'}
-                          >
-                            {showVendorPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </button>
+                        <div className="flex items-center gap-2">
+                          <div className="relative inline-flex items-center">
+                            <input
+                              type={showVendorPin ? 'text' : 'password'}
+                              maxLength={4}
+                              placeholder="Fără PIN"
+                              value={formData.vendorPin || ''}
+                              onChange={e => {
+                                const val = e.target.value.replace(/\D/g, '').slice(0, 4);
+                                handleChange('vendorPin', val);
+                                if (val && !usePin) setUsePin(true);
+                              }}
+                              className="w-36 px-4 py-2 pr-10 text-center text-lg font-mono tracking-widest rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowVendorPin(p => !p)}
+                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1"
+                              title={showVendorPin ? 'Ascunde PIN' : 'Arată PIN'}
+                            >
+                              {showVendorPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          </div>
+                          {formData.vendorPin ? (
+                            <button
+                              type="button"
+                              onClick={() => handleChange('vendorPin', '')}
+                              className="px-3 py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 shrink-0"
+                              title="Șterge PIN Vânzător"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              Resetează
+                            </button>
+                          ) : null}
                         </div>
                       </div>
                     </div>

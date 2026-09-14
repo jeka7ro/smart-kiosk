@@ -252,24 +252,6 @@ export default function App() {
         });
         const loc = await r.json();
         if (loc && !loc.error) {
-          // Daca backend-ul local nu are kioskPin configurat, verificam fallback pe cloud
-          if (!loc.kioskPin && BACKEND !== 'https://smart-kiosk-v7ws.onrender.com') {
-            try {
-              const cloudR = await fetch(`https://smart-kiosk-v7ws.onrender.com/api/locations/${locId}?t=${Date.now()}`, {
-                headers: { 'x-api-key': 'sk-live-2024-secure' }
-              });
-              const cloudLoc = await cloudR.json();
-              if (cloudLoc && cloudLoc.kioskPin) {
-                loc.kioskPin = cloudLoc.kioskPin;
-                if (cloudLoc.vendorPin) loc.vendorPin = cloudLoc.vendorPin;
-                if (cloudLoc.lockScheduleActive !== undefined) loc.lockScheduleActive = cloudLoc.lockScheduleActive;
-                if (cloudLoc.lockStartTime) loc.lockStartTime = cloudLoc.lockStartTime;
-                if (cloudLoc.lockEndTime) loc.lockEndTime = cloudLoc.lockEndTime;
-                if (cloudLoc.lockDays) loc.lockDays = cloudLoc.lockDays;
-                if (cloudLoc.lockAutoUnlock !== undefined) loc.lockAutoUnlock = cloudLoc.lockAutoUnlock;
-              }
-            } catch (err) {}
-          }
 
           const currentData = useKioskStore.getState().locationData;
           if (JSON.stringify(currentData) !== JSON.stringify(loc)) {
