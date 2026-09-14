@@ -270,23 +270,11 @@ export default function CartScreen() {
             {Object.entries(groupedCart).map(([bId, items]) => (
               <div key={bId} className="cart-brand-group" style={{ marginBottom: '16px', background: 'var(--card, #ffffff)', borderRadius: '22px', padding: '16px', border: '1.5px solid var(--border)', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
               <div className="cart-brand-header" style={{ display: 'flex', justifyContent: 'center', marginBottom: '18px', paddingBottom: '18px', borderBottom: '1px dashed var(--border)' }}>
-                <div className="cart-brand-avatar" style={{
-                  width: '132px',
-                  height: '132px',
-                  borderRadius: '50%',
-                  overflow: 'hidden',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '4px solid #cbd5e1',
-                  boxShadow: '0 0 0 1.5px #94a3b8, 0 8px 24px rgba(0, 0, 0, 0.1)',
-                  background: '#ffffff',
-                  flexShrink: 0
-                }}>
+                <div className="cart-brand-avatar">
                   <img 
                     src={`/brands/${bId}-logo.png`} 
                     alt={bId} 
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                    className="cart-brand-logo-img"
                     onError={(e) => { e.target.parentElement.style.display = 'none'; }} 
                   />
                 </div>
