@@ -457,12 +457,31 @@ export function MenuProfileEditorModal({ backend, brand, profile, onClose, onSav
           {/* Top Config Root Folder */}
           {localHiddenItemsOverride === null ? (
             <div className="p-6 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-col gap-3 shadow-sm">
-              <label className="font-bold text-slate-900 dark:text-white text-base m-0">Sursă / Mapa Principală Rădăcină (Opțional)</label>
-              <p className="m-0 text-slate-500 text-sm leading-relaxed max-w-3xl">Prin selectarea unei mape, Kiosk-ul va extrage structura meniului strict pornind din acel dosar. Ideal dacă dorești ca profilul să controleze, de exemplu, doar un meniu de Terasă sau Bar.</p>
-              <select className="mt-2 w-full max-w-md px-4 h-11 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" value={rootFolderId || ''} onChange={e => { setRootFolderId(e.target.value); setActiveTab(null); }}>
-                <option value="">-- Extrage Tot (Fără Rădăcină Specifică) --</option>
+              <div className="flex items-center justify-between">
+                <label className="font-bold text-slate-900 dark:text-white text-base m-0">Filtrează meniul doar la o mapă specifică (Opțional / Avansat)</label>
+                {rootFolderId && (
+                  <button 
+                    type="button"
+                    onClick={() => { setRootFolderId(''); setActiveTab(null); }}
+                    className="text-xs px-3 py-1 bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 rounded-lg hover:bg-amber-200 font-semibold transition-colors"
+                  >
+                    Resetează la Tot Meniul
+                  </button>
+                )}
+              </div>
+              <p className="m-0 text-slate-500 text-sm leading-relaxed max-w-3xl">
+                ⚠️ <strong className="text-slate-700 dark:text-slate-200">Atenție:</strong> Lăsați <strong>gol</strong> pentru a afișa întregul meniu normal. Dacă selectați o categorie aici, Kiosk-ul va afișa <span className="text-amber-600 font-bold">DOAR acea categorie</span> și va ascunde tot restul restaurantului. Pentru a ascunde doar un desert sau alt produs, lăsați câmpul pe „-- Întreg Meniul --” și folosiți butoanele de ochi (Ascunde) de mai jos.
+              </p>
+              <select className="mt-2 w-full max-w-md px-4 h-11 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium" value={rootFolderId || ''} onChange={e => { setRootFolderId(e.target.value); setActiveTab(null); }}>
+                <option value="">-- Întreg Meniul (Recomandat - Fără restricție) --</option>
                 {menu.categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
+              {rootFolderId && (
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-900 dark:text-amber-200 text-xs flex items-center gap-2">
+                  <span>⚠️</span>
+                  <span>Este selectată mapa <strong>{menu.categories.find(c => c.id === rootFolderId)?.name || rootFolderId}</strong>. Kiosk-ul va extrage exclusiv acest dosar.</span>
+                </div>
+              )}
             </div>
           ) : (
             <div className="p-5 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-200 dark:border-blue-800/50 text-blue-800 dark:text-blue-300 text-sm leading-relaxed">

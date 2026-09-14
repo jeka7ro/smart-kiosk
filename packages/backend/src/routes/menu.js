@@ -94,14 +94,19 @@ router.get('/', requireApiKey, async (req, res) => {
     try {
       let locData = null;
       try {
-        const { rows: locRows } = await pool.query('SELECT data FROM locations WHERE id = $1', [locId]);
-        if (locRows.length > 0) locData = locRows[0].data;
+        const { rows: locRows } = await pool.query('SELECT data FROM locations WHERE id = $1 OR data->>\'kioskUrl\' = $1', [locId]);
+        if (locRows.length > 0) {
+          locData = locRows[0].data;
+          if (typeof locData === 'string') {
+            try { locData = JSON.parse(locData); } catch {}
+          }
+        }
       } catch (e) {
         const fs = require('fs');
         const path = require('path');
         const raw = JSON.parse(fs.readFileSync(path.join(__dirname, '../../data/locations.json'), 'utf8'));
         const locs = Array.isArray(raw) ? raw : (raw.locations || []);
-        const l = locs.find(x => x.id === locId);
+        const l = locs.find(x => x.id === locId || x.kioskUrl === locId || (x.aliases && x.aliases.includes(locId)));
         if (l) locData = l;
       }
 
@@ -113,7 +118,11 @@ router.get('/', requireApiKey, async (req, res) => {
           if (overrides.profileId) {
             const { rows: brandRows } = await pool.query('SELECT data FROM brands WHERE id = $1', [brandId]);
             if (brandRows.length > 0) {
-              const profiles = brandRows[0].data?.menuProfiles || [];
+              let bData = brandRows[0].data;
+              if (typeof bData === 'string') {
+                try { bData = JSON.parse(bData); } catch {}
+              }
+              const profiles = bData?.menuProfiles || [];
               profile = profiles.find(p => p.id === overrides.profileId);
             }
           }
@@ -136,7 +145,24 @@ router.get('/', requireApiKey, async (req, res) => {
               const children = allCats.filter(c => c.parentGroup === parentId);
               return [self, ...children.flatMap(c => getDescendantsAndSelf(c.id, allCats))];
             };
-            finalCategories = getDescendantsAndSelf(rootFolderId, finalCategories);
+            const scopedCats = getDescendantsAndSelf(rootFolderId, finalCategories);
+            
+            // Failsafe: only restrict to scopedCats if it keeps active products available.
+            // If the user mistakenly set rootFolderId to a leaf category that is hidden or has 0 products,
+            // fallback to the full categories list so the kiosk does not turn blank.
+            if (scopedCats.length > 0) {
+              const scopedCatIds = new Set(scopedCats.map(c => c.id));
+              const survivingProds = finalProducts.filter(p => 
+                scopedCatIds.has(p.categoryId) && 
+                mergedHidden[p.id] !== true && 
+                mergedHidden[p.categoryId] !== true
+              );
+              if (survivingProds.length > 0) {
+                finalCategories = scopedCats;
+              } else {
+                console.warn(`[Menu API] rootFolderId '${rootFolderId}' would result in 0 active products. Fallback to full menu to prevent kiosk blackout.`);
+              }
+            }
           }
 
           // 2. Hide specific categories (and prune their branches)
