@@ -738,19 +738,6 @@ const KIOSK_EVENT_META = {
               />
               <span className="mgr-brand-url">www.getapp.ro</span>
             </div>
-
-            <div className="mgr-header-divider-v" />
-
-            <div className="mgr-header-title-box">
-              <div className="mgr-header-badge">
-                <span className="mgr-live-dot" />
-                Manager Conectat
-              </div>
-              <h1 className="mgr-portal-title">
-                Registru Comenzi & Syrve
-                <span className="mgr-location-label">— {locationData?.name || 'Locație'}</span>
-              </h1>
-            </div>
           </div>
 
           <div className="mgr-header-right">
