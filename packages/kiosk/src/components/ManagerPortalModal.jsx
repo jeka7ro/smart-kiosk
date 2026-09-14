@@ -94,6 +94,37 @@ export default function ManagerPortalModal({ locationData, onClose, isStandalone
     setTimeout(() => setToastMessage(null), 3000);
   };
 
+  // Dynamic Hero Rotation Interval (in seconds)
+  const [heroInterval, setHeroInterval] = useState(() => {
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('kiosk_hero_interval') : null;
+    return saved ? Number(saved) : (Number(locationData?.categoryHeroInterval) || 5);
+  });
+
+  const handleUpdateHeroInterval = async (sec) => {
+    const val = Math.max(2, Math.min(60, Number(sec) || 5));
+    setHeroInterval(val);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('kiosk_hero_interval', String(val));
+      window.dispatchEvent(new Event('kiosk_hero_interval_changed'));
+    }
+    showToast(`⏱ Viteză rotație banner: ${val} secunde`);
+
+    if (locationData?.id) {
+      try {
+        await fetch(`${localBackend}/api/locations/${locationData.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': import.meta.env.VITE_API_KEY || 'sk-live-2024-secure'
+          },
+          body: JSON.stringify({ categoryHeroInterval: val })
+        });
+      } catch (err) {
+        console.warn('Eroare sincronizare viteză banner către server:', err);
+      }
+    }
+  };
+
   // Ieșire automată din fullscreen la accesarea portalului manager
   useEffect(() => {
     if (document.fullscreenElement || document.webkitFullscreenElement) {
@@ -1366,6 +1397,59 @@ const KIOSK_EVENT_META = {
                     <span className="mgr-status-val">
                       {locationData?.vendorPin ? 'Configurat (Activ)' : 'Nu este configurat'}
                     </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card Setări Banner & Rotație Produse */}
+              <div className="mgr-status-card">
+                <h3 className="mgr-status-card-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                  Viteză Rotație Banner / Produse
+                </h3>
+                <div className="mgr-status-rows">
+                  <div className="mgr-status-row">
+                    <span className="mgr-status-label">Interval Rotație Curent:</span>
+                    <span className="mgr-status-val mgr-val-green">
+                      <strong>{heroInterval} secunde</strong>
+                    </span>
+                  </div>
+                  <div className="mgr-status-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '8px' }}>
+                    <span className="mgr-status-label">Alege rapid viteza (secunde):</span>
+                    <div className="mgr-hero-presets">
+                      {[3, 4, 5, 7, 10, 15].map(sec => (
+                        <button
+                          key={sec}
+                          type="button"
+                          className={`mgr-hero-preset-btn ${heroInterval === sec ? 'mgr-hero-preset-btn--active' : ''}`}
+                          onClick={() => handleUpdateHeroInterval(sec)}
+                        >
+                          {sec}s
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mgr-status-row">
+                    <span className="mgr-status-label">Ajustare fină (+ / -):</span>
+                    <div className="mgr-hero-stepper">
+                      <button 
+                        type="button" 
+                        className="mgr-hero-step-btn" 
+                        onClick={() => handleUpdateHeroInterval(Math.max(2, heroInterval - 1))}
+                        title="Scade cu 1 secundă"
+                      >
+                        −
+                      </button>
+                      <span className="mgr-hero-stepper-val font-mono">{heroInterval}s</span>
+                      <button 
+                        type="button" 
+                        className="mgr-hero-step-btn" 
+                        onClick={() => handleUpdateHeroInterval(Math.min(60, heroInterval + 1))}
+                        title="Crește cu 1 secundă"
+                      >
+                        +
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -15,7 +15,8 @@ export default function CategoryHeroBanner({
   onQuickAdd, 
   steam = true, 
   brandLogo = null, 
-  brandId = null 
+  brandId = null,
+  intervalSeconds = null
 }) {
   const productList = (products && products.length > 0) ? products : (singleProduct ? [singleProduct] : []);
   if (productList.length === 0) return null;
@@ -23,6 +24,26 @@ export default function CategoryHeroBanner({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [prevIndex, setPrevIndex] = useState(null);
   const [isFading, setIsFading] = useState(false);
+
+  // Dynamic rotation speed configurable from kiosk manager or admin
+  const [currentSpeed, setCurrentSpeed] = useState(() => {
+    const localVal = typeof window !== 'undefined' ? Number(localStorage.getItem('kiosk_hero_interval')) : null;
+    return Number(localVal || intervalSeconds || 5);
+  });
+
+  // Listen to live speed changes triggered by ManagerPortalModal
+  useEffect(() => {
+    const handleSpeedChange = () => {
+      const s = Number(localStorage.getItem('kiosk_hero_interval'));
+      if (s && s >= 2) setCurrentSpeed(s);
+    };
+    window.addEventListener('kiosk_hero_interval_changed', handleSpeedChange);
+    window.addEventListener('storage', handleSpeedChange);
+    return () => {
+      window.removeEventListener('kiosk_hero_interval_changed', handleSpeedChange);
+      window.removeEventListener('storage', handleSpeedChange);
+    };
+  }, []);
 
   // Pre-load all hero images so transitions never stutter or blink
   useEffect(() => {
@@ -42,10 +63,11 @@ export default function CategoryHeroBanner({
     setIsFading(false);
   }, [categoryName, brandId, productList.length]);
 
-  // Rotate every 5 seconds with ultra-smooth cross-fade
+  // Rotate every X seconds (configurable) with ultra-smooth cross-fade
   useEffect(() => {
     if (productList.length <= 1) return;
 
+    const ms = Math.max(2, currentSpeed) * 1000;
     const interval = setInterval(() => {
       setPrevIndex(currentIndex);
       setIsFading(true);
@@ -57,10 +79,10 @@ export default function CategoryHeroBanner({
       }, 750); // 750ms cinematic cross-fade
 
       return () => clearTimeout(timer);
-    }, 5000);
+    }, ms);
 
     return () => clearInterval(interval);
-  }, [productList.length, currentIndex, categoryName, brandId]);
+  }, [productList.length, currentIndex, currentSpeed, categoryName, brandId]);
 
   const product = productList[currentIndex] || productList[0];
   const prevProduct = prevIndex !== null ? productList[prevIndex] : null;
@@ -95,17 +117,6 @@ export default function CategoryHeroBanner({
     } else if (onSelect) {
       onSelect(product);
     }
-  };
-
-  const handleDotClick = (idx) => {
-    if (idx === currentIndex) return;
-    setPrevIndex(currentIndex);
-    setIsFading(true);
-    setCurrentIndex(idx);
-    setTimeout(() => {
-      setIsFading(false);
-      setPrevIndex(null);
-    }, 750);
   };
 
   return (
@@ -152,7 +163,7 @@ export default function CategoryHeroBanner({
 
       {/* Dynamic Content Container */}
       <div className="hero-kfc-content-wrapper">
-        {/* Top Bar: Round Brand Avatar + Carousel Dots + Price Sticker + Info */}
+        {/* Top Bar: Round Brand Avatar + Price Sticker + Info */}
         <div className="hero-kfc-top-bar">
           <div className="hero-kfc-top-left">
             {brandLogo && (
@@ -176,22 +187,6 @@ export default function CategoryHeroBanner({
               </div>
             )}
           </div>
-
-          {/* Carousel Progress Dots Navigation */}
-          {productList.length > 1 && (
-            <div className="hero-kfc-carousel-dots" onClick={(e) => e.stopPropagation()}>
-              {productList.map((p, idx) => (
-                <button
-                  key={p.id || idx}
-                  type="button"
-                  className={`hero-kfc-dot ${idx === currentIndex ? 'hero-kfc-dot--active' : ''}`}
-                  onClick={() => handleDotClick(idx)}
-                  title={p.name}
-                  aria-label={`Produsul ${idx + 1}`}
-                />
-              ))}
-            </div>
-          )}
 
           <div className="hero-kfc-top-right">
             {/* KFC Price Sticker Badge in top right */}

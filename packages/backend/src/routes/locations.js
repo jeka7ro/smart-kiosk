@@ -136,8 +136,8 @@ router.post('/', protect, async (req, res) => {
   }
 });
 
-// PUT /api/locations/:id — update location
-router.put('/:id', protect, async (req, res) => {
+// PUT /api/locations/:id — update location (admin token or kiosk api-key)
+router.put('/:id', requireApiKey, async (req, res) => {
   const { findLocation } = require('../utils/locations');
   try {
     if (!hasDb) throw new Error('no db');

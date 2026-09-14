@@ -1830,3 +1830,78 @@
   }
 }
 
+/* Hero Banner Rotation Speed Controls */
+.mgr-hero-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+}
+
+.mgr-hero-preset-btn {
+  flex: 1;
+  min-width: 48px;
+  padding: 8px 12px;
+  font-size: 0.88rem;
+  font-weight: 800;
+  border-radius: 10px;
+  border: 1.5px solid #cbd5e1;
+  background: #f8fafc;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mgr-hero-preset-btn:hover {
+  border-color: #94a3b8;
+  background: #f1f5f9;
+}
+
+.mgr-hero-preset-btn--active {
+  border-color: #2563eb !important;
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+.mgr-hero-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #f1f5f9;
+  padding: 4px 8px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.mgr-hero-step-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 1.1rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.mgr-hero-step-btn:hover {
+  background: #e2e8f0;
+}
+
+.mgr-hero-step-btn:active {
+  transform: scale(0.92);
+}
+
+.mgr-hero-stepper-val {
+  min-width: 36px;
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #0f172a;
+}

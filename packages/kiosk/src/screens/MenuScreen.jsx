@@ -681,6 +681,7 @@ export default function MenuScreen() {
               steam={isHeroSteam}
               brandLogo={activeBrandLogo || locationData?.logoUrl}
               brandId={activeBrandId}
+              intervalSeconds={locationData?.categoryHeroInterval || Number(localStorage.getItem('kiosk_hero_interval')) || 5}
               onSelect={(prod) => {
                 if (productsAreaRef.current) setMenuScrollTop(productsAreaRef.current.scrollTop);
                 setMenuActiveCategory(activeCategory);

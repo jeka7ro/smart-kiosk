@@ -2458,6 +2458,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
     categoryHeroActive: loc.categoryHeroActive ?? false,
     categoryHeroSteam: loc.categoryHeroSteam ?? true,
     categoryHeroProductId: loc.categoryHeroProductId || '',
+    categoryHeroInterval: loc.categoryHeroInterval ?? 5,
     upsellActive: loc.upsellActive ?? false,
   });
   const [isSaving, setIsSaving] = useState(false);
@@ -2913,6 +2914,26 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                       />
                       <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
                         Dacă este lăsat gol, se alege automat primul produs din fiecare categorie.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-800 dark:text-slate-200 mb-1">
+                        ⏱ Viteză Rotație Produse Banner (secunde)
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min="2"
+                          max="60"
+                          value={formData.categoryHeroInterval ?? 5}
+                          onChange={e => handleChange('categoryHeroInterval', Math.max(2, Math.min(60, Number(e.target.value) || 5)))}
+                          className="w-24 text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 font-bold"
+                        />
+                        <span className="text-xs text-slate-500 dark:text-slate-400">secunde (implicit: 5 secunde)</span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                        Câte secunde stă afișat fiecare produs în banner înainte de a trece la următorul. Poate fi modificat și direct de pe ecranul chioșcului din Meniul Manager.
                       </p>
                     </div>
                   </div>
