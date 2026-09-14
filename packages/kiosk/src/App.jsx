@@ -461,48 +461,44 @@ export default function App() {
     };
   }, [locationData?.id, setLocationData, screen, isLocked]);
 
-  // Auto-fullscreen agresiv pentru kiosk/tabletă
+  // Auto-fullscreen pentru kiosk/tabletă (activ doar la prima interacțiune a utilizatorului)
   useEffect(() => {
+    if (isManagerMode) return;
+
     const requestFS = () => {
       const el = document.documentElement;
       const rfs = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
       if (rfs && !document.fullscreenElement && !document.webkitFullscreenElement) {
-        rfs.call(el).catch(() => {});
+        try {
+          const p = rfs.call(el);
+          if (p && typeof p.catch === 'function') {
+            p.catch(() => {});
+          }
+        } catch (_) {}
       }
     };
-
-    // Încearcă imediat la load (funcționează în Chrome kiosk mode)
-    requestFS();
 
     // Reintră în fullscreen dacă utilizatorul iese accidental (Esc)
     const onFSChange = () => {
       if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-        setTimeout(requestFS, 300);
+        // Așteaptă următoarea interacțiune pentru a reintra în fullscreen
       }
     };
     document.addEventListener('fullscreenchange', onFSChange);
     document.addEventListener('webkitfullscreenchange', onFSChange);
 
-    // Încearcă din nou la orice interacțiune (touchstart, click, keydown)
+    // Intră în fullscreen la prima interacțiune (click sau touch - conform cerinței browserului)
     const onInteraction = () => requestFS();
     document.addEventListener('touchstart', onInteraction, { passive: true });
     document.addEventListener('click', onInteraction);
-    document.addEventListener('keydown', onInteraction);
-
-    // Încearcă din nou după 1s și 3s (pentru tablete lente)
-    const t1 = setTimeout(requestFS, 1000);
-    const t2 = setTimeout(requestFS, 3000);
 
     return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
       document.removeEventListener('fullscreenchange', onFSChange);
       document.removeEventListener('webkitfullscreenchange', onFSChange);
       document.removeEventListener('touchstart', onInteraction);
       document.removeEventListener('click', onInteraction);
-      document.removeEventListener('keydown', onInteraction);
     };
-  }, []);
+  }, [isManagerMode]);
 
   if (loading) {
     return (

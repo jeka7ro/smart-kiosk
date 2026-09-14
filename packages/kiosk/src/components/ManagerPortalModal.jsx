@@ -712,7 +712,7 @@ const KIOSK_EVENT_META = {
               <polyline points="10 9 9 9 8 9" />
             </svg>
             <span>Comenzi & Syrve</span>
-            <span className="mgr-nav-badge">{filteredOrders.length}</span>
+            <span className="mgr-nav-badge">{finalOrders.length}</span>
           </button>
 
           <button
