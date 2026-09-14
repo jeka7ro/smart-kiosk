@@ -211,7 +211,7 @@ export default function StartPromoModal({ product, onClose, onAccept, onInfo, la
                   onClick={onInfo}
                   style={{
                     position: 'absolute',
-                    bottom: 12,
+                    top: 12,
                     right: 12,
                     width: 42,
                     height: 42,
