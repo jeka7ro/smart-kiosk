@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { proxySyrveImage } from '../utils/imageUtils.js';
 import './ManagerPortalModal.css';
@@ -43,6 +43,17 @@ export default function ManagerPortalModal({ locationData, onClose, isStandalone
   const [pin, setPin] = useState('');
   const [pinError, setPinError] = useState(false);
   const [pinErrorMessage, setPinErrorMessage] = useState('');
+  const pinInputRef = useRef(null);
+
+  // Deschide automat tastatura nativă pe telefon / desktop
+  useEffect(() => {
+    if (!isAuthenticated) {
+      const timer = setTimeout(() => {
+        pinInputRef.current?.focus();
+      }, 250);
+      return () => clearTimeout(timer);
+    }
+  }, [isAuthenticated]);
 
   // Kiosk Logs State
   const [kioskLogs, setKioskLogs] = useState([]);
@@ -570,7 +581,46 @@ const KIOSK_EVENT_META = {
             Introduceți codul PIN de Manager pentru acces securizat
           </p>
 
-          <div className={`mgr-pin-dots ${pinError ? 'mgr-pin-dots-error' : ''}`}>
+          <div 
+            className={`mgr-pin-dots ${pinError ? 'mgr-pin-dots-error' : ''}`}
+            onClick={() => pinInputRef.current?.focus()}
+            title="Apasă pentru tastatura telefonului"
+          >
+            {/* Input nativ ascuns dar complet funcțional pentru tastatura telefonului */}
+            <input
+              ref={pinInputRef}
+              type="tel"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={4}
+              value={pin}
+              autoFocus
+              autoComplete="one-time-code"
+              onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, '').slice(0, 4);
+                setPin(val);
+                setPinError(false);
+                setPinErrorMessage('');
+                if (val.length === 4) {
+                  verifyPin(val);
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && pin.length === 4) {
+                  verifyPin(pin);
+                }
+              }}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                opacity: 0,
+                zIndex: 3,
+                cursor: 'pointer'
+              }}
+              aria-label="Cod PIN Manager"
+            />
             {[0, 1, 2, 3].map(idx => (
               <div
                 key={idx}
@@ -578,6 +628,14 @@ const KIOSK_EVENT_META = {
               />
             ))}
           </div>
+
+          <button
+            type="button"
+            className="mgr-pin-phone-btn"
+            onClick={() => pinInputRef.current?.focus()}
+          >
+            📱 Tastatură telefon
+          </button>
 
           {pinErrorMessage && (
             <div className="mgr-pin-error-text">{pinErrorMessage}</div>
