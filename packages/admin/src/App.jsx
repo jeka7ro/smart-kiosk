@@ -4333,8 +4333,8 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                         <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
                           Acces complet la setările administrative locale și deblocare ecran.
                         </p>
-                        <div className="flex items-center gap-2">
-                          <div className="relative inline-flex items-center">
+                        <div className="flex flex-wrap items-center gap-2.5">
+                          <div className="relative w-44">
                             <input
                               type={showManagerPin ? 'text' : 'password'}
                               maxLength={4}
@@ -4345,7 +4345,9 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                                 handleChange('kioskPin', val);
                                 if (val && !usePin) setUsePin(true);
                               }}
-                              className="w-36 px-4 py-2 pr-10 text-center text-lg font-mono tracking-widest rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                              className={`w-full px-3.5 py-2.5 pr-10 text-center rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all shadow-sm ${
+                                formData.kioskPin ? 'font-bold tracking-[0.25em] text-base' : 'font-normal tracking-normal text-sm placeholder:text-slate-400'
+                              }`}
                             />
                             <button
                               type="button"
@@ -4368,7 +4370,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                             </button>
                           ) : (
                             <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 px-2.5 py-1.5 rounded-xl flex items-center gap-1">
-                              Fără PIN
+                              Fără restricție
                             </span>
                           )}
                         </div>
@@ -4382,8 +4384,8 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                         <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
                           Permite personalului deblocarea ecranului, fără acces la setările admin.
                         </p>
-                        <div className="flex items-center gap-2">
-                          <div className="relative inline-flex items-center">
+                        <div className="flex flex-wrap items-center gap-2.5">
+                          <div className="relative w-44">
                             <input
                               type={showVendorPin ? 'text' : 'password'}
                               maxLength={4}
@@ -4394,7 +4396,9 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                                 handleChange('vendorPin', val);
                                 if (val && !usePin) setUsePin(true);
                               }}
-                              className="w-36 px-4 py-2 pr-10 text-center text-lg font-mono tracking-widest rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                              className={`w-full px-3.5 py-2.5 pr-10 text-center rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all shadow-sm ${
+                                formData.vendorPin ? 'font-bold tracking-[0.25em] text-base' : 'font-normal tracking-normal text-sm placeholder:text-slate-400'
+                              }`}
                             />
                             <button
                               type="button"
@@ -4415,7 +4419,11 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                               <RotateCcw className="w-3.5 h-3.5" />
                               Resetează
                             </button>
-                          ) : null}
+                          ) : (
+                            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-1.5 rounded-xl flex items-center gap-1">
+                              Opțional
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
