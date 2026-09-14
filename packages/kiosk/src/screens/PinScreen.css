@@ -1,42 +1,81 @@
 .pin-screen {
-  width: 100vw; height: 100vh;
+  width: 100vw;
+  height: 100vh;
   background: #0f172a;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 .pin-box {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.1);
-  padding: 40px; border-radius: 24px;
-  width: 100%; max-width: 400px;
-  display: flex; flex-direction: column; align-items: center;
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 40px 32px;
+  border-radius: 28px;
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
 
 .pin-title {
-  font-size: 1.8rem; font-weight: 700;
-  margin: 0 0 8px 0; color: #fff;
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin: 0 0 8px 0;
+  color: #fff;
 }
 
 .pin-sub {
-  color: #94a3b8; font-size: 0.9rem;
-  margin: 0 0 32px 0; line-height: 1.4;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  margin: 0 0 24px 0;
+  line-height: 1.45;
 }
 
-.pin-display {
-  background: rgba(0,0,0,0.3);
-  width: 100%; height: 60px;
-  border-radius: 12px; margin-bottom: 32px;
-  display: flex; align-items: center; justify-content: center;
-  gap: 12px; border: 1px solid rgba(255,255,255,0.1);
-  transition: all 0.2s; font-size: 2rem;
+/* 4 Circular Clean PIN Indicators */
+.pin-dots-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  height: 44px;
+  margin-bottom: 28px;
+  width: 100%;
+}
+
+.pin-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  background: transparent;
+  transition: all 0.15s ease-out;
+}
+
+.pin-dot-active {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.6);
+  transform: scale(1.15);
 }
 
 .pin-error {
-  border-color: #ef4444;
   animation: shake 0.4s ease-in-out;
+}
+
+.pin-error .pin-dot {
+  border-color: #ef4444;
+}
+
+.pin-error .pin-dot-active {
+  background: #ef4444;
+  border-color: #ef4444;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.6);
 }
 
 @keyframes shake {
@@ -45,39 +84,57 @@
   75% { transform: translateX(8px); }
 }
 
-.pin-placeholder {
-  font-size: 1.1rem; color: #475569; letter-spacing: 2px;
-}
-
-.pin-dot {
-  color: #3b82f6;
-}
-
+/* Keypad Grid */
 .pin-pad {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px; width: 100%;
+  gap: 14px;
+  width: 100%;
 }
 
 .pin-key {
-  background: rgba(255,255,255,0.1);
-  border: none; border-radius: 16px;
-  height: 64px;
-  color: #fff; font-size: 1.6rem; font-weight: 600;
-  cursor: pointer; transition: all 0.1s;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  height: 60px;
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.1s;
+}
+
+.pin-key:hover {
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .pin-key:active {
-  background: rgba(255,255,255,0.2); transform: scale(0.95);
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(0.95);
 }
 
 .pin-cmd {
-  font-size: 1.2rem; background: rgba(0,0,0,0.2);
+  font-size: 1.1rem;
+  color: #94a3b8;
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .pin-ok {
-  background: #3b82f6; color: #fff;
-}
-.pin-ok:active {
   background: #2563eb;
+  color: #fff;
+  border-color: #2563eb;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.pin-ok:hover {
+  background: #1d4ed8;
+}
+
+.pin-ok:active {
+  background: #1e40af;
+  transform: scale(0.95);
 }

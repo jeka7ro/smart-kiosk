@@ -92,9 +92,12 @@ export default function PinScreen({ loc, onUnlock, isScheduleLock = false, backe
         <h2 className="pin-title">Securitate Kiosk</h2>
         <p className="pin-sub">{subtitle}</p>
         
-        <div className={`pin-display ${error ? 'pin-error' : ''}`}>
+        <div className={`pin-dots-container ${error ? 'pin-error' : ''}`}>
           {[0, 1, 2, 3].map(i => (
-            <span key={i} className={`pin-dot ${i < pin.length ? 'filled' : ''}`}>●</span>
+            <div
+              key={i}
+              className={`pin-dot ${i < pin.length ? 'pin-dot-active' : ''}`}
+            />
           ))}
         </div>
 
