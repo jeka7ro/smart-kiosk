@@ -1478,3 +1478,355 @@
   font-weight: 800;
 }
 
+/* ─── MOBILE CARDS VIEW & RESPONSIVE DESIGN (< 768px) ─── */
+.mgr-mobile-cards-list {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mgr-modal-backdrop {
+    padding: 0 !important;
+  }
+
+  .mgr-portal-container {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100% !important;
+    height: 100dvh !important;
+    border-radius: 0 !important;
+    border: none !important;
+  }
+
+  /* Header compact pe 1 rand */
+  .mgr-portal-header {
+    padding: 8px 12px !important;
+    min-height: 52px !important;
+  }
+  .mgr-header-left {
+    gap: 8px !important;
+  }
+  .mgr-brand-logo-img {
+    height: 24px !important;
+    max-width: 95px !important;
+  }
+  .mgr-brand-url {
+    display: none !important;
+  }
+  .mgr-header-divider-v {
+    display: none !important;
+  }
+  .mgr-header-title-box {
+    gap: 0 !important;
+  }
+  .mgr-header-badge {
+    font-size: 0.65rem !important;
+    padding: 2px 7px !important;
+  }
+  .mgr-portal-title {
+    font-size: 0.88rem !important;
+  }
+  .mgr-location-label {
+    display: none !important;
+  }
+  .mgr-btn-refresh span, .mgr-btn-logout span {
+    display: none !important;
+  }
+  .mgr-btn-refresh, .mgr-btn-logout {
+    padding: 8px !important;
+    border-radius: 50% !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
+    justify-content: center !important;
+  }
+  .mgr-btn-close {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  /* Nav Tabs compacte */
+  .mgr-nav-tabs {
+    padding: 4px 6px !important;
+    margin: 4px 10px 0 10px !important;
+    border-radius: 12px !important;
+    gap: 4px !important;
+  }
+  .mgr-nav-tab {
+    padding: 7px 4px !important;
+    font-size: 0.74rem !important;
+    justify-content: center !important;
+    flex: 1 !important;
+  }
+  .mgr-nav-tab svg {
+    display: none !important;
+  }
+  .mgr-nav-badge {
+    font-size: 0.66rem !important;
+    padding: 1px 5px !important;
+  }
+
+  /* Stat Cards compacte 2x2 */
+  .mgr-stats-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+    padding: 8px 10px 4px 10px !important;
+  }
+  .mgr-stat-card {
+    padding: 8px 10px !important;
+    min-height: auto !important;
+    border-radius: 12px !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+  }
+  .mgr-stat-label {
+    font-size: 0.66rem !important;
+    margin-bottom: 2px !important;
+  }
+  .mgr-stat-value {
+    font-size: 1.12rem !important;
+  }
+  .mgr-stat-icon-wrapper {
+    width: 26px !important;
+    height: 26px !important;
+  }
+  .mgr-stat-icon-wrapper svg {
+    width: 13px !important;
+    height: 13px !important;
+  }
+
+  /* Filter Toolbar ultra-compact */
+  .mgr-filter-toolbar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 6px !important;
+    padding: 6px 10px !important;
+  }
+  .mgr-filter-left {
+    flex-direction: column !important;
+    gap: 6px !important;
+    width: 100% !important;
+  }
+  .mgr-filter-divider {
+    display: none !important;
+  }
+
+  /* Status pills: Segmentat pe 1 rand */
+  .mgr-filter-left > .mgr-btn-group:first-child {
+    display: flex !important;
+    width: 100% !important;
+    background: #f1f5f9 !important;
+    border-radius: 10px !important;
+    padding: 3px !important;
+    gap: 2px !important;
+  }
+  .mgr-filter-left > .mgr-btn-group:first-child .mgr-pill-btn {
+    flex: 1 !important;
+    text-align: center !important;
+    justify-content: center !important;
+    padding: 6px 4px !important;
+    font-size: 0.74rem !important;
+    border-radius: 8px !important;
+    border: none !important;
+  }
+
+  /* Period pills: Swipe orizontal pe 1 singur rand */
+  .mgr-filter-left > .mgr-btn-group:nth-child(3) {
+    display: flex !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    gap: 6px !important;
+    width: 100% !important;
+    padding-bottom: 2px !important;
+  }
+  .mgr-filter-left > .mgr-btn-group:nth-child(3)::-webkit-scrollbar {
+    display: none !important;
+  }
+  .mgr-filter-left > .mgr-btn-group:nth-child(3) .mgr-pill-btn {
+    flex-shrink: 0 !important;
+    padding: 5px 12px !important;
+    font-size: 0.74rem !important;
+    border-radius: 20px !important;
+  }
+
+  .mgr-custom-dates {
+    display: none !important;
+  }
+
+  .mgr-search-wrapper {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-top: 0 !important;
+  }
+  .mgr-search-wrapper input {
+    height: 35px !important;
+    font-size: 0.82rem !important;
+  }
+
+  /* Ascunde tabelul de desktop */
+  .mgr-table-container {
+    display: none !important;
+  }
+
+  /* Afișează Cardurile Mobile */
+  .mgr-mobile-cards-list {
+    display: flex !important;
+    flex-direction: column;
+    gap: 8px;
+    padding: 6px 10px 24px 10px;
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mgr-m-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 12px 14px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    cursor: pointer;
+    transition: transform 0.1s, background 0.1s;
+  }
+  .mgr-m-card:active {
+    background: #f8fafc;
+    transform: scale(0.99);
+  }
+
+  .mgr-m-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .mgr-m-card-id-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .mgr-m-card-id {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #2563eb;
+  }
+  .mgr-m-card-time {
+    font-size: 0.74rem;
+    color: #94a3b8;
+    font-weight: 600;
+  }
+
+  .mgr-m-card-body {
+    font-size: 0.82rem;
+    color: #1e293b;
+    font-weight: 500;
+    line-height: 1.35;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mgr-m-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 6px;
+    border-top: 1px solid #f1f5f9;
+    margin-top: 2px;
+  }
+  .mgr-m-card-brand {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.74rem;
+    color: #64748b;
+    font-weight: 600;
+  }
+  .mgr-m-brand-img {
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+    border-radius: 50%;
+  }
+  .mgr-m-dot {
+    color: #cbd5e1;
+  }
+  .mgr-m-card-right-sum {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .mgr-m-card-sum {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #0f172a;
+  }
+
+  .mgr-empty-mobile {
+    text-align: center;
+    padding: 30px 16px;
+    color: #94a3b8;
+    font-size: 0.85rem;
+  }
+
+  /* Logs & Status mobile */
+  .mgr-logs-tab, .mgr-status-tab {
+    padding: 8px 10px !important;
+  }
+  .mgr-log-card {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
+    padding: 10px 12px !important;
+  }
+  .mgr-log-card-right {
+    width: 100% !important;
+    justify-content: space-between !important;
+    padding-top: 4px !important;
+    border-top: 1px solid #f8fafc !important;
+  }
+  .mgr-status-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  .mgr-table-footer {
+    padding: 8px 10px !important;
+    font-size: 0.72rem !important;
+    gap: 6px !important;
+  }
+
+  /* Order Detail Modal Mobile */
+  .mgr-detail-backdrop {
+    padding: 8px !important;
+  }
+  .mgr-detail-modal {
+    max-width: 100% !important;
+    max-height: 92dvh !important;
+    border-radius: 18px !important;
+  }
+  .mgr-detail-header {
+    padding: 12px 14px !important;
+  }
+  .mgr-detail-title {
+    font-size: 1.05rem !important;
+  }
+  .mgr-detail-body {
+    padding: 12px 14px !important;
+    gap: 12px !important;
+  }
+  .mgr-detail-meta-card {
+    padding: 12px !important;
+    gap: 10px !important;
+  }
+  .mgr-detail-meta-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    font-size: 0.76rem !important;
+  }
+  .mgr-detail-total-bar {
+    padding: 12px 14px !important;
+  }
+}
+

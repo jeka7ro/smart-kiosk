@@ -994,6 +994,60 @@ const KIOSK_EVENT_META = {
           </div>
         </div>
 
+        {/* Mobile Cards View (< 768px) */}
+        <div className="mgr-mobile-cards-list">
+          {paginatedOrders.length === 0 ? (
+            <div className="mgr-empty-mobile">
+              {loading ? 'Se încarcă comenzile...' : 'Nicio comandă găsită în perioada selectată.'}
+            </div>
+          ) : (
+            paginatedOrders.map((o, idx) => {
+              const brandKey = String(o.brand || 'smashme').toLowerCase();
+              const brandLogo = BRAND_LOGOS[brandKey] || '/brands/smashme-logo.png';
+              const itemsSummary = (o.items || []).map(i => `${i.quantity}x ${i.name}`).join(', ');
+              const timeStr = o.createdAt ? new Date(o.createdAt).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' }) : '';
+              const dateStr = o.createdAt ? new Date(o.createdAt).toLocaleDateString('ro-RO', { day: '2-digit', month: '2-digit' }) : '';
+
+              return (
+                <div
+                  key={o._id || o.id || o.orderNumber || idx}
+                  className="mgr-m-card"
+                  onClick={() => setSelectedOrder(o)}
+                >
+                  <div className="mgr-m-card-header">
+                    <div className="mgr-m-card-id-wrap">
+                      <span className="mgr-m-card-id">#{o.orderNumber}</span>
+                      <span className="mgr-m-card-time">{dateStr} {timeStr}</span>
+                    </div>
+                    <div className="mgr-m-card-badges">
+                      {getIikoBadge(o)}
+                    </div>
+                  </div>
+
+                  <div className="mgr-m-card-body">
+                    <div className="mgr-m-card-items-text">
+                      {itemsSummary || 'Comandă fără detalii'}
+                    </div>
+                  </div>
+
+                  <div className="mgr-m-card-footer">
+                    <div className="mgr-m-card-brand">
+                      <img src={brandLogo} alt="" className="mgr-m-brand-img" onError={e => e.target.style.display = 'none'} />
+                      <span>{o.brand || 'SmashMe'}</span>
+                      <span className="mgr-m-dot">•</span>
+                      <span>{o.orderType === 'dine-in' ? (o.tableNumber ? `Masa ${o.tableNumber}` : 'La masă') : 'La pachet'}</span>
+                    </div>
+                    <div className="mgr-m-card-right-sum">
+                      <span className="mgr-m-card-sum">{formatCurrency(o.totalAmount || o.total)} lei</span>
+                      {getPaymentBadge(o)}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
         {/* Data Table with distinct Plată / POS and Status iiko columns */}
         <div className="mgr-table-container">
           <table className="mgr-data-table">
