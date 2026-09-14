@@ -214,6 +214,11 @@ const REMOVABLE_INGREDIENTS = [
     onlyForFries: true,
   },
   {
+    id: 'sos',
+    label: 'Fără sos',
+    keywords: ['sos', 'sauce', 'mayo', 'maionez', 'teriyaki', 'unagi', 'spicy mayo', 'sweet chili'],
+  },
+  {
     id: 'wasabi',
     label: 'Fără wasabi',
     keywords: ['wasabi'],
@@ -565,6 +570,32 @@ export default function ProductScreen() {
     // 5. CUTII PRESTABILITE (Chicken Box, Smart Box)
     if (catName.includes('box') || pName.includes('smart box') || pName.includes('chicken box')) {
       return [];
+    }
+
+    // 6. SUSHI / ROLL MASTER / LOVE SUSHI:
+    // Din sushi nu se scot ingrediente de compoziție (nu poți scoate ceapă, cașcaval, salată, roșii din rulou).
+    // Singurele opțiuni permise sunt "Fără sos" și "Fără ghimbir"!
+    const curBrand = (brand?.id || product._brand || product.brandId || '').toLowerCase();
+    const isSushiProduct = Boolean(
+      curBrand === 'rollmaster' || curBrand === 'lovesushi' || curBrand === 'sushimaster' ||
+      catName.includes('sushi') || catName.includes('roll') || catName.includes('maki') || 
+      catName.includes('nigiri') || catName.includes('sashimi') || catName.includes('gunkan') || 
+      catName.includes('uramaki') || catName.includes('set') || catName.includes('platou') ||
+      pName.includes('sushi') || pName.includes('roll') || pName.includes('maki') || 
+      pName.includes('nigiri') || pName.includes('sashimi') || pName.includes('combo') ||
+      pName.includes('california') || pName.includes('philadelphia') || pName.includes('tempura')
+    );
+
+    const isAsianSoupOrWok = Boolean(
+      catName.includes('wok') || catName.includes('sup') || catName.includes('soup') || catName.includes('ramen') ||
+      pName.includes('wok') || pName.includes('supa') || pName.includes('supă') || pName.includes('ramen')
+    );
+
+    if (isSushiProduct && !isAsianSoupOrWok) {
+      return [
+        { id: 'sos', label: 'Fără sos' },
+        { id: 'ghimbir', label: 'Fără ghimbir' },
+      ];
     }
 
     const textToScan = [

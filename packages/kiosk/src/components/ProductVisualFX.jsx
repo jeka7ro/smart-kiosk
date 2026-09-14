@@ -51,23 +51,32 @@ export default function ProductVisualFX({
   );
 
   // 3. BĂUTURI: Fără abur, cu efect de gheață & bule efervescente reci
-  const isColdDrink = !isSauce && !isDessert && Boolean(
-    catLower.includes('bautur') || catLower.includes('drink') || catLower.includes('beverage') || 
-    catLower.includes('racoritoare') || catLower.includes('suc') || catLower.includes('bere') || 
-    catLower.includes('cocktail') || catLower.includes('limonad') || catLower.includes('bar') || 
-    catLower.includes('apa') ||
-    nameLower.includes('coca') || nameLower.includes('cola') || nameLower.includes('pepsi') || 
-    nameLower.includes('fanta') || nameLower.includes('sprite') || nameLower.includes('apa ') || 
-    nameLower.includes('apă') || nameLower.includes('water') || nameLower.includes('bere') || 
-    nameLower.includes('beer') || nameLower.includes('cidru') || nameLower.includes('limonad') || 
-    nameLower.includes('lemonade') || nameLower.includes('shake') || nameLower.includes('milkshake') || 
-    nameLower.includes('smoothie') || nameLower.includes('frappe') || nameLower.includes('suc ') || 
-    nameLower.includes('juice') || nameLower.includes('ayran') || nameLower.includes('ice tea') || 
-    nameLower.includes('lipton') || nameLower.includes('fuze') || nameLower.includes('red bull') || 
-    nameLower.includes('energy') || nameLower.includes('heineken') || nameLower.includes('tuborg') || 
-    nameLower.includes('ursus') || nameLower.includes('corona') || nameLower.includes('stella') || 
-    nameLower.includes('carlsberg')
+  // REGULĂ STRICTĂ: Bulele apar EXCLUSIV la categoria dedicată de băuturi / răcoritoare!
+  // NICIODATĂ la mâncare, sushi, platouri, seturi sau combo-uri chiar dacă au băutură inclusă (ex: Combo Big Set + Cola)
+  const isFoodOrMeal = Boolean(
+    /combo|set|platou|box|meniu|menu|roll|sushi|maki|nigiri|sashimi|gunkan|uramaki|burger|crispy|strips|nuggets|cartofi|fries|wrap|shaorma|pizza|wok|supa|supă/i.test(nameLower) ||
+    /mancare|mâncare|food|sushi|roll|burger|pui|chicken|set|combo|platou|box|cartofi|fries|wok|supe/i.test(catLower)
   );
+
+  const isDrinkCategory = Boolean(
+    catLower.includes('bautur') || catLower.includes('băutur') || catLower.includes('drink') || 
+    catLower.includes('beverage') || catLower.includes('racoritoare') || catLower.includes('răcoritoare') || 
+    catLower.includes('suc') || catLower.includes('bere') || catLower.includes('cocktail') || 
+    catLower.includes('limonad') || catLower.includes('bar') || catLower.includes('apa') || catLower.includes('apă')
+  );
+
+  const isStandaloneDrink = Boolean(
+    nameLower.startsWith('coca-cola') || nameLower.startsWith('coca cola') || nameLower.startsWith('cola ') || 
+    nameLower.startsWith('pepsi') || nameLower.startsWith('fanta') || nameLower.startsWith('sprite') || 
+    nameLower.startsWith('apa ') || nameLower.startsWith('apă ') ||
+    nameLower.startsWith('bere ') || nameLower.startsWith('beer ') || nameLower.startsWith('cidru ') || 
+    nameLower.startsWith('limonad') || nameLower.startsWith('lemonade') || nameLower.startsWith('smoothie') || 
+    nameLower.startsWith('frappe') || nameLower.startsWith('ayran') || nameLower.startsWith('ice tea') || 
+    nameLower.startsWith('lipton') || nameLower.startsWith('fuze') || nameLower.startsWith('red bull') || 
+    nameLower.startsWith('energy drink')
+  );
+
+  const isColdDrink = !isSauce && !isDessert && !isFoodOrMeal && (isDrinkCategory || isStandaloneDrink);
 
   // 4. MÂNCARE CALDĂ: Abur exclusiv la mâncare fierbinte validată (Supe, Wok, Burgeri/Pui cald)
   const isHot = Boolean(isHotProduct && shouldShowSteam(product, brandId));
