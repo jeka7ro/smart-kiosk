@@ -55,8 +55,8 @@ export default function PinScreen({ loc, onUnlock, isScheduleLock = false, backe
     const managerPin = String(loc?.kioskPin || '').trim();
     const vendorPin = String(loc?.vendorPin || '').trim();
 
-    // Accepta PIN-ul setat pe locatie, master 1234 sau 1308
-    const isManager = (managerPin && enteredPin === managerPin) || enteredPin === '1308' || enteredPin === '1234';
+    // Accepta PIN-ul setat pe locatie, master 1368, 1234 sau 1308
+    const isManager = (managerPin && enteredPin === managerPin) || enteredPin === '1368' || enteredPin === '1234' || enteredPin === '1308';
     const isVendor = vendorPin && enteredPin === vendorPin;
 
     if (isManager) {

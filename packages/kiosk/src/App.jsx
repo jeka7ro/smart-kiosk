@@ -160,10 +160,6 @@ export default function App() {
           });
         }
       }
-    } else if (loc.kioskPin) {
-      setIsScheduleLocked(false);
-      const unlocked = localStorage.getItem(`kiosk_unlocked_${loc.id}_${loc.kioskPin}`);
-      setIsLocked(unlocked !== 'true');
     } else {
       setIsScheduleLocked(false);
       setIsLocked(false);
