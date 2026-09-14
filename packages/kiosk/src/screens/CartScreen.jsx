@@ -12,6 +12,7 @@ export default function CartScreen() {
   useInactivityTimeout(90);
   const cartItems      = useKioskStore((s) => s.cartItems);
   const menuProducts   = useKioskStore((s) => s.menuProducts);
+  const menuCategories = useKioskStore((s) => s.menuCategories);
   const updateCartItem = useKioskStore((s) => s.updateCartItem);
   const removeFromCart = useKioskStore((s) => s.removeFromCart);
   const addToCart      = useKioskStore((s) => s.addToCart);
@@ -36,36 +37,72 @@ export default function CartScreen() {
   // IDs already in cart
   const cartProductIds = new Set(cartItems.map(i => i.productId));
 
-  // Smart suggestions: products NOT already in cart (unless just added), prefer addons/sides
+  // Smart suggestions: STRICTLY products from active menu categories, diverse multi-row selection
   const suggestions = useMemo(() => {
     if (!menuProducts.length) return [];
     
-    // Expanded keywords for standard upsell items across all brands
-    const ADDONS_REGEX = /sos|sauce|bautur|drink|desert|dessert|cartof|fries|potato|wedges|soup|supă|salat|miso|ceai|tea|mochi|ketchup|mayo|maionez|spring roll|gyoza|edamame|nuggets|wings|churros|waffle|cheesecake/i;
+    // 1. Categoriile active efectiv pe ecranul meniului
+    const activeCatIds = new Set((menuCategories || []).map(c => c.id));
     
-    const cartCategoryIds = new Set(cartItems.map(i => {
-      const p = menuProducts.find(prod => prod.id === i.productId);
-      return p ? p.categoryId : null;
-    }).filter(Boolean));
-    
-    // Allow items that were just added to stay visible momentarily
-    const candidates = menuProducts.filter(p => (!cartProductIds.has(p.id) || addedIds[p.id]) && p.price > 0);
-    
-    const scored = candidates.map(p => {
-      let score = 0;
-      // Bonus: Add-ons / sides are excellent cross-sells
-      if (ADDONS_REGEX.test(p.name)) score += 12;
-      // Bonus: Visuals sell! Products with images look much more appetizing
-      if (p.image) score += 8;
-      // PENALTY: Heavily penalize categories the user already bought from
-      if (cartCategoryIds.has(p.categoryId)) score -= 20;
-      
-      return { ...p, _score: score };
+    // 2. Filtrare strictă: produsul trebuie să aibă preț, să nu fie ascuns/șters/stop-list
+    // și OBLIGATORIU să aparțină unei categorii active din meniu (exclus produse scoase din meniu)
+    const validCandidates = menuProducts.filter(p => {
+      if (!p || !p.id || !p.price || Number(p.price) <= 0) return false;
+      if (p.isHidden || p.isDeleted || p.outOfStock) return false;
+      if (activeCatIds.size > 0 && !activeCatIds.has(p.categoryId)) return false;
+      if (cartProductIds.has(p.id) && !addedIds[p.id]) return false;
+      return true;
     });
-    
-    scored.sort((a, b) => b._score - a._score);
-    return scored.slice(0, 10);
-  }, [menuProducts, cartItems, cartProductIds, addedIds]);
+
+    if (!validCandidates.length) return [];
+
+    // 3. Împărțire pe tipuri distincte pentru a afișa rânduri cu produse diferite
+    const GUSTARI_RX = /cartof|fries|potato|wedges|nuggets|wings|strips|inel|onion|crispy|edamame|spring roll|gyoza|supa|supă|miso|box|snack/i;
+    const SOSURI_RX = /sos|sauce|dip|ketchup|mayo|maionez|mustar|muștar|sweet chili|wasabi|ghimbir/i;
+    const BAUTURI_RX = /bautur|băutur|drink|cola|pepsi|fanta|sprite|apa|apă|water|bere|beer|suc|juice|ceai|tea|limonad|lemonade|ayran|shake|smoothie|fuze/i;
+    const DESERT_RX = /desert|dessert|mochi|cheesecake|tiramisu|clatit|clătit|donut|waffle|inghetat|înghețat|cake|brownie|lava cake/i;
+
+    const gustari = validCandidates.filter(p => GUSTARI_RX.test(`${p.name} ${p.categoryName || ''}`)).sort((a, b) => (b.image ? 1 : 0) - (a.image ? 1 : 0));
+    const sosuri = validCandidates.filter(p => SOSURI_RX.test(`${p.name} ${p.categoryName || ''}`)).sort((a, b) => (b.image ? 1 : 0) - (a.image ? 1 : 0));
+    const bauturi = validCandidates.filter(p => BAUTURI_RX.test(`${p.name} ${p.categoryName || ''}`)).sort((a, b) => (b.image ? 1 : 0) - (a.image ? 1 : 0));
+    const deserturi = validCandidates.filter(p => DESERT_RX.test(`${p.name} ${p.categoryName || ''}`)).sort((a, b) => (b.image ? 1 : 0) - (a.image ? 1 : 0));
+
+    const picked = [];
+    const usedIds = new Set();
+
+    const addFromPool = (pool, count) => {
+      let added = 0;
+      for (const item of pool) {
+        if (!usedIds.has(item.id) && added < count) {
+          picked.push(item);
+          usedIds.add(item.id);
+          added++;
+        }
+      }
+    };
+
+    // Rândul 1 & Rândul 2: mix echilibrat de categorii diferite
+    addFromPool(gustari, 4);
+    addFromPool(sosuri, 2);
+    if (deserturi.length > 0) {
+      addFromPool(deserturi, 1);
+      addFromPool(bauturi, 1);
+    } else {
+      addFromPool(bauturi, 2);
+    }
+
+    // Completare dacă au fost mai puține într-o categorie
+    if (picked.length < 8) {
+      for (const item of validCandidates) {
+        if (!usedIds.has(item.id) && picked.length < 8) {
+          picked.push(item);
+          usedIds.add(item.id);
+        }
+      }
+    }
+
+    return picked;
+  }, [menuProducts, menuCategories, cartItems, cartProductIds, addedIds]);
 
   const setSelectedProduct = useKioskStore((s) => s.setSelectedProduct);
 
@@ -247,21 +284,19 @@ export default function CartScreen() {
               </div>
             </div>
           ))}
-          {/* Smart Cross-sell Suggestions (Sub Coș - Prezentare Apetisantă) */}
+          {/* Smart Cross-sell Suggestions (Sub Coș - Prezentare pe mai multe rânduri, fără scroll) */}
           {suggestions.length > 0 && (
             <div className="cart-upsell-section">
               <div className="cart-upsell-header">
                 <div className="cart-upsell-title-wrap">
                   <div className="cart-upsell-badge">
-                    <span className="cart-upsell-badge-icon">✨</span>
                     <span>{t('complete_order', lang) || 'Completează comanda ta'}</span>
                   </div>
-                  <h2 className="cart-upsell-title">{t('add_also', lang) || 'Adaugă și ceva delicios alături'}</h2>
+                  <h2 className="cart-upsell-title">{t('add_also', lang) || 'Adaugă și alte preparate'}</h2>
                 </div>
-                <span className="cart-upsell-hint">Glisează orizontal →</span>
               </div>
               
-              <div className="cart-upsell-rail">
+              <div className="cart-upsell-grid">
                 {suggestions.map(prod => {
                   const isAdded = Boolean(addedIds[prod.id]);
                   const price = getEffectivePrice(prod);
@@ -308,7 +343,7 @@ export default function CartScreen() {
                         {isAdded && (
                           <div className="cart-upsell-card-overlay">
                             <span className="cart-upsell-card-check">✓</span>
-                            <span className="cart-upsell-card-added-text">Adăugat!</span>
+                            <span className="cart-upsell-card-added-text">Adăugat</span>
                           </div>
                         )}
                       </div>
@@ -374,12 +409,26 @@ export default function CartScreen() {
             ← {t('add_more', lang)}
           </button>
 
-          {/* Securitate & Plată POS */}
+          {/* Securitate & Plată POS (fără emoji) */}
           <div className="cart-summary-trust">
             <span className="trust-label">Plată rapidă și sigură la POS</span>
             <div className="trust-icons">
-              <span className="trust-badge">💳 Card Bancar</span>
-              <span className="trust-badge">📱 Contactless</span>
+              <span className="trust-badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: '5px' }}>
+                  <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                  <line x1="1" y1="10" x2="23" y2="10"/>
+                </svg>
+                Card Bancar
+              </span>
+              <span className="trust-badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: '5px' }}>
+                  <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+                  <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+                  <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+                  <line x1="12" y1="20" x2="12.01" y2="20"/>
+                </svg>
+                Contactless
+              </span>
             </div>
           </div>
         </div>

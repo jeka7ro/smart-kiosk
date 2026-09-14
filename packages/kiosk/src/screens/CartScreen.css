@@ -189,16 +189,6 @@
   width: fit-content;
 }
 
-.cart-upsell-badge-icon {
-  font-size: 0.95rem;
-  animation: pulseIcon 2s infinite ease-in-out;
-}
-
-@keyframes pulseIcon {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.2); }
-}
-
 .cart-upsell-title {
   font-size: 1.25rem;
   font-weight: 800;
@@ -207,47 +197,20 @@
   letter-spacing: -0.2px;
 }
 
-.cart-upsell-hint {
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: var(--text-muted, #64748b);
-  white-space: nowrap;
-  background: var(--surface, #f8fafc);
-  border: 1px solid var(--border);
-  padding: 6px 12px;
-  border-radius: 999px;
-}
-
-.cart-upsell-rail {
-  display: flex;
-  gap: 16px;
-  overflow-x: auto;
-  padding: 4px 2px 14px 2px;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  scroll-behavior: smooth;
-}
-
-.cart-upsell-rail::-webkit-scrollbar {
-  height: 6px;
-}
-.cart-upsell-rail::-webkit-scrollbar-track {
-  background: var(--surface, #f1f5f9);
-  border-radius: 999px;
-}
-.cart-upsell-rail::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--primary, #EE3B24) 40%, #cbd5e1);
-  border-radius: 999px;
+/* MULTI-ROW GRID (FĂRĂ SCROLL) */
+.cart-upsell-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  width: 100%;
 }
 
 /* APPETIZING CARD */
 .cart-upsell-card {
-  flex: 0 0 195px;
-  width: 195px;
-  scroll-snap-align: start;
+  width: 100%;
   background: #ffffff;
   border: 1.5px solid var(--border);
-  border-radius: 20px;
+  border-radius: 18px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -572,6 +535,12 @@
 }
 
 /* RESPONSIVE LAYOUT */
+@media (max-width: 1280px) {
+  .cart-upsell-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 @media (max-width: 960px) {
   .cart-body {
     flex-direction: column;
@@ -591,12 +560,14 @@
     box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.08);
     padding: 16px 20px;
   }
-  .cart-upsell-card {
-    flex: 0 0 170px;
-    width: 170px;
+  .cart-upsell-grid {
+    grid-template-columns: repeat(4, 1fr);
   }
-  .cart-upsell-card-media {
-    height: 120px;
+}
+
+@media (max-width: 720px) {
+  .cart-upsell-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
