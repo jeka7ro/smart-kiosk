@@ -4291,22 +4291,6 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                     <p className="text-xs text-slate-500 dark:text-slate-400">Protejează setările locale și permite blocarea ecranului pe timpul nopții sau în afara programului.</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    {(formData.kioskPin || formData.vendorPin || usePin) && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          handleChange('kioskPin', '');
-                          handleChange('vendorPin', '');
-                          handleChange('lockScheduleActive', false);
-                          setUsePin(false);
-                        }}
-                        className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
-                        title="Resetează complet PIN-ul (Acces direct pe kiosk)"
-                      >
-                        <RotateCcw className="w-3.5 h-3.5" />
-                        Resetează la Fără PIN
-                      </button>
-                    )}
                     <KioskSwitch
                       checked={usePin}
                       onChange={val => {
