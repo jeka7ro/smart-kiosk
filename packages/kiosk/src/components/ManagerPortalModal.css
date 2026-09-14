@@ -100,27 +100,6 @@
   background: #f1f5f9;
 }
 
-.mgr-pin-phone-btn {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 5px 12px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: #2563eb;
-  margin-bottom: 14px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.15s;
-}
-
-.mgr-pin-phone-btn:hover {
-  background: #eff6ff;
-  border-color: #bfdbfe;
-}
-
 .mgr-pin-dot {
   width: 13px;
   height: 13px;

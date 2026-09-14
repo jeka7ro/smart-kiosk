@@ -584,7 +584,6 @@ const KIOSK_EVENT_META = {
           <div 
             className={`mgr-pin-dots ${pinError ? 'mgr-pin-dots-error' : ''}`}
             onClick={() => pinInputRef.current?.focus()}
-            title="Apasă pentru tastatura telefonului"
           >
             {/* Input nativ ascuns dar complet funcțional pentru tastatura telefonului */}
             <input
@@ -628,14 +627,6 @@ const KIOSK_EVENT_META = {
               />
             ))}
           </div>
-
-          <button
-            type="button"
-            className="mgr-pin-phone-btn"
-            onClick={() => pinInputRef.current?.focus()}
-          >
-            📱 Tastatură telefon
-          </button>
 
           {pinErrorMessage && (
             <div className="mgr-pin-error-text">{pinErrorMessage}</div>
