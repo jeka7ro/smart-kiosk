@@ -4,6 +4,7 @@ import { t } from '../i18n/translations.js';
 import { useBrand } from '../context/BrandContext.js';
 import { proxySyrveImage } from '../utils/imageUtils.js';
 import { getEffectivePrice, hasActivePromo } from '../utils/priceUtils.js';
+import { shouldShowSteam } from '../utils/visualFxUtils.js';
 import ProductVisualFX from '../components/ProductVisualFX.jsx';
 import './ProductScreen.css';
 
@@ -242,16 +243,8 @@ export default function ProductScreen() {
   const heroRef = useRef(null);
 
   const isHotProduct = useMemo(() => {
-    if (!product) return false;
-    const catLower = (product.categoryName || product.parentGroupName || '').toLowerCase();
-    const nameLower = (product.name || '').toLowerCase();
-    const isCold = catLower.includes('bautur') || catLower.includes('drink') || 
-                   nameLower.includes('coca') || nameLower.includes('apa') || 
-                   nameLower.includes('fanta') || nameLower.includes('sprite') || 
-                   nameLower.includes('inghetata') || nameLower.includes('shake') ||
-                   nameLower.includes('bere') || nameLower.includes('sos');
-    return !isCold;
-  }, [product]);
+    return shouldShowSteam(product, brand?.id);
+  }, [product, brand?.id]);
 
   const modifiers = product?.modifierGroups || product?.modifiers || [];
   const allergens = product?.allergenGroups || product?.allergens || [];
@@ -703,6 +696,7 @@ export default function ProductScreen() {
               effects={{ steam: true, parallax: false, ice: true, brandFloat: true }}
               isHotProduct={isHotProduct}
               product={product}
+              brandId={brand?.id}
               brandLogo={`/brands/${product._brand || brand?.id || 'smashme'}-logo.png`}
             />
           </div>

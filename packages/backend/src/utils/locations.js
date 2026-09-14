@@ -38,6 +38,36 @@ const CITY_CONFIG = {
       'adddb5a0-26e5-4d50-b472-1c74726c3f72', // SM BRASOV (sm-brasov)
     ],
   },
+  constanta: {
+    city: 'constanta',
+    cityName: 'Constanța',
+    prefix: 'CT',
+    minStart: 0,
+    aliases: [
+      'constanta', 'smashme-constanta', 'ct', 'smashme constanta',
+      '8308e796-8780-4d18-ae66-4e430178c778',
+    ],
+  },
+  oradea: {
+    city: 'oradea',
+    cityName: 'Oradea',
+    prefix: 'OR',
+    minStart: 0,
+    aliases: [
+      'oradea', 'ikura oradea', 'or',
+      'd1cb5d9d-6aeb-4b0c-adf9-5ce8648ce4e1',
+    ],
+  },
+  targumures: {
+    city: 'targumures',
+    cityName: 'Târgu Mureș',
+    prefix: 'MS',
+    minStart: 0,
+    aliases: [
+      'targu mures', 'targu-mures', 'targumures', 'ms',
+      '958aefef-28b5-4f25-9f4d-97fb02d2bf9d',
+    ],
+  },
 };
 
 /**

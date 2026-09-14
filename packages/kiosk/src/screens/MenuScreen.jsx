@@ -648,9 +648,7 @@ export default function MenuScreen() {
         {/* ─── SIDEBAR CATEGORIES ────────────────────── */}
         <aside className="category-sidebar">
           {visibleCategories.map(cat => {
-            // Caută imaginea primului produs din această categorie dacă categoria nu are poză
-            const firstProdWithImage = allProducts.find(p => p.categoryId === cat.id && p.image);
-            const displayImage = cat.image || firstProdWithImage?.image;
+            const displayImage = cat.image;
 
             return (
               <button
@@ -660,9 +658,7 @@ export default function MenuScreen() {
               >
                 {displayImage ? (
                   <img src={proxySyrveImage(displayImage)} alt={cat.name} className="cat-btn-img" onError={(e) => { e.target.style.display = 'none'; }} />
-                ) : (
-                  <div className="cat-btn-img" style={{ background: 'transparent', border: 'none', boxShadow: 'none' }} />
-                )}
+                ) : null}
                 <span className="cat-btn-label">{cat.name}</span>
               </button>
             );
@@ -678,6 +674,7 @@ export default function MenuScreen() {
               lang={lang}
               steam={isHeroSteam}
               brandLogo={activeBrandLogo || locationData?.logoUrl}
+              brandId={activeBrandId}
               onSelect={(prod) => {
                 if (productsAreaRef.current) setMenuScrollTop(productsAreaRef.current.scrollTop);
                 setMenuActiveCategory(activeCategory);

@@ -1,14 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { shouldShowSteam } from '../utils/visualFxUtils.js';
 import './ProductVisualFX.css';
 
 /**
  * ProductVisualFX
  * Sistem modular inteligent de efecte vizuale pentru ecranul de detalii și Category Hero Banner:
  * 1. Parallax 3D Tilt & Specular Sheen (la atingere / mișcare)
- * 2. Abur cald organic inteligent (Burgeri, Carne, Cartofi, Aripioare, Combo multi-produs)
+ * 2. Abur cald organic inteligent (Strict: Supe, Wok, Burgeri calzi, Cartofi calzi - FĂRĂ sushi, FĂRĂ bețe sushi)
  * 3. Efect de Gheață & Răcoritor (Băuturi: cristale sclipitoare, bule reci, abur înghețat)
  * 4. Efect de Logo Brand Plutitor (Deserturi: mici chips-uri cu logo brand plutind lin)
- * 5. Fără abur la sosuri și băuturi / deserturi
+ * 5. Fără abur la sosuri, băuturi, deserturi, bețe sushi sau sushi rece
  */
 export default function ProductVisualFX({
   heroRef,
@@ -16,6 +17,7 @@ export default function ProductVisualFX({
   isHotProduct = true,
   product = null,
   brandLogo = null,
+  brandId = null,
 }) {
   const canvasRef = useRef(null);
   const [tilt, setTilt] = useState({ rx: 0, ry: 0, glareX: 50, glareY: 50, active: false });
@@ -67,13 +69,13 @@ export default function ProductVisualFX({
     nameLower.includes('carlsberg')
   );
 
-  // 4. MÂNCARE CALDĂ: Abur inteligent din carne/brânză
-  const isHot = isHotProduct && !isSauce && !isDessert && !isColdDrink;
+  // 4. MÂNCARE CALDĂ: Abur exclusiv la mâncare fierbinte validată (Supe, Wok, Burgeri/Pui cald)
+  const isHot = Boolean(isHotProduct && shouldShowSteam(product, brandId));
 
-  // Detectăm dacă este un combo / set cu 3 sau mai multe produse (ex: 3 Dublu Burgeri, Trio, Combo)
+  // Detectăm dacă este un combo / set cald cu 3 sau mai multe produse fierbinți (ex: 3 Dublu Burgeri, Trio)
   const isCombo = isHot && Boolean(
-    /combo|set|meniu|menu|trio|duo|share|platou|box|pachet|3\s*dublu|2\s*dublu|3\s*burgeri|3x/i.test(product?.name || '') ||
-    /alege\s*[2345]|3\s*dublu|3\s*burgeri|2\s*burgeri|trei|buc/i.test(product?.description || '')
+    /combo|trio|duo|share|platou|box|3\s*dublu|2\s*dublu|3\s*burgeri|3x/i.test(product?.name || '') ||
+    /alege\s*[2345]|3\s*dublu|3\s*burgeri|2\s*burgeri/i.test(product?.description || '')
   );
 
   // ─── 1. PARALLAX 3D TILT LISTENER ───

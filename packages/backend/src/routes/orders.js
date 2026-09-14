@@ -31,43 +31,54 @@ router.post('/', async (req, res) => {
 
     const subtotal = totalAmount || items.reduce((s, i) => s + (i.totalPrice || 0), 0);
 
-    // Get max orderNumber from Supabase
+    // Helper: formatare secvențială: 001..999 cu padding de 3 cifre, iar de la 1000 continuă natural (1000, 1001, etc.)
+    const formatOrderSeq = (num) => {
+      const n = parseInt(num, 10);
+      if (isNaN(n) || n <= 0) return '001';
+      return n < 1000 ? String(n).padStart(3, '0') : String(n);
+    };
+
+    // Get max orderNumber from Postgres
     let maxOrderNumber = 358;
     let clujMax = 0;
     let brasovMax = 0;
+    const maxByPrefix = {};
+
     try {
       const { rows } = await pool.query(`SELECT data->>'orderNumber' as num, location_id FROM orders WHERE (data->>'orderNumber') IS NOT NULL`);
       for (const row of rows) {
-        const str = String(row.num || '');
-        const city = detectCity(row.location_id);
-        if (city === 'cluj' || str.startsWith('CJ')) {
-          if (str.startsWith('CJ')) {
-            const match = str.match(/^CJ[12]?-?(\d+)/i);
-            if (match) {
-              const rawNum = parseInt(match[1], 10);
-              if (!isNaN(rawNum)) {
-                // Support legacy 10000+ orders (e.g. 10021 -> 21) as well as 3-digit orders (022 -> 22)
-                const seq = rawNum >= 10000 ? (rawNum - 10000) : rawNum;
-                clujMax = Math.max(clujMax, seq);
-              }
-            }
-          }
-        } else if (city === 'brasov' || str.startsWith('BV')) {
-          if (str.startsWith('BV')) {
-            const bvNum = parseInt(str.replace(/[^0-9]/g, ''), 10);
-            if (!isNaN(bvNum)) brasovMax = Math.max(brasovMax, bvNum);
-          } else {
-            // Old numeric orders from brasov (or before prefix was added)
-            const num = parseInt(str, 10);
-            if (!isNaN(num) && num < 1000) {
-              brasovMax = Math.max(brasovMax, num);
+        const str = String(row.num || '').trim();
+        if (!str) continue;
+
+        // Căutăm prefix cu format [LITERE][CIFRĂ]?-[NUMĂR] (ex: CJ1-093, CJ2-1002, BV-561, CT-045, OR-1002)
+        const prefixMatch = str.match(/^([a-zA-Z]+)(\d*)-(\d+)$/);
+        if (prefixMatch) {
+          const letterPrefix = prefixMatch[1].toUpperCase(); // ex: 'CJ', 'BV', 'CT'
+          const fullPrefix = `${letterPrefix}${prefixMatch[2]}`; // ex: 'CJ1', 'CJ2', 'BV'
+          const seqNum = parseInt(prefixMatch[3], 10);
+
+          if (!isNaN(seqNum) && seqNum < 1000000) {
+            maxByPrefix[fullPrefix] = Math.max(maxByPrefix[fullPrefix] || 0, seqNum);
+            maxByPrefix[letterPrefix] = Math.max(maxByPrefix[letterPrefix] || 0, seqNum);
+
+            if (letterPrefix === 'CJ') {
+              clujMax = Math.max(clujMax, seqNum);
+            } else if (letterPrefix === 'BV') {
+              brasovMax = Math.max(brasovMax, seqNum);
             }
           }
         } else {
-          const num = parseInt(row.num, 10);
-          // Exclude specific test numbers and ignore huge numbers from old DB data
-          if (!isNaN(num) && num !== 946 && num !== 862 && num < 1000) {
-            maxOrderNumber = Math.max(maxOrderNumber, num);
+          // Format numeric pur sau comenzi vechi
+          const numOnly = parseInt(str.replace(/[^0-9]/g, ''), 10);
+          if (!isNaN(numOnly) && numOnly < 1000000 && numOnly !== 946 && numOnly !== 862) {
+            const city = detectCity(row.location_id);
+            if (city === 'cluj') {
+              clujMax = Math.max(clujMax, numOnly);
+            } else if (city === 'brasov') {
+              brasovMax = Math.max(brasovMax, numOnly);
+            } else {
+              maxOrderNumber = Math.max(maxOrderNumber, numOnly);
+            }
           }
         }
       }
@@ -81,25 +92,34 @@ router.post('/', async (req, res) => {
     const brandName = brand || brandId || 'smashme';
     const city = detectCity(locId, resolvedLocationName);
 
+    // Kiosk number detection (Kiosk 1, Kiosk 2, etc.)
+    let kioskNum = '1';
+    const kioskIdStr = String(kioskId || '').toLowerCase();
+    const locIdStr = String(locId || '').toLowerCase();
+    if (kioskIdStr.includes('2') || locIdStr.includes('kiosk2') || locIdStr.includes('kiosk-2') || locIdStr === 'cluj2') {
+      kioskNum = '2';
+    } else if (kioskIdStr.includes('3') || locIdStr.includes('kiosk3') || locIdStr.includes('kiosk-3')) {
+      kioskNum = '3';
+    } else if (kioskIdStr.includes('1') || locIdStr.includes('kiosk1') || locIdStr.includes('kiosk-1') || locIdStr === 'cluj1') {
+      kioskNum = '1';
+    }
+
     let orderNumber;
     if (city === 'cluj') {
-      let kioskNum = '1';
-      const kioskIdStr = String(kioskId || '').toLowerCase();
-      const locIdStr = String(locId || '').toLowerCase();
-      if (kioskIdStr.includes('2') || locIdStr.includes('kiosk2') || locIdStr.includes('kiosk-2') || locIdStr === 'cluj2') {
-        kioskNum = '2';
-      } else if (kioskIdStr.includes('1') || locIdStr.includes('kiosk1') || locIdStr.includes('kiosk-1') || locIdStr === 'cluj1') {
-        kioskNum = '1';
-      }
       const nextSeq = clujMax + 1;
-      const seqPadded = String(nextSeq).padStart(3, '0');
-      orderNumber = `CJ${kioskNum}-${seqPadded}`;
+      orderNumber = `CJ${kioskNum}-${formatOrderSeq(nextSeq)}`;
     } else if (city === 'brasov') {
-      // Continue from highest Brașov order (numeric 539-541 or previous BV-...)
-      const bvContinue = Math.max(brasovMax, maxOrderNumber);
-      orderNumber = `BV-${bvContinue + 1}`;
+      const nextSeq = Math.max(brasovMax, maxOrderNumber) + 1;
+      orderNumber = `BV-${formatOrderSeq(nextSeq)}`;
     } else {
-      orderNumber = maxOrderNumber + 1;
+      const prefix = getOrderPrefix(locId, resolvedLocationName);
+      if (prefix) {
+        const nextSeq = (maxByPrefix[prefix] || maxOrderNumber) + 1;
+        orderNumber = `${prefix}-${formatOrderSeq(nextSeq)}`;
+      } else {
+        const nextSeq = maxOrderNumber + 1;
+        orderNumber = formatOrderSeq(nextSeq);
+      }
     }
 
     const orderId = `ORD-${Date.now()}`;

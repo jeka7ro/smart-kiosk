@@ -3,9 +3,10 @@ import { proxySyrveImage } from '../utils/imageUtils.js';
 import { t } from '../i18n/translations.js';
 import { getEffectivePrice, hasActivePromo } from '../utils/priceUtils.js';
 import ProductVisualFX from './ProductVisualFX.jsx';
+import { shouldShowSteam } from '../utils/visualFxUtils.js';
 import './CategoryHeroBanner.css';
 
-export default function CategoryHeroBanner({ product, categoryName, lang, onSelect, onQuickAdd, steam = true, brandLogo = null }) {
+export default function CategoryHeroBanner({ product, categoryName, lang, onSelect, onQuickAdd, steam = true, brandLogo = null, brandId = null }) {
   if (!product) return null;
 
   const bannerRef = useRef(null);
@@ -57,14 +58,15 @@ export default function CategoryHeroBanner({ product, categoryName, lang, onSele
       {/* Subtle vignette overlay for text readability */}
       <div className="hero-kfc-overlay" />
 
-      {/* Visual FX layer: Abur la cald, Gheață la băuturi, Logo brand plutitor la deserturi, Nimic la sosuri */}
+      {/* Visual FX layer: Abur la cald, Gheață la băuturi, Logo brand plutitor la deserturi, Nimic la sosuri sau sushi rece/accesorii */}
       {steam && (
         <ProductVisualFX 
           heroRef={bannerRef}
           effects={{ steam: true, parallax: false, ice: true, brandFloat: true }}
-          isHotProduct={true}
+          isHotProduct={shouldShowSteam(product, brandId)}
           product={product}
           brandLogo={brandLogo}
+          brandId={brandId}
         />
       )}
 
