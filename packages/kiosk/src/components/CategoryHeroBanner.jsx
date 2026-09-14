@@ -21,30 +21,49 @@ export default function CategoryHeroBanner({
   if (productList.length === 0) return null;
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [prevIndex, setPrevIndex] = useState(null);
+  const [isFading, setIsFading] = useState(false);
+
+  // Pre-load all hero images so transitions never stutter or blink
+  useEffect(() => {
+    if (!productList.length) return;
+    productList.forEach(p => {
+      if (p?.image) {
+        const img = new Image();
+        img.src = proxySyrveImage(p.image);
+      }
+    });
+  }, [productList]);
 
   // Reset index when category or brand changes
   useEffect(() => {
     setCurrentIndex(0);
-    setIsTransitioning(false);
+    setPrevIndex(null);
+    setIsFading(false);
   }, [categoryName, brandId, productList.length]);
 
-  // Rotate every 5 seconds smoothly and elegantly
+  // Rotate every 5 seconds with ultra-smooth cross-fade
   useEffect(() => {
     if (productList.length <= 1) return;
 
     const interval = setInterval(() => {
-      setIsTransitioning(true);
-      setTimeout(() => {
-        setCurrentIndex(prev => (prev + 1) % productList.length);
-        setIsTransitioning(false);
-      }, 400); // 400ms smooth cross-fade duration
+      setPrevIndex(currentIndex);
+      setIsFading(true);
+      setCurrentIndex(prev => (prev + 1) % productList.length);
+
+      const timer = setTimeout(() => {
+        setIsFading(false);
+        setPrevIndex(null);
+      }, 750); // 750ms cinematic cross-fade
+
+      return () => clearTimeout(timer);
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [productList.length, categoryName, brandId]);
+  }, [productList.length, currentIndex, categoryName, brandId]);
 
   const product = productList[currentIndex] || productList[0];
+  const prevProduct = prevIndex !== null ? productList[prevIndex] : null;
   const bannerRef = useRef(null);
   const hasImage = !!product?.image;
   const isPromo = hasActivePromo(product) || 
@@ -78,18 +97,42 @@ export default function CategoryHeroBanner({
     }
   };
 
+  const handleDotClick = (idx) => {
+    if (idx === currentIndex) return;
+    setPrevIndex(currentIndex);
+    setIsFading(true);
+    setCurrentIndex(idx);
+    setTimeout(() => {
+      setIsFading(false);
+      setPrevIndex(null);
+    }, 750);
+  };
+
   return (
     <div className="category-hero-kfc-banner" ref={bannerRef} onClick={handleCardClick}>
-      {/* Full-bleed background image - exact KFC style with smooth fade */}
-      {hasImage && (
-        <img 
-          key={product.id || product.name}
-          src={proxySyrveImage(product.image)} 
-          alt={product.name} 
-          className={`hero-kfc-bg-img ${isTransitioning ? 'hero-bg-fade' : ''}`}
-          onError={(e) => { e.currentTarget.style.display = 'none'; }}
-        />
-      )}
+      {/* Background Images with cinematic 750ms Cross-fade */}
+      <div className="hero-kfc-bg-container">
+        {/* Previous Image (fades out underneath) */}
+        {prevProduct?.image && (
+          <img 
+            key={`prev-${prevProduct.id || prevProduct.name}`}
+            src={proxySyrveImage(prevProduct.image)} 
+            alt="prev" 
+            className="hero-kfc-bg-img hero-kfc-bg-img--prev"
+          />
+        )}
+
+        {/* Current Active Image (fades in smoothly with subtle zoom) */}
+        {hasImage && (
+          <img 
+            key={`curr-${product.id || product.name}`}
+            src={proxySyrveImage(product.image)} 
+            alt={product.name} 
+            className={`hero-kfc-bg-img hero-kfc-bg-img--current ${isFading ? 'hero-kfc-bg-img--animating' : ''}`}
+            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+          />
+        )}
+      </div>
 
       {/* Subtle vignette overlay for text readability */}
       <div className="hero-kfc-overlay" />
@@ -107,9 +150,9 @@ export default function CategoryHeroBanner({
         />
       )}
 
-      {/* Animated Content Container */}
-      <div className={`hero-kfc-content-wrapper ${isTransitioning ? 'hero-content-fade' : ''}`}>
-        {/* Top Bar: Round Brand Avatar + Star Badge & Carousel Dots + Price Sticker + Info */}
+      {/* Dynamic Content Container */}
+      <div className="hero-kfc-content-wrapper">
+        {/* Top Bar: Round Brand Avatar + Carousel Dots + Price Sticker + Info */}
         <div className="hero-kfc-top-bar">
           <div className="hero-kfc-top-left">
             {brandLogo && (
@@ -123,17 +166,15 @@ export default function CategoryHeroBanner({
               </div>
             )}
 
-            <div className={`hero-kfc-badge ${isPromo ? 'hero-kfc-badge--promo' : ''}`}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-              </svg>
-              <span>
-                {isPromo 
-                  ? (lang === 'en' ? 'SPECIAL OFFER' : 'OFERTĂ SPECIALĂ')
-                  : (lang === 'en' ? 'STAR PRODUCT' : 'PRODUSUL VEDETĂ')
-                }
-              </span>
-            </div>
+            {/* Doar daca este reducere activa afisam OFERTA SPECIALA, fara eticheta redundanta de Produsul Vedeta */}
+            {isPromo && (
+              <div className="hero-kfc-badge hero-kfc-badge--promo">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                </svg>
+                <span>{lang === 'en' ? 'SPECIAL OFFER' : 'OFERTĂ SPECIALĂ'}</span>
+              </div>
+            )}
           </div>
 
           {/* Carousel Progress Dots Navigation */}
@@ -144,15 +185,7 @@ export default function CategoryHeroBanner({
                   key={p.id || idx}
                   type="button"
                   className={`hero-kfc-dot ${idx === currentIndex ? 'hero-kfc-dot--active' : ''}`}
-                  onClick={() => {
-                    if (idx !== currentIndex) {
-                      setIsTransitioning(true);
-                      setTimeout(() => {
-                        setCurrentIndex(idx);
-                        setIsTransitioning(false);
-                      }, 200);
-                    }
-                  }}
+                  onClick={() => handleDotClick(idx)}
                   title={p.name}
                   aria-label={`Produsul ${idx + 1}`}
                 />
@@ -162,7 +195,10 @@ export default function CategoryHeroBanner({
 
           <div className="hero-kfc-top-right">
             {/* KFC Price Sticker Badge in top right */}
-            <div className={`hero-kfc-price-sticker ${isPromo ? 'hero-kfc-price-sticker--promo' : ''}`}>
+            <div 
+              key={`price-${product.id}`}
+              className={`hero-kfc-price-sticker ${isPromo ? 'hero-kfc-price-sticker--promo' : ''} ${isFading ? 'hero-content-fade-in' : ''}`}
+            >
               {isPromo && originalPrice > effectivePrice && (
                 <span className="kfc-price-old">{originalPrice.toFixed(2)}</span>
               )}
@@ -183,7 +219,7 @@ export default function CategoryHeroBanner({
         </div>
 
         {/* Bottom Row: Product Title, Description & + Adaugă Button */}
-        <div className="hero-kfc-bottom-bar">
+        <div key={`bottom-${product.id}`} className={`hero-kfc-bottom-bar ${isFading ? 'hero-content-fade-in' : ''}`}>
           <div className="hero-kfc-info">
             <h2 className="hero-kfc-title">{product.name}</h2>
             {desc && <p className="hero-kfc-desc">{desc}</p>}
