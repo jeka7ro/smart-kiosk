@@ -2621,35 +2621,37 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
         </div>
       </div>
 
-      {/* ─── SUB-NAVIGATION TABS ─── */}
-      <div className="flex items-center gap-1.5 p-1.5 bg-slate-100/80 dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 overflow-x-auto">
-        {TABS.map(tab => {
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all cursor-pointer ${
-                isActive
-                  ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm border border-slate-200/80 dark:border-slate-700/80'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-800/50'
-              }`}
-            >
-              <span>{tab.icon}</span>
-              <span>{tab.label}</span>
-              {tab.badge && (
-                <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
-                  isActive 
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' 
-                    : 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
-                }`}>
-                  {tab.badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
+      {/* ─── SUB-NAVIGATION TABS (STICKY & ALWAYS VISIBLE WITHOUT SCROLL) ─── */}
+      <div className="sticky top-0 z-30 py-2 -my-1 bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur-md">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1.5 p-1.5 bg-slate-100/90 dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-sm w-full">
+          {TABS.map(tab => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center justify-center gap-1.5 px-2.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer text-center ${
+                  isActive
+                    ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm border border-slate-200/80 dark:border-slate-700/80 ring-1 ring-blue-500/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-700/50'
+                }`}
+              >
+                <span className="shrink-0">{tab.icon}</span>
+                <span className="truncate">{tab.label}</span>
+                {tab.badge && (
+                  <span className={`shrink-0 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full ${
+                    isActive 
+                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' 
+                      : 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                  }`}>
+                    {tab.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* ─── TAB 1: DESIGN & EFECTE 3D ─── */}
