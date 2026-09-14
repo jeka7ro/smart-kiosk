@@ -56,13 +56,40 @@ export default function CartScreen() {
 
     if (!validCandidates.length) return [];
 
-    // 3. Împărțire pe tipuri distincte pentru a afișa rânduri cu produse diferite
+    // 3. Împărțire pe tipuri distincte pentru a afișa 3 rânduri (12 produse) din categorii diferite
     const GUSTARI_RX = /cartof|fries|potato|wedges|nuggets|wings|strips|inel|onion|crispy|edamame|spring roll|gyoza|supa|supă|miso|box|snack/i;
     const SOSURI_RX = /sos|sauce|dip|ketchup|mayo|maionez|mustar|muștar|sweet chili|wasabi|ghimbir/i;
     const BAUTURI_RX = /bautur|băutur|drink|cola|pepsi|fanta|sprite|apa|apă|water|bere|beer|suc|juice|ceai|tea|limonad|lemonade|ayran|shake|smoothie|fuze/i;
     const DESERT_RX = /desert|dessert|mochi|cheesecake|tiramisu|clatit|clătit|donut|waffle|inghetat|înghețat|cake|brownie|lava cake/i;
 
-    const gustari = validCandidates.filter(p => GUSTARI_RX.test(`${p.name} ${p.categoryName || ''}`)).sort((a, b) => (b.image ? 1 : 0) - (a.image ? 1 : 0));
+    // Produse de bază (Main dishes: burgeri, mâncăruri calde, combos, roll-uri principale, wok)
+    const mainCandidates = validCandidates.filter(p => 
+      !SOSURI_RX.test(`${p.name} ${p.categoryName || ''}`) &&
+      !BAUTURI_RX.test(`${p.name} ${p.categoryName || ''}`) &&
+      !GUSTARI_RX.test(p.name) &&
+      !DESERT_RX.test(p.name) &&
+      p.image
+    );
+
+    // Diversificăm produsele de bază luând din categorii diferite (ex: Smashed, Next Level, Combo, Chicken)
+    const mainsByCat = {};
+    mainCandidates.forEach(p => {
+      mainsByCat[p.categoryId] = mainsByCat[p.categoryId] || [];
+      mainsByCat[p.categoryId].push(p);
+    });
+    const diverseMains = [];
+    const catKeys = Object.keys(mainsByCat);
+    let round = 0;
+    while (diverseMains.length < 4 && round < 4) {
+      for (const ck of catKeys) {
+        if (mainsByCat[ck][round] && diverseMains.length < 4) {
+          diverseMains.push(mainsByCat[ck][round]);
+        }
+      }
+      round++;
+    }
+
+    const gustari = validCandidates.filter(p => GUSTARI_RX.test(`${p.name} ${p.categoryName || ''}`) && !diverseMains.some(m => m.id === p.id)).sort((a, b) => (b.image ? 1 : 0) - (a.image ? 1 : 0));
     const sosuri = validCandidates.filter(p => SOSURI_RX.test(`${p.name} ${p.categoryName || ''}`)).sort((a, b) => (b.image ? 1 : 0) - (a.image ? 1 : 0));
     const bauturi = validCandidates.filter(p => BAUTURI_RX.test(`${p.name} ${p.categoryName || ''}`)).sort((a, b) => (b.image ? 1 : 0) - (a.image ? 1 : 0));
     const deserturi = validCandidates.filter(p => DESERT_RX.test(`${p.name} ${p.categoryName || ''}`)).sort((a, b) => (b.image ? 1 : 0) - (a.image ? 1 : 0));
@@ -81,8 +108,13 @@ export default function CartScreen() {
       }
     };
 
-    // Rândul 1 & Rândul 2: mix echilibrat de categorii diferite
+    // Rândul 1 (4 Produse de Bază): Burgeri / Preparate principale
+    addFromPool(diverseMains, 4);
+
+    // Rândul 2 (4 Garnituri & Gustări): Cartofi, Nuggets, Box etc.
     addFromPool(gustari, 4);
+
+    // Rândul 3 (4 Sosuri & Băuturi): 2 Sosuri + 2 Băuturi (sau desert dacă există)
     addFromPool(sosuri, 2);
     if (deserturi.length > 0) {
       addFromPool(deserturi, 1);
@@ -91,10 +123,10 @@ export default function CartScreen() {
       addFromPool(bauturi, 2);
     }
 
-    // Completare dacă au fost mai puține într-o categorie
-    if (picked.length < 8) {
+    // Completare dacă au fost mai puține într-o categorie până la 12 produse
+    if (picked.length < 12) {
       for (const item of validCandidates) {
-        if (!usedIds.has(item.id) && picked.length < 8) {
+        if (!usedIds.has(item.id) && picked.length < 12) {
           picked.push(item);
           usedIds.add(item.id);
         }
