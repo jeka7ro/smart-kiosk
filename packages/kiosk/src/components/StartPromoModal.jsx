@@ -323,7 +323,7 @@ export default function StartPromoModal({ product, onClose, onAccept, onInfo, la
                   boxShadow: '0 6px 18px rgba(238, 59, 36, 0.35)',
                 }}
               >
-                <span>+</span> {hasRequiredMods ? t.customize : `${t.accept} (${promoPrice.toFixed(2)} lei)`}
+                <span>+</span> {hasRequiredMods ? t.customize : t.accept}
               </button>
 
               <button
@@ -533,7 +533,7 @@ export default function StartPromoModal({ product, onClose, onAccept, onInfo, la
                 }}
               >
                 <span>+</span>
-                <span>{hasRequiredMods ? t.customize : `${t.accept} (${promoPrice.toFixed(2)} lei)`}</span>
+                <span>{hasRequiredMods ? t.customize : t.accept}</span>
               </button>
 
               <button
