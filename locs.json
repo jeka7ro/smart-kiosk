@@ -17,7 +17,7 @@
         "smashme": "9c63cff6-1d66-442d-a98d-2302656e3943"
       },
       "tables": 10,
-      "kioskPin": "1368",
+      "kioskPin": "",
       "kioskUrl": "cluj1",
       "languages": [
         "ro"
@@ -65,7 +65,7 @@
         "smashme": "9c63cff6-1d66-442d-a98d-2302656e3943"
       },
       "tables": 10,
-      "kioskPin": "1368",
+      "kioskPin": "1308",
       "kioskUrl": "cluj2",
       "languages": [
         "ro",

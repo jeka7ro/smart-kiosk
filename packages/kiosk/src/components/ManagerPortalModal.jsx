@@ -126,10 +126,9 @@ export default function ManagerPortalModal({ locationData, onClose, isStandalone
   // PIN Keypad Handlers
   const verifyPin = (entered) => {
     const configuredPin = String(locationData?.kioskPin || '').trim();
-    const isMaster = entered === '1368' || entered === '1308';
     const isConfigured = configuredPin && entered === configuredPin;
 
-    if (isConfigured || isMaster) {
+    if (!configuredPin || isConfigured) {
       setIsAuthenticated(true);
       sendLog('manager_portal_access', 'manager');
     } else {
