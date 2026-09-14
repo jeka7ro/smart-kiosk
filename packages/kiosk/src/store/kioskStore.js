@@ -94,6 +94,7 @@ export const useKioskStore = create((set, get) => ({
 
   // ─── Selected product (for detail screen) ─────────────────
   selectedProduct: null,
+  productOriginScreen: 'menu',
 
   // ─── Navigation ───────────────────────────────────────────
   goTo: (screen) => set((state) => {
@@ -152,10 +153,11 @@ export const useKioskStore = create((set, get) => ({
     screen: 'menu',
   }),
 
-  setSelectedProduct: (product) => set({
+  setSelectedProduct: (product, origin = null) => set((state) => ({
     selectedProduct: product,
+    productOriginScreen: origin || (state.screen !== 'product' ? state.screen : state.productOriginScreen) || 'menu',
     screen: 'product',
-  }),
+  })),
 
   // ─── Cart actions ─────────────────────────────────────────
   addToCart: (product, quantity, selectedModifiers, totalPrice, brandId, redirect = true, comment = null, basePrice = null) => {

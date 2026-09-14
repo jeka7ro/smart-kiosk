@@ -150,7 +150,7 @@ export default function CartScreen() {
     const hasRequiredModifiers = (prod.modifierGroups || []).some(gm => gm.required && gm.options?.length > 0) || (prod.modifiers || []).some(m => m.required && (m.options?.length > 0 || m.items?.length > 0));
     
     if (hasRequiredModifiers) {
-      setSelectedProduct(prod);
+      setSelectedProduct(prod, 'cart');
       return;
     }
 
@@ -388,7 +388,7 @@ export default function CartScreen() {
                           className="cart-upsell-info-btn"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setSelectedProduct(prod);
+                            setSelectedProduct(prod, 'cart');
                           }}
                           aria-label={`Informații ${prod.name}`}
                         >

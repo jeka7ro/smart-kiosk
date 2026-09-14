@@ -236,13 +236,18 @@ const REMOVABLE_INGREDIENTS = [
 ];
 
 export default function ProductScreen() {
-  const product        = useKioskStore((s) => s.selectedProduct);
-  const addToCart      = useKioskStore((s) => s.addToCart);
-  const goTo           = useKioskStore((s) => s.goTo);
-  const lang           = useKioskStore((s) => s.lang);
-  const menuProducts   = useKioskStore((s) => s.menuProducts);
-  const menuCategories = useKioskStore((s) => s.menuCategories);
-  const brand          = useBrand();
+  const product             = useKioskStore((s) => s.selectedProduct);
+  const productOriginScreen = useKioskStore((s) => s.productOriginScreen) || 'menu';
+  const addToCart           = useKioskStore((s) => s.addToCart);
+  const goTo                = useKioskStore((s) => s.goTo);
+  const lang                = useKioskStore((s) => s.lang);
+  const menuProducts        = useKioskStore((s) => s.menuProducts);
+  const menuCategories      = useKioskStore((s) => s.menuCategories);
+  const brand               = useBrand();
+
+  const handleBack = () => {
+    goTo(productOriginScreen || 'menu');
+  };
 
   const visualEffects = useKioskStore((s) => s.visualEffects) || { parallax: true, steam: true };
   const heroRef = useRef(null);
@@ -287,7 +292,7 @@ export default function ProductScreen() {
     return init;
   });
 
-  if (!product) { goTo('menu'); return null; }
+  if (!product) { handleBack(); return null; }
 
   // ─── Pairings calculation ("Se potrivește de minune cu...") ─────────────
   const pairings = useMemo(() => {
@@ -448,8 +453,8 @@ export default function ProductScreen() {
       addToCart(pair, 1, [], getEffectivePrice(pair), pair._brand || actualBrandId, false);
     });
 
-    // 3. Mergi înapoi la meniu
-    goTo('menu');
+    // 3. Mergi înapoi la ecranul de proveniență (coș sau meniu)
+    goTo(productOriginScreen || 'menu');
   };
 
   const allergenLabels = allergens.map(a =>
@@ -689,7 +694,7 @@ export default function ProductScreen() {
   };
 
   return (
-    <div className="product-screen-overlay" onClick={() => goTo('menu')}>
+    <div className="product-screen-overlay" onClick={handleBack}>
       <div className="product-screen-card" onClick={(e) => e.stopPropagation()}>
         
         {/* ─── TOP BAR ─── */}
@@ -704,7 +709,7 @@ export default function ProductScreen() {
               }}
             />
           </div>
-          <button type="button" className="ps-close-btn" onClick={() => goTo('menu')} aria-label="Închide">
+          <button type="button" className="ps-close-btn" onClick={handleBack} aria-label="Închide">
             <IconClose />
           </button>
         </div>
@@ -1108,7 +1113,7 @@ export default function ProductScreen() {
 
         {/* ─── BARA FIXĂ DE JOS (CU CANTITATE, TOTAL ȘI BUTON VERDE) ─── */}
         <div className="ps-bottom-bar">
-          <button type="button" className="ps-back-btn" onClick={() => goTo('menu')}>
+          <button type="button" className="ps-back-btn" onClick={handleBack}>
             <IconArrowLeft />
             <span>{t('back', lang) || 'Înapoi'}</span>
           </button>
