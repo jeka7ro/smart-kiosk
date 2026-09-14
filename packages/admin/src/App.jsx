@@ -2702,13 +2702,22 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
           profile={editingMenuBrand.profile}
           localHiddenItemsOverride={editingMenuBrand.localHiddenItemsOverride}
           onClose={() => setEditingMenuBrand(null)}
-          onSave={(updatedConfig) => {
+          onSave={async (updatedConfig) => {
              const brandId = editingMenuBrand.brand.id;
              const newOverrides = { ...formData.menuOverrides };
              if (!newOverrides[brandId]) newOverrides[brandId] = {};
              newOverrides[brandId].hiddenItems = updatedConfig.hiddenItems;
              handleChange('menuOverrides', newOverrides);
              setEditingMenuBrand(null);
+             try {
+               await fetchWithAuth(`${backend}/api/locations/${loc.id}`, {
+                 method: 'PUT',
+                 headers: { 'Content-Type': 'application/json' },
+                 body: JSON.stringify({ menuOverrides: newOverrides })
+               });
+             } catch (err) {
+               console.error('Auto-save visibility error:', err);
+             }
           }}
         />
       </div>
@@ -4590,11 +4599,21 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                     <div className="flex items-center gap-3 flex-1 justify-end min-w-[300px]">
                       <select
                         value={currentProfileId}
-                        onChange={(e) => {
+                        onChange={async (e) => {
+                          const val = e.target.value;
                           const newOverrides = { ...formData.menuOverrides };
                           if (!newOverrides[brandId]) newOverrides[brandId] = { hiddenItems: {} };
-                          newOverrides[brandId] = { ...newOverrides[brandId], profileId: e.target.value };
+                          newOverrides[brandId] = { ...newOverrides[brandId], profileId: val };
                           handleChange('menuOverrides', newOverrides);
+                          try {
+                            await fetchWithAuth(`${backend}/api/locations/${loc.id}`, {
+                              method: 'PUT',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ menuOverrides: newOverrides })
+                            });
+                          } catch (err) {
+                            console.error('Auto-save profile error:', err);
+                          }
                         }}
                         className="px-3.5 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white max-w-[260px]"
                       >

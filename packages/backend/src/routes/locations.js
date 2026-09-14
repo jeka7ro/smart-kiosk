@@ -161,8 +161,15 @@ router.put('/:id', requireApiKey, async (req, res) => {
     const updatedLoc = rowToLoc(rows[0]);
     const io = req.app.get('io');
     if (io) {
-      io.to(`kiosk-${req.params.id}`).emit('location_updated', updatedLoc);
-      io.to(`kiosk-${current.id}`).emit('location_updated', updatedLoc);
+      const locationIdsToNotify = new Set([
+        req.params.id,
+        current.id,
+        updatedLoc?.kioskUrl,
+        ...(updatedLoc?.aliases || [])
+      ].filter(Boolean));
+      for (const lid of locationIdsToNotify) {
+        io.to(`kiosk-${lid}`).emit('location_updated', updatedLoc);
+      }
     }
     return res.json(updatedLoc);
   } catch (e) {
@@ -311,17 +318,31 @@ router.delete('/:id/kiosks/:kioskId', protect, async (req, res) => {
 });
 
 // POST /api/locations/:id/restart — remote restart all kiosks at location
-router.post('/:id/restart', protect, async (req, res) => {
+router.post('/:id/restart', requireApiKey, async (req, res) => {
+  const { findLocation } = require('../utils/locations');
   try {
     const io = req.app.get('io');
     if (io) {
       const locId = req.params.id;
-      // Emit to the specific room
-      io.to(`kiosk-${locId}`).emit('remote_restart', { locationId: locId });
-      // Also broadcast globally so Kiosks that haven't joined the room yet
-      // (e.g. still on Welcome screen when location loaded late) also get it.
-      io.emit(`remote_restart_${locId}`, { locationId: locId });
-      console.log(`[Locations RESTART] Sent restart signal to kiosk-${locId}`);
+      let targetLoc = null;
+      if (hasDb) {
+        const { rows } = await pool.query('SELECT * FROM locations WHERE id = $1 OR data->>\'kioskUrl\' = $1', [locId]);
+        if (rows[0]) targetLoc = rowToLoc(rows[0]);
+      }
+      if (!targetLoc) targetLoc = findLocation(locId);
+
+      const locationIdsToNotify = new Set([
+        locId,
+        targetLoc?.id,
+        targetLoc?.kioskUrl,
+        ...(targetLoc?.aliases || [])
+      ].filter(Boolean));
+
+      for (const lid of locationIdsToNotify) {
+        io.to(`kiosk-${lid}`).emit('remote_restart', { locationId: lid });
+        io.emit(`remote_restart_${lid}`, { locationId: lid });
+        console.log(`[Locations RESTART] Sent restart signal to kiosk-${lid}`);
+      }
       res.json({ ok: true, message: 'Restart signal sent' });
     } else {
       res.status(500).json({ error: 'Socket.io not initialized on server' });

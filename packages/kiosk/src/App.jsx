@@ -370,6 +370,7 @@ export default function App() {
 
     const kioskDeviceId = locationData?.kioskId || localStorage.getItem('kiosk_device_id') || 'kiosk-main';
     const activeScreen = isLocked ? 'pin' : screen;
+    const urlLoc = new URLSearchParams(window.location.search).get('loc') || localStorage.getItem('kiosk_loc_id');
 
     socket.on('connect', () => {
       console.log(`[Kiosk] Socket connected (${socket.id}), joining room kiosk-${locId}`);
@@ -379,6 +380,14 @@ export default function App() {
         kioskId: kioskDeviceId,
         screen: activeScreen
       });
+      if (urlLoc && urlLoc !== locId) {
+        socket.emit('join', {
+          role: 'kiosk',
+          locationId: urlLoc,
+          kioskId: kioskDeviceId,
+          screen: activeScreen
+        });
+      }
     });
 
     socket.on('reconnect', () => {
@@ -389,6 +398,14 @@ export default function App() {
         kioskId: kioskDeviceId,
         screen: activeScreen
       });
+      if (urlLoc && urlLoc !== locId) {
+        socket.emit('join', {
+          role: 'kiosk',
+          locationId: urlLoc,
+          kioskId: kioskDeviceId,
+          screen: activeScreen
+        });
+      }
     });
 
     // Handle live ping from admin panel
@@ -403,6 +420,9 @@ export default function App() {
     };
     socket.on('kiosk_ping', handlePing);
     socket.on(`kiosk_ping_${locId}`, handlePing);
+    if (urlLoc && urlLoc !== locId) {
+      socket.on(`kiosk_ping_${urlLoc}`, handlePing);
+    }
 
     // Heartbeat every 10s to keep admin live status real
     const hbInterval = setInterval(() => {
@@ -419,6 +439,9 @@ export default function App() {
     socket.on('remote_restart', hardReload);
     // Global fallback restart (before room join completes)
     socket.on(`remote_restart_${locId}`, hardReload);
+    if (urlLoc && urlLoc !== locId) {
+      socket.on(`remote_restart_${urlLoc}`, hardReload);
+    }
 
     socket.on('location_updated', (newData) => {
       console.log('[Kiosk] Live config update received from Admin Panel.');
@@ -451,6 +474,9 @@ export default function App() {
       clearInterval(hbInterval);
       socket.off('kiosk_ping', handlePing);
       socket.off(`kiosk_ping_${locId}`, handlePing);
+      if (urlLoc && urlLoc !== locId) {
+        socket.off(`kiosk_ping_${urlLoc}`, handlePing);
+      }
       socket.disconnect();
     };
   }, [locationData?.id, setLocationData, screen, isLocked]);
