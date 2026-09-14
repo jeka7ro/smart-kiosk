@@ -160,10 +160,11 @@ export default function CategoryHeroBanner({
           key={`fx-${product.id || product.name}`}
           heroRef={bannerRef}
           effects={{ steam: true, parallax: false, ice: true, brandFloat: true }}
-          isHotProduct={shouldShowSteam(product, brandId)}
+          isHotProduct={shouldShowSteam(product, brandId, categoryName)}
           product={product}
           brandLogo={brandLogo}
           brandId={brandId}
+          categoryName={categoryName}
         />
       )}
 

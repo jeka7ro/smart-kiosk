@@ -14,10 +14,11 @@ import './ProductVisualFX.css';
 export default function ProductVisualFX({
   heroRef,
   effects = { parallax: true, steam: true, ice: true, brandFloat: true },
-  isHotProduct = true,
+  isHotProduct = null,
   product = null,
   brandLogo = null,
   brandId = null,
+  categoryName = null,
 }) {
   const canvasRef = useRef(null);
   const [tilt, setTilt] = useState({ rx: 0, ry: 0, glareX: 50, glareY: 50, active: false });
@@ -79,7 +80,9 @@ export default function ProductVisualFX({
   const isColdDrink = !isSauce && !isDessert && !isFoodOrMeal && (isDrinkCategory || isStandaloneDrink);
 
   // 4. MÂNCARE CALDĂ: Abur exclusiv la mâncare fierbinte validată (Supe, Wok, Burgeri/Pui cald)
-  const isHot = Boolean(isHotProduct && shouldShowSteam(product, brandId));
+  const isHot = (isHotProduct !== null && isHotProduct !== undefined)
+    ? Boolean(isHotProduct)
+    : shouldShowSteam(product, brandId, categoryName);
 
   // Detectăm dacă este un combo / set cald cu 3 sau mai multe produse fierbinți (ex: 3 Dublu Burgeri, Trio)
   const isCombo = isHot && Boolean(
@@ -226,9 +229,9 @@ export default function ProductVisualFX({
           startY = height * (0.24 + Math.random() * 0.08);
         }
       } else {
-        // Produs individual: aburul iese ușor din partea de sus a produsului și plutește deasupra (nu de la mijloc sau jos)
-        startX = width * (0.33 + Math.random() * 0.34);
-        startY = height * (0.21 + Math.random() * 0.08);
+        // Produs individual (Supe, Wok, Burgeri calzi): aburul iese organic din centrul/suprafața preparatului și urcă lin
+        startX = width * (0.28 + Math.random() * 0.44);
+        startY = height * (0.32 + Math.random() * 0.16);
       }
 
       const maxLife = 130 + Math.random() * 50;
@@ -242,14 +245,14 @@ export default function ProductVisualFX({
         startY: startY,
         vx: (Math.random() - 0.5) * 0.35,
         vy: 0.65 + Math.random() * 0.60,
-        radius: 12 + Math.random() * 12,
-        growth: 0.32 + Math.random() * 0.24,
+        radius: 14 + Math.random() * 14,
+        growth: 0.38 + Math.random() * 0.28,
         alpha: 0,
-        maxAlpha: isCombo ? (0.22 + Math.random() * 0.14) : (0.26 + Math.random() * 0.18),
+        maxAlpha: isCombo ? (0.28 + Math.random() * 0.14) : (0.32 + Math.random() * 0.18),
         life: initialLife,
         maxLife: maxLife,
         swayFreq: 0.016 + Math.random() * 0.02,
-        swayAmp: 12 + Math.random() * 14,
+        swayAmp: 14 + Math.random() * 16,
       };
     };
 

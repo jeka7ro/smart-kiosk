@@ -247,9 +247,15 @@ export default function ProductScreen() {
   const visualEffects = useKioskStore((s) => s.visualEffects) || { parallax: true, steam: true };
   const heroRef = useRef(null);
 
+  const productCategoryName = useMemo(() => {
+    if (!product) return '';
+    const catObj = (menuCategories || []).find(c => c.id === product.categoryId || c.id === product.parentGroupId);
+    return ((catObj?.name) || (product.categoryName) || (product.category) || '');
+  }, [product, menuCategories]);
+
   const isHotProduct = useMemo(() => {
-    return shouldShowSteam(product, brand?.id);
-  }, [product, brand?.id]);
+    return shouldShowSteam(product, brand?.id, productCategoryName);
+  }, [product, brand?.id, productCategoryName]);
 
   const modifiers = product?.modifierGroups || product?.modifiers || [];
   const allergens = product?.allergenGroups || product?.allergens || [];
@@ -729,6 +735,7 @@ export default function ProductScreen() {
               product={product}
               brandId={brand?.id}
               brandLogo={`/brands/${product._brand || brand?.id || 'smashme'}-logo.png`}
+              categoryName={productCategoryName}
             />
           </div>
 
