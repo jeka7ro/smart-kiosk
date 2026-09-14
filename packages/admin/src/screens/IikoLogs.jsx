@@ -909,27 +909,34 @@ function StatCard({ label, value, color, brandId, icon: Icon, onClick, active, h
             </span>
           )}
         </div>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis" title={label}>
-          {label}
-        </span>
+        {!brandId && (
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis" title={label}>
+            {label}
+          </span>
+        )}
       </div>
 
       {brandId ? (
-        <div className="relative shrink-0 ml-2">
-          {/* 3D Atmosphere Glow behind avatar */}
-          <div 
-            className="absolute -inset-1 rounded-full blur-sm opacity-35 group-hover:opacity-75 transition-opacity pointer-events-none"
-            style={{ backgroundColor: color }}
-          />
-          {/* 3D Raised Bezel Container with Specular Top Highlight */}
-          <div 
-            className="relative w-9 h-9 rounded-full p-0.5 flex items-center justify-center bg-gradient-to-b from-white via-slate-50 to-slate-100 dark:from-slate-700 dark:via-slate-800 dark:to-slate-900 border border-white/80 dark:border-slate-600/60 transition-transform duration-200 group-hover:scale-110 group-hover:-translate-y-0.5"
-            style={{ 
-              boxShadow: `0 3px 8px ${color}40, 0 1px 2px rgba(0,0,0,0.1), inset 0 1.5px 2px rgba(255,255,255,0.85)` 
-            }}
-          >
-            <BrandLogo brandId={brandId} size={24} className="rounded-full shadow-inner" />
+        <div className="flex flex-col items-center justify-center shrink-0 ml-2 z-10">
+          <div className="relative">
+            {/* 3D Atmosphere Glow behind avatar */}
+            <div 
+              className="absolute -inset-1 rounded-full blur-sm opacity-35 group-hover:opacity-75 transition-opacity pointer-events-none"
+              style={{ backgroundColor: color }}
+            />
+            {/* 3D Raised Bezel Container with Specular Top Highlight */}
+            <div 
+              className="relative w-9 h-9 rounded-full p-0.5 flex items-center justify-center bg-gradient-to-b from-white via-slate-50 to-slate-100 dark:from-slate-700 dark:via-slate-800 dark:to-slate-900 border border-white/80 dark:border-slate-600/60 transition-transform duration-200 group-hover:scale-110 group-hover:-translate-y-0.5"
+              style={{ 
+                boxShadow: `0 3px 8px ${color}40, 0 1px 2px rgba(0,0,0,0.1), inset 0 1.5px 2px rgba(255,255,255,0.85)` 
+              }}
+            >
+              <BrandLogo brandId={brandId} size={24} className="rounded-full shadow-inner" />
+            </div>
           </div>
+          <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-1 whitespace-nowrap text-center max-w-[80px] overflow-hidden text-ellipsis" title={label}>
+            {label}
+          </span>
         </div>
       ) : Icon ? (
         <div className="relative shrink-0 ml-2">
