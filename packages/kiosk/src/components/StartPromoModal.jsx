@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
+const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
 
 const proxySyrveImage = (url) => {
   if (!url) return null;

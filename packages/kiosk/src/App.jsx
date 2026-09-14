@@ -606,19 +606,31 @@ export default function App() {
     return /\.(mp4|webm|mov|jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i.test(clean) || clean.startsWith('data:image/') || clean.includes('/uploads/');
   };
 
+  const sanitizeMediaUrl = (u) => {
+    if (!u || typeof u !== 'string') return '';
+    const clean = u.trim();
+    if (typeof window !== 'undefined' && window.location.protocol === 'https:' && (clean.includes('localhost') || clean.includes('127.0.0.1'))) {
+      if (clean.includes('getapp_smart_kiosk_logo.png') || clean.includes('logo_getapp')) {
+        return 'https://getapp.ro/logo_getapp_original.png';
+      }
+      return '';
+    }
+    return clean;
+  };
+
   // Top Persistent Banner: afișat DOAR dacă este activ și are un URL media valid (fără ecrane negre goale)
   const isTopBannerActive = locationData?.topBannerActive !== undefined
     ? Boolean(locationData.topBannerActive)
     : (localStorage.getItem('kiosk_top_banner_active') !== 'false' && Boolean(locationData?.topBannerUrl || (activeBrandId && locationData?.[`topBannerUrl_${activeBrandId}`])));
 
   const rawTopBanner = isTopBannerActive 
-    ? (locationData?.[`topBannerUrl_${activeBrandId}`] || locationData?.topBannerUrl || '').trim() 
+    ? sanitizeMediaUrl(locationData?.[`topBannerUrl_${activeBrandId}`] || locationData?.topBannerUrl || '')
     : '';
 
   const activeBrandBannerUrl = isMediaUrl(rawTopBanner) ? rawTopBanner : '';
   const showBanner = screen !== 'welcome' && isTopBannerActive && Boolean(activeBrandBannerUrl);
 
-  const rawBbUrl = (locationData?.bottomBannerUrl || (locationData?.bottomBannerContent?.startsWith('http') ? locationData.bottomBannerContent : '') || '').trim();
+  const rawBbUrl = sanitizeMediaUrl(locationData?.bottomBannerUrl || (locationData?.bottomBannerContent?.startsWith('http') ? locationData.bottomBannerContent : '') || '');
   const _bbUrl = isMediaUrl(rawBbUrl) ? rawBbUrl : '';
 
   let _bbText = locationData?.bottomBannerText || (!locationData?.bottomBannerContent?.startsWith('http') ? locationData?.bottomBannerContent || '' : '') || '';
@@ -626,7 +638,7 @@ export default function App() {
   if (!isMediaUrl(rawBbUrl) && rawBbUrl && !_bbText.includes(rawBbUrl)) {
     _bbText = _bbText ? `${_bbText} • ${rawBbUrl}` : rawBbUrl;
   }
-  const _bbLogo = locationData?.bottomBannerLogoUrl || '';
+  const _bbLogo = sanitizeMediaUrl(locationData?.bottomBannerLogoUrl || '');
   const showBottomBanner = screen !== 'welcome' && (_bbUrl || _bbText || _bbLogo);
 
   const renderPromoMedia = (u) => {
@@ -707,7 +719,7 @@ export default function App() {
 
   const renderBottomBanner = () => {
     const align = locationData?.bottomBannerTextAlign || 'center';
-    const logoUrl = locationData?.bottomBannerLogoUrl || '';
+    const logoUrl = sanitizeMediaUrl(locationData?.bottomBannerLogoUrl || '');
     const hasOverlay = _bbText || logoUrl;
     return (
       <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center' }}>
