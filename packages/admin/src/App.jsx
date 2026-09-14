@@ -994,7 +994,7 @@ export default function AdminApp() {
                       type="date"
                       value={dashboardCustomStart}
                       onChange={(e) => handleCustomDateChange('start', e.target.value)}
-                      className="px-2.5 h-8 rounded-lg text-xs font-mono font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500"
+                      className="px-2.5 h-8 rounded-lg text-xs font-sans font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500"
                       title="Data de început"
                     />
                     <span className="text-slate-400 text-xs font-bold">—</span>
@@ -1002,7 +1002,7 @@ export default function AdminApp() {
                       type="date"
                       value={dashboardCustomEnd}
                       onChange={(e) => handleCustomDateChange('end', e.target.value)}
-                      className="px-2.5 h-8 rounded-lg text-xs font-mono font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500"
+                      className="px-2.5 h-8 rounded-lg text-xs font-sans font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500"
                       title="Data de sfârșit"
                     />
                   </div>
