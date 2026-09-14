@@ -380,12 +380,12 @@ export default function MenuScreen() {
     ? Boolean(locationData.categoryHeroSteam)
     : (localStorage.getItem('kiosk_category_hero_steam') !== 'false');
 
-  const categoryHeroProduct = useMemo(() => {
-    if (!isHeroActive || !filteredProducts || filteredProducts.length === 0 || search) return null;
+  const categoryHeroProducts = useMemo(() => {
+    if (!isHeroActive || !filteredProducts || filteredProducts.length === 0 || search) return [];
     const withImage = filteredProducts.filter(p => !!p.image && Number(p.price) > 0);
-    if (withImage.length === 0) return null;
+    if (withImage.length === 0) return [];
 
-    // 1. REGULĂ PRIORITARĂ: Dacă în categorie există un produs cu preț redus (promo), acela devine automat Hero!
+    // Prioritate: produsele cu reducere (promo) primele, apoi restul produselor din categorie
     const isDiscounted = (p) => {
       if (!p) return false;
       if (hasActivePromo(p)) return true;
@@ -397,7 +397,6 @@ export default function MenuScreen() {
 
     const discountedList = withImage.filter(isDiscounted);
     if (discountedList.length > 0) {
-      // Dacă sunt mai multe produse cu discount în categorie, îl alegem pe cel cu economia cea mai mare
       discountedList.sort((a, b) => {
         const effA = getEffectivePrice(a);
         const effB = getEffectivePrice(b);
@@ -405,23 +404,13 @@ export default function MenuScreen() {
         const origB = Number(b.oldPrice || b.price || 0);
         return (origB - effB) - (origA - effA);
       });
-      return discountedList[0];
     }
 
-    // 2. Dacă este setat un produs anume în setări, îl căutăm
-    const customHeroId = (locationData?.categoryHeroProductId || localStorage.getItem('kiosk_category_hero_product_id') || '').trim();
-    if (customHeroId) {
-      const customMatch = withImage.find(p => 
-        p.id === customHeroId || 
-        p.productId === customHeroId || 
-        p.name?.toLowerCase() === customHeroId.toLowerCase()
-      );
-      if (customMatch) return customMatch;
-    }
+    const nonDiscounted = withImage.filter(p => !isDiscounted(p));
+    return [...discountedList, ...nonDiscounted];
+  }, [isHeroActive, filteredProducts, search]);
 
-    // 3. Implicit (default): primul produs din categorie
-    return withImage[0];
-  }, [isHeroActive, filteredProducts, search, locationData?.categoryHeroProductId]);
+  const categoryHeroProduct = categoryHeroProducts[0] || null;
 
   const visibleCategories = useMemo(() => {
     return categories.filter(cat => {
@@ -683,9 +672,11 @@ export default function MenuScreen() {
         {/* ─── PRODUCTS GRID ───────────────────────── */}
         <main className="products-area" ref={productsAreaRef}>
           {/* ─── CATEGORY HERO BANNER (KFC Style - Activabil din Setări) ─── */}
-          {categoryHeroProduct && (
+          {categoryHeroProducts.length > 0 && (
             <CategoryHeroBanner
               product={categoryHeroProduct}
+              products={categoryHeroProducts}
+              categoryName={categories.find(c => c.id === activeCategory)?.name || ''}
               lang={lang}
               steam={isHeroSteam}
               brandLogo={activeBrandLogo || locationData?.logoUrl}
@@ -695,7 +686,7 @@ export default function MenuScreen() {
                 setMenuActiveCategory(activeCategory);
                 setSelectedProduct(prod);
               }}
-              onQuickAdd={(e) => handleQuickAdd(categoryHeroProduct, e.currentTarget)}
+              onQuickAdd={(prod, e) => handleQuickAdd(prod || categoryHeroProduct, e?.currentTarget)}
             />
           )}
 

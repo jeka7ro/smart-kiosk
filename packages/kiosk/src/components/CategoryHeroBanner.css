@@ -27,11 +27,63 @@
   object-fit: cover;
   object-position: center center;
   z-index: 1;
-  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.45s ease-in-out, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: 1;
+}
+
+.hero-kfc-bg-img.hero-bg-fade {
+  opacity: 0.25;
 }
 
 .category-hero-kfc-banner:hover .hero-kfc-bg-img {
   transform: scale(1.02);
+}
+
+/* Dynamic Content Wrapper for smooth cross-fading */
+.hero-kfc-content-wrapper {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 1;
+  transform: translateY(0);
+}
+.hero-kfc-content-wrapper > * {
+  pointer-events: auto;
+}
+.hero-kfc-content-wrapper.hero-content-fade {
+  opacity: 0.15;
+  transform: translateY(4px);
+}
+
+/* Dots Carousel Navigation */
+.hero-kfc-carousel-dots {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+.hero-kfc-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 0;
+}
+.hero-kfc-dot--active {
+  width: 24px;
+  background: #ffffff;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
 }
 
 /* Vignette overlay for text legibility with clear center for food graphics */
