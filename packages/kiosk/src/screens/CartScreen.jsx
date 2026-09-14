@@ -257,21 +257,39 @@ export default function CartScreen() {
 
   return (
     <div className="cart-screen screen">
-      <div className="cart-body">
-        {/* Coloană stânga: Header, Coș și Sugestii (aceeași lățime uniformă) */}
-        <div className="cart-main-col">
-          <header className="cart-header">
-            <button className="back-btn" onClick={() => goTo('menu')}>← {t('menu', lang)}</button>
-            <h1>{t('my_cart', lang)}</h1>
-            <span className="cart-count-badge">{cartItems.length} {cartItems.length > 1 ? t('items_many', lang) : t('item_one', lang)}</span>
-          </header>
+      <div className="cart-wrapper">
+        <header className="cart-header">
+          <button className="back-btn" onClick={() => goTo('menu')}>← {t('menu', lang)}</button>
+          <h1>{t('my_cart', lang)}</h1>
+          <span className="cart-count-badge">{cartItems.length} {cartItems.length > 1 ? t('items_many', lang) : t('item_one', lang)}</span>
+        </header>
 
+        <div className="cart-body">
           {/* Items */}
           <div className="cart-items scroll-y">
             {Object.entries(groupedCart).map(([bId, items]) => (
               <div key={bId} className="cart-brand-group" style={{ marginBottom: '16px', background: 'var(--card, #ffffff)', borderRadius: '22px', padding: '16px', border: '1.5px solid var(--border)', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
-              <div className="cart-brand-header" style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px dashed var(--border)' }}>
-                <img src={`/brands/${bId}-logo.png`} alt={bId} style={{ height: '44px', objectFit: 'contain', maxWidth: '220px' }} onError={(e) => e.target.style.display = 'none'} />
+              <div className="cart-brand-header" style={{ display: 'flex', justifyContent: 'center', marginBottom: '18px', paddingBottom: '18px', borderBottom: '1px dashed var(--border)' }}>
+                <div className="cart-brand-avatar" style={{
+                  width: '132px',
+                  height: '132px',
+                  borderRadius: '50%',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 6px 20px rgba(0, 0, 0, 0.08)',
+                  border: '3px solid var(--border)',
+                  background: '#ffffff',
+                  flexShrink: 0
+                }}>
+                  <img 
+                    src={`/brands/${bId}-logo.png`} 
+                    alt={bId} 
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                    onError={(e) => { e.target.parentElement.style.display = 'none'; }} 
+                  />
+                </div>
               </div>
               <div className="cart-brand-items" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {items.map((item, i) => (
@@ -424,7 +442,6 @@ export default function CartScreen() {
 
           <button className="add-more-btn" onClick={() => goTo('menu')}>+ {t('add_more', lang)}</button>
         </div>
-        </div>
 
         {/* Right: Clean & Prominent Summary */}
         <div className="cart-summary">
@@ -494,6 +511,7 @@ export default function CartScreen() {
             </div>
           </div>
         </div>
+      </div>
       </div>
 
       {/* ─── UPSELL MODAL (KFC Style: DORIȚI ȘI... - Activabil din Setări) ─── */}
