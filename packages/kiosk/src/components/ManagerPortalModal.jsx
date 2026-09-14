@@ -1430,7 +1430,7 @@ const KIOSK_EVENT_META = {
                     </div>
                   </div>
                   <div className="mgr-status-row">
-                    <span className="mgr-status-label">Ajustare fină (+ / -):</span>
+                    <span className="mgr-status-label">Setare directă secunde (tastare sau +/-):</span>
                     <div className="mgr-hero-stepper">
                       <button 
                         type="button" 
@@ -1440,7 +1440,15 @@ const KIOSK_EVENT_META = {
                       >
                         −
                       </button>
-                      <span className="mgr-hero-stepper-val font-mono">{heroInterval}s</span>
+                      <input 
+                        type="number"
+                        min="2"
+                        max="60"
+                        className="mgr-hero-num-input"
+                        value={heroInterval}
+                        onChange={e => handleUpdateHeroInterval(e.target.value)}
+                      />
+                      <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#64748b', marginRight: '4px' }}>sec</span>
                       <button 
                         type="button" 
                         className="mgr-hero-step-btn" 

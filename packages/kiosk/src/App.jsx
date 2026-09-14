@@ -270,6 +270,12 @@ export default function App() {
           if (loc.categoryHeroProductId !== undefined) {
             try { localStorage.setItem('kiosk_category_hero_product_id', String(loc.categoryHeroProductId)); } catch {}
           }
+          if (loc.categoryHeroInterval !== undefined) {
+            try { 
+              localStorage.setItem('kiosk_hero_interval', String(loc.categoryHeroInterval));
+              window.dispatchEvent(new Event('kiosk_hero_interval_changed'));
+            } catch {}
+          }
           if (loc.topBannerActive !== undefined) {
             try { localStorage.setItem('kiosk_top_banner_active', String(loc.topBannerActive)); } catch {}
           }
@@ -426,6 +432,12 @@ export default function App() {
       }
       if (newData.categoryHeroProductId !== undefined) {
         try { localStorage.setItem('kiosk_category_hero_product_id', String(newData.categoryHeroProductId)); } catch {}
+      }
+      if (newData.categoryHeroInterval !== undefined) {
+        try { 
+          localStorage.setItem('kiosk_hero_interval', String(newData.categoryHeroInterval));
+          window.dispatchEvent(new Event('kiosk_hero_interval_changed'));
+        } catch {}
       }
       if (newData.topBannerActive !== undefined) {
         try { localStorage.setItem('kiosk_top_banner_active', String(newData.topBannerActive)); } catch {}

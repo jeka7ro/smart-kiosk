@@ -31,6 +31,12 @@ export default function CategoryHeroBanner({
     return Number(localVal || intervalSeconds || 5);
   });
 
+  useEffect(() => {
+    if (intervalSeconds && !localStorage.getItem('kiosk_hero_interval')) {
+      setCurrentSpeed(Number(intervalSeconds));
+    }
+  }, [intervalSeconds]);
+
   // Listen to live speed changes triggered by ManagerPortalModal
   useEffect(() => {
     const handleSpeedChange = () => {
