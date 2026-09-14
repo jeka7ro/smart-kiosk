@@ -49,6 +49,67 @@
       "bottomBannerRadiusBottom": true
     },
     {
+      "id": "cluj2",
+      "active": true,
+      "data": {
+        "qrConfig": {
+          "smashme": 10
+        }
+      },
+      "name": "SmashMe CJ-2",
+      "brands": [
+        "smashme"
+      ],
+      "kiosks": [],
+      "orgIds": {
+        "smashme": "9c63cff6-1d66-442d-a98d-2302656e3943"
+      },
+      "tables": 10,
+      "kioskPin": "1308",
+      "kioskUrl": "cluj2",
+      "languages": [
+        "ro",
+        "en",
+        "hu",
+        "de",
+        "uk"
+      ],
+      "posterUrl": "https://smr.onl/display/kiosj_cj",
+      "promoActive": false,
+      "promoBrandId": "",
+      "topBannerUrl": "",
+      "menuOverrides": {},
+      "bottomBannerBg": "#db1a1a",
+      "paymentGateway": "raiffeisen",
+      "posterRotation": 0,
+      "bottomBannerUrl": "wwww.getapp.ro",
+      "defaultLanguage": "ro",
+      "langButtonColor": "#0f172a",
+      "topBannerHeight": 3,
+      "bottomBannerText": "0727 77 77 12",
+      "bottomBannerHeight": 2,
+      "promoMinOrderValue": 0,
+      "topBannerRadiusTop": true,
+      "bottomBannerContent": "",
+      "bottomBannerLogoUrl": "https://getapp.ro/logo_getapp_original.png",
+      "promoOrdersToAppear": 1,
+      "langSelectorPosition": "both",
+      "langVerticalPosition": "top",
+      "bottomBannerRadiusTop": false,
+      "bottomBannerTextAlign": "center",
+      "bottomBannerTextFixed": true,
+      "topBannerRadiusBottom": false,
+      "bottomBannerRadiusBottom": true,
+      "lockScheduleMode": "daily",
+      "lockScheduleActive": false,
+      "lockStartTime": "22:00",
+      "lockEndTime": "09:00",
+      "lockAutoUnlock": true,
+      "categoryHeroActive": true,
+      "categoryHeroSteam": true,
+      "upsellActive": true
+    },
+    {
       "id": "sm-brasov",
       "active": true,
       "data": {

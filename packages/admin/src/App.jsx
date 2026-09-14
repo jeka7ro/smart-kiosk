@@ -1817,7 +1817,7 @@ function KiosksManager({ backend }) {
                   <td className="px-6 py-4">
                     <div className="flex flex-col gap-1">
                       <span className="font-bold text-slate-900 dark:text-white text-base">{loc.name}</span>
-                      <span className="text-xs text-slate-500 font-mono bg-slate-100 dark:bg-slate-800 self-start px-2 py-0.5 rounded">{loc.id}</span>
+                      <span className="text-xs text-slate-500 font-mono bg-slate-100 dark:bg-slate-800 self-start px-2 py-0.5 rounded">URL: {loc.kioskUrl || loc.id}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -2382,7 +2382,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
             <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
               <span>Configurare Kiosk</span>
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-              <span className="text-[11px] font-mono text-slate-400">ID: {loc.id}</span>
+              <span className="text-[11px] font-mono text-slate-400">URL: {loc.kioskUrl || loc.id}</span>
             </div>
             <div className="flex items-center gap-2 mt-0.5">
               <input 
