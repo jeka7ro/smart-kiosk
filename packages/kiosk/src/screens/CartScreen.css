@@ -13,12 +13,30 @@
 .cart-body { display: flex; flex: 1; overflow: hidden; }
 .cart-items { flex: 1; padding: 20px 28px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
 .add-more-btn {
-  background: var(--bg-card); border: 2px dashed var(--border);
-  color: var(--text-muted); border-radius: 16px; padding: 16px;
-  font-size: 1rem; cursor: pointer; transition: all 0.2s;
+  background: linear-gradient(135deg, #10b981, #059669);
+  border: none;
+  color: #ffffff;
+  border-radius: 16px;
+  padding: 18px 24px;
+  font-size: 1.05rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
   font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 6px 24px rgba(16, 185, 129, 0.35);
 }
-.add-more-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--surface); }
+.add-more-btn:hover {
+  background: linear-gradient(135deg, #059669, #047857);
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(16, 185, 129, 0.45);
+}
+.add-more-btn:active {
+  transform: translateY(0);
+}
 .cart-item {
   display: flex; align-items: center; justify-content: space-between; gap: 20px;
   padding: 16px 20px; background: var(--bg-card); border-radius: 18px;
