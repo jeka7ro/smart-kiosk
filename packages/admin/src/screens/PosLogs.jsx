@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useAuth } from '../context/AuthProvider';
 import { useConfirm } from '../components/ConfirmModal.jsx';
 import { CreditCard, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
