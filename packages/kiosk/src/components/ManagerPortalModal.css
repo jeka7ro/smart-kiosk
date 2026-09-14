@@ -195,7 +195,8 @@
 
 /* Header */
 .mgr-portal-header {
-  padding: 16px 24px;
+  padding: 20px 30px;
+  min-height: 82px;
   background: #ffffff;
   border-bottom: 1px solid #e2e8f0;
   display: flex;
@@ -208,7 +209,7 @@
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
 }
 
 .mgr-brand-header-box {
@@ -216,90 +217,91 @@
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
-  gap: 1px;
+  gap: 2px;
 }
 
 .mgr-brand-logo-img {
-  height: 28px;
-  max-width: 130px;
+  height: 38px;
+  max-width: 175px;
   object-fit: contain;
   display: block;
 }
 
 .mgr-brand-url {
-  font-size: 0.65rem;
-  font-weight: 700;
+  font-size: 0.8rem;
+  font-weight: 800;
   color: #2563eb;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.5px;
 }
 
 .mgr-header-divider-v {
-  width: 1px;
-  height: 38px;
+  width: 1.5px;
+  height: 48px;
   background: #e2e8f0;
+  margin: 0 4px;
 }
 
 .mgr-header-title-box {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
 }
 
 .mgr-header-badge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.7rem;
+  font-size: 0.76rem;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: #10b981;
   background: #ecfdf5;
   border: 1px solid #a7f3d0;
-  padding: 2px 8px;
+  padding: 3px 10px;
   border-radius: 9999px;
   width: fit-content;
 }
 
 .mgr-live-dot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: #10b981;
 }
 
 .mgr-portal-title {
-  font-size: 1.15rem;
+  font-size: 1.35rem;
   font-weight: 800;
   color: #0f172a;
   margin: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .mgr-location-label {
   font-weight: 500;
   color: #64748b;
-  font-size: 0.95rem;
+  font-size: 1.1rem;
 }
 
 .mgr-header-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 
 .mgr-btn-refresh {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   background: #ffffff;
   border: 1px solid #cbd5e1;
   color: #334155;
-  font-size: 0.8rem;
+  font-size: 0.88rem;
   font-weight: 700;
-  padding: 7px 14px;
+  padding: 9px 18px;
   border-radius: 9999px;
   cursor: pointer;
   transition: all 0.15s;
@@ -319,13 +321,13 @@
 }
 
 .mgr-btn-close {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   border: 1px solid #e2e8f0;
   background: #ffffff;
   color: #64748b;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   cursor: pointer;
   display: flex;
