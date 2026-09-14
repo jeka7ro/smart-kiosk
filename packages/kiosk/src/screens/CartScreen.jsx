@@ -409,11 +409,6 @@ export default function CartScreen() {
 
         {/* Right: Clean & Prominent Summary */}
         <div className="cart-summary">
-          <div className="cart-summary-header">
-            <h2 className="cart-summary-title">Sumar Comandă</h2>
-            <span className="cart-summary-badge">{cartItems.length} {cartItems.length > 1 ? 'produse' : 'produs'}</span>
-          </div>
-
           <div className="summary-rows">
             <div className="summary-row">
               <span>{t('subtotal', lang)}</span>

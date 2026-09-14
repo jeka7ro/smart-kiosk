@@ -408,31 +408,6 @@
   overflow-y: auto;
 }
 
-.cart-summary-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-bottom: 14px;
-  border-bottom: 1.5px solid var(--border);
-}
-
-.cart-summary-title {
-  font-size: 1.3rem;
-  font-weight: 800;
-  color: var(--text, #0f172a);
-  margin: 0;
-  letter-spacing: -0.3px;
-}
-
-.cart-summary-badge {
-  background: color-mix(in srgb, var(--primary) 12%, transparent);
-  color: var(--primary);
-  font-size: 0.85rem;
-  font-weight: 700;
-  padding: 4px 12px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
-}
 
 .summary-rows {
   display: flex;
