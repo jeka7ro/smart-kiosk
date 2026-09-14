@@ -32,14 +32,21 @@ function formatCurrency(val) {
 
 const CLOUD_BACKEND = 'https://smart-kiosk-v7ws.onrender.com';
 
-export default function ManagerPortalModal({ locationData, onClose }) {
+export default function ManagerPortalModal({ locationData, onClose, isStandalone = false }) {
   const localBackend = import.meta.env.VITE_BACKEND_URL || CLOUD_BACKEND;
+
+  // Active Tab: 'orders' | 'logs' | 'status'
+  const [activeTab, setActiveTab] = useState('orders');
 
   // PIN Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pin, setPin] = useState('');
   const [pinError, setPinError] = useState(false);
   const [pinErrorMessage, setPinErrorMessage] = useState('');
+
+  // Kiosk Logs State
+  const [kioskLogs, setKioskLogs] = useState([]);
+  const [kioskLogsLoading, setKioskLogsLoading] = useState(false);
 
   // Orders State
   const [allOrders, setAllOrders] = useState([]);
@@ -161,9 +168,27 @@ export default function ManagerPortalModal({ locationData, onClose }) {
     setLoading(false);
   };
 
+  // Fetch kiosk security / unlock logs
+  const fetchKioskLogs = async () => {
+    setKioskLogsLoading(true);
+    const locId = locationData?.id || locationData?.kioskUrl || '';
+    try {
+      const res = await fetch(`${localBackend}/api/kiosk-logs?limit=150${locId ? `&locationId=${encodeURIComponent(locId)}` : ''}`);
+      if (res.ok) {
+        const d = await res.json();
+        setKioskLogs(d.logs || []);
+      }
+    } catch (e) {
+      console.warn('[ManagerPortal] Failed to fetch kiosk logs:', e.message);
+    } finally {
+      setKioskLogsLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (isAuthenticated) {
       fetchOrders();
+      fetchKioskLogs();
 
       const socket = io(localBackend, { transports: ['websocket', 'polling'] });
       socket.on('order_created', (newOrder) => {
@@ -175,10 +200,14 @@ export default function ManagerPortalModal({ locationData, onClose }) {
         if (!updated) return;
         setAllOrders(prev => prev.map(o => (o._id || o.id) === (updated._id || updated.id) ? { ...o, ...updated } : o));
       });
+      socket.on('kiosk_log_new', (log) => {
+        if (!log) return;
+        setKioskLogs(prev => [log, ...prev]);
+      });
 
       return () => socket.disconnect();
     }
-  }, [isAuthenticated, localBackend]);
+  }, [isAuthenticated, localBackend, locationData?.id]);
 
   // Retry sending to Syrve/iiko
   const handleRetrySyrve = async (order, e) => {
@@ -458,23 +487,76 @@ export default function ManagerPortalModal({ locationData, onClose }) {
     );
   };
 
+const KIOSK_EVENT_META = {
+  unlock_manager: {
+    label: 'Deblocat PIN Manager',
+    color: '#10b981',
+    bg: '#ecfdf5',
+    border: '#a7f3d0'
+  },
+  unlock_vendor: {
+    label: 'Deblocat PIN Vânzător',
+    color: '#2563eb',
+    bg: '#eff6ff',
+    border: '#bfdbfe'
+  },
+  unlock_failed: {
+    label: 'Tentativă PIN Eșuată',
+    color: '#ef4444',
+    bg: '#fef2f2',
+    border: '#fecaca'
+  },
+  auto_lock: {
+    label: 'Blocat Automat (Orar Noapte)',
+    color: '#d97706',
+    bg: '#fffbeb',
+    border: '#fde68a'
+  },
+  auto_unlock: {
+    label: 'Deblocat Automat (Final Orar)',
+    color: '#0891b2',
+    bg: '#ecfeff',
+    border: '#a5f3fc'
+  },
+  manager_portal_access: {
+    label: 'Conectare Portal Manager',
+    color: '#6366f1',
+    bg: '#eef2ff',
+    border: '#c7d2fe'
+  }
+};
+
   // If NOT authenticated, render PIN Keypad
   if (!isAuthenticated) {
     return (
-      <div className="mgr-modal-backdrop" onClick={onClose}>
+      <div className={`mgr-modal-backdrop ${isStandalone ? 'mgr-standalone' : ''}`} onClick={isStandalone ? undefined : onClose}>
         <div className="mgr-pin-box" onClick={e => e.stopPropagation()}>
-          <button className="mgr-pin-close-btn" onClick={onClose} aria-label="Închide">✕</button>
+          {!isStandalone ? (
+            <button className="mgr-pin-close-btn" onClick={onClose} aria-label="Închide">✕</button>
+          ) : (
+            <button 
+              className="mgr-pin-close-btn" 
+              onClick={() => window.location.reload()} 
+              title="Reîmprospătează pagina"
+              aria-label="Refresh"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+              </svg>
+            </button>
+          )}
 
           <div className="mgr-pin-icon-wrapper">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
             </svg>
           </div>
 
-          <h2 className="mgr-pin-title">Acces Manager Kiosk</h2>
+          <h2 className="mgr-pin-title">Portal Manager Kiosk</h2>
           <p className="mgr-pin-subtitle">
-            Introduceți codul PIN de Manager pentru acest Kiosk.
+            {locationData?.name ? <strong>{locationData.name}<br /></strong> : null}
+            Introduceți codul PIN de Manager pentru acces securizat
           </p>
 
           <div className={`mgr-pin-dots ${pinError ? 'mgr-pin-dots-error' : ''}`}>
@@ -523,6 +605,14 @@ export default function ManagerPortalModal({ locationData, onClose }) {
               OK
             </button>
           </div>
+
+          {isStandalone && (
+            <div style={{ marginTop: 20, fontSize: '11px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span>GetApp Smart Kiosk</span>
+              <span>•</span>
+              <span>Acces Securizat Mobil</span>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -530,7 +620,7 @@ export default function ManagerPortalModal({ locationData, onClose }) {
 
   // Render Full Manager Portal
   return (
-    <div className="mgr-modal-backdrop" onClick={onClose}>
+    <div className={`mgr-modal-backdrop ${isStandalone ? 'mgr-standalone' : ''}`} onClick={isStandalone ? undefined : onClose}>
       <div className="mgr-portal-container" onClick={e => e.stopPropagation()}>
         {/* Toast */}
         {toastMessage && (
@@ -566,8 +656,11 @@ export default function ManagerPortalModal({ locationData, onClose }) {
           <div className="mgr-header-right">
             <button
               type="button"
-              onClick={fetchOrders}
-              className={`mgr-btn-refresh ${loading ? 'mgr-btn-refresh-spinning' : ''}`}
+              onClick={() => {
+                if (activeTab === 'orders') fetchOrders();
+                else if (activeTab === 'logs') fetchKioskLogs();
+              }}
+              className={`mgr-btn-refresh ${loading || kioskLogsLoading ? 'mgr-btn-refresh-spinning' : ''}`}
               title="Reîmprospătează lista"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -576,19 +669,83 @@ export default function ManagerPortalModal({ locationData, onClose }) {
               <span>Actualizează</span>
             </button>
 
-            <button
-              type="button"
-              onClick={onClose}
-              className="mgr-btn-close"
-              title="Închide panoul"
-            >
-              ✕
-            </button>
+            {isStandalone ? (
+              <button
+                type="button"
+                onClick={() => setIsAuthenticated(false)}
+                className="mgr-btn-logout"
+                title="Deconectare de la sesiune"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                  <polyline points="16 17 21 12 16 7"></polyline>
+                  <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+                <span>Deconectare</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onClose}
+                className="mgr-btn-close"
+                title="Închide panoul"
+              >
+                ✕
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Stat Cards - Reflecting EXACT Selected Period */}
-        <div className="mgr-stats-grid">
+        {/* Navigation Tabs */}
+        <div className="mgr-nav-tabs">
+          <button
+            type="button"
+            className={`mgr-nav-tab ${activeTab === 'orders' ? 'active' : ''}`}
+            onClick={() => setActiveTab('orders')}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+              <polyline points="10 9 9 9 8 9" />
+            </svg>
+            <span>Comenzi & Syrve</span>
+            <span className="mgr-nav-badge">{filteredOrders.length}</span>
+          </button>
+
+          <button
+            type="button"
+            className={`mgr-nav-tab ${activeTab === 'logs' ? 'active' : ''}`}
+            onClick={() => { setActiveTab('logs'); fetchKioskLogs(); }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+            <span>Loguri Kiosk (PIN)</span>
+            <span className="mgr-nav-badge">{kioskLogs.length}</span>
+          </button>
+
+          <button
+            type="button"
+            className={`mgr-nav-tab ${activeTab === 'status' ? 'active' : ''}`}
+            onClick={() => setActiveTab('status')}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+            <span>Stare Kiosk & Orar</span>
+            <span className={`mgr-nav-dot ${locationData?.lockScheduleActive ? 'dot-active' : ''}`} />
+          </button>
+        </div>
+
+        {/* ─── TAB 1: COMENZI & SYRVE ─── */}
+        {activeTab === 'orders' && (
+          <div className="mgr-tab-content mgr-orders-tab">
+            {/* Stat Cards - Reflecting EXACT Selected Period */}
+            <div className="mgr-stats-grid">
           <div className="mgr-stat-card">
             <div className="mgr-stat-info">
               <span className="mgr-stat-label">Total Comenzi ({periodLabel})</span>
@@ -922,6 +1079,176 @@ export default function ManagerPortalModal({ locationData, onClose }) {
             </div>
           </div>
         </div>
+      </div>
+    )}
+
+        {/* ─── TAB 2: LOGURI KIOSK (PIN & SECURITATE) ─── */}
+        {activeTab === 'logs' && (
+          <div className="mgr-tab-content mgr-logs-tab">
+            <div className="mgr-logs-header">
+              <div className="mgr-logs-stats">
+                <div className="mgr-logs-stat-pill">
+                  <span className="mgr-logs-stat-num">{kioskLogs.filter(l => l.event_type === 'unlock_manager').length}</span>
+                  <span className="mgr-logs-stat-text">Deblocări Manager</span>
+                </div>
+                <div className="mgr-logs-stat-pill">
+                  <span className="mgr-logs-stat-num">{kioskLogs.filter(l => l.event_type === 'unlock_vendor').length}</span>
+                  <span className="mgr-logs-stat-text">Deblocări Vânzător</span>
+                </div>
+                <div className="mgr-logs-stat-pill">
+                  <span className="mgr-logs-stat-num mgr-val-red">{kioskLogs.filter(l => l.event_type === 'unlock_failed').length}</span>
+                  <span className="mgr-logs-stat-text">Încercări Eșuate</span>
+                </div>
+                <div className="mgr-logs-stat-pill">
+                  <span className="mgr-logs-stat-num mgr-val-amber">{kioskLogs.filter(l => l.event_type === 'auto_lock' || l.event_type === 'auto_unlock').length}</span>
+                  <span className="mgr-logs-stat-text">Orar Automat</span>
+                </div>
+              </div>
+              <button 
+                type="button" 
+                onClick={fetchKioskLogs} 
+                className={`mgr-btn-refresh ${kioskLogsLoading ? 'mgr-btn-refresh-spinning' : ''}`}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                <span>Reîncarcă Loguri</span>
+              </button>
+            </div>
+
+            <div className="mgr-logs-scroll-area">
+              {kioskLogsLoading && kioskLogs.length === 0 ? (
+                <div className="mgr-logs-empty">Se încarcă logurile de securitate...</div>
+              ) : kioskLogs.length === 0 ? (
+                <div className="mgr-logs-empty">
+                  Nu există încă evenimente de deblocare înregistrate pentru acest kiosk.
+                </div>
+              ) : (
+                <div className="mgr-logs-list">
+                  {kioskLogs.map((log) => {
+                    const ev = KIOSK_EVENT_META[log.event_type] || {
+                      label: log.event_type || 'Eveniment',
+                      color: '#64748b',
+                      bg: '#f1f5f9',
+                      border: '#cbd5e1'
+                    };
+                    const dateStr = log.timestamp 
+                      ? new Date(log.timestamp).toLocaleString('ro-RO', { dateStyle: 'short', timeStyle: 'medium' }) 
+                      : '-';
+                    const detailsStr = log.details 
+                      ? (typeof log.details === 'object' ? (log.details.schedule || log.details.reason || log.details.screen || JSON.stringify(log.details)) : String(log.details)) 
+                      : null;
+
+                    return (
+                      <div key={log.id} className="mgr-log-card">
+                        <div className="mgr-log-card-left">
+                          <span 
+                            className="mgr-log-badge" 
+                            style={{ backgroundColor: ev.bg, color: ev.color, borderColor: ev.border }}
+                          >
+                            {ev.label}
+                          </span>
+                          <span className="mgr-log-time">{dateStr}</span>
+                        </div>
+                        <div className="mgr-log-card-right">
+                          <span className="mgr-log-role">
+                            Rol: <strong>{log.role === 'manager' ? 'Manager' : log.role === 'vendor' ? 'Vânzător' : (log.role || 'Sistem')}</strong>
+                          </span>
+                          {detailsStr && (
+                            <span className="mgr-log-details">{detailsStr}</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ─── TAB 3: STARE KIOSK & ORAR BLOCARE ─── */}
+        {activeTab === 'status' && (
+          <div className="mgr-tab-content mgr-status-tab">
+            <div className="mgr-status-grid">
+              {/* Card Informații Kiosk */}
+              <div className="mgr-status-card">
+                <h3 className="mgr-status-card-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                  Informații Kiosk & Conexiune
+                </h3>
+                <div className="mgr-status-rows">
+                  <div className="mgr-status-row">
+                    <span className="mgr-status-label">Denumire Locație:</span>
+                    <span className="mgr-status-val"><strong>{locationData?.name || '-'}</strong></span>
+                  </div>
+                  <div className="mgr-status-row">
+                    <span className="mgr-status-label">Identificator URL:</span>
+                    <span className="mgr-status-val font-mono">{locationData?.kioskUrl || locationData?.id || '-'}</span>
+                  </div>
+                  <div className="mgr-status-row">
+                    <span className="mgr-status-label">Stare Conexiune:</span>
+                    <span className="mgr-status-val mgr-badge-online">
+                      <span className="mgr-live-dot" /> Online / Conectat
+                    </span>
+                  </div>
+                  <div className="mgr-status-row">
+                    <span className="mgr-status-label">Acces Manager Mobil:</span>
+                    <span className={`mgr-status-val ${locationData?.remoteManagerEnabled !== false ? 'mgr-val-green' : 'mgr-val-red'}`}>
+                      {locationData?.remoteManagerEnabled !== false ? 'Activ (Conectat)' : 'Dezactivat din Admin'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card Securitate & Orar Blocare */}
+              <div className="mgr-status-card">
+                <h3 className="mgr-status-card-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                  Securitate & Orar Blocare
+                </h3>
+                <div className="mgr-status-rows">
+                  <div className="mgr-status-row">
+                    <span className="mgr-status-label">Blocare după Orar:</span>
+                    <span className={`mgr-status-val ${locationData?.lockScheduleActive ? 'mgr-val-green' : 'mgr-val-dark'}`}>
+                      {locationData?.lockScheduleActive ? 'ACTIVAT' : 'DEZACTIVAT'}
+                    </span>
+                  </div>
+                  {locationData?.lockScheduleActive && (
+                    <>
+                      <div className="mgr-status-row">
+                        <span className="mgr-status-label">Interval Blocare:</span>
+                        <span className="mgr-status-val font-mono">
+                          <strong>{locationData.lockStartTime || '22:00'}</strong> — <strong>{locationData.lockEndTime || '09:00'}</strong>
+                        </span>
+                      </div>
+                      <div className="mgr-status-row">
+                        <span className="mgr-status-label">Frecvență Aplicare:</span>
+                        <span className="mgr-status-val">
+                          {locationData.lockScheduleMode === 'custom' ? 'Zile selectate' : 'Zilnic (Luni - Duminică)'}
+                        </span>
+                      </div>
+                      <div className="mgr-status-row">
+                        <span className="mgr-status-label">Deblocare Automată:</span>
+                        <span className="mgr-status-val">
+                          {locationData.lockAutoUnlock !== false ? 'Activă la final de orar' : 'Doar manual cu PIN'}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                  <div className="mgr-status-row">
+                    <span className="mgr-status-label">PIN Manager:</span>
+                    <span className="mgr-status-val mgr-val-green">Configurat (Activ)</span>
+                  </div>
+                  <div className="mgr-status-row">
+                    <span className="mgr-status-label">PIN Vânzător:</span>
+                    <span className="mgr-status-val">
+                      {locationData?.vendorPin ? 'Configurat (Activ)' : 'Nu este configurat'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ─── EXACT ORDER DETAIL POPUP WINDOW (Identic cu Panoul Comenzi Admin) ─── */}
