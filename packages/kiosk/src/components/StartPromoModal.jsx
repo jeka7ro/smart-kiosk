@@ -233,9 +233,25 @@ export default function StartPromoModal({ product, onClose, onAccept, onInfo, la
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12, borderBottom: '1px solid #f1f5f9' }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800, color: '#0f172a' }}>{product.name}</h3>
-                <div style={{ marginTop: 4 }}>
+                <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#EE3B24' }}>{promoPrice.toFixed(2)} lei</span>
-                  <span style={{ fontSize: '0.88rem', textDecoration: 'line-through', color: '#94a3b8', marginLeft: 8, fontWeight: 600 }}>{originalPrice.toFixed(2)} lei</span>
+                  <span style={{ fontSize: '0.88rem', textDecoration: 'line-through', color: '#94a3b8', fontWeight: 600 }}>{originalPrice.toFixed(2)} lei</span>
+                  {savings > 0 && (
+                    <span
+                      style={{
+                        fontSize: '0.78rem',
+                        fontWeight: 800,
+                        color: '#ffffff',
+                        background: '#10b981',
+                        border: 'none',
+                        padding: '4px 8px',
+                        borderRadius: 8,
+                        boxShadow: '0 2px 6px rgba(16, 185, 129, 0.3)',
+                      }}
+                    >
+                      {t.save} {savings.toFixed(2)} lei
+                    </span>
+                  )}
                 </div>
               </div>
               <button
@@ -476,13 +492,15 @@ export default function StartPromoModal({ product, onClose, onAccept, onInfo, la
               {savings > 0 && (
                 <span
                   style={{
-                    fontSize: '0.82rem',
+                    fontSize: '0.85rem',
                     fontWeight: 800,
-                    color: '#059669',
-                    background: '#ecfdf5',
-                    border: '1px solid #a7f3d0',
-                    padding: '5px 10px',
-                    borderRadius: 10,
+                    color: '#ffffff',
+                    background: '#10b981',
+                    border: 'none',
+                    padding: '6px 12px',
+                    borderRadius: 12,
+                    boxShadow: '0 2px 8px rgba(16, 185, 129, 0.35)',
+                    letterSpacing: '0.2px',
                   }}
                 >
                   {t.save} {savings.toFixed(2)} lei
