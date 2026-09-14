@@ -378,15 +378,52 @@ export default function App() {
       }
     };
 
+    const kioskDeviceId = locationData?.kioskId || localStorage.getItem('kiosk_device_id') || 'kiosk-main';
+    const activeScreen = isLocked ? 'pin' : screen;
+
     socket.on('connect', () => {
       console.log(`[Kiosk] Socket connected (${socket.id}), joining room kiosk-${locId}`);
-      socket.emit('join', { role: 'kiosk', locationId: locId });
+      socket.emit('join', {
+        role: 'kiosk',
+        locationId: locId,
+        kioskId: kioskDeviceId,
+        screen: activeScreen
+      });
     });
 
     socket.on('reconnect', () => {
       // Re-join room after reconnect
-      socket.emit('join', { role: 'kiosk', locationId: locId });
+      socket.emit('join', {
+        role: 'kiosk',
+        locationId: locId,
+        kioskId: kioskDeviceId,
+        screen: activeScreen
+      });
     });
+
+    // Handle live ping from admin panel
+    const handlePing = (data) => {
+      console.log('[Kiosk] 🏓 Ping signal received from Admin, responding with pong...');
+      socket.emit('kiosk_pong', {
+        pingId: data?.pingId,
+        locationId: locId,
+        kioskId: kioskDeviceId,
+        screen: isLocked ? 'pin' : screen
+      });
+    };
+    socket.on('kiosk_ping', handlePing);
+    socket.on(`kiosk_ping_${locId}`, handlePing);
+
+    // Heartbeat every 10s to keep admin live status real
+    const hbInterval = setInterval(() => {
+      if (socket.connected) {
+        socket.emit('kiosk_heartbeat', {
+          locationId: locId,
+          kioskId: kioskDeviceId,
+          screen: isLocked ? 'pin' : screen
+        });
+      }
+    }, 10000);
 
     // Room-level restart (when in room kiosk-{id})
     socket.on('remote_restart', hardReload);
@@ -414,8 +451,13 @@ export default function App() {
       }
     });
 
-    return () => socket.disconnect();
-  }, [locationData?.id, setLocationData]);
+    return () => {
+      clearInterval(hbInterval);
+      socket.off('kiosk_ping', handlePing);
+      socket.off(`kiosk_ping_${locId}`, handlePing);
+      socket.disconnect();
+    };
+  }, [locationData?.id, setLocationData, screen, isLocked]);
 
   // Auto-fullscreen agresiv pentru kiosk/tabletă
   useEffect(() => {
@@ -671,62 +713,84 @@ export default function App() {
               overflow: 'hidden',
               textAlign: align
             }}>
-              {/* 1. Logo (sus) */}
-              {logoUrl && (
-                <img 
-                  src={logoUrl} 
-                  alt="Logo" 
-                  style={{ 
-                    height: hasStructuredContact ? 'clamp(24px, 2.6vh, 34px)' : 'clamp(32px, 4vh, 46px)', 
-                    maxHeight: hasStructuredContact ? 'clamp(28px, 3vh, 38px)' : 'clamp(36px, 4.5vh, 50px)', 
-                    maxWidth: '220px',
-                    objectFit: 'contain', 
-                    flexShrink: 0 
-                  }} 
-                />
-              )}
+              {/* Card / Fundal Info (Logo + Site + Telefon) - Configurat din Admin */}
+              {(() => {
+                const infoBg = locationData?.bottomBannerInfoBg;
+                const hasCustomBg = Boolean(infoBg && infoBg !== 'transparent');
+                
+                return (
+                  <div style={{
+                    display: 'inline-flex',
+                    flexDirection: 'column',
+                    alignItems: align === 'left' ? 'flex-start' : align === 'right' ? 'flex-end' : 'center',
+                    justifyContent: 'center',
+                    gap: 'clamp(2px, 0.4vh, 4px)',
+                    backgroundColor: infoBg || 'transparent',
+                    padding: hasCustomBg ? '4px 14px' : '0',
+                    borderRadius: hasCustomBg ? '10px' : '0',
+                    boxShadow: hasCustomBg ? '0 2px 8px rgba(0,0,0,0.2)' : 'none',
+                    backdropFilter: hasCustomBg ? 'blur(4px)' : 'none',
+                    flexShrink: 0
+                  }}>
+                    {/* 1. Logo (sus) */}
+                    {logoUrl && (
+                      <img 
+                        src={logoUrl} 
+                        alt="Logo" 
+                        style={{ 
+                          height: hasStructuredContact ? 'clamp(24px, 2.6vh, 34px)' : 'clamp(32px, 4vh, 46px)', 
+                          maxHeight: hasStructuredContact ? 'clamp(28px, 3vh, 38px)' : 'clamp(36px, 4.5vh, 50px)', 
+                          maxWidth: '220px',
+                          objectFit: 'contain', 
+                          flexShrink: 0 
+                        }} 
+                      />
+                    )}
 
-              {/* 2. Sub el: Site-ul */}
-              {website && (
-                <div style={{ 
-                  display: 'inline-flex', 
-                  alignItems: 'center', 
-                  gap: '6px',
-                  fontSize: 'clamp(0.92rem, 1.1vh, 1.12rem)', 
-                  fontWeight: 700, 
-                  color: '#ffffff', 
-                  letterSpacing: '0.4px',
-                  lineHeight: 1.15,
-                  textShadow: '0 1px 3px rgba(0,0,0,0.45)'
-                }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.9, flexShrink: 0 }}>
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="2" y1="12" x2="22" y2="12" />
-                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                  </svg>
-                  <span>{website}</span>
-                </div>
-              )}
+                    {/* 2. Sub el: Site-ul */}
+                    {website && (
+                      <div style={{ 
+                        display: 'inline-flex', 
+                        alignItems: 'center', 
+                        gap: '6px',
+                        fontSize: 'clamp(0.92rem, 1.1vh, 1.12rem)', 
+                        fontWeight: 700, 
+                        color: '#ffffff', 
+                        letterSpacing: '0.4px',
+                        lineHeight: 1.15,
+                        textShadow: '0 1px 3px rgba(0,0,0,0.45)'
+                      }}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.9, flexShrink: 0 }}>
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="2" y1="12" x2="22" y2="12" />
+                          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                        </svg>
+                        <span>{website}</span>
+                      </div>
+                    )}
 
-              {/* 3. Sub ele: Telefonul */}
-              {phone && (
-                <div style={{ 
-                  display: 'inline-flex', 
-                  alignItems: 'center', 
-                  gap: '6px',
-                  fontSize: 'clamp(0.85rem, 0.98vh, 1.02rem)', 
-                  fontWeight: 600, 
-                  color: 'rgba(255, 255, 255, 0.94)', 
-                  letterSpacing: '0.3px',
-                  lineHeight: 1.15,
-                  textShadow: '0 1px 3px rgba(0,0,0,0.45)'
-                }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.9, flexShrink: 0 }}>
-                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-                  </svg>
-                  <span>{phone}</span>
-                </div>
-              )}
+                    {/* 3. Sub ele: Telefonul */}
+                    {phone && (
+                      <div style={{ 
+                        display: 'inline-flex', 
+                        alignItems: 'center', 
+                        gap: '6px',
+                        fontSize: 'clamp(0.85rem, 0.98vh, 1.02rem)', 
+                        fontWeight: 600, 
+                        color: 'rgba(255, 255, 255, 0.94)', 
+                        letterSpacing: '0.3px',
+                        lineHeight: 1.15,
+                        textShadow: '0 1px 3px rgba(0,0,0,0.45)'
+                      }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.9, flexShrink: 0 }}>
+                          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                        </svg>
+                        <span>{phone}</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Text adițional dacă există */}
               {extra && (

@@ -70,6 +70,17 @@ router.get('/', requireApiKey, async (req, res) => {
   }
 });
 
+// GET /api/locations/live-status — get real-time connection status of all kiosks
+router.get('/live-status', requireApiKey, (req, res) => {
+  try {
+    const { getLiveKiosksSummary } = require('../services/socketService');
+    const status = getLiveKiosksSummary();
+    res.json({ liveStatus: status });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // GET /api/locations/:id
 router.get('/:id', requireApiKey, async (req, res) => {
   const { findLocation, getLocationAliases } = require('../utils/locations');
@@ -318,6 +329,18 @@ router.post('/:id/restart', protect, async (req, res) => {
   } catch (e) {
     console.error('[Locations RESTART]', e.message);
     res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/locations/:id/ping — send real-time ping to tablet and measure latency
+router.post('/:id/ping', protect, async (req, res) => {
+  try {
+    const { pingKioskLocation } = require('../services/socketService');
+    const result = await pingKioskLocation(req.params.id);
+    res.json(result);
+  } catch (e) {
+    console.error('[Locations PING]', e.message);
+    res.status(500).json({ ok: false, error: e.message });
   }
 });
 

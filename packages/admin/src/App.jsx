@@ -23,7 +23,7 @@ import FortuneWheelPreview from './components/FortuneWheelPreview';
 import MenuManager, { MenuProfileEditorModal } from './screens/MenuManager';
 import QrGenerator from './screens/QrGenerator';
 import { useConfirm } from './components/ConfirmModal';
-import { LayoutDashboard, Receipt, TrendingUp, MapPin, MonitorSmartphone, QrCode, Utensils, Languages, Image as ImageIcon, Tags, Users, Blocks, Gift, Store, Sun, Moon, LogOut, Menu, X, CreditCard, Download, Printer, Building2, Palette, Sparkles, Flame, Snowflake, Layers, Upload, Star, ChevronUp, ChevronDown, Check, Zap, Wifi, Sliders, Info, Trash2, AlertTriangle, Globe, Phone, Lock, Clock, ShieldCheck, ShieldAlert, Unlock, Eye, EyeOff } from 'lucide-react';
+import { LayoutDashboard, Receipt, TrendingUp, MapPin, MonitorSmartphone, QrCode, Utensils, Languages, Image as ImageIcon, Tags, Users, Blocks, Gift, Store, Sun, Moon, LogOut, Menu, X, CreditCard, Download, Printer, Building2, Palette, Sparkles, Flame, Snowflake, Layers, Upload, Star, ChevronUp, ChevronDown, Check, Zap, Wifi, Sliders, Info, Trash2, AlertTriangle, Globe, Phone, Lock, Clock, ShieldCheck, ShieldAlert, Unlock, Eye, EyeOff, Activity } from 'lucide-react';
 import { formatThousands } from './utils/formatters';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
@@ -210,6 +210,7 @@ export default function AdminApp() {
     return localStorage.getItem('admin-theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
   });
   const socketRef = useRef(null);
+  const [kiosksLiveStatus, setKiosksLiveStatus] = useState({});
   useKeepAlive(); // prevent Render backend from sleeping
 
   /* ─── Theme Sync ─────────────────────────────────── */
@@ -269,6 +270,19 @@ export default function AdminApp() {
         return t;
       }));
     });
+    socket.on('kiosks_live_status', (statusMap) => {
+      setKiosksLiveStatus(statusMap || {});
+    });
+
+    // Initial live status fetch + 15s poll fallback
+    const fetchLiveKiosks = () => {
+      fetch(`${BACKEND}/api/locations/live-status`)
+        .then(r => r.json())
+        .then(d => { if (d.liveStatus) setKiosksLiveStatus(d.liveStatus); })
+        .catch(() => {});
+    };
+    fetchLiveKiosks();
+    const livePoll = setInterval(fetchLiveKiosks, 15000);
 
     // Also connect to localhost:4000 if running locally to catch local kiosk orders
     let localSocket = null;
@@ -288,6 +302,7 @@ export default function AdminApp() {
     }
 
     return () => {
+      clearInterval(livePoll);
       socket.disconnect();
       if (localSocket) localSocket.disconnect();
     };
@@ -1032,12 +1047,12 @@ export default function AdminApp() {
 
           {/* ─── LOCATIONS ─── */}
           {tab === 'locations' && (
-            <div className="admin-section"><LocationsManager backend={BACKEND} /></div>
+            <div className="admin-section"><LocationsManager backend={BACKEND} kiosksLiveStatus={kiosksLiveStatus} /></div>
           )}
 
           {/* ─── KIOSKS / SCREENSAVER ─── */}
           {tab === 'kiosks' && (
-            <div className="admin-section"><KiosksManager backend={BACKEND} /></div>
+            <div className="admin-section"><KiosksManager backend={BACKEND} kiosksLiveStatus={kiosksLiveStatus} /></div>
           )}
 
           {/* ─── QR CODE GENERATOR ─── */}
@@ -1695,7 +1710,7 @@ function KioskPosterCard({ brandId, brandName, emoji, backend }) {
   );
 }
 
-function KiosksManager({ backend }) {
+function KiosksManager({ backend, kiosksLiveStatus = {} }) {
   const { fetchWithAuth } = useAuth();
   const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1828,10 +1843,39 @@ function KiosksManager({ backend }) {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                       <span className={`w-3 h-3 rounded-full ${loc.active ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-red-500'}`} title={loc.active ? 'Online' : 'Inactiv'} />
-                       <span className="text-sm font-medium text-slate-600 dark:text-slate-300">{loc.active ? 'Online' : 'Inactiv'}</span>
-                    </div>
+                    {(() => {
+                      const live = kiosksLiveStatus[loc.id] || (loc.kioskUrl ? kiosksLiveStatus[loc.kioskUrl] : null);
+                      const isOnline = live ? live.online : false;
+                      const isLocked = live ? live.isLocked : false;
+                      return (
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2">
+                            <span className={`w-2.5 h-2.5 rounded-full ${isOnline ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)] animate-pulse' : 'bg-slate-400'}`} />
+                            <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                              {isOnline ? 'Conectat' : (loc.active ? 'Offline' : 'Inactiv')}
+                            </span>
+                          </div>
+                          {isOnline && (
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {isLocked ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
+                                  <Lock className="w-2.5 h-2.5" /> Blocat PIN
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                  <Unlock className="w-2.5 h-2.5" /> Activ
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          {loc.lockScheduleActive && (
+                            <span className="text-[10px] text-slate-500 font-mono">
+                              Orar: {loc.lockStartTime || '22:00'} - {loc.lockEndTime || '09:00'}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2">
@@ -2103,6 +2147,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
     bottomBannerTextAlign: loc.bottomBannerTextAlign || 'center',
     bottomBannerBg: loc.bottomBannerBg || '#1e293b',
     bottomBannerLogoUrl: loc.bottomBannerLogoUrl || '',
+    bottomBannerInfoBg: loc.bottomBannerInfoBg || '',
     kioskPin: loc.kioskPin || '',
     vendorPin: loc.vendorPin || '',
     lockScheduleActive: loc.lockScheduleActive || false,
@@ -3192,6 +3237,53 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                     value={formData.bottomBannerBg || '#1e293b'}
                     onChange={val => handleChange('bottomBannerBg', val)}
                   />
+
+                  {/* 5. Culoare Fundal Card Info (Logo + Contact) */}
+                  <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <KioskColorPicker
+                      label="5. Culoare Fundal Card Info (Logo + Contact)"
+                      value={formData.bottomBannerInfoBg || 'transparent'}
+                      onChange={val => handleChange('bottomBannerInfoBg', val)}
+                    />
+                    <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                      <span className="text-[11px] text-slate-400 font-medium">Preseturi:</span>
+                      <button
+                        type="button"
+                        className={`px-2 py-0.5 text-xs rounded border transition-colors ${!formData.bottomBannerInfoBg || formData.bottomBannerInfoBg === 'transparent' ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent font-bold' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'}`}
+                        onClick={() => handleChange('bottomBannerInfoBg', 'transparent')}
+                      >
+                        Transparent
+                      </button>
+                      <button
+                        type="button"
+                        className={`px-2 py-0.5 text-xs rounded border transition-colors ${formData.bottomBannerInfoBg === 'rgba(0,0,0,0.45)' ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent font-bold' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'}`}
+                        onClick={() => handleChange('bottomBannerInfoBg', 'rgba(0,0,0,0.45)')}
+                      >
+                        Negru 45%
+                      </button>
+                      <button
+                        type="button"
+                        className={`px-2 py-0.5 text-xs rounded border transition-colors ${formData.bottomBannerInfoBg === '#000000' ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent font-bold' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'}`}
+                        onClick={() => handleChange('bottomBannerInfoBg', '#000000')}
+                      >
+                        Negru
+                      </button>
+                      <button
+                        type="button"
+                        className={`px-2 py-0.5 text-xs rounded border transition-colors ${formData.bottomBannerInfoBg === 'rgba(255,255,255,0.25)' ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent font-bold' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'}`}
+                        onClick={() => handleChange('bottomBannerInfoBg', 'rgba(255,255,255,0.25)')}
+                      >
+                        Alb 25%
+                      </button>
+                      <button
+                        type="button"
+                        className={`px-2 py-0.5 text-xs rounded border transition-colors ${formData.bottomBannerInfoBg === '#ffffff' ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent font-bold' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'}`}
+                        onClick={() => handleChange('bottomBannerInfoBg', '#ffffff')}
+                      >
+                        Alb
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Simulator Footer */}
@@ -3215,6 +3307,9 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                     {(() => {
                       const { website: simWeb, phone: simPhone, extra: simExtra } = parseFooterDetails(formData.bottomBannerText);
                       const hasSimContact = Boolean(simWeb || simPhone);
+                      const simInfoBg = formData.bottomBannerInfoBg;
+                      const hasSimCustomBg = Boolean(simInfoBg && simInfoBg !== 'transparent');
+
                       return (
                         <div 
                           className="w-full transition-all duration-300 flex flex-col items-center justify-center px-1 py-0.5 relative overflow-hidden z-10 text-center"
@@ -3228,23 +3323,34 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                             gap: '1px'
                           }}
                         >
-                          {formData.bottomBannerLogoUrl && (
-                            <img 
-                              src={formData.bottomBannerLogoUrl} 
-                              alt="Logo" 
-                              className="h-2.5 max-w-[28px] object-contain shrink-0" 
-                            />
-                          )}
-                          {simWeb && (
-                            <span className="text-[6.5px] font-bold text-white truncate max-w-[120px] leading-none">
-                              {simWeb}
-                            </span>
-                          )}
-                          {simPhone && (
-                            <span className="text-[6px] font-semibold text-slate-200 truncate max-w-[120px] leading-none">
-                              {simPhone}
-                            </span>
-                          )}
+                          <div 
+                            className="flex flex-col items-center justify-center transition-all duration-200"
+                            style={{
+                              backgroundColor: simInfoBg || 'transparent',
+                              padding: hasSimCustomBg ? '2px 6px' : '0',
+                              borderRadius: hasSimCustomBg ? '4px' : '0',
+                              boxShadow: hasSimCustomBg ? '0 1px 4px rgba(0,0,0,0.25)' : 'none',
+                              gap: '1px'
+                            }}
+                          >
+                            {formData.bottomBannerLogoUrl && (
+                              <img 
+                                src={formData.bottomBannerLogoUrl} 
+                                alt="Logo" 
+                                className="h-2.5 max-w-[28px] object-contain shrink-0" 
+                              />
+                            )}
+                            {simWeb && (
+                              <span className="text-[6.5px] font-bold text-white truncate max-w-[120px] leading-none">
+                                {simWeb}
+                              </span>
+                            )}
+                            {simPhone && (
+                              <span className="text-[6px] font-semibold text-slate-200 truncate max-w-[120px] leading-none">
+                                {simPhone}
+                              </span>
+                            )}
+                          </div>
                           {simExtra && (
                             <span className="text-[5.5px] text-slate-300 truncate max-w-[120px] leading-none">
                               {simExtra}
@@ -3268,6 +3374,9 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                     {(() => {
                       const { website: pWeb, phone: pPhone, extra: pExtra } = parseFooterDetails(formData.bottomBannerText);
                       const hasContact = Boolean(pWeb || pPhone);
+                      const pInfoBg = formData.bottomBannerInfoBg;
+                      const hasPCustomBg = Boolean(pInfoBg && pInfoBg !== 'transparent');
+
                       return (
                         <div 
                           className="w-full min-h-[64px] py-2 px-3 rounded-xl flex flex-col items-center justify-center gap-1 overflow-hidden shadow-sm"
@@ -3280,24 +3389,36 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                             textAlign: formData.bottomBannerTextAlign || 'center'
                           }}
                         >
-                          {formData.bottomBannerLogoUrl && (
-                            <img 
-                              src={formData.bottomBannerLogoUrl} 
-                              alt="Logo" 
-                              className="h-5 max-w-[80px] object-contain shrink-0" 
-                            />
-                          )}
-                          {pWeb && (
-                            <span className="text-xs font-bold text-white leading-tight flex items-center gap-1">
-                              <Globe className="w-3 h-3 text-white/80 shrink-0" />
-                              <span>{pWeb}</span>
-                            </span>
-                          )}
-                          {pPhone && (
-                            <span className="text-[11px] font-semibold text-slate-200 leading-tight">
-                              {pPhone}
-                            </span>
-                          )}
+                          <div 
+                            className="flex flex-col items-center justify-center transition-all duration-200"
+                            style={{
+                              backgroundColor: pInfoBg || 'transparent',
+                              padding: hasPCustomBg ? '4px 12px' : '0',
+                              borderRadius: hasPCustomBg ? '8px' : '0',
+                              boxShadow: hasPCustomBg ? '0 2px 6px rgba(0,0,0,0.25)' : 'none',
+                              gap: '2px',
+                              alignItems: formData.bottomBannerTextAlign === 'left' ? 'flex-start' : formData.bottomBannerTextAlign === 'right' ? 'flex-end' : 'center',
+                            }}
+                          >
+                            {formData.bottomBannerLogoUrl && (
+                              <img 
+                                src={formData.bottomBannerLogoUrl} 
+                                alt="Logo" 
+                                className="h-5 max-w-[80px] object-contain shrink-0" 
+                              />
+                            )}
+                            {pWeb && (
+                              <span className="text-xs font-bold text-white leading-tight flex items-center gap-1">
+                                <Globe className="w-3 h-3 text-white/80 shrink-0" />
+                                <span>{pWeb}</span>
+                              </span>
+                            )}
+                            {pPhone && (
+                              <span className="text-[11px] font-semibold text-slate-200 leading-tight">
+                                {pPhone}
+                              </span>
+                            )}
+                          </div>
                           {pExtra && (
                             <span className="text-[10px] text-slate-300 leading-tight">
                               {pExtra}
@@ -4111,7 +4232,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
 const BRAND_LABELS = { smashme: 'SmashMe', crunch: 'Crunch', rollmaster: 'Roll Master', lovesushi: 'Love Sushi', pokiwoki: 'Poki-Woki' };
 const BRAND_PILL_COLORS = { smashme: '#ef4444', crunch: '#eab308', rollmaster: '#3b82f6', lovesushi: '#ec4899', pokiwoki: '#f97316' };
 
-function LocationsManager({ backend }) { 
+function LocationsManager({ backend, kiosksLiveStatus = {} }) { 
   const { fetchWithAuth } = useAuth();
   const confirm = useConfirm();
   const [locations, setLocations] = useState([]);

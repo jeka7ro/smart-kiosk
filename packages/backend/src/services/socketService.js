@@ -4,6 +4,86 @@
  */
 
 let _io = null;
+const connectedKiosks = new Map(); // socketId -> { socketId, locationId, kioskId, screen, ip, connectedAt, lastPing }
+const pendingPings = new Map(); // pingId -> { startTime, resolve }
+
+function getLiveKiosksSummary() {
+  const now = Date.now();
+  const summary = {};
+  for (const [sid, k] of connectedKiosks.entries()) {
+    const ageMs = now - (k.lastPing || k.connectedAt || now);
+    const isLive = ageMs < 45000; // live if heard from in last 45 seconds
+    const locId = k.locationId || 'unknown';
+    if (!summary[locId]) {
+      summary[locId] = {
+        locationId: locId,
+        isLive: false,
+        onlineCount: 0,
+        devices: [],
+        lastSeen: 0,
+        secondsAgo: null,
+        screen: null
+      };
+    }
+    const s = summary[locId];
+    if (isLive) {
+      s.isLive = true;
+      s.onlineCount += 1;
+      if (k.screen) s.screen = k.screen;
+    }
+    const pingTime = k.lastPing || k.connectedAt || 0;
+    if (!s.lastSeen || pingTime > s.lastSeen) {
+      s.lastSeen = pingTime;
+      s.secondsAgo = Math.max(0, Math.round(ageMs / 1000));
+    }
+    s.devices.push({
+      socketId: sid,
+      kioskId: k.kioskId || '1',
+      screen: k.screen || 'activ',
+      isLive,
+      connectedAt: k.connectedAt,
+      lastPing: k.lastPing,
+      ip: k.ip
+    });
+  }
+  return summary;
+}
+
+function broadcastLiveKiosks() {
+  if (_io) {
+    _io.to('admin').emit('kiosks_live_status', getLiveKiosksSummary());
+  }
+}
+
+async function pingKioskLocation(locationId, timeoutMs = 3500) {
+  if (!_io) throw new Error('Socket.io server not initialized');
+  const pingId = `ping_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const startTime = Date.now();
+
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      if (pendingPings.has(pingId)) {
+        pendingPings.delete(pingId);
+        resolve({
+          ok: false,
+          error: 'Tableta kiosk nu a răspuns în timp util (timeout)',
+          latencyMs: timeoutMs
+        });
+      }
+    }, timeoutMs);
+
+    pendingPings.set(pingId, {
+      startTime,
+      resolve: (res) => {
+        clearTimeout(timer);
+        resolve(res);
+      }
+    });
+
+    _io.to(`kiosk-${locationId}`).emit('kiosk_ping', { pingId, locationId, timestamp: startTime });
+    _io.emit(`kiosk_ping_${locationId}`, { pingId, locationId, timestamp: startTime });
+  });
+}
 
 function initSocket(io) {
   _io = io;
@@ -12,14 +92,63 @@ function initSocket(io) {
     console.log(`[Socket] Client connected: ${socket.id}`);
 
     // Kitchen Display joins — both legacy 'join' and new 'join_room' events
-    socket.on('join', ({ role, locationId }) => {
+    socket.on('join', ({ role, locationId, kioskId, screen }) => {
       if (role === 'kitchen') {
         socket.join(`kitchen-${locationId}`);
         console.log(`[Socket] Kitchen joined: kitchen-${locationId}`);
       } else if (role === 'kiosk') {
         socket.join(`kiosk-${locationId}`);
+        const info = {
+          socketId: socket.id,
+          locationId: String(locationId || ''),
+          kioskId: String(kioskId || '1'),
+          screen: screen || 'welcome',
+          ip: socket.handshake.headers['x-forwarded-for'] || socket.handshake.address,
+          connectedAt: Date.now(),
+          lastPing: Date.now()
+        };
+        connectedKiosks.set(socket.id, info);
+        socket._kioskInfo = info;
+        console.log(`[Socket] 🟢 Kiosk connected: location=${locationId} kiosk=${info.kioskId} sid=${socket.id}`);
+        broadcastLiveKiosks();
       } else if (role === 'admin') {
         socket.join('admin');
+        socket.emit('kiosks_live_status', getLiveKiosksSummary());
+      }
+    });
+
+    // Kiosk Heartbeat (sent periodically every 10-15s)
+    socket.on('kiosk_heartbeat', (data) => {
+      if (!data) return;
+      const k = connectedKiosks.get(socket.id) || socket._kioskInfo || {
+        socketId: socket.id,
+        locationId: String(data.locationId || ''),
+        kioskId: String(data.kioskId || '1'),
+        connectedAt: Date.now(),
+        ip: socket.handshake.headers['x-forwarded-for'] || socket.handshake.address
+      };
+      k.lastPing = Date.now();
+      if (data.locationId) k.locationId = String(data.locationId);
+      if (data.kioskId) k.kioskId = String(data.kioskId);
+      if (data.screen) k.screen = String(data.screen);
+      connectedKiosks.set(socket.id, k);
+      socket._kioskInfo = k;
+      broadcastLiveKiosks();
+    });
+
+    // Kiosk Pong (reply to live ping test)
+    socket.on('kiosk_pong', (data) => {
+      if (data && data.pingId && pendingPings.has(data.pingId)) {
+        const p = pendingPings.get(data.pingId);
+        pendingPings.delete(data.pingId);
+        const latency = Date.now() - p.startTime;
+        p.resolve({
+          ok: true,
+          latencyMs: latency,
+          screen: data.screen || 'activ',
+          socketId: socket.id,
+          locationId: data.locationId || socket._kioskInfo?.locationId
+        });
       }
     });
 
@@ -141,6 +270,12 @@ function initSocket(io) {
     });
 
     socket.on('disconnect', () => {
+      if (connectedKiosks.has(socket.id)) {
+        const k = connectedKiosks.get(socket.id);
+        connectedKiosks.delete(socket.id);
+        console.log(`[Socket] 🔴 Kiosk disconnected: location=${k?.locationId} sid=${socket.id}`);
+        broadcastLiveKiosks();
+      }
       console.log(`[Socket] Client disconnected: ${socket.id}`);
     });
   });
@@ -154,4 +289,11 @@ function emitToAll(event, data) {
   if (_io) _io.emit(event, data);
 }
 
-module.exports = { initSocket, emitToKitchen, emitToAll };
+module.exports = { 
+  initSocket, 
+  emitToKitchen, 
+  emitToAll, 
+  getLiveKiosksSummary, 
+  broadcastLiveKiosks, 
+  pingKioskLocation 
+};
