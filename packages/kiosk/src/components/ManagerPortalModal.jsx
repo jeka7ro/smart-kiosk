@@ -583,43 +583,44 @@ const KIOSK_EVENT_META = {
 
           <div 
             className={`mgr-pin-dots ${pinError ? 'mgr-pin-dots-error' : ''}`}
-            onClick={() => pinInputRef.current?.focus()}
+            onClick={() => isStandalone && pinInputRef.current?.focus()}
           >
-            {/* Input nativ ascuns dar complet funcțional pentru tastatura telefonului */}
-            <input
-              ref={pinInputRef}
-              type="tel"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={4}
-              value={pin}
-              autoFocus
-              autoComplete="one-time-code"
-              onChange={(e) => {
-                const val = e.target.value.replace(/\D/g, '').slice(0, 4);
-                setPin(val);
-                setPinError(false);
-                setPinErrorMessage('');
-                if (val.length === 4) {
-                  verifyPin(val);
-                }
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && pin.length === 4) {
-                  verifyPin(pin);
-                }
-              }}
-              style={{
-                position: 'absolute',
-                inset: 0,
-                width: '100%',
-                height: '100%',
-                opacity: 0,
-                zIndex: 3,
-                cursor: 'pointer'
-              }}
-              aria-label="Cod PIN Manager"
-            />
+            {/* Input nativ exclusiv cand se acceseaza linkul de manager de pe telefon (?manager=true) */}
+            {isStandalone && (
+              <input
+                ref={pinInputRef}
+                type="tel"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={4}
+                value={pin}
+                autoComplete="one-time-code"
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '').slice(0, 4);
+                  setPin(val);
+                  setPinError(false);
+                  setPinErrorMessage('');
+                  if (val.length === 4) {
+                    verifyPin(val);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && pin.length === 4) {
+                    verifyPin(pin);
+                  }
+                }}
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  width: '100%',
+                  height: '100%',
+                  opacity: 0,
+                  zIndex: 3,
+                  cursor: 'pointer'
+                }}
+                aria-label="Cod PIN Manager"
+              />
+            )}
             {[0, 1, 2, 3].map(idx => (
               <div
                 key={idx}
