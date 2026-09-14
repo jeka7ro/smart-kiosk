@@ -802,15 +802,14 @@ export default function MenuScreen() {
       {startPromoModalProduct && (
         <StartPromoModal
           product={startPromoModalProduct}
-          onClose={() => setStartPromoModalProduct(null)}
-          onAccept={handleAcceptStartPromo}
-          onInfo={() => {
-            const prod = startPromoModalProduct;
+          onClose={() => {
+            if (startPromoModalProduct?.categoryId) {
+              setActiveCategory(startPromoModalProduct.categoryId);
+              setMenuActiveCategory(startPromoModalProduct.categoryId);
+            }
             setStartPromoModalProduct(null);
-            if (productsAreaRef.current) setMenuScrollTop(productsAreaRef.current.scrollTop);
-            setMenuActiveCategory(activeCategory);
-            setSelectedProduct(prod);
           }}
+          onAccept={handleAcceptStartPromo}
           lang={lang}
         />
       )}
