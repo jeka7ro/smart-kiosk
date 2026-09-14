@@ -563,6 +563,7 @@ export function BrandDonutChart3D({
     return {
       list: activeList.map(b => ({
         ...b,
+        avg: b.count > 0 ? (b.revenue / b.count) : 0,
         pct: totalRev > 0 ? (b.revenue / totalRev) * 100 : (totalCnt > 0 ? (b.count / totalCnt) * 100 : 0)
       })),
       totalRevenue: totalRev,
@@ -825,7 +826,7 @@ export function BrandDonutChart3D({
                       {formatThousands(b.revenue)} lei
                     </div>
                     <div className="text-[10px] font-semibold text-slate-400">
-                      {b.count} comenzi • <strong className="text-blue-600 dark:text-blue-400">{b.pct.toFixed(0)}%</strong>
+                      {b.count} {b.count === 1 ? 'comandă' : 'comenzi'} • <span className="text-slate-600 dark:text-slate-300 font-bold">med. {formatThousands(b.avg)} lei</span> • <strong className="text-blue-600 dark:text-blue-400">{b.pct.toFixed(0)}%</strong>
                     </div>
                   </div>
                 </div>
