@@ -74,6 +74,16 @@ export default function ManagerPortalModal({ locationData, onClose, isStandalone
     setTimeout(() => setToastMessage(null), 3000);
   };
 
+  // Ieșire automată din fullscreen la accesarea portalului manager
+  useEffect(() => {
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      try {
+        if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      } catch (_) {}
+    }
+  }, []);
+
   const sendLog = async (eventType, role) => {
     try {
       await fetch(`${localBackend}/api/kiosk-logs`, {

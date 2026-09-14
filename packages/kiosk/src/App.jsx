@@ -461,9 +461,18 @@ export default function App() {
     };
   }, [locationData?.id, setLocationData, screen, isLocked]);
 
-  // Auto-fullscreen pentru kiosk/tabletă (activ doar la prima interacțiune a utilizatorului)
+  // Auto-fullscreen pentru kiosk/tabletă (activ doar pentru clienți, NICIODATĂ pe linkul de manager)
   useEffect(() => {
-    if (isManagerMode) return;
+    if (isManagerMode) {
+      // Scoate automat ecranul din fullscreen dacă s-a deschis linkul de manager
+      if (document.fullscreenElement || document.webkitFullscreenElement) {
+        try {
+          if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+          else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+        } catch (_) {}
+      }
+      return;
+    }
 
     const requestFS = () => {
       const el = document.documentElement;
