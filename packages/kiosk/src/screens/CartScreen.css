@@ -478,21 +478,31 @@
   color: var(--text-muted);
 }
 
-.trust-icons {
+.trust-pay-cards {
   display: flex;
+  align-items: center;
+  justify-content: center;
   gap: 8px;
   width: 100%;
-  justify-content: center;
+  flex-wrap: wrap;
 }
 
-.trust-badge {
-  font-size: 0.78rem;
-  font-weight: 700;
-  background: var(--surface, #f8fafc);
-  border: 1px solid var(--border);
-  padding: 6px 12px;
-  border-radius: 10px;
-  color: var(--text, #334155);
+.trust-pay-card {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  padding: 5px 9px;
+  height: 30px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+}
+
+.trust-pay-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 /* EMPTY */
