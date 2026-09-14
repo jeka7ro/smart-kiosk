@@ -438,29 +438,32 @@
   align-items: center;
   justify-content: center;
   gap: 4px;
-  background: var(--surface, #f8fafc);
-  border: 1.5px solid var(--border, #e2e8f0);
-  color: var(--text, #1e293b);
+  background: var(--primary, #EE3B24);
+  border: 1.5px solid var(--primary, #EE3B24);
+  color: #ffffff;
   border-radius: 999px;
-  padding: 6px 14px;
-  font-size: 0.82rem;
+  padding: 6px 15px;
+  font-size: 0.85rem;
   font-weight: 800;
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
+  box-shadow: 0 3px 10px rgba(238, 59, 36, 0.25);
 }
 
 .cart-upsell-add-btn:hover {
-  background: var(--primary, #EE3B24);
+  background: #d32f2f;
   color: #ffffff;
-  border-color: var(--primary, #EE3B24);
+  border-color: #d32f2f;
   transform: scale(1.04);
+  box-shadow: 0 4px 14px rgba(238, 59, 36, 0.35);
 }
 
 .cart-upsell-add-btn--added {
   background: #22c55e !important;
   color: #ffffff !important;
   border-color: #22c55e !important;
+  box-shadow: 0 3px 10px rgba(34, 197, 94, 0.25) !important;
 }
 
 /* ─── SUMMARY SIDEBAR (CONTAINER SEPARAT CU CONTUR ROTUNJIT) ─── */
