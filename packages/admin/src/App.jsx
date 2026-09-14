@@ -23,7 +23,7 @@ import FortuneWheelPreview from './components/FortuneWheelPreview';
 import MenuManager, { MenuProfileEditorModal } from './screens/MenuManager';
 import QrGenerator from './screens/QrGenerator';
 import { useConfirm } from './components/ConfirmModal';
-import { LayoutDashboard, Receipt, TrendingUp, MapPin, MonitorSmartphone, QrCode, Utensils, Languages, Image as ImageIcon, Tags, Users, Blocks, Gift, Store, Sun, Moon, LogOut, Menu, X, CreditCard, Download, Printer, Building2, Palette, Sparkles, Flame, Snowflake, Layers, Upload, Star, ChevronUp, ChevronDown, Check, Zap, Wifi, Sliders, Info, Trash2, AlertTriangle, Globe, Phone, Lock, Clock, ShieldCheck, ShieldAlert, Unlock, Eye, EyeOff, Activity, RotateCcw } from 'lucide-react';
+import { LayoutDashboard, Receipt, TrendingUp, MapPin, MonitorSmartphone, QrCode, Utensils, Languages, Image as ImageIcon, Tags, Users, Blocks, Gift, Store, Sun, Moon, LogOut, Menu, X, CreditCard, Download, Printer, Building2, Palette, Sparkles, Flame, Snowflake, Layers, Upload, Star, ChevronUp, ChevronDown, Check, Zap, Wifi, Sliders, Info, Trash2, AlertTriangle, Globe, Phone, Lock, Clock, ShieldCheck, ShieldAlert, Unlock, Eye, EyeOff, Activity, RotateCcw, Calendar } from 'lucide-react';
 import { formatThousands } from './utils/formatters';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
@@ -117,7 +117,73 @@ export default function AdminApp() {
   const [dashboardPayment, setDashboardPayment] = useState('all');
   const [dashboardSearch, setDashboardSearch] = useState('');
   const [dashboardCustomStart, setDashboardCustomStart] = useState(todayStr);
-  const [dashboardCustomEnd, setDashboardCustomEnd] = useState(tomStr);
+  const [dashboardCustomEnd, setDashboardCustomEnd] = useState(todayStr);
+
+  const formatDateYMD = (d) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const getPeriodDateRange = (periodKey) => {
+    const now = new Date();
+    switch (periodKey) {
+      case 'today': {
+        const s = formatDateYMD(now);
+        return { start: s, end: s };
+      }
+      case 'yesterday': {
+        const y = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+        const s = formatDateYMD(y);
+        return { start: s, end: s };
+      }
+      case 'thisWeek': {
+        const day = now.getDay() || 7;
+        const mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1);
+        const sun = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 7);
+        return { start: formatDateYMD(mon), end: formatDateYMD(sun) };
+      }
+      case 'lastWeek': {
+        const day = now.getDay() || 7;
+        const lastMon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day - 6);
+        const lastSun = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day);
+        return { start: formatDateYMD(lastMon), end: formatDateYMD(lastSun) };
+      }
+      case 'thisMonth': {
+        const first = new Date(now.getFullYear(), now.getMonth(), 1);
+        const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        return { start: formatDateYMD(first), end: formatDateYMD(last) };
+      }
+      case 'lastMonth': {
+        const first = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const last = new Date(now.getFullYear(), now.getMonth(), 0);
+        return { start: formatDateYMD(first), end: formatDateYMD(last) };
+      }
+      case 'thisYear': {
+        const first = new Date(now.getFullYear(), 0, 1);
+        const last = new Date(now.getFullYear(), 11, 31);
+        return { start: formatDateYMD(first), end: formatDateYMD(last) };
+      }
+      default:
+        return null;
+    }
+  };
+
+  const handleSelectDashboardPeriod = (pKey) => {
+    setDashboardPeriod(pKey);
+    const range = getPeriodDateRange(pKey);
+    if (range) {
+      setDashboardCustomStart(range.start);
+      setDashboardCustomEnd(range.end);
+    }
+  };
+
+  const handleCustomDateChange = (type, val) => {
+    setDashboardPeriod('custom');
+    if (type === 'start') setDashboardCustomStart(val);
+    if (type === 'end') setDashboardCustomEnd(val);
+  };
 
   const [dashboardHour, setDashboardHour] = useState(null); // null or hour number 0..23
   const [dashboardDay, setDashboardDay] = useState(null);   // null or { type: 'dayOfWeek' | 'date', value: any, label: string }
@@ -458,7 +524,16 @@ export default function AdminApp() {
     if (period === 'thisWeek') {
       const day = now.getDay() || 7;
       const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1);
+      startOfWeek.setHours(0, 0, 0, 0);
       return d >= startOfWeek;
+    }
+    if (period === 'lastWeek') {
+      const day = now.getDay() || 7;
+      const startOfLastWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day - 6);
+      startOfLastWeek.setHours(0, 0, 0, 0);
+      const endOfLastWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1);
+      endOfLastWeek.setHours(0, 0, 0, 0);
+      return d >= startOfLastWeek && d < endOfLastWeek;
     }
     if (period === 'thisMonth') {
       return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
@@ -741,106 +816,20 @@ export default function AdminApp() {
         {tab === 'dashboard' && (
           <div className="space-y-6 px-4 md:px-8 pb-10">
 
-            {/* Controls & Period Filter Bar */}
-            <div className="flex items-center gap-3 flex-wrap bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
-              {/* Brand Filter Buttons - Compact Icons with Multi-select */}
-              <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide shrink-0">
-                {['all','smashme','crunch','rollmaster','lovesushi','pokiwoki'].map(b => {
-                  const isSelected = b === 'all' ? dashboardBrands.length === 0 : dashboardBrands.includes(b);
-                  return (
-                    <button
-                      key={b}
-                      title={b === 'all' ? 'Toate Brandurile' : b === 'smashme' ? 'SmashMe' : b === 'crunch' ? 'Crunch' : b === 'rollmaster' ? 'Roll Master' : b === 'lovesushi' ? 'Love Sushi' : 'Poki-Woki'}
-                      className={`shrink-0 h-10 rounded-full flex items-center justify-center border transition-all ${
-                        b === 'all' ? 'px-4 text-xs font-bold' : 'w-10'
-                      } ${
-                        isSelected
-                          ? 'bg-blue-600 text-white border-blue-600 shadow-sm ring-2 ring-blue-500/20'
-                          : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
-                      }`}
-                      onClick={() => toggleDashboardBrand(b)}
-                    >
-                      {b === 'all' ? 'Toate' : <BrandLogo brandId={b} size={18} />}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Period Filter Dropdown - Default Azi */}
-              <select 
-                className="shrink-0 px-4 h-10 rounded-full text-xs font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-                value={dashboardPeriod}
-                onChange={(e) => setDashboardPeriod(e.target.value)}
-              >
-                <option value="today">Azi</option>
-                <option value="yesterday">Ieri</option>
-                <option value="thisWeek">Săptămâna Curentă</option>
-                <option value="thisMonth">Luna Curentă</option>
-                <option value="lastMonth">Luna Trecută</option>
-                <option value="thisYear">Anul Curent</option>
-                <option value="all">Toată perioada</option>
-                <option value="custom">Personalizat</option>
-              </select>
-
-              {dashboardPeriod === 'custom' && (
-                <div className="flex items-center gap-2 shrink-0">
-                  <input 
-                    type="date" 
-                    className="px-3 h-10 rounded-full text-xs font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none"
-                    value={dashboardCustomStart}
-                    onChange={(e) => setDashboardCustomStart(e.target.value)}
-                  />
-                  <span className="text-slate-400 text-xs">-</span>
-                  <input 
-                    type="date" 
-                    className="px-3 h-10 rounded-full text-xs font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none"
-                    value={dashboardCustomEnd}
-                    onChange={(e) => setDashboardCustomEnd(e.target.value)}
-                  />
-                </div>
-              )}
-
-              {/* Location Filter */}
-              <select 
-                className="shrink-0 px-4 h-10 rounded-full text-xs font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-                value={dashboardLocation}
-                onChange={(e) => setDashboardLocation(e.target.value)}
-              >
-                <option value="all">Toate locațiile</option>
-                {uniqueLocations.map(loc => (
-                  <option key={loc} value={loc}>{loc}</option>
-                ))}
-              </select>
-
-              {/* Payment Filter */}
-              <select 
-                className="shrink-0 px-4 h-10 rounded-full text-xs font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-                value={dashboardPayment}
-                onChange={(e) => setDashboardPayment(e.target.value)}
-              >
-                <option value="all">Toate plățile</option>
-                <option value="card">Card (POS)</option>
-                <option value="cash">Numerar (Cash)</option>
-              </select>
-
-              {/* Search Bar */}
-              <div className="relative flex-1 min-w-[200px] max-w-[320px]">
-                <input
-                  type="text"
-                  value={dashboardSearch}
-                  onChange={(e) => setDashboardSearch(e.target.value)}
-                  placeholder="Caută comandă, iiko..."
-                  className="h-10 pl-10 pr-4 rounded-full text-xs font-medium bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full transition-all"
-                />
-                <svg className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-              </div>
-            </div>
-
-            {/* Stat Cards Grid - Fixed 7 columns preserving exact dimensions */}
+            {/* Stat Cards Grid - Fixed 7 columns now placed at the top */}
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2.5">
               <div className="w-full">
                 <StatCard 
-                  label={dashboardPeriod === 'today' ? 'Comenzi Azi' : dashboardPeriod === 'yesterday' ? 'Comenzi Ieri' : dashboardPeriod === 'thisWeek' ? 'Comenzi Săpt.' : dashboardPeriod === 'thisMonth' ? 'Comenzi Lună' : 'Comenzi'} 
+                  label={
+                    dashboardPeriod === 'today' ? 'Comenzi Azi' :
+                    dashboardPeriod === 'yesterday' ? 'Comenzi Ieri' :
+                    dashboardPeriod === 'thisWeek' ? 'Comenzi Săpt. Curentă' :
+                    dashboardPeriod === 'lastWeek' ? 'Comenzi Săpt. Trecută' :
+                    dashboardPeriod === 'thisMonth' ? 'Comenzi Luna Curentă' :
+                    dashboardPeriod === 'lastMonth' ? 'Comenzi Luna Trecută' :
+                    dashboardPeriod === 'thisYear' ? 'Comenzi Anul Curent' :
+                    'Comenzi'
+                  } 
                   value={dashboardFilteredOrders.length} 
                   color="var(--primary)" 
                   icon={Receipt}
@@ -867,6 +856,130 @@ export default function AdminApp() {
                   />
                 </div>
               ))}
+            </div>
+
+            {/* Controls & Period Filter Bar - Below Stat Cards */}
+            <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3.5">
+              {/* Linia 1: Filtru Branduri + Locații + Plăți + Căutare */}
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                {/* Brand Filter Buttons - Compact Icons with Multi-select */}
+                <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide shrink-0">
+                  {['all','smashme','crunch','rollmaster','lovesushi','pokiwoki'].map(b => {
+                    const isSelected = b === 'all' ? dashboardBrands.length === 0 : dashboardBrands.includes(b);
+                    return (
+                      <button
+                        key={b}
+                        type="button"
+                        title={b === 'all' ? 'Toate Brandurile' : b === 'smashme' ? 'SmashMe' : b === 'crunch' ? 'Crunch' : b === 'rollmaster' ? 'Roll Master' : b === 'lovesushi' ? 'Love Sushi' : 'Poki-Woki'}
+                        className={`shrink-0 h-10 rounded-full flex items-center justify-center border transition-all ${
+                          b === 'all' ? 'px-4 text-xs font-bold' : 'w-10'
+                        } ${
+                          isSelected
+                            ? 'bg-blue-600 text-white border-blue-600 shadow-sm ring-2 ring-blue-500/20'
+                            : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                        }`}
+                        onClick={() => toggleDashboardBrand(b)}
+                      >
+                        {b === 'all' ? 'Toate' : <BrandLogo brandId={b} size={18} />}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Filtre dreapta: Locație, Plată, Căutare */}
+                <div className="flex items-center gap-2.5 flex-wrap ml-auto">
+                  {/* Location Filter */}
+                  <select 
+                    className="shrink-0 px-4 h-10 rounded-full text-xs font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                    value={dashboardLocation}
+                    onChange={(e) => setDashboardLocation(e.target.value)}
+                  >
+                    <option value="all">Toate locațiile</option>
+                    {uniqueLocations.map(loc => (
+                      <option key={loc} value={loc}>{loc}</option>
+                    ))}
+                  </select>
+
+                  {/* Payment Filter */}
+                  <select 
+                    className="shrink-0 px-4 h-10 rounded-full text-xs font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                    value={dashboardPayment}
+                    onChange={(e) => setDashboardPayment(e.target.value)}
+                  >
+                    <option value="all">Toate plățile</option>
+                    <option value="card">Card (POS)</option>
+                    <option value="cash">Numerar (Cash)</option>
+                  </select>
+
+                  {/* Search Bar */}
+                  <div className="relative min-w-[180px] max-w-[280px]">
+                    <input
+                      type="text"
+                      value={dashboardSearch}
+                      onChange={(e) => setDashboardSearch(e.target.value)}
+                      placeholder="Caută comandă, iiko..."
+                      className="h-10 pl-10 pr-4 rounded-full text-xs font-medium bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full transition-all"
+                    />
+                    <svg className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                  </div>
+                </div>
+              </div>
+
+              {/* Linia 2: Sub filtru de brand — Butoane Rapide Perioadă + Câmpuri Dată */}
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-3 flex-wrap">
+                {/* Butoane Rapide Perioadă */}
+                <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5">
+                  {[
+                    { id: 'today', label: 'Azi' },
+                    { id: 'yesterday', label: 'Ieri' },
+                    { id: 'thisWeek', label: 'Săpt. Curentă' },
+                    { id: 'lastWeek', label: 'Săpt. Trecută' },
+                    { id: 'thisMonth', label: 'Luna Curentă' },
+                    { id: 'lastMonth', label: 'Luna Trecută' },
+                    { id: 'thisYear', label: 'Anul Curent' },
+                    { id: 'custom', label: 'Personalizat' }
+                  ].map(p => {
+                    const isActive = dashboardPeriod === p.id;
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => handleSelectDashboardPeriod(p.id)}
+                        className={`shrink-0 px-3.5 h-9 rounded-full text-xs font-bold transition-all border ${
+                          isActive
+                            ? 'bg-blue-600 text-white border-blue-600 shadow-sm ring-2 ring-blue-500/20'
+                            : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Câmpuri Dată sincronizate direct cu selecția */}
+                <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/60 py-1 px-3 rounded-2xl border border-slate-200 dark:border-slate-700 shrink-0">
+                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">Interval:</span>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="date"
+                      value={dashboardCustomStart}
+                      onChange={(e) => handleCustomDateChange('start', e.target.value)}
+                      className="px-2.5 h-8 rounded-lg text-xs font-mono font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500"
+                      title="Data de început"
+                    />
+                    <span className="text-slate-400 text-xs font-bold">—</span>
+                    <input
+                      type="date"
+                      value={dashboardCustomEnd}
+                      onChange={(e) => handleCustomDateChange('end', e.target.value)}
+                      className="px-2.5 h-8 rounded-lg text-xs font-mono font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500"
+                      title="Data de sfârșit"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Active Filter Pills Bar (if filtered by chart or toolbar) */}
