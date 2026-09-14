@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useKioskStore } from '../store/kioskStore';
 import { t } from '../i18n/translations.js';
 import { proxySyrveImage } from '../utils/imageUtils.js';
@@ -68,7 +69,7 @@ export default function ModifierModal({ product, onConfirm, onClose, activeBrand
     setTimeout(onClose, 350);
   };
 
-  return (
+  return createPortal(
     <div className={`modifier-modal-overlay ${visible ? 'visible' : ''}`} onClick={handleClose}>
       <div className={`modifier-modal-sheet ${visible ? 'visible' : ''}`} onClick={e => e.stopPropagation()}>
         {/* Handle bar */}
@@ -150,6 +151,7 @@ export default function ModifierModal({ product, onConfirm, onClose, activeBrand
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

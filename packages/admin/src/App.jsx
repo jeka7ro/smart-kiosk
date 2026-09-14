@@ -1868,9 +1868,18 @@ function KiosksManager({ backend, kiosksLiveStatus = {} }) {
   const [allMenus, setAllMenus] = useState({});
   const [loading, setLoading] = useState(true);
   const [brandFilter, setBrandFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'online'
   const [editingLoc, setEditingLoc] = useState(null);
   const [restartingId, setRestartingId] = useState(null); // ID of loc currently restarting
   const [toast, setToast] = useState(null); // { msg, type: 'success'|'error' }
+
+  const isLocOnline = (loc) => {
+    if (!loc) return false;
+    const live = kiosksLiveStatus[loc.id] || 
+                 (loc.kioskUrl ? kiosksLiveStatus[loc.kioskUrl] : null) ||
+                 (loc.aliases && Array.isArray(loc.aliases) ? loc.aliases.map(a => kiosksLiveStatus[a]).find(Boolean) : null);
+    return Boolean(live && (live.isLive || live.online || (live.onlineCount > 0)));
+  };
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -2004,11 +2013,24 @@ function KiosksManager({ backend, kiosksLiveStatus = {} }) {
   });
   const brandIds = [...allBrandIds];
 
-  const filtered = brandFilter === 'all' 
+  const totalOnlineCount = locations.filter(isLocOnline).length;
+
+  let filtered = brandFilter === 'all' 
     ? locations 
     : locations.filter(l => (l.brands && l.brands.includes(brandFilter)) || l.brandId === brandFilter);
 
-  const sorted = [...filtered].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  if (statusFilter === 'online') {
+    filtered = filtered.filter(isLocOnline);
+  }
+
+  const sorted = [...filtered].sort((a, b) => {
+    const aOnline = isLocOnline(a);
+    const bOnline = isLocOnline(b);
+    if (aOnline !== bOnline) {
+      return aOnline ? -1 : 1; // Online-first: Kiosk-urile conectate apar mereu primele în listă
+    }
+    return (a.name || '').localeCompare(b.name || '');
+  });
   const totalPages = Math.ceil(sorted.length / itemsPerPage) || 1;
   const paginated = sorted.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
@@ -2021,13 +2043,34 @@ function KiosksManager({ backend, kiosksLiveStatus = {} }) {
     <>
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide flex-1">
           <button
-            className={`shrink-0 px-5 h-10 rounded-full text-sm font-bold flex items-center gap-2 border transition-colors ${brandFilter === 'all' ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-            onClick={() => handleFilterClick('all')}
+            className={`shrink-0 px-5 h-10 rounded-full text-sm font-bold flex items-center gap-2 border transition-colors ${brandFilter === 'all' && statusFilter === 'all' ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+            onClick={() => {
+              setBrandFilter('all');
+              setStatusFilter('all');
+              setCurrentPage(1);
+            }}
           >
             Toate ({locations.length})
           </button>
+
+          <button
+            className={`shrink-0 px-4 h-10 rounded-full text-sm font-bold flex items-center gap-2 border transition-all cursor-pointer ${
+              statusFilter === 'online'
+                ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm shadow-emerald-600/20 ring-2 ring-emerald-500/30'
+                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+            }`}
+            onClick={() => {
+              setStatusFilter(prev => prev === 'online' ? 'all' : 'online');
+              setCurrentPage(1);
+            }}
+            title="Filtrează doar kiosk-urile conectate online"
+          >
+            <span className={`w-2 h-2 rounded-full ${statusFilter === 'online' ? 'bg-white' : 'bg-emerald-500'} ${totalOnlineCount > 0 ? 'animate-pulse' : ''}`} />
+            <span>Online ({totalOnlineCount})</span>
+          </button>
+
         {brandIds.map(bid => {
           const m = brandMeta[bid] || { name: bid, color: '#6b7a99' };
           const count = locations.filter(l => (l.brands && l.brands.includes(bid)) || l.brandId === bid).length;

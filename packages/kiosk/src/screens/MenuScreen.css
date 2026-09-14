@@ -314,7 +314,7 @@
   flex: 1;
   overflow-y: auto;
   padding: 12px;
-  padding-bottom: 90px; /* space for cart bar */
+  padding-bottom: calc(var(--kiosk-banner-bottom, 0px) + 170px); /* space for cart bar and bottom banner */
 }
 .products-area::-webkit-scrollbar { width: 4px; }
 .products-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
