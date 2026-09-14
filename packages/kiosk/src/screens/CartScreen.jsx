@@ -477,13 +477,13 @@ export default function CartScreen() {
             <span className="trust-label">Plată rapidă și sigură la POS</span>
             <div className="trust-pay-cards">
               <div className="trust-pay-card" title="Visa">
-                <svg width="34" height="11" viewBox="0 0 36 12" fill="none">
+                <svg width="44" height="15" viewBox="0 0 36 12" fill="none">
                   <path d="M14.07 0.4L9.22 11.6H6.04L3.69 2.7C3.55 2.12 3.4 1.88 2.92 1.63C2.18 1.23 1.02 0.86 0 0.65L0.08 0.4H5.16C5.83 0.4 6.43 0.84 6.57 1.63L7.79 8.16L10.95 0.4H14.07ZM26.44 7.87C26.46 4.96 22.38 4.8 22.42 3.45C22.43 3.03 22.83 2.59 23.73 2.47C24.18 2.41 25.43 2.36 26.83 3.01L27.42 0.94C26.62 0.65 25.59 0.38 24.28 0.38C21.36 0.38 19.33 1.93 19.31 4.13C19.29 5.76 20.76 6.67 21.87 7.21C23.01 7.76 23.4 8.12 23.39 8.62C23.37 9.38 22.46 9.72 21.62 9.73C20.12 9.75 19.25 9.32 18.57 9.01L17.96 11.17C18.66 11.49 19.96 11.77 21.3 11.78C24.38 11.78 26.42 10.26 26.44 7.87ZM34.25 11.6H37L34.61 0.4H32.22C31.69 0.4 31.24 0.71 31.05 1.18L26.54 11.6H29.68L30.31 9.87H34.14L34.25 11.6ZM31.17 7.55L32.74 3.23L33.64 7.55H31.17ZM18.72 0.4L16.27 11.6H13.27L15.72 0.4H18.72Z" fill="#1434CB"/>
                 </svg>
               </div>
 
               <div className="trust-pay-card" title="Mastercard">
-                <svg width="26" height="16" viewBox="0 0 28 18" fill="none">
+                <svg width="32" height="20" viewBox="0 0 28 18" fill="none">
                   <circle cx="9" cy="9" r="8" fill="#EB001B"/>
                   <circle cx="19" cy="9" r="8" fill="#F79E1B"/>
                   <path d="M14 3.73a7.97 7.97 0 0 0-3 5.27 7.97 7.97 0 0 0 3 5.27 7.97 7.97 0 0 0 3-5.27 7.97 7.97 0 0 0-3-5.27z" fill="#FF5F00"/>
@@ -491,14 +491,14 @@ export default function CartScreen() {
               </div>
 
               <div className="trust-pay-card" title="Apple Pay">
-                <svg width="38" height="15" viewBox="0 0 50 20" fill="none">
+                <svg width="46" height="19" viewBox="0 0 50 20" fill="none">
                   <path d="M9.13 6.9c-.48.58-1.26 1.02-2.03.96-.1-.8.25-1.63.7-2.16.48-.58 1.34-1 2.05-.98.08.82-.24 1.6-.72 2.18m.7 1.12c-1.12-.07-2.08.64-2.61.64-.54 0-1.35-.6-2.23-.58-1.15.02-2.21.67-2.8 1.7-1.2 2.08-.31 5.17.85 6.85.57.82 1.25 1.74 2.14 1.71.85-.04 1.18-.55 2.21-.55 1.03 0 1.33.55 2.22.53.92-.02 1.51-.83 2.07-1.66.66-.96.93-1.89.94-1.94-.02-.01-1.81-.7-1.83-2.76-.02-1.72 1.4-2.54 1.47-2.59-.8-.18-1.58.55-2.43.65" fill="#0f172a"/>
                   <text x="17" y="16.5" fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif" fontSize="13.5" fontWeight="700" fill="#0f172a" letterSpacing="-0.3px">Pay</text>
                 </svg>
               </div>
 
               <div className="trust-pay-card" title="Google Pay">
-                <svg width="38" height="15" viewBox="0 0 50 20" fill="none">
+                <svg width="48" height="19" viewBox="0 0 50 20" fill="none">
                   <g transform="translate(1, 2) scale(0.66)">
                     <path d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47a5.53 5.53 0 0 1-2.4 3.63v3.02h3.88c2.27-2.09 3.54-5.17 3.54-8.89z" fill="#4285F4"/>
                     <path d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.02c-1.07.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.94H1.26v3.12A11.99 11.99 0 0 0 12 24z" fill="#34A853"/>

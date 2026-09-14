@@ -532,8 +532,8 @@
 }
 
 .trust-label {
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.88rem;
+  font-weight: 700;
   color: var(--text-muted);
 }
 
@@ -541,7 +541,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 12px;
   width: 100%;
   flex-wrap: wrap;
 }
@@ -551,17 +551,18 @@
   align-items: center;
   justify-content: center;
   background: #ffffff;
-  border: 1px solid var(--border, #e2e8f0);
-  border-radius: 8px;
-  padding: 5px 9px;
-  height: 30px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  border: 1.5px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+  padding: 6px 14px;
+  height: 38px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   transition: all 0.2s ease;
 }
 
 .trust-pay-card:hover {
   border-color: #cbd5e1;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.09);
+  transform: translateY(-1px);
 }
 
 /* EMPTY */
