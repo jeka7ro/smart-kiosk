@@ -313,12 +313,27 @@ export default function MenuScreen() {
   // Build category → first product image map
   const catImages = useMemo(() => {
     const map = {};
-    categories.forEach(cat => {
-      const prod = products.find(p => p.categoryId === cat.id && p.image);
-      if (prod) map[cat.id] = prod.image;
+    const pool = (products && products.length > 0) ? products : (allProducts || []);
+    (categories || []).forEach(cat => {
+      if (cat.image) {
+        map[cat.id] = cat.image;
+        return;
+      }
+      const catIdStr = String(cat.id || '').toLowerCase();
+      const catNameStr = String(cat.name || '').trim().toLowerCase();
+
+      const prod = pool.find(p => {
+        if (!p.image) return false;
+        const pCatId = String(p.categoryId || '').toLowerCase();
+        const pCatName = String(p.category || '').trim().toLowerCase();
+        return (pCatId && pCatId === catIdStr) || (pCatName && pCatName === catNameStr);
+      });
+      if (prod) {
+        map[cat.id] = prod.image;
+      }
     });
     return map;
-  }, [categories, products]);
+  }, [categories, products, allProducts]);
 
   // Filter products by category + search
   const filteredProducts = useMemo(() => {
@@ -648,7 +663,7 @@ export default function MenuScreen() {
         {/* ─── SIDEBAR CATEGORIES ────────────────────── */}
         <aside className="category-sidebar">
           {visibleCategories.map(cat => {
-            const displayImage = cat.image;
+            const displayImage = cat.image || catImages[cat.id];
 
             return (
               <button
