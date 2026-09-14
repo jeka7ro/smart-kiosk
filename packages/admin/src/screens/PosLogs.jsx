@@ -117,19 +117,17 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
     return true;
   };
 
-  const [hideSuperseded, setHideSuperseded] = useState(true);
-
-  // Helper to find an approved transaction that quickly succeeded for the same amount & location
-  const getSupersedingLog = useCallback((log, allLogs) => {
-    if (log.status === 'approved' || log.paid === true) return null;
+  // Helper to detect failed payment attempts that were quickly retried and approved for the same amount & location
+  const isSupersededRetry = useCallback((log, allLogs) => {
+    if (log.status === 'approved' || log.paid === true) return false;
     const logAmt = parseFloat(log.amount) || 0;
-    if (logAmt <= 0) return null;
-    if (!log.timestamp) return null;
+    if (logAmt <= 0) return false;
+    if (!log.timestamp) return false;
     const logTime = new Date(log.timestamp).getTime();
-    if (isNaN(logTime)) return null;
+    if (isNaN(logTime)) return false;
     const logLoc = (log.locationId || '').trim();
 
-    return allLogs.find(other => {
+    return allLogs.some(other => {
       if ((other._id || other.id) === (log._id || log.id)) return false;
       if (other.status !== 'approved' && other.paid !== true) return false;
       const otherAmt = parseFloat(other.amount) || 0;
@@ -142,32 +140,18 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
       const diffMs = otherTime - logTime;
       // Approved transaction happened within 2 minutes (120 seconds) after the failed attempt
       return diffMs >= -5000 && diffMs <= 120000;
-    }) || null;
+    });
   }, []);
-
-  const isSupersededRetry = useCallback((log, allLogs) => {
-    return !!getSupersedingLog(log, allLogs);
-  }, [getSupersedingLog]);
 
   // ── Filtered by Period, Location & Brands for StatCards ───────
   const periodFilteredLogs = useMemo(() => {
     return logs.filter(l => {
-      if (hideSuperseded && isSupersededRetry(l, logs)) return false;
+      if (isSupersededRetry(l, logs)) return false;
       if (locFilter !== 'all' && l.locationId !== locFilter) return false;
       if (brandFilter !== 'all' && getOrderForLog(l)?.brand !== brandFilter) return false;
       if (!isDateInPeriod(l.timestamp, periodFilter)) return false;
       return true;
     });
-  }, [logs, hideSuperseded, locFilter, brandFilter, periodFilter, customStart, customEnd, orders, isSupersededRetry]);
-
-  // Count of superseded retries in the current filter scope
-  const supersededCount = useMemo(() => {
-    return logs.filter(l => {
-      if (locFilter !== 'all' && l.locationId !== locFilter) return false;
-      if (brandFilter !== 'all' && getOrderForLog(l)?.brand !== brandFilter) return false;
-      if (!isDateInPeriod(l.timestamp, periodFilter)) return false;
-      return isSupersededRetry(l, logs);
-    }).length;
   }, [logs, locFilter, brandFilter, periodFilter, customStart, customEnd, orders, isSupersededRetry]);
 
   // Derived stats strictly reflect the selected period, location and brand
@@ -415,28 +399,6 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
               {brands.map(b => <option key={b} value={b}>{b}</option>)}
             </select>
           )}
-
-          <button
-            onClick={() => { setHideSuperseded(prev => !prev); setCurrentPage(1); }}
-            className={`px-3.5 h-9 rounded-full text-xs font-bold border flex items-center gap-1.5 transition-all shadow-sm ${
-              hideSuperseded
-                ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
-                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-            }`}
-            title="Ascunde erorile tranzacțiilor urmate de o plată aprobată pentru aceeași sumă în decurs de 2 minute"
-          >
-            <span className={`w-2 h-2 rounded-full ${hideSuperseded ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
-            <span>{hideSuperseded ? 'Fără eșecuri remediate (< 2 min)' : 'Toate încercările brute'}</span>
-            {supersededCount > 0 && (
-              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
-                hideSuperseded 
-                  ? 'bg-emerald-200 dark:bg-emerald-800 text-emerald-800 dark:text-emerald-100'
-                  : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
-              }`}>
-                {supersededCount} {supersededCount === 1 ? 'ascunsă' : 'ascunse'}
-              </span>
-            )}
-          </button>
         </div>
 
         <div className="flex items-center gap-2">
@@ -532,29 +494,12 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                     {formatThousands(Number(log.amount) || 0)} RON
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex flex-col gap-1 items-start">
-                      <span
-                        className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap inline-flex items-center gap-1"
-                        style={{ backgroundColor: sc.bg, color: sc.color, border: `1px solid ${sc.color}40` }}
-                      >
-                        {sc.icon} {sc.label}
-                      </span>
-                      {(() => {
-                        const superLog = getSupersedingLog(log, logs);
-                        if (superLog) {
-                          const diffSec = Math.max(1, Math.round((new Date(superLog.timestamp).getTime() - new Date(log.timestamp).getTime()) / 1000));
-                          return (
-                            <span 
-                              className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1" 
-                              title={`Plată aprobată la +${diffSec}s după această încercare`}
-                            >
-                              ✓ Soluționată (+{diffSec}s)
-                            </span>
-                          );
-                        }
-                        return null;
-                      })()}
-                    </div>
+                    <span
+                      className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap inline-flex items-center gap-1"
+                      style={{ backgroundColor: sc.bg, color: sc.color, border: `1px solid ${sc.color}40` }}
+                    >
+                      {sc.icon} {sc.label}
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-sm font-mono text-slate-600 dark:text-slate-400">
                     {log.authCode || '—'}
