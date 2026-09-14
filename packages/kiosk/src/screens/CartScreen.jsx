@@ -41,7 +41,7 @@ export default function CartScreen() {
     if (!menuProducts.length) return [];
     
     // Expanded keywords for standard upsell items across all brands
-    const ADDONS_REGEX = /sos|sauce|bautur|drink|desert|dessert|cartof|fries|potato|wedges|soup|supă|salat|miso|ceai|tea|mochi|ketchup|mayo|maionez/i;
+    const ADDONS_REGEX = /sos|sauce|bautur|drink|desert|dessert|cartof|fries|potato|wedges|soup|supă|salat|miso|ceai|tea|mochi|ketchup|mayo|maionez|spring roll|gyoza|edamame|nuggets|wings|churros|waffle|cheesecake/i;
     
     const cartCategoryIds = new Set(cartItems.map(i => {
       const p = menuProducts.find(prod => prod.id === i.productId);
@@ -54,9 +54,9 @@ export default function CartScreen() {
     const scored = candidates.map(p => {
       let score = 0;
       // Bonus: Add-ons / sides are excellent cross-sells
-      if (ADDONS_REGEX.test(p.name)) score += 10;
-      // Bonus: Visuals sell
-      if (p.image) score += 2;
+      if (ADDONS_REGEX.test(p.name)) score += 12;
+      // Bonus: Visuals sell! Products with images look much more appetizing
+      if (p.image) score += 8;
       // PENALTY: Heavily penalize categories the user already bought from
       if (cartCategoryIds.has(p.categoryId)) score -= 20;
       
@@ -64,7 +64,7 @@ export default function CartScreen() {
     });
     
     scored.sort((a, b) => b._score - a._score);
-    return scored.slice(0, 4);
+    return scored.slice(0, 10);
   }, [menuProducts, cartItems, cartProductIds, addedIds]);
 
   const setSelectedProduct = useKioskStore((s) => s.setSelectedProduct);
@@ -247,53 +247,105 @@ export default function CartScreen() {
               </div>
             </div>
           ))}
-          <button className="add-more-btn" onClick={() => goTo('menu')}>{t('add_more', lang)}</button>
-        </div>
-
-        {/* Right: Summary + Suggestions */}
-        <div className="cart-summary">
-          {/* Smart Cross-sell Suggestions */}
+          {/* Smart Cross-sell Suggestions (Sub Coș - Prezentare Apetisantă) */}
           {suggestions.length > 0 && (
-            <div className="cart-suggestions">
-              <div className="cart-sugg-header">
-                <span className="cart-sugg-title">{t('add_also', lang) || 'Adaugă și...'}</span>
-                <span className="cart-sugg-sub">{t('complete_order', lang) || 'Completează comanda ta'}</span>
+            <div className="cart-upsell-section">
+              <div className="cart-upsell-header">
+                <div className="cart-upsell-title-wrap">
+                  <div className="cart-upsell-badge">
+                    <span className="cart-upsell-badge-icon">✨</span>
+                    <span>{t('complete_order', lang) || 'Completează comanda ta'}</span>
+                  </div>
+                  <h2 className="cart-upsell-title">{t('add_also', lang) || 'Adaugă și ceva delicios alături'}</h2>
+                </div>
+                <span className="cart-upsell-hint">Glisează orizontal →</span>
               </div>
-              <div className="cart-sugg-grid">
-                {suggestions.map(prod => (
-                  <button
-                    key={prod.id}
-                    className={`cart-sugg-item ${addedIds[prod.id] ? 'cart-sugg-item--added' : ''}`}
-                    onClick={() => handleQuickAdd(prod)}
-                  >
-                    <div className="cart-sugg-img">
-                      {prod.image
-                        ? <img src={proxySyrveImage(prod.image)} alt={prod.name} />
-                        : (
-                          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', color: 'var(--text-muted)' }}>
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              
+              <div className="cart-upsell-rail">
+                {suggestions.map(prod => {
+                  const isAdded = Boolean(addedIds[prod.id]);
+                  const price = getEffectivePrice(prod);
+                  return (
+                    <div
+                      key={prod.id}
+                      className={`cart-upsell-card ${isAdded ? 'cart-upsell-card--added' : ''}`}
+                      onClick={() => handleQuickAdd(prod)}
+                      role="button"
+                      tabIndex={0}
+                    >
+                      <div className="cart-upsell-card-media">
+                        {prod.image ? (
+                          <img 
+                            src={proxySyrveImage(prod.image)} 
+                            alt={prod.name} 
+                            className="cart-upsell-card-img"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="cart-upsell-card-placeholder">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M18 2v20" />
                               <path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
                               <path d="M6 2v20" />
                               <path d="M3 2v6a3 3 0 0 0 6 0V2" />
                             </svg>
-                          </span>
-                        )
-                      }
-                      {addedIds[prod.id] && (
-                        <div className="cart-sugg-added-overlay">✓</div>
-                      )}
+                          </div>
+                        )}
+                        
+                        {/* Preț sticker pe poză */}
+                        <div className="cart-upsell-card-price-badge">
+                          {price.toFixed(2)} lei
+                        </div>
+
+                        {/* Brand badge dacă există */}
+                        {prod._brand && (
+                          <div className="cart-upsell-card-brand-badge">
+                            <img src={`/brands/${prod._brand}-logo.png`} alt="" onError={(e) => e.target.style.display = 'none'} />
+                          </div>
+                        )}
+
+                        {/* Feedback overlay la adăugare */}
+                        {isAdded && (
+                          <div className="cart-upsell-card-overlay">
+                            <span className="cart-upsell-card-check">✓</span>
+                            <span className="cart-upsell-card-added-text">Adăugat!</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="cart-upsell-card-body">
+                        <h4 className="cart-upsell-card-name" title={prod.name}>{prod.name}</h4>
+                        <div className="cart-upsell-card-footer">
+                          <span className="cart-upsell-card-price-inline">{price.toFixed(2)} lei</span>
+                          <button
+                            type="button"
+                            className={`cart-upsell-add-btn ${isAdded ? 'cart-upsell-add-btn--added' : ''}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleQuickAdd(prod);
+                            }}
+                            aria-label={`Adaugă ${prod.name}`}
+                          >
+                            {isAdded ? '✓ Adăugat' : '+ Adaugă'}
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                    <div className="cart-sugg-info">
-                      <span className="cart-sugg-name">{prod.name}</span>
-                      <span className="cart-sugg-price">{getEffectivePrice(prod).toFixed(2)} lei</span>
-                    </div>
-                    <div className="cart-sugg-plus">＋</div>
-                  </button>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
+
+          <button className="add-more-btn" onClick={() => goTo('menu')}>+ {t('add_more', lang)}</button>
+        </div>
+
+        {/* Right: Clean & Prominent Summary */}
+        <div className="cart-summary">
+          <div className="cart-summary-header">
+            <h2 className="cart-summary-title">Sumar Comandă</h2>
+            <span className="cart-summary-badge">{cartItems.length} {cartItems.length > 1 ? 'produse' : 'produs'}</span>
+          </div>
 
           <div className="summary-rows">
             <div className="summary-row">
@@ -310,6 +362,7 @@ export default function CartScreen() {
               <span className="price price-xl">{subtotal.toFixed(2)} {t('lei', lang)}</span>
             </div>
           </div>
+
           <button 
             className="btn btn-pay btn-xl" 
             style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} 
@@ -318,8 +371,17 @@ export default function CartScreen() {
             {t('pay', lang)} {subtotal.toFixed(2)} {t('lei', lang)} →
           </button>
           <button className="btn btn-ghost btn-lg" style={{ width: '100%', marginTop: 10 }} onClick={() => goTo('menu')}>
-            {t('add_more', lang)}
+            ← {t('add_more', lang)}
           </button>
+
+          {/* Securitate & Plată POS */}
+          <div className="cart-summary-trust">
+            <span className="trust-label">Plată rapidă și sigură la POS</span>
+            <div className="trust-icons">
+              <span className="trust-badge">💳 Card Bancar</span>
+              <span className="trust-badge">📱 Contactless</span>
+            </div>
+          </div>
         </div>
       </div>
 
