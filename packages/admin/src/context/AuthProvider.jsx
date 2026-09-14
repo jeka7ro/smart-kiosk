@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext(null);
-const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
+const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
 
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(localStorage.getItem('adminToken') || null);
@@ -49,7 +49,14 @@ export function AuthProvider({ children }) {
     
     const res = await fetch(url, { ...options, headers });
     if (res.status === 401) {
-      logout();
+      try {
+        const clone = res.clone();
+        const data = await clone.json();
+        if (data && (data.error === 'Not authorized, token failed' || data.error === 'Not authorized, no token')) {
+          console.warn('[Auth] Token invalid sau expirat:', data.error);
+          logout();
+        }
+      } catch (_) {}
     }
     return res;
   };

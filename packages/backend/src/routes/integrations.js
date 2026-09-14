@@ -70,7 +70,7 @@ async function testProviderConnection(provider, creds) {
 }
 
 // ─── GET /api/integrations — list all ───────────────────────────────────────
-router.get('/', protect, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     if (!process.env.DATABASE_URL) throw new Error('no db');
     const { rows } = await pool.query(

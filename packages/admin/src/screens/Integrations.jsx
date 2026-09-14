@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthProvider';
 import { useConfirm } from '../components/ConfirmModal';
 import IntegrationDetail from './IntegrationDetail';
 
-const BACKEND   = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
+const BACKEND   = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
 const PAGE_SIZE = 25;
 
 const STATUS_STYLE = {
