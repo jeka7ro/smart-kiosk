@@ -10,8 +10,22 @@
   color: var(--primary); border: 1px solid color-mix(in srgb, var(--primary) 30%, transparent);
   border-radius: 10px; padding: 6px 14px; font-size: 0.9rem; font-weight: 600;
 }
-.cart-body { display: flex; flex: 1; overflow: hidden; }
-.cart-items { flex: 1; padding: 20px 28px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+.cart-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  gap: 24px;
+  padding: 20px 28px;
+  background: var(--bg-dark);
+}
+.cart-items {
+  flex: 1;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+}
 .add-more-btn {
   background: linear-gradient(135deg, #10b981, #059669);
   border: none;
@@ -394,17 +408,21 @@
   border-color: #22c55e !important;
 }
 
-/* ─── SUMMARY SIDEBAR ─── */
+/* ─── SUMMARY SIDEBAR (CONTAINER SEPARAT CU CONTUR ROTUNJIT) ─── */
 .cart-summary {
-  width: 380px;
+  width: 390px;
   flex-shrink: 0;
-  padding: 24px;
-  background: var(--bg-card);
-  border-left: 1.5px solid var(--border);
+  padding: 28px 24px;
+  background: var(--card, #ffffff);
+  border: 1.5px solid var(--border);
+  border-radius: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
   display: flex;
   flex-direction: column;
   gap: 16px;
-  overflow-y: auto;
+  align-self: flex-start;
+  position: sticky;
+  top: 0;
 }
 
 
@@ -445,9 +463,9 @@
 }
 
 .cart-summary-trust {
-  margin-top: auto;
+  margin-top: 6px;
   padding-top: 18px;
-  border-top: 1.5px dashed var(--border);
+  border-top: 1.5px solid var(--border);
   display: flex;
   flex-direction: column;
   align-items: center;
