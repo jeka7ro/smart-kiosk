@@ -312,12 +312,6 @@ export default function PaymentScreen() {
               </div>
             </div>
 
-            {/* ── Instructiuni + buton ── */}
-            <div className="payment-instruction" style={{marginTop:12}}>
-              <div className="pi-step"><span className="pi-num">1</span><span>{t('payment_step_1', lang)}</span></div>
-              <div className="pi-step"><span className="pi-num">2</span><span>{t('payment_step_2', lang)}</span></div>
-              <div className="pi-step"><span className="pi-num">3</span><span>{t('payment_step_3', lang)}</span></div>
-            </div>
 
             <div style={{ display: 'flex', gap: '16px', marginTop: '16px', flexDirection: 'column' }}>
               <button 
