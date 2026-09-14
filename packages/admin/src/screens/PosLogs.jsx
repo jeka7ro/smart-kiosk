@@ -329,7 +329,6 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
             { id: 'all',      label: 'Toate' },
             { id: 'approved', label: '✓ Aprobate' },
             { id: 'declined', label: '✕ Respinse' },
-            { id: 'timeout',  label: '⏱ Timeout' },
           ].map(f => (
             <button
               key={f.id}
