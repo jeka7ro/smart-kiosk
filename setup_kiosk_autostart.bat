@@ -35,6 +35,17 @@ if not defined CHROME_PATH (
 )
 
 if not defined CHROME_PATH (
+    for /f "tokens=*" %%i in ('where chrome.exe 2^>nul') do (
+        set "CHROME_PATH=%%i"
+    )
+)
+if not defined CHROME_PATH (
+    for /f "tokens=*" %%i in ('where msedge.exe 2^>nul') do (
+        set "CHROME_PATH=%%i"
+    )
+)
+
+if not defined CHROME_PATH (
     echo [EROARE] Nu am gasit Google Chrome sau Edge instalat!
     echo Te rugam sa instalezi Google Chrome si sa reiei rularea.
     pause
@@ -76,7 +87,7 @@ echo [INFO] Instalez scurtaturile in Autostart si pe Desktop...
 echo.
 
 :: 3. Creare scurtaturi prin PowerShell folosind folderele de sistem oficiale
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$ws = New-Object -ComObject WScript.Shell; $target = '!CHROME_PATH!'; $args = '--kiosk \"!KIOSK_URL!\" --incognito --disable-pinch --overscroll-history-navigation=0 --noerrdialogs --disable-session-crashed-bubble'; $startup = [Environment]::GetFolderPath('Startup') + '\SmartKiosk.lnk'; $s1 = $ws.CreateShortcut($startup); $s1.TargetPath = $target; $s1.Arguments = $args; $s1.WindowStyle = 3; $s1.Save(); $desktop = [Environment]::GetFolderPath('Desktop') + '\Smart Kiosk (!LOC_NAME!).lnk'; $s2 = $ws.CreateShortcut($desktop); $s2.TargetPath = $target; $s2.Arguments = $args; $s2.WindowStyle = 3; $s2.Save();"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$ws = New-Object -ComObject WScript.Shell; $target = '!CHROME_PATH!'; $args = '--kiosk \"!KIOSK_URL!\" --user-data-dir=\"' + $env:TEMP + '\SmartKioskProfile\" --no-first-run --no-default-browser-check --incognito --disable-pinch --overscroll-history-navigation=0 --noerrdialogs --disable-session-crashed-bubble'; $startup = [Environment]::GetFolderPath('Startup') + '\SmartKiosk.lnk'; $s1 = $ws.CreateShortcut($startup); $s1.TargetPath = $target; $s1.Arguments = $args; $s1.WindowStyle = 3; $s1.Save(); $desktop = [Environment]::GetFolderPath('Desktop') + '\Smart Kiosk (!LOC_NAME!).lnk'; $s2 = $ws.CreateShortcut($desktop); $s2.TargetPath = $target; $s2.Arguments = $args; $s2.WindowStyle = 3; $s2.Save();"
 
 echo =============================================================
 echo   [SUCCES] KIOSKUL A FOST CONFIGURAT CU SUCCES!
@@ -95,5 +106,9 @@ if /i "!RUN_NOW!"=="N" (
     exit /b 0
 )
 
-start "" "!CHROME_PATH!" --kiosk "!KIOSK_URL!" --incognito --disable-pinch --overscroll-history-navigation=0 --noerrdialogs --disable-session-crashed-bubble
+echo.
+echo [INFO] Pornesc Kiosk-ul...
+taskkill /F /IM chrome.exe >nul 2>&1
+start "" "!CHROME_PATH!" --kiosk "!KIOSK_URL!" --user-data-dir="%TEMP%\SmartKioskProfile" --no-first-run --no-default-browser-check --incognito --disable-pinch --overscroll-history-navigation=0 --noerrdialogs --disable-session-crashed-bubble
+timeout /t 2 >nul
 exit /b 0
