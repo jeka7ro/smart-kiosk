@@ -43,6 +43,7 @@ export default function CartScreen() {
     
     // 1. Categoriile active efectiv pe ecranul meniului
     const activeCatIds = new Set((menuCategories || []).map(c => c.id));
+    const catNameMap = new Map((menuCategories || []).map(c => [c.id, (c.name || '').toLowerCase()]));
     
     // 2. Filtrare strictă: produsul trebuie să aibă preț, să nu fie ascuns/șters/stop-list
     // și OBLIGATORIU să aparțină unei categorii active din meniu (exclus produse scoase din meniu)
@@ -51,6 +52,7 @@ export default function CartScreen() {
       if (p.isHidden || p.isDeleted || p.outOfStock) return false;
       if (activeCatIds.size > 0 && !activeCatIds.has(p.categoryId)) return false;
       if (cartProductIds.has(p.id) && !addedIds[p.id]) return false;
+      if (/churros|churo/i.test(p.name)) return false;
       return true;
     });
 
@@ -60,16 +62,19 @@ export default function CartScreen() {
     const GUSTARI_RX = /cartof|fries|potato|wedges|nuggets|wings|strips|inel|onion|crispy|edamame|spring roll|gyoza|supa|supă|miso|box|snack/i;
     const SOSURI_RX = /sos|sauce|dip|ketchup|mayo|maionez|mustar|muștar|sweet chili|wasabi|ghimbir/i;
     const BAUTURI_RX = /bautur|băutur|drink|cola|pepsi|fanta|sprite|apa|apă|water|bere|beer|suc|juice|ceai|tea|limonad|lemonade|ayran|shake|smoothie|fuze/i;
-    const DESERT_RX = /desert|dessert|mochi|cheesecake|tiramisu|clatit|clătit|donut|waffle|inghetat|înghețat|cake|brownie|lava cake/i;
+    const DESERT_RX = /desert|dessert|churros|churo|nutella|nuttela|mochi|cheesecake|tiramisu|clatit|clătit|donut|waffle|inghetat|înghețat|cake|brownie|lava cake|dulce/i;
+    const MAIN_DISH_RX = /burger|smashed|cheese|bacon|beef|chicken|vita|vită|pui|combo|box|wrap|sandwich|roll|wok|noodles|orez/i;
 
     // Produse de bază (Main dishes: burgeri, mâncăruri calde, combos, roll-uri principale, wok)
-    const mainCandidates = validCandidates.filter(p => 
-      !SOSURI_RX.test(`${p.name} ${p.categoryName || ''}`) &&
-      !BAUTURI_RX.test(`${p.name} ${p.categoryName || ''}`) &&
-      !GUSTARI_RX.test(p.name) &&
-      !DESERT_RX.test(p.name) &&
-      p.image
-    );
+    const mainCandidates = validCandidates.filter(p => {
+      const pCat = catNameMap.get(p.categoryId) || p.categoryName || '';
+      const text = `${p.name} ${pCat}`;
+      if (DESERT_RX.test(text)) return false;
+      if (SOSURI_RX.test(text)) return false;
+      if (BAUTURI_RX.test(text)) return false;
+      if (GUSTARI_RX.test(p.name)) return false;
+      return (MAIN_DISH_RX.test(text) || !pCat.includes('garnitur')) && p.image;
+    });
 
     // Diversificăm produsele de bază luând din categorii diferite (ex: Smashed, Next Level, Combo, Chicken)
     const mainsByCat = {};
@@ -89,10 +94,13 @@ export default function CartScreen() {
       round++;
     }
 
-    const gustari = validCandidates.filter(p => GUSTARI_RX.test(`${p.name} ${p.categoryName || ''}`) && !diverseMains.some(m => m.id === p.id)).sort((a, b) => (b.image ? 1 : 0) - (a.image ? 1 : 0));
-    const sosuri = validCandidates.filter(p => SOSURI_RX.test(`${p.name} ${p.categoryName || ''}`)).sort((a, b) => (b.image ? 1 : 0) - (a.image ? 1 : 0));
-    const bauturi = validCandidates.filter(p => BAUTURI_RX.test(`${p.name} ${p.categoryName || ''}`)).sort((a, b) => (b.image ? 1 : 0) - (a.image ? 1 : 0));
-    const deserturi = validCandidates.filter(p => DESERT_RX.test(`${p.name} ${p.categoryName || ''}`)).sort((a, b) => (b.image ? 1 : 0) - (a.image ? 1 : 0));
+    const gustari = validCandidates.filter(p => GUSTARI_RX.test(`${p.name} ${catNameMap.get(p.categoryId) || p.categoryName || ''}`) && !diverseMains.some(m => m.id === p.id)).sort((a, b) => (b.image ? 1 : 0) - (a.image ? 1 : 0));
+    const sosuri = validCandidates.filter(p => SOSURI_RX.test(`${p.name} ${catNameMap.get(p.categoryId) || p.categoryName || ''}`)).sort((a, b) => (b.image ? 1 : 0) - (a.image ? 1 : 0));
+    const bauturi = validCandidates.filter(p => BAUTURI_RX.test(`${p.name} ${catNameMap.get(p.categoryId) || p.categoryName || ''}`)).sort((a, b) => (b.image ? 1 : 0) - (a.image ? 1 : 0));
+    const deserturi = validCandidates.filter(p => {
+      if (/churros|churo/i.test(p.name)) return false;
+      return DESERT_RX.test(`${p.name} ${catNameMap.get(p.categoryId) || p.categoryName || ''}`);
+    }).sort((a, b) => (b.image ? 1 : 0) - (a.image ? 1 : 0));
 
     const picked = [];
     const usedIds = new Set();
@@ -172,6 +180,7 @@ export default function CartScreen() {
       if (!p.price || Number(p.price) <= 0) return false;
       if (p.isHidden || p.isDeleted || p.outOfStock) return false;
       if (activeCatIds.size > 0 && !activeCatIds.has(p.categoryId)) return false;
+      if (/churros|churo/i.test(p.name)) return false;
       const name = p.name || '';
       const cat = p.categoryName || '';
       return UPSELL_REGEX.test(`${name} ${cat}`);

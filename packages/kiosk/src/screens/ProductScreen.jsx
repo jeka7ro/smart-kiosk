@@ -299,6 +299,7 @@ export default function ProductScreen() {
       p.id !== product.id && 
       p.price > 0 && 
       !p.isHidden && !p.isDeleted && !p.outOfStock &&
+      !/churros|churo/i.test(p.name) &&
       (activeCatIds.size === 0 || activeCatIds.has(p.categoryId)) &&
       (p._brand === actualBrandId || p.brandId === actualBrandId)
     );
