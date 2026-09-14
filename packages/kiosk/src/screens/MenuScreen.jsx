@@ -385,7 +385,23 @@ export default function MenuScreen() {
     const withImage = filteredProducts.filter(p => !!p.image && Number(p.price) > 0);
     if (withImage.length === 0) return [];
 
-    // Prioritate: produsele cu reducere (promo) primele, apoi restul produselor din categorie
+    // Prioritate 1: Produs Fix setat explicit din Panoul Admin (ID sau Nume)
+    const fixedProductId = (locationData?.categoryHeroProductId || 
+      (typeof window !== 'undefined' ? localStorage.getItem('kiosk_category_hero_product_id') : '') || '').trim();
+
+    if (fixedProductId) {
+      const fixedLower = fixedProductId.toLowerCase();
+      const fixedProd = withImage.find(p => 
+        String(p.id).toLowerCase() === fixedLower || 
+        String(p.name).toLowerCase().includes(fixedLower)
+      );
+      if (fixedProd) {
+        const rest = withImage.filter(p => p.id !== fixedProd.id);
+        return [fixedProd, ...rest];
+      }
+    }
+
+    // Prioritate 2: produsele cu reducere (promo) primele, apoi restul produselor din categorie
     const isDiscounted = (p) => {
       if (!p) return false;
       if (hasActivePromo(p)) return true;
@@ -408,7 +424,7 @@ export default function MenuScreen() {
 
     const nonDiscounted = withImage.filter(p => !isDiscounted(p));
     return [...discountedList, ...nonDiscounted];
-  }, [isHeroActive, filteredProducts, search]);
+  }, [isHeroActive, filteredProducts, search, locationData?.categoryHeroProductId]);
 
   const categoryHeroProduct = categoryHeroProducts[0] || null;
 

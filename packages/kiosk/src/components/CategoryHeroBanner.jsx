@@ -183,15 +183,18 @@ export default function CategoryHeroBanner({
               </div>
             )}
 
-            {/* Doar daca este reducere activa afisam OFERTA SPECIALA, fara eticheta redundanta de Produsul Vedeta */}
-            {isPromo && (
-              <div className="hero-kfc-badge hero-kfc-badge--promo">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                </svg>
-                <span>{lang === 'en' ? 'SPECIAL OFFER' : 'OFERTĂ SPECIALĂ'}</span>
-              </div>
-            )}
+            {/* Etichetă Produsul Vedetă / Ofertă Specială */}
+            <div className={`hero-kfc-badge ${isPromo ? 'hero-kfc-badge--promo' : ''}`}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="#fbbf24" stroke="none">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+              <span>
+                {isPromo
+                  ? (lang === 'en' ? 'STAR PRODUCT • OFFER' : 'PRODUSUL VEDETĂ • OFERTĂ')
+                  : (t('hero_product_badge', lang) || (lang === 'en' ? 'STAR PRODUCT' : 'PRODUSUL VEDETĂ'))
+                }
+              </span>
+            </div>
           </div>
 
           <div className="hero-kfc-top-right">
