@@ -230,8 +230,8 @@
 }
 
 .mgr-brand-logo-img {
-  height: 38px;
-  max-width: 175px;
+  height: 46px;
+  max-width: 210px;
   object-fit: contain;
   display: block;
 }
@@ -1513,17 +1513,19 @@
     flex-shrink: 0 !important;
   }
 
-  /* Header compact pe 1 rand */
+  /* Header compact pe 1 rand cu logo marit */
   .mgr-portal-header {
-    padding: 8px 12px !important;
-    min-height: 52px !important;
+    padding: 10px 14px !important;
+    min-height: 58px !important;
   }
   .mgr-header-left {
-    gap: 8px !important;
+    gap: 10px !important;
+    align-items: center !important;
   }
   .mgr-brand-logo-img {
-    height: 24px !important;
-    max-width: 95px !important;
+    height: 38px !important;
+    max-width: 155px !important;
+    object-fit: contain !important;
   }
   .mgr-brand-url {
     display: none !important;
