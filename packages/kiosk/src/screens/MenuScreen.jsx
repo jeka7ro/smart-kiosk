@@ -803,13 +803,25 @@ export default function MenuScreen() {
         <StartPromoModal
           product={startPromoModalProduct}
           onClose={() => {
-            if (startPromoModalProduct?.categoryId) {
-              setActiveCategory(startPromoModalProduct.categoryId);
-              setMenuActiveCategory(startPromoModalProduct.categoryId);
+            const targetCat = startPromoModalProduct?.categoryId || startPromoModalProduct?.parentGroupId;
+            if (targetCat) {
+              setActiveCategory(targetCat);
+              setMenuActiveCategory(targetCat);
             }
             setStartPromoModalProduct(null);
           }}
           onAccept={handleAcceptStartPromo}
+          onInfo={() => {
+            const prod = startPromoModalProduct;
+            setStartPromoModalProduct(null);
+            if (productsAreaRef.current) setMenuScrollTop(productsAreaRef.current.scrollTop);
+            const targetCat = prod?.categoryId || prod?.parentGroupId;
+            if (targetCat) {
+              setActiveCategory(targetCat);
+              setMenuActiveCategory(targetCat);
+            }
+            setSelectedProduct(prod, 'menu');
+          }}
           lang={lang}
         />
       )}
