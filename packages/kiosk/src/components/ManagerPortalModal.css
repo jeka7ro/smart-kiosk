@@ -32,6 +32,8 @@
   flex-direction: column;
   align-items: center;
   border: 1px solid #e2e8f0;
+  box-sizing: border-box;
+  margin: auto;
 }
 
 .mgr-pin-close-btn {
@@ -132,7 +134,9 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
   width: 100%;
-  max-width: 280px;
+  max-width: 290px;
+  margin: 0 auto;
+  box-sizing: border-box;
 }
 
 .mgr-pin-num-btn {
@@ -148,6 +152,9 @@
   align-items: center;
   justify-content: center;
   transition: all 0.12s;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .mgr-pin-num-btn:active {
@@ -1489,6 +1496,34 @@
     display: block !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
+  }
+
+  /* Centrare si padding pentru ecranul PIN pe dispozitive mobile */
+  .mgr-modal-backdrop.mgr-pin-backdrop,
+  .mgr-modal-backdrop:has(.mgr-pin-box) {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 100% !important;
+    min-height: 100dvh !important;
+    padding: 16px !important;
+    box-sizing: border-box !important;
+  }
+
+  .mgr-pin-box {
+    margin: auto !important;
+    width: 100% !important;
+    max-width: 360px !important;
+    border-radius: 24px !important;
+    padding: 28px 20px !important;
+    box-sizing: border-box !important;
+  }
+
+  .mgr-pin-pad {
+    width: 100% !important;
+    max-width: 290px !important;
+    margin: 0 auto !important;
+    box-sizing: border-box !important;
   }
 
   .mgr-portal-container {

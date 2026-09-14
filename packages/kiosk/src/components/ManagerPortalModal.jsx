@@ -590,7 +590,7 @@ const KIOSK_EVENT_META = {
   // If NOT authenticated, render PIN Keypad
   if (!isAuthenticated) {
     return (
-      <div className={`mgr-modal-backdrop ${isStandalone ? 'mgr-standalone' : ''}`} onClick={isStandalone ? undefined : onClose}>
+      <div className={`mgr-modal-backdrop mgr-pin-backdrop ${isStandalone ? 'mgr-standalone' : ''}`} onClick={isStandalone ? undefined : onClose}>
         <div className="mgr-pin-box" onClick={e => e.stopPropagation()}>
           {!isStandalone ? (
             <button className="mgr-pin-close-btn" onClick={onClose} aria-label="Închide">✕</button>
