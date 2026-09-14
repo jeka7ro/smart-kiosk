@@ -1826,6 +1826,8 @@ function KioskPosterCard({ brandId, brandName, emoji, backend }) {
 function KiosksManager({ backend, kiosksLiveStatus = {} }) {
   const { fetchWithAuth } = useAuth();
   const [locations, setLocations] = useState([]);
+  const [brandsData, setBrandsData] = useState([]);
+  const [allMenus, setAllMenus] = useState({});
   const [loading, setLoading] = useState(true);
   const [brandFilter, setBrandFilter] = useState('all');
   const [editingLoc, setEditingLoc] = useState(null);
@@ -1843,12 +1845,105 @@ function KiosksManager({ backend, kiosksLiveStatus = {} }) {
 
   const fetchLocs = () => {
     setLoading(true);
-    fetchWithAuth(`${backend}/api/locations`)
-      .then(r => r.json())
-      .then(d => { setLocations(d.locations || []); setLoading(false); })
+    Promise.all([
+      fetchWithAuth(`${backend}/api/locations`).then(r => r.json()),
+      fetchWithAuth(`${backend}/api/brands`).then(r => r.json()).catch(() => ({ brands: [] })),
+      fetchWithAuth(`${backend}/api/menu/all`).then(r => r.json()).catch(() => ({}))
+    ])
+      .then(([locData, bData, mData]) => {
+        setLocations(locData.locations || []);
+        setBrandsData(bData.brands || []);
+        setAllMenus(mData || {});
+        setLoading(false);
+      })
       .catch(() => setLoading(false));
   };
   useEffect(fetchLocs, [backend]);
+
+  const getKioskMenuStats = (loc) => {
+    const brandsArr = loc.brands && loc.brands.length > 0 ? loc.brands : (loc.brandId ? [loc.brandId] : ['smashme']);
+    let totalCount = 0;
+    let visibleCount = 0;
+    let isCustom = false;
+    let profileName = null;
+    let hasExplicitOverrides = false;
+
+    for (const bId of brandsArr) {
+      const brandMenuObj = allMenus[bId]?.menu;
+      const allProds = brandMenuObj?.products || [];
+      const allCats = brandMenuObj?.categories || [];
+      
+      const bData = brandsData.find(b => b.id === bId);
+      const profiles = bData?.data?.menuProfiles || [];
+      const overrides = loc.menuOverrides?.[bId] || {};
+      
+      let profile = null;
+      if (overrides.profileId) {
+        profile = profiles.find(p => p.id === overrides.profileId);
+        if (profile) profileName = profile.name;
+      }
+      
+      const rootFolderId = overrides.rootFolderId || profile?.rootFolderId || null;
+      const templateHidden = profile?.hiddenItems || {};
+      const localHidden = overrides.hiddenItems || {};
+      
+      const mergedHidden = { ...templateHidden };
+      for (const [k, v] of Object.entries(localHidden)) {
+        mergedHidden[k] = v;
+      }
+      
+      const hasAnyHidden = Object.values(mergedHidden).some(v => v === true);
+      if (rootFolderId || hasAnyHidden || overrides.profileId) {
+        hasExplicitOverrides = true;
+      }
+
+      if (allProds.length === 0) continue;
+      totalCount += allProds.length;
+      
+      // Calculate surviving categories & products
+      let finalCategories = allCats;
+      if (rootFolderId) {
+        const getDescendantsAndSelf = (parentId, cats) => {
+          const self = cats.find(c => c.id === parentId);
+          if (!self) return [];
+          const children = cats.filter(c => c.parentGroup === parentId);
+          return [self, ...children.flatMap(c => getDescendantsAndSelf(c.id, cats))];
+        };
+        const scoped = getDescendantsAndSelf(rootFolderId, finalCategories);
+        if (scoped.length > 0) finalCategories = scoped;
+      }
+      
+      let categoriesToKeep = [];
+      for (const cat of finalCategories) {
+        let isHidden = false;
+        let cur = cat;
+        while (cur) {
+          if (mergedHidden[cur.id] === true) { isHidden = true; break; }
+          cur = finalCategories.find(c => c.id === cur.parentGroup);
+        }
+        if (!isHidden) categoriesToKeep.push(cat);
+      }
+      
+      const validCatIds = new Set(categoriesToKeep.map(c => c.id));
+      const surviving = allProds.filter(p => validCatIds.has(p.categoryId) && mergedHidden[p.id] !== true);
+      
+      visibleCount += surviving.length;
+    }
+
+    if (totalCount === 0) {
+      return { isCustom: hasExplicitOverrides, profileName, totalCount: null, visibleCount: null, hiddenCount: 0 };
+    }
+
+    isCustom = hasExplicitOverrides || (visibleCount < totalCount);
+
+    return {
+      isCustom,
+      totalCount,
+      visibleCount,
+      profileName,
+      hiddenCount: Math.max(0, totalCount - visibleCount)
+    };
+  };
 
   if (loading) return <p className="loading-text">Se încarcă kioskurile...</p>;
 
@@ -1943,10 +2038,40 @@ function KiosksManager({ backend, kiosksLiveStatus = {} }) {
                     {(currentPage - 1) * itemsPerPage + index + 1}
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex flex-col gap-1">
-                      <span className="font-bold text-slate-900 dark:text-white text-base">{loc.name}</span>
-                      <span className="text-xs text-slate-500 font-mono bg-slate-100 dark:bg-slate-800 self-start px-2 py-0.5 rounded">URL: {loc.kioskUrl || loc.id}</span>
-                    </div>
+                    {(() => {
+                      const menuStats = getKioskMenuStats(loc);
+                      return (
+                        <div className="flex flex-col gap-1.5">
+                          <span className="font-bold text-slate-900 dark:text-white text-base">{loc.name}</span>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs text-slate-500 font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">URL: {loc.kioskUrl || loc.id}</span>
+                            {menuStats.isCustom ? (
+                              <button 
+                                type="button"
+                                onClick={() => setEditingLoc(loc)}
+                                title={`Apasă pentru a edita meniul. ${menuStats.hiddenCount > 0 ? `${menuStats.hiddenCount} produse ascunse.` : ''} Profil: ${menuStats.profileName || 'Personalizat'}`}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-all shadow-sm"
+                              >
+                                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                                <span>Meniu Personalizat:</span>
+                                <span className="font-black text-amber-900 dark:text-amber-100 bg-amber-200/80 dark:bg-amber-800/80 px-1.5 py-0.2 rounded text-[11px]">
+                                  {menuStats.visibleCount !== null ? `${menuStats.visibleCount} din ${menuStats.totalCount}` : 'Parțial'}
+                                </span>
+                                {menuStats.profileName && (
+                                  <span className="opacity-80 font-normal max-w-[130px] truncate">({menuStats.profileName})</span>
+                                )}
+                              </button>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                <span>Meniu Complet</span>
+                                {menuStats.totalCount && <span className="font-mono text-[10px] text-slate-400">({menuStats.totalCount} din {menuStats.totalCount})</span>}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex gap-2 items-center flex-wrap max-w-[200px]">
@@ -1957,14 +2082,16 @@ function KiosksManager({ backend, kiosksLiveStatus = {} }) {
                   </td>
                   <td className="px-6 py-4">
                     {(() => {
-                      const live = kiosksLiveStatus[loc.id] || (loc.kioskUrl ? kiosksLiveStatus[loc.kioskUrl] : null);
-                      const isOnline = live ? live.online : false;
-                      const isLocked = live ? live.isLocked : false;
+                      const live = kiosksLiveStatus[loc.id] || 
+                                   (loc.kioskUrl ? kiosksLiveStatus[loc.kioskUrl] : null) ||
+                                   (loc.aliases && Array.isArray(loc.aliases) ? loc.aliases.map(a => kiosksLiveStatus[a]).find(Boolean) : null);
+                      const isOnline = Boolean(live && (live.isLive || live.online || (live.onlineCount > 0)));
+                      const isLocked = live ? (live.isLocked || live.screen === 'pin') : false;
                       return (
                         <div className="flex flex-col gap-1">
                           <div className="flex items-center gap-2">
                             <span className={`w-2.5 h-2.5 rounded-full ${isOnline ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)] animate-pulse' : 'bg-slate-400'}`} />
-                            <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                            <span className="text-sm font-semibold text-slate-700 dark:text-slate-200" title={isOnline ? 'Chioșcul este activ și comunică în timp real' : 'Chioșcul nu este deschis în browser în acest moment'}>
                               {isOnline ? 'Conectat' : (loc.active ? 'Offline' : 'Inactiv')}
                             </span>
                           </div>

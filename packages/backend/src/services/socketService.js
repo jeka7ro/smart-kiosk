@@ -18,6 +18,7 @@ function getLiveKiosksSummary() {
       summary[locId] = {
         locationId: locId,
         isLive: false,
+        online: false,
         onlineCount: 0,
         devices: [],
         lastSeen: 0,
@@ -28,6 +29,7 @@ function getLiveKiosksSummary() {
     const s = summary[locId];
     if (isLive) {
       s.isLive = true;
+      s.online = true;
       s.onlineCount += 1;
       if (k.screen) s.screen = k.screen;
     }
