@@ -38,22 +38,31 @@ export default function ManagerPortalModal({ locationData, onClose, isStandalone
   // Active Tab: 'orders' | 'logs' | 'status'
   const [activeTab, setActiveTab] = useState('orders');
 
-  // PIN Authentication State
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // PIN Authentication State: daca nu este codul setat in kiosk, intra direct cu comenzile
+  const configuredPin = String(locationData?.kioskPin || '').trim();
+  const hasPinConfigured = Boolean(configuredPin && configuredPin !== '1234');
+  const [isAuthenticated, setIsAuthenticated] = useState(!hasPinConfigured);
   const [pin, setPin] = useState('');
   const [pinError, setPinError] = useState(false);
   const [pinErrorMessage, setPinErrorMessage] = useState('');
   const pinInputRef = useRef(null);
 
-  // Deschide automat tastatura nativă pe telefon / desktop
   useEffect(() => {
-    if (!isAuthenticated) {
+    const p = String(locationData?.kioskPin || '').trim();
+    if (!p || p === '1234') {
+      setIsAuthenticated(true);
+    }
+  }, [locationData?.kioskPin]);
+
+  // Deschide tastatura doar pe telefon / mod standalone (?manager=true) daca se cere PIN
+  useEffect(() => {
+    if (isStandalone && !isAuthenticated) {
       const timer = setTimeout(() => {
         pinInputRef.current?.focus();
       }, 250);
       return () => clearTimeout(timer);
     }
-  }, [isAuthenticated]);
+  }, [isStandalone, isAuthenticated]);
 
   // Kiosk Logs State
   const [kioskLogs, setKioskLogs] = useState([]);
