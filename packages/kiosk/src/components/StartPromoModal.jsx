@@ -15,28 +15,28 @@ const TEXTS = {
     save: 'Economisești',
     accept: 'Adaugă Oferta în Coș',
     customize: 'Alege Opțiunile & Vreau Oferta',
-    dismiss: 'Nu, mulțumesc (Mergi la meniu)',
+    dismiss: 'Vezi tot meniul',
   },
   en: {
     banner: 'SPECIAL WELCOME OFFER!',
     save: 'You save',
     accept: 'Add Deal to Cart',
     customize: 'Choose Options & Get Deal',
-    dismiss: 'No, thanks (Go to menu)',
+    dismiss: 'View full menu',
   },
   hu: {
     banner: 'KÜLÖNLEGES ÜDVÖZLŐ AJÁNLAT!',
     save: 'Megtakarítás',
     accept: 'Ajánlat hozzáadása',
     customize: 'Válassz opciókat',
-    dismiss: 'Köszönöm, nem (Menü)',
+    dismiss: 'Teljes menü megtekintése',
   },
   de: {
     banner: 'SPEZIELLES WILLKOMMENSANGEBOT!',
     save: 'Sie sparen',
     accept: 'Angebot in den Warenkorb',
     customize: 'Optionen wählen',
-    dismiss: 'Nein, danke (Zum Menü)',
+    dismiss: 'Gesamtes Menü ansehen',
   },
 };
 
