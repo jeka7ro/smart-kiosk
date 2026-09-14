@@ -134,6 +134,7 @@ export default function PaymentScreen() {
   }, [cartItems, total, orderType, tableNumber, activeBrandId, locationData, fiscalData]);
 
   const handlePayCash = async () => {
+    if (payState !== STATE.IDLE) return;
     setPayState(STATE.INITIATING);
     setErrorMsg('');
     setPaymentMethod('cash');
@@ -319,10 +320,19 @@ export default function PaymentScreen() {
             </div>
 
             <div style={{ display: 'flex', gap: '16px', marginTop: '16px', flexDirection: 'column' }}>
-              <button className="btn btn-success btn-xl pay-btn" onClick={handlePay}>
+              <button 
+                className="btn btn-success btn-xl pay-btn" 
+                onClick={handlePay}
+                disabled={payState !== STATE.IDLE}
+              >
                 Plată Card ({total.toFixed(2)} {t('lei', lang)})
               </button>
-              <button className="btn btn-outline btn-xl pay-btn" style={{ borderColor: 'var(--brand-primary)', color: 'var(--brand-primary)', borderWidth: '2px' }} onClick={handlePayCash}>
+              <button 
+                className="btn btn-outline btn-xl pay-btn" 
+                style={{ borderColor: 'var(--brand-primary)', color: 'var(--brand-primary)', borderWidth: '2px' }} 
+                onClick={handlePayCash}
+                disabled={payState !== STATE.IDLE}
+              >
                 Plată Cash la Casierie
               </button>
             </div>

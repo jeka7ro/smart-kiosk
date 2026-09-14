@@ -176,12 +176,10 @@ router.post('/', async (req, res) => {
       console.error('[Orders] Could not save order to DB:', dbErr.message);
     }
 
-    // Emit to Kitchen Display
+    // Emit to Kitchen Display & Admin (broadcast globally once)
     const io = req.app.get('io');
     if (io) {
       io.emit('new_order', order);
-      io.to(`kitchen-${locId}`).emit('new_order', order);
-      io.to('admin').emit('new_order', order);
 
       // Emit ticket to POS bridge: chained .to() ensures each connected socket receives the event only ONCE
       const bridgeAliases = getLocationAliases(locId);

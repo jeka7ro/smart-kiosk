@@ -293,10 +293,32 @@ export default function AdminApp() {
   useEffect(() => {
     const handleIncomingOrder = (order) => {
       if (!order) return;
-      setOrders(prev => [order, ...prev]);
-      if (order._id && knownOrderIdsRef.current) knownOrderIdsRef.current.add(order._id);
-      if (order.orderNumber && knownOrderIdsRef.current) knownOrderIdsRef.current.add(order.orderNumber);
-      triggerOrderToast(order);
+      const orderId = order._id || order.id;
+      const orderNum = order.orderNumber;
+
+      setOrders(prev => {
+        const exists = prev.some(o => 
+          (orderId && (o._id === orderId || o.id === orderId)) ||
+          (orderNum && o.orderNumber === orderNum)
+        );
+        if (exists) {
+          // Actualizează pe loc datele (ex: syrveOrderId, status) fără să creeze dublură
+          return prev.map(o => 
+            ((orderId && (o._id === orderId || o.id === orderId)) || (orderNum && o.orderNumber === orderNum))
+              ? { ...o, ...order }
+              : o
+          );
+        }
+        return [order, ...prev];
+      });
+
+      const isAlreadyToast = (orderId && knownOrderIdsRef.current?.has(orderId)) ||
+                             (orderNum && knownOrderIdsRef.current?.has(orderNum));
+      if (!isAlreadyToast) {
+        if (orderId && knownOrderIdsRef.current) knownOrderIdsRef.current.add(orderId);
+        if (orderNum && knownOrderIdsRef.current) knownOrderIdsRef.current.add(orderNum);
+        triggerOrderToast(order);
+      }
     };
 
     const socket = io(BACKEND, { 
@@ -568,7 +590,13 @@ export default function AdminApp() {
 
   /* ─── Dashboard Filtered Data & Stats ─────────────── */
   const dashboardPeriodOrders = useMemo(() => {
+    const seen = new Set();
     return orders.filter(o => {
+      const key = o._id || o.id || o.orderNumber;
+      if (key) {
+        if (seen.has(key)) return false;
+        seen.add(key);
+      }
       if (dashboardLocation !== 'all' && (o.locationName || o.locationId) !== dashboardLocation) return false;
       if (dashboardPayment !== 'all') {
         const isCard = o.paymentMethod === 'card' || !!o.paymentRef?.authCode;
@@ -1530,7 +1558,17 @@ function OrdersTable({ orders, full, onRowClick, selectedId, defaultRows = 10 })
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(defaultRows);
 
-  const safeOrders = orders || [];
+  const safeOrders = useMemo(() => {
+    if (!orders || !orders.length) return [];
+    const seen = new Set();
+    return orders.filter(o => {
+      const key = o._id || o.id || o.orderNumber;
+      if (!key) return true;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [orders]);
   const totalPages = Math.max(1, Math.ceil(safeOrders.length / itemsPerPage));
   const safePage = Math.min(currentPage, totalPages);
   if (safePage !== currentPage) setCurrentPage(safePage);

@@ -53,7 +53,13 @@ export default function App() {
     // New order arrives from kiosk or QR app
     socket.on('new_order', (order) => {
       console.log('[KDS] New order:', order);
-      setOrders(prev => [{ ...order, status: 'pending', arrivedAt: Date.now(), _id: order._id || order.id || `local_${Date.now()}` }, ...prev]);
+      const orderId = order._id || order.id || `local_${Date.now()}`;
+      setOrders(prev => {
+        if (prev.some(o => (o._id && o._id === orderId) || (order.orderNumber && o.orderNumber === order.orderNumber))) {
+          return prev;
+        }
+        return [{ ...order, status: 'pending', arrivedAt: Date.now(), _id: orderId }, ...prev];
+      });
       playBeep('new');
     });
 
