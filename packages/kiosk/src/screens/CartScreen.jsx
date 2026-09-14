@@ -371,10 +371,7 @@ export default function CartScreen() {
                           </div>
                         )}
                         
-                        {/* Preț sticker pe poză */}
-                        <div className="cart-upsell-card-price-badge">
-                          {price.toFixed(2)} lei
-                        </div>
+
 
 
                         {/* Feedback overlay la adăugare */}
