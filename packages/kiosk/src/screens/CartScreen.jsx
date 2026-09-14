@@ -278,8 +278,8 @@ export default function CartScreen() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: '0 6px 20px rgba(0, 0, 0, 0.08)',
-                  border: '3px solid var(--border)',
+                  border: '4px solid #cbd5e1',
+                  boxShadow: '0 0 0 1.5px #94a3b8, 0 8px 24px rgba(0, 0, 0, 0.1)',
                   background: '#ffffff',
                   flexShrink: 0
                 }}>
