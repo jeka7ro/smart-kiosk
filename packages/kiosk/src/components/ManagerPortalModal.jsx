@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { io } from 'socket.io-client';
 import { proxySyrveImage } from '../utils/imageUtils.js';
 import './ManagerPortalModal.css';
@@ -1456,7 +1457,7 @@ const KIOSK_EVENT_META = {
       </div>
 
       {/* ─── EXACT ORDER DETAIL POPUP WINDOW (Identic cu Panoul Comenzi Admin) ─── */}
-      {selectedOrder && (
+      {selectedOrder && typeof document !== 'undefined' && createPortal(
         <div className="mgr-detail-backdrop" onClick={() => setSelectedOrder(null)}>
           <div className="mgr-detail-modal" onClick={e => e.stopPropagation()}>
             {/* Modal Header */}
@@ -1649,7 +1650,8 @@ const KIOSK_EVENT_META = {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

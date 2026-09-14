@@ -815,9 +815,10 @@
 .mgr-detail-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 100000;
-  background: rgba(15, 23, 42, 0.55);
-  backdrop-filter: blur(4px);
+  z-index: 1000000;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1861,15 +1862,36 @@
 
   /* Order Detail Modal Mobile */
   .mgr-detail-backdrop {
-    padding: 8px !important;
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 1000000 !important;
+    background: rgba(15, 23, 42, 0.75) !important;
+    backdrop-filter: blur(6px) !important;
+    -webkit-backdrop-filter: blur(6px) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 12px !important;
+    box-sizing: border-box !important;
+    touch-action: none;
   }
   .mgr-detail-modal {
+    width: 100% !important;
     max-width: 100% !important;
-    max-height: 92dvh !important;
-    border-radius: 18px !important;
+    max-height: 90vh !important;
+    max-height: 90dvh !important;
+    border-radius: 20px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    background: #ffffff !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+    touch-action: auto;
   }
   .mgr-detail-header {
     padding: 12px 14px !important;
+    flex-shrink: 0 !important;
   }
   .mgr-detail-title {
     font-size: 1.05rem !important;
@@ -1877,6 +1899,9 @@
   .mgr-detail-body {
     padding: 12px 14px !important;
     gap: 12px !important;
+    flex: 1 1 auto !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
   }
   .mgr-detail-meta-card {
     padding: 12px !important;
@@ -1889,6 +1914,7 @@
   }
   .mgr-detail-total-bar {
     padding: 12px 14px !important;
+    flex-shrink: 0 !important;
   }
 }
 
