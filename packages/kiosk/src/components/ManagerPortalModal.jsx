@@ -49,9 +49,9 @@ export default function ManagerPortalModal({ locationData, onClose }) {
   // Status Filter: 'all' | 'success' | 'error'
   const [statusFilter, setStatusFilter] = useState('all');
 
-  // Quick Period Buttons: 'all' | 'today' | 'yesterday' | 'week' | 'month' | 'custom'
-  const [period, setPeriod] = useState('all');
+  // Quick Period Buttons: 'all' | 'today' | 'yesterday' | 'this_week' | 'this_month' | 'last_month' | 'custom'
   const todayStr = new Date().toISOString().slice(0, 10);
+  const [period, setPeriod] = useState('today');
   const [customStart, setCustomStart] = useState(todayStr);
   const [customEnd, setCustomEnd] = useState(todayStr);
 
@@ -240,46 +240,72 @@ export default function ManagerPortalModal({ locationData, onClose }) {
     showToast('Copiat în clipboard!');
   };
 
+  const formatDateISO = (d) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const handleSelectPeriod = (p) => {
+    setPeriod(p);
+    setCurrentPage(1);
+
+    const now = new Date();
+
+    if (p === 'today') {
+      const s = formatDateISO(now);
+      setCustomStart(s);
+      setCustomEnd(s);
+    } else if (p === 'yesterday') {
+      const y = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+      const s = formatDateISO(y);
+      setCustomStart(s);
+      setCustomEnd(s);
+    } else if (p === 'this_week') {
+      const dayOfWeek = now.getDay() || 7; // Luni = 1, Duminică = 7
+      const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek + 1);
+      const sunday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek + 7);
+      setCustomStart(formatDateISO(monday));
+      setCustomEnd(formatDateISO(sunday));
+    } else if (p === 'this_month') {
+      const first = new Date(now.getFullYear(), now.getMonth(), 1);
+      const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      setCustomStart(formatDateISO(first));
+      setCustomEnd(formatDateISO(last));
+    } else if (p === 'last_month') {
+      const first = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const last = new Date(now.getFullYear(), now.getMonth(), 0);
+      setCustomStart(formatDateISO(first));
+      setCustomEnd(formatDateISO(last));
+    } else if (p === 'all') {
+      let earliest = new Date(now.getFullYear(), 0, 1);
+      if (allOrders && allOrders.length > 0) {
+        const dates = allOrders.map(o => o.createdAt ? new Date(o.createdAt).getTime() : null).filter(Boolean);
+        if (dates.length > 0) {
+          earliest = new Date(Math.min(...dates));
+        }
+      }
+      setCustomStart(formatDateISO(earliest));
+      setCustomEnd(formatDateISO(now));
+    }
+  };
+
   // Date in Period Helper
   const isDateInPeriod = (dateStr, p) => {
     if (p === 'all') return true;
     if (!dateStr) return false;
     const d = new Date(dateStr);
-    const now = new Date();
 
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-
-    if (p === 'today') return d >= startOfToday;
-    if (p === 'yesterday') return d >= startOfYesterday && d < startOfToday;
-    if (p === 'this_week') {
-      const dayOfWeek = now.getDay() || 7; // Luni = 1, Duminică = 7
-      const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek + 1);
-      return d >= monday;
+    if (customStart) {
+      const [sy, sm, sd] = customStart.split('-').map(Number);
+      const startD = new Date(sy, sm - 1, sd, 0, 0, 0, 0);
+      if (d < startD) return false;
     }
-    if (p === 'this_month') {
-      const firstDayThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      return d >= firstDayThisMonth;
-    }
-    if (p === 'last_month') {
-      const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
-      return d >= firstDayLastMonth && d <= lastDayLastMonth;
-    }
-    if (p === 'custom') {
-      if (!customStart && !customEnd) return true;
-      let ok = true;
-      if (customStart) {
-        const sd = new Date(customStart);
-        sd.setHours(0,0,0,0);
-        if (d < sd) ok = false;
-      }
-      if (customEnd) {
-        const ed = new Date(customEnd);
-        ed.setHours(23,59,59,999);
-        if (d > ed) ok = false;
-      }
-      return ok;
+    if (customEnd) {
+      const [ey, em, ed] = customEnd.split('-').map(Number);
+      const endD = new Date(ey, em - 1, ed, 23, 59, 59, 999);
+      if (d > endD) return false;
     }
     return true;
   };
@@ -312,8 +338,22 @@ export default function ManagerPortalModal({ locationData, onClose }) {
 
   // Period filtered orders (used for Stat Cards)
   const periodFilteredOrders = useMemo(() => {
-    return locationOrders.filter(o => isDateInPeriod(o.createdAt, period));
+    return locationOrders.filter(o => {
+      const d = o.createdAt || o.date || o.arrivedAt || o.timestamp;
+      return isDateInPeriod(d, period);
+    });
   }, [locationOrders, period, customStart, customEnd]);
+
+  // Label for active period on stat cards
+  const periodLabel = useMemo(() => {
+    if (period === 'today') return 'Azi';
+    if (period === 'yesterday') return 'Ieri';
+    if (period === 'this_week') return 'Săpt. curentă';
+    if (period === 'this_month') return 'Luna curentă';
+    if (period === 'last_month') return 'Luna trecută';
+    if (period === 'custom') return `${customStart} - ${customEnd}`;
+    return 'Toate';
+  }, [period, customStart, customEnd]);
 
   // Stat Cards Metrics
   const stats = useMemo(() => {
@@ -499,14 +539,27 @@ export default function ManagerPortalModal({ locationData, onClose }) {
         {/* Header */}
         <div className="mgr-portal-header">
           <div className="mgr-header-left">
-            <div className="mgr-header-badge">
-              <span className="mgr-live-dot" />
-              Manager Conectat
+            <div className="mgr-brand-header-box">
+              <img
+                src="/getapp_smart_kiosk_logo.png"
+                alt="GetApp Smart Kiosk"
+                className="mgr-brand-logo-img"
+              />
+              <span className="mgr-brand-url">www.getapp.ro</span>
             </div>
-            <h1 className="mgr-portal-title">
-              Registru Comenzi & Syrve
-              <span className="mgr-location-label">— {locationData?.name || 'Locație'}</span>
-            </h1>
+
+            <div className="mgr-header-divider-v" />
+
+            <div className="mgr-header-title-box">
+              <div className="mgr-header-badge">
+                <span className="mgr-live-dot" />
+                Manager Conectat
+              </div>
+              <h1 className="mgr-portal-title">
+                Registru Comenzi & Syrve
+                <span className="mgr-location-label">— {locationData?.name || 'Locație'}</span>
+              </h1>
+            </div>
           </div>
 
           <div className="mgr-header-right">
@@ -533,11 +586,11 @@ export default function ManagerPortalModal({ locationData, onClose }) {
           </div>
         </div>
 
-        {/* Stat Cards */}
+        {/* Stat Cards - Reflecting EXACT Selected Period */}
         <div className="mgr-stats-grid">
           <div className="mgr-stat-card">
             <div className="mgr-stat-info">
-              <span className="mgr-stat-label">Total Comenzi</span>
+              <span className="mgr-stat-label">Total Comenzi ({periodLabel})</span>
               <span className="mgr-stat-value">{stats.totalCount}</span>
             </div>
             <div className="mgr-stat-icon-wrapper mgr-stat-icon-blue">
@@ -550,7 +603,7 @@ export default function ManagerPortalModal({ locationData, onClose }) {
 
           <div className="mgr-stat-card">
             <div className="mgr-stat-info">
-              <span className="mgr-stat-label">Succes Syrve / iiko</span>
+              <span className="mgr-stat-label">Succes Syrve / iiko ({periodLabel})</span>
               <span className="mgr-stat-value mgr-val-green">{stats.successCount}</span>
             </div>
             <div className="mgr-stat-icon-wrapper mgr-stat-icon-green">
@@ -562,7 +615,7 @@ export default function ManagerPortalModal({ locationData, onClose }) {
 
           <div className="mgr-stat-card">
             <div className="mgr-stat-info">
-              <span className="mgr-stat-label">Erori / În așteptare</span>
+              <span className="mgr-stat-label">Erori / În așteptare ({periodLabel})</span>
               <span className="mgr-stat-value mgr-val-red">{stats.errorCount}</span>
             </div>
             <div className="mgr-stat-icon-wrapper mgr-stat-icon-red">
@@ -575,7 +628,7 @@ export default function ManagerPortalModal({ locationData, onClose }) {
 
           <div className="mgr-stat-card">
             <div className="mgr-stat-info">
-              <span className="mgr-stat-label">Total Încasat</span>
+              <span className="mgr-stat-label">Total Încasat ({periodLabel})</span>
               <span className="mgr-stat-value mgr-val-dark">{formatCurrency(stats.totalRevenue)} lei</span>
             </div>
             <div className="mgr-stat-icon-wrapper mgr-stat-icon-gray">
@@ -621,42 +674,42 @@ export default function ManagerPortalModal({ locationData, onClose }) {
             <div className="mgr-btn-group">
               <button
                 type="button"
-                onClick={() => { setPeriod('all'); setCurrentPage(1); }}
+                onClick={() => handleSelectPeriod('all')}
                 className={`mgr-pill-btn ${period === 'all' ? 'active' : ''}`}
               >
                 Toate
               </button>
               <button
                 type="button"
-                onClick={() => { setPeriod('today'); setCurrentPage(1); }}
+                onClick={() => handleSelectPeriod('today')}
                 className={`mgr-pill-btn ${period === 'today' ? 'active' : ''}`}
               >
                 Azi
               </button>
               <button
                 type="button"
-                onClick={() => { setPeriod('yesterday'); setCurrentPage(1); }}
+                onClick={() => handleSelectPeriod('yesterday')}
                 className={`mgr-pill-btn ${period === 'yesterday' ? 'active' : ''}`}
               >
                 Ieri
               </button>
               <button
                 type="button"
-                onClick={() => { setPeriod('this_week'); setCurrentPage(1); }}
+                onClick={() => handleSelectPeriod('this_week')}
                 className={`mgr-pill-btn ${period === 'this_week' ? 'active' : ''}`}
               >
                 Săptămâna curentă
               </button>
               <button
                 type="button"
-                onClick={() => { setPeriod('this_month'); setCurrentPage(1); }}
+                onClick={() => handleSelectPeriod('this_month')}
                 className={`mgr-pill-btn ${period === 'this_month' ? 'active' : ''}`}
               >
                 Luna curentă
               </button>
               <button
                 type="button"
-                onClick={() => { setPeriod('last_month'); setCurrentPage(1); }}
+                onClick={() => handleSelectPeriod('last_month')}
                 className={`mgr-pill-btn ${period === 'last_month' ? 'active' : ''}`}
               >
                 Luna trecută
