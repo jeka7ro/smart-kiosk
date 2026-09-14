@@ -229,7 +229,49 @@ export default function StartPromoModal({ product, onClose, onAccept, onInfo, la
 
         {/* Modal Body: Info View OR Standard Promo View */}
         {showInfo ? (
-          <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16, maxHeight: '540px', overflowY: 'auto' }}>
+          <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16, maxHeight: '72vh', overflowY: 'auto' }}>
+            {/* Imagine Produs */}
+            {product.image && (
+              <div
+                style={{
+                  width: '100%',
+                  aspectRatio: '16 / 9',
+                  borderRadius: 20,
+                  overflow: 'hidden',
+                  background: '#f8fafc',
+                  border: '1.5px solid #e2e8f0',
+                  position: 'relative',
+                  boxShadow: '0 4px 14px rgba(0,0,0,0.06)',
+                  flexShrink: 0,
+                }}
+              >
+                <img
+                  src={proxySyrveImage(product.image)}
+                  alt={product.name}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+                {discountPercent > 0 && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 12,
+                      left: 12,
+                      background: '#EE3B24',
+                      color: '#ffffff',
+                      padding: '5px 12px',
+                      borderRadius: 12,
+                      fontWeight: 900,
+                      fontSize: '0.85rem',
+                      boxShadow: '0 4px 12px rgba(238, 59, 36, 0.4)',
+                      letterSpacing: '0.5px',
+                    }}
+                  >
+                    -{discountPercent}%
+                  </div>
+                )}
+              </div>
+            )}
+
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12, borderBottom: '1px solid #f1f5f9' }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800, color: '#0f172a' }}>{product.name}</h3>
