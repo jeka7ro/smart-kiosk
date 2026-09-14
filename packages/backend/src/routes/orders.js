@@ -15,6 +15,9 @@ const { addPosLog } = require('./posLogs');
 
 const { detectCity, getOrderPrefix, findLocation, getLocationAliases } = require('../utils/locations');
 
+// Module-level fallback sequence memory (for offline / dev fallback)
+let memoryClujMax = 93;
+
 // ── POST /api/orders ──────────────────────────────────────────
 router.post('/', async (req, res) => {
   try {
@@ -40,9 +43,10 @@ router.post('/', async (req, res) => {
 
     // Get max orderNumber from Postgres
     let maxOrderNumber = 358;
-    let clujMax = 0;
+    let clujMax = Math.max(93, memoryClujMax); // Continuare sigura de la comanda 093
     let brasovMax = 0;
     const maxByPrefix = {};
+    const usedClujSeqs = new Set();
 
     try {
       const { rows } = await pool.query(`SELECT data->>'orderNumber' as num, location_id FROM orders WHERE (data->>'orderNumber') IS NOT NULL`);
@@ -58,13 +62,20 @@ router.post('/', async (req, res) => {
           const seqNum = parseInt(prefixMatch[3], 10);
 
           if (!isNaN(seqNum) && seqNum < 1000000) {
-            maxByPrefix[fullPrefix] = Math.max(maxByPrefix[fullPrefix] || 0, seqNum);
-            maxByPrefix[letterPrefix] = Math.max(maxByPrefix[letterPrefix] || 0, seqNum);
-
             if (letterPrefix === 'CJ') {
-              clujMax = Math.max(clujMax, seqNum);
-            } else if (letterPrefix === 'BV') {
-              brasovMax = Math.max(brasovMax, seqNum);
+              usedClujSeqs.add(seqNum);
+              // Ignorăm lotul vechi de teste (10000-10025) la calculul maximului curent
+              if (seqNum < 10000 || seqNum > 10025) {
+                clujMax = Math.max(clujMax, seqNum);
+                maxByPrefix[fullPrefix] = Math.max(maxByPrefix[fullPrefix] || 0, seqNum);
+                maxByPrefix[letterPrefix] = Math.max(maxByPrefix[letterPrefix] || 0, seqNum);
+              }
+            } else {
+              maxByPrefix[fullPrefix] = Math.max(maxByPrefix[fullPrefix] || 0, seqNum);
+              maxByPrefix[letterPrefix] = Math.max(maxByPrefix[letterPrefix] || 0, seqNum);
+              if (letterPrefix === 'BV') {
+                brasovMax = Math.max(brasovMax, seqNum);
+              }
             }
           }
         } else {
@@ -73,7 +84,10 @@ router.post('/', async (req, res) => {
           if (!isNaN(numOnly) && numOnly < 1000000 && numOnly !== 946 && numOnly !== 862) {
             const city = detectCity(row.location_id);
             if (city === 'cluj') {
-              clujMax = Math.max(clujMax, numOnly);
+              usedClujSeqs.add(numOnly);
+              if (numOnly < 10000 || numOnly > 10025) {
+                clujMax = Math.max(clujMax, numOnly);
+              }
             } else if (city === 'brasov') {
               brasovMax = Math.max(brasovMax, numOnly);
             } else {
@@ -106,8 +120,13 @@ router.post('/', async (req, res) => {
 
     let orderNumber;
     if (city === 'cluj') {
-      const nextSeq = clujMax + 1;
+      let nextSeq = clujMax + 1;
+      // Dacă numărul calculat este deja folosit (ex: cele din seria 10017-10022), îl omite și sare peste ele
+      while (usedClujSeqs.has(nextSeq)) {
+        nextSeq++;
+      }
       orderNumber = `CJ${kioskNum}-${formatOrderSeq(nextSeq)}`;
+      memoryClujMax = Math.max(memoryClujMax, nextSeq);
     } else if (city === 'brasov') {
       const nextSeq = Math.max(brasovMax, maxOrderNumber) + 1;
       orderNumber = `BV-${formatOrderSeq(nextSeq)}`;

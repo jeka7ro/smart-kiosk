@@ -17,6 +17,7 @@ import CartScreen          from './screens/CartScreen';
 import PaymentScreen       from './screens/PaymentScreen';
 import ConfirmationScreen  from './screens/ConfirmationScreen';
 import PinScreen           from './screens/PinScreen';
+import ManagerPortalModal  from './components/ManagerPortalModal.jsx';
 import FortuneWheel        from './components/FortuneWheel';
 import { proxySyrveImage } from './utils/imageUtils.js';
 
@@ -78,6 +79,9 @@ function getLockWindowId(loc, now = new Date()) {
 }
 
 export default function App() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const isManagerMode = urlParams.get('manager') === 'true' || urlParams.get('manager') === '1' || urlParams.get('mode') === 'manager';
+
   const screen = useKioskStore((s) => s.screen);
   const cartItems = useKioskStore((s) => s.cartItems);
   const isUnlocking = useKioskStore((s) => s.isUnlocking);
@@ -91,6 +95,7 @@ export default function App() {
   const [isLocked, setIsLocked] = useState(false);
   const [isScheduleLocked, setIsScheduleLocked] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showManagerPortal, setShowManagerPortal] = useState(isManagerMode);
 
   // Promoții Roată Noroc
   const [promoData, setPromoData] = useState(null);
@@ -175,6 +180,7 @@ export default function App() {
 
   // ─── KIOSK SECURITY: Block right-click, refresh & pull-to-refresh ───────────
   useEffect(() => {
+    if (isManagerMode) return;
     // 1. Block right-click context menu
     const blockContextMenu = (e) => e.preventDefault();
     document.addEventListener('contextmenu', blockContextMenu);
@@ -936,6 +942,15 @@ export default function App() {
                  }
               }, 1800);
             }}
+          />
+        )}
+
+        {/* ─── Manager Portal Direct Modal (Triggered by ?manager=true) ─── */}
+        {showManagerPortal && locationData && (
+          <ManagerPortalModal
+            locationData={locationData}
+            isStandalone={true}
+            onClose={() => setShowManagerPortal(false)}
           />
         )}
         

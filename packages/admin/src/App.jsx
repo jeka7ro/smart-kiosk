@@ -3898,6 +3898,38 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                 <div className="text-xs text-slate-400 font-mono truncate">
                   {finalKioskUrl}
                 </div>
+
+                {/* Link Manager Kiosk */}
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block flex items-center gap-1">
+                      <ShieldCheck className="w-3.5 h-3.5 text-blue-500 inline" />
+                      Link Portal Manager
+                    </span>
+                    <span className="text-[11px] text-slate-400 font-mono truncate block mt-0.5">
+                      {finalKioskUrl}&manager=true
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => navigator.clipboard.writeText(`${finalKioskUrl}&manager=true`)}
+                      className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                      title="Copiază link-ul direct pentru Manager"
+                    >
+                      Copiază
+                    </button>
+                    <a
+                      href={`${finalKioskUrl}&manager=true`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-bold transition-all"
+                      title="Deschide direct ecranul Manager"
+                    >
+                      Deschide
+                    </a>
+                  </div>
+                </div>
               </div>
 
               {/* Securitate PIN & Blocare Programată Kiosk */}
