@@ -474,7 +474,7 @@ export default function ManagerPortalModal({ locationData, onClose }) {
 
           <h2 className="mgr-pin-title">Acces Manager Kiosk</h2>
           <p className="mgr-pin-subtitle">
-            Introduceți codul PIN de Manager pentru {locationData?.name || 'această locație'}.
+            Introduceți codul PIN de Manager pentru acest Kiosk.
           </p>
 
           <div className={`mgr-pin-dots ${pinError ? 'mgr-pin-dots-error' : ''}`}>

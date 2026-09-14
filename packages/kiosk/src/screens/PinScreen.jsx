@@ -84,7 +84,7 @@ export default function PinScreen({ loc, onUnlock, isScheduleLock = false, backe
 
   const subtitle = isScheduleLock
     ? `Kiosk-ul este blocat conform orarului de funcționare (${loc?.lockStartTime || '22:00'} - ${loc?.lockEndTime || '09:00'}). Introdu codul PIN pentru acces.`
-    : `Această tabletă este parțial restricționată. Te rog să introduci codul PIN pentru locația ${loc?.name || ''}.`;
+    : 'Această tabletă este parțial restricționată. Te rog să introduci codul PIN pentru acces la acest Kiosk.';
 
   return (
     <div className="pin-screen">
