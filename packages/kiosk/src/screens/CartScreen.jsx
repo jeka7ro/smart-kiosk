@@ -367,12 +367,6 @@ export default function CartScreen() {
                           {price.toFixed(2)} lei
                         </div>
 
-                        {/* Brand badge dacă există */}
-                        {prod._brand && (
-                          <div className="cart-upsell-card-brand-badge">
-                            <img src={`/brands/${prod._brand}-logo.png`} alt="" onError={(e) => e.target.style.display = 'none'} />
-                          </div>
-                        )}
 
                         {/* Feedback overlay la adăugare */}
                         {isAdded && (
