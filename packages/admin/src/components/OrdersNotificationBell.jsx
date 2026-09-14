@@ -48,9 +48,16 @@ export default function OrdersNotificationBell({
   const sessionStartTsRef = useRef(Date.now());
   const dropdownRef = useRef(null);
 
-  // Get recent 12 orders
+  // Get recent 12 orders (deduplicated by ID / orderNumber)
   const recentOrders = useMemo(() => {
-    return (orders || []).slice(0, 12);
+    const seen = new Set();
+    return (orders || []).filter(o => {
+      const key = o._id || o.id || o.orderNumber;
+      if (!key) return true;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).slice(0, 12);
   }, [orders]);
 
   // Contorizează EXCLUSIV comenzile sosite în timp real după deschiderea / refresh-ul paginii
