@@ -164,16 +164,19 @@ export default function CartScreen() {
     : (localStorage.getItem('kiosk_upsell_active') !== 'false');
   const upsellCandidates = useMemo(() => {
     if (!menuProducts || !menuProducts.length) return [];
+    const activeCatIds = new Set((menuCategories || []).map(c => c.id));
     const UPSELL_REGEX = /sos|sauce|ketchup|mayo|maionez|dip|aioli|wasabi|ghimbir|ginger|soia|sweet chili|cartof|fries|potato|wedges|inel|onion|porumb|corn|salat|coleslaw|miso|edamame|bautur|drink|cola|pepsi|apa|apă|water|fanta|sprite|fuze|ceai|tea|bere|beer|shake|smoothie|limonad|lemonade|suc|juice|ayran|mirinda|desert|dessert|muffin|prajit|prăjitur|cake|inghetat|înghețat|sundae|clatit|clătit|donut|mochi|tiramisu|brownie|cheesecake|cookie/i;
 
     return menuProducts.filter(p => {
       if (cartProductIds.has(p.id)) return false;
       if (!p.price || Number(p.price) <= 0) return false;
+      if (p.isHidden || p.isDeleted || p.outOfStock) return false;
+      if (activeCatIds.size > 0 && !activeCatIds.has(p.categoryId)) return false;
       const name = p.name || '';
       const cat = p.categoryName || '';
       return UPSELL_REGEX.test(`${name} ${cat}`);
     });
-  }, [menuProducts, cartProductIds]);
+  }, [menuProducts, menuCategories, cartProductIds]);
 
   const executePaymentFlow = async () => {
     try {

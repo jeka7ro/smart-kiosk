@@ -294,9 +294,12 @@ export default function ProductScreen() {
     if (!product || !menuProducts || menuProducts.length === 0) return [];
 
     const actualBrandId = product._brand || brand?.id || 'smashme';
+    const activeCatIds = new Set((menuCategories || []).map(c => c.id));
     const pool = menuProducts.filter(p => 
       p.id !== product.id && 
       p.price > 0 && 
+      !p.isHidden && !p.isDeleted && !p.outOfStock &&
+      (activeCatIds.size === 0 || activeCatIds.has(p.categoryId)) &&
       (p._brand === actualBrandId || p.brandId === actualBrandId)
     );
 
@@ -341,7 +344,7 @@ export default function ProductScreen() {
     // 5. Desserts
     const desserts = pool.filter(p => {
       const c = catMap[p.categoryId] || '';
-      return c.includes('desert') || p.name.toLowerCase().includes('churros');
+      return c.includes('desert') || c.includes('dessert');
     });
 
     const list = [];
