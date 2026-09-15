@@ -683,7 +683,7 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
       // we must send the base price to Syrve so options are not double-calculated.
       const rawUnitPrice = Number(item.unitPrice !== undefined ? item.unitPrice : (item.price || 0));
       let productPrice = rawUnitPrice;
-      if (item.basePrice !== undefined && item.basePrice !== null && !isNaN(Number(item.basePrice))) {
+      if (item.basePrice !== undefined && item.basePrice !== null && !isNaN(Number(item.basePrice)) && Number(item.basePrice) > 0) {
         productPrice = Number(item.basePrice);
       } else if (modifiersCostPerUnit > 0) {
         productPrice = Math.max(0, Math.round((rawUnitPrice - modifiersCostPerUnit) * 100) / 100);
@@ -785,7 +785,7 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
       let line = (Number(si.price) || 0) * qty;
       if (si.modifiers && si.modifiers.length > 0) {
         si.modifiers.forEach(m => {
-          line += (Number(m.price) || 0) * (Number(m.amount) || 1);
+          line += (Number(m.price) || 0) * (Number(m.amount) || 1) * qty;
         });
       }
       grossSyrveTotal += line;
