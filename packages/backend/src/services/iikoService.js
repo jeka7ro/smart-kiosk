@@ -805,7 +805,7 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
               discountTypeId: discountTypeId,
               sum: discountSum,
               selectivePositions: null,
-              type: 'RMS'
+              type: null
             }
           ]
         };
