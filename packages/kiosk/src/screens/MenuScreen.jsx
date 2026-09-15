@@ -66,7 +66,7 @@ export default function MenuScreen() {
   const toggleFavoriteStore = useKioskStore((s) => s.toggleFavorite);
   const clearFavorites   = useKioskStore((s) => s.clearFavorites);
   const [modifierModalProduct, setModifierModalProduct] = useState(null);
-  const [startPromoModalProduct, setStartPromoModalProduct] = useState(null);
+  const [startPromoModalProducts, setStartPromoModalProducts] = useState([]);
   const [showManagerPortal, setShowManagerPortal] = useState(false);
   const hasShownStartPromo = useKioskStore((s) => s.hasShownStartPromo);
   const setHasShownStartPromo = useKioskStore((s) => s.setHasShownStartPromo);
@@ -252,9 +252,9 @@ export default function MenuScreen() {
   // Trigger Welcome Promo popup once per session after products load (only if explicitly enabled)
   useEffect(() => {
     if (!loading && products.length > 0 && !hasShownStartPromo) {
-      const candidate = products.find(p => p.promoPrice && p.promoPrice > 0 && p.popupStart === true);
-      if (candidate) {
-        setStartPromoModalProduct(candidate);
+      const candidates = products.filter(p => p.promoPrice && p.promoPrice > 0 && p.popupStart === true);
+      if (candidates.length > 0) {
+        setStartPromoModalProducts(candidates);
         setHasShownStartPromo(true);
       }
     }
@@ -272,7 +272,7 @@ export default function MenuScreen() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAcceptStartPromo = useCallback((promoProduct) => {
-    setStartPromoModalProduct(null);
+    setStartPromoModalProducts([]);
     const hasRequiredMods = (promoProduct.modifierGroups || []).some(
       (g) => g.required || (g.min && g.min > 0)
     );
@@ -799,21 +799,15 @@ export default function MenuScreen() {
       )}
 
       {/* ─── START PROMO HERO POPUP MODAL ─────────── */}
-      {startPromoModalProduct && (
+      {startPromoModalProducts.length > 0 && (
         <StartPromoModal
-          product={startPromoModalProduct}
+          products={startPromoModalProducts}
           onClose={() => {
-            const targetCat = startPromoModalProduct?.categoryId || startPromoModalProduct?.parentGroupId;
-            if (targetCat) {
-              setActiveCategory(targetCat);
-              setMenuActiveCategory(targetCat);
-            }
-            setStartPromoModalProduct(null);
+            setStartPromoModalProducts([]);
           }}
           onAccept={handleAcceptStartPromo}
-          onInfo={() => {
-            const prod = startPromoModalProduct;
-            setStartPromoModalProduct(null);
+          onInfo={(prod) => {
+            setStartPromoModalProducts([]);
             if (productsAreaRef.current) setMenuScrollTop(productsAreaRef.current.scrollTop);
             const targetCat = prod?.categoryId || prod?.parentGroupId;
             if (targetCat) {

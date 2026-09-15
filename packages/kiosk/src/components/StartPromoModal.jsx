@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
 
@@ -40,18 +40,68 @@ const TEXTS = {
   },
 };
 
-export default function StartPromoModal({ product, onClose, onAccept, onInfo, lang = 'ro' }) {
-  if (!product) return null;
+export default function StartPromoModal({ products: rawProducts, product, onClose, onAccept, onInfo, lang = 'ro' }) {
+  const promoList = useMemo(() => {
+    if (Array.isArray(rawProducts) && rawProducts.length > 0) return rawProducts;
+    if (product) return [product];
+    return [];
+  }, [rawProducts, product]);
+
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const touchStartXRef = useRef(null);
+
+  const isMulti = promoList.length > 1;
+  const currentProduct = promoList[currentIndex] || promoList[0];
+
+  // Auto-slide every 6 seconds if multiple products
+  useEffect(() => {
+    if (!isMulti) return;
+    const timer = setInterval(() => {
+      setCurrentIndex((i) => (i < promoList.length - 1 ? i + 1 : 0));
+    }, 6000);
+    return () => clearInterval(timer);
+  }, [isMulti, promoList.length]);
+
+  if (!currentProduct) return null;
 
   const t = TEXTS[lang] || TEXTS.ro;
-  const originalPrice = parseFloat(product.price) || 0;
-  const promoPrice = parseFloat(product.promoPrice) || 0;
+  const originalPrice = parseFloat(currentProduct.price) || 0;
+  const promoPrice = parseFloat(currentProduct.promoPrice) || 0;
   const savings = Math.max(0, originalPrice - promoPrice);
   const discountPercent = originalPrice > 0 ? Math.round((savings / originalPrice) * 100) : 0;
 
-  const hasRequiredMods = (product.modifierGroups || []).some(
+  const hasRequiredMods = (currentProduct.modifierGroups || []).some(
     (g) => g.required || (g.min && g.min > 0)
   );
+
+  const handlePrev = (e) => {
+    if (e) e.stopPropagation();
+    setCurrentIndex((i) => (i > 0 ? i - 1 : promoList.length - 1));
+  };
+
+  const handleNext = (e) => {
+    if (e) e.stopPropagation();
+    setCurrentIndex((i) => (i < promoList.length - 1 ? i + 1 : 0));
+  };
+
+  const handleTouchStart = (e) => {
+    touchStartXRef.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e) => {
+    if (touchStartXRef.current === null) return;
+    const diff = touchStartXRef.current - e.changedTouches[0].clientX;
+    touchStartXRef.current = null;
+    if (diff > 45) {
+      handleNext();
+    } else if (diff < -45) {
+      handlePrev();
+    }
+  };
+
+  const bannerTitle = isMulti 
+    ? `${t.banner} (${currentIndex + 1}/${promoList.length})` 
+    : t.banner;
 
   return (
     <div
@@ -95,6 +145,8 @@ export default function StartPromoModal({ product, onClose, onAccept, onInfo, la
           position: 'relative',
         }}
         onClick={(e) => e.stopPropagation()}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
       >
         {/* Top Banner */}
         <div
@@ -124,7 +176,7 @@ export default function StartPromoModal({ product, onClose, onAccept, onInfo, la
               }}
             >
               <img
-                src={`/brands/${product._brand || 'smashme'}-logo.png`}
+                src={`/brands/${currentProduct._brand || 'smashme'}-logo.png`}
                 alt="Smash Me"
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 onError={(e) => {
@@ -132,8 +184,8 @@ export default function StartPromoModal({ product, onClose, onAccept, onInfo, la
                 }}
               />
             </div>
-            <span style={{ fontSize: '1rem', fontWeight: 900, letterSpacing: '0.4px' }}>
-              {t.banner}
+            <span style={{ fontSize: '0.98rem', fontWeight: 900, letterSpacing: '0.4px' }}>
+              {bannerTitle}
             </span>
           </div>
 
@@ -164,8 +216,8 @@ export default function StartPromoModal({ product, onClose, onAccept, onInfo, la
 
         {/* Modal Body */}
         <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* Image */}
-          {product.image && (
+          {/* Image & Carousel Nav */}
+          {currentProduct.image && (
             <div
               style={{
                 width: '100%',
@@ -179,8 +231,9 @@ export default function StartPromoModal({ product, onClose, onAccept, onInfo, la
               }}
             >
               <img
-                src={proxySyrveImage(product.image)}
-                alt={product.name}
+                key={currentProduct.id}
+                src={proxySyrveImage(currentProduct.image)}
+                alt={currentProduct.name}
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
 
@@ -204,11 +257,75 @@ export default function StartPromoModal({ product, onClose, onAccept, onInfo, la
                 </div>
               )}
 
+              {/* Săgeată Înapoi (Stânga) */}
+              {isMulti && (
+                <button
+                  type="button"
+                  onClick={handlePrev}
+                  style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: 10,
+                    transform: 'translateY(-50%)',
+                    width: 44,
+                    height: 44,
+                    borderRadius: '50%',
+                    border: '2px solid rgba(255,255,255,0.9)',
+                    background: 'rgba(255,255,255,0.92)',
+                    color: '#1e293b',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                    backdropFilter: 'blur(4px)',
+                    zIndex: 5,
+                  }}
+                  aria-label="Oferta anterioară"
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="15 18 9 12 15 6" />
+                  </svg>
+                </button>
+              )}
+
+              {/* Săgeată Înainte (Dreapta) */}
+              {isMulti && (
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  style={{
+                    position: 'absolute',
+                    top: '50%',
+                    right: 10,
+                    transform: 'translateY(-50%)',
+                    width: 44,
+                    height: 44,
+                    borderRadius: '50%',
+                    border: '2px solid rgba(255,255,255,0.9)',
+                    background: 'rgba(255,255,255,0.92)',
+                    color: '#1e293b',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                    backdropFilter: 'blur(4px)',
+                    zIndex: 5,
+                  }}
+                  aria-label="Oferta următoare"
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </button>
+              )}
+
               {/* Buton Info (i) pe poză — deschide pagina originală de produs */}
               {onInfo && (
                 <button
                   type="button"
-                  onClick={onInfo}
+                  onClick={() => onInfo(currentProduct)}
                   style={{
                     position: 'absolute',
                     top: 12,
@@ -226,6 +343,7 @@ export default function StartPromoModal({ product, onClose, onAccept, onInfo, la
                     boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
                     backdropFilter: 'blur(6px)',
                     transition: 'transform 0.15s ease',
+                    zIndex: 4,
                   }}
                   aria-label="Detalii produs"
                 >
@@ -236,6 +354,30 @@ export default function StartPromoModal({ product, onClose, onAccept, onInfo, la
                   </svg>
                 </button>
               )}
+            </div>
+          )}
+
+          {/* Dots Indicator */}
+          {isMulti && (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: -4 }}>
+              {promoList.map((p, idx) => (
+                <button
+                  key={p.id || idx}
+                  type="button"
+                  onClick={() => setCurrentIndex(idx)}
+                  style={{
+                    width: currentIndex === idx ? 24 : 8,
+                    height: 8,
+                    borderRadius: 4,
+                    background: currentIndex === idx ? 'var(--primary, #EE3B24)' : '#cbd5e1',
+                    border: 'none',
+                    padding: 0,
+                    cursor: 'pointer',
+                    transition: 'all 0.25s ease',
+                  }}
+                  aria-label={`Oferta ${idx + 1}`}
+                />
+              ))}
             </div>
           )}
 
@@ -250,9 +392,9 @@ export default function StartPromoModal({ product, onClose, onAccept, onInfo, la
                 lineHeight: 1.2,
               }}
             >
-              {product.name}
+              {currentProduct.name}
             </h2>
-            {(product.description || (product.translations && product.translations[lang])) && (
+            {(currentProduct.description || (currentProduct.translations && currentProduct.translations[lang])) && (
               <p
                 style={{
                   fontSize: '0.88rem',
@@ -265,9 +407,9 @@ export default function StartPromoModal({ product, onClose, onAccept, onInfo, la
                   overflow: 'hidden',
                 }}
               >
-                {(lang !== 'ro' && product.translations && product.translations[lang])
-                  ? product.translations[lang]
-                  : product.description}
+                {(lang !== 'ro' && currentProduct.translations && currentProduct.translations[lang])
+                  ? currentProduct.translations[lang]
+                  : currentProduct.description}
               </p>
             )}
           </div>
@@ -332,7 +474,7 @@ export default function StartPromoModal({ product, onClose, onAccept, onInfo, la
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
             <button
               type="button"
-              onClick={() => onAccept(product)}
+              onClick={() => onAccept(currentProduct)}
               style={{
                 width: '100%',
                 minHeight: 52,
