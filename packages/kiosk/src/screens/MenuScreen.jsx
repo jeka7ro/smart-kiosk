@@ -279,7 +279,7 @@ export default function MenuScreen() {
     if (hasRequiredMods) {
       setSelectedProduct(promoProduct);
     } else {
-      addToCart(promoProduct, 1, [], getEffectivePrice(promoProduct), activeBrandId, false);
+      addToCart(promoProduct, 1, [], getEffectivePrice(promoProduct), activeBrandId, false, null, Number(promoProduct.price || 0));
     }
   }, [addToCart, activeBrandId, setSelectedProduct]);
 
@@ -447,7 +447,7 @@ export default function MenuScreen() {
     }
     // Fix: Use product._brand for cross-brand search results
     const actualBrandId = product._brand || activeBrandId;
-    addToCart(product, 1, [], getEffectivePrice(product), actualBrandId, false);
+    addToCart(product, 1, [], getEffectivePrice(product), actualBrandId, false, null, Number(product.price || 0));
 
     // Fly animation: get card position and cart bar position
     if (cardEl && cartBarRef.current) {

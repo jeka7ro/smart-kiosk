@@ -155,7 +155,7 @@ export default function CartScreen() {
     }
 
     const actualBrandId = prod._brand || brand?.id;
-    addToCart(prod, 1, [], getEffectivePrice(prod), actualBrandId, false);
+    addToCart(prod, 1, [], getEffectivePrice(prod), actualBrandId, false, null, Number(prod.price || 0));
     setAddedIds(prev => ({ ...prev, [prod.id]: true }));
     setTimeout(() => {
       setAddedIds(prev => { 

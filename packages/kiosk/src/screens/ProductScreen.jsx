@@ -444,13 +444,14 @@ export default function ProductScreen() {
     }
 
     const actualBrandId = product._brand || brand?.id;
+    const catalogBasePrice = Number(product.price !== undefined && product.price !== null ? product.price : (product.currentPrice || 0));
 
     // 1. Adaugă produsul principal cu mențiunea completă
-    addToCart(product, quantity, selectedModifiers, unitPrice, actualBrandId, false, finalComment || null, basePrice);
+    addToCart(product, quantity, selectedModifiers, unitPrice, actualBrandId, false, finalComment || null, catalogBasePrice);
 
     // 2. Adaugă fiecare produs recomandat selectat
     selectedPairings.forEach(pair => {
-      addToCart(pair, 1, [], getEffectivePrice(pair), pair._brand || actualBrandId, false);
+      addToCart(pair, 1, [], getEffectivePrice(pair), pair._brand || actualBrandId, false, null, Number(pair.price || 0));
     });
 
     // 3. Mergi înapoi la ecranul de proveniență (coș sau meniu)

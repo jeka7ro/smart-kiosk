@@ -570,6 +570,60 @@ async function logIikoRequest(orderId, brandId, payload, response, error = null)
   }
 }
 
+// Cache for discount type IDs per organization (e.g. 'kiosk' / 'KIOSK')
+const KIOSK_DISCOUNT_CACHE = {};
+
+async function getKioskDiscountTypeId(orgId, brandId = 'smashme') {
+  if (!orgId) return null;
+  if (KIOSK_DISCOUNT_CACHE[orgId]) return KIOSK_DISCOUNT_CACHE[orgId];
+
+  // Hardcoded known fallbacks for production
+  const FALLBACKS = {
+    '9c63cff6-1d66-442d-a98d-2302656e3943': '1df3160e-8fb4-4141-b6d4-3c19b4c4e2b4', // Cluj (SmashMe) "kiosk"
+    'adddb5a0-26e5-4d50-b472-1c74726c3f72': 'f6f652b6-f0cb-4364-9992-f4cd479ba1fb', // Brasov (SushiMaster) "KIOSK"
+  };
+
+  try {
+    const res = await syrvePost('/api/1/discounts', {
+      organizationIds: [orgId]
+    }, brandId);
+
+    const items = res?.discounts?.[0]?.items || [];
+    // Priority 1: Discount named exactly 'kiosk' (case-insensitive)
+    const exactKiosk = items.find(d => !d.isDeleted && (d.name || '').trim().toLowerCase() === 'kiosk');
+    if (exactKiosk) {
+      KIOSK_DISCOUNT_CACHE[orgId] = exactKiosk.id;
+      return exactKiosk.id;
+    }
+
+    // Priority 2: Discount with 'kiosk' in name and mode FlexibleSum
+    const anyKiosk = items.find(d => !d.isDeleted && (d.name || '').toLowerCase().includes('kiosk') && d.mode === 'FlexibleSum');
+    if (anyKiosk) {
+      KIOSK_DISCOUNT_CACHE[orgId] = anyKiosk.id;
+      return anyKiosk.id;
+    }
+
+    // Priority 3: Fallback map
+    if (FALLBACKS[orgId]) {
+      KIOSK_DISCOUNT_CACHE[orgId] = FALLBACKS[orgId];
+      return FALLBACKS[orgId];
+    }
+
+    // Priority 4: Any FlexibleSum discount
+    const flexDiscount = items.find(d => !d.isDeleted && d.mode === 'FlexibleSum');
+    if (flexDiscount) {
+      KIOSK_DISCOUNT_CACHE[orgId] = flexDiscount.id;
+      return flexDiscount.id;
+    }
+  } catch (err) {
+    console.warn(`[Syrve] Failed to fetch discounts for org ${orgId}:`, err.message);
+  }
+
+  const fallbackId = FALLBACKS[orgId] || null;
+  if (fallbackId) KIOSK_DISCOUNT_CACHE[orgId] = fallbackId;
+  return fallbackId;
+}
+
 async function createOrder({ brandId = 'smashme', orgId, order }) {
   const brand = BRANDS[brandId];
 
@@ -724,6 +778,44 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
       surname: '',
     };
 
+    // Calculate total gross items price in Syrve
+    let grossSyrveTotal = 0;
+    syrveItems.forEach(si => {
+      const qty = Number(si.amount) || 1;
+      let line = (Number(si.price) || 0) * qty;
+      if (si.modifiers && si.modifiers.length > 0) {
+        si.modifiers.forEach(m => {
+          line += (Number(m.price) || 0) * (Number(m.amount) || 1);
+        });
+      }
+      grossSyrveTotal += line;
+    });
+    grossSyrveTotal = Math.round(grossSyrveTotal * 100) / 100;
+
+    const discountSum = Math.max(0, Math.round((grossSyrveTotal - Number(order.totalAmount || 0)) * 100) / 100);
+
+    let discountsInfo = null;
+    if (discountSum > 0.01) {
+      const discountTypeId = await getKioskDiscountTypeId(resolvedOrgId, brandId);
+      if (discountTypeId) {
+        discountsInfo = {
+          card: null,
+          discounts: [
+            {
+              discountTypeId: discountTypeId,
+              sum: discountSum,
+              selectivePositions: null,
+              type: 'RMS'
+            }
+          ]
+        };
+        console.log(`[Syrve] Applied discount of ${discountSum.toFixed(2)} lei (discountTypeId: ${discountTypeId}) for order #${order.orderNumber} [${brandId}]`);
+        orderComment += ` | REDUCERE: -${discountSum.toFixed(2)} LEI`;
+      } else {
+        console.warn(`[Syrve] Warning: Discount of ${discountSum.toFixed(2)} lei detected but no kiosk discount type configured for org ${resolvedOrgId}`);
+      }
+    }
+
     payload = {
       createOrderSettings: {
         mode: 'Async',
@@ -748,6 +840,7 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
         externalNumber: `K${order.orderNumber}`,
         comment: orderComment,
         sourceKey: 'Smart Kiosk',
+        ...(discountsInfo ? { discountsInfo } : {}),
         externalData: order.fiscal?.cui ? [
           { key: 'cui', value: cuiWithRo },
           { key: 'cif', value: cuiDigits },

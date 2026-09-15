@@ -143,6 +143,25 @@ router.post('/', async (req, res) => {
     const orderId = `ORD-${Date.now()}`;
     const status = (paymentMethod || 'card') === 'cash' ? 'awaiting_payment' : 'pending';
 
+    let grossItemsTotal = 0;
+    (items || []).forEach(it => {
+      const q = Number(it.quantity) || 1;
+      const bPrice = (it.basePrice !== null && it.basePrice !== undefined && !isNaN(Number(it.basePrice)) && Number(it.basePrice) > 0)
+        ? Number(it.basePrice)
+        : Number(it.unitPrice || 0);
+      let line = bPrice * q;
+      if (it.selectedModifiers && it.selectedModifiers.length > 0) {
+        it.selectedModifiers.forEach(m => {
+          if (m.modId !== 'custom_comment') {
+            line += (Number(m.price) || 0) * (Number(m.amount) || 1) * q;
+          }
+        });
+      }
+      grossItemsTotal += line;
+    });
+    grossItemsTotal = Math.round(grossItemsTotal * 100) / 100;
+    const discountAmount = Math.max(0, Math.round((grossItemsTotal - subtotal) * 100) / 100);
+
     const order = {
       _id: orderId,
       orderNumber,
@@ -155,6 +174,7 @@ router.post('/', async (req, res) => {
       tableNumber: tableNumber || null,
       items: items || [],
       totalAmount: Math.round(subtotal * 100) / 100,
+      discountAmount: discountAmount,
       lang: lang || 'ro',
       channel: channel || 'kiosk',
       paymentMethod: paymentMethod || 'card',
