@@ -415,6 +415,12 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 6px rgba(238, 59, 36, 0.35);
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.ps-req-badge--done {
+  background: #10b981;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.35);
 }
 
 .ps-mod-options-grid {
@@ -481,6 +487,66 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.ps-mod-count-badge {
+  background: #EE3B24;
+  color: #ffffff;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  box-shadow: 0 1px 4px rgba(238, 59, 36, 0.4);
+}
+
+.ps-mod-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 4px;
+  background: #ffffff;
+  border: 1.5px solid #EE3B24;
+  border-radius: 20px;
+  padding: 3px 6px;
+  z-index: 2;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.ps-mod-step-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: #EE3B24;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.1s, background 0.15s;
+}
+
+.ps-mod-step-btn:hover:not(:disabled) {
+  transform: scale(1.1);
+}
+
+.ps-mod-step-btn--disabled {
+  background: #cbd5e1 !important;
+  color: #64748b !important;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.ps-mod-step-val {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #1e293b;
+  min-width: 16px;
+  text-align: center;
 }
 
 /* ─── MODIFIER OPTION SELECTED DESCRIPTION ─── */

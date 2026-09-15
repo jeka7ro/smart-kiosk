@@ -287,7 +287,21 @@ export default function ProductScreen() {
     const mods = product?.modifierGroups || product?.modifiers || [];
     mods.forEach(mod => {
       const opts = mod.options || mod.items || [];
-      if (mod.required && opts.length > 0) init[mod.id] = opts[0].id;
+      if (mod.required && opts.length > 0) {
+        init[mod.id] = { [opts[0].id]: 1 };
+      } else {
+        init[mod.id] = {};
+      }
+    });
+    return init;
+  });
+
+  const [activeDescOptId, setActiveDescOptId] = useState(() => {
+    const init = {};
+    const mods = product?.modifierGroups || product?.modifiers || [];
+    mods.forEach(mod => {
+      const opts = mod.options || mod.items || [];
+      if (opts.length > 0) init[mod.id] = opts[0].id;
     });
     return init;
   });
@@ -389,9 +403,15 @@ export default function ProductScreen() {
 
   const selectedOptionsDiff = modifiers.reduce((sum, mod) => {
     const opts = mod.options || mod.items || [];
-    const optionId = selected[mod.id];
-    const opt = opts.find(o => o.id === optionId);
-    return sum + (opt?.priceDiff || opt?.price || 0);
+    const groupSel = selected[mod.id] || {};
+    let groupDiff = 0;
+    Object.entries(groupSel).forEach(([optId, count]) => {
+      if (count > 0) {
+        const opt = opts.find(o => o.id === optId);
+        groupDiff += (opt?.priceDiff || opt?.price || 0) * count;
+      }
+    });
+    return sum + groupDiff;
   }, 0);
 
   const basePrice       = getEffectivePrice(product);
@@ -401,9 +421,71 @@ export default function ProductScreen() {
 
   const allRequiredSelected = modifiers
     .filter(m => m.required && ((m.options?.length > 0) || (m.items?.length > 0)))
-    .every(m => selected[m.id]);
+    .every(m => {
+      const groupSel = selected[m.id] || {};
+      const count = Object.values(groupSel).reduce((a, b) => a + b, 0);
+      const min = m.minAmount ?? 1;
+      return count >= min;
+    });
 
-  const handleSelect = (modId, optId) => setSelected(s => ({ ...s, [modId]: optId }));
+  const handleSelect = (modId, optId) => {
+    const mod = modifiers.find(m => m.id === modId);
+    if (!mod) return;
+    const max = mod.maxAmount ?? 1;
+    setActiveDescOptId(prev => ({ ...prev, [modId]: optId }));
+
+    setSelected(prev => {
+      const groupSel = { ...(prev[modId] || {}) };
+      const currentCount = groupSel[optId] || 0;
+      const groupTotal = Object.values(groupSel).reduce((a, b) => a + b, 0);
+
+      if (max <= 1) {
+        if (currentCount > 0 && !mod.required) {
+          return { ...prev, [modId]: {} };
+        }
+        return { ...prev, [modId]: { [optId]: 1 } };
+      }
+
+      // Multi-choice group (max > 1)
+      if (currentCount === 0) {
+        if (groupTotal < max) {
+          groupSel[optId] = 1;
+        }
+      } else {
+        if (groupTotal < max) {
+          groupSel[optId] = currentCount + 1;
+        }
+      }
+      return { ...prev, [modId]: groupSel };
+    });
+  };
+
+  const handleModifyOptionAmount = (modId, optId, delta, e) => {
+    if (e) e.stopPropagation();
+    const mod = modifiers.find(m => m.id === modId);
+    if (!mod) return;
+    const max = mod.maxAmount ?? 1;
+    setActiveDescOptId(prev => ({ ...prev, [modId]: optId }));
+
+    setSelected(prev => {
+      const groupSel = { ...(prev[modId] || {}) };
+      const currentCount = groupSel[optId] || 0;
+      const groupTotal = Object.values(groupSel).reduce((a, b) => a + b, 0);
+
+      if (delta > 0) {
+        if (groupTotal < max) {
+          groupSel[optId] = currentCount + 1;
+        }
+      } else if (delta < 0) {
+        if (currentCount > 1) {
+          groupSel[optId] = currentCount - 1;
+        } else {
+          delete groupSel[optId];
+        }
+      }
+      return { ...prev, [modId]: groupSel };
+    });
+  };
 
   const toggleExclusion = (label) => {
     setSelectedExclusions(prev =>
@@ -412,21 +494,30 @@ export default function ProductScreen() {
   };
 
   const handleAdd = () => {
-    const selectedModifiers = modifiers.map(mod => {
+    const selectedModifiers = [];
+    modifiers.forEach(mod => {
       const opts = mod.options || mod.items || [];
-      const selOpt = opts.find(o => o.id === selected[mod.id]);
-      if (!selOpt) return null;
-      return {
-        modId: mod.id,
-        id: selOpt.id,
-        productId: selOpt.id,
-        groupId: mod.id,
-        modifierName: mod.name,
-        optionName: selOpt.name || '',
-        price: selOpt.priceDiff || selOpt.price || 0,
-        amount: 1,
-      };
-    }).filter(Boolean);
+      const groupSel = selected[mod.id] || {};
+      Object.entries(groupSel).forEach(([optId, count]) => {
+        if (count > 0) {
+          const opt = opts.find(o => o.id === optId);
+          if (opt) {
+            selectedModifiers.push({
+              modId: mod.id,
+              id: opt.id,
+              productId: opt.id,
+              groupId: mod.id,
+              modifierGroupId: mod.id,
+              modifierName: mod.name || '',
+              optionId: opt.id,
+              optionName: opt.name || '',
+              price: opt.priceDiff || opt.price || 0,
+              amount: count,
+            });
+          }
+        }
+      });
+    });
 
     // Combină sugestiile rapide bifate cu textul manual introdus
     const fullNotesList = [...selectedExclusions];
@@ -854,28 +945,39 @@ export default function ProductScreen() {
             if (opts.length === 0) return null;
             const groupLabel = mod.name ? mod.name.toUpperCase() : (t('options', lang) || 'OPȚIUNI').toUpperCase();
             
+            const min = mod.minAmount ?? 1;
+            const max = mod.maxAmount ?? 1;
+            const isMulti = max > 1;
+            const groupSel = selected[mod.id] || {};
+            const groupTotal = Object.values(groupSel).reduce((a, b) => a + b, 0);
+            const isGroupValid = !mod.required || groupTotal >= min;
+
             let reqBadge = null;
             if (mod.required) {
-              const min = mod.minAmount ?? 1;
-              const max = mod.maxAmount ?? 1;
               reqBadge = min === max 
                 ? (t('choose_exact', lang) || 'Alege {amount}').replace('{amount}', min)
                 : (t('choose_min_max', lang) || 'Alege {min}-{max}').replace('{min}', min).replace('{max}', max);
             }
 
-            const selectedOptId = selected[mod.id];
-            const selectedOpt = opts.find(o => o.id === selectedOptId);
+            const activeOptId = activeDescOptId[mod.id] || Object.keys(groupSel).find(k => groupSel[k] > 0) || opts[0]?.id;
+            const selectedOpt = opts.find(o => o.id === activeOptId);
             const selectedDesc = selectedOpt ? getOptDescription(selectedOpt) : '';
             
             return (
               <div key={mod.id} className="ps-mod-group">
                 <div className="ps-mod-header">
                   <h3 className="ps-mod-title">{groupLabel}</h3>
-                  {reqBadge && <span className="ps-req-badge">{reqBadge}</span>}
+                  {reqBadge && (
+                    <span className={`ps-req-badge ${isMulti && isGroupValid ? 'ps-req-badge--done' : ''}`}>
+                      {reqBadge}{isMulti ? ` (${groupTotal}/${max})` : ''}
+                    </span>
+                  )}
                 </div>
                 <div className="ps-mod-options-grid">
                   {opts.map(opt => {
-                    const isSel = selected[mod.id] === opt.id;
+                    const count = groupSel[opt.id] || 0;
+                    const isSel = count > 0;
+                    const canAddMore = groupTotal < max;
                     return (
                       <button
                         key={opt.id}
@@ -899,8 +1001,34 @@ export default function ProductScreen() {
                         )}
                         {isSel && (
                           <span className="ps-mod-check">
-                            <IconCheck />
+                            {isMulti && count > 1 ? (
+                              <span className="ps-mod-count-badge">x{count}</span>
+                            ) : (
+                              <IconCheck />
+                            )}
                           </span>
+                        )}
+                        {isMulti && isSel && (
+                          <div className="ps-mod-stepper" onClick={e => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              className="ps-mod-step-btn ps-mod-step-btn--minus"
+                              onClick={e => handleModifyOptionAmount(mod.id, opt.id, -1, e)}
+                              aria-label="Scade cantitate"
+                            >
+                              −
+                            </button>
+                            <span className="ps-mod-step-val">{count}</span>
+                            <button
+                              type="button"
+                              className={`ps-mod-step-btn ps-mod-step-btn--plus ${!canAddMore ? 'ps-mod-step-btn--disabled' : ''}`}
+                              onClick={e => handleModifyOptionAmount(mod.id, opt.id, 1, e)}
+                              disabled={!canAddMore}
+                              aria-label="Crește cantitate"
+                            >
+                              +
+                            </button>
+                          </div>
                         )}
                       </button>
                     );
