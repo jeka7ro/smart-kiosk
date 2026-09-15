@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthProvider';
-import { ChevronDown, ChevronUp, Copy, Search, Building2, Utensils, RefreshCw, FileText, CheckCircle2, XCircle, CreditCard, Banknote } from 'lucide-react';
+import { ChevronDown, ChevronUp, Copy, Search, Building2, Utensils, RefreshCw, FileText, CheckCircle2, XCircle, CreditCard, Banknote, ShieldCheck, AlertTriangle, Scale, X, Percent } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import BrandLogo from '../components/BrandLogo.jsx';
 import { formatThousands } from '../utils/formatters';
@@ -41,6 +41,68 @@ function getLogAmount(log) {
   return null;
 }
 
+export function getSyrveAudit(log) {
+  if (!log) {
+    return {
+      catalogGross: 0,
+      discountSum: 0,
+      paidSum: 0,
+      balanceGap: 0,
+      hasDiscount: false,
+      isBalanced: true,
+      hasUnsentDiscount: false,
+      discounts: []
+    };
+  }
+
+  const order = log.payload?.order || log.payload || {};
+  let catalogGross = 0;
+  const items = order.items || [];
+  if (Array.isArray(items)) {
+    items.forEach(it => {
+      const q = Number(it.amount) || Number(it.quantity) || 1;
+      let line = (Number(it.price) || 0) * q;
+      if (Array.isArray(it.modifiers)) {
+        it.modifiers.forEach(m => {
+          line += (Number(m.price) || 0) * (Number(m.amount) || 1) * q;
+        });
+      }
+      catalogGross += line;
+    });
+  }
+  catalogGross = Math.round(catalogGross * 100) / 100;
+
+  const discounts = order.discountsInfo?.discounts || [];
+  const discountSum = Math.round(discounts.reduce((s, d) => s + (Number(d.sum) || 0), 0) * 100) / 100;
+
+  const payments = order.payments || [];
+  let paidSum = 0;
+  if (Array.isArray(payments) && payments.length > 0) {
+    paidSum = payments.reduce((s, p) => s + (Number(p.sum) || 0), 0);
+  } else if (order.totalAmount !== undefined && order.totalAmount !== null) {
+    paidSum = Number(order.totalAmount);
+  } else if (log.totalAmount !== undefined && log.totalAmount !== null) {
+    paidSum = Number(log.totalAmount);
+  }
+  paidSum = Math.round(paidSum * 100) / 100;
+
+  const balanceGap = Math.round((catalogGross - discountSum - paidSum) * 100) / 100;
+  const hasDiscount = discountSum > 0.01;
+  const isBalanced = Math.abs(balanceGap) <= 0.05;
+  const hasUnsentDiscount = !hasDiscount && balanceGap > 0.05;
+
+  return {
+    catalogGross,
+    discountSum,
+    paidSum,
+    balanceGap,
+    hasDiscount,
+    isBalanced,
+    hasUnsentDiscount,
+    discounts
+  };
+}
+
 export default function IikoLogs() {
   const { fetchWithAuth } = useAuth();
   const [logs, setLogs] = useState([]);
@@ -62,6 +124,9 @@ export default function IikoLogs() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
   const [retryingId, setRetryingId] = useState(null);
+  const [showAuditModal, setShowAuditModal] = useState(false);
+  const [auditFilter, setAuditFilter] = useState('discrepancies_or_discounts');
+  const [auditSearch, setAuditSearch] = useState('');
 
   const toggleBrand = (bId) => {
     const lower = String(bId).toLowerCase();
@@ -295,6 +360,54 @@ export default function IikoLogs() {
     errors: periodFilteredLogs.filter(l => l.status === 'error').length,
   }), [periodFilteredLogs]);
 
+  // Syrve Audit stats across selected period and brands
+  const auditStats = useMemo(() => {
+    let totalAnalyzed = 0;
+    let withDiscountCount = 0;
+    let totalDiscountSum = 0;
+    let discrepancyCount = 0;
+    let totalDiscrepancySum = 0;
+
+    periodFilteredLogs.forEach(l => {
+      totalAnalyzed++;
+      const audit = getSyrveAudit(l);
+      if (audit.hasDiscount) {
+        withDiscountCount++;
+        totalDiscountSum += audit.discountSum;
+      }
+      if (!audit.isBalanced) {
+        discrepancyCount++;
+        totalDiscrepancySum += Math.abs(audit.balanceGap);
+      }
+    });
+
+    return {
+      totalAnalyzed,
+      withDiscountCount,
+      totalDiscountSum: Math.round(totalDiscountSum * 100) / 100,
+      discrepancyCount,
+      totalDiscrepancySum: Math.round(totalDiscrepancySum * 100) / 100,
+    };
+  }, [periodFilteredLogs]);
+
+  // Filtered logs for the Audit Modal
+  const auditFilteredLogs = useMemo(() => {
+    return periodFilteredLogs.filter(l => {
+      const audit = getSyrveAudit(l);
+      if (auditFilter === 'discrepancies' && audit.isBalanced) return false;
+      if (auditFilter === 'only_discounts' && !audit.hasDiscount) return false;
+      if (auditFilter === 'discrepancies_or_discounts' && !audit.hasDiscount && audit.isBalanced) return false;
+
+      if (auditSearch) {
+        const q = auditSearch.toLowerCase();
+        const id = String(l.id || l.order_id || '').toLowerCase();
+        const brand = String(l.brandId || '').toLowerCase();
+        if (!id.includes(q) && !brand.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [periodFilteredLogs, auditFilter, auditSearch]);
+
   // Table filtering adds status filter & search on top of periodFilteredLogs
   const filtered = useMemo(() => {
     return periodFilteredLogs.filter(l => {
@@ -476,6 +589,27 @@ export default function IikoLogs() {
             )}
           </div>
           <button
+            onClick={() => setShowAuditModal(true)}
+            className={`px-4 h-9 rounded-full text-sm font-bold transition-all flex items-center gap-2 ${
+              auditStats.discrepancyCount > 0
+                ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60 hover:bg-amber-100'
+                : 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60 hover:bg-indigo-100'
+            }`}
+            title="Audit Reconciliere & Reduceri Syrve"
+          >
+            <ShieldCheck size={15} />
+            <span>Audit Syrve</span>
+            {auditStats.discrepancyCount > 0 ? (
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-amber-500 text-white">
+                {auditStats.discrepancyCount}
+              </span>
+            ) : auditStats.withDiscountCount > 0 ? (
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-emerald-500 text-white">
+                {auditStats.withDiscountCount}
+              </span>
+            ) : null}
+          </button>
+          <button
             onClick={handleExportExcel}
             className="px-4 h-9 rounded-full bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-sm font-bold transition-colors flex items-center gap-2"
           >
@@ -521,6 +655,7 @@ export default function IikoLogs() {
               const isExpanded = expandedId === logKey;
               const statusInfo = STATUS_CONFIG[log.status] || STATUS_CONFIG.error;
               const details = getOrderDetails(log);
+              const audit = getSyrveAudit(log);
 
               return (
                 <React.Fragment key={logKey}>
@@ -571,6 +706,19 @@ export default function IikoLogs() {
                       <div className="text-[11px] font-medium text-slate-400 dark:text-slate-500 mt-0.5">
                         {details.paymentMethod === 'cash' ? 'Cash' : 'Card'}
                       </div>
+                      {/* Audit Pill */}
+                      {audit.hasDiscount && audit.isBalanced && (
+                        <div className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50" title={`Reducere aplicata in Syrve: -${formatThousands(audit.discountSum)} lei`}>
+                          <Percent size={9} />
+                          -{formatThousands(audit.discountSum)} lei
+                        </div>
+                      )}
+                      {!audit.isBalanced && (
+                        <div className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50" title={`Restanta in Syrve: ${formatThousands(audit.balanceGap)} lei`}>
+                          <AlertTriangle size={9} />
+                          +{formatThousands(audit.balanceGap)} lei restanta
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <span
@@ -695,6 +843,73 @@ export default function IikoLogs() {
                                 </button>
                               </div>
                             )}
+
+                            {/* Card Audit Syrve: Preț Catalog vs Reducere vs Încasat */}
+                            <div className="mt-3 p-3.5 bg-slate-50/90 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700/80">
+                              <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5 pb-2 border-b border-slate-200/80 dark:border-slate-700/60">
+                                <div className="flex items-center gap-2">
+                                  <ShieldCheck className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                                  <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                                    Audit & Reconciliere Syrve
+                                  </span>
+                                </div>
+                                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                                  audit.isBalanced
+                                    ? 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
+                                    : 'bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800'
+                                }`}>
+                                  {audit.isBalanced ? (
+                                    <>
+                                      <CheckCircle2 size={12} />
+                                      Echilibrat 100% (Catalog - Reducere = Plata)
+                                    </>
+                                  ) : (
+                                    <>
+                                      <AlertTriangle size={12} />
+                                      Atentie: {formatThousands(audit.balanceGap)} lei restanta in Syrve (reducere netransmisa)
+                                    </>
+                                  )}
+                                </span>
+                              </div>
+
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                                <div className="p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800">
+                                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Catalog Brut</span>
+                                  <span className="text-sm font-black text-slate-800 dark:text-slate-100 mt-0.5 block">
+                                    {formatThousands(audit.catalogGross)} lei
+                                  </span>
+                                </div>
+                                <div className="p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800">
+                                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Reducere Kiosk</span>
+                                  <span className={`text-sm font-black mt-0.5 block ${audit.hasDiscount ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500'}`}>
+                                    {audit.hasDiscount ? `-${formatThousands(audit.discountSum)} lei` : '0.00 lei'}
+                                  </span>
+                                </div>
+                                <div className="p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800">
+                                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Incasat POS</span>
+                                  <span className="text-sm font-black text-slate-800 dark:text-slate-100 mt-0.5 block">
+                                    {formatThousands(audit.paidSum)} lei
+                                  </span>
+                                </div>
+                                <div className="p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800">
+                                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Balanta Syrve</span>
+                                  <span className={`text-sm font-black mt-0.5 block ${audit.isBalanced ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                                    {audit.isBalanced ? '0.00 lei' : `+${formatThousands(audit.balanceGap)} lei restanta`}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {audit.hasDiscount && audit.discounts.length > 0 && (
+                                <div className="mt-2.5 pt-2 border-t border-slate-200/60 dark:border-slate-700/50 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+                                  <span className="font-semibold text-slate-600 dark:text-slate-400">Detalii reducere Syrve:</span>
+                                  {audit.discounts.map((d, dIdx) => (
+                                    <span key={dIdx} className="font-mono px-2 py-0.5 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
+                                      {d.type || 'RMS'} | ID: {d.discountTypeId || '—'} | Suma: -{formatThousands(d.sum || 0)} lei
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
 
                             {/* Lista de produse */}
                             <div className="mt-4">
@@ -868,6 +1083,232 @@ export default function IikoLogs() {
           </div>
         </div>
       </div>
+
+      {/* ─── MODAL AUDIT REDUCERI SYRVE ─── */}
+      {showAuditModal && (
+        <div 
+          className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6"
+          onClick={() => setShowAuditModal(false)}
+        >
+          <div 
+            className="bg-white dark:bg-slate-900 rounded-3xl max-w-5xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+                  <ShieldCheck size={24} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white m-0 flex items-center gap-2">
+                    Audit Integritate & Reduceri Syrve
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 m-0">
+                    Verificare matematica intre pret catalog brut, discount transmis si plata POS
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAuditModal(false)}
+                className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Content Body */}
+            <div className="p-5 sm:p-6 overflow-y-auto space-y-5 flex-1">
+              {/* Summary Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
+                    Comenzi Verificate
+                  </span>
+                  <div className="text-2xl font-black text-slate-900 dark:text-white mt-1">
+                    {auditStats.totalAnalyzed}
+                  </div>
+                  <span className="text-[11px] text-slate-500 mt-0.5 block">
+                    In perioada selectata
+                  </span>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/50">
+                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 block">
+                    Reduceri Transmise
+                  </span>
+                  <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
+                    -{formatThousands(auditStats.totalDiscountSum)} lei
+                  </div>
+                  <span className="text-[11px] text-emerald-700/80 dark:text-emerald-400/80 mt-0.5 block font-medium">
+                    {auditStats.withDiscountCount} comenzi cu reduceri promotionale
+                  </span>
+                </div>
+
+                <div className={`p-4 rounded-2xl border ${
+                  auditStats.discrepancyCount > 0
+                    ? 'bg-amber-50/70 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/50'
+                    : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800'
+                }`}>
+                  <span className={`text-xs font-bold uppercase tracking-wider block ${
+                    auditStats.discrepancyCount > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-slate-400'
+                  }`}>
+                    Discrepante / Restante
+                  </span>
+                  <div className={`text-2xl font-black mt-1 ${
+                    auditStats.discrepancyCount > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-900 dark:text-white'
+                  }`}>
+                    {auditStats.discrepancyCount > 0 ? `${auditStats.discrepancyCount} comenzi` : '0'}
+                  </div>
+                  <span className={`text-[11px] mt-0.5 block font-medium ${
+                    auditStats.discrepancyCount > 0 ? 'text-amber-700/80 dark:text-amber-400/80' : 'text-emerald-600 dark:text-emerald-400'
+                  }`}>
+                    {auditStats.discrepancyCount > 0 
+                      ? `${formatThousands(auditStats.totalDiscrepancySum)} lei restanta totala` 
+                      : 'Toate comenzile sunt in echilibru perfect'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Filter Tabs & Search */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  {[
+                    { id: 'discrepancies_or_discounts', label: 'Reduceri & Atentie' },
+                    { id: 'discrepancies', label: `Doar Discrepante (${auditStats.discrepancyCount})` },
+                    { id: 'only_discounts', label: `Doar cu Reduceri (${auditStats.withDiscountCount})` },
+                    { id: 'all', label: `Toate (${auditStats.totalAnalyzed})` }
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setAuditFilter(tab.id)}
+                      className={`px-3.5 h-8 rounded-full text-xs font-bold transition-all border ${
+                        auditFilter === tab.id
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-transparent hover:bg-slate-200'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div style={{ position: 'relative' }}>
+                  <Search className="w-3.5 h-3.5 text-slate-400" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
+                  <input
+                    placeholder="Filtreaza comanda..."
+                    value={auditSearch}
+                    onChange={e => setAuditSearch(e.target.value)}
+                    className="h-8 pl-8 pr-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500"
+                    style={{ width: 180 }}
+                  />
+                </div>
+              </div>
+
+              {/* Audit Table */}
+              <div className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden">
+                <div className="max-h-96 overflow-y-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead className="bg-slate-50 dark:bg-slate-800/80 sticky top-0 z-10">
+                      <tr className="border-b border-slate-200 dark:border-slate-700">
+                        <th className="px-3 py-2.5 text-[11px] font-bold uppercase text-slate-400">Nr.</th>
+                        <th className="px-3 py-2.5 text-[11px] font-bold uppercase text-slate-400">Data</th>
+                        <th className="px-3 py-2.5 text-[11px] font-bold uppercase text-slate-400">Comanda</th>
+                        <th className="px-3 py-2.5 text-[11px] font-bold uppercase text-slate-400">Brand</th>
+                        <th className="px-3 py-2.5 text-[11px] font-bold uppercase text-slate-400 text-right">Catalog Brut</th>
+                        <th className="px-3 py-2.5 text-[11px] font-bold uppercase text-slate-400 text-right">Reducere</th>
+                        <th className="px-3 py-2.5 text-[11px] font-bold uppercase text-slate-400 text-right">Incasat POS</th>
+                        <th className="px-3 py-2.5 text-[11px] font-bold uppercase text-slate-400 text-center">Balanta Syrve</th>
+                        <th className="px-3 py-2.5 text-[11px] font-bold uppercase text-slate-400 text-right">Inspecteaza</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs">
+                      {auditFilteredLogs.length === 0 ? (
+                        <tr>
+                          <td colSpan={9} className="text-center py-10 text-slate-400 italic">
+                            Nu exista comenzi conforme cu criteriul selectat
+                          </td>
+                        </tr>
+                      ) : (
+                        auditFilteredLogs.map((l, idx) => {
+                          const audit = getSyrveAudit(l);
+                          const logKey = l._id || `${l.id || l.order_id || ''}-${l.timestamp || l.created_at || ''}-${idx}`;
+                          return (
+                            <tr key={logKey} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                              <td className="px-3 py-2 text-slate-400 font-mono text-[11px]">{idx + 1}</td>
+                              <td className="px-3 py-2 text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                                {l.timestamp ? new Date(l.timestamp).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' }) : '—'}
+                              </td>
+                              <td className="px-3 py-2 font-bold text-blue-600 dark:text-blue-400">
+                                #{l.id || l.order_id || '—'}
+                              </td>
+                              <td className="px-3 py-2">
+                                <span className="capitalize font-semibold text-slate-700 dark:text-slate-300">
+                                  {l.brandId || '—'}
+                                </span>
+                              </td>
+                              <td className="px-3 py-2 text-right font-semibold text-slate-800 dark:text-slate-200">
+                                {formatThousands(audit.catalogGross)} lei
+                              </td>
+                              <td className="px-3 py-2 text-right">
+                                {audit.hasDiscount ? (
+                                  <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                                    -{formatThousands(audit.discountSum)} lei
+                                  </span>
+                                ) : (
+                                  <span className="text-slate-400">—</span>
+                                )}
+                              </td>
+                              <td className="px-3 py-2 text-right font-black text-slate-900 dark:text-white">
+                                {formatThousands(audit.paidSum)} lei
+                              </td>
+                              <td className="px-3 py-2 text-center">
+                                {audit.isBalanced ? (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">
+                                    <CheckCircle2 size={10} /> Echilibrat
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50">
+                                    <AlertTriangle size={10} /> +{formatThousands(audit.balanceGap)} lei
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-3 py-2 text-right">
+                                <button
+                                  onClick={() => {
+                                    setShowAuditModal(false);
+                                    setExpandedId(logKey);
+                                  }}
+                                  className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-bold transition-colors"
+                                >
+                                  Deschide
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 sm:p-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 flex items-center justify-between">
+              <span className="text-xs text-slate-500">
+                Verificare automata aplicata pe toate comenzile locale si din cloud.
+              </span>
+              <button
+                onClick={() => setShowAuditModal(false)}
+                className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 text-white text-xs font-bold transition-colors"
+              >
+                Inchide
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
