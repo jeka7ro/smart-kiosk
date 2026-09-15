@@ -509,7 +509,7 @@ export default function CartScreen() {
           onConfirm={(selectedList) => {
             selectedList.forEach(({ product, quantity }) => {
               const actualBrandId = product._brand || brand?.id;
-              addToCart(product, quantity, [], getEffectivePrice(product), actualBrandId, false);
+              addToCart(product, quantity, [], getEffectivePrice(product), actualBrandId, false, null, Number(product.price || 0));
             });
             setShowUpsellModal(false);
             setHasEvaluatedUpsell(true);

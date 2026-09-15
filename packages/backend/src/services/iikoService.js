@@ -816,6 +816,8 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
       }
     }
 
+    const finalPaymentSum = Math.max(0, Math.round((grossSyrveTotal - discountSum) * 100) / 100);
+
     payload = {
       createOrderSettings: {
         mode: 'Async',
@@ -826,15 +828,15 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
         deliveryPoint: null,
         customer: customerData,
         items: syrveItems,
-        payments: [
+        payments: finalPaymentSum > 0 ? [
           {
             paymentTypeId: paymentConfig.paymentTypeId,
             paymentTypeKind: paymentConfig.paymentTypeKind,
-            sum: order.totalAmount,
+            sum: finalPaymentSum,
             isProcessedExternally: paymentConfig.isProcessedExternally,
             isFiscalizedExternally: false,
           },
-        ],
+        ] : [],
         phone: '+40000000000',
         orderServiceType: 'DeliveryByClient',
         externalNumber: `K${order.orderNumber}`,

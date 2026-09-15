@@ -91,7 +91,7 @@ export default function MenuScreen() {
 
   const handleFavQuickAdd = useCallback((product, btnEl) => {
     const actualBrandId = product._brand || activeBrandId;
-    addToCart(product, 1, [], getEffectivePrice(product), actualBrandId, false);
+    addToCart(product, 1, [], getEffectivePrice(product), actualBrandId, false, null, Number(product.price || 0));
     toggleFavoriteStore(product); // remove from favorites
 
     // Fly animation from fav bar button to cart
@@ -121,7 +121,7 @@ export default function MenuScreen() {
         requiresConfig = true;
       } else {
         const actualBrandId = product._brand || activeBrandId;
-        addToCart(product, 1, [], getEffectivePrice(product), actualBrandId, false);
+        addToCart(product, 1, [], getEffectivePrice(product), actualBrandId, false, null, Number(product.price || 0));
         toRemove.push(product);
         addedCount++;
       }
@@ -778,7 +778,7 @@ export default function MenuScreen() {
           product={modifierModalProduct}
           activeBrandId={modifierModalProduct._brand || activeBrandId}
           onConfirm={(product, qty, mods, unitPrice, brandId) => {
-            addToCart(product, qty, mods, unitPrice, brandId, false);
+            addToCart(product, qty, mods, unitPrice, brandId, false, null, Number(product.price || 0));
             // Fly animation from center screen to cart
             if (cartBarRef.current) {
               const cartRect = cartBarRef.current.getBoundingClientRect();
