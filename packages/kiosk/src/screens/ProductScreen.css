@@ -458,6 +458,10 @@
   box-shadow: 0 0 0 2px #EE3B24;
 }
 
+.ps-mod-opt--multi {
+  min-height: 162px;
+}
+
 .ps-mod-opt-img {
   width: 64px;
   height: 64px;
@@ -471,6 +475,11 @@
   font-weight: 700;
   color: #1e293b;
   line-height: 1.25;
+  min-height: 2.5em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .ps-mod-opt-price {
@@ -504,7 +513,8 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  margin-top: 4px;
+  margin-top: auto;
+  margin-bottom: 2px;
   background: #ffffff;
   border: 1.5px solid #EE3B24;
   border-radius: 20px;

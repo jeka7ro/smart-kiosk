@@ -38,7 +38,10 @@ export function AuthProvider({ children }) {
 
   // Helper fetch to automatically inject token
   const fetchWithAuth = async (url, options = {}) => {
-    const defaultHeaders = { 'Content-Type': 'application/json' };
+    const defaultHeaders = { 
+      'Content-Type': 'application/json',
+      'x-api-key': import.meta.env.VITE_API_KEY || 'sk-live-2024-secure'
+    };
     const headers = { ...defaultHeaders, ...options.headers };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     

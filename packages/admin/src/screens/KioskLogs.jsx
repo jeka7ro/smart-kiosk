@@ -30,9 +30,9 @@ const BRAND_NAMES = {
 const EVENT_CONFIG = {
   unlock_manager: {
     label: 'Deblocat PIN Manager',
-    color: '#10b981',
-    bg: '#10b98118',
-    icon: <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
+    color: '#ffffff',
+    bg: '#16a34a',
+    icon: <ShieldCheck className="w-4 h-4 text-white shrink-0" />
   },
   unlock_vendor: {
     label: 'Deblocat PIN Vânzător',
@@ -42,9 +42,9 @@ const EVENT_CONFIG = {
   },
   unlock_failed: {
     label: 'PIN Incorect',
-    color: '#ef4444',
-    bg: '#ef444418',
-    icon: <ShieldAlert className="w-4 h-4 text-red-500 shrink-0" />
+    color: '#ffffff',
+    bg: '#dc2626',
+    icon: <ShieldAlert className="w-4 h-4 text-white shrink-0" />
   },
   auto_unlock: {
     label: 'Deblocare Automată Orar',
@@ -66,9 +66,9 @@ const EVENT_CONFIG = {
   },
   manager_portal_failed: {
     label: 'PIN Incorect Portal',
-    color: '#f43f5e',
-    bg: '#f43f5e18',
-    icon: <ShieldAlert className="w-4 h-4 text-rose-500 shrink-0" />
+    color: '#ffffff',
+    bg: '#dc2626',
+    icon: <ShieldAlert className="w-4 h-4 text-white shrink-0" />
   }
 };
 
@@ -482,21 +482,11 @@ export default function KioskLogs() {
         <div className="flex items-center gap-2">
           <button
             onClick={handleExportExcel}
-            className="px-4 h-9 rounded-full bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-sm font-bold transition-colors flex items-center gap-2 border border-emerald-200 dark:border-emerald-800/40"
+            className="px-4 h-9 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm text-sm font-bold transition-colors flex items-center gap-2"
             title="Exportă în Excel"
           >
-            <Download className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <Download className="w-4 h-4 text-white" />
             <span>Export Excel</span>
-          </button>
-
-          <button
-            onClick={fetchLogs}
-            disabled={refreshing}
-            className="px-4 h-9 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-sm font-bold transition-colors flex items-center gap-2"
-            title="Reîmprospătează lista"
-          >
-            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
           </button>
         </div>
       </div>

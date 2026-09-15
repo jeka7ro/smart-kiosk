@@ -200,7 +200,7 @@ export default function ModifierModal({ product, onConfirm, onClose, activeBrand
                     return (
                       <button
                         key={opt.id}
-                        className={`mm-grid-opt ${isSelected ? 'mm-grid-opt--selected' : ''}`}
+                        className={`mm-grid-opt ${isMulti ? 'mm-grid-opt--multi' : ''} ${isSelected ? 'mm-grid-opt--selected' : ''}`}
                         onClick={() => handleSelect(gm.id, opt.id)}
                       >
                         {opt.image && (

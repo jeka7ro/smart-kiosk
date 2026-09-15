@@ -8,7 +8,7 @@ import { formatThousands } from '../utils/formatters';
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
 
 const STATUS_CONFIG = {
-  success: { label: 'Succes', color: '#10b981', bg: '#10b98120', icon: '✓' },
+  success: { label: 'Succes', color: '#ffffff', bg: '#16a34a', icon: '✓' },
   error:   { label: 'Eroare', color: '#ef4444', bg: '#ef444420', icon: '✕' },
 };
 
@@ -590,38 +590,23 @@ export default function IikoLogs() {
           </div>
           <button
             onClick={() => setShowAuditModal(true)}
-            className={`px-4 h-9 rounded-full text-sm font-bold transition-all flex items-center gap-2 ${
-              auditStats.discrepancyCount > 0
-                ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60 hover:bg-amber-100'
-                : 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60 hover:bg-indigo-100'
-            }`}
+            className="px-4 h-9 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold transition-colors flex items-center gap-2"
             title="Audit Reconciliere & Reduceri Syrve"
           >
             <ShieldCheck size={15} />
             <span>Audit Syrve</span>
-            {auditStats.discrepancyCount > 0 ? (
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-amber-500 text-white">
+            {auditStats.discrepancyCount > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
                 {auditStats.discrepancyCount}
               </span>
-            ) : auditStats.withDiscountCount > 0 ? (
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-emerald-500 text-white">
-                {auditStats.withDiscountCount}
-              </span>
-            ) : null}
+            )}
           </button>
           <button
             onClick={handleExportExcel}
-            className="px-4 h-9 rounded-full bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-sm font-bold transition-colors flex items-center gap-2"
+            className="px-4 h-9 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm text-sm font-bold transition-colors flex items-center gap-2"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Excel
-          </button>
-          <button
-            onClick={fetchLogs}
-            className="px-4 h-9 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-sm font-bold transition-colors flex items-center gap-2"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-            Refresh
           </button>
         </div>
       </div>
@@ -853,20 +838,20 @@ export default function IikoLogs() {
                                     Audit & Reconciliere Syrve
                                   </span>
                                 </div>
-                                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold ${
                                   audit.isBalanced
-                                    ? 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
+                                    ? 'bg-emerald-600 text-white shadow-sm'
                                     : 'bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800'
                                 }`}>
                                   {audit.isBalanced ? (
                                     <>
-                                      <CheckCircle2 size={12} />
-                                      Echilibrat 100% (Catalog - Reducere = Plata)
+                                      <CheckCircle2 size={13} className="text-white" />
+                                      <span>Echilibrat 100% (Catalog - Reducere = Plata)</span>
                                     </>
                                   ) : (
                                     <>
-                                      <AlertTriangle size={12} />
-                                      Atentie: {formatThousands(audit.balanceGap)} lei restanta in Syrve (reducere netransmisa)
+                                      <AlertTriangle size={13} />
+                                      <span>Atentie: {formatThousands(audit.balanceGap)} lei restanta in Syrve (reducere netransmisa)</span>
                                     </>
                                   )}
                                 </span>
@@ -1264,8 +1249,8 @@ export default function IikoLogs() {
                               </td>
                               <td className="px-3 py-2 text-center">
                                 {audit.isBalanced ? (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">
-                                    <CheckCircle2 size={10} /> Echilibrat
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-600 text-white shadow-sm">
+                                    <CheckCircle2 size={10} className="text-white" /> Echilibrat
                                   </span>
                                 ) : (
                                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50">

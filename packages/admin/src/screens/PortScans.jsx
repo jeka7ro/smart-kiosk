@@ -58,16 +58,7 @@ export default function PortScans() {
         <StatCard label="Ultimul Scan" value={scans[0] ? new Date(scans[0].timestamp).toLocaleString('ro-RO') : '—'} color="#3b82f6" isText />
       </div>
 
-      {/* Controls */}
-      <div className="flex items-center justify-end gap-2">
-        <button
-          onClick={fetchScans}
-          className="px-4 h-9 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-sm font-bold transition-colors flex items-center gap-2"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-          Refresh
-        </button>
-      </div>
+
 
       {/* Table */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-x-auto">
@@ -158,7 +149,7 @@ export default function PortScans() {
                           {/* COM Ports */}
                           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
                             <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
-                              🔌 Porturi COM ({(scan.comPorts || []).length})
+                              Porturi COM ({(scan.comPorts || []).length})
                             </h4>
                             {(scan.comPorts || []).length === 0 ? (
                               <p className="text-slate-400 text-xs">Niciun port COM găsit</p>
@@ -183,7 +174,7 @@ export default function PortScans() {
                           {/* Printers */}
                           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
                             <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
-                              🖨️ Imprimante Instalate ({(scan.printers || []).length})
+                              Imprimante Instalate ({(scan.printers || []).length})
                             </h4>
                             {(scan.printers || []).length === 0 ? (
                               <p className="text-slate-400 text-xs">Nicio imprimantă găsită</p>

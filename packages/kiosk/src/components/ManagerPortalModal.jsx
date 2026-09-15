@@ -76,6 +76,10 @@ export default function ManagerPortalModal({ locationData, onClose, isStandalone
 
   // Status Filter: 'all' | 'success' | 'error'
   const [statusFilter, setStatusFilter] = useState('all');
+  // Kiosk Filter: 'all' | 'cj1' | 'cj2'
+  const [kioskFilter, setKioskFilter] = useState('all');
+  // Syrve / iiko logs map for live discount and balance audit
+  const [iikoLogsMap, setIikoLogsMap] = useState({});
 
   // Quick Period Buttons: 'all' | 'today' | 'yesterday' | 'this_week' | 'this_month' | 'last_month' | 'custom'
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -228,6 +232,33 @@ export default function ManagerPortalModal({ locationData, onClose, isStandalone
 
     setAllOrders(loadedOrders);
     setLoading(false);
+
+    // 3. Fetch iiko logs for live Syrve discount and balance audit
+    try {
+      const activeEndpoint = localBackend || CLOUD_BACKEND;
+      let logsRes = await fetch(`${activeEndpoint}/api/iiko-logs?limit=300`, {
+        headers: { 'x-api-key': 'sk-live-2024-secure' }
+      }).catch(() => null);
+
+      if ((!logsRes || !logsRes.ok) && activeEndpoint !== CLOUD_BACKEND) {
+        logsRes = await fetch(`${CLOUD_BACKEND}/api/iiko-logs?limit=300`, {
+          headers: { 'x-api-key': 'sk-live-2024-secure' }
+        }).catch(() => null);
+      }
+
+      if (logsRes && logsRes.ok) {
+        const logsData = await logsRes.json();
+        const logsArr = Array.isArray(logsData) ? logsData : (logsData.logs || []);
+        const map = {};
+        logsArr.forEach(l => {
+          const rawId = String(l.orderId || l.id || '').replace(/^#/, '').trim();
+          if (rawId) map[rawId] = l;
+        });
+        setIikoLogsMap(map);
+      }
+    } catch (e) {
+      console.warn('[ManagerPortal] Failed to fetch iiko logs for audit:', e.message);
+    }
   };
 
   // Fetch kiosk security / unlock logs
@@ -409,20 +440,26 @@ export default function ManagerPortalModal({ locationData, onClose, isStandalone
     const kioskUrl = String(locationData?.kioskUrl || '').toLowerCase();
     const aliases = (locationData?.aliases || []).map(a => String(a).toLowerCase());
 
+    const isCluj = locId.includes('cluj') || locName.includes('cluj') || locName.includes('smashme') || kioskUrl.includes('cluj');
+
     return allOrders.filter(o => {
       const oLocId = String(o.locationId || o.location_id || '').toLowerCase();
       const oLocName = String(o.locationName || '').toLowerCase();
+      const oNum = String(o.orderNumber || '').toUpperCase();
 
       if (!locId && !locName && !kioskUrl) return true;
+
+      // When viewing Cluj locations, show all Cluj orders (both CJ1 and CJ2)
+      if (isCluj) {
+        if (oNum.startsWith('CJ') || oLocId.includes('cluj') || oLocName.includes('cluj') || oLocId === 'smashme-main' || oLocName.includes('smashme')) {
+          return true;
+        }
+      }
 
       if (locId && oLocId === locId) return true;
       if (kioskUrl && oLocId === kioskUrl) return true;
       if (locName && oLocName === locName) return true;
       if (aliases.includes(oLocId)) return true;
-
-      if (locName.includes('smashme') && (oLocName.includes('smashme') || oLocId.includes('smashme') || oLocId.includes('cluj'))) {
-        return true;
-      }
 
       return false;
     });
@@ -473,6 +510,23 @@ export default function ManagerPortalModal({ locationData, onClose, isStandalone
       if (statusFilter === 'success' && !o.syrveOrderId) return false;
       if (statusFilter === 'error' && (o.syrveOrderId || o.status === 'cancelled')) return false;
 
+      // Kiosk filter: 'all' | 'cj1' | 'cj2'
+      if (kioskFilter === 'cj1') {
+        const num = String(o.orderNumber || '').toUpperCase();
+        const kId = String(o.kioskId || '');
+        const lId = String(o.locationId || '').toLowerCase();
+        if (!num.startsWith('CJ1') && kId !== '1' && kId !== 'kiosk-1' && !lId.includes('cluj1')) {
+          return false;
+        }
+      } else if (kioskFilter === 'cj2') {
+        const num = String(o.orderNumber || '').toUpperCase();
+        const kId = String(o.kioskId || '');
+        const lId = String(o.locationId || '').toLowerCase();
+        if (!num.startsWith('CJ2') && kId !== '2' && kId !== 'kiosk-2' && !lId.includes('cluj2')) {
+          return false;
+        }
+      }
+
       if (search.trim()) {
         const q = search.toLowerCase();
         const num = String(o.orderNumber || '').toLowerCase();
@@ -486,7 +540,7 @@ export default function ManagerPortalModal({ locationData, onClose, isStandalone
 
       return true;
     });
-  }, [periodFilteredOrders, statusFilter, search]);
+  }, [periodFilteredOrders, statusFilter, kioskFilter, search]);
 
   // Pagination
   const totalPages = Math.ceil(finalOrders.length / itemsPerPage) || 1;
@@ -527,7 +581,7 @@ export default function ManagerPortalModal({ locationData, onClose, isStandalone
 
     return (
       <span className="mgr-badge mgr-badge-warning">
-        ⏳ Card POS
+        Card POS
       </span>
     );
   };
@@ -547,6 +601,105 @@ export default function ManagerPortalModal({ locationData, onClose, isStandalone
         ✕ Eroare iiko
       </span>
     );
+  };
+
+  // Helper for Kiosk identity badge (CJ-1, CJ-2, etc.)
+  const getKioskBadgeInfo = (o) => {
+    if (!o) return null;
+    const num = String(o.orderNumber || '').toUpperCase();
+    const kId = String(o.kioskId || '');
+    const lId = String(o.locationId || '').toLowerCase();
+    const lName = String(o.locationName || '').toLowerCase();
+
+    if (num.startsWith('CJ2') || kId === '2' || kId === 'kiosk-2' || lId.includes('cluj2') || lName.includes('cj-2')) {
+      return { code: 'CJ-2', label: 'Kiosk 2', color: '#334155', bg: '#f1f5f9', border: '#cbd5e1' };
+    }
+    if (num.startsWith('CJ1') || kId === '1' || kId === 'kiosk-1' || lId.includes('cluj1') || lName.includes('cj-1') || num.startsWith('CJ')) {
+      return { code: 'CJ-1', label: 'Kiosk 1', color: '#334155', bg: '#f1f5f9', border: '#cbd5e1' };
+    }
+    if (num.startsWith('BV') || lId.includes('brasov')) {
+      return { code: 'BV', label: 'Brașov', color: '#334155', bg: '#f1f5f9', border: '#cbd5e1' };
+    }
+    return null;
+  };
+
+  // Helper for live Syrve discount and balance audit
+  const getSyrveAudit = (order) => {
+    if (!order) return { catalogGross: 0, discountSum: 0, paidSum: 0, balanceGap: 0, hasDiscount: false, isBalanced: true, hasLog: false };
+    const cleanNum = String(order.orderNumber || order._id || '').replace(/^#/, '').trim();
+    const iikoLog = iikoLogsMap[cleanNum] || iikoLogsMap[order.orderNumber] || iikoLogsMap[order._id];
+
+    if (iikoLog && iikoLog.payload) {
+      const sOrder = iikoLog.payload.order || iikoLog.payload;
+      let catalogGross = 0;
+      const items = sOrder.items || [];
+      if (Array.isArray(items)) {
+        items.forEach(it => {
+          const q = Number(it.amount) || Number(it.quantity) || 1;
+          let line = (Number(it.price) || 0) * q;
+          if (Array.isArray(it.modifiers)) {
+            it.modifiers.forEach(m => {
+              line += (Number(m.price) || 0) * (Number(m.amount) || 1) * q;
+            });
+          }
+          catalogGross += line;
+        });
+      }
+      catalogGross = Math.round(catalogGross * 100) / 100;
+
+      const discounts = sOrder.discountsInfo?.discounts || [];
+      const discountSum = Math.round(discounts.reduce((s, d) => s + (Number(d.sum) || 0), 0) * 100) / 100;
+
+      const payments = sOrder.payments || [];
+      let paidSum = 0;
+      if (Array.isArray(payments) && payments.length > 0) {
+        paidSum = payments.reduce((s, p) => s + (Number(p.sum) || 0), 0);
+      } else if (sOrder.totalAmount !== undefined && sOrder.totalAmount !== null) {
+        paidSum = Number(sOrder.totalAmount);
+      } else if (order.totalAmount !== undefined && order.totalAmount !== null) {
+        paidSum = Number(order.totalAmount);
+      }
+      paidSum = Math.round(paidSum * 100) / 100;
+
+      const balanceGap = Math.round((catalogGross - discountSum - paidSum) * 100) / 100;
+      const hasDiscount = discountSum > 0.01;
+      const isBalanced = Math.abs(balanceGap) <= 0.05;
+
+      return {
+        catalogGross,
+        discountSum,
+        paidSum,
+        balanceGap,
+        hasDiscount,
+        isBalanced,
+        hasLog: true
+      };
+    }
+
+    // Fallback directly calculated from order items
+    let catalogGross = 0;
+    (order.items || []).forEach(it => {
+      const q = Number(it.quantity) || 1;
+      const p = Number(it.basePrice !== undefined ? it.basePrice : (it.unitPrice || it.price || 0));
+      catalogGross += p * q;
+    });
+    catalogGross = Math.round(catalogGross * 100) / 100;
+
+    const discountSum = Number(order.discountAmount) || 0;
+    const paidSum = Number(order.totalAmount || order.total) || 0;
+    const balanceGap = Math.round((catalogGross - discountSum - paidSum) * 100) / 100;
+    const hasDiscount = discountSum > 0.01;
+    const isBalanced = Math.abs(balanceGap) <= 0.05;
+
+    return {
+      catalogGross,
+      discountSum,
+      paidSum,
+      balanceGap,
+      hasDiscount,
+      isBalanced,
+      hasLog: false
+    };
   };
 
 const KIOSK_EVENT_META = {
@@ -940,6 +1093,36 @@ const KIOSK_EVENT_META = {
 
             <div className="mgr-filter-divider" />
 
+            {/* Kiosk Filter Pills (CJ-1 / CJ-2) */}
+            <div className="mgr-btn-group">
+              <button
+                type="button"
+                onClick={() => { setKioskFilter('all'); setCurrentPage(1); }}
+                className={`mgr-pill-btn ${kioskFilter === 'all' ? 'active' : ''}`}
+                title="Afișează comenzile de pe toate kiosk-urile"
+              >
+                Toate Kiosk-urile
+              </button>
+              <button
+                type="button"
+                onClick={() => { setKioskFilter('cj1'); setCurrentPage(1); }}
+                className={`mgr-pill-btn ${kioskFilter === 'cj1' ? 'active' : ''}`}
+                title="Filtrează comenzile plasate pe Kiosk 1 (CJ-1)"
+              >
+                Kiosk 1 (CJ-1)
+              </button>
+              <button
+                type="button"
+                onClick={() => { setKioskFilter('cj2'); setCurrentPage(1); }}
+                className={`mgr-pill-btn ${kioskFilter === 'cj2' ? 'active' : ''}`}
+                title="Filtrează comenzile plasate pe Kiosk 2 (CJ-2)"
+              >
+                Kiosk 2 (CJ-2)
+              </button>
+            </div>
+
+            <div className="mgr-filter-divider" />
+
             {/* Quick Period Buttons */}
             <div className="mgr-btn-group">
               <button
@@ -1037,6 +1220,8 @@ const KIOSK_EVENT_META = {
               const itemsSummary = (o.items || []).map(i => `${i.quantity}x ${i.name}`).join(', ');
               const timeStr = o.createdAt ? new Date(o.createdAt).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' }) : '';
               const dateStr = o.createdAt ? new Date(o.createdAt).toLocaleDateString('ro-RO', { day: '2-digit', month: '2-digit' }) : '';
+              const kioskBadge = getKioskBadgeInfo(o);
+              const audit = getSyrveAudit(o);
 
               return (
                 <div
@@ -1047,6 +1232,22 @@ const KIOSK_EVENT_META = {
                   <div className="mgr-m-card-header">
                     <div className="mgr-m-card-id-wrap">
                       <span className="mgr-m-card-id">#{o.orderNumber}</span>
+                      {kioskBadge && (
+                        <span
+                          style={{
+                            fontSize: '10px',
+                            fontWeight: 800,
+                            padding: '1px 6px',
+                            borderRadius: '6px',
+                            background: kioskBadge.bg,
+                            color: kioskBadge.color,
+                            border: `1px solid ${kioskBadge.border}`,
+                            marginLeft: '4px'
+                          }}
+                        >
+                          {kioskBadge.code}
+                        </span>
+                      )}
                       <span className="mgr-m-card-time">{dateStr} {timeStr}</span>
                     </div>
                     <div className="mgr-m-card-badges">
@@ -1069,6 +1270,36 @@ const KIOSK_EVENT_META = {
                     </div>
                     <div className="mgr-m-card-right-sum">
                       <span className="mgr-m-card-sum">{formatCurrency(o.totalAmount || o.total)} lei</span>
+                      {audit.hasDiscount && audit.isBalanced && (
+                        <span
+                          style={{
+                            fontSize: '9px',
+                            fontWeight: 700,
+                            color: '#16a34a',
+                            background: '#f0fdf4',
+                            border: '1px solid #bbf7d0',
+                            borderRadius: '8px',
+                            padding: '1px 5px'
+                          }}
+                        >
+                          -{formatCurrency(audit.discountSum)} lei red.
+                        </span>
+                      )}
+                      {!audit.isBalanced && (
+                        <span
+                          style={{
+                            fontSize: '9px',
+                            fontWeight: 700,
+                            color: '#d97706',
+                            background: '#fffbeb',
+                            border: '1px solid #fde68a',
+                            borderRadius: '8px',
+                            padding: '1px 5px'
+                          }}
+                        >
+                          +{formatCurrency(audit.balanceGap)} lei restanță
+                        </span>
+                      )}
                       {getPaymentBadge(o)}
                     </div>
                   </div>
@@ -1107,6 +1338,8 @@ const KIOSK_EVENT_META = {
                   const itemsSummary = (o.items || []).map(i => `${i.quantity}x ${i.name}`).join(', ');
                   const brandKey = String(o.brand || 'smashme').toLowerCase();
                   const brandLogo = BRAND_LOGOS[brandKey] || '/brands/smashme-logo.png';
+                  const kioskBadge = getKioskBadgeInfo(o);
+                  const audit = getSyrveAudit(o);
 
                   return (
                     <tr
@@ -1126,13 +1359,32 @@ const KIOSK_EVENT_META = {
                         </div>
                       </td>
                       <td className="td-id">
-                        <button
-                          type="button"
-                          className="mgr-order-num-link"
-                          onClick={(e) => { e.stopPropagation(); setSelectedOrder(o); }}
-                        >
-                          #{o.orderNumber}
-                        </button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <button
+                            type="button"
+                            className="mgr-order-num-link"
+                            onClick={(e) => { e.stopPropagation(); setSelectedOrder(o); }}
+                          >
+                            #{o.orderNumber}
+                          </button>
+                          {kioskBadge && (
+                            <span
+                              style={{
+                                fontSize: '10px',
+                                fontWeight: 800,
+                                padding: '2px 6px',
+                                borderRadius: '6px',
+                                background: kioskBadge.bg,
+                                color: kioskBadge.color,
+                                border: `1px solid ${kioskBadge.border}`,
+                                whiteSpace: 'nowrap'
+                              }}
+                              title={kioskBadge.label}
+                            >
+                              {kioskBadge.code}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="td-brand">
                         <div className="mgr-brand-badge">
@@ -1152,6 +1404,48 @@ const KIOSK_EVENT_META = {
                       </td>
                       <td className="td-sum">
                         <span className="mgr-sum-main">{formatCurrency(o.totalAmount || o.total)} lei</span>
+                        {audit.hasDiscount && audit.isBalanced && (
+                          <div
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 3,
+                              fontSize: '10px',
+                              fontWeight: 700,
+                              color: '#16a34a',
+                              background: '#f0fdf4',
+                              border: '1px solid #bbf7d0',
+                              borderRadius: '10px',
+                              padding: '1px 6px',
+                              marginTop: 3,
+                              whiteSpace: 'nowrap'
+                            }}
+                            title={`Reducere transmisă în Syrve: -${formatCurrency(audit.discountSum)} lei`}
+                          >
+                            -{formatCurrency(audit.discountSum)} lei red.
+                          </div>
+                        )}
+                        {!audit.isBalanced && (
+                          <div
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 3,
+                              fontSize: '10px',
+                              fontWeight: 700,
+                              color: '#d97706',
+                              background: '#fffbeb',
+                              border: '1px solid #fde68a',
+                              borderRadius: '10px',
+                              padding: '1px 6px',
+                              marginTop: 3,
+                              whiteSpace: 'nowrap'
+                            }}
+                            title={`Restanță în Syrve: +${formatCurrency(audit.balanceGap)} lei (reducere netransmisă)`}
+                          >
+                            +{formatCurrency(audit.balanceGap)} lei restanță
+                          </div>
+                        )}
                       </td>
                       <td className="td-payment">
                         {getPaymentBadge(o)}
@@ -1597,6 +1891,49 @@ const KIOSK_EVENT_META = {
                     )}
                   </div>
                 </div>
+
+                {/* Audit & Reconciliere Syrve & Kiosk Emitent */}
+                {(() => {
+                  const audit = getSyrveAudit(selectedOrder);
+                  const kb = getKioskBadgeInfo(selectedOrder);
+                  return (
+                    <div className="mgr-audit-card">
+                      <div className="mgr-audit-card-title">
+                        <span>AUDIT & RECONCILIERE SYRVE</span>
+                        <span className={`mgr-audit-status-badge ${audit.isBalanced ? 'mgr-audit-status-badge--ok' : 'mgr-audit-status-badge--warn'}`}>
+                          {audit.isBalanced ? 'ECHILIBRAT' : `RESTANȚĂ: +${formatCurrency(audit.balanceGap)} LEI`}
+                        </span>
+                      </div>
+                      <div className="mgr-audit-card-grid">
+                        <div>
+                          <span className="mgr-audit-card-label">Kiosk Emitent</span>
+                          <span className="mgr-audit-card-val">
+                            {kb ? `${kb.label} (${kb.code})` : (selectedOrder.kioskId ? `Kiosk ${selectedOrder.kioskId}` : 'Kiosk 1')}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="mgr-audit-card-label">Preț Catalog Brut</span>
+                          <span className="mgr-audit-card-val">{formatCurrency(audit.catalogGross)} lei</span>
+                        </div>
+                        <div>
+                          <span className="mgr-audit-card-label">Reducere Transmisă</span>
+                          <span className={`mgr-audit-card-val ${audit.hasDiscount ? 'mgr-val-green' : ''}`}>
+                            {audit.hasDiscount ? `-${formatCurrency(audit.discountSum)} lei` : '0.00 lei'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="mgr-audit-card-label">Încasat POS / Client</span>
+                          <span className="mgr-audit-card-val font-bold">{formatCurrency(audit.paidSum)} lei</span>
+                        </div>
+                      </div>
+                      {!audit.isBalanced && (
+                        <div className="mgr-audit-alert">
+                          Atenție: În Syrve există o diferență de <strong>+{formatCurrency(audit.balanceGap)} lei</strong> (reducere promoțională netransmisă la momentul comenzii).
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Products Section with Large Clean Product Images */}

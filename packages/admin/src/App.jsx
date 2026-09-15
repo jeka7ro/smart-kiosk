@@ -364,7 +364,7 @@ export default function AdminApp() {
 
     // Initial live status fetch + 15s poll fallback
     const fetchLiveKiosks = () => {
-      fetch(`${BACKEND}/api/locations/live-status`)
+      fetchWithAuth(`${BACKEND}/api/locations/live-status`)
         .then(r => r.json())
         .then(d => { if (d.liveStatus) setKiosksLiveStatus(d.liveStatus); })
         .catch(() => {});
@@ -1878,6 +1878,7 @@ function KiosksManager({ backend, kiosksLiveStatus = {} }) {
   const [brandFilter, setBrandFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'online'
   const [editingLoc, setEditingLoc] = useState(null);
+  const [editingTab, setEditingTab] = useState('design');
   const [restartingId, setRestartingId] = useState(null); // ID of loc currently restarting
   const [toast, setToast] = useState(null); // { msg, type: 'success'|'error' }
 
@@ -1901,12 +1902,16 @@ function KiosksManager({ backend, kiosksLiveStatus = {} }) {
   const fetchLocs = () => {
     setLoading(true);
     Promise.all([
-      fetchWithAuth(`${backend}/api/locations`).then(r => r.json()),
+      fetchWithAuth(`${backend}/api/locations`).then(r => r.json()).catch(err => {
+        console.error('[Kiosks] fetch locations error:', err);
+        return { locations: [] };
+      }),
       fetchWithAuth(`${backend}/api/brands`).then(r => r.json()).catch(() => ({ brands: [] })),
       fetchWithAuth(`${backend}/api/menu/all`).then(r => r.json()).catch(() => ({}))
     ])
       .then(([locData, bData, mData]) => {
-        setLocations(locData.locations || []);
+        const rawLocs = locData?.locations || (Array.isArray(locData) ? locData : []);
+        setLocations(rawLocs);
         setBrandsData(bData.brands || []);
         setAllMenus(mData || {});
         setLoading(false);
@@ -2003,7 +2008,7 @@ function KiosksManager({ backend, kiosksLiveStatus = {} }) {
   if (loading) return <p className="loading-text">Se încarcă kioskurile...</p>;
 
   if (editingLoc) {
-    return <KioskSettingsForm loc={editingLoc} backend={backend} onBack={() => setEditingLoc(null)} onSave={fetchLocs} />;
+    return <KioskSettingsForm loc={editingLoc} backend={backend} initialTab={editingTab} onBack={() => setEditingLoc(null)} onSave={fetchLocs} />;
   }
 
   const brandMeta = {
@@ -2094,25 +2099,18 @@ function KiosksManager({ backend, kiosksLiveStatus = {} }) {
           );
         })}
         </div>
-        <button
-          title="Reîncarcă lista"
-          onClick={fetchLocs}
-          className="shrink-0 px-5 h-10 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold transition-colors flex items-center gap-2"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-          Refresh
-        </button>
       </div>
 
       {/* Tabel Business */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-x-auto">
-        <table className="w-full text-left border-collapse min-w-[800px]">
+        <table className="w-full text-left border-collapse min-w-[850px]">
           <thead>
-            <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
-              <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 w-12">#</th>
-              <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Denumire & ID</th>
-              <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Branduri Admise</th>
-              <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Stare</th>
+            <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 whitespace-nowrap">
+              <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 w-12 text-center">#</th>
+              <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 min-w-[200px]">Denumire & ID</th>
+              <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Meniu & Program Blocare</th>
+              <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 text-center">Branduri Admise</th>
+              <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Stare & PIN</th>
               <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 text-right">Acțiuni</th>
             </tr>
           </thead>
@@ -2120,102 +2118,94 @@ function KiosksManager({ backend, kiosksLiveStatus = {} }) {
             {paginated.map((loc, index) => {
               const finalKioskUrl = loc.kioskUrl ? `https://kiosk-smashme.netlify.app/?loc=${loc.kioskUrl}` : `https://kiosk-smashme.netlify.app/?loc=${loc.id}`;
               const brandsArr = loc.brands || (loc.brandId ? [loc.brandId] : []);
+              const menuStats = getKioskMenuStats(loc);
+              const live = kiosksLiveStatus[loc.id] || 
+                           (loc.kioskUrl ? kiosksLiveStatus[loc.kioskUrl] : null) ||
+                           (loc.aliases && Array.isArray(loc.aliases) ? loc.aliases.map(a => kiosksLiveStatus[a]).find(Boolean) : null);
+              const isOnline = Boolean(live && (live.isLive || live.online || (live.onlineCount > 0)));
+              const isLocked = live ? (live.isLocked || live.screen === 'pin') : false;
               
               return (
                 <tr key={loc.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
-                  <td className="px-6 py-4 text-sm font-bold text-slate-900 dark:text-white">
+                  <td className="px-6 py-4 text-sm font-bold text-slate-900 dark:text-white text-center whitespace-nowrap">
                     {(currentPage - 1) * itemsPerPage + index + 1}
                   </td>
-                  <td className="px-6 py-4">
-                    {(() => {
-                      const menuStats = getKioskMenuStats(loc);
-                      return (
-                        <div className="flex flex-col gap-1.5">
-                          <span className="font-bold text-slate-900 dark:text-white text-base">{loc.name}</span>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs text-slate-500 font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">URL: {loc.kioskUrl || loc.id}</span>
-                            {menuStats.isCustom ? (
-                              <button 
-                                type="button"
-                                onClick={() => setEditingLoc(loc)}
-                                title={`Apasă pentru a edita meniul. ${menuStats.hiddenCount > 0 ? `${menuStats.hiddenCount} produse ascunse.` : ''} Profil: ${menuStats.profileName || 'Personalizat'}`}
-                                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-all shadow-sm"
-                              >
-                                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                                <span>Meniu Personalizat:</span>
-                                <span className="font-black text-amber-900 dark:text-amber-100 bg-amber-200/80 dark:bg-amber-800/80 px-1.5 py-0.2 rounded text-[11px]">
-                                  {menuStats.visibleCount !== null ? `${menuStats.visibleCount} din ${menuStats.totalCount}` : 'Parțial'}
-                                </span>
-                                {menuStats.profileName && (
-                                  <span className="opacity-80 font-normal max-w-[130px] truncate">({menuStats.profileName})</span>
-                                )}
-                              </button>
-                            ) : (
-                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                <span>Meniu Complet</span>
-                                {menuStats.totalCount && <span className="font-mono text-[10px] text-slate-400">({menuStats.totalCount} din {menuStats.totalCount})</span>}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })()}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex flex-col gap-1 items-start">
+                      <span className="font-bold text-slate-900 dark:text-white text-base whitespace-nowrap">{loc.name}</span>
+                      <a 
+                        href={`/kiosk/${loc.kioskUrl || loc.id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        title={`Deschide chioșcul live (${loc.kioskUrl || loc.id})`}
+                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-800 hover:bg-slate-700 text-white shadow-sm transition-colors whitespace-nowrap"
+                      >
+                        URL: {loc.kioskUrl || loc.id}
+                      </a>
+                    </div>
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="flex gap-2 items-center flex-wrap max-w-[200px]">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex flex-col gap-1 items-start">
+                      {menuStats.isCustom ? (
+                        <button 
+                          type="button"
+                          onClick={() => { setEditingLoc(loc); setEditingTab('menu'); }}
+                          title={`Meniu Personalizat: ${menuStats.visibleCount !== null ? `${menuStats.visibleCount} din ${menuStats.totalCount} produse vizibile` : ''} ${menuStats.hiddenCount > 0 ? `(${menuStats.hiddenCount} ascunse)` : ''}${menuStats.profileName ? ` - Profil: ${menuStats.profileName}` : ''}. Apasă pentru configurare.`}
+                          className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all whitespace-nowrap cursor-pointer"
+                        >
+                          <span className="text-white">Meniu Personalizat</span>
+                        </button>
+                      ) : (
+                        <button 
+                          type="button"
+                          onClick={() => { setEditingLoc(loc); setEditingTab('menu'); }}
+                          title={`Meniu Complet${menuStats.totalCount ? ` (${menuStats.totalCount} produse)` : ''}. Apasă pentru configurare.`}
+                          className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all whitespace-nowrap cursor-pointer"
+                        >
+                          <span className="text-white">Meniu Complet</span>
+                        </button>
+                      )}
+                      {loc.lockScheduleActive ? (
+                        <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-slate-400" />
+                          Orar: {loc.lockStartTime || '22:00'} - {loc.lockEndTime || '09:00'}
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-slate-400">
+                          Fără program blocare
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <div className="flex gap-2 items-center justify-center">
                       {brandsArr.map(b => (
                          <div key={b} title={brandMeta[b]?.name || b}><BrandLogo brandId={b} size={28} /></div>
                       ))}
                     </div>
                   </td>
-                  <td className="px-6 py-4">
-                    {(() => {
-                      const live = kiosksLiveStatus[loc.id] || 
-                                   (loc.kioskUrl ? kiosksLiveStatus[loc.kioskUrl] : null) ||
-                                   (loc.aliases && Array.isArray(loc.aliases) ? loc.aliases.map(a => kiosksLiveStatus[a]).find(Boolean) : null);
-                      const isOnline = Boolean(live && (live.isLive || live.online || (live.onlineCount > 0)));
-                      const isLocked = live ? (live.isLocked || live.screen === 'pin') : false;
-                      return (
-                        <div className="flex flex-col gap-1">
-                          <div className="flex items-center gap-2">
-                            <span className={`w-2.5 h-2.5 rounded-full ${isOnline ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)] animate-pulse' : 'bg-slate-400'}`} />
-                            <span className="text-sm font-semibold text-slate-700 dark:text-slate-200" title={isOnline ? 'Chioșcul este activ și comunică în timp real' : 'Chioșcul nu este deschis în browser în acest moment'}>
-                              {isOnline ? 'Conectat' : (loc.active ? 'Offline' : 'Inactiv')}
-                            </span>
-                          </div>
-                          {isOnline && (
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              {isLocked ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
-                                  <Lock className="w-2.5 h-2.5" /> Blocat PIN
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                                  <Unlock className="w-2.5 h-2.5" /> Activ
-                                </span>
-                              )}
-                            </div>
-                          )}
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            {loc.kioskPin ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800" title={`PIN: ${loc.kioskPin}`}>
-                                <Lock className="w-2.5 h-2.5" /> PIN: {loc.kioskPin}
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/60">
-                                Fără PIN
-                              </span>
-                            )}
-                          </div>
-                          {loc.lockScheduleActive && (
-                            <span className="text-[10px] text-slate-500 font-mono">
-                              Orar: {loc.lockStartTime || '22:00'} - {loc.lockEndTime || '09:00'}
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })()}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex flex-col gap-1 items-start">
+                      <div className="flex items-center gap-2" title={isOnline ? 'Chioșcul este activ și comunică în timp real' : 'Chioșcul nu este deschis în browser în acest moment'}>
+                        <span className={`w-2.5 h-2.5 rounded-full ${isOnline ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)] animate-pulse' : 'bg-slate-400'}`} />
+                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                          {isOnline ? 'Conectat' : (loc.active ? 'Offline' : 'Inactiv')}
+                        </span>
+                      </div>
+                      {isOnline && isLocked ? (
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-600 text-white shadow-sm">
+                          <Lock className="w-2.5 h-2.5 text-white" /> Blocat PIN {loc.kioskPin ? `(${loc.kioskPin})` : ''}
+                        </span>
+                      ) : loc.kioskPin ? (
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-mono">
+                          PIN: {loc.kioskPin}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-slate-400">
+                          Fără PIN
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2">
@@ -2295,7 +2285,7 @@ function KiosksManager({ backend, kiosksLiveStatus = {} }) {
                       <button 
                         title="Setări și Screensaver"
                         className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-purple-50 hover:text-purple-600 hover:border-purple-200 dark:hover:bg-purple-500/10 dark:hover:text-purple-400 text-slate-600 dark:text-slate-400 flex items-center justify-center transition-colors"
-                        onClick={() => setEditingLoc(loc)}
+                        onClick={() => { setEditingLoc(loc); setEditingTab('design'); }}
                       >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
                       </button>
@@ -2493,9 +2483,9 @@ function parseFooterDetails(rawText, explicitWebsite, explicitPhone) {
   return { website, phone, extra };
 }
 
-function KioskSettingsForm({ loc, backend, onBack, onSave }) {
+function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave }) {
   const { fetchWithAuth } = useAuth();
-  const [activeTab, setActiveTab] = useState('design');
+  const [activeTab, setActiveTab] = useState(initialTab || 'design');
   const [formData, setFormData] = useState({
     name: loc.name || '',
     kioskUrl: loc.kioskUrl || '',
@@ -2781,6 +2771,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
     : `https://kiosk-smashme.netlify.app/?loc=${loc.id}`;
 
   const TABS = [
+    { id: 'menu', label: 'Meniu Kiosk', icon: <Utensils className="w-4 h-4" /> },
     { id: 'design', label: 'Design & Efecte 3D', icon: <Palette className="w-4 h-4" /> },
     { id: 'screensaver', label: 'Screensaver Standby', icon: <MonitorSmartphone className="w-4 h-4" />, badge: formData.posterUrl ? 'Activ' : null },
     { id: 'marketing', label: 'Bannere & Promoții', icon: <Tags className="w-4 h-4" />, badge: (useBanner || useBottomBanner || formData.promoActive) ? 'Activat' : null },
@@ -2805,7 +2796,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
             <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
               <span>Configurare Kiosk</span>
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-              <span className="text-[11px] font-mono text-slate-400">URL: {loc.kioskUrl || loc.id}</span>
+              <span className="text-[11px] font-medium text-slate-400">URL: {loc.kioskUrl || loc.id}</span>
             </div>
             <div className="flex items-center gap-2 mt-0.5">
               <input 
@@ -2850,7 +2841,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
 
       {/* ─── SUB-NAVIGATION TABS (STICKY & ALWAYS VISIBLE WITHOUT SCROLL) ─── */}
       <div className="sticky top-0 z-30 py-2 -my-1 bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur-md">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1.5 p-1.5 bg-slate-100/90 dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-sm w-full">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1.5 p-1.5 bg-slate-100/90 dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-sm w-full">
           {TABS.map(tab => {
             const isActive = activeTab === tab.id;
             return (
@@ -2880,6 +2871,89 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
           })}
         </div>
       </div>
+
+      {/* ─── TAB: MENIU KIOSK ─── */}
+      {activeTab === 'menu' && (
+        <div className="space-y-6">
+          {/* Card: Personalizare Meniu Kiosk */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
+            <div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Personalizare Meniu Kiosk</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Configurează profilul de meniu pe care îl preia acest Kiosk pentru fiecare brand activ, sau editează vizibilitatea produselor strict pe această tabletă.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {activeBrands.map(brandId => {
+                const bData = brandProfiles[brandId];
+                if (!bData || !bData.brand) return null;
+                
+                const brandOverrides = (formData.menuOverrides || {})[brandId] || {};
+                const currentProfileId = brandOverrides.profileId || '';
+                const localHiddenCount = Object.keys(brandOverrides.hiddenItems || {}).length;
+
+                return (
+                  <div key={brandId} className="p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-xl flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex items-center gap-2.5">
+                      <BrandLogo brandId={brandId} size={22} />
+                      <span className="text-sm font-bold text-slate-900 dark:text-white">Meniu {bData.brand.name}</span>
+                    </div>
+
+                    <div className="flex items-center gap-3 flex-1 justify-end min-w-[300px]">
+                      <select
+                        value={currentProfileId}
+                        onChange={async (e) => {
+                          const val = e.target.value;
+                          const newOverrides = { ...formData.menuOverrides };
+                          if (!newOverrides[brandId]) newOverrides[brandId] = { hiddenItems: {} };
+                          newOverrides[brandId] = { ...newOverrides[brandId], profileId: val };
+                          handleChange('menuOverrides', newOverrides);
+                          try {
+                            await fetchWithAuth(`${backend}/api/locations/${loc.id}`, {
+                              method: 'PUT',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ menuOverrides: newOverrides })
+                            });
+                          } catch (err) {
+                            console.error('Auto-save profile error:', err);
+                          }
+                        }}
+                        className="px-3.5 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white max-w-[260px]"
+                      >
+                        <option value="">Meniu Complet (Implicit)</option>
+                        {bData.profiles.map(p => (
+                          <option key={p.id} value={p.id}>{p.name} ({Object.keys(p.hiddenItems || {}).length} ascunse)</option>
+                        ))}
+                      </select>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const overrides = formData.menuOverrides[brandId] || { hiddenItems: {} };
+                          const profile = bData.profiles.find(p => p.id === overrides.profileId) || { name: 'Meniu Complet (Fără Șablon)', rootFolderId: null, hiddenItems: {} };
+                          setEditingMenuBrand({
+                            brand: bData.brand,
+                            profile,
+                            localHiddenItemsOverride: overrides.hiddenItems || {}
+                          });
+                        }}
+                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                          localHiddenCount > 0 
+                            ? 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/50 dark:border-blue-800' 
+                            : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                        }`}
+                      >
+                        Editează Vizibilitatea {localHiddenCount > 0 && `(${localHiddenCount} specifice)`}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ─── TAB 1: DESIGN & EFECTE 3D ─── */}
       {activeTab === 'design' && (

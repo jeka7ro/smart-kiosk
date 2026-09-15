@@ -982,7 +982,7 @@ export default function ProductScreen() {
                       <button
                         key={opt.id}
                         type="button"
-                        className={`ps-mod-opt ${isSel ? 'ps-mod-opt--selected' : ''}`}
+                        className={`ps-mod-opt ${isMulti ? 'ps-mod-opt--multi' : ''} ${isSel ? 'ps-mod-opt--selected' : ''}`}
                         onClick={() => handleSelect(mod.id, opt.id)}
                       >
                         {opt.image && (

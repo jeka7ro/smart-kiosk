@@ -10,11 +10,11 @@ import { formatThousands } from '../utils/formatters';
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
 
 const STATUS_CONFIG = {
-  approved: { label: 'Aprobat',  color: '#10b981', bg: '#10b98120', icon: '✓' },
-  declined: { label: 'Respins',  color: '#ef4444', bg: '#ef444420', icon: '✕' },
-  timeout:  { label: 'Timeout',  color: '#f59e0b', bg: '#f59e0b20', icon: '⏱' },
-  refunded: { label: 'Returnat', color: '#3b82f6', bg: '#3b82f620', icon: '⟲' },
-  unsolicited: { label: 'POS Info', color: '#8b5cf6', bg: '#8b5cf620', icon: 'ℹ' },
+  approved: { label: 'Aprobat',  color: '#ffffff', bg: '#16a34a', icon: '✓' },
+  declined: { label: 'Respins',  color: '#ffffff', bg: '#dc2626', icon: '✕' },
+  timeout:  { label: 'Timeout',  color: '#ffffff', bg: '#d97706', icon: '' },
+  refunded: { label: 'Returnat', color: '#ffffff', bg: '#2563eb', icon: '' },
+  unsolicited: { label: 'POS Info', color: '#ffffff', bg: '#7c3aed', icon: '' },
 };
 
 export default function PosLogs({ orders = [], onGoToOrder }) {
@@ -407,17 +407,10 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
         <div className="flex items-center gap-2">
           <button
             onClick={handleExportExcel}
-            className="px-4 h-9 rounded-full bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-sm font-bold transition-colors flex items-center gap-2"
+            className="px-4 h-9 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm text-sm font-bold transition-colors flex items-center gap-2"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
             Excel
-          </button>
-          <button
-            onClick={fetchLogs}
-            className="px-4 h-9 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-sm font-bold transition-colors flex items-center gap-2"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-            Refresh
           </button>
         </div>
       </div>
@@ -498,10 +491,10 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                   </td>
                   <td className="px-4 py-3">
                     <span
-                      className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap inline-flex items-center gap-1"
-                      style={{ backgroundColor: sc.bg, color: sc.color, border: `1px solid ${sc.color}40` }}
+                      className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap inline-flex items-center gap-1 shadow-sm"
+                      style={{ backgroundColor: sc.bg, color: sc.color }}
                     >
-                      {sc.icon} {sc.label}
+                      {sc.icon ? <span>{sc.icon}</span> : null} {sc.label}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-sm font-mono text-slate-600 dark:text-slate-400">
@@ -589,7 +582,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                               }
                             );
                           }}
-                          className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-transform active:scale-95 cursor-pointer ${log.iikoSent ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100' : 'bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-100'}`}
+                          className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-transform active:scale-95 cursor-pointer shadow-sm ${log.iikoSent ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-red-600 text-white hover:bg-red-700'}`}
                         >
                           {log.iikoSent ? 'Trimis' : 'Eroare'}
                         </button>
@@ -615,7 +608,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                             { title: 'Eroare POS', danger: true, hideCancel: true, okLabel: 'Închide' }
                           );
                         }}
-                        className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-transform active:scale-95 cursor-pointer bg-red-50 text-red-600 border border-red-200 hover:bg-red-100"
+                        className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-transform active:scale-95 cursor-pointer bg-red-600 hover:bg-red-700 text-white shadow-sm"
                       >
                         Detalii
                       </button>
