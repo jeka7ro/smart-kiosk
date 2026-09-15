@@ -817,6 +817,7 @@ export default function MenuScreen() {
             setSelectedProduct(prod, 'menu');
           }}
           lang={lang}
+          layout={locationData?.startPromoLayout || 'carousel'}
         />
       )}
 

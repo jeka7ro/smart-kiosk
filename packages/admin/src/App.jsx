@@ -2549,6 +2549,7 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
     categoryHeroProductId: loc.categoryHeroProductId || '',
     categoryHeroInterval: loc.categoryHeroInterval ?? 5,
     upsellActive: loc.upsellActive ?? false,
+    startPromoLayout: loc.startPromoLayout || 'carousel',
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -3926,6 +3927,65 @@ function KioskSettingsForm({ loc, backend, onBack, onSave }) {
                 )}
               </div>
             )}
+          </div>
+
+          {/* Card 4: Popup Promoțional de Start (Welcome Offer) */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Popup Promoțional de Start (Welcome Offer)</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Alege formatul de afișare pe acest kiosk atunci când există 2 sau mai multe produse cu ofertă de start activă.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-2">
+                Stil Afișare Oferte Multiple
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleChange('startPromoLayout', 'carousel')}
+                  className={`p-4 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                    (formData.startPromoLayout || 'carousel') === 'carousel'
+                      ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 ring-2 ring-blue-500/20'
+                      : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-bold text-sm text-slate-900 dark:text-white">Carusel (Slider Tactil)</span>
+                    {(formData.startPromoLayout || 'carousel') === 'carousel' && (
+                      <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Afișează ofertele succesiv, cu săgeți stânga/dreapta, swipe pe ecran și auto-rotire la fiecare 6 secunde.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleChange('startPromoLayout', 'duo')}
+                  className={`p-4 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                    formData.startPromoLayout === 'duo'
+                      ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 ring-2 ring-blue-500/20'
+                      : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-bold text-sm text-slate-900 dark:text-white">Duo (2 Coloane Alăturate)</span>
+                    {formData.startPromoLayout === 'duo' && (
+                      <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Afișează ofertele în paralel pe 2 coloane, clientul putând compara și adăuga direct oricare dintre oferte.
+                  </p>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
