@@ -312,7 +312,7 @@
 .cart-upsell-card-media {
   position: relative;
   width: 100%;
-  height: 135px;
+  height: 118px;
   background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
   overflow: hidden;
   display: flex;
@@ -372,7 +372,7 @@
 .cart-upsell-card-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(34, 197, 94, 0.92);
+  background: rgba(5, 150, 105, 0.92);
   backdrop-filter: blur(2px);
   display: flex;
   flex-direction: column;
@@ -397,7 +397,7 @@
 }
 
 .cart-upsell-card-body {
-  padding: 10px 10px 12px 10px;
+  padding: 10px 12px 14px 12px;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -407,12 +407,12 @@
 }
 
 .cart-upsell-card-name {
-  font-size: 0.9rem;
+  font-size: 0.86rem;
   font-weight: 800;
   color: var(--text, #0f172a);
   margin: 0;
   line-height: 1.25;
-  min-height: 2.5em;
+  height: 2.5em;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -421,8 +421,8 @@
 
 .cart-upsell-card-footer {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 6px;
   margin-top: auto;
   width: 100%;
@@ -431,45 +431,50 @@
 
 .cart-upsell-card-price-inline {
   font-size: 0.95rem;
-  font-weight: 800;
+  font-weight: 900;
   color: var(--primary, #EE3B24);
-  letter-spacing: -0.3px;
+  letter-spacing: -0.2px;
   white-space: nowrap;
-  flex-shrink: 0;
+  line-height: 1.2;
 }
 
 .cart-upsell-add-btn {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 4px;
+  width: 100%;
+  min-height: 34px;
   background: var(--primary, #EE3B24);
-  border: 1.5px solid var(--primary, #EE3B24);
+  border: none;
   color: #ffffff;
   border-radius: 999px;
-  padding: 5px 9px;
-  font-size: 0.78rem;
+  padding: 6px 10px;
+  font-size: 0.82rem;
   font-weight: 800;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   white-space: nowrap;
   box-shadow: 0 3px 10px rgba(238, 59, 36, 0.25);
-  flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .cart-upsell-add-btn:hover {
   background: #d32f2f;
   color: #ffffff;
-  border-color: #d32f2f;
-  transform: scale(1.04);
+  transform: translateY(-1px);
   box-shadow: 0 4px 14px rgba(238, 59, 36, 0.35);
 }
 
+.cart-upsell-add-btn:active {
+  transform: scale(0.96);
+}
+
 .cart-upsell-add-btn--added {
-  background: #22c55e !important;
+  background: #059669 !important;
   color: #ffffff !important;
-  border-color: #22c55e !important;
-  box-shadow: 0 3px 10px rgba(34, 197, 94, 0.25) !important;
+  border-color: #059669 !important;
+  box-shadow: 0 3px 10px rgba(5, 150, 105, 0.25) !important;
 }
 
 /* ─── SUMMARY SIDEBAR (CONTAINER SEPARAT CU CONTUR ROTUNJIT) ─── */
