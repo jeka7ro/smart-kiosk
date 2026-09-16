@@ -6,7 +6,7 @@ import { formatThousands } from '../utils/formatters';
 const BRAND_COLORS = {
   smashme: '#ef4444',
   crunch: '#eab308',
-  rollmaster: '#3b82f6',
+  rollmaster: '#e31e24',
   lovesushi: '#ec4899',
   pokiwoki: '#f97316'
 };

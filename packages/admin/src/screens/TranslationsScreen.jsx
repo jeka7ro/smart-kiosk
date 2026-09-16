@@ -10,20 +10,16 @@ const BRAND_LOGOS = {
   rollmaster: '/brands/rollmaster-logo.png',
   lovesushi: '/brands/lovesushi-logo.png',
   pokiwoki: '/brands/pokiwoki-logo.png',
-  welovesushi: '/brands/welovesushi-logo.png',
-  ikura: '/brands/ikura-logo.png',
-  sushimaster: '/brands/sushimaster-logo.png'
+  welovesushi: '/brands/welovesushi-logo.png'
 };
 
 const BRAND_META = {
   smashme:     { name: 'SmashMe',      color: '#ef4444' },
   crunch:      { name: 'Crunch',       color: '#eab308' },
-  rollmaster:  { name: 'Roll Master',  color: '#3b82f6' },
+  rollmaster:  { name: 'Roll Master',  color: '#e31e24' },
   lovesushi:   { name: 'Love Sushi',   color: '#ec4899' },
   pokiwoki:    { name: 'Poki-Woki',    color: '#f97316' },
-  welovesushi: { name: 'WeLoveSushi',  color: '#f97316' },
-  ikura:       { name: 'Ikura',        color: '#1e293b' },
-  sushimaster: { name: 'Sushi Master', color: '#dc2626' }
+  welovesushi: { name: 'WeLoveSushi',  color: '#6366f1' }
 };
 
 export default function TranslationsScreen({ backend }) {

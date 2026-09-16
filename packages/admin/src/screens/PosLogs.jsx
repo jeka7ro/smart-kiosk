@@ -10,7 +10,7 @@ import { formatThousands } from '../utils/formatters';
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
 
 const STATUS_CONFIG = {
-  approved: { label: 'Aprobat',  color: '#ffffff', bg: '#16a34a', icon: '✓' },
+  approved: { label: 'Aprobat',  color: '#ffffff', bg: '#059669', icon: '✓' },
   declined: { label: 'Respins',  color: '#ffffff', bg: '#dc2626', icon: '✕' },
   timeout:  { label: 'Timeout',  color: '#ffffff', bg: '#d97706', icon: '' },
   refunded: { label: 'Returnat', color: '#ffffff', bg: '#2563eb', icon: '' },
@@ -301,7 +301,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
         <StatCard 
           label="Aprobate" 
           value={derivedStats.approved} 
-          color="#10b981" 
+          color="#059669" 
           icon={CheckCircle2}
           onClick={() => { setFilter(filter === 'approved' ? 'all' : 'approved'); setCurrentPage(1); }}
           active={filter === 'approved'}
@@ -545,7 +545,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                                           navigator.clipboard.writeText(log.iikoOrderId);
                                           const btn = e.currentTarget;
                                           const originalHTML = btn.innerHTML;
-                                          btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#10b981" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>';
+                                          btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#059669" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>';
                                           setTimeout(() => { btn.innerHTML = originalHTML; }, 1500);
                                         }}
                                         className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors shrink-0"

@@ -1,18 +1,35 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthProvider';
 import { QRCodeCanvas } from 'qrcode.react';
+import BrandLogo from '../components/BrandLogo';
+import { Search, QrCode, Smartphone, ArrowLeft, Download, Trash2, Check, ExternalLink } from 'lucide-react';
 
 const QR_WEB_BASE = 'https://qr-restaurants.netlify.app';
 
 const BRANDS = [
-  { id: 'smashme',     name: 'SmashMe',      color: '#ef4444', logo: '/brands/smashme-logo.png' },
-  { id: 'rollmaster', name: 'Roll Master', color: '#3b82f6', logo: '/brands/sushimaster-logo.png' },
-  { id: 'lovesushi', name: 'Love Sushi', color: '#ec4899', logo: '/brands/welovesushi-logo.png' },
-  { id: 'pokiwoki', name: 'Poki-Woki', color: '#f97316', logo: '/brands/sushimaster-logo.png' },
-  { id: 'crunch', name: 'Crunch', color: '#eab308', logo: '/brands/smashme-logo.png' },
-  { id: 'ikura',       name: 'Ikura',         color: '#f97316', logo: '/brands/ikura-logo.png' },
-  { id: 'welovesushi', name: 'We Love Sushi', color: '#8b5cf6', logo: '/brands/welovesushi-logo.png' },
+  { id: 'smashme',     name: 'SmashMe',       color: '#ef4444' },
+  { id: 'rollmaster',  name: 'Roll Master',   color: '#e31e24' },
+  { id: 'lovesushi',   name: 'Love Sushi',    color: '#ec4899' },
+  { id: 'pokiwoki',    name: 'Poki-Woki',     color: '#f97316' },
+  { id: 'crunch',      name: 'Crunch',        color: '#eab308' },
+  { id: 'welovesushi', name: 'We Love Sushi',  color: '#8b5cf6' },
 ];
+
+const BRAND_LOGOS = {
+  smashme: '/brands/smashme-logo.png',
+  crunch: '/brands/crunch-logo.png',
+  rollmaster: '/brands/rollmaster-logo.png',
+  lovesushi: '/brands/lovesushi-logo.png',
+  welovesushi: '/brands/welovesushi-logo.png',
+  pokiwoki: '/brands/pokiwoki-logo.png',
+};
+
+function getBrandLogoUrl(brandId) {
+  let key = (brandId || '').toLowerCase().replace(/[\s\-_]+/g, '');
+  if (key === 'sushimaster' || key === 'ikura') key = 'rollmaster';
+  const matchedKey = Object.keys(BRAND_LOGOS).find(k => key.includes(k) || k.includes(key));
+  return matchedKey ? BRAND_LOGOS[matchedKey] : '/brands/smashme-logo.png';
+}
 
 function renderPreview(url) {
   if (!url) return null;
@@ -33,52 +50,316 @@ function Toggle({ checked, onChange }) {
 }
 
 /* ═══════════════════════════════════════════════════════
-   LOCATION LIST — identical style to Kiosk list
+   LOCATION LIST — TABEL BUSINESS CU FILTRE ȘI PAGINARE
 ═══════════════════════════════════════════════════════ */
 function LocationList({ locations, onSelect }) {
   const [search, setSearch] = useState('');
-  const filtered = locations.filter(l =>
-    l.name?.toLowerCase().includes(search.toLowerCase()) ||
-    l.id?.toLowerCase().includes(search.toLowerCase())
-  );
+  const [brandFilter, setBrandFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  // Descoperă toate brandurile unice din locații
+  const allBrandsInLocs = useMemo(() => {
+    const s = new Set();
+    locations.forEach(l => {
+      if (Array.isArray(l.brands)) l.brands.forEach(b => s.add(b));
+      else if (l.brandId) s.add(l.brandId);
+    });
+    return Array.from(s);
+  }, [locations]);
+
+  // Filtrare locații
+  const filtered = useMemo(() => {
+    return locations.filter(l => {
+      // Filtru Brand
+      if (brandFilter !== 'all') {
+        const brands = Array.isArray(l.brands) ? l.brands : (l.brandId ? [l.brandId] : []);
+        if (!brands.includes(brandFilter)) return false;
+      }
+      // Filtru Căutare
+      if (search.trim()) {
+        const q = search.toLowerCase();
+        const matchName = l.name?.toLowerCase().includes(q);
+        const matchId = l.id?.toLowerCase().includes(q);
+        const matchUrl = l.kioskUrl?.toLowerCase().includes(q);
+        if (!matchName && !matchId && !matchUrl) return false;
+      }
+      return true;
+    });
+  }, [locations, brandFilter, search]);
+
+  // Sortare: locațiile cu QR-uri configurate primele, apoi alfabetic
+  const sorted = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      const aQr = Object.values(a.data?.qrConfig || {}).reduce((s, v) => s + v, 0);
+      const bQr = Object.values(b.data?.qrConfig || {}).reduce((s, v) => s + v, 0);
+      if ((aQr > 0) !== (bQr > 0)) {
+        return aQr > 0 ? -1 : 1;
+      }
+      return (a.name || '').localeCompare(b.name || '');
+    });
+  }, [filtered]);
+
+  const totalPages = Math.ceil(sorted.length / itemsPerPage) || 1;
+  const paginated = sorted.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const totalQrCountAll = useMemo(() => {
+    return locations.reduce((sum, l) => {
+      return sum + Object.values(l.data?.qrConfig || {}).reduce((s, v) => s + v, 0);
+    }, 0);
+  }, [locations]);
+
+  const mobileConfiguredCount = useMemo(() => {
+    return locations.filter(l => 
+      !!(l.data?.mobileConfig?.topBannerUrl || l.data?.mobileConfig?.posterUrl || l.data?.mobileConfig?.bottomBannerUrl)
+    ).length;
+  }, [locations]);
 
   return (
-    <div className="w-full max-w-7xl mx-auto pb-10 animate-in fade-in duration-300">
-      <p className="text-slate-500 dark:text-slate-400 mb-6 text-sm leading-relaxed">
-        Generează coduri QR pentru mese. Clienții scanează QR-ul și comandă direct de pe telefon.
-        Selectează o locație pentru a gestiona QR-urile și setările mobile.
-      </p>
+    <div className="space-y-6 animate-in fade-in duration-300">
+      {/* Header & KPI Sumar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
+            Coduri QR & Portal Mobil
+            <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+              Total: {locations.length} locații
+            </span>
+          </h2>
+          <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm leading-relaxed">
+            Generează coduri QR pentru mese și configurează portalul mobil (screensaver, promoții) pentru comanda clienților de pe telefon.
+          </p>
+        </div>
 
-      <div className="relative max-w-sm mb-6">
-        <input 
-          className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 shadow-sm transition-shadow" 
-          placeholder="Caută locație..."
-          value={search} 
-          onChange={e => setSearch(e.target.value)} 
-        />
-        <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        {/* KPI Pills */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="px-3.5 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-400 text-xs font-bold flex items-center gap-2">
+            <QrCode className="w-3.5 h-3.5" />
+            <span>{totalQrCountAll} QR-uri active</span>
+          </div>
+          <div className="px-3.5 py-1.5 rounded-full bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/60 text-purple-700 dark:text-purple-400 text-xs font-bold flex items-center gap-2">
+            <Smartphone className="w-3.5 h-3.5" />
+            <span>{mobileConfiguredCount} portaluri mobile</span>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filtered.map(loc => {
-          const totalQr = Object.values(loc.data?.qrConfig || {}).reduce((s, v) => s + v, 0);
-          const hasMob = !!(loc.data?.mobileConfig?.topBannerUrl || loc.data?.mobileConfig?.posterUrl || loc.data?.mobileConfig?.bottomBannerUrl);
-          return (
-            <button key={loc.id} onClick={() => onSelect(loc)}
-              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 text-left cursor-pointer transition-all hover:-translate-y-1 hover:border-blue-500 dark:hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/10 flex flex-col gap-2 group"
+      {/* Bară Filtre Branduri & Căutare */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        {/* Butoane Branduri */}
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide flex-1">
+          <button
+            className={`shrink-0 px-4 h-10 rounded-full text-sm font-bold flex items-center gap-2 border transition-all cursor-pointer ${
+              brandFilter === 'all'
+                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm border-slate-900 dark:border-white'
+                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+            }`}
+            onClick={() => { setBrandFilter('all'); setCurrentPage(1); }}
+          >
+            Toate ({locations.length})
+          </button>
+
+          {allBrandsInLocs.map(bid => {
+            const count = locations.filter(l => (l.brands && l.brands.includes(bid)) || l.brandId === bid).length;
+            const brandInfo = BRANDS.find(b => b.id === bid);
+            const name = brandInfo?.name || bid;
+            const isSelected = brandFilter === bid;
+
+            return (
+              <button
+                key={bid}
+                className={`shrink-0 px-4 h-10 rounded-full text-sm font-bold flex items-center gap-2 border transition-all cursor-pointer ${
+                  isSelected
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 shadow-sm ring-2 ring-blue-500/20'
+                    : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                }`}
+                onClick={() => { setBrandFilter(bid); setCurrentPage(1); }}
+              >
+                <BrandLogo brandId={bid} size={16} />
+                <span>{name}</span>
+                <span className="text-xs text-slate-400">({count})</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Căutare */}
+        <div className="relative min-w-[240px] max-w-xs shrink-0">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            className="w-full h-10 pl-10 pr-20 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all"
+            placeholder="Caută locație..."
+            value={search}
+            onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
+          />
+          {search && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 bg-blue-600 text-white rounded-full px-2 py-0.5 text-[11px] font-bold">
+              {filtered.length} / {locations.length}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Tabel Business */}
+      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-[850px]">
+            <thead>
+              <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 whitespace-nowrap">
+                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 text-center w-[60px]">#</th>
+                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 min-w-[220px]">Denumire & ID</th>
+                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Branduri Active</th>
+                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Statistici (Mese & QR)</th>
+                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Portal Mobil</th>
+                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 text-right">Acțiuni</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {paginated.map((loc, index) => {
+                const totalQr = Object.values(loc.data?.qrConfig || {}).reduce((s, v) => s + v, 0);
+                const hasMob = !!(loc.data?.mobileConfig?.topBannerUrl || loc.data?.mobileConfig?.posterUrl || loc.data?.mobileConfig?.bottomBannerUrl);
+                const brandsArr = loc.brands && loc.brands.length > 0 ? loc.brands : (loc.brandId ? [loc.brandId] : []);
+                const rowNumber = (currentPage - 1) * itemsPerPage + index + 1;
+
+                return (
+                  <tr
+                    key={loc.id}
+                    onClick={() => onSelect(loc)}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group"
+                  >
+                    {/* Nr. Crt. */}
+                    <td className="px-6 py-4 text-sm font-bold text-slate-400 dark:text-slate-500 text-center whitespace-nowrap">
+                      {rowNumber}
+                    </td>
+
+                    {/* Denumire & ID (max 2 rânduri) */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex flex-col gap-1 items-start">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${totalQr > 0 ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)]' : 'bg-slate-300 dark:bg-slate-600'}`} />
+                          <span className="font-semibold text-slate-900 dark:text-white text-sm whitespace-nowrap">{loc.name}</span>
+                        </div>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 leading-none">
+                          ID: {loc.id}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Branduri Active */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {brandsArr.length > 0 ? (
+                          brandsArr.map(b => (
+                            <div key={b} title={b} className="shrink-0">
+                              <BrandLogo brandId={b} size={22} />
+                            </div>
+                          ))
+                        ) : (
+                          <span className="text-xs text-slate-400 font-normal">Nespecificat</span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Statistici (Mese & QR) */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                          Mese: {loc.tables || 10}
+                        </span>
+                        {totalQr > 0 ? (
+                          <span className="px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-xs font-bold text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 flex items-center gap-1">
+                            <QrCode className="w-3 h-3" />
+                            {totalQr} QR-uri
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-xs font-medium text-slate-400 border border-slate-200 dark:border-slate-700">
+                            0 QR
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Portal Mobil */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {hasMob ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800/60">
+                          <Smartphone className="w-3 h-3" />
+                          Configurat
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700">
+                          Standard
+                        </span>
+                      )}
+                    </td>
+
+                    {/* Acțiuni */}
+                    <td className="px-6 py-4 text-right whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                      <div className="flex justify-end items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => onSelect(loc)}
+                          title="Configurează codurile QR și portalul mobil"
+                          className="px-4 py-1.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer group-hover:scale-[1.02]"
+                        >
+                          <span>Configurare</span>
+                          <span className="text-xs">→</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Empty state */}
+        {sorted.length === 0 && (
+          <div className="p-12 text-center text-slate-500 dark:text-slate-400 font-medium">
+            Nu există nicio locație care să corespundă filtrelor selectate.
+          </div>
+        )}
+
+        {/* Pagination Footer */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Rânduri pe pagină:</span>
+            <select
+              value={itemsPerPage}
+              onChange={e => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+              className="text-sm font-bold border border-slate-200 dark:border-slate-700 rounded-full px-3 py-1 bg-white dark:bg-slate-900 text-slate-900 dark:text-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <div className="flex justify-between items-start">
-                <span className="text-base font-bold text-slate-900 dark:text-white">{loc.name}</span>
-                <div className="flex gap-1.5">
-                  {totalQr > 0 && <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full px-2 py-0.5 text-xs font-bold">{totalQr} QR</span>}
-                  {hasMob && <span className="bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400 rounded-full px-2 py-0.5 text-xs font-bold">MOB</span>}
-                </div>
-              </div>
-              <span className="text-xs text-slate-500 dark:text-slate-400 font-mono bg-slate-100 dark:bg-slate-800 self-start px-2 py-0.5 rounded-md">{loc.id}</span>
-              <span className="text-sm text-blue-600 dark:text-blue-500 font-bold mt-1 group-hover:translate-x-1 transition-transform">Configurare →</span>
-            </button>
-          );
-        })}
+              {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+            <span className="text-xs font-medium text-slate-500 ml-2">
+              {sorted.length === 0 ? '0' : `${(currentPage - 1) * itemsPerPage + 1}–${Math.min(sorted.length, currentPage * itemsPerPage)}`} din {sorted.length}
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            {[
+              { label: '«', action: () => setCurrentPage(1),            disabled: currentPage === 1,          title: 'Prima pagină' },
+              { label: '‹', action: () => setCurrentPage(p => p - 1),  disabled: currentPage === 1,          title: 'Anterioară' },
+              { label: '›', action: () => setCurrentPage(p => p + 1),  disabled: currentPage === totalPages, title: 'Următoarea' },
+              { label: '»', action: () => setCurrentPage(totalPages),  disabled: currentPage === totalPages, title: 'Ultima pagină' },
+            ].map(btn => (
+              <button
+                key={btn.label}
+                onClick={btn.action}
+                disabled={btn.disabled}
+                title={btn.title}
+                className={`w-8 h-8 rounded-full border text-sm font-bold flex items-center justify-center transition-colors ${
+                  btn.disabled
+                    ? 'border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-slate-300 dark:text-slate-600 cursor-not-allowed'
+                    : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer'
+                }`}
+              >
+                {btn.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -194,18 +475,19 @@ function LocationQrForm({ loc, backend, onBack, onRefresh }) {
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto pb-10 animate-in fade-in duration-300">
+    <div className="space-y-6 animate-in fade-in duration-300">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-8 flex-wrap">
+      <div className="flex items-center gap-4 mb-6 flex-wrap">
         <button onClick={onBack}
           className="px-4 py-2 rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold text-sm cursor-pointer flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm">
-          ← Înapoi
+          <ArrowLeft className="w-4 h-4" />
+          <span>Înapoi</span>
         </button>
         <div className="flex-1">
           <h1 className="m-0 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
             {loc.name}
           </h1>
-          <p className="m-0 mt-1 text-sm text-slate-500 font-mono bg-slate-100 dark:bg-slate-800 inline-block px-2 py-0.5 rounded">ID: {loc.id}</p>
+          <p className="m-0 mt-1 text-sm text-slate-500 bg-slate-100 dark:bg-slate-800 inline-block px-2 py-0.5 rounded font-medium">ID: {loc.id}</p>
         </div>
         {activeTab === 'settings' && (
           <button onClick={saveMobileSettings} disabled={savingMob}
@@ -254,7 +536,7 @@ function LocationQrForm({ loc, backend, onBack, onRefresh }) {
                         background: brandId === b.id ? b.color : 'transparent',
                         color: brandId === b.id ? '#fff' : 'inherit'
                       }}>
-                      <img src={b.logo} alt="" className="w-4 h-4 rounded-sm object-contain" onError={e => e.target.style.display = 'none'} />
+                      <BrandLogo brandId={b.id} size={18} />
                       {b.name}
                     </button>
                   ))}
@@ -267,7 +549,7 @@ function LocationQrForm({ loc, backend, onBack, onRefresh }) {
                   className="w-24 px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50" />
               </div>
               <div className="ml-auto">
-                <button className="px-6 py-2.5 rounded-full text-white font-bold text-sm shadow-sm hover:brightness-110 transition-all" onClick={handleGenerate} disabled={savingQr}
+                <button className="px-6 py-2.5 rounded-full text-white font-bold text-sm shadow-sm hover:brightness-110 transition-all cursor-pointer" onClick={handleGenerate} disabled={savingQr}
                   style={{ background: selectedBrand.color }}>
                   {savingQr ? 'Se salvează...' : savedCount > 0 ? `Actualizează (${tableCount} mese)` : `Generează ${tableCount} QR-uri`}
                 </button>
@@ -285,14 +567,12 @@ function LocationQrForm({ loc, backend, onBack, onRefresh }) {
                     <div className="w-full py-3 text-center text-white font-bold text-lg" style={{ background: selectedBrand.color }}>Masa {n}</div>
                     <div className="p-6 bg-white w-full flex justify-center">
                       <QRCodeCanvas id={`qr-canvas-${n}`} value={qrUrl} size={180} level="H" includeMargin={true}
-                        imageSettings={{ src: selectedBrand.logo, height: 42, width: 42, excavate: true }} />
+                        imageSettings={{ src: getBrandLogoUrl(brandId), height: 42, width: 42, excavate: true }} />
                     </div>
-                    <div className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 text-xs text-slate-500 font-mono truncate text-center border-t border-slate-100 dark:border-slate-800">{qrUrl}</div>
-                    <button className="w-full py-3 bg-transparent border-t border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm font-bold transition-colors flex items-center justify-center gap-2" onClick={() => downloadQr(n)}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-                      </svg>
-                      Descarcă PNG
+                    <div className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 text-xs text-slate-500 truncate text-center border-t border-slate-100 dark:border-slate-800 font-medium">{qrUrl}</div>
+                    <button className="w-full py-3 bg-transparent border-t border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer" onClick={() => downloadQr(n)}>
+                      <Download className="w-4 h-4" />
+                      <span>Descarcă PNG</span>
                     </button>
                   </div>
                 );

@@ -54,7 +54,7 @@ export default function PortScans() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <StatCard label="Total Scanări" value={scans.length} color="#6366f1" />
-        <StatCard label="Locații Unice" value={new Set(scans.map(s => s.locationId)).size} color="#10b981" />
+        <StatCard label="Locații Unice" value={new Set(scans.map(s => s.locationId)).size} color="#059669" />
         <StatCard label="Ultimul Scan" value={scans[0] ? new Date(scans[0].timestamp).toLocaleString('ro-RO') : '—'} color="#3b82f6" isText />
       </div>
 

@@ -7,7 +7,7 @@ const BACKEND   = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.
 const PAGE_SIZE = 25;
 
 const STATUS_STYLE = {
-  active:  { bg: 'rgba(16,185,129,0.15)', color: '#10b981', label: 'Activ' },
+  active:  { bg: 'rgba(5,150,105,0.15)', color: '#059669', label: 'Activ' },
   error:   { bg: 'rgba(239,68,68,0.15)',  color: '#ef4444', label: 'Eroare' },
   pending: { bg: 'rgba(100,116,139,0.15)', color: '#94a3b8', label: 'Nou' },
 };
@@ -439,7 +439,7 @@ export default function Integrations() {
                         <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{f.label}</span>
                         {f.type === 'textarea' ? (
                           <textarea
-                            className="w-full p-4 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-shadow font-mono text-sm resize-y"
+                            className="w-full p-4 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-shadow text-sm resize-y font-medium"
                             rows={3}
                             value={form.credentials[f.key] || ''}
                             onChange={e => setCredField(f.key, e.target.value)}
@@ -447,7 +447,7 @@ export default function Integrations() {
                           />
                         ) : (
                           <input
-                            className="w-full px-4 h-11 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-shadow font-mono text-sm"
+                            className="w-full px-4 h-11 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-shadow text-sm font-medium"
                             type={f.type}
                             value={form.credentials[f.key] || ''}
                             onChange={e => setCredField(f.key, e.target.value)}

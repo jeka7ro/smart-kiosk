@@ -29,10 +29,10 @@ const BRAND_ORG_MAP = {
 // Brand display info for tabs
 const BRAND_TAB_INFO = {
   smashme:     { label: 'SmashMe',      color: '#EE3B24', emoji: '🍔' },
-  sushimaster: { label: 'Sushi Master', color: '#E31E24', emoji: '🍣' },
-  ikura:       { label: 'Ikura',        color: '#8b5cf6', emoji: '🍱' },
-  welovesushi: { label: 'WeLoveSushi',  color: '#ec4899', emoji: '🍣' },
   rollmaster:  { label: 'Roll Master',  color: '#E31E24', emoji: '🍣' },
+  sushimaster: { label: 'Roll Master',  color: '#E31E24', emoji: '🍣' },
+  ikura:       { label: 'Roll Master',  color: '#E31E24', emoji: '🍣' },
+  welovesushi: { label: 'WeLoveSushi',  color: '#ec4899', emoji: '🍣' },
   lovesushi:   { label: 'Love Sushi',   color: '#E31E24', emoji: '🍣' },
   pokiwoki:    { label: 'Poki-Woki',    color: '#F97316', emoji: '🥗' },
   crunch:      { label: 'Crunch',       color: '#FFB800', emoji: '🍗' },
@@ -201,7 +201,7 @@ export default function MenuScreen() {
     };
 
     if (!orgId) {
-      alert(`[DEBUG] orgId is undefined for activeBrandId=${activeBrandId}. Falling back to mock data.`);
+      console.warn(`[DEBUG] orgId is undefined for activeBrandId=${activeBrandId}. Falling back to mock data.`);
       const { categories: cats, products: prods } = getMenuData(activeBrandId);
       setCategories(cats);
       setProducts(prods);
@@ -224,7 +224,11 @@ export default function MenuScreen() {
         if (data.error) throw new Error(data.error);
         const cats = data.categories || [];
         setCategories(cats);
-        const prods = (data.products || []).filter(p => p.price > 0).map(p => ({ ...p, _brand: activeBrandId }));
+        const brandOverrides = locationData?.menuOverrides?.[activeBrandId] || {};
+        const localHidden = brandOverrides.hiddenItems || {};
+        const prods = (data.products || [])
+          .filter(p => p.price > 0 && !p.isHidden && !p.isDeleted && !p.outOfStock && localHidden[p.id] !== true && localHidden[p.categoryId] !== true)
+          .map(p => ({ ...p, _brand: activeBrandId }));
         setProducts(prods);
         setMenuProducts(prods);
         setMenuCategories(cats);
@@ -239,7 +243,11 @@ export default function MenuScreen() {
       .catch(err => {
         console.warn('[MenuScreen] API fetch failed, falling back to mock:', err);
         const { categories: cats, products: rawProds } = getMenuData(activeBrandId);
-        const prods = rawProds.map(p => ({ ...p, _brand: activeBrandId }));
+        const brandOverrides = locationData?.menuOverrides?.[activeBrandId] || {};
+        const localHidden = brandOverrides.hiddenItems || {};
+        const prods = rawProds
+          .filter(p => p.price > 0 && !p.isHidden && !p.isDeleted && !p.outOfStock && localHidden[p.id] !== true && localHidden[p.categoryId] !== true)
+          .map(p => ({ ...p, _brand: activeBrandId }));
         setCategories(cats);
         setProducts(prods);
         setMenuProducts(prods);
@@ -674,7 +682,13 @@ export default function MenuScreen() {
               <button
                 key={cat.id}
                 className={`cat-btn ${activeCategory === cat.id ? 'cat-btn--active' : ''}`}
-                onClick={() => { setActiveCategory(cat.id); setSearch(''); }}
+                onClick={() => {
+                  setActiveCategory(cat.id);
+                  setSearch('');
+                  if (productsAreaRef.current) {
+                    productsAreaRef.current.scrollTop = 0;
+                  }
+                }}
               >
                 {displayImage ? (
                   <img src={proxySyrveImage(displayImage)} alt={cat.name} className="cat-btn-img" onError={(e) => { e.target.style.display = 'none'; }} />

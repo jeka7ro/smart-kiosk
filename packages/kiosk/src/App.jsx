@@ -195,27 +195,11 @@ export default function App() {
     };
     document.addEventListener('keydown', blockRefresh);
 
-    // 3. Block pull-to-refresh (drag down pe tabletă/telefon)
-    const blockPullRefresh = (e) => {
-      // Blochează scroll vertical când e la top (previne pull-to-refresh)
-      if (e.touches && e.touches.length === 1) {
-        const touch = e.touches[0];
-        if (touch.clientY > (e.target._startY || 0) && window.scrollY === 0) {
-          e.preventDefault();
-        }
-      }
-    };
-    const saveStartY = (e) => {
-      if (e.touches) e.target._startY = e.touches[0].clientY;
-    };
-    document.addEventListener('touchstart', saveStartY, { passive: true });
-    document.addEventListener('touchmove', blockPullRefresh, { passive: false });
+    // 3. Pull-to-refresh is handled natively via CSS overscroll-behavior: none in index.css
 
     return () => {
       document.removeEventListener('contextmenu', blockContextMenu);
       document.removeEventListener('keydown', blockRefresh);
-      document.removeEventListener('touchstart', saveStartY);
-      document.removeEventListener('touchmove', blockPullRefresh);
     };
   }, []);
 

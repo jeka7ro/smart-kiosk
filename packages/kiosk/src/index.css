@@ -84,11 +84,27 @@ html, body, #root {
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
-  scrollbar-color: var(--surface) transparent;
+  touch-action: pan-y;
+  overscroll-behavior-y: contain;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
-.scroll-y::-webkit-scrollbar { width: 4px; }
-.scroll-y::-webkit-scrollbar-thumb { background: var(--surface); border-radius: 4px; }
+.scroll-y::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Ascunde complet orice scrollbar pe tabletă/kiosk (experiență tactilă 100% curată) */
+* {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
 
 /* ─── BUTTONS ────────────────────────────────────────────── */
 .btn {

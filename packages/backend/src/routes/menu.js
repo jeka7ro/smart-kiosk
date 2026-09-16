@@ -1,6 +1,6 @@
 const express = require('express');
 const router  = express.Router();
-const { getCachedMenu, getAllCachedMenus, fetchMenu, getOrgIdForBrand, clearMenuCache } = require('../services/iikoService');
+const { getCachedMenu, getAllCachedMenus, fetchMenu, getOrgIdForBrand, clearMenuCache, getStopListIds } = require('../services/iikoService');
 const { pool } = require('../db');
 
 // Clear stale cache on startup so the new groupModifiers mapping takes effect immediately
@@ -185,8 +185,74 @@ router.get('/', requireApiKey, async (req, res) => {
 
           // 3. Keep products only if their category survived AND the product itself is not hidden
           const validCatIds = new Set(finalCategories.map(c => c.id));
+          const stopListIds = typeof getStopListIds === 'function' ? getStopListIds() : new Set();
+
+          // Collect all hidden product IDs and names (including products whose category was pruned or hidden)
+          const hiddenProductIds = new Set();
+          const hiddenProductNames = new Set();
+
+          (menu.products || []).forEach(p => {
+            const isCatHidden = !validCatIds.has(p.categoryId) || mergedHidden[p.categoryId] === true;
+            const isProdExplicitlyHidden = mergedHidden[p.id] === true;
+            const isOutOfStock = p.outOfStock || stopListIds.has(p.id);
+            if (isCatHidden || isProdExplicitlyHidden || isOutOfStock) {
+              hiddenProductIds.add(p.id);
+              if (p.name) {
+                hiddenProductNames.add(p.name.trim().toLowerCase());
+                hiddenProductNames.add(p.name.replace(/^\*+\s*/, '').trim().toLowerCase());
+              }
+            }
+          });
+
+          // Also add any key explicitly set to true in mergedHidden or in stop list
+          Object.entries(mergedHidden).forEach(([k, v]) => {
+            if (v === true) hiddenProductIds.add(k);
+          });
+          stopListIds.forEach(id => hiddenProductIds.add(id));
+
+          // Filter top-level products
           finalProducts = finalProducts.filter(p => {
-             return validCatIds.has(p.categoryId) && mergedHidden[p.id] !== true;
+             return validCatIds.has(p.categoryId) && !hiddenProductIds.has(p.id);
+          });
+
+          // 4. Prune hidden modifier options and empty modifier groups from surviving products
+          const isModifierOptionHidden = (opt) => {
+            if (!opt) return true;
+            if (opt.outOfStock) return true;
+            if (hiddenProductIds.has(opt.id)) return true;
+            if (opt._matchedId && hiddenProductIds.has(opt._matchedId)) return true;
+            if (opt.name) {
+              const nameLower = opt.name.trim().toLowerCase();
+              const cleanNameLower = opt.name.replace(/^\*+\s*/, '').trim().toLowerCase();
+              if (hiddenProductNames.has(nameLower) || hiddenProductNames.has(cleanNameLower)) return true;
+            }
+            return false;
+          };
+
+          const cleanModifierGroup = (group) => {
+            const rawOptions = group.options || group.items || [];
+            const validOptions = rawOptions.filter(opt => !isModifierOptionHidden(opt));
+            return {
+              ...group,
+              options: validOptions,
+              items: validOptions
+            };
+          };
+
+          finalProducts = finalProducts.map(p => {
+            const cleanedModifierGroups = (p.modifierGroups || [])
+              .map(cleanModifierGroup)
+              .filter(group => (group.options || []).length > 0 || group.required);
+
+            const cleanedModifiers = (p.modifiers || [])
+              .map(cleanModifierGroup)
+              .filter(group => (group.options || []).length > 0 || group.required);
+
+            return {
+              ...p,
+              modifierGroups: cleanedModifierGroups,
+              modifiers: cleanedModifiers.length > 0 ? cleanedModifiers : cleanedModifierGroups
+            };
           });
         }
       }

@@ -468,6 +468,12 @@ function getOrgIdForBrand(brandId) {
   return BRANDS[brandId]?.orgId || null;
 }
 
+const activeStopListProductIds = new Set();
+
+function getStopListIds() {
+  return activeStopListProductIds;
+}
+
 /**
  * Fetch stop list (out of stock items) across all configured orgs
  */
@@ -480,6 +486,29 @@ async function syncStopLists() {
   if (!orgIds.length) return;
 
   try {
+    const parseStopListItems = (res) => {
+      const ids = [];
+      if (res.terminalGroupStopLists && Array.isArray(res.terminalGroupStopLists)) {
+        res.terminalGroupStopLists.forEach(tg => {
+          (tg.items || []).forEach(it => {
+            if (it.productId && (it.balance === undefined || it.balance <= 0)) {
+              ids.push(it.productId);
+            }
+          });
+        });
+      }
+      if (res.productStopListItems && Array.isArray(res.productStopListItems)) {
+        res.productStopListItems.forEach(it => {
+          if (it.productId && (it.balance === undefined || it.balance <= 0)) {
+            ids.push(it.productId);
+          }
+        });
+      }
+      return ids;
+    };
+
+    activeStopListProductIds.clear();
+
     // Use smashme token for smashme orgs, sushi token for sushi orgs
     const smashmeOrgId = BRANDS.smashme.orgId;
     const smashmeOrgs  = orgIds.filter(id => id === smashmeOrgId);
@@ -487,16 +516,33 @@ async function syncStopLists() {
 
     if (smashmeOrgs.length) {
       const res = await syrvePost('/api/1/stop_lists', { organizationIds: smashmeOrgs }, 'smashme');
-      if (res.productStopListItems) {
-        console.log(`[Syrve] Stop list synced (SmashMe): ${res.productStopListItems.length} items`);
+      const smashmeIds = parseStopListItems(res);
+      smashmeIds.forEach(id => activeStopListProductIds.add(id));
+      if (smashmeIds.length) {
+        console.log(`[Syrve] Stop list synced (SmashMe): ${smashmeIds.length} items`);
       }
     }
     if (sushiOrgs.length) {
       const res = await syrvePost('/api/1/stop_lists', { organizationIds: sushiOrgs }, 'rollmaster');
-      if (res.productStopListItems) {
-        console.log(`[Syrve] Stop list synced (Sushi): ${res.productStopListItems.length} items`);
+      const sushiIds = parseStopListItems(res);
+      sushiIds.forEach(id => activeStopListProductIds.add(id));
+      if (sushiIds.length) {
+        console.log(`[Syrve] Stop list synced (Sushi): ${sushiIds.length} items`);
       }
     }
+
+    // Apply outOfStock flag to cached menus
+    Object.values(menuCache).forEach(menu => {
+      if (!menu || !menu.products) return;
+      menu.products.forEach(p => {
+        p.outOfStock = activeStopListProductIds.has(p.id);
+        (p.modifierGroups || []).forEach(gm => {
+          (gm.options || gm.items || []).forEach(opt => {
+            opt.outOfStock = activeStopListProductIds.has(opt.id) || (opt._matchedId && activeStopListProductIds.has(opt._matchedId));
+          });
+        });
+      });
+    });
   } catch (err) {
     console.error('[Syrve] Stop list sync error:', err.message);
   }
@@ -882,6 +928,7 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
 module.exports = {
   syncAllMenus,
   syncStopLists,
+  getStopListIds,
   createOrder,
   getOrganizations,
   getOrgIdForBrand,

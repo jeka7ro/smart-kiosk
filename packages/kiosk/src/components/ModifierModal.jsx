@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useKioskStore } from '../store/kioskStore';
 import { t } from '../i18n/translations.js';
@@ -8,7 +8,53 @@ import './ModifierModal.css';
 
 export default function ModifierModal({ product, onConfirm, onClose, activeBrandId }) {
   const lang = useKioskStore(s => s.lang);
-  const modifierGroups = (product?.modifierGroups || []).filter(gm => gm.options?.length > 0);
+  const locationData = useKioskStore(s => s.locationData);
+  const menuProducts = useKioskStore(s => s.menuProducts);
+
+  // Filtrare automată a opțiunilor de modificatori pentru a exclude produsele ascunse, anulate sau fără stoc
+  const modifierGroups = useMemo(() => {
+    const rawGroups = (product?.modifierGroups || []).filter(gm => (gm.options?.length > 0 || gm.items?.length > 0));
+    if (!rawGroups.length) return [];
+
+    const activeBrand = activeBrandId || product?._brand || 'smashme';
+    const brandOverrides = locationData?.menuOverrides?.[activeBrand] || {};
+    const localHidden = brandOverrides.hiddenItems || {};
+
+    const hiddenIds = new Set();
+    const hiddenNames = new Set();
+
+    Object.entries(localHidden).forEach(([id, isHid]) => {
+      if (isHid === true) hiddenIds.add(id);
+    });
+
+    (menuProducts || []).forEach(p => {
+      const cleanName = (p.name || '').replace(/^\*+\s*/, '').trim().toLowerCase();
+      if (p.isHidden || p.isDeleted || p.outOfStock || localHidden[p.id] === true || localHidden[p.categoryId] === true) {
+        hiddenIds.add(p.id);
+        if (cleanName) hiddenNames.add(cleanName);
+      }
+    });
+
+    const isOptionAvailable = (opt) => {
+      if (!opt) return false;
+      if (opt.outOfStock || opt.isHidden || opt.isDeleted) return false;
+      if (hiddenIds.has(opt.id)) return false;
+      if (opt._matchedId && hiddenIds.has(opt._matchedId)) return false;
+      const cleanOptName = (opt.name || '').replace(/^\*+\s*/, '').trim().toLowerCase();
+      if (cleanOptName && hiddenNames.has(cleanOptName)) return false;
+      if (/churros|churo/i.test(cleanOptName)) return false;
+      return true;
+    };
+
+    return rawGroups.map(gm => {
+      const opts = (gm.options || gm.items || []).filter(isOptionAvailable);
+      return {
+        ...gm,
+        options: opts,
+        items: opts
+      };
+    }).filter(gm => (gm.options || []).length > 0);
+  }, [product, menuProducts, locationData, activeBrandId]);
 
   // Initialize: auto-select first option for each required group
   const [selected, setSelected] = useState(() => {

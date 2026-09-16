@@ -61,19 +61,34 @@ export default function StartPromoModal({
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const touchStartXRef = useRef(null);
+  const containerRef = useRef(null);
+  const [containerWidth, setContainerWidth] = useState(520);
 
   const isMulti = promoList.length > 1;
   const isDuo = layout === 'duo' && isMulti;
   const currentProduct = promoList[currentIndex] || promoList[0];
 
-  // Auto-slide every 6 seconds if carousel mode and multiple products
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const updateWidth = () => {
+      if (containerRef.current) {
+        setContainerWidth(containerRef.current.offsetWidth);
+      }
+    };
+    updateWidth();
+    const ro = new ResizeObserver(updateWidth);
+    ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, []);
+
+  // Auto-slide every 6 seconds if carousel mode and multiple products (resets when currentIndex changes)
   useEffect(() => {
     if (!isMulti || isDuo) return;
     const timer = setInterval(() => {
       setCurrentIndex((i) => (i < promoList.length - 1 ? i + 1 : 0));
     }, 6000);
     return () => clearInterval(timer);
-  }, [isMulti, isDuo, promoList.length]);
+  }, [isMulti, isDuo, promoList.length, currentIndex]);
 
   if (!currentProduct) return null;
 
@@ -90,28 +105,32 @@ export default function StartPromoModal({
   };
 
   const handleTouchStart = (e) => {
-    if (isDuo) return;
+    if (!isMulti || isDuo) return;
     touchStartXRef.current = e.touches[0].clientX;
   };
 
   const handleTouchEnd = (e) => {
-    if (isDuo || touchStartXRef.current === null) return;
+    if (!isMulti || isDuo || touchStartXRef.current === null) return;
     const diff = touchStartXRef.current - e.changedTouches[0].clientX;
     touchStartXRef.current = null;
-    if (diff > 45) {
+    if (diff > 35) {
       handleNext();
-    } else if (diff < -45) {
+    } else if (diff < -35) {
       handlePrev();
     }
   };
 
-  const originalPrice = parseFloat(currentProduct.price) || 0;
-  const promoPrice = parseFloat(currentProduct.promoPrice) || 0;
-  const savings = Math.max(0, originalPrice - promoPrice);
-  const discountPercent = originalPrice > 0 ? Math.round((savings / originalPrice) * 100) : 0;
-  const hasRequiredMods = (currentProduct.modifierGroups || []).some(
-    (g) => g.required || (g.min && g.min > 0)
-  );
+  const getTranslateX = (idx) => {
+    if (!isMulti) return 0;
+    const w = containerWidth;
+    const cardW = w - 80;
+    const step = cardW + 12;
+    if (idx === 0) return 16;
+    if (idx === promoList.length - 1 && promoList.length > 1) {
+      return 64 - (idx * step);
+    }
+    return 40 - (idx * step);
+  };
 
   const bannerTitle = isDuo
     ? t.bannerDuo
@@ -145,12 +164,16 @@ export default function StartPromoModal({
           from { opacity: 0; transform: scale(0.92) translateY(10px); }
           to { opacity: 1; transform: scale(1) translateY(0); }
         }
+        @keyframes spmPulseArrow {
+          0%, 100% { transform: translateY(-50%) scale(1); }
+          50% { transform: translateY(-50%) scale(1.1); box-shadow: 0 6px 20px rgba(238, 59, 36, 0.45); }
+        }
       `}</style>
 
       <div
         style={{
           width: '100%',
-          maxWidth: isDuo ? 820 : 520,
+          maxWidth: isDuo ? 820 : isMulti ? 540 : 500,
           background: '#ffffff',
           borderRadius: 28,
           overflow: 'hidden',
@@ -161,8 +184,6 @@ export default function StartPromoModal({
           position: 'relative',
         }}
         onClick={(e) => e.stopPropagation()}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
       >
         {/* Top Banner */}
         <div
@@ -460,127 +481,36 @@ export default function StartPromoModal({
             </button>
           </div>
         ) : (
-          /* ─── CAROUSEL / SINGLE ITEM LAYOUT ─── */
-          <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* Image & Carousel Nav */}
-            {currentProduct.image && (
-              <div
-                style={{
-                  width: '100%',
-                  aspectRatio: '4 / 3',
-                  borderRadius: 20,
-                  overflow: 'hidden',
-                  background: '#f8fafc',
-                  border: '1.5px solid #e2e8f0',
-                  position: 'relative',
-                  boxShadow: '0 4px 14px rgba(0,0,0,0.06)',
-                }}
-              >
-                <img
-                  key={currentProduct.id}
-                  src={proxySyrveImage(currentProduct.image)}
-                  alt={currentProduct.name}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-
-                {discountPercent > 0 && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: 12,
-                      left: 12,
-                      background: '#EE3B24',
-                      color: '#ffffff',
-                      padding: '6px 12px',
-                      borderRadius: 12,
-                      fontWeight: 900,
-                      fontSize: '0.9rem',
-                      boxShadow: '0 4px 12px rgba(238, 59, 36, 0.4)',
-                      letterSpacing: '0.5px',
-                    }}
-                  >
-                    -{discountPercent}%
-                  </div>
-                )}
-
-                {/* Săgeată Înapoi (Stânga) */}
-                {isMulti && (
+          /* ─── CAROUSEL LAYOUT WITH VISIBLE CARD PEEK ─── */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '16px 0 16px 0', width: '100%' }}>
+            {/* Viewport for carousel */}
+            <div
+              ref={containerRef}
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+              style={{
+                width: '100%',
+                overflow: 'hidden',
+                position: 'relative',
+                padding: '4px 0',
+              }}
+            >
+              {/* Floating Navigation Arrows */}
+              {isMulti && (
+                <>
                   <button
                     type="button"
                     onClick={handlePrev}
                     style={{
                       position: 'absolute',
-                      top: '50%',
-                      left: 10,
+                      top: '38%',
+                      left: 6,
                       transform: 'translateY(-50%)',
-                      width: 44,
-                      height: 44,
-                      borderRadius: '50%',
-                      border: '2px solid rgba(255,255,255,0.9)',
-                      background: 'rgba(255,255,255,0.92)',
-                      color: '#1e293b',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-                      backdropFilter: 'blur(4px)',
-                      zIndex: 5,
-                    }}
-                    aria-label="Oferta anterioară"
-                  >
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="15 18 9 12 15 6" />
-                    </svg>
-                  </button>
-                )}
-
-                {/* Săgeată Înainte (Dreapta) */}
-                {isMulti && (
-                  <button
-                    type="button"
-                    onClick={handleNext}
-                    style={{
-                      position: 'absolute',
-                      top: '50%',
-                      right: 10,
-                      transform: 'translateY(-50%)',
-                      width: 44,
-                      height: 44,
-                      borderRadius: '50%',
-                      border: '2px solid rgba(255,255,255,0.9)',
-                      background: 'rgba(255,255,255,0.92)',
-                      color: '#1e293b',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-                      backdropFilter: 'blur(4px)',
-                      zIndex: 5,
-                    }}
-                    aria-label="Oferta următoare"
-                  >
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="9 18 15 12 9 6" />
-                    </svg>
-                  </button>
-                )}
-
-                {/* Buton Info (i) pe poză */}
-                {onInfo && (
-                  <button
-                    type="button"
-                    onClick={() => onInfo(currentProduct)}
-                    style={{
-                      position: 'absolute',
-                      top: 12,
-                      right: 12,
                       width: 42,
                       height: 42,
                       borderRadius: '50%',
-                      border: '2px solid rgba(255,255,255,0.9)',
-                      background: 'rgba(255,255,255,0.92)',
+                      border: '2px solid rgba(255,255,255,0.95)',
+                      background: 'rgba(255, 255, 255, 0.96)',
                       color: '#1e293b',
                       display: 'flex',
                       alignItems: 'center',
@@ -588,172 +518,328 @@ export default function StartPromoModal({
                       cursor: 'pointer',
                       boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
                       backdropFilter: 'blur(6px)',
+                      zIndex: 10,
                       transition: 'transform 0.15s ease',
-                      zIndex: 4,
                     }}
-                    aria-label="Detalii produs"
+                    aria-label="Oferta anterioară"
                   >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10" />
-                      <line x1="12" y1="16" x2="12" y2="12" />
-                      <line x1="12" y1="8" x2="12.01" y2="8" />
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="15 18 9 12 15 6" />
                     </svg>
                   </button>
-                )}
-              </div>
-            )}
 
-            {/* Dots Indicator */}
-            {isMulti && (
-              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: -4 }}>
-                {promoList.map((p, idx) => (
                   <button
-                    key={p.id || idx}
                     type="button"
-                    onClick={() => setCurrentIndex(idx)}
+                    onClick={handleNext}
                     style={{
-                      width: currentIndex === idx ? 24 : 8,
-                      height: 8,
-                      borderRadius: 4,
-                      background: currentIndex === idx ? 'var(--primary, #EE3B24)' : '#cbd5e1',
-                      border: 'none',
-                      padding: 0,
+                      position: 'absolute',
+                      top: '38%',
+                      right: 6,
+                      transform: 'translateY(-50%)',
+                      width: 42,
+                      height: 42,
+                      borderRadius: '50%',
+                      border: '2px solid rgba(255,255,255,0.95)',
+                      background: 'rgba(255, 255, 255, 0.96)',
+                      color: '#1e293b',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                       cursor: 'pointer',
-                      transition: 'all 0.25s ease',
+                      boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
+                      backdropFilter: 'blur(6px)',
+                      zIndex: 10,
+                      animation: currentIndex === 0 ? 'spmPulseArrow 2s infinite ease-in-out' : 'none',
+                      transition: 'transform 0.15s ease',
                     }}
-                    aria-label={`Oferta ${idx + 1}`}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* Product Name & Description */}
-            <div>
-              <h2
-                style={{
-                  fontSize: '1.55rem',
-                  fontWeight: 800,
-                  color: '#111827',
-                  margin: '0 0 6px 0',
-                  lineHeight: 1.2,
-                }}
-              >
-                {currentProduct.name}
-              </h2>
-              {(currentProduct.description || (currentProduct.translations && currentProduct.translations[lang])) && (
-                <p
-                  style={{
-                    fontSize: '0.88rem',
-                    color: '#64748b',
-                    margin: 0,
-                    lineHeight: 1.45,
-                    display: '-webkit-box',
-                    WebkitLineClamp: 3,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                  }}
-                >
-                  {(lang !== 'ro' && currentProduct.translations && currentProduct.translations[lang])
-                    ? currentProduct.translations[lang]
-                    : currentProduct.description}
-                </p>
+                    aria-label="Oferta următoare"
+                  >
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="9 18 15 12 9 6" />
+                    </svg>
+                  </button>
+                </>
               )}
-            </div>
 
-            {/* Price Block */}
-            <div
-              style={{
-                background: '#fff5f5',
-                border: '1.5px solid #fed7d7',
-                borderRadius: 18,
-                padding: '12px 18px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-            >
-              <div>
-                <span
-                  style={{
-                    fontSize: '1.25rem',
-                    color: '#0f172a',
-                    textDecoration: 'line-through',
-                    textDecorationThickness: '2px',
-                    marginRight: 10,
-                    fontWeight: 800,
-                  }}
-                >
-                  {originalPrice.toFixed(2)} lei
-                </span>
-                <span
-                  style={{
-                    fontSize: '1.65rem',
-                    fontWeight: 900,
-                    color: '#EE3B24',
-                    letterSpacing: '-0.3px',
-                  }}
-                >
-                  {promoPrice.toFixed(2)} lei
-                </span>
-              </div>
-
-              {savings > 0 && (
-                <span
-                  style={{
-                    fontSize: '0.85rem',
-                    fontWeight: 800,
-                    color: '#ffffff',
-                    background: '#10b981',
-                    border: 'none',
-                    padding: '6px 12px',
-                    borderRadius: 12,
-                    boxShadow: '0 2px 8px rgba(16, 185, 129, 0.35)',
-                    letterSpacing: '0.2px',
-                  }}
-                >
-                  {t.save} {savings.toFixed(2)} lei
-                </span>
-              )}
-            </div>
-
-            {/* Action Buttons */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
-              <button
-                type="button"
-                onClick={() => onAccept(currentProduct)}
+              {/* Horizontal Sliding Track */}
+              <div
                 style={{
-                  width: '100%',
-                  minHeight: 52,
-                  background: 'var(--primary, #EE3B24)',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: 18,
-                  fontSize: '1.1rem',
-                  fontWeight: 800,
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  cursor: 'pointer',
-                  boxShadow: '0 6px 18px rgba(238, 59, 36, 0.35)',
-                  transition: 'transform 0.15s ease',
+                  gap: 12,
+                  transform: `translateX(${getTranslateX(currentIndex)}px)`,
+                  transition: 'transform 0.38s cubic-bezier(0.22, 1, 0.36, 1)',
+                  paddingLeft: isMulti ? 0 : 20,
+                  paddingRight: isMulti ? 0 : 20,
                 }}
               >
-                <span>+</span>
-                <span>{hasRequiredMods ? t.customize : t.accept}</span>
-              </button>
+                {promoList.map((item, idx) => {
+                  const origP = parseFloat(item.price) || 0;
+                  const promP = parseFloat(item.promoPrice) || 0;
+                  const sav = Math.max(0, origP - promP);
+                  const discPct = origP > 0 ? Math.round((sav / origP) * 100) : 0;
+                  const hasReq = (item.modifierGroups || []).some(
+                    (g) => g.required || (g.min && g.min > 0)
+                  );
+                  const isActive = idx === currentIndex;
+
+                  return (
+                    <div
+                      key={item.id || idx}
+                      onClick={() => {
+                        if (!isActive) setCurrentIndex(idx);
+                      }}
+                      style={{
+                        flexShrink: 0,
+                        width: isMulti ? 'calc(100% - 80px)' : '100%',
+                        background: '#ffffff',
+                        border: isActive ? '2px solid var(--primary, #EE3B24)' : '1.5px solid #e2e8f0',
+                        borderRadius: 22,
+                        padding: 16,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 12,
+                        boxShadow: isActive
+                          ? '0 12px 28px -6px rgba(238, 59, 36, 0.16), 0 4px 12px rgba(0,0,0,0.06)'
+                          : '0 4px 12px rgba(0,0,0,0.04)',
+                        opacity: isActive ? 1 : 0.76,
+                        transform: isActive ? 'scale(1)' : 'scale(0.96)',
+                        transition: 'all 0.35s cubic-bezier(0.25, 1, 0.5, 1)',
+                        cursor: isActive ? 'default' : 'pointer',
+                        position: 'relative',
+                      }}
+                    >
+                      {/* Product Image */}
+                      {item.image && (
+                        <div
+                          style={{
+                            width: '100%',
+                            aspectRatio: '16 / 11',
+                            borderRadius: 16,
+                            overflow: 'hidden',
+                            background: '#f8fafc',
+                            border: '1px solid #e2e8f0',
+                            position: 'relative',
+                          }}
+                        >
+                          <img
+                            src={proxySyrveImage(item.image)}
+                            alt={item.name}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+
+                          {discPct > 0 && (
+                            <div
+                              style={{
+                                position: 'absolute',
+                                top: 10,
+                                left: 10,
+                                background: '#EE3B24',
+                                color: '#ffffff',
+                                padding: '5px 12px',
+                                borderRadius: 10,
+                                fontWeight: 900,
+                                fontSize: '0.85rem',
+                                boxShadow: '0 3px 10px rgba(238, 59, 36, 0.4)',
+                                letterSpacing: '0.4px',
+                              }}
+                            >
+                              -{discPct}%
+                            </div>
+                          )}
+
+                          {onInfo && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onInfo(item);
+                              }}
+                              style={{
+                                position: 'absolute',
+                                top: 10,
+                                right: 10,
+                                width: 38,
+                                height: 38,
+                                borderRadius: '50%',
+                                border: '1.5px solid rgba(255,255,255,0.9)',
+                                background: 'rgba(255,255,255,0.92)',
+                                color: '#1e293b',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                boxShadow: '0 3px 10px rgba(0,0,0,0.2)',
+                                zIndex: 2,
+                              }}
+                              aria-label="Detalii produs"
+                            >
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="10" />
+                                <line x1="12" y1="16" x2="12" y2="12" />
+                                <line x1="12" y1="8" x2="12.01" y2="8" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Product Name & Description */}
+                      <div>
+                        <h2
+                          style={{
+                            fontSize: '1.28rem',
+                            fontWeight: 800,
+                            color: '#111827',
+                            margin: '0 0 4px 0',
+                            lineHeight: 1.25,
+                          }}
+                        >
+                          {item.name}
+                        </h2>
+                        {(item.description || (item.translations && item.translations[lang])) && (
+                          <p
+                            style={{
+                              fontSize: '0.82rem',
+                              color: '#64748b',
+                              margin: 0,
+                              lineHeight: 1.4,
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden',
+                            }}
+                          >
+                            {(lang !== 'ro' && item.translations && item.translations[lang])
+                              ? item.translations[lang]
+                              : item.description}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Price Block */}
+                      <div
+                        style={{
+                          background: '#fff5f5',
+                          border: '1.5px solid #fed7d7',
+                          borderRadius: 16,
+                          padding: '10px 14px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                        }}
+                      >
+                        <div>
+                          <span
+                            style={{
+                              fontSize: '1.05rem',
+                              color: '#0f172a',
+                              textDecoration: 'line-through',
+                              textDecorationThickness: '2px',
+                              marginRight: 8,
+                              fontWeight: 700,
+                            }}
+                          >
+                            {origP.toFixed(2)} lei
+                          </span>
+                          <span
+                            style={{
+                              fontSize: '1.45rem',
+                              fontWeight: 900,
+                              color: '#EE3B24',
+                              letterSpacing: '-0.3px',
+                            }}
+                          >
+                            {promP.toFixed(2)} lei
+                          </span>
+                        </div>
+
+                        {sav > 0 && (
+                          <span
+                            style={{
+                              fontSize: '0.78rem',
+                              fontWeight: 800,
+                              color: '#ffffff',
+                              background: '#10b981',
+                              padding: '4px 10px',
+                              borderRadius: 10,
+                              boxShadow: '0 2px 6px rgba(16, 185, 129, 0.3)',
+                            }}
+                          >
+                            {t.save} {sav.toFixed(2)} lei
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Action Button */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onAccept(item);
+                        }}
+                        style={{
+                          width: '100%',
+                          minHeight: 48,
+                          background: 'var(--primary, #EE3B24)',
+                          color: '#ffffff',
+                          border: 'none',
+                          borderRadius: 16,
+                          fontSize: '1rem',
+                          fontWeight: 800,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 6,
+                          cursor: 'pointer',
+                          boxShadow: '0 4px 14px rgba(238, 59, 36, 0.3)',
+                          transition: 'transform 0.15s ease',
+                        }}
+                      >
+                        <span>+</span>
+                        <span>{hasReq ? t.customize : t.accept}</span>
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Bottom Controls: Dots & Dismiss */}
+            <div style={{ padding: '0 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {isMulti && (
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}>
+                  {promoList.map((p, idx) => (
+                    <button
+                      key={p.id || idx}
+                      type="button"
+                      onClick={() => setCurrentIndex(idx)}
+                      style={{
+                        width: currentIndex === idx ? 24 : 8,
+                        height: 8,
+                        borderRadius: 4,
+                        background: currentIndex === idx ? 'var(--primary, #EE3B24)' : '#cbd5e1',
+                        border: 'none',
+                        padding: 0,
+                        cursor: 'pointer',
+                        transition: 'all 0.25s ease',
+                      }}
+                      aria-label={`Oferta ${idx + 1}`}
+                    />
+                  ))}
+                </div>
+              )}
 
               <button
                 type="button"
                 onClick={onClose}
                 style={{
                   width: '100%',
-                  minHeight: 46,
+                  minHeight: 42,
                   background: '#f8fafc',
                   border: '1.5px solid #e2e8f0',
                   color: '#64748b',
-                  borderRadius: 16,
-                  fontSize: '0.95rem',
+                  borderRadius: 14,
+                  fontSize: '0.92rem',
                   fontWeight: 700,
                   cursor: 'pointer',
                   transition: 'background 0.15s ease',

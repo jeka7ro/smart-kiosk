@@ -6,7 +6,7 @@ import './BrandSelectScreen.css';
 const BRAND_INFO = {
   smashme:     { label: 'SmashMe',       color: '#EE3B24', emoji: '🍔', desc: 'Burgeri smash suculenți' },
   crunch:      { label: 'Crunch',        color: '#FFB800', emoji: '🍗', desc: 'Pui crispy delicios' },
-  rollmaster:  { label: 'Roll Master',   color: '#E31E24', emoji: '🍣', desc: 'Bucătărie japoneză autentică' },
+  rollmaster:  { label: 'Roll Master',   color: '#3b82f6', emoji: '🍣', desc: 'Bucătărie japoneză autentică' },
   lovesushi:   { label: 'Love Sushi',    color: '#E31E24', emoji: '🍣', desc: 'Iubim sushi-ul' },
   pokiwoki:    { label: 'Poki-Woki',     color: '#F97316', emoji: '🥗', desc: 'Hawaiian Poke Bowls' },
 };

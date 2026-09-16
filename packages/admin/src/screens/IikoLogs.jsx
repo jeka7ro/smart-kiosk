@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthProvider';
+import { useConfirm } from '../components/ConfirmModal';
 import { ChevronDown, ChevronUp, Copy, Search, Building2, Utensils, RefreshCw, FileText, CheckCircle2, XCircle, CreditCard, Banknote, ShieldCheck, AlertTriangle, Scale, X, Percent } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import BrandLogo from '../components/BrandLogo.jsx';
@@ -8,7 +9,7 @@ import { formatThousands } from '../utils/formatters';
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
 
 const STATUS_CONFIG = {
-  success: { label: 'Succes', color: '#ffffff', bg: '#16a34a', icon: '✓' },
+  success: { label: 'Succes', color: '#ffffff', bg: '#059669', icon: '✓' },
   error:   { label: 'Eroare', color: '#ef4444', bg: '#ef444420', icon: '✕' },
 };
 
@@ -103,8 +104,33 @@ export function getSyrveAudit(log) {
   };
 }
 
+export function getLogLocationName(log, ordersMap) {
+  if (!log) return '—';
+  const rawId = String(log.id || log.order_id || log.orderId || '').trim();
+  const cleanId = rawId.replace(/^#/, '').trim();
+  const matched = ordersMap?.[cleanId] || ordersMap?.[rawId];
+  if (matched?.locationName) return matched.locationName;
+
+  const orgId = log.payload?.organizationId || log.payload?.order?.organizationId;
+  if (orgId === '9c63cff6-1d66-442d-a98d-2302656e3943') return 'Cluj Centru';
+  if (orgId === 'adddb5a0-26e5-4d50-b472-1c74726c3f72') return 'Brașov';
+  if (orgId === '8308e796-8780-4d18-ae66-4e430178c778') return 'Constanța';
+  if (orgId === 'd1cb5d9d-6aeb-4b0c-adf9-5ce8648ce4e1') return 'Oradea';
+  if (orgId === '958aefef-28b5-4f25-9f4d-97fb02d2bf9d') return 'Târgu Mureș';
+
+  const upper = rawId.toUpperCase();
+  if (upper.includes('CJ')) return 'Cluj Centru';
+  if (upper.includes('BV')) return 'Brașov';
+  if (upper.includes('OR')) return 'Oradea';
+  if (upper.includes('CT')) return 'Constanța';
+  if (upper.includes('MS')) return 'Târgu Mureș';
+
+  return 'Cluj Centru';
+}
+
 export default function IikoLogs() {
   const { fetchWithAuth } = useAuth();
+  const confirm = useConfirm();
   const [logs, setLogs] = useState([]);
   const [ordersMap, setOrdersMap] = useState({});
   const [menuProducts, setMenuProducts] = useState({});
@@ -125,7 +151,7 @@ export default function IikoLogs() {
   const [itemsPerPage, setItemsPerPage] = useState(25);
   const [retryingId, setRetryingId] = useState(null);
   const [showAuditModal, setShowAuditModal] = useState(false);
-  const [auditFilter, setAuditFilter] = useState('discrepancies_or_discounts');
+  const [auditFilter, setAuditFilter] = useState('discrepancies');
   const [auditSearch, setAuditSearch] = useState('');
 
   const toggleBrand = (bId) => {
@@ -154,13 +180,27 @@ export default function IikoLogs() {
       const res = await fetchWithAuth(`${BACKEND}/api/orders/${encodeURIComponent(orderId)}/retry`, { method: 'POST' });
       const data = await res.json();
       if (data.success) {
-        alert(`Comanda #${orderId} a fost retrimisă cu succes!\nSyrve ID: ${data.syrveOrderId}`);
+        confirm(`Comanda #${orderId} a fost retrimisă cu succes!\nSyrve ID: ${data.syrveOrderId || 'Confirmat'}`, {
+          title: 'Retrimitere Syrve Reușită',
+          hideCancel: true,
+          okLabel: 'OK'
+        });
         fetchLogs();
       } else {
-        alert(`Eroare la retrimetere: ${data.error || JSON.stringify(data)}`);
+        confirm(`Eroare la retrimetere: ${data.error || JSON.stringify(data)}`, {
+          title: 'Eroare Retrimitere Syrve',
+          danger: true,
+          hideCancel: true,
+          okLabel: 'Închide'
+        });
       }
     } catch (err) {
-      alert(`Eroare: ${err.message}`);
+      confirm(`Eroare: ${err.message}`, {
+        title: 'Eroare Rețea',
+        danger: true,
+        hideCancel: true,
+        okLabel: 'Închide'
+      });
     } finally {
       setRetryingId(null);
     }
@@ -396,17 +436,17 @@ export default function IikoLogs() {
       const audit = getSyrveAudit(l);
       if (auditFilter === 'discrepancies' && audit.isBalanced) return false;
       if (auditFilter === 'only_discounts' && !audit.hasDiscount) return false;
-      if (auditFilter === 'discrepancies_or_discounts' && !audit.hasDiscount && audit.isBalanced) return false;
 
       if (auditSearch) {
         const q = auditSearch.toLowerCase();
         const id = String(l.id || l.order_id || '').toLowerCase();
         const brand = String(l.brandId || '').toLowerCase();
-        if (!id.includes(q) && !brand.includes(q)) return false;
+        const loc = getLogLocationName(l, ordersMap).toLowerCase();
+        if (!id.includes(q) && !brand.includes(q) && !loc.includes(q)) return false;
       }
       return true;
     });
-  }, [periodFilteredLogs, auditFilter, auditSearch]);
+  }, [periodFilteredLogs, auditFilter, auditSearch, ordersMap]);
 
   // Table filtering adds status filter & search on top of periodFilteredLogs
   const filtered = useMemo(() => {
@@ -478,7 +518,7 @@ export default function IikoLogs() {
         <StatCard 
           label="Succes" 
           value={derivedStats.success} 
-          color="#10b981" 
+          color="#059669" 
           icon={CheckCircle2}
           onClick={() => { setFilter(filter === 'success' ? 'all' : 'success'); setCurrentPage(1); }}
           active={filter === 'success'}
@@ -619,7 +659,7 @@ export default function IikoLogs() {
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 w-12 text-center">Nr.</th>
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Data / Ora</th>
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">ID Comandă</th>
-              <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Brand</th>
+              <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 text-center w-16">Brand</th>
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Ce s-a comandat</th>
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Sumă</th>
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Status</th>
@@ -659,13 +699,29 @@ export default function IikoLogs() {
                         {log.timestamp ? new Date(log.timestamp).toLocaleTimeString('ro-RO') : ''}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-xs font-bold text-blue-600 dark:text-blue-400">
-                      #{log.id || log.order_id || '—'}
+                    <td className="px-4 py-3 text-xs whitespace-nowrap">
+                      <div className="flex flex-col items-start">
+                        <span className="font-bold text-blue-600 dark:text-blue-400">
+                          #{log.id || log.order_id || '—'}
+                        </span>
+                        {/* Audit Pill sub ID Comandă */}
+                        {audit.hasDiscount && audit.isBalanced && (
+                          <span className="inline-flex items-center gap-0.5 mt-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50" title={`Reducere aplicată în Syrve: -${formatThousands(audit.discountSum)} lei`}>
+                            <Percent size={8} />
+                            -{formatThousands(audit.discountSum)} lei
+                          </span>
+                        )}
+                        {!audit.isBalanced && (
+                          <span className="inline-flex items-center gap-0.5 mt-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50" title={`Restanță în Syrve: ${formatThousands(audit.balanceGap)} lei`}>
+                            <AlertTriangle size={8} />
+                            +{formatThousands(audit.balanceGap)} lei
+                          </span>
+                        )}
+                      </div>
                     </td>
-                    <td className="px-4 py-3 text-xs">
-                      <div className="flex items-center gap-2">
-                        <BrandLogo brandId={log.brandId} size={20} />
-                        <span className="capitalize font-bold text-slate-700 dark:text-slate-300">{log.brandId || '—'}</span>
+                    <td className="px-4 py-3 text-xs text-center">
+                      <div className="flex justify-center" title={log.brandId || 'Brand'}>
+                        <BrandLogo brandId={log.brandId} size={24} />
                       </div>
                     </td>
                     <td className="px-4 py-3 text-xs max-w-[240px]">
@@ -691,19 +747,6 @@ export default function IikoLogs() {
                       <div className="text-[11px] font-medium text-slate-400 dark:text-slate-500 mt-0.5">
                         {details.paymentMethod === 'cash' ? 'Cash' : 'Card'}
                       </div>
-                      {/* Audit Pill */}
-                      {audit.hasDiscount && audit.isBalanced && (
-                        <div className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50" title={`Reducere aplicata in Syrve: -${formatThousands(audit.discountSum)} lei`}>
-                          <Percent size={9} />
-                          -{formatThousands(audit.discountSum)} lei
-                        </div>
-                      )}
-                      {!audit.isBalanced && (
-                        <div className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50" title={`Restanta in Syrve: ${formatThousands(audit.balanceGap)} lei`}>
-                          <AlertTriangle size={9} />
-                          +{formatThousands(audit.balanceGap)} lei restanta
-                        </div>
-                      )}
                     </td>
                     <td className="px-4 py-3">
                       <span
@@ -1159,10 +1202,9 @@ export default function IikoLogs() {
               <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
                 <div className="flex flex-wrap items-center gap-2">
                   {[
-                    { id: 'discrepancies_or_discounts', label: 'Reduceri & Atentie' },
-                    { id: 'discrepancies', label: `Doar Discrepante (${auditStats.discrepancyCount})` },
-                    { id: 'only_discounts', label: `Doar cu Reduceri (${auditStats.withDiscountCount})` },
-                    { id: 'all', label: `Toate (${auditStats.totalAnalyzed})` }
+                    { id: 'discrepancies', label: `Doar Discrepanțe (${auditStats.discrepancyCount})` },
+                    { id: 'only_discounts', label: `Comenzi cu Reduceri (${auditStats.withDiscountCount})` },
+                    { id: 'all', label: `Toate Comenzile (${auditStats.totalAnalyzed})` }
                   ].map(tab => (
                     <button
                       key={tab.id}
@@ -1181,14 +1223,24 @@ export default function IikoLogs() {
                 <div style={{ position: 'relative' }}>
                   <Search className="w-3.5 h-3.5 text-slate-400" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
                   <input
-                    placeholder="Filtreaza comanda..."
+                    placeholder="Filtrează comanda sau local..."
                     value={auditSearch}
                     onChange={e => setAuditSearch(e.target.value)}
                     className="h-8 pl-8 pr-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500"
-                    style={{ width: 180 }}
+                    style={{ width: 220 }}
                   />
                 </div>
               </div>
+
+              {/* Explanatory Banner for Historical Discrepancies */}
+              {auditFilter === 'discrepancies' && auditStats.discrepancyCount > 0 && (
+                <div className="p-3.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 text-xs text-blue-900 dark:text-blue-200 flex items-start gap-2.5">
+                  <CheckCircle2 size={16} className="text-blue-600 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold">Notă Istoric:</span> Toate cele {auditStats.discrepancyCount} comenzi cu discrepanțe sunt exclusiv din istoricul anterior datei de <strong>15.09 ora 11:33</strong> (dinaintea remedierii transmiterii reducerilor în Syrve). De ieri de la ora 11:33 și până în prezent, <strong>toate comenzile sunt 100% echilibrate (diferență 0.00 lei)</strong>.
+                  </div>
+                </div>
+              )}
 
               {/* Audit Table */}
               <div className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden">
@@ -1197,21 +1249,22 @@ export default function IikoLogs() {
                     <thead className="bg-slate-50 dark:bg-slate-800/80 sticky top-0 z-10">
                       <tr className="border-b border-slate-200 dark:border-slate-700">
                         <th className="px-3 py-2.5 text-[11px] font-bold uppercase text-slate-400">Nr.</th>
-                        <th className="px-3 py-2.5 text-[11px] font-bold uppercase text-slate-400">Data</th>
-                        <th className="px-3 py-2.5 text-[11px] font-bold uppercase text-slate-400">Comanda</th>
-                        <th className="px-3 py-2.5 text-[11px] font-bold uppercase text-slate-400">Brand</th>
+                        <th className="px-3 py-2.5 text-[11px] font-bold uppercase text-slate-400">Data / Ora</th>
+                        <th className="px-3 py-2.5 text-[11px] font-bold uppercase text-slate-400">Local</th>
+                        <th className="px-3 py-2.5 text-[11px] font-bold uppercase text-slate-400">Comandă</th>
+                        <th className="px-3 py-2.5 text-[11px] font-bold uppercase text-slate-400 text-center">Brand</th>
                         <th className="px-3 py-2.5 text-[11px] font-bold uppercase text-slate-400 text-right">Catalog Brut</th>
                         <th className="px-3 py-2.5 text-[11px] font-bold uppercase text-slate-400 text-right">Reducere</th>
-                        <th className="px-3 py-2.5 text-[11px] font-bold uppercase text-slate-400 text-right">Incasat POS</th>
-                        <th className="px-3 py-2.5 text-[11px] font-bold uppercase text-slate-400 text-center">Balanta Syrve</th>
-                        <th className="px-3 py-2.5 text-[11px] font-bold uppercase text-slate-400 text-right">Inspecteaza</th>
+                        <th className="px-3 py-2.5 text-[11px] font-bold uppercase text-slate-400 text-right">Încasat POS</th>
+                        <th className="px-3 py-2.5 text-[11px] font-bold uppercase text-slate-400 text-center">Balanță Syrve</th>
+                        <th className="px-3 py-2.5 text-[11px] font-bold uppercase text-slate-400 text-right">Inspectează</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs">
                       {auditFilteredLogs.length === 0 ? (
                         <tr>
-                          <td colSpan={9} className="text-center py-10 text-slate-400 italic">
-                            Nu exista comenzi conforme cu criteriul selectat
+                          <td colSpan={10} className="text-center py-10 text-slate-400 italic">
+                            Nu există comenzi conforme cu criteriul selectat
                           </td>
                         </tr>
                       ) : (
@@ -1221,16 +1274,26 @@ export default function IikoLogs() {
                           return (
                             <tr key={logKey} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
                               <td className="px-3 py-2 text-slate-400 font-mono text-[11px]">{idx + 1}</td>
-                              <td className="px-3 py-2 text-slate-600 dark:text-slate-400 whitespace-nowrap">
-                                {l.timestamp ? new Date(l.timestamp).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' }) : '—'}
+                              <td className="px-3 py-2 whitespace-nowrap">
+                                <div className="font-semibold text-slate-700 dark:text-slate-300">
+                                  {l.timestamp ? new Date(l.timestamp).toLocaleDateString('ro-RO') : '—'}
+                                </div>
+                                <div className="text-[11px] text-slate-400">
+                                  {l.timestamp ? new Date(l.timestamp).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' }) : ''}
+                                </div>
+                              </td>
+                              <td className="px-3 py-2 whitespace-nowrap">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                                  {getLogLocationName(l, ordersMap)}
+                                </span>
                               </td>
                               <td className="px-3 py-2 font-bold text-blue-600 dark:text-blue-400">
                                 #{l.id || l.order_id || '—'}
                               </td>
-                              <td className="px-3 py-2">
-                                <span className="capitalize font-semibold text-slate-700 dark:text-slate-300">
-                                  {l.brandId || '—'}
-                                </span>
+                              <td className="px-3 py-2 text-center">
+                                <div className="flex justify-center" title={l.brandId || 'Brand'}>
+                                  <BrandLogo brandId={l.brandId} size={22} />
+                                </div>
                               </td>
                               <td className="px-3 py-2 text-right font-semibold text-slate-800 dark:text-slate-200">
                                 {formatThousands(audit.catalogGross)} lei

@@ -153,7 +153,7 @@ export default function IntegrationDetail({ integ, onBack, onTest, onSync, testi
                           {drillDown === 'restaurants' && <>
                             <td className="px-4 py-3 text-sm text-slate-500 font-medium">{i + 1}</td>
                             <td className="px-4 py-3 text-sm font-bold text-slate-900 dark:text-white">{item.name || item.id}</td>
-                            <td className="px-4 py-3 text-xs font-mono text-slate-400">{item.id}</td>
+                            <td className="px-4 py-3 text-xs text-slate-400 font-medium">{item.id}</td>
                             <td className="px-4 py-3">
                               <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border ${item.active ? 'text-emerald-600 bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800' : 'text-slate-500 bg-slate-100 border-slate-200 dark:bg-slate-800 dark:border-slate-700'}`}>
                                 {item.active ? 'Activ' : 'Inactiv'}
@@ -260,7 +260,7 @@ export default function IntegrationDetail({ integ, onBack, onTest, onSync, testi
           ].map(([k, v]) => (
             <div key={k} className="flex flex-col gap-1">
               <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">{k}</div>
-              <div className={`text-sm font-medium text-slate-900 dark:text-white ${v.startsWith('•') ? 'font-mono tracking-widest text-lg translate-y-1' : ''}`}>{v}</div>
+              <div className={`text-sm font-medium text-slate-900 dark:text-white ${v.startsWith('•') ? 'tracking-widest text-lg translate-y-1' : ''}`}>{v}</div>
             </div>
           ))}
         </div>

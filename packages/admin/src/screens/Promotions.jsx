@@ -6,12 +6,11 @@ const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 
 const BRANDS = [
   { id: 'smashme',     label: 'SmashMe',     color: '#ef4444' },
-  { id: 'rollmaster', label: 'Roll Master', color: '#3b82f6' },
+  { id: 'rollmaster', label: 'Roll Master', color: '#e31e24' },
   { id: 'lovesushi', label: 'Love Sushi', color: '#ec4899' },
   { id: 'pokiwoki', label: 'Poki-Woki', color: '#f97316' },
   { id: 'crunch', label: 'Crunch', color: '#eab308' },
-  { id: 'welovesushi', label: 'WeLoveSushi', color: '#f59e0b' },
-  { id: 'ikura',       label: 'Ikura',       color: '#10b981' }
+  { id: 'welovesushi', label: 'WeLoveSushi', color: '#f59e0b' }
 ];
 
 const EMPTY_SLICE = { id: '', name: '', type: 'nada', probability: 10, bg: '#f1f5f9', image: '', productId: '' };
@@ -234,7 +233,7 @@ export default function Promotions() {
                       </span>
                     </td>
                     <td className="px-5 py-4">
-                      <div className="flex items-center gap-2 text-sm font-mono text-slate-500 dark:text-slate-400">
+                      <div className="flex items-center gap-2 text-sm font-medium text-slate-500 dark:text-slate-400">
                         <span className="w-4 h-4 rounded shadow-inner border border-slate-200 dark:border-slate-600" style={{ backgroundColor: slice.bg }} />
                         {slice.bg}
                       </div>
@@ -335,7 +334,7 @@ export default function Promotions() {
                 <div className="flex gap-4">
                   <div className="flex-1 space-y-2">
                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Background (Hex)</label>
-                    <input type="text" value={editingSlice.bg} onChange={e => setEditingSlice({...editingSlice, bg: e.target.value})} className="w-full px-4 h-12 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm transition-shadow uppercase" placeholder="#ff0000" />
+                    <input type="text" value={editingSlice.bg} onChange={e => setEditingSlice({...editingSlice, bg: e.target.value})} className="w-full px-4 h-12 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium transition-shadow uppercase" placeholder="#ff0000" />
                   </div>
                   <div className="w-16 flex flex-col justify-end pb-1">
                     <input type="color" value={editingSlice.bg} onChange={e => setEditingSlice({...editingSlice, bg: e.target.value})} className="w-full h-10 p-0 border-0 rounded-lg cursor-pointer bg-transparent overflow-hidden" />

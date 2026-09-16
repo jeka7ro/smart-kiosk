@@ -38,14 +38,14 @@ function useKeepAlive() {
   }, []);
 }
 
-const BRAND_COLORS = { smashme: '#ef4444', crunch: '#eab308', rollmaster: '#3b82f6', lovesushi: '#ec4899', pokiwoki: '#f97316' };
+const BRAND_COLORS = { smashme: '#ef4444', crunch: '#eab308', rollmaster: '#e31e24', lovesushi: '#ec4899', pokiwoki: '#f97316' };
 
 const STATUS_LABELS = {
-  pending:          { label: 'Achitată cu succes',  color: '#10b981' },
+  pending:          { label: 'Achitată cu succes',  color: '#059669' },
   awaiting_payment: { label: 'Trimis la bucătărie', color: '#059669' },
   confirmed:        { label: 'Trimis la bucătărie', color: '#059669' },
   preparing:        { label: 'În preparare',        color: '#3b82f6' },
-  ready:            { label: 'Gata',                color: '#10b981' },
+  ready:            { label: 'Gata',                color: '#059669' },
   delivered:        { label: 'Livrat',              color: '#8b5cf6' },
   cancelled:        { label: 'Anulată',             color: '#ef4444' },
 };
@@ -54,12 +54,12 @@ const getOrderStatus = (o) => {
   if (!o) return { label: '—', color: '#6b7a99' };
   if (o.status === 'cancelled') return { label: 'Anulată', color: '#ef4444' };
   if (o.status === 'delivered') return { label: 'Livrat', color: '#8b5cf6' };
-  if (o.status === 'ready')     return { label: 'Gata', color: '#10b981' };
+  if (o.status === 'ready')     return { label: 'Gata', color: '#059669' };
   if (o.status === 'preparing') return { label: 'În preparare', color: '#3b82f6' };
 
   // Comenzi plătite cu cardul -> Achitată cu succes
   if (o.paymentMethod === 'card' || o.paymentRef?.authCode) {
-    return { label: 'Achitată cu succes', color: '#10b981' };
+    return { label: 'Achitată cu succes', color: '#059669' };
   }
 
   // Comenzi trimise la bucătărie (Syrve / iiko) sau cash
@@ -67,11 +67,12 @@ const getOrderStatus = (o) => {
     return { label: 'Trimis la bucătărie', color: '#059669' };
   }
 
-  return STATUS_LABELS[o.status] || { label: 'Achitată cu succes', color: '#10b981' };
+  return STATUS_LABELS[o.status] || { label: 'Achitată cu succes', color: '#059669' };
 };
 
 export default function AdminApp() {
   const { token, user, fetchWithAuth, logout } = useAuth();
+  const confirm = useConfirm();
   
   const [tab, setTabState] = useState(() => {
     const hash = window.location.hash.replace('#', '');
@@ -450,7 +451,12 @@ export default function AdminApp() {
   }, [periodFilter, customStart, customEnd, dashboardPeriod, dashboardCustomStart, dashboardCustomEnd, triggerOrderToast]);
 
   const handleCancelOrder = async (orderId) => {
-    if (!window.confirm('Ești sigur că vrei să anulezi această comandă (anulată din POS)?')) return;
+    const ok = await confirm('Ești sigur că vrei să anulezi această comandă (anulată din POS)?', {
+      title: 'Anulare comandă',
+      danger: true,
+      okLabel: 'Anulează comanda'
+    });
+    if (!ok) return;
     try {
       const res = await fetchWithAuth(`${BACKEND}/api/orders/${orderId}/status`, {
         method: 'PATCH',
@@ -459,13 +465,13 @@ export default function AdminApp() {
       });
       if (res.ok) {
         setOrders(prev => prev.map(o => o._id === orderId ? { ...o, status: 'cancelled', canceledBy: 'admin' } : o));
-        alert('Comanda a fost marcată ca anulată.');
+        confirm('Comanda a fost marcată ca anulată.', { title: 'Comandă Anulată', hideCancel: true, okLabel: 'Închide' });
       } else {
-        const err = await res.json();
-        alert('Eroare: ' + (err.error || 'Nu s-a putut anula.'));
+        const err = await res.json().catch(() => ({}));
+        confirm('Eroare: ' + (err.error || 'Nu s-a putut anula.'), { title: 'Eroare', danger: true, hideCancel: true, okLabel: 'Închide' });
       }
     } catch (e) {
-      alert('Eroare de rețea.');
+      confirm('Eroare de rețea. Verificați conexiunea la server.', { title: 'Eroare de rețea', danger: true, hideCancel: true, okLabel: 'Închide' });
     }
   };  /* ─── Load menu status ───────────────────────────── */
   const fetchMenuStatus = useCallback(() => {
@@ -868,7 +874,7 @@ export default function AdminApp() {
                 <StatCard 
                   label="Încasări Total" 
                   value={`${formatThousands(dashboardRevenue, 0)} lei`} 
-                  color="#10b981" 
+                  color="#059669" 
                   icon={TrendingUp}
                 />
               </div>
@@ -1315,7 +1321,7 @@ export default function AdminApp() {
                       navigator.clipboard.writeText(selectedOrder.syrveOrderId);
                       const btn = e.currentTarget;
                       const originalHTML = btn.innerHTML;
-                      btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#10b981" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>';
+                      btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#059669" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>';
                       setTimeout(() => { btn.innerHTML = originalHTML; }, 1500);
                     }}
                     className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
@@ -1647,7 +1653,7 @@ function OrdersTable({ orders, full, onRowClick, selectedId, defaultRows = 10 })
                               navigator.clipboard.writeText(o.syrveOrderId);
                               const btn = e.currentTarget;
                               const originalHTML = btn.innerHTML;
-                              btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="#10b981" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>';
+                              btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="#059669" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>';
                               setTimeout(() => { btn.innerHTML = originalHTML; }, 1500);
                             }}
                             className="text-slate-400 hover:text-emerald-500 transition-colors"
@@ -1876,11 +1882,21 @@ function KiosksManager({ backend, kiosksLiveStatus = {} }) {
   const [allMenus, setAllMenus] = useState({});
   const [loading, setLoading] = useState(true);
   const [brandFilter, setBrandFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'online'
+  const [statusFilter, setStatusFilter] = useState('online'); // 'all' | 'online' (default online)
+  const [revealedPins, setRevealedPins] = useState(new Set()); // IDs of kiosks with revealed PINs
   const [editingLoc, setEditingLoc] = useState(null);
   const [editingTab, setEditingTab] = useState('design');
   const [restartingId, setRestartingId] = useState(null); // ID of loc currently restarting
   const [toast, setToast] = useState(null); // { msg, type: 'success'|'error' }
+
+  const toggleRevealPin = (id) => {
+    setRevealedPins(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const isLocOnline = (loc) => {
     if (!loc) return false;
@@ -2012,25 +2028,37 @@ function KiosksManager({ backend, kiosksLiveStatus = {} }) {
   }
 
   const brandMeta = {
-    smashme:    { name: 'SmashMe',     color: '#ef4444' },
-    crunch:     { name: 'Crunch',      color: '#eab308' },
-    rollmaster: { name: 'Roll Master', color: '#3b82f6' },
-    lovesushi:  { name: 'Love Sushi',  color: '#ec4899' },
-    pokiwoki:   { name: 'Poki-Woki',   color: '#f97316' },
+    smashme:     { name: 'SmashMe',     color: '#ef4444' },
+    crunch:      { name: 'Crunch',      color: '#eab308' },
+    rollmaster:  { name: 'Roll Master', color: '#e31e24' },
+    lovesushi:   { name: 'Love Sushi',  color: '#ec4899' },
+    pokiwoki:    { name: 'Poki-Woki',   color: '#f97316' },
+    welovesushi: { name: 'WeLoveSushi', color: '#6366f1' },
   };
 
   const allBrandIds = new Set();
   locations.forEach(l => {
-     if (l.brands && Array.isArray(l.brands)) l.brands.forEach(b => allBrandIds.add(b));
-     else if (l.brandId) allBrandIds.add(l.brandId);
+     if (l.brands && Array.isArray(l.brands)) {
+       l.brands.forEach(b => {
+         const norm = (b === 'sushimaster' || b === 'ikura') ? 'rollmaster' : b;
+         allBrandIds.add(norm);
+       });
+     } else if (l.brandId) {
+       const norm = (l.brandId === 'sushimaster' || l.brandId === 'ikura') ? 'rollmaster' : l.brandId;
+       allBrandIds.add(norm);
+     }
   });
   const brandIds = [...allBrandIds];
 
   const totalOnlineCount = locations.filter(isLocOnline).length;
 
-  let filtered = brandFilter === 'all' 
-    ? locations 
-    : locations.filter(l => (l.brands && l.brands.includes(brandFilter)) || l.brandId === brandFilter);
+  let filtered = locations;
+  if (brandFilter !== 'all') {
+    filtered = filtered.filter(l => {
+      const bList = (l.brands || (l.brandId ? [l.brandId] : [])).map(b => (b === 'sushimaster' || b === 'ikura') ? 'rollmaster' : b);
+      return bList.includes(brandFilter);
+    });
+  }
 
   if (statusFilter === 'online') {
     filtered = filtered.filter(isLocOnline);
@@ -2103,45 +2131,66 @@ function KiosksManager({ backend, kiosksLiveStatus = {} }) {
 
       {/* Tabel Business */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-x-auto">
-        <table className="w-full text-left border-collapse min-w-[850px]">
+        <table className="w-full text-left border-collapse min-w-[900px]">
           <thead>
             <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 whitespace-nowrap">
-              <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 w-12 text-center">#</th>
-              <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 min-w-[200px]">Denumire & ID</th>
-              <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Meniu & Program Blocare</th>
-              <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 text-center">Branduri Admise</th>
-              <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Stare & PIN</th>
+              <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 text-left whitespace-nowrap">#</th>
+              <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 min-w-[200px]">Denumire</th>
+              <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Meniu</th>
+              <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Program</th>
+              <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Stare</th>
               <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 text-right">Acțiuni</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
             {paginated.map((loc, index) => {
               const finalKioskUrl = loc.kioskUrl ? `https://kiosk-smashme.netlify.app/?loc=${loc.kioskUrl}` : `https://kiosk-smashme.netlify.app/?loc=${loc.id}`;
-              const brandsArr = loc.brands || (loc.brandId ? [loc.brandId] : []);
+              const brandsArr = [...new Set((loc.brands && loc.brands.length > 0 ? loc.brands : (loc.brandId ? [loc.brandId] : (loc.name && loc.name.toLowerCase().includes('roll') ? ['rollmaster'] : (loc.name && loc.name.toLowerCase().includes('smash') ? ['smashme'] : [])))).map(b => (b === 'sushimaster' || b === 'ikura') ? 'rollmaster' : b))];
+              const displayBrands = brandsArr.length > 1 && loc.name 
+                ? (brandsArr.filter(b => loc.name.toLowerCase().replace(/[\s\-_]+/g, '').includes(b)).length > 0
+                    ? brandsArr.filter(b => loc.name.toLowerCase().replace(/[\s\-_]+/g, '').includes(b))
+                    : brandsArr)
+                : brandsArr;
               const menuStats = getKioskMenuStats(loc);
               const live = kiosksLiveStatus[loc.id] || 
                            (loc.kioskUrl ? kiosksLiveStatus[loc.kioskUrl] : null) ||
                            (loc.aliases && Array.isArray(loc.aliases) ? loc.aliases.map(a => kiosksLiveStatus[a]).find(Boolean) : null);
-              const isOnline = Boolean(live && (live.isLive || live.online || (live.onlineCount > 0)));
+              const isOnline = isLocOnline(loc);
               const isLocked = live ? (live.isLocked || live.screen === 'pin') : false;
               
               return (
                 <tr key={loc.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
-                  <td className="px-6 py-4 text-sm font-bold text-slate-900 dark:text-white text-center whitespace-nowrap">
+                  <td className="px-6 py-4 text-sm text-slate-400 font-medium whitespace-nowrap">
                     {(currentPage - 1) * itemsPerPage + index + 1}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex flex-col gap-1 items-start">
-                      <span className="font-bold text-slate-900 dark:text-white text-base whitespace-nowrap">{loc.name}</span>
-                      <a 
-                        href={`/kiosk/${loc.kioskUrl || loc.id}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        title={`Deschide chioșcul live (${loc.kioskUrl || loc.id})`}
-                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-800 hover:bg-slate-700 text-white shadow-sm transition-colors whitespace-nowrap"
+                      <button 
+                        type="button"
+                        onClick={() => { setEditingLoc(loc); setEditingTab('design'); }}
+                        title={`Apasă pentru setările chioșcului ${loc.name}`}
+                        className="inline-flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-full text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all whitespace-nowrap cursor-pointer"
                       >
-                        URL: {loc.kioskUrl || loc.id}
-                      </a>
+                        {displayBrands.length > 0 && (
+                          <div className="flex items-center gap-1 shrink-0">
+                            {displayBrands.map(b => (
+                              <BrandLogo key={b} brandId={b} size={18} />
+                            ))}
+                          </div>
+                        )}
+                        <span>{loc.name}</span>
+                      </button>
+                      <div className="flex items-center gap-2 text-[11px] font-medium whitespace-nowrap">
+                        <a 
+                          href={`/kiosk/${loc.kioskUrl || loc.id}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          title={`Deschide chioșcul live (${loc.kioskUrl || loc.id})`}
+                          className="text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 transition-colors"
+                        >
+                          URL: {loc.kioskUrl || loc.id}
+                        </a>
+                      </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -2150,7 +2199,7 @@ function KiosksManager({ backend, kiosksLiveStatus = {} }) {
                         <button 
                           type="button"
                           onClick={() => { setEditingLoc(loc); setEditingTab('menu'); }}
-                          title={`Meniu Personalizat: ${menuStats.visibleCount !== null ? `${menuStats.visibleCount} din ${menuStats.totalCount} produse vizibile` : ''} ${menuStats.hiddenCount > 0 ? `(${menuStats.hiddenCount} ascunse)` : ''}${menuStats.profileName ? ` - Profil: ${menuStats.profileName}` : ''}. Apasă pentru configurare.`}
+                          title={`Meniu Personalizat: ${menuStats.visibleCount !== null ? `${menuStats.visibleCount}/${menuStats.totalCount} produse` : ''} ${menuStats.hiddenCount > 0 ? `(${menuStats.hiddenCount} ascunse)` : ''}${menuStats.profileName ? ` - Profil: ${menuStats.profileName}` : ''}. Apasă pentru configurare.`}
                           className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all whitespace-nowrap cursor-pointer"
                         >
                           <span className="text-white">Meniu Personalizat</span>
@@ -2165,77 +2214,109 @@ function KiosksManager({ backend, kiosksLiveStatus = {} }) {
                           <span className="text-white">Meniu Complet</span>
                         </button>
                       )}
-                      {loc.lockScheduleActive ? (
-                        <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 flex items-center gap-1">
-                          <Clock className="w-3 h-3 text-slate-400" />
-                          Orar: {loc.lockStartTime || '22:00'} - {loc.lockEndTime || '09:00'}
-                        </span>
-                      ) : (
-                        <span className="text-[11px] text-slate-400">
-                          Fără program blocare
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <div className="flex gap-2 items-center justify-center">
-                      {brandsArr.map(b => (
-                         <div key={b} title={brandMeta[b]?.name || b}><BrandLogo brandId={b} size={28} /></div>
-                      ))}
+                      {/* Detalii Meniu sub buton - exact 1 singur rând compact (maxim 2 rânduri per celulă) */}
+                      <div 
+                        className="text-[11px] text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap overflow-hidden text-ellipsis max-w-[260px] leading-tight"
+                        title={menuStats.isCustom 
+                          ? `${menuStats.profileName ? `Profil: ${menuStats.profileName} • ` : ''}${menuStats.visibleCount}/${menuStats.totalCount} produse${menuStats.hiddenCount > 0 ? ` (${menuStats.hiddenCount} ascunse)` : ''}`
+                          : `${menuStats.totalCount || 'Toate'} produse active`
+                        }
+                      >
+                        {menuStats.isCustom ? (
+                          <span className="inline-flex items-center gap-1">
+                            {menuStats.profileName && (
+                              <span className="font-semibold text-slate-700 dark:text-slate-200">
+                                {menuStats.profileName} •
+                              </span>
+                            )}
+                            <span>{menuStats.visibleCount}/{menuStats.totalCount} prod</span>
+                            {menuStats.hiddenCount > 0 && (
+                              <span className="text-amber-600 dark:text-amber-400 font-semibold">
+                                (-{menuStats.hiddenCount})
+                              </span>
+                            )}
+                          </span>
+                        ) : (
+                          <span>{menuStats.totalCount ? `${menuStats.totalCount} produse active` : 'Toate produsele active'}</span>
+                        )}
+                      </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex flex-col gap-1 items-start">
-                      <div className="flex items-center gap-2" title={isOnline ? 'Chioșcul este activ și comunică în timp real' : 'Chioșcul nu este deschis în browser în acest moment'}>
-                        <span className={`w-2.5 h-2.5 rounded-full ${isOnline ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)] animate-pulse' : 'bg-slate-400'}`} />
-                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                          {isOnline ? 'Conectat' : (loc.active ? 'Offline' : 'Inactiv')}
-                        </span>
-                      </div>
-                      {isOnline && isLocked ? (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-600 text-white shadow-sm">
-                          <Lock className="w-2.5 h-2.5 text-white" /> Blocat PIN {loc.kioskPin ? `(${loc.kioskPin})` : ''}
-                        </span>
-                      ) : loc.kioskPin ? (
-                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-mono">
-                          PIN: {loc.kioskPin}
-                        </span>
+                      {loc.lockScheduleActive ? (
+                        <button 
+                          type="button"
+                          onClick={() => { setEditingLoc(loc); setEditingTab('system'); }}
+                          title={`Orar blocare: ${loc.lockStartTime || '22:00'} - ${loc.lockEndTime || '09:00'}. Apasă pentru configurare.`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all whitespace-nowrap cursor-pointer"
+                        >
+                          <Clock className="w-3.5 h-3.5" />
+                          <span>Orar: {loc.lockStartTime || '22:00'} - {loc.lockEndTime || '09:00'}</span>
+                        </button>
                       ) : (
-                        <span className="text-xs text-slate-400">
+                        <button 
+                          type="button"
+                          onClick={() => { setEditingLoc(loc); setEditingTab('system'); }}
+                          title="Fără program automat de blocare. Apasă pentru configurare orar."
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 transition-all whitespace-nowrap cursor-pointer"
+                        >
+                          <Clock className="w-3.5 h-3.5 text-slate-400" />
+                          <span>Fără program</span>
+                        </button>
+                      )}
+                      {/* PIN sub butonul de program */}
+                      {loc.kioskPin ? (
+                        <div className="inline-flex items-center gap-1 text-[11px] text-slate-600 dark:text-slate-300 font-semibold whitespace-nowrap">
+                          <span>PIN: {revealedPins.has(loc.id) ? loc.kioskPin : '••••'}</span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleRevealPin(loc.id);
+                            }}
+                            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-0.5 rounded focus:outline-none cursor-pointer"
+                            title={revealedPins.has(loc.id) ? 'Ascunde PIN' : 'Arată PIN'}
+                          >
+                            {revealedPins.has(loc.id) ? (
+                              <EyeOff className="w-3.5 h-3.5" />
+                            ) : (
+                              <Eye className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-[11px] text-slate-400 font-normal whitespace-nowrap">
                           Fără PIN
                         </span>
                       )}
                     </div>
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex flex-col gap-1 items-start">
+                      <div 
+                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-white shadow-sm whitespace-nowrap ${
+                          isOnline ? 'bg-emerald-600' : 'bg-slate-500 dark:bg-slate-600'
+                        }`}
+                        title={isOnline ? 'Chioșcul este activ și comunică în timp real' : 'Chioșcul este offline (deconectat)'}
+                      >
+                        <span 
+                          className={`w-2 h-2 rounded-full shrink-0 ${isOnline ? 'bg-white animate-pulse' : 'bg-slate-300'}`} 
+                        />
+                        <span>{isOnline ? 'Conectat' : (loc.active ? 'Offline' : 'Inactiv')}</span>
+                        {isOnline && isLocked && (
+                          <span className="ml-1 inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full text-[9px] font-black bg-red-600 text-white">
+                            <Lock className="w-2.5 h-2.5 text-white" /> Blocat PIN
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">
+                        {isOnline ? (isLocked ? 'Ecran blocat (PIN)' : 'Online acum') : (loc.active ? 'Offline' : 'Inactiv')}
+                      </span>
+                    </div>
+                  </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2">
-                      {loc.kioskPin && (
-                        <button 
-                          title={`Resetează PIN (${loc.kioskPin}) la Fără PIN`}
-                          className="w-8 h-8 rounded-full border border-rose-200 dark:border-rose-800/60 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 flex items-center justify-center transition-colors shadow-sm active:scale-95"
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            if (!window.confirm(`Resetați codul PIN pentru locația "${loc.name}"? Kioskul va funcționa direct, fără solicitare de PIN.`)) return;
-                            try {
-                              const res = await fetchWithAuth(`${backend}/api/locations/${loc.id}`, {
-                                method: 'PUT',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ kioskPin: '', vendorPin: '', lockScheduleActive: false })
-                              });
-                              if (res.ok) {
-                                showToast(`PIN-ul pentru ${loc.name} a fost resetat cu succes!`);
-                                fetchLocs();
-                              } else {
-                                showToast('Eroare la resetarea PIN-ului', 'error');
-                              }
-                            } catch {
-                              showToast('Eroare la conectare', 'error');
-                            }
-                          }}
-                        >
-                          <RotateCcw className="w-3.5 h-3.5" />
-                        </button>
-                      )}
                       <button 
                         title="Restartare Ecrane Remote"
                         className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 dark:hover:bg-orange-500/10 dark:hover:text-orange-400 text-slate-600 dark:text-slate-400 flex items-center justify-center transition-colors"
@@ -2330,7 +2411,7 @@ function KiosksManager({ backend, kiosksLiveStatus = {} }) {
     {toast && (
       <div style={{
         position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
-        background: toast.type === 'error' ? '#ef4444' : '#10b981',
+        background: toast.type === 'error' ? '#ef4444' : '#059669',
         color: '#fff', padding: '14px 24px', borderRadius: '14px',
         fontWeight: 700, fontSize: '0.95rem',
         boxShadow: '0 8px 30px rgba(0,0,0,0.2)',
@@ -2356,7 +2437,7 @@ function RestartKioskBtn({ locId, backend, fetchWithAuth }) {
     } catch { setRstState('err'); }
     setTimeout(() => setRstState('idle'), 3000);
   };
-  const colors = { idle: 'var(--surface)', sending: '#f59e0b', ok: '#10b981', err: '#ef4444' };
+  const colors = { idle: 'var(--surface)', sending: '#f59e0b', ok: '#059669', err: '#ef4444' };
   const labels = { idle: 'Refresh Kiosk', sending: 'Se trimite...', ok: '✓ Trimis!', err: '✕ Eroare' };
   return (
     <button
@@ -2427,7 +2508,7 @@ function KioskColorPicker({ label, value, onChange, placeholder, allowClear, cle
           value={value || ''}
           placeholder={placeholder || '#000000'}
           onChange={e => onChange(e.target.value)}
-          className="w-28 px-3 py-1.5 text-xs font-mono rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          className="w-28 px-3 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
         />
         {allowClear && (
           <button
@@ -2485,6 +2566,7 @@ function parseFooterDetails(rawText, explicitWebsite, explicitPhone) {
 
 function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave }) {
   const { fetchWithAuth } = useAuth();
+  const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState(initialTab || 'design');
   const [formData, setFormData] = useState({
     name: loc.name || '',
@@ -2564,10 +2646,10 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
       if (data.ok) {
         setFormData(prev => ({ ...prev, posterUrl: data.posterUrl }));
       } else {
-        alert('Eroare: ' + data.error);
+        confirm('Eroare: ' + data.error, { title: 'Eroare Încărcare Screensaver', danger: true, hideCancel: true, okLabel: 'Închide' });
       }
     } catch (err) {
-      alert('Eroare la încărcare imagine');
+      confirm('Eroare la încărcarea imaginii pe server.', { title: 'Eroare Screensaver', danger: true, hideCancel: true, okLabel: 'Închide' });
     }
     setUploadingScreensaver(false);
   };
@@ -2587,10 +2669,10 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
       if (data.ok && (data.url || data.posterUrl)) {
         setFormData(prev => ({ ...prev, bottomBannerLogoUrl: data.url || data.posterUrl }));
       } else {
-        alert('Eroare: ' + (data.error || 'Nu s-a putut încărca sigla'));
+        confirm(data.error || 'Nu s-a putut încărca sigla.', { title: 'Eroare Siglă', danger: true, hideCancel: true, okLabel: 'Închide' });
       }
     } catch (err) {
-      alert('Eroare la încărcare fișier logo');
+      confirm('Eroare la încărcarea siglei pe server.', { title: 'Eroare Siglă', danger: true, hideCancel: true, okLabel: 'Închide' });
     }
     setUploadingLogo(false);
   };
@@ -2610,10 +2692,10 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
       if (data.ok && (data.url || data.posterUrl)) {
         setFormData(prev => ({ ...prev, bottomBannerUrl: data.url || data.posterUrl }));
       } else {
-        alert('Eroare: ' + (data.error || 'Nu s-a putut încărca fișierul media'));
+        confirm(data.error || 'Nu s-a putut încărca fișierul media.', { title: 'Eroare Media', danger: true, hideCancel: true, okLabel: 'Închide' });
       }
     } catch (err) {
-      alert('Eroare la încărcare fișier media');
+      confirm('Eroare la încărcarea fișierului media pe server.', { title: 'Eroare Media', danger: true, hideCancel: true, okLabel: 'Închide' });
     }
     setUploadingBottomMedia(false);
   };
@@ -2749,6 +2831,51 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
              const newOverrides = { ...formData.menuOverrides };
              if (!newOverrides[brandId]) newOverrides[brandId] = {};
              newOverrides[brandId].hiddenItems = updatedConfig.hiddenItems;
+
+             // Actualizare sau creare profil de meniu pentru brand dacă numele a fost editat
+             const brand = editingMenuBrand.brand;
+             const currentProfiles = brand.data?.menuProfiles || [];
+             let updatedProfiles = [...currentProfiles];
+             const trimmedName = (updatedConfig.name || '').trim();
+             let profileModified = false;
+
+             if (editingMenuBrand.profile?.id) {
+               if (trimmedName && trimmedName !== editingMenuBrand.profile.name) {
+                 updatedProfiles = currentProfiles.map(p => 
+                   p.id === editingMenuBrand.profile.id ? { ...p, name: trimmedName } : p
+                 );
+                 profileModified = true;
+               }
+             } else if (trimmedName && trimmedName !== 'Meniu Complet (Fără Șablon)' && trimmedName !== 'Meniu Personalizat') {
+               const newProfId = 'prof_' + Date.now().toString(36);
+               const newProf = {
+                 id: newProfId,
+                 name: trimmedName,
+                 rootFolderId: updatedConfig.rootFolderId || null,
+                 hiddenItems: updatedConfig.hiddenItems || {}
+               };
+               updatedProfiles.push(newProf);
+               newOverrides[brandId].profileId = newProfId;
+               profileModified = true;
+             }
+
+             if (profileModified) {
+               try {
+                 const updatedBrand = { ...brand, data: { ...brand.data, menuProfiles: updatedProfiles } };
+                 await fetchWithAuth(`${backend}/api/brands/${brandId}`, {
+                   method: 'PUT',
+                   headers: { 'Content-Type': 'application/json' },
+                   body: JSON.stringify(updatedBrand)
+                 });
+                 setBrandProfiles(prev => ({
+                   ...prev,
+                   [brandId]: { brand: updatedBrand, profiles: updatedProfiles }
+                 }));
+               } catch (err) {
+                 console.error('Eroare salvare profil brand:', err);
+               }
+             }
+
              handleChange('menuOverrides', newOverrides);
              setEditingMenuBrand(null);
              try {
@@ -3279,7 +3406,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                   placeholder="https://... sau încarcă din PC"
                   value={formData.posterUrl || ''}
                   onChange={e => handleChange('posterUrl', e.target.value)}
-                  className="flex-1 px-3.5 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-mono"
+                  className="flex-1 px-3.5 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
                 <label className={`px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer shrink-0 ${
                   uploadingScreensaver ? 'opacity-70 cursor-wait' : ''
@@ -3416,7 +3543,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                             placeholder={`URL Video MP4 / Imagine pt ${brandId}...`}
                             value={val}
                             onChange={e => handleChange(`topBannerUrl_${brandId}`, e.target.value)}
-                            className="w-full px-3 py-1.5 text-xs font-mono rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                            className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                           />
                         </div>
                       );
@@ -3431,7 +3558,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                         placeholder="https://... URL video MP4 sau imagine"
                         value={formData.topBannerUrl || ''}
                         onChange={e => handleChange('topBannerUrl', e.target.value)}
-                        className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono"
+                        className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                       />
                     </div>
                   )}
@@ -4074,7 +4201,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                 <h3 className="text-base font-bold text-slate-900 dark:text-white">Limbi Active pe Kiosk</h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">Limba marcată cu steluță este implicită la pornire</p>
               </div>
-              <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+              <span className="text-xs font-semibold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                 {(formData.languages || []).length} active
               </span>
             </div>
@@ -4274,7 +4401,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                   Selectează protocolul hardware prin care tableta comunică cu terminalul bancar.
                 </p>
               </div>
-              <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                 Gateway: {formData.paymentGateway || 'none'}
               </span>
             </div>
@@ -4418,7 +4545,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                     placeholder="ex: smashme-brasov"
                     value={formData.kioskUrl || ''}
                     onChange={e => handleChange('kioskUrl', e.target.value)}
-                    className="flex-1 px-3.5 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono"
+                    className="flex-1 px-3.5 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                   />
                   <button
                     type="button"
@@ -4428,7 +4555,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                     Copiază URL
                   </button>
                 </div>
-                <div className="text-xs text-slate-400 font-mono truncate">
+                <div className="text-xs text-slate-400 truncate">
                   {finalKioskUrl}
                 </div>
 
@@ -4439,7 +4566,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                       <ShieldCheck className="w-3.5 h-3.5 text-blue-500 inline" />
                       Link Portal Manager
                     </span>
-                    <span className="text-[11px] text-slate-400 font-mono truncate block mt-0.5">
+                    <span className="text-[11px] text-slate-400 truncate block mt-0.5">
                       {finalKioskUrl}&manager=true
                     </span>
                   </div>
@@ -4703,7 +4830,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                                 type="time"
                                 value={formData.lockStartTime || '22:00'}
                                 onChange={e => handleChange('lockStartTime', e.target.value)}
-                                className="w-full px-3 py-2 text-sm font-mono rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                                className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                               />
                             </div>
                             <div>
@@ -4714,7 +4841,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                                 type="time"
                                 value={formData.lockEndTime || '09:00'}
                                 onChange={e => handleChange('lockEndTime', e.target.value)}
-                                className="w-full px-3 py-2 text-sm font-mono rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                                className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                               />
                             </div>
                           </div>
@@ -5000,7 +5127,7 @@ function LocationsManager({ backend, kiosksLiveStatus = {} }) {
                   </td>
                   <td className="px-6 py-4">
                     <div className="font-bold text-slate-900 dark:text-white text-sm">{loc.name}</div>
-                    <div className="text-xs text-slate-500 mt-1 font-mono">ID: {loc.id}</div>
+                    <div className="text-xs text-slate-400 mt-0.5 font-medium">ID: {loc.id}</div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex gap-2 flex-wrap">
@@ -5187,7 +5314,7 @@ function LocationEditForm({ loc, backend, onBack, onSave }) {
                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
                    <BrandLogo brandId={bId} size={14} /> Org ID ({bId})
                  </label>
-                 <input type="text" className="w-full h-11 px-4 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white transition-all font-mono" value={formData.orgIds[bId] || ''} onChange={e => handleOrgChange(bId, e.target.value)} placeholder="ID global implicit" />
+                 <input type="text" className="w-full h-11 px-4 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white transition-all" value={formData.orgIds[bId] || ''} onChange={e => handleOrgChange(bId, e.target.value)} placeholder="ID global implicit" />
                </div>
              ))}
              {formData.brands.length === 0 && <span className="text-sm text-amber-600 dark:text-amber-400 font-medium p-4 bg-amber-50 dark:bg-amber-500/10 rounded-full border border-amber-200 dark:border-amber-500/20 col-span-full">Selectează măcar un brand pentru a seta suprascrieri de locație Syrve.</span>}
@@ -5297,7 +5424,7 @@ function BrandsManager({ backend }) {
                 </div>
                 <div>
                   <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text)' }}>{brand.name || brand.id}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{brand.id}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>{brand.id}</div>
                   {brand.website && (
                     <a href={brand.website} target="_blank" rel="noreferrer" style={{ fontSize: '0.75rem', color: color, textDecoration: 'none', fontWeight: 600 }}>
                       {brand.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
@@ -5329,7 +5456,7 @@ function BrandsManager({ backend }) {
 
                   {/* Or paste URL */}
                   {brand.logo_url && (
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 12, wordBreak: 'break-all', fontFamily: 'monospace', background: 'var(--bg-surface)', padding: '6px 8px', borderRadius: 6 }}>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 12, wordBreak: 'break-all', fontWeight: 500, background: 'var(--bg-surface)', padding: '6px 8px', borderRadius: 6 }}>
                       {brand.logo_url}
                     </div>
                   )}
@@ -5390,7 +5517,7 @@ function BrandsManager({ backend }) {
       {toast && (
         <div style={{
           position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
-          background: toast.type === 'error' ? '#ef4444' : '#10b981',
+          background: toast.type === 'error' ? '#ef4444' : '#059669',
           color: '#fff', padding: '14px 24px', borderRadius: '14px',
           fontWeight: 700, fontSize: '0.95rem', boxShadow: '0 8px 30px rgba(0,0,0,0.2)',
           display: 'flex', alignItems: 'center', gap: 10,

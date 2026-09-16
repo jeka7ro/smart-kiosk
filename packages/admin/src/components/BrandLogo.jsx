@@ -8,13 +8,14 @@ export default function BrandLogo({ brandId, size = 26, className = "" }) {
     lovesushi: '/brands/lovesushi-logo.png',
     welovesushi: '/brands/welovesushi-logo.png',
     pokiwoki: '/brands/pokiwoki-logo.png',
-    sushimaster: '/brands/sushimaster-logo.png',
-    ikura: '/brands/ikura-logo.png',
   };
-  const key = (brandId || '').toLowerCase().replace(/[\s\-_]+/g, '');
+  let key = (brandId || '').toLowerCase().replace(/[\s\-_]+/g, '');
+  if (key === 'sushimaster' || key === 'ikura') {
+    key = 'rollmaster';
+  }
   // Căutăm potrivire directă sau parțială
   const matchedKey = Object.keys(logos).find(k => key.includes(k) || k.includes(key));
-  const src = matchedKey ? logos[matchedKey] : null;
+  const src = matchedKey ? logos[matchedKey] : (key.includes('sushi') || key === 'ikura' ? logos.rollmaster : null);
 
   if (src) {
     return (

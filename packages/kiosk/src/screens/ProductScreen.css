@@ -120,11 +120,9 @@
 }
 
 .ps-card-body::-webkit-scrollbar {
-  width: 6px;
-}
-.ps-card-body::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 6px;
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 /* Hero Image: 4:3 exact ca pe cardul din meniu (arată burgerul și tot suportul complet) */

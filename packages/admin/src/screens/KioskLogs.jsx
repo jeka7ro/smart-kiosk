@@ -10,11 +10,9 @@ const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.on
 const BRAND_COLORS = {
   smashme: '#ef4444',
   crunch: '#eab308',
-  rollmaster: '#3b82f6',
+  rollmaster: '#e31e24',
   lovesushi: '#ec4899',
-  pokiwoki: '#f97316',
-  sushimaster: '#e31e24',
-  ikura: '#8b5cf6'
+  pokiwoki: '#f97316'
 };
 
 const BRAND_NAMES = {
@@ -22,16 +20,14 @@ const BRAND_NAMES = {
   crunch: 'Crunch',
   rollmaster: 'Roll Master',
   lovesushi: 'Love Sushi',
-  pokiwoki: 'Poki-Woki',
-  sushimaster: 'Sushi Master',
-  ikura: 'Ikura'
+  pokiwoki: 'Poki-Woki'
 };
 
 const EVENT_CONFIG = {
   unlock_manager: {
     label: 'Deblocat PIN Manager',
     color: '#ffffff',
-    bg: '#16a34a',
+    bg: '#059669',
     icon: <ShieldCheck className="w-4 h-4 text-white shrink-0" />
   },
   unlock_vendor: {
@@ -166,10 +162,9 @@ export default function KioskLogs() {
       const combined = `${locNameRaw} ${locId}`.toLowerCase();
       if (combined.includes('smash')) brand = 'smashme';
       else if (combined.includes('crunch')) brand = 'crunch';
-      else if (combined.includes('roll') || combined.includes('master')) brand = 'rollmaster';
-      else if (combined.includes('love') || combined.includes('sushi')) brand = 'lovesushi';
+      else if (combined.includes('roll') || combined.includes('master') || combined.includes('sushi') || combined.includes('ikura')) brand = 'rollmaster';
+      else if (combined.includes('love')) brand = 'lovesushi';
       else if (combined.includes('poki')) brand = 'pokiwoki';
-      else if (combined.includes('ikura')) brand = 'ikura';
     }
 
     let cleanName = locNameRaw;
@@ -349,7 +344,7 @@ export default function KioskLogs() {
         <StatCard
           label="Deblocat Manager"
           value={derivedStats.manager}
-          color="#10b981"
+          color="#059669"
           icon={ShieldCheck}
           onClick={() => { setFilter(filter === 'unlock_manager' ? 'all' : 'unlock_manager'); setCurrentPage(1); }}
           active={filter === 'unlock_manager'}

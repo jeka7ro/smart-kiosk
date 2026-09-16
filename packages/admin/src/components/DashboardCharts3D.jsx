@@ -6,7 +6,7 @@ import { formatThousands } from '../utils/formatters';
 const BRAND_COLORS = {
   smashme: '#ef4444',
   crunch: '#eab308',
-  rollmaster: '#3b82f6',
+  rollmaster: '#e31e24',
   lovesushi: '#ec4899',
   pokiwoki: '#f97316'
 };
@@ -1028,7 +1028,7 @@ export function PaymentMethodsChart3D({
                 ? 'opacity-40 border-slate-200 dark:border-slate-800 hover:opacity-75'
                 : 'border-slate-200 dark:border-slate-800 hover:shadow-md hover:scale-[1.01]'
           }`}
-          style={{ borderLeft: '4px solid #10b981' }}
+          style={{ borderLeft: '4px solid #059669' }}
         >
           <div className="flex flex-col justify-center min-w-0 pr-2 z-10 flex-1">
             <div className="flex items-center gap-2 mb-1">
@@ -1060,13 +1060,13 @@ export function PaymentMethodsChart3D({
             {/* 3D Atmosphere Glow */}
             <div 
               className="absolute -inset-1.5 rounded-full blur-md opacity-35 group-hover:opacity-75 transition-opacity pointer-events-none"
-              style={{ backgroundColor: '#10b981' }}
+              style={{ backgroundColor: '#059669' }}
             />
             {/* 3D Raised Bezel Container */}
             <div 
               className="relative w-12 h-12 rounded-full p-0.5 flex items-center justify-center bg-gradient-to-b from-white via-slate-50 to-slate-100 dark:from-slate-700 dark:via-slate-800 dark:to-slate-900 border border-white/80 dark:border-slate-600/60 shadow-md transition-transform duration-200 group-hover:scale-110 group-hover:-translate-y-0.5"
               style={{ 
-                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25), 0 1px 2px rgba(0,0,0,0.1), inset 0 2px 3px rgba(255,255,255,0.9)' 
+                boxShadow: '0 4px 12px rgba(5, 150, 105, 0.25), 0 1px 2px rgba(0,0,0,0.1), inset 0 2px 3px rgba(255,255,255,0.9)' 
               }}
             >
               <CreditCard size={22} strokeWidth={2.2} className="text-emerald-600 dark:text-emerald-400" />

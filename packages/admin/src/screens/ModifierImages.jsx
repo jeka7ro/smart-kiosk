@@ -8,12 +8,11 @@ const PAGE_SIZE = 25;
 
 const BRANDS = [
   { id: 'smashme',     label: 'SmashMe',     color: '#ef4444' },
-  { id: 'rollmaster', label: 'Roll Master', color: '#3b82f6' },
+  { id: 'rollmaster', label: 'Roll Master', color: '#e31e24' },
   { id: 'lovesushi', label: 'Love Sushi', color: '#ec4899' },
   { id: 'pokiwoki', label: 'Poki-Woki', color: '#f97316' },
   { id: 'crunch', label: 'Crunch', color: '#eab308' },
-  { id: 'welovesushi', label: 'WeLoveSushi', color: '#f59e0b' },
-  { id: 'ikura',       label: 'Ikura',       color: '#10b981' }
+  { id: 'welovesushi', label: 'WeLoveSushi', color: '#f59e0b' }
 ];
 
 export default function ModifierImages() {

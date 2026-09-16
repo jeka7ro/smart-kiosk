@@ -10,7 +10,7 @@ import { formatThousands } from '../utils/formatters';
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
 
 const STATUS_CONFIG = {
-  success: { label: 'Succes',  color: '#ffffff', bg: '#16a34a', icon: '✓' },
+  success: { label: 'Succes',  color: '#ffffff', bg: '#059669', icon: '✓' },
   error:   { label: 'Eroare',  color: '#ffffff', bg: '#dc2626', icon: '✕' },
   unknown: { label: 'Necunoscut', color: '#ffffff', bg: '#d97706', icon: '?' },
 };
@@ -212,7 +212,7 @@ export default function PrinterLogs() {
         <StatCard 
           label="Reușite" 
           value={derivedStats.success} 
-          color="#10b981" 
+          color="#059669" 
           icon={CheckCircle2}
           onClick={() => { setFilter(filter === 'success' ? 'all' : 'success'); setCurrentPage(1); }}
           active={filter === 'success'}
@@ -536,7 +536,7 @@ export default function PrinterLogs() {
                               <div key={i} className="text-lg font-black uppercase text-slate-800 dark:text-slate-200">{b}</div>
                             ))}
                             <div className="text-base font-bold mt-1">Comanda #{log.receiptContent.orderNumber}</div>
-                            <div className="text-xs font-bold mt-1" style={{ color: log.receiptContent.paymentMethod === 'cash' ? '#f59e0b' : '#10b981' }}>
+                            <div className="text-xs font-bold mt-1" style={{ color: log.receiptContent.paymentMethod === 'cash' ? '#f59e0b' : '#059669' }}>
                               {log.receiptContent.paymentMethod === 'cash' ? 'NEACHITAT - ACHITAȚI LA CASĂ' : 'ACHITAT CARD POS'}
                             </div>
                             <div className="text-xs mt-1 text-slate-500 font-bold uppercase">

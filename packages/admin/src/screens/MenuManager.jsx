@@ -1,26 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthProvider';
-import { Folder } from 'lucide-react';
+import BrandLogo from '../components/BrandLogo';
+import { Folder, Search, X, ChevronDown, ChevronUp, EyeOff, RotateCcw, Plus, Edit3 } from 'lucide-react';
 
-const BRAND_COLORS = { smashme: '#ef4444', crunch: '#eab308', rollmaster: '#3b82f6', lovesushi: '#ec4899', pokiwoki: '#f97316' };
-
-function BrandLogo({ brandId, size = 18 }) {
-  const logos = {
-    smashme: '/brands/smashme-logo.png',
-    crunch: '/brands/crunch-logo.png',
-    rollmaster: '/brands/rollmaster-logo.png',
-    lovesushi: '/brands/lovesushi-logo.png',
-    pokiwoki: '/brands/pokiwoki-logo.png',
-    ikura: '/brands/ikura-logo.png'
-  };
-  const src = logos[brandId] || logos.smashme; // fallback
-  return (
-    <>
-      <img src={src} alt={brandId} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'contain', verticalAlign: 'middle', flexShrink: 0 }} onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'inline-block'; }} />
-      <span style={{ display: 'none', fontSize: size * 0.8, fontWeight: 700, opacity: 0.6, letterSpacing: '0.5px', textTransform: 'uppercase' }}>{brandId}</span>
-    </>
-  );
-}
+const BRAND_COLORS = { smashme: '#ef4444', crunch: '#eab308', rollmaster: '#e31e24', lovesushi: '#ec4899', pokiwoki: '#f97316' };
 
 export default function MenuManager({ backend }) {
   const { fetchWithAuth } = useAuth();
@@ -120,112 +103,181 @@ export default function MenuManager({ backend }) {
   if (loading) return <p className="text-slate-500 font-medium py-10 text-center animate-pulse">Se încarcă managerul de meniu...</p>;
 
   return (
-    <div className="space-y-8">
-      <div className="flex justify-end">
-        <button className="px-5 h-10 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold transition-colors" onClick={fetchMenuStatus}>
-          Re-sincronizare Check
-        </button>
+    <div className="space-y-6 animate-in fade-in duration-300">
+      {/* Header & Quick Action */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
+            Sincronizare Syrve & Profile Meniu
+            <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+              Total: {menuStatus?.brands?.length || brands.length} branduri
+            </span>
+          </h2>
+          <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm leading-relaxed">
+            Monitorizează sincronizarea meniului POS (Syrve/iiko) și configurează profilele de meniu per brand.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3 shrink-0">
+          <button
+            onClick={fetchMenuStatus}
+            className="px-4 h-10 rounded-full bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-sm font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer"
+            title="Verifică starea sincronizării cu POS-ul Syrve"
+          >
+            <RotateCcw className="w-4 h-4 text-slate-400" />
+            <span>Re-sincronizare Check</span>
+          </button>
+        </div>
       </div>
 
-      {!menuStatus ? (
-        <p className="text-slate-500 font-medium py-10 text-center animate-pulse">Se încarcă...</p>
-      ) : menuStatus.error ? (
-        <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-4 rounded-xl border border-red-200 dark:border-red-800 font-medium">{menuStatus.error}</div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {menuStatus.brands?.map(b => (
-            <div key={b.brandId} className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-800"
-                 style={{ borderTop: `4px solid ${BRAND_COLORS[b.brandId] || '#3b82f6'}` }}>
-              <div className="flex items-center justify-between mb-6">
-                <span className="flex items-center gap-2 font-bold text-slate-900 dark:text-white text-lg">
-                  <BrandLogo brandId={b.brandId} size={24} /> {b.name || b.brandId}
-                </span>
-                <span className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-500 uppercase tracking-wider">{b.source}</span>
-              </div>
-              <div className="flex gap-4">
-                <div className="flex-1 bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800">
-                  <span className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Categorii</span>
-                  <strong className="text-2xl text-slate-900 dark:text-white">{b.categories}</strong>
-                </div>
-                <div className="flex-1 bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800">
-                  <span className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Produse</span>
-                  <strong className="text-2xl text-slate-900 dark:text-white">{b.products}</strong>
-                </div>
-              </div>
-              <div className="text-xs font-medium text-slate-400 mt-4 text-center">
-                Ultima Modificare POS: {b.syncedAt ? new Date(b.syncedAt).toLocaleTimeString('ro-RO') : 'N/A'}
-              </div>
-            </div>
-          ))}
+      {menuStatus?.error && (
+        <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-4 rounded-xl border border-red-200 dark:border-red-800 font-medium">
+          {menuStatus.error}
         </div>
       )}
 
-      {/* MENU PROFILES SECTION */}
-      <div className="mt-12">
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Șabloane & Profile de Meniu</h2>
-        <p className="text-slate-500 text-sm mb-8 max-w-3xl">
-          Creează "Profile de Meniu" pe fiecare Brand. Poți ascunde din POS foldere sau produse specifice. Ulterior, aloci aceste profile individual pe fiecare Kiosk în parte (ex: Kiosk Terasă - Doar Băuturi).
-        </p>
+      {/* Tabel Business Unificat */}
+      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-[850px]">
+            <thead>
+              <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 whitespace-nowrap">
+                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 text-center w-[60px]">#</th>
+                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 min-w-[200px]">Brand</th>
+                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 min-w-[180px]">Stare Syrve POS</th>
+                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 min-w-[190px]">Date Meniu POS</th>
+                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Profile Meniu Active</th>
+                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 text-right min-w-[150px]">Acțiuni</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {menuStatus?.brands?.map((b, index) => {
+                const brand = brands.find(br => br.id === b.brandId) || { id: b.brandId, name: b.name || b.brandId, data: {} };
+                const profiles = brand.data?.menuProfiles || [];
+                const isLive = Boolean(b.categories || b.products);
 
-        <div className="space-y-6">
-          {menuStatus?.brands?.map(mb => {
-            const brand = brands.find(b => b.id === mb.brandId);
-            if (!brand) return null;
-            const profiles = brand.data?.menuProfiles || [];
+                return (
+                  <tr key={b.brandId} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                    {/* Nr. Crt. */}
+                    <td className="px-6 py-4 text-sm font-bold text-slate-400 dark:text-slate-500 text-center whitespace-nowrap">
+                      {index + 1}
+                    </td>
 
-            return (
-              <div key={brand.id} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 gap-4">
-                  <div className="flex items-center gap-3">
-                    <BrandLogo brandId={brand.id} size={32} />
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Profile {brand.name}</h3>
-                  </div>
-                  <button 
-                    className="shrink-0 px-5 h-10 rounded-full bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-900 text-sm font-bold transition-colors shadow-sm" 
-                    onClick={() => { setInputValue(''); setActionModal({ type: 'create', brandId: brand.id, brandName: brand.name }); }}
-                  >
-                    + Adaugă Profil
-                  </button>
-                </div>
-
-                <div className="p-6">
-                  {profiles.length === 0 ? (
-                    <div className="text-center py-10 px-4 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-800 text-slate-500 text-sm font-medium">
-                      Niciun profil de meniu creat pentru {brand.name}.<br/>Fiecare Kiosk va afișa meniul 100% complet implicit.
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {profiles.map(p => (
-                        <div key={p.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 gap-4 transition-colors hover:border-slate-300 dark:hover:border-slate-600">
-                          <div>
-                            <strong className="block text-base text-slate-900 dark:text-white mb-1">{p.name}</strong>
-                            <span className="text-sm font-medium text-slate-500">
-                              {Object.keys(p.hiddenItems || {}).length} elemente debifate (ascunse)
-                            </span>
-                          </div>
-                          <div className="flex gap-2 shrink-0">
-                            <button 
-                              className="px-4 h-9 rounded-full bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-sm font-bold transition-colors" 
-                              onClick={() => setEditingProfileForBrand({ brand, profile: p })}
-                            >
-                              Editează Arborele
-                            </button>
-                            <button 
-                              className="w-9 h-9 rounded-full bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 flex items-center justify-center transition-colors"
-                              onClick={() => setActionModal({ type: 'delete', brandId: brand.id, profileId: p.id, profileName: p.name })}
-                              title="Șterge Profile"
-                            >
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                            </button>
-                          </div>
+                    {/* Brand */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-3">
+                        <BrandLogo brandId={b.brandId} size={28} />
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-slate-900 dark:text-white text-sm">
+                            {b.name || b.brandId}
+                          </span>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 leading-none mt-0.5">
+                            {b.source || 'SYRVE-LIVE'}
+                          </span>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+                      </div>
+                    </td>
+
+                    {/* Stare Syrve POS */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex flex-col gap-1 items-start">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${isLive ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)] animate-pulse' : 'bg-slate-400'}`} />
+                          <span className={`text-xs font-bold ${isLive ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500'}`}>
+                            {isLive ? 'Sincronizat Live' : 'Neverificat'}
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-slate-400 font-medium">
+                          Modificare: {b.syncedAt ? new Date(b.syncedAt).toLocaleTimeString('ro-RO') : 'N/A'}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Date Meniu POS */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                          {b.categories} categorii
+                        </span>
+                        <span className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                          {b.products} produse
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Profile Meniu Active */}
+                    <td className="px-6 py-4">
+                      {profiles.length === 0 ? (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                          Meniu 100% complet (implicit)
+                        </span>
+                      ) : (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {profiles.map(p => {
+                            const hiddenCount = Object.keys(p.hiddenItems || {}).length;
+                            return (
+                              <div
+                                key={p.id}
+                                className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 text-blue-700 dark:text-blue-300 shadow-xs"
+                              >
+                                <span className="font-bold text-slate-900 dark:text-white">{p.name}</span>
+                                {hiddenCount > 0 ? (
+                                  <span className="text-amber-600 dark:text-amber-400 text-[10px] font-bold">
+                                    (-{hiddenCount})
+                                  </span>
+                                ) : (
+                                  <span className="text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">
+                                    (complet)
+                                  </span>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingProfileForBrand({ brand, profile: p })}
+                                  title="Editează arbore produse profil"
+                                  className="w-5 h-5 rounded-full hover:bg-blue-200 dark:hover:bg-blue-800 flex items-center justify-center text-blue-600 dark:text-blue-300 hover:text-blue-900 dark:hover:text-white transition-colors cursor-pointer ml-1"
+                                >
+                                  <Edit3 className="w-3 h-3" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setActionModal({ type: 'delete', brandId: brand.id, profileId: p.id, profileName: p.name })}
+                                  title="Șterge profil"
+                                  className="w-5 h-5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/40 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors cursor-pointer"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </td>
+
+                    {/* Acțiuni */}
+                    <td className="px-6 py-4 text-right whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                      <div className="flex justify-end items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => { setInputValue(''); setActionModal({ type: 'create', brandId: brand.id, brandName: brand.name }); }}
+                          title={`Adaugă profil de meniu pentru ${brand.name}`}
+                          className="px-3.5 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-900 text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Adaugă Profil</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-500 font-medium">
+          <span>Total branduri sincronizate: <strong>{menuStatus?.brands?.length || 0}</strong></span>
+          <span>Sursă date: Syrve Cloud API (iiko)</span>
         </div>
       </div>
 
@@ -289,9 +341,64 @@ export function MenuProfileEditorModal({ backend, brand, profile, onClose, onSav
   const { fetchWithAuth } = useAuth();
   const [loading, setLoading] = useState(true);
   const [menu, setMenu] = useState({ categories: [], products: [] });
+  const [profileName, setProfileName] = useState(profile?.name || '');
   const [hiddenItems, setHiddenItems] = useState(localHiddenItemsOverride || profile.hiddenItems || {});
   const [rootFolderId, setRootFolderId] = useState(profile.rootFolderId || '');
   const [activeTab, setActiveTab] = useState(null); // Category ID for sidebar navigation
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showHiddenSection, setShowHiddenSection] = useState(true);
+
+  useEffect(() => {
+    if (profile?.name) {
+      setProfileName(profile.name);
+    }
+  }, [profile?.name]);
+
+  const filteredProducts = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return [];
+    return menu.products.filter(p => {
+      const nameMatch = (p.name || '').toLowerCase().includes(q);
+      const cat = menu.categories.find(c => c.id === p.categoryId);
+      const catMatch = cat && (cat.name || '').toLowerCase().includes(q);
+      const codeMatch = (p.code || '').toLowerCase().includes(q);
+      return nameMatch || catMatch || codeMatch;
+    });
+  }, [menu.products, menu.categories, searchQuery]);
+
+  // Determine if a product is currently hidden/scos
+  const isProductHidden = useCallback((p) => {
+    const cat = menu.categories.find(c => c.id === p.categoryId);
+    let cur = cat;
+    while (cur) {
+      const isCatHiddenByTemplate = profile.hiddenItems?.[cur.id] === true;
+      const isCatLocallyHidden = hiddenItems[cur.id] === true;
+      const isCatLocallyVisible = hiddenItems[cur.id] === false;
+      let isCurHidden = isCatHiddenByTemplate;
+      if (localHiddenItemsOverride !== null) {
+        isCurHidden = isCatLocallyHidden || (isCatHiddenByTemplate && !isCatLocallyVisible);
+      } else {
+        isCurHidden = isCatLocallyHidden;
+      }
+      if (isCurHidden) return true;
+      cur = menu.categories.find(c => c.id === cur.parentGroup);
+    }
+
+    const isPHiddenByTemplate = profile.hiddenItems?.[p.id] === true;
+    const isPLocallyHidden = hiddenItems[p.id] === true;
+    const isPLocallyVisible = hiddenItems[p.id] === false;
+    let pSelfHidden = isPHiddenByTemplate;
+    if (localHiddenItemsOverride !== null) {
+      pSelfHidden = isPLocallyHidden || (isPHiddenByTemplate && !isPLocallyVisible);
+    } else {
+      pSelfHidden = isPLocallyHidden;
+    }
+    return pSelfHidden;
+  }, [menu.categories, profile.hiddenItems, hiddenItems, localHiddenItemsOverride]);
+
+  const hiddenProducts = useMemo(() => {
+    return menu.products.filter(p => isProductHidden(p));
+  }, [menu.products, isProductHidden]);
 
   useEffect(() => {
     fetchWithAuth(`${backend}/api/menu?brandId=${brand.id}`)
@@ -431,20 +538,37 @@ export function MenuProfileEditorModal({ backend, brand, profile, onClose, onSav
       
       {/* Header Area */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-5">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-1">
           <button className="shrink-0 w-11 h-11 rounded-full bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-center text-slate-500 transition-colors border border-slate-200 dark:border-slate-700 shadow-sm" onClick={onClose}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
           </button>
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white m-0 leading-tight">
-              {localHiddenItemsOverride !== null ? 'Personalizare Meniu Kiosk' : `Editare Profil: ${profile.name}`}
-            </h2>
-            <p className="text-slate-500 text-sm mt-1 m-0">Brand: {brand.name}</p>
+          <div className="flex-1 max-w-xl">
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                {localHiddenItemsOverride !== null ? 'Personalizare Meniu Kiosk' : 'Editare Profil Meniu'}
+              </span>
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold border border-slate-200 dark:border-slate-700">
+                Brand: {brand.name}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={profileName}
+                onChange={e => setProfileName(e.target.value)}
+                placeholder="Nume profil (ex: Cluj 1 - fără desert)"
+                title="Editează numele acestui profil de meniu"
+                className="w-full max-w-md px-3.5 h-11 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-bold text-base focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm transition-all"
+              />
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-3 shrink-0">
-          <button className="px-6 h-11 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold transition-colors" onClick={onClose}>Renunță</button>
-          <button className="px-8 h-11 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all" onClick={() => onSave({ ...profile, hiddenItems, rootFolderId: rootFolderId === '' ? null : rootFolderId })}>
+          <button className="px-6 h-11 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold transition-colors cursor-pointer" onClick={onClose}>Renunță</button>
+          <button 
+            className="px-8 h-11 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all cursor-pointer" 
+            onClick={() => onSave({ ...profile, name: profileName.trim() || profile?.name || 'Profil Meniu', hiddenItems, rootFolderId: rootFolderId === '' ? null : rootFolderId })}
+          >
             {localHiddenItemsOverride !== null ? 'Salvează Vizibilitate' : 'Salvează Profilul'}
           </button>
         </div>
@@ -489,26 +613,272 @@ export function MenuProfileEditorModal({ backend, brand, profile, onClose, onSav
             </div>
           )}
 
-          <div>
-            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Categorii</h4>
-            <div className="flex flex-wrap gap-2">
-               {rootMenuItems.map(c => (
-                 <button 
-                   key={c.id}
-                   onClick={() => setActiveTab(c.id)}
-                   className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${activeTab === c.id ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm border border-transparent' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
-                 >
-                    {c.name}
-                 </button>
-               ))}
-               {rootMenuItems.length === 0 && <span className="text-slate-500 text-sm">Nu a fost găsită nicio categorie.</span>}
+          {/* Search Bar */}
+          <div className="relative w-full">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+              <Search size={18} />
             </div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Caută rapid un produs după nume sau categorie (ex: Burger, Cola, Rolls, Desert)..."
+              className="w-full pl-11 pr-10 h-12 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm text-sm font-medium transition-all"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                title="Șterge căutarea"
+              >
+                <X size={18} />
+              </button>
+            )}
           </div>
 
-          {/* Render Area */}
-          <div className="flex-1 min-h-[400px]">
-            {activeTab && renderCategoryTree(menu.categories, activeTab)}
-          </div>
+          {searchQuery.trim() ? (
+            <div className="flex flex-col gap-4 flex-1 min-h-[300px]">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                    Rezultate căutare:
+                  </span>
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
+                    {filteredProducts.length} {filteredProducts.length === 1 ? 'produs' : 'produse'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer"
+                >
+                  Resetează căutarea (vezi categorii)
+                </button>
+              </div>
+
+              {filteredProducts.length === 0 ? (
+                <div className="py-16 text-center bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 text-slate-500">
+                  <p className="text-base font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Niciun produs găsit
+                  </p>
+                  <p className="text-sm text-slate-400">
+                    Nu am găsit produse care să conțină „<strong>{searchQuery}</strong>”.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                  {filteredProducts.map(p => {
+                    const cat = menu.categories.find(c => c.id === p.categoryId);
+                    const isPHiddenByTemplate = profile.hiddenItems?.[p.id] === true;
+                    const isPLocallyHidden = hiddenItems[p.id] === true;
+                    const isPLocallyVisible = hiddenItems[p.id] === false;
+                    
+                    let pEffectivelyHidden = isPHiddenByTemplate;
+                    if (localHiddenItemsOverride !== null) {
+                      pEffectivelyHidden = isPLocallyHidden || (isPHiddenByTemplate && !isPLocallyVisible);
+                    } else {
+                      pEffectivelyHidden = isPLocallyHidden;
+                    }
+
+                    return (
+                      <div
+                        key={p.id}
+                        className={`flex items-center justify-between p-3.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all duration-200 ${
+                          pEffectivelyHidden ? 'opacity-40 bg-slate-100 dark:bg-slate-800/40' : 'opacity-100'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 flex-1 overflow-hidden min-w-0">
+                          {p.image ? (
+                            <img
+                              src={proxySyrveImage(p.image)}
+                              alt=""
+                              className="w-11 h-11 rounded-lg object-cover shrink-0 border border-slate-200 dark:border-slate-700"
+                            />
+                          ) : (
+                            <div className="w-11 h-11 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center shrink-0 text-slate-400 text-xs font-bold">
+                              🍽️
+                            </div>
+                          )}
+                          <div className="flex flex-col min-w-0 pr-2">
+                            <span className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate" title={p.name}>
+                              {p.name}
+                            </span>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {cat && (
+                                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700/60 px-2 py-0.5 rounded-md truncate">
+                                  📁 {cat.name}
+                                </span>
+                              )}
+                              {p.price > 0 && (
+                                <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">
+                                  {parseFloat(p.price).toFixed(2)} lei
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <label className="flex items-center gap-2 cursor-pointer shrink-0 ml-2">
+                          <input
+                            type="checkbox"
+                            checked={!pEffectivelyHidden}
+                            onChange={e => handleToggleHide(p.id, !e.target.checked)}
+                            className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                          />
+                        </label>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : (
+            <>
+              {/* Section: Produse Ascunse / Scoase din Meniu (Afișat imediat când există produse ascunse) */}
+              {hiddenProducts.length > 0 && (
+                <div className="p-5 bg-rose-50/80 dark:bg-rose-950/30 rounded-2xl border border-rose-200 dark:border-rose-900/50 flex flex-col gap-3 shadow-sm transition-all">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+                        <EyeOff size={18} />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <strong className="text-base font-bold text-slate-900 dark:text-white">
+                            Produse Ascunse / Scoase
+                          </strong>
+                          <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-rose-600 text-white shadow-xs">
+                            {hiddenProducts.length}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 m-0 mt-0.5">
+                          Aceste produse sunt ascunse din meniu. Apasă pe checkbox pentru a le reafișa imediat.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setHiddenItems(prev => {
+                            const next = { ...prev };
+                            hiddenProducts.forEach(p => {
+                              if (localHiddenItemsOverride !== null) {
+                                next[p.id] = false;
+                                if (p.categoryId) next[p.categoryId] = false;
+                              } else {
+                                delete next[p.id];
+                                if (p.categoryId) delete next[p.categoryId];
+                              }
+                            });
+                            return next;
+                          });
+                        }}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-700 hover:text-rose-900 dark:text-rose-300 dark:hover:text-rose-100 bg-white dark:bg-slate-800 border border-rose-200 dark:border-rose-800 px-3 py-1.5 rounded-xl shadow-xs hover:bg-rose-50 dark:hover:bg-slate-700 transition-all cursor-pointer"
+                      >
+                        <RotateCcw size={13} />
+                        <span>Reafișează Toate ({hiddenProducts.length})</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setShowHiddenSection(prev => !prev)}
+                        className="w-8 h-8 rounded-xl bg-white dark:bg-slate-800 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 flex items-center justify-center hover:bg-rose-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                        title={showHiddenSection ? 'Restrânge lista' : 'Extinde lista'}
+                      >
+                        {showHiddenSection ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {showHiddenSection && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5 mt-1 max-h-[300px] overflow-y-auto pr-1">
+                      {hiddenProducts.map(p => {
+                        const cat = menu.categories.find(c => c.id === p.categoryId);
+                        return (
+                          <div
+                            key={p.id}
+                            className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-xl border border-rose-200 dark:border-rose-800/60 shadow-xs hover:border-rose-300 dark:hover:border-rose-700 transition-all"
+                          >
+                            <div className="flex items-center gap-3 flex-1 overflow-hidden min-w-0">
+                              {p.image ? (
+                                <img
+                                  src={proxySyrveImage(p.image)}
+                                  alt=""
+                                  className="w-10 h-10 rounded-lg object-cover shrink-0 border border-slate-200 dark:border-slate-700 opacity-60 grayscale"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center shrink-0 text-slate-400 text-xs font-bold">
+                                  🍽️
+                                </div>
+                              )}
+                              <div className="flex flex-col min-w-0 pr-2">
+                                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 truncate" title={p.name}>
+                                  {p.name}
+                                </span>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  {cat && (
+                                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60 px-1.5 py-0.5 rounded truncate">
+                                      📁 {cat.name}
+                                    </span>
+                                  )}
+                                  {p.price > 0 && (
+                                    <span className="text-[11px] font-medium text-slate-400">
+                                      {parseFloat(p.price).toFixed(2)} lei
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            <label className="flex items-center gap-2 cursor-pointer shrink-0 ml-2" title="Apasă pentru a reafișa produsul">
+                              <input
+                                type="checkbox"
+                                checked={false}
+                                onChange={() => handleToggleHide(p.id, false)}
+                                className="w-5 h-5 rounded border-rose-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                              />
+                            </label>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div>
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Categorii</h4>
+                <div className="flex flex-wrap gap-2">
+                   {rootMenuItems.map(c => {
+                     const hiddenInCat = hiddenProducts.filter(p => p.categoryId === c.id).length;
+                     return (
+                       <button 
+                         key={c.id}
+                         onClick={() => setActiveTab(c.id)}
+                         className={`px-5 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${activeTab === c.id ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm border border-transparent' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
+                       >
+                          <span>{c.name}</span>
+                          {hiddenInCat > 0 && (
+                            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${activeTab === c.id ? 'bg-rose-500 text-white' : 'bg-rose-100 text-rose-700 dark:bg-rose-900/60 dark:text-rose-300'}`}>
+                              -{hiddenInCat}
+                            </span>
+                          )}
+                       </button>
+                     );
+                   })}
+                   {rootMenuItems.length === 0 && <span className="text-slate-500 text-sm">Nu a fost găsită nicio categorie.</span>}
+                </div>
+              </div>
+
+              {/* Render Area */}
+              <div className="flex-1 min-h-[400px]">
+                {activeTab && renderCategoryTree(menu.categories, activeTab)}
+              </div>
+            </>
+          )}
         </>
       )}
     </div>

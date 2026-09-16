@@ -7,10 +7,10 @@ import './ManagerPortalModal.css';
 const BRAND_COLORS = {
   smashme: '#ef4444',
   crunch: '#eab308',
-  rollmaster: '#3b82f6',
+  rollmaster: '#e31e24',
   lovesushi: '#ec4899',
   sushimaster: '#e31e24',
-  ikura: '#8b5cf6',
+  ikura: '#e31e24',
   welovesushi: '#ec4899',
   pokiwoki: '#f97316'
 };
@@ -93,6 +93,7 @@ export default function ManagerPortalModal({ locationData, onClose, isStandalone
   const [itemsPerPage, setItemsPerPage] = useState(50);
   const [retryingId, setRetryingId] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
+  const [orderToCancel, setOrderToCancel] = useState(null);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -322,20 +323,26 @@ export default function ManagerPortalModal({ locationData, onClose, isStandalone
           setSelectedOrder(prev => ({ ...prev, syrveOrderId: data.syrveOrderId || 'Confirmat' }));
         }
       } else {
-        alert(`Eroare retrimitere Syrve: ${data.error || 'Necunoscută'}`);
+        showToast(`Eroare retrimitere Syrve: ${data.error || 'Necunoscută'}`);
       }
     } catch (err) {
-      alert(`Eroare: ${err.message}`);
+      showToast(`Eroare: ${err.message}`);
     } finally {
       setRetryingId(null);
     }
   };
 
   // Cancel order (Refuz POS)
-  const handleCancelOrder = async (order, e) => {
+  const handleCancelOrder = (order, e) => {
     if (e) e.stopPropagation();
+    setOrderToCancel(order);
+  };
+
+  const executeCancelOrder = async () => {
+    if (!orderToCancel) return;
+    const order = orderToCancel;
     const orderId = order._id || order.id;
-    if (!confirm(`Sigur doriți să anulați comanda #${order.orderNumber}?`)) return;
+    setOrderToCancel(null);
 
     try {
       const activeEndpoint = localBackend || CLOUD_BACKEND;
@@ -350,9 +357,11 @@ export default function ManagerPortalModal({ locationData, onClose, isStandalone
         if (selectedOrder && (selectedOrder._id === order._id || selectedOrder.orderNumber === order.orderNumber)) {
           setSelectedOrder(prev => ({ ...prev, status: 'cancelled' }));
         }
+      } else {
+        showToast(`Eroare la anulare comanda #${order.orderNumber}`);
       }
     } catch (err) {
-      alert(`Eroare la anulare: ${err.message}`);
+      showToast(`Eroare la anulare: ${err.message}`);
     }
   };
 
@@ -2000,6 +2009,44 @@ const KIOSK_EVENT_META = {
                   {formatCurrency(selectedOrder.totalAmount || selectedOrder.total || 0)} lei
                 </span>
               </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* In-app Order Cancel Confirmation Modal */}
+      {orderToCancel && ReactDOM.createPortal(
+        <div 
+          className="fixed inset-0 z-[999999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setOrderToCancel(null)}
+        >
+          <div 
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 w-full max-w-sm shadow-2xl text-center flex flex-col items-center animate-in fade-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex items-center justify-center mb-3">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Anulare Comandă</h3>
+            <p className="text-slate-600 dark:text-slate-300 text-sm mb-6">
+              Sigur doriți să anulați comanda #{orderToCancel.orderNumber}?
+            </p>
+            <div className="flex gap-3 w-full">
+              <button
+                type="button"
+                onClick={() => setOrderToCancel(null)}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              >
+                Înapoi
+              </button>
+              <button
+                type="button"
+                onClick={executeCancelOrder}
+                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold text-sm shadow-lg shadow-red-600/30 transition-colors"
+              >
+                Confirmă Anularea
+              </button>
             </div>
           </div>
         </div>,

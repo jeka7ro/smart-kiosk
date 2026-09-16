@@ -243,6 +243,7 @@ export default function ProductScreen() {
   const lang                = useKioskStore((s) => s.lang);
   const menuProducts        = useKioskStore((s) => s.menuProducts);
   const menuCategories      = useKioskStore((s) => s.menuCategories);
+  const locationData        = useKioskStore((s) => s.locationData);
   const brand               = useBrand();
 
   const handleBack = () => {
@@ -262,7 +263,60 @@ export default function ProductScreen() {
     return shouldShowSteam(product, brand?.id, productCategoryName);
   }, [product, brand?.id, productCategoryName]);
 
-  const modifiers = product?.modifierGroups || product?.modifiers || [];
+  // Filtrare automată a modificatorilor pentru a exclude produsele ascunse, anulate sau setate ca lipsă/stoc epuizat
+  const modifiers = useMemo(() => {
+    const rawMods = product?.modifierGroups || product?.modifiers || [];
+    if (!rawMods.length) return [];
+
+    const activeBrandId = product?._brand || brand?.id || 'smashme';
+    const brandOverrides = locationData?.menuOverrides?.[activeBrandId] || {};
+    const localHidden = brandOverrides.hiddenItems || {};
+
+    const hiddenIds = new Set();
+    const hiddenNames = new Set();
+
+    Object.entries(localHidden).forEach(([id, isHid]) => {
+      if (isHid === true) hiddenIds.add(id);
+    });
+
+    (menuProducts || []).forEach(p => {
+      const cleanName = (p.name || '').replace(/^\*+\s*/, '').trim().toLowerCase();
+      if (p.isHidden || p.isDeleted || p.outOfStock || localHidden[p.id] === true || localHidden[p.categoryId] === true) {
+        hiddenIds.add(p.id);
+        if (cleanName) hiddenNames.add(cleanName);
+      }
+    });
+
+    const isOptionAvailable = (opt) => {
+      if (!opt) return false;
+      if (opt.outOfStock || opt.isHidden || opt.isDeleted) return false;
+
+      // 1. Verificare ID direct sau _matchedId (ID-ul produsului părinte din Syrve)
+      if (hiddenIds.has(opt.id)) return false;
+      if (opt._matchedId && hiddenIds.has(opt._matchedId)) return false;
+
+      // 2. Verificare denumire cu produsele ascunse / anulate / fără stoc
+      const cleanOptName = (opt.name || '').replace(/^\*+\s*/, '').trim().toLowerCase();
+      if (cleanOptName && hiddenNames.has(cleanOptName)) return false;
+
+      // 3. Verificare explicită pentru churros dacă sunt anulate / lipsă
+      if (/churros|churo/i.test(cleanOptName)) {
+        return false;
+      }
+
+      return true;
+    };
+
+    return rawMods.map(mod => {
+      const opts = (mod.options || mod.items || []).filter(isOptionAvailable);
+      return {
+        ...mod,
+        options: opts,
+        items: opts
+      };
+    }).filter(mod => (mod.options || []).length > 0);
+  }, [product, menuProducts, locationData, brand?.id]);
+
   const allergens = product?.allergenGroups || product?.allergens || [];
 
   const [quantity, setQuantity] = useState(1);
@@ -284,8 +338,7 @@ export default function ProductScreen() {
 
   const [selected, setSelected] = useState(() => {
     const init = {};
-    const mods = product?.modifierGroups || product?.modifiers || [];
-    mods.forEach(mod => {
+    modifiers.forEach(mod => {
       const opts = mod.options || mod.items || [];
       if (mod.required && opts.length > 0) {
         init[mod.id] = { [opts[0].id]: 1 };
@@ -298,8 +351,7 @@ export default function ProductScreen() {
 
   const [activeDescOptId, setActiveDescOptId] = useState(() => {
     const init = {};
-    const mods = product?.modifierGroups || product?.modifiers || [];
-    mods.forEach(mod => {
+    modifiers.forEach(mod => {
       const opts = mod.options || mod.items || [];
       if (opts.length > 0) init[mod.id] = opts[0].id;
     });
@@ -314,10 +366,15 @@ export default function ProductScreen() {
 
     const actualBrandId = product._brand || brand?.id || 'smashme';
     const activeCatIds = new Set((menuCategories || []).map(c => c.id));
+    const brandOverrides = locationData?.menuOverrides?.[actualBrandId] || {};
+    const localHidden = brandOverrides.hiddenItems || {};
+
     const pool = menuProducts.filter(p => 
       p.id !== product.id && 
       p.price > 0 && 
       !p.isHidden && !p.isDeleted && !p.outOfStock &&
+      localHidden[p.id] !== true &&
+      localHidden[p.categoryId] !== true &&
       !/churros|churo/i.test(p.name) &&
       (activeCatIds.size === 0 || activeCatIds.has(p.categoryId)) &&
       (p._brand === actualBrandId || p.brandId === actualBrandId)
