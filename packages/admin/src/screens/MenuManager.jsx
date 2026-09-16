@@ -346,7 +346,6 @@ export function MenuProfileEditorModal({ backend, brand, profile, onClose, onSav
   const [rootFolderId, setRootFolderId] = useState(profile.rootFolderId || '');
   const [activeTab, setActiveTab] = useState(null); // Category ID for sidebar navigation
   const [searchQuery, setSearchQuery] = useState('');
-  const [showHiddenSection, setShowHiddenSection] = useState(true);
 
   useEffect(() => {
     if (profile?.name) {
@@ -735,119 +734,7 @@ export function MenuProfileEditorModal({ backend, brand, profile, onClose, onSav
             </div>
           ) : (
             <>
-              {/* Section: Produse Ascunse / Scoase din Meniu (Afișat imediat când există produse ascunse) */}
-              {hiddenProducts.length > 0 && (
-                <div className="p-5 bg-rose-50/80 dark:bg-rose-950/30 rounded-2xl border border-rose-200 dark:border-rose-900/50 flex flex-col gap-3 shadow-sm transition-all">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-sm">
-                        <EyeOff size={18} />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <strong className="text-base font-bold text-slate-900 dark:text-white">
-                            Produse Ascunse / Scoase
-                          </strong>
-                          <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-rose-600 text-white shadow-xs">
-                            {hiddenProducts.length}
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 m-0 mt-0.5">
-                          Aceste produse sunt ascunse din meniu. Apasă pe checkbox pentru a le reafișa imediat.
-                        </p>
-                      </div>
-                    </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setHiddenItems(prev => {
-                            const next = { ...prev };
-                            hiddenProducts.forEach(p => {
-                              if (localHiddenItemsOverride !== null) {
-                                next[p.id] = false;
-                                if (p.categoryId) next[p.categoryId] = false;
-                              } else {
-                                delete next[p.id];
-                                if (p.categoryId) delete next[p.categoryId];
-                              }
-                            });
-                            return next;
-                          });
-                        }}
-                        className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-700 hover:text-rose-900 dark:text-rose-300 dark:hover:text-rose-100 bg-white dark:bg-slate-800 border border-rose-200 dark:border-rose-800 px-3 py-1.5 rounded-xl shadow-xs hover:bg-rose-50 dark:hover:bg-slate-700 transition-all cursor-pointer"
-                      >
-                        <RotateCcw size={13} />
-                        <span>Reafișează Toate ({hiddenProducts.length})</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setShowHiddenSection(prev => !prev)}
-                        className="w-8 h-8 rounded-xl bg-white dark:bg-slate-800 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 flex items-center justify-center hover:bg-rose-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-                        title={showHiddenSection ? 'Restrânge lista' : 'Extinde lista'}
-                      >
-                        {showHiddenSection ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                      </button>
-                    </div>
-                  </div>
-
-                  {showHiddenSection && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5 mt-1 max-h-[300px] overflow-y-auto pr-1">
-                      {hiddenProducts.map(p => {
-                        const cat = menu.categories.find(c => c.id === p.categoryId);
-                        return (
-                          <div
-                            key={p.id}
-                            className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-xl border border-rose-200 dark:border-rose-800/60 shadow-xs hover:border-rose-300 dark:hover:border-rose-700 transition-all"
-                          >
-                            <div className="flex items-center gap-3 flex-1 overflow-hidden min-w-0">
-                              {p.image ? (
-                                <img
-                                  src={proxySyrveImage(p.image)}
-                                  alt=""
-                                  className="w-10 h-10 rounded-lg object-cover shrink-0 border border-slate-200 dark:border-slate-700 opacity-60 grayscale"
-                                />
-                              ) : (
-                                <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center shrink-0 text-slate-400 text-xs font-bold">
-                                  🍽️
-                                </div>
-                              )}
-                              <div className="flex flex-col min-w-0 pr-2">
-                                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 truncate" title={p.name}>
-                                  {p.name}
-                                </span>
-                                <div className="flex items-center gap-2 mt-0.5">
-                                  {cat && (
-                                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60 px-1.5 py-0.5 rounded truncate">
-                                      📁 {cat.name}
-                                    </span>
-                                  )}
-                                  {p.price > 0 && (
-                                    <span className="text-[11px] font-medium text-slate-400">
-                                      {parseFloat(p.price).toFixed(2)} lei
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-
-                            <label className="flex items-center gap-2 cursor-pointer shrink-0 ml-2" title="Apasă pentru a reafișa produsul">
-                              <input
-                                type="checkbox"
-                                checked={false}
-                                onChange={() => handleToggleHide(p.id, false)}
-                                className="w-5 h-5 rounded border-rose-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                              />
-                            </label>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
 
               <div>
                 <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Categorii</h4>

@@ -84,8 +84,12 @@ export default function OrdersNotificationBell({
     };
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
     }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
   }, [isOpen]);
 
   const handleToggle = () => {
@@ -127,11 +131,19 @@ export default function OrdersNotificationBell({
         )}
       </button>
 
+      {/* ── Mobile Backdrop ── */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-40 sm:hidden"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
       {/* ── Dropdown Panel (Apple iOS Luxury Glass) ── */}
       {isOpen && (
         <div 
-          className="absolute right-0 top-12 z-50 w-[390px] max-w-[calc(100vw-2rem)] rounded-3xl bg-white/95 dark:bg-slate-900/95 text-slate-900 dark:text-white backdrop-blur-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xl shadow-slate-900/20 dark:shadow-black/60 overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 duration-200"
-          style={{ maxHeight: 'calc(100vh - 6rem)' }}
+          className="fixed sm:absolute left-3 right-3 sm:left-auto sm:right-0 top-[5.25rem] sm:top-12 z-50 w-auto sm:w-[390px] max-w-none sm:max-w-[calc(100vw-2rem)] rounded-3xl bg-white/95 dark:bg-slate-900/95 text-slate-900 dark:text-white backdrop-blur-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xl shadow-slate-900/20 dark:shadow-black/60 overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 duration-200"
+          style={{ maxHeight: 'calc(100vh - 6.5rem)' }}
         >
           {/* Header Panel */}
           <div className="px-5 py-3.5 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/30 shrink-0">

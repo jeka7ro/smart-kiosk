@@ -280,6 +280,38 @@ export default function AdminApp() {
   const [kiosksLiveStatus, setKiosksLiveStatus] = useState({});
   useKeepAlive(); // prevent Render backend from sleeping
 
+  const liveKiosksCount = useMemo(() => {
+    if (!kiosksLiveStatus || typeof kiosksLiveStatus !== 'object') return 0;
+    const activeKiosks = new Set();
+
+    Object.entries(kiosksLiveStatus).forEach(([locKey, val]) => {
+      if (!val) return;
+      const isOnline = Boolean(
+        val.isLive || 
+        val.online || 
+        (typeof val.onlineCount === 'number' && val.onlineCount > 0)
+      );
+
+      if (isOnline) {
+        let locId = (val.locationId || locKey || '').trim().toLowerCase().replace(/^kiosk-/, '');
+        if (!locId || locId === 'unknown' || locId === 'admin') return;
+
+        if (Array.isArray(val.devices) && val.devices.length > 0) {
+          val.devices.forEach(dev => {
+            if (dev && (dev.isLive || dev.online !== false)) {
+              const kId = (dev.kioskId || '1').trim().toLowerCase();
+              activeKiosks.add(`${locId}_${kId}`);
+            }
+          });
+        } else {
+          activeKiosks.add(`${locId}_1`);
+        }
+      }
+    });
+
+    return activeKiosks.size;
+  }, [kiosksLiveStatus]);
+
   /* ─── Theme Sync ─────────────────────────────────── */
   useEffect(() => {
     if (theme === 'dark') {
@@ -385,6 +417,9 @@ export default function AdminApp() {
           localSocket.emit('join', { role: 'admin' });
         });
         localSocket.on('new_order', handleIncomingOrder);
+        localSocket.on('kiosks_live_status', (statusMap) => {
+          setKiosksLiveStatus(prev => ({ ...prev, ...(statusMap || {}) }));
+        });
       } catch (e) {
         // Local backend not reachable, ignore
       }
@@ -807,10 +842,26 @@ export default function AdminApp() {
           </nav>
 
           <div className="p-4 border-t border-slate-200 dark:border-slate-800">
-            <div className={`flex items-center gap-2 px-3 py-2 rounded-full text-sm font-bold ${connected ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400'}`}>
-              <div className={`w-2 h-2 rounded-full ${connected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
-              {connected ? 'Live' : 'Offline'}
-            </div>
+            <button
+              type="button"
+              onClick={() => { setTab('kiosks'); setIsSidebarOpen(false); }}
+              title="Vezi starea kiosk-urilor conectate"
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-full text-sm font-bold transition-all cursor-pointer ${
+                connected 
+                  ? 'bg-emerald-50 hover:bg-emerald-100/80 text-emerald-700 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-500/20 shadow-sm' 
+                  : 'bg-red-50 hover:bg-red-100/80 text-red-600 dark:bg-red-500/10 dark:hover:bg-red-500/20 dark:text-red-400 border border-red-200/60 dark:border-red-500/20'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <div className={`w-2.5 h-2.5 rounded-full ${connected ? 'bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'bg-red-500'}`} />
+                <span>{connected ? 'Live' : 'Offline'}</span>
+              </div>
+              {connected && (
+                <span className="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300">
+                  {liveKiosksCount} {liveKiosksCount === 1 ? 'kiosk' : 'kiosk-uri'}
+                </span>
+              )}
+            </button>
           </div>
         </aside>
 
@@ -2714,13 +2765,19 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
   const [brandProfiles, setBrandProfiles] = useState({});
   useEffect(() => {
     activeBrands.forEach(brandId => {
-      fetchWithAuth(`${backend}/api/brands/${brandId}`)
-        .then(r => r.ok ? r.json() : null)
-        .then(d => {
-          if (d) {
+      Promise.all([
+        fetchWithAuth(`${backend}/api/brands/${brandId}`).then(r => r.ok ? r.json() : null),
+        fetchWithAuth(`${backend}/api/menu?brandId=${brandId}`).then(r => r.ok ? r.json() : null)
+      ])
+        .then(([brandData, menuData]) => {
+          if (brandData) {
              setBrandProfiles(prev => ({ 
                ...prev, 
-               [brandId]: { brand: d, profiles: d.data?.menuProfiles || [] } 
+               [brandId]: { 
+                 brand: brandData, 
+                 profiles: brandData.data?.menuProfiles || [],
+                 menu: menuData?.menu || null
+               } 
              }));
           }
         })
@@ -3049,9 +3106,17 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                         className="px-3.5 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white max-w-[260px]"
                       >
                         <option value="">Meniu Complet (Implicit)</option>
-                        {bData.profiles.map(p => (
-                          <option key={p.id} value={p.id}>{p.name} ({Object.keys(p.hiddenItems || {}).length} ascunse)</option>
-                        ))}
+                        {bData.profiles.map(p => {
+                          const prods = bData.menu?.products;
+                          const hCount = (prods && Array.isArray(prods) && prods.length > 0)
+                            ? prods.filter(prod => p.hiddenItems?.[prod.id] === true).length
+                            : Object.values(p.hiddenItems || {}).filter(v => v === true).length;
+                          return (
+                            <option key={p.id} value={p.id}>
+                              {p.name} {hCount > 0 ? `(${hCount} ascunse)` : ''}
+                            </option>
+                          );
+                        })}
                       </select>
 
                       <button
@@ -4922,9 +4987,17 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                         className="px-3.5 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white max-w-[260px]"
                       >
                         <option value="">Meniu Complet (Implicit)</option>
-                        {bData.profiles.map(p => (
-                          <option key={p.id} value={p.id}>{p.name} ({Object.keys(p.hiddenItems || {}).length} ascunse)</option>
-                        ))}
+                        {bData.profiles.map(p => {
+                          const prods = bData.menu?.products;
+                          const hCount = (prods && Array.isArray(prods) && prods.length > 0)
+                            ? prods.filter(prod => p.hiddenItems?.[prod.id] === true).length
+                            : Object.values(p.hiddenItems || {}).filter(v => v === true).length;
+                          return (
+                            <option key={p.id} value={p.id}>
+                              {p.name} {hCount > 0 ? `(${hCount} ascunse)` : ''}
+                            </option>
+                          );
+                        })}
                       </select>
 
                       <button
