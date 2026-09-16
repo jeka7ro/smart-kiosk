@@ -25,6 +25,7 @@ export default function CartScreen() {
   const hasPlayedPromo = useKioskStore((s) => s.hasPlayedPromo);
 
   const brand          = useBrand();
+  const activeBrandId  = useKioskStore((s) => s.activeBrandId) || brand?.id || 'smashme';
   const [imgErrors, setImgErrors] = useState({});
   const [addedIds, setAddedIds]   = useState({});
   const [showUpsellModal, setShowUpsellModal] = useState(false);
@@ -147,7 +148,7 @@ export default function CartScreen() {
     }
 
     return picked;
-  }, [menuProducts, menuCategories, cartItems, cartProductIds, addedIds]);
+  }, [menuProducts, menuCategories, cartItems, cartProductIds, addedIds, locationData, activeBrandId]);
 
   const setSelectedProduct = useKioskStore((s) => s.setSelectedProduct);
 
