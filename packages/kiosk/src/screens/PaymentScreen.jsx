@@ -54,31 +54,20 @@ export default function PaymentScreen() {
   const autoRetryCountRef = useRef(0);
   const handlePayRef = useRef(null);
 
-  const [showPosInstructions, setShowPosInstructions] = useState(false);
-  const [posTimer, setPosTimer] = useState(30);
-
-  useEffect(() => {
-    let timeout;
-    if (payState === STATE.WAITING_CARD) {
-      timeout = setTimeout(() => {
-        setShowPosInstructions(true);
-      }, 7000);
-    } else {
-      setShowPosInstructions(false);
-      setPosTimer(30);
-    }
-    return () => clearTimeout(timeout);
-  }, [payState]);
+  const [posTimer, setPosTimer] = useState(60);
 
   useEffect(() => {
     let interval;
-    if (showPosInstructions && posTimer > 0) {
+    if (payState === STATE.WAITING_CARD || payState === STATE.PIN_ENTRY) {
+      setPosTimer(60);
       interval = setInterval(() => {
-        setPosTimer(p => p - 1);
+        setPosTimer(p => (p > 0 ? p - 1 : 0));
       }, 1000);
+    } else {
+      setPosTimer(60);
     }
     return () => clearInterval(interval);
-  }, [showPosInstructions, posTimer]);
+  }, [payState]);
   useEffect(() => {
     // cleanup card socket on unmount
     return () => {
@@ -217,9 +206,39 @@ export default function PaymentScreen() {
 
   handlePayRef.current = handlePay;
 
-  const handleCancel      = () => { autoRetryCountRef.current = 0; setRetryNotice(''); socketRef.current?.disconnect(); goTo('cart'); };
-  const handleCancelOrder = () => { autoRetryCountRef.current = 0; setRetryNotice(''); socketRef.current?.disconnect(); resetOrder(); };
-  const handleRetry       = () => { autoRetryCountRef.current = 0; setRetryNotice(''); setPayState(STATE.IDLE); setErrorMsg(''); setTxInfo(null); };
+  const handleCancel = () => {
+    autoRetryCountRef.current = 0;
+    setRetryNotice('');
+    if (socketRef.current) {
+      socketRef.current.emit('cancel_pos_payment', {
+        locationId: locationData?.kioskUrl || locationData?.id || '',
+        orderId: orderIdRef.current,
+      });
+      socketRef.current.disconnect();
+    }
+    goTo('cart');
+  };
+
+  const handleCancelOrder = () => {
+    autoRetryCountRef.current = 0;
+    setRetryNotice('');
+    if (socketRef.current) {
+      socketRef.current.emit('cancel_pos_payment', {
+        locationId: locationData?.kioskUrl || locationData?.id || '',
+        orderId: orderIdRef.current,
+      });
+      socketRef.current.disconnect();
+    }
+    resetOrder();
+  };
+
+  const handleRetry = () => {
+    autoRetryCountRef.current = 0;
+    setRetryNotice('');
+    setPayState(STATE.IDLE);
+    setErrorMsg('');
+    setTxInfo(null);
+  };
 
   const canGoBack = [STATE.IDLE, STATE.ERROR, STATE.DECLINED].includes(payState);
 
@@ -382,48 +401,103 @@ export default function PaymentScreen() {
         )}
 
         {payState === STATE.WAITING_CARD && (
-          <div className="payment-processing">
-            {!showPosInstructions ? (
-              <>
-                <div className="pos-nfc-anim">
-                  <div className="pos-phone-vector">
-                    <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="5" y="2" width="14" height="20" rx="3" />
-                      <line x1="12" y1="18" x2="12.01" y2="18" strokeWidth="2.5" />
-                      <path d="M8.5 7.5a4 4 0 0 1 7 0" strokeWidth="1.5" />
-                      <path d="M7 5a6.5 6.5 0 0 1 10 0" strokeWidth="1.5" />
-                    </svg>
-                  </div>
-                  <div className="nfc-ring nfc-ring-1"/><div className="nfc-ring nfc-ring-2"/><div className="nfc-ring nfc-ring-3"/>
+          <div className="payment-processing fade-in">
+            {/* 1. Header Prominent Alert pentru POS fizic */}
+            <div className="pos-terminal-focus-card">
+              <div className="ptfc-top-bar">
+                <div className="ptfc-badge">
+                  <span className="ptfc-pulse-dot" />
+                  <span>Terminal POS activ</span>
                 </div>
-                <h2 className="processing-title">{t('payment_card_subtitle', lang) || 'Apropiați sau introduceți cardul'}</h2>
-                <p className="processing-step">{t('payment_card_methods', lang) || 'Card fizic • Contactless • Apple Pay • Google Pay'}</p>
-
-                {/* Ghidaj vizual pentru apropierea corecta a cardului */}
-                <div className="pos-tap-hint-pill">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <div className="ptfc-timer">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10" />
                     <polyline points="12 6 12 12 16 14" />
                   </svg>
-                  <span>Țineți cardul sau telefonul lipit de ecranul POS-ului până la semnalul sonor</span>
-                </div>
-              </>
-            ) : (
-              <div className="pos-instructions-alert fade-in" style={{ backgroundColor: 'var(--brand-surface)', padding: '24px', borderRadius: '16px', border: '2px solid var(--brand-primary)', marginBottom: '24px' }}>
-                <div style={{display:'flex', justifyContent:'center', marginBottom: '12px'}}>
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--brand-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                    <line x1="12" y1="9" x2="12" y2="13" />
-                    <line x1="12" y1="17" x2="12.01" y2="17" strokeWidth="2.5" />
-                  </svg>
-                </div>
-                <h2 className="processing-title" style={{color: 'var(--brand-primary)'}}>{t('pos_instructions_title', lang) || 'Verificați ecranul POS-ului'}</h2>
-                <p className="processing-step" style={{fontSize: '1.2rem'}}>{t('pos_instructions_desc', lang) || 'Dacă tranzacția durează, vă rugăm urmați instrucțiunile de pe ecranul aparatului de plată (ex: Introduceți PIN sau apăsați butonul Verde pentru confirmare)'}</p>
-                <div style={{fontSize: '2.5rem', fontWeight: 'bold', marginTop: '16px', color: posTimer < 10 ? 'red' : 'inherit'}}>
-                  {posTimer > 0 ? `${posTimer}s` : (t('timeout', lang) || 'Timp expirat')}
+                  <span>{posTimer > 0 ? `${posTimer}s` : (t('timeout', lang) || 'Timp expirat')}</span>
                 </div>
               </div>
-            )}
+
+              <div className="ptfc-main">
+                <div className="ptfc-icon-box">
+                  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="4" y="2" width="16" height="20" rx="3" />
+                    <rect x="7" y="5" width="10" height="6" rx="1" />
+                    <circle cx="8" cy="14" r="1" fill="currentColor" />
+                    <circle cx="12" cy="14" r="1" fill="currentColor" />
+                    <circle cx="16" cy="14" r="1" fill="currentColor" />
+                    <circle cx="8" cy="17" r="1" fill="currentColor" />
+                    <circle cx="12" cy="17" r="1" fill="currentColor" />
+                    <circle cx="16" cy="17" r="1" fill="#10b981" stroke="#10b981" />
+                  </svg>
+                </div>
+                <div className="ptfc-text">
+                  <h3 className="ptfc-title">URMĂRIȚI ECRANUL APARATULUI POS</h3>
+                  <p className="ptfc-subtitle">
+                    Aparatul de plată (situat lângă ecran) este activ. Urmați instrucțiunile afișate pe ecranul acestuia.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Ghid în 3 pași cu iconițe SVG curate (fără emoji) */}
+            <div className="pos-steps-grid">
+              <div className="pos-step-card">
+                <div className="psc-icon-box">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="2" y="5" width="20" height="14" rx="2" />
+                    <line x1="2" y1="10" x2="22" y2="10" />
+                    <path d="M7 15h3" />
+                    <path d="M16 13a2.5 2.5 0 0 1 0 4" strokeWidth="1.6" />
+                    <path d="M18.5 11.5a5 5 0 0 1 0 7" strokeWidth="1.6" />
+                  </svg>
+                </div>
+                <div className="psc-text">
+                  <span className="psc-title">1. Apropiați cardul sau telefonul</span>
+                  <span className="psc-desc">Apropiați de ecranul POS-ului sau introduceți cardul cu cip în fantă</span>
+                </div>
+              </div>
+
+              <div className="pos-step-card">
+                <div className="psc-icon-box psc-icon-accent">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="3" />
+                    <circle cx="8" cy="8" r="1.2" fill="currentColor" />
+                    <circle cx="12" cy="8" r="1.2" fill="currentColor" />
+                    <circle cx="16" cy="8" r="1.2" fill="currentColor" />
+                    <circle cx="8" cy="12" r="1.2" fill="currentColor" />
+                    <circle cx="12" cy="12" r="1.2" fill="currentColor" />
+                    <circle cx="16" cy="12" r="1.2" fill="currentColor" />
+                    <circle cx="8" cy="16" r="1.2" fill="currentColor" />
+                    <circle cx="12" cy="16" r="1.2" fill="currentColor" />
+                    <rect x="15" y="15" width="2.5" height="2.5" rx="0.5" fill="#10b981" stroke="#10b981" />
+                  </svg>
+                </div>
+                <div className="psc-text">
+                  <span className="psc-title">2. Introduceți codul PIN dacă se solicită</span>
+                  <span className="psc-desc">Tastați PIN-ul pe tastatura POS-ului și apăsați butonul Verde [OK]</span>
+                </div>
+              </div>
+
+              <div className="pos-step-card">
+                <div className="psc-icon-box">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                  </svg>
+                </div>
+                <div className="psc-text">
+                  <span className="psc-title">3. Așteptați semnalul sonor</span>
+                  <span className="psc-desc">Mențineți cardul lipit până auziți bip-ul și vedeți mesajul de aprobare</span>
+                </div>
+              </div>
+            </div>
+
+            <p className="processing-step" style={{ margin: '4px 0', fontSize: '0.92rem' }}>
+              Card fizic • Contactless • Apple Pay • Google Pay
+            </p>
+
             <div className="payment-cancel-actions">
               <button className="btn btn-outline btn-lg" onClick={handleCancel}>{t('back_to_cart', lang)}</button>
               <button className="btn btn-danger btn-lg" onClick={handleCancelOrder}>{t('cancel_order', lang)}</button>
@@ -432,20 +506,37 @@ export default function PaymentScreen() {
         )}
 
         {payState === STATE.PIN_ENTRY && (
-          <div className="payment-processing">
-            <div style={{display:'flex', justifyContent:'center', marginBottom:16}}>
-              <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="11" width="18" height="11" rx="2" />
-                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                <circle cx="12" cy="16" r="1.5" fill="currentColor" stroke="none" />
-              </svg>
+          <div className="payment-processing fade-in">
+            <div className="pos-terminal-focus-card pos-terminal-pin-focus">
+              <div className="ptfc-main">
+                <div className="ptfc-icon-box ptfc-icon-pin">
+                  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="3" />
+                    <circle cx="8" cy="8" r="1.2" fill="currentColor" />
+                    <circle cx="12" cy="8" r="1.2" fill="currentColor" />
+                    <circle cx="16" cy="8" r="1.2" fill="currentColor" />
+                    <circle cx="8" cy="12" r="1.2" fill="currentColor" />
+                    <circle cx="12" cy="12" r="1.2" fill="currentColor" />
+                    <circle cx="16" cy="12" r="1.2" fill="currentColor" />
+                    <circle cx="8" cy="16" r="1.2" fill="currentColor" />
+                    <circle cx="12" cy="16" r="1.2" fill="currentColor" />
+                    <rect x="15" y="15" width="2.5" height="2.5" rx="0.5" fill="#10b981" stroke="#10b981" />
+                  </svg>
+                </div>
+                <div className="ptfc-text">
+                  <h3 className="ptfc-title">INTRODUCEȚI CODUL PIN PE APARATUL POS</h3>
+                  <p className="ptfc-subtitle">
+                    Tastați codul PIN pe tastatura fizică a aparatului POS, apoi apăsați tasta <strong>Verde [OK]</strong>.
+                  </p>
+                </div>
+              </div>
             </div>
-            <h2 className="processing-title">Introduceți PIN-ul</h2>
-            <p className="processing-step">Urmați instrucțiunile de pe terminal</p>
+
             <div className="pin-dots">
               <span className="pin-dot active"/><span className="pin-dot active"/>
               <span className="pin-dot"/><span className="pin-dot"/>
             </div>
+
             <div className="payment-cancel-actions">
               <button className="btn btn-outline btn-lg" onClick={handleCancel}>{t('back_to_cart', lang)}</button>
               <button className="btn btn-danger btn-lg" onClick={handleCancelOrder}>{t('cancel_order', lang)}</button>

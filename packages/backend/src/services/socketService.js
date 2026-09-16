@@ -176,6 +176,12 @@ function initSocket(io) {
       if (orderId) io.emit(`payment_status_${orderId}`, { message });
     });
 
+    // Kiosk solicită anularea plății pe POS (clientul a apăsat Înapoi sau Anulează)
+    socket.on('cancel_pos_payment', (data) => {
+      console.log(`[Socket] 🛑 Cerere anulare plată POS pentru locația: ${data?.locationId}`);
+      io.emit('cancel_pos_payment', data);
+    });
+
     // POS Bridge trimite rezultatul plății
     socket.on('pos_payment_result', async (data) => {
       const { orderId, paid, authCode, responseCode, code, refNum, receiptNo, cardNo, txDate, error, raw, locationId, amount } = data;

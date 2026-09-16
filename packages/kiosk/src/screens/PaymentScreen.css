@@ -2,7 +2,7 @@
 .payment-content {
   flex: 1; display: flex; flex-direction: column;
   align-items: center; justify-content: center;
-  padding: 80px 40px 40px; gap: 24px; text-align: center;
+  padding: 24px 20px 20px; gap: 12px; text-align: center;
   width: 100%;
 }
 
@@ -39,12 +39,12 @@
 .payment-subtitle { font-size: 1rem; color: var(--text-muted); margin: 0; }
 
 .payment-amount {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
   background: var(--bg-card); border: 1.5px solid color-mix(in srgb, var(--primary) 30%, transparent);
-  border-radius: 20px; padding: 18px 56px; box-shadow: var(--shadow-card);
+  border-radius: 18px; padding: 10px 40px; box-shadow: var(--shadow-card);
 }
-.pa-label { font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
-.pa-amount { font-size: 3rem; font-weight: 900; color: var(--primary); }
+.pa-label { font-size: 0.82rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+.pa-amount { font-size: 2.5rem; font-weight: 900; color: var(--primary); }
 
 /* ─── FISCAL CUI IN PAYMENT SCREEN ──────────────────────────────── */
 .payment-fiscal-container {
@@ -585,4 +585,194 @@
   color: var(--text, #1e293b);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
 }
+
+/* ── POS Terminal Prominent Guidance Card ── */
+.pos-terminal-focus-card {
+  width: 100%;
+  max-width: 580px;
+  background: var(--bg-card, #ffffff);
+  border: 2.5px solid var(--brand-primary, var(--primary, #EE3B24));
+  border-radius: 20px;
+  padding: 14px 18px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.07), 0 0 0 4px color-mix(in srgb, var(--brand-primary, var(--primary, #EE3B24)) 14%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+  animation: popIn 0.3s ease-out;
+  margin-bottom: 2px;
+}
+
+.pos-terminal-pin-focus {
+  border-color: #f59e0b;
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.15), 0 0 0 4px rgba(245, 158, 11, 0.2);
+}
+
+.ptfc-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.ptfc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #047857;
+  background: #ecfdf5;
+  padding: 3px 12px;
+  border-radius: 999px;
+  border: 1px solid #a7f3d0;
+}
+
+.ptfc-pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  animation: pulseGreen 1.5s infinite;
+}
+
+@keyframes pulseGreen {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.ptfc-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--text-muted, #64748b);
+  background: color-mix(in srgb, var(--primary, #EE3B24) 6%, #f8fafc);
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border, #e2e8f0);
+}
+
+.ptfc-main {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.ptfc-icon-box {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--brand-primary, var(--primary, #EE3B24)) 12%, #f8fafc);
+  color: var(--brand-primary, var(--primary, #EE3B24));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ptfc-icon-pin {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.ptfc-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ptfc-title {
+  font-size: 1.08rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  color: var(--brand-primary, var(--primary, #EE3B24));
+  margin: 0;
+  line-height: 1.25;
+}
+
+.pos-terminal-pin-focus .ptfc-title {
+  color: #b45309;
+}
+
+.ptfc-subtitle {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text, #1e293b);
+  margin: 0;
+  line-height: 1.35;
+}
+
+/* ── 3-Step Visual Instruction Grid (No Emojis, Pure SVG) ── */
+.pos-steps-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 580px;
+  margin: 4px auto;
+}
+
+.pos-step-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-card, #ffffff);
+  border: 1.5px solid var(--border, #e2e8f0);
+  border-radius: 16px;
+  padding: 10px 14px;
+  text-align: left;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s ease;
+}
+
+.pos-step-card:hover {
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+.psc-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--primary, #EE3B24) 10%, #f1f5f9);
+  color: var(--primary, #EE3B24);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.psc-icon-accent {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.psc-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.psc-title {
+  font-size: 0.98rem;
+  font-weight: 800;
+  color: var(--text, #0f172a);
+  line-height: 1.25;
+}
+
+.psc-desc {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted, #64748b);
+  line-height: 1.3;
+}
+
 
