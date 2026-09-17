@@ -1928,6 +1928,7 @@ function KioskPosterCard({ brandId, brandName, emoji, backend }) {
 
 function KiosksManager({ backend, kiosksLiveStatus = {} }) {
   const { fetchWithAuth } = useAuth();
+  const confirm = useConfirm();
   const [locations, setLocations] = useState([]);
   const [brandsData, setBrandsData] = useState([]);
   const [allMenus, setAllMenus] = useState({});
@@ -1939,6 +1940,27 @@ function KiosksManager({ backend, kiosksLiveStatus = {} }) {
   const [editingTab, setEditingTab] = useState('design');
   const [restartingId, setRestartingId] = useState(null); // ID of loc currently restarting
   const [toast, setToast] = useState(null); // { msg, type: 'success'|'error' }
+
+  const deleteLoc = async (loc) => {
+    const ok = await confirm(`Ești sigur că vrei să ștergi chioșcul "${loc.name}"?`, {
+      title: 'Ștergere Kiosk',
+      okLabel: 'Șterge',
+      danger: true
+    });
+    if (!ok) return;
+    try {
+      const res = await fetchWithAuth(`${backend}/api/locations/${loc.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        showToast(`Chioșcul "${loc.name}" a fost șters.`);
+        fetchLocs();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        showToast(data.error || 'Eroare la ștergerea chioșcului.', 'error');
+      }
+    } catch {
+      showToast('Eroare de rețea la ștergere.', 'error');
+    }
+  };
 
   const toggleRevealPin = (id) => {
     setRevealedPins(prev => {
@@ -2418,6 +2440,16 @@ function KiosksManager({ backend, kiosksLiveStatus = {} }) {
                       >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
                       </button>
+                      <button 
+                        title="Șterge Kiosk"
+                        className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-red-50 hover:text-red-600 hover:border-red-200 dark:hover:bg-red-500/10 dark:hover:text-red-400 text-slate-600 dark:text-slate-400 flex items-center justify-center transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteLoc(loc);
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -2844,6 +2876,27 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
     }
   };
 
+  const handleDeleteThisLoc = async () => {
+    const ok = await confirm(`Ești sigur că vrei să ștergi chioșcul "${formData.name || loc.name}"?`, {
+      title: 'Ștergere Kiosk',
+      okLabel: 'Șterge definitiv',
+      danger: true
+    });
+    if (!ok) return;
+    try {
+      const res = await fetchWithAuth(`${backend}/api/locations/${loc.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        onSave();
+        onBack();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        confirm(data.error || 'Eroare la ștergerea chioșcului.', { title: 'Eroare', danger: true, hideCancel: true });
+      }
+    } catch {
+      confirm('Eroare de rețea la ștergere.', { title: 'Eroare', danger: true, hideCancel: true });
+    }
+  };
+
   const renderPreview = (u, rotation = 0) => {
     if (!u) return null;
     let style = { width: '100%', height: '100%', objectFit: 'contain', border: 'none' };
@@ -3003,6 +3056,14 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
             Deschide Live
           </a>
           <RestartKioskBtn locId={loc.id} backend={backend} fetchWithAuth={fetchWithAuth} />
+          <button 
+            type="button"
+            onClick={handleDeleteThisLoc}
+            className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-red-200 dark:hover:border-red-500/30 bg-slate-100 hover:bg-red-50 dark:bg-slate-800 dark:hover:bg-red-500/10 text-slate-600 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400 transition-all shadow-sm flex items-center justify-center cursor-pointer"
+            title="Șterge Kiosk"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
           <button 
             type="button"
             onClick={saveSettings} 
