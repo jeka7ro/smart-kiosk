@@ -3,17 +3,7 @@ import { useKioskStore } from '../store/kioskStore';
 import { getBrand } from '../config/brands';
 import './PinScreen.css';
 
-const KEYPAD_KEYS = [
-  { num: '1', letters: '' },
-  { num: '2', letters: 'ABC' },
-  { num: '3', letters: 'DEF' },
-  { num: '4', letters: 'GHI' },
-  { num: '5', letters: 'JKL' },
-  { num: '6', letters: 'MNO' },
-  { num: '7', letters: 'PQRS' },
-  { num: '8', letters: 'TUV' },
-  { num: '9', letters: 'WXYZ' },
-];
+const KEYPAD_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
 export default function PinScreen({ loc, brandId, onUnlock, isScheduleLock = false, backendUrl }) {
   const [pin, setPin] = useState('');
@@ -170,16 +160,15 @@ export default function PinScreen({ loc, brandId, onUnlock, isScheduleLock = fal
 
         {/* iOS Keypad Grid */}
         <div className="ios-pin-keypad">
-          {KEYPAD_KEYS.map((k) => (
+          {KEYPAD_KEYS.map((num) => (
             <button
-              key={k.num}
+              key={num}
               type="button"
               className="ios-pin-key"
-              onClick={() => handleKey(k.num)}
+              onClick={() => handleKey(num)}
               disabled={submitting}
             >
-              <span className="ios-pin-num">{k.num}</span>
-              <span className="ios-pin-letters">{k.letters || '\u00A0'}</span>
+              <span className="ios-pin-num">{num}</span>
             </button>
           ))}
 
@@ -193,7 +182,6 @@ export default function PinScreen({ loc, brandId, onUnlock, isScheduleLock = fal
             disabled={submitting}
           >
             <span className="ios-pin-num">0</span>
-            <span className="ios-pin-letters">{'\u00A0'}</span>
           </button>
 
           <button
