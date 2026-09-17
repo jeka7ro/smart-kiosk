@@ -14,18 +14,30 @@ const DEFAULT_ORG = ORG_IDS[0] || '9c63cff6-1d66-442d-a98d-2302656e3943';
 // GET /api/menu?orgId=xxx&brandId=smashme
 // Returns cached menu (populated on startup by iikoService.syncAllMenus)
 router.get('/', requireApiKey, async (req, res) => {
-  const { brandId = 'smashme' } = req.query;
+  const { brandId = 'smashme', locId } = req.query;
   let orgId = req.query.orgId;
   
-  // FIX: Frontend sends 'undefined' as string if locationOrgIds is empty
+  // Resolve orgId from location if missing or string undefined
   if (!orgId || orgId === 'undefined' || orgId === 'null') {
-    orgId = getOrgIdForBrand(brandId) || DEFAULT_ORG;
+    if (locId) {
+      try {
+        const { findLocation } = require('../utils/locations');
+        const loc = findLocation(locId);
+        if (loc?.orgIds?.[brandId]) {
+          orgId = loc.orgIds[brandId];
+        }
+      } catch (_) {}
+    }
+    if (!orgId || orgId === 'undefined' || orgId === 'null') {
+      orgId = getOrgIdForBrand(brandId) || DEFAULT_ORG;
+    }
   }
 
-  let menu = getCachedMenu(brandId) || getCachedMenu(orgId);
+  // Look up cached menu specifically for this (orgId, brandId) pair
+  let menu = getCachedMenu(orgId, brandId);
 
   if (!menu) {
-    // Not cached yet — fetch on-demand
+    // Not cached yet — fetch on-demand specifically for this organization!
     try {
       menu = await fetchMenu(orgId, brandId);
     } catch (err) {

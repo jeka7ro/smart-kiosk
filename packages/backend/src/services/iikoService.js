@@ -258,8 +258,10 @@ function transformMenu(raw, brandId = 'smashme') {
           .map(child => {
             const childProduct = productMap[child.id];
             if (!childProduct) return null;
+            if (childProduct.isDeleted) return null;
             // Price for modifier: sizePrice - product base price (priceDiff)
             const childSp = (childProduct.sizePrices || [])[0];
+            if (childSp?.price?.isIncludedInMenu === false) return null;
             const childPrice = childSp?.price?.currentPrice || 0;
             // Resolve description: direct or via matching non-asterisk main product
             let description = childProduct.description || '';
@@ -380,6 +382,13 @@ async function fetchMenu(orgId, brandId = 'smashme') {
     }
   });
 
+  // Cache per orgId and per brandId:orgId
+  const cacheKey = `${brandId}:${orgId}`;
+  _menuCache[cacheKey] = { menu, brandId, orgId, syncedAt: new Date().toISOString() };
+  if (orgId) {
+    _menuCache[orgId] = _menuCache[cacheKey];
+  }
+
   return menu;
 }
 
@@ -393,55 +402,119 @@ async function fetchMenuForBrand(brandId) {
 }
 
 /**
- * Sync menus for ALL configured brands (auto-discovers sushi orgs first)
+ * Sync menus for ALL configured brands and active locations
  */
 async function syncAllMenus() {
   // First: auto-assign org IDs for sushi brands that aren't set via env
   await autoAssignSushiOrgs();
 
+  const syncTargets = [];
+  const seenPairs = new Set();
+
+  function addTarget(brandId, orgId) {
+    if (!brandId || !orgId) return;
+    const key = `${brandId}:${orgId}`;
+    if (!seenPairs.has(key)) {
+      seenPairs.add(key);
+      syncTargets.push({ brandId, orgId });
+    }
+  }
+
+  // 1. Defaults from BRANDS
   for (const [brandId, brand] of Object.entries(BRANDS)) {
-    if (!brand.apiKey) {
-      console.log(`[Syrve] No API key for ${brandId} — skipping`);
-      continue;
+    if (brand.apiKey && brand.orgId) {
+      addTarget(brandId, brand.orgId);
     }
-    if (!brand.orgId) {
-      console.log(`[Syrve] No org ID for ${brandId} — skipping (set SYRVE_ORG_ID_${brandId.toUpperCase()} in .env)`);
-      continue;
+  }
+
+  // 2. Extra locations from locs.json (e.g. Constanta, Cluj-2, etc.)
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const candidates = [
+      path.join(__dirname, '../../../../locs.json'),
+      path.join(__dirname, '../../data/locations.json')
+    ];
+    for (const cPath of candidates) {
+      if (fs.existsSync(cPath)) {
+        const parsed = JSON.parse(fs.readFileSync(cPath, 'utf8'));
+        const locs = Array.isArray(parsed) ? parsed : (parsed.locations || []);
+        for (const loc of locs) {
+          if (loc.active !== false && loc.orgIds) {
+            for (const [bId, oId] of Object.entries(loc.orgIds)) {
+              if (oId) addTarget(bId, oId);
+            }
+          }
+        }
+      }
     }
+  } catch (e) {
+    console.warn('[Syrve] Could not load extra locations for menu sync:', e.message);
+  }
+
+  // 3. Database locations if active
+  try {
+    const { rows } = await pool.query('SELECT data FROM locations WHERE active = true');
+    for (const r of rows) {
+      const lData = typeof r.data === 'string' ? JSON.parse(r.data) : r.data;
+      if (lData?.orgIds) {
+        for (const [bId, oId] of Object.entries(lData.orgIds)) {
+          if (oId) addTarget(bId, oId);
+        }
+      }
+    }
+  } catch (_) {}
+
+  console.log(`[Syrve] Syncing menus for ${syncTargets.length} organization/brand targets...`);
+
+  for (const { brandId, orgId } of syncTargets) {
+    const brand = BRANDS[brandId];
+    if (!brand?.apiKey) continue;
     try {
-      const menu = await fetchMenu(brand.orgId, brandId);
-      _menuCache[brandId]     = { menu, brandId, syncedAt: new Date().toISOString() };
-      console.log(`[Syrve] ✅ Synced ${brandId} (${brand.orgId}): ${menu.categories.length} cats, ${menu.products.length} products`);
+      const menu = await fetchMenu(orgId, brandId);
+      const cacheKey = `${brandId}:${orgId}`;
+      _menuCache[cacheKey] = { menu, brandId, orgId, syncedAt: new Date().toISOString() };
+      _menuCache[orgId]    = _menuCache[cacheKey];
+      if (brand.orgId === orgId) {
+        _menuCache[brandId] = _menuCache[cacheKey];
+      }
+      console.log(`[Syrve] ✅ Synced ${brandId} (${orgId}): ${menu.categories.length} cats, ${menu.products.length} products`);
 
       // Trigger background translation job for missing descriptions
       translator.processNewTranslations(menu.products)
         .then(newDict => {
-          // Live patch the in-memory cache to ensure tablets get translations immediately upon refresh 
           menu.products.forEach(p => {
              if (newDict[p.id] && newDict[p.id].translations) {
                p.translations = newDict[p.id].translations;
              }
           });
-          console.log(`[Syrve] Applied verified translations to live cache for ${brandId}`);
         })
-        .catch(e => console.error(`[Syrve] Translation job failed for ${brandId}:`, e.message));
+        .catch(e => console.error(`[Syrve] Translation job failed for ${brandId} (${orgId}):`, e.message));
 
-      // Trigger background image downlaod job
       syncProductImages(menu.products, brandId).catch(e => 
-        console.error(`[Syrve] Image sync failed for ${brandId}:`, e.message)
+        console.error(`[Syrve] Image sync failed for ${brandId} (${orgId}):`, e.message)
       );
 
     } catch (err) {
-      console.error(`[Syrve] ❌ Sync failed for ${brandId}:`, err.message);
+      console.error(`[Syrve] ❌ Sync failed for ${brandId} (${orgId}):`, err.message);
     }
   }
 }
 
 /**
- * Get cached menu for an organization
+ * Get cached menu for an organization & brand
  */
-function getCachedMenu(orgId) {
-  return _menuCache[orgId]?.menu || null;
+function getCachedMenu(orgId, brandId) {
+  if (brandId && orgId && _menuCache[`${brandId}:${orgId}`]?.menu) {
+    return _menuCache[`${brandId}:${orgId}`].menu;
+  }
+  if (orgId && _menuCache[orgId]?.menu) {
+    return _menuCache[orgId].menu;
+  }
+  if (brandId && _menuCache[brandId]?.menu) {
+    return _menuCache[brandId].menu;
+  }
+  return null;
 }
 
 /**
@@ -917,6 +990,13 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
     }
     console.log(`[Syrve] ✅ Order created [${brandId}]:`, res?.orderInfo?.id || res?.id);
     logIikoRequest(order.orderNumber || order.id, brandId, payload, res);
+
+    // Asynchronously verify final delivery creation status in Syrve (within 2-3 seconds)
+    const deliveryId = res?.orderInfo?.id || res?.id;
+    if (deliveryId && resolvedOrgId) {
+      verifyDeliveryStatus(deliveryId, resolvedOrgId, brandId, order.orderNumber || order.id || order._id);
+    }
+
     return res;
   } catch (err) {
     console.error(`[Syrve] createOrder exception [${brandId}]:`, err.message);
@@ -925,11 +1005,67 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
   }
 }
 
+/**
+ * Asynchronously poll Syrve deliveries/by_id to confirm if the order succeeded
+ * or was rejected by the POS / Cloud (e.g. ProductExludedFromMenu, stop-list, etc.)
+ */
+async function verifyDeliveryStatus(deliveryId, orgId, brandId, orderNumber) {
+  if (!deliveryId || !orgId) return;
+  try {
+    // Allow Syrve Cloud and local POS 2.5 seconds to process the creation request
+    await new Promise(r => setTimeout(r, 2500));
+    const check = await syrvePost('/api/1/deliveries/by_id', {
+      organizationId: orgId,
+      orderIds: [deliveryId],
+    }, brandId);
+
+    const dOrder = check?.orders?.[0];
+    if (dOrder) {
+      if (dOrder.creationStatus === 'Error') {
+        const errMsg = dOrder.errorInfo?.message || dOrder.errorInfo?.description || 'Eroare necunoscută Syrve';
+        const errReason = dOrder.errorInfo?.errorReason || 'CreationError';
+        console.error(`[Syrve] ❌ ASYNC ORDER REJECTION for #${orderNumber} (${deliveryId}): [${errReason}] ${errMsg}`);
+
+        // Update iiko_logs so admin portal shows the exact error
+        try {
+          await pool.query(
+            `UPDATE iiko_logs SET status = 'error', response = $1 WHERE order_id = $2`,
+            [JSON.stringify(dOrder), String(orderNumber)]
+          );
+        } catch (_) {}
+
+        // Update orders table
+        try {
+          await pool.query(
+            `UPDATE orders SET status = 'syrve_error', data = jsonb_set(jsonb_set(data, '{syrveStatus}', '"Error"'), '{syrveError}', $1) WHERE data->>'orderNumber' = $2 OR id = $2`,
+            [JSON.stringify({ message: errMsg, reason: errReason }), String(orderNumber)]
+          );
+        } catch (_) {}
+
+        // Emit socket alert for kitchen/kds/admin
+        if (global.io) {
+          global.io.emit('order_syrve_error', {
+            orderNumber,
+            deliveryId,
+            error: errMsg,
+            reason: errReason
+          });
+        }
+      } else if (dOrder.creationStatus === 'Success') {
+        console.log(`[Syrve] ✅ Delivery #${orderNumber} (${deliveryId}) confirmed Success in Syrve.`);
+      }
+    }
+  } catch (err) {
+    console.warn(`[Syrve] Async verifyDeliveryStatus failed for #${orderNumber}:`, err.message);
+  }
+}
+
 module.exports = {
   syncAllMenus,
   syncStopLists,
   getStopListIds,
   createOrder,
+  verifyDeliveryStatus,
   getOrganizations,
   getOrgIdForBrand,
   fetchMenu,
