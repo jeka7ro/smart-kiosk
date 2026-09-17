@@ -48,8 +48,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 22px;
+  margin-bottom: 28px;
 }
 
 .ios-pin-logo-box {
@@ -70,26 +69,6 @@
   max-width: 170px;
   object-fit: contain;
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
-}
-
-.ios-pin-location-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 5px 14px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.3px;
-  color: #94a3b8;
-  backdrop-filter: blur(8px);
-}
-
-.ios-pin-lock-svg {
-  color: #60a5fa;
-  flex-shrink: 0;
 }
 
 /* Passcode Title & Sub */
