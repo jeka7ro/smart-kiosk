@@ -40,9 +40,9 @@ if not exist ".env" (
 )
 
 :: Instaleaza dependentele daca lipsesc
-if not exist "node_modules" (
-    echo  [INFO] Prima pornire - instalez dependentele...
-    npm install
+if not exist "node_modules\dotenv" (
+    echo  [INFO] Instalez dependentele necesare...
+    call npm install --no-audit --no-fund
     echo.
 )
 

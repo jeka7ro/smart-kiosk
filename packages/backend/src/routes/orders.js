@@ -49,8 +49,9 @@ router.post('/', async (req, res) => {
     const usedClujSeqs = new Set();
 
     try {
-      // Auto-corectie: comanda 544 generata eronat din cauza testului vechi se actualizeaza la CJ1-094
+      // Auto-corectie comenzi
       await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-094"') WHERE data->>'orderNumber' = 'CJ1-544'`).catch(() => {});
+      await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CT-001"') WHERE data->>'orderNumber' = 'CT-438'`).catch(() => {});
 
       const { rows } = await pool.query(`SELECT data->>'orderNumber' as num, location_id FROM orders WHERE (data->>'orderNumber') IS NOT NULL`);
       for (const row of rows) {
@@ -132,7 +133,7 @@ router.post('/', async (req, res) => {
     } else {
       const prefix = getOrderPrefix(locId, resolvedLocationName);
       if (prefix) {
-        const nextSeq = (maxByPrefix[prefix] || maxOrderNumber) + 1;
+        const nextSeq = (maxByPrefix[prefix] !== undefined ? maxByPrefix[prefix] : 0) + 1;
         orderNumber = `${prefix}-${formatOrderSeq(nextSeq)}`;
       } else {
         const nextSeq = maxOrderNumber + 1;
@@ -309,6 +310,7 @@ router.get('/', async (req, res) => {
   const { status, brand, startDate, endDate, limit = 50, locationId } = req.query;
   try {
     await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-094"') WHERE data->>'orderNumber' = 'CJ1-544'`).catch(() => {});
+    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CT-001"') WHERE data->>'orderNumber' = 'CT-438'`).catch(() => {});
     let query = `SELECT data, status FROM orders WHERE 1=1`;
     const params = [];
 
