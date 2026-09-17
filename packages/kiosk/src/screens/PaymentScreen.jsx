@@ -547,7 +547,7 @@ export default function PaymentScreen() {
             <div className="kiosk-action-header">
               <h2 className="kiosk-action-title">Apropiați cardul sau telefonul</h2>
               <p className="kiosk-action-subtitle">
-                Urmăriți instrucțiunile afișate pe ecranul aparatului POS (situat în dreapta)
+                Urmăriți instrucțiunile afișate pe ecranul aparatului POS
               </p>
             </div>
 
