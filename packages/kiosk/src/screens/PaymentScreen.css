@@ -284,6 +284,13 @@
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
+.kmc-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
 .kmc-chip {
   width: 34px;
   height: 25px;
@@ -294,6 +301,7 @@
   flex-direction: column;
   justify-content: space-evenly;
   padding: 2px 0;
+  flex-shrink: 0;
 }
 
 .kmc-chip-line {
@@ -303,11 +311,9 @@
 }
 
 .kmc-nfc-icon {
-  position: absolute;
-  top: 15px;
-  right: 18px;
   color: #38bdf8;
   filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.7));
+  flex-shrink: 0;
 }
 
 .kmc-number {
@@ -326,16 +332,36 @@
   justify-content: space-between;
 }
 
-.kmc-name {
-  font-size: 0.68rem;
+.kmc-cardholder {
+  font-size: 0.84rem;
   font-weight: 800;
-  color: rgba(255, 255, 255, 0.65);
-  letter-spacing: 0.08em;
+  color: #ffffff;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  max-width: 125px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+
+.kmc-footer-logos {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kmc-brand-logo-img {
+  height: 20px;
+  max-width: 48px;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
 }
 
 .kmc-master-circles {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .kmc-mc-1, .kmc-mc-2 {
@@ -347,48 +373,103 @@
 .kmc-mc-1 { background: #ef4444; margin-right: -6px; opacity: 0.92; }
 .kmc-mc-2 { background: #f59e0b; opacity: 0.92; }
 
-/* Premium Smartphone */
-.kiosk-mockup-phone {
-  width: 96px;
-  height: 162px;
-  background: #0f172a;
-  border-radius: 22px;
-  padding: 7px;
-  box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.3), inset 0 0 0 2px #334155;
+/* ── Sleek Apple iPhone Mockup ── */
+.kiosk-iphone {
+  width: 104px;
+  height: 172px;
+  background: #18181b;
+  border-radius: 24px;
+  padding: 5px;
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.35), inset 0 0 0 1.5px #52525b;
   transform: rotate(6deg);
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
-.kmp-notch {
-  width: 32px;
-  height: 5px;
-  background: #000000;
-  border-radius: 4px;
-  margin: 2px auto 8px;
+/* iPhone Physical Buttons */
+.iphone-btn-volume-up,
+.iphone-btn-volume-down {
+  position: absolute;
+  left: -3.5px;
+  width: 3px;
+  background: #3f3f46;
+  border-radius: 2px 0 0 2px;
+}
+.iphone-btn-volume-up { top: 38px; height: 16px; }
+.iphone-btn-volume-down { top: 60px; height: 16px; }
+
+.iphone-btn-power {
+  position: absolute;
+  right: -3.5px;
+  top: 45px;
+  width: 3px;
+  height: 24px;
+  background: #3f3f46;
+  border-radius: 0 2px 2px 0;
 }
 
-.kmp-screen {
+.iphone-screen {
   flex: 1;
-  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-  border-radius: 15px;
+  background: linear-gradient(180deg, #09090b 0%, #18181b 100%);
+  border-radius: 19px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
+  justify-content: space-between;
+  padding: 6px 6px 7px;
+  position: relative;
+  overflow: hidden;
 }
 
-.kmp-contactless {
+.iphone-dynamic-island {
+  width: 34px;
+  height: 9px;
+  background: #000000;
+  border-radius: 9999px;
+  margin-top: 1px;
+}
+
+.iphone-apple-pay-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: auto 0;
+}
+
+.iphone-apple-logo-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.iphone-apple-pay-text {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.2px;
+}
+
+.iphone-nfc-wave {
   color: #38bdf8;
   filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.7));
+  animation: nfcPulse 1.8s infinite;
 }
 
-.kmp-pay-text {
-  font-size: 0.76rem;
-  font-weight: 900;
-  color: #ffffff;
-  letter-spacing: 0.08em;
+.iphone-hold-near {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+  letter-spacing: 0.02em;
+}
+
+.iphone-home-bar {
+  width: 36px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.65);
+  border-radius: 9999px;
+  margin-bottom: 2px;
 }
 
 /* ── Primary Action Header & Typography ── */
@@ -396,8 +477,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
+  gap: 6px;
+  margin: 12px 0 16px;
 }
 
 .kiosk-action-title {
@@ -411,59 +492,11 @@
 
 .kiosk-action-subtitle {
   font-size: 1.22rem;
-  font-weight: 500;
-  color: #64748b;
+  font-weight: 600;
+  color: #475569;
   margin: 0;
   line-height: 1.4;
-}
-
-.kiosk-action-subtitle strong {
-  color: #0f172a;
-  font-weight: 800;
-}
-
-/* ── Direction / Guidance Banner ── */
-.kiosk-pos-direction-banner {
-  width: 100%;
-  background: #ffffff;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 20px;
-  padding: 16px 20px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  text-align: left;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
-}
-
-.kpd-icon-pos {
-  width: 50px;
-  height: 50px;
-  border-radius: 15px;
-  background: color-mix(in srgb, var(--primary, #EE3B24) 10%, #f1f5f9);
-  color: var(--primary, #EE3B24);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.kpd-text {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.kpd-main {
-  font-size: 1.05rem;
-  font-weight: 800;
-  color: #0f172a;
-}
-
-.kpd-sub {
-  font-size: 0.88rem;
-  font-weight: 500;
-  color: #64748b;
+  max-width: 540px;
 }
 
 /* ── Official Payment Logos / Trust Badges Bar ── */

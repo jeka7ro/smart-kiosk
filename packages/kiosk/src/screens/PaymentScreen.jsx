@@ -3,6 +3,7 @@ import { useKioskStore } from '../store/kioskStore';
 import { t } from '../i18n/translations.js';
 import { useInactivityTimeout } from '../hooks/useInactivityTimeout.js';
 import FiscalModal from '../components/FiscalModal.jsx';
+import { BRANDS } from '../config/brands.js';
 import './PaymentScreen.css';
 
 const BACKEND       = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
@@ -39,6 +40,12 @@ export default function PaymentScreen() {
   const fiscalData     = useKioskStore((s) => s.fiscalData);
   const setFiscalData  = useKioskStore((s) => s.setFiscalData);
   const clearFiscalData = useKioskStore((s) => s.clearFiscalData);
+
+  const urlBrand = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('brand') : null;
+  const effectiveBrand = activeBrandId || urlBrand || DEFAULT_BRAND;
+  const currentBrand = BRANDS[effectiveBrand] || BRANDS[DEFAULT_BRAND] || BRANDS.smashme;
+  const brandName = currentBrand?.name || 'Smash Me';
+  const brandLogo = currentBrand?.logoImg || `/brands/${effectiveBrand}-logo.png`;
 
   const [showFiscalModal, setShowFiscalModal] = useState(false);
 
@@ -254,7 +261,7 @@ export default function PaymentScreen() {
         <div className="kiosk-amount-header-card">
           <div className="kahc-context-row">
             <span className="kahc-badge-type">
-              {orderType === 'takeaway' ? '🥡 LA PACHET' : '🍽️ SERVIRE ÎN RESTAURANT'}
+              {orderType === 'takeaway' ? 'LA PACHET' : 'SERVIRE ÎN RESTAURANT'}
               {tableNumber ? ` • MASA ${tableNumber}` : ''}
             </span>
           </div>
@@ -465,41 +472,72 @@ export default function PaymentScreen() {
 
               {/* Floating 3D-styled Card & Phone */}
               <div className="kiosk-devices-stage">
-                {/* Credit Card Graphic */}
+                {/* Credit Card Graphic with Brand name as cardholder & Brand logo beside Mastercard */}
                 <div className="kiosk-mockup-card">
-                  <div className="kmc-chip">
-                    <div className="kmc-chip-line" />
-                    <div className="kmc-chip-line" />
-                  </div>
-                  <div className="kmc-nfc-icon">
-                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                      <path d="M8.5 7.5a5 5 0 0 1 0 9" />
-                      <path d="M12 5a8.5 8.5 0 0 1 0 14" />
-                      <path d="M15.5 2.5a12 12 0 0 1 0 19" />
-                    </svg>
-                  </div>
-                  <div className="kmc-number">•••• •••• •••• 8842</div>
-                  <div className="kmc-footer">
-                    <span className="kmc-name">CARD / TELEFON</span>
-                    <div className="kmc-master-circles">
-                      <span className="kmc-mc-1" />
-                      <span className="kmc-mc-2" />
+                  <div className="kmc-header-row">
+                    <div className="kmc-chip">
+                      <div className="kmc-chip-line" />
+                      <div className="kmc-chip-line" />
                     </div>
-                  </div>
-                </div>
-
-                {/* Smartphone with Apple/Google Pay Tap Graphic */}
-                <div className="kiosk-mockup-phone">
-                  <div className="kmp-notch" />
-                  <div className="kmp-screen">
-                    <div className="kmp-contactless">
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                    <div className="kmc-nfc-icon">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
                         <path d="M8.5 7.5a5 5 0 0 1 0 9" />
                         <path d="M12 5a8.5 8.5 0 0 1 0 14" />
                         <path d="M15.5 2.5a12 12 0 0 1 0 19" />
                       </svg>
                     </div>
-                    <span className="kmp-pay-text">PAY</span>
+                  </div>
+
+                  <div className="kmc-number">•••• •••• •••• 8842</div>
+
+                  <div className="kmc-footer">
+                    <span className="kmc-cardholder">{brandName}</span>
+                    <div className="kmc-footer-logos">
+                      {brandLogo && (
+                        <img 
+                          src={brandLogo} 
+                          alt={brandName} 
+                          className="kmc-brand-logo-img" 
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                      )}
+                      <div className="kmc-master-circles">
+                        <span className="kmc-mc-1" />
+                        <span className="kmc-mc-2" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sleek Apple iPhone Mockup */}
+                <div className="kiosk-iphone">
+                  <div className="iphone-btn-volume-up" />
+                  <div className="iphone-btn-volume-down" />
+                  <div className="iphone-btn-power" />
+
+                  <div className="iphone-screen">
+                    <div className="iphone-dynamic-island" />
+
+                    <div className="iphone-apple-pay-content">
+                      <div className="iphone-apple-logo-row">
+                        <svg width="18" height="22" viewBox="0 0 170 170" fill="#ffffff">
+                          <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.04-7.58-7.71-11.65-14-6.42-9.97-11.27-21.75-14.56-35.34-3.29-13.6-4.94-26.65-4.94-39.15 0-14.97 3.65-27.42 10.96-37.37 7.31-9.95 16.5-15.06 27.57-15.34 4.35 0 9.29 1.18 14.83 3.53 5.54 2.35 9.4 3.59 11.58 3.71 1.96-.12 6.04-1.44 12.24-3.95 6.2-2.52 11.28-3.65 15.24-3.41 11.58.55 20.89 4.8 27.91 12.75-10.27 6.2-15.31 14.85-15.11 25.96.2 8.65 3.44 15.91 9.72 21.78 6.28 5.87 13.91 9.26 22.88 10.17-2.35 7.18-5.24 14.3-8.67 21.36zM119.22 33.64c0-7.39 2.66-14.4 7.98-21.03 5.32-6.63 11.94-11.17 19.86-13.61.2 1.4.3 2.69.3 3.87 0 7.39-2.73 14.34-8.19 20.84-5.46 6.5-12.24 10.96-20.35 13.38-.4-1.12-.6-2.27-.6-3.45z" />
+                        </svg>
+                        <span className="iphone-apple-pay-text">Pay</span>
+                      </div>
+
+                      <div className="iphone-nfc-wave">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round">
+                          <path d="M8.5 7.5a5 5 0 0 1 0 9" />
+                          <path d="M12 5a8.5 8.5 0 0 1 0 14" />
+                          <path d="M15.5 2.5a12 12 0 0 1 0 19" />
+                        </svg>
+                      </div>
+
+                      <span className="iphone-hold-near">Apple Pay</span>
+                    </div>
+
+                    <div className="iphone-home-bar" />
                   </div>
                 </div>
               </div>
@@ -509,28 +547,8 @@ export default function PaymentScreen() {
             <div className="kiosk-action-header">
               <h2 className="kiosk-action-title">Apropiați cardul sau telefonul</h2>
               <p className="kiosk-action-subtitle">
-                de ecranul aparatului POS situat în <strong>dreapta ecranului</strong>
+                Urmăriți instrucțiunile afișate pe ecranul aparatului POS (situat în dreapta)
               </p>
-            </div>
-
-            {/* Direction / Pro-tip Banner */}
-            <div className="kiosk-pos-direction-banner">
-              <div className="kpd-icon-pos">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="4" y="2" width="16" height="20" rx="3" />
-                  <rect x="7" y="5" width="10" height="6" rx="1" />
-                  <circle cx="8" cy="14" r="1" fill="currentColor" />
-                  <circle cx="12" cy="14" r="1" fill="currentColor" />
-                  <circle cx="16" cy="14" r="1" fill="currentColor" />
-                  <circle cx="8" cy="17" r="1" fill="currentColor" />
-                  <circle cx="12" cy="17" r="1" fill="currentColor" />
-                  <circle cx="16" cy="17" r="1" fill="#10b981" stroke="#10b981" />
-                </svg>
-              </div>
-              <div className="kpd-text">
-                <span className="kpd-main">Sau introduceți cardul cu cip în fanta aparatului</span>
-                <span className="kpd-sub">Dacă vi se solicită PIN-ul, tastați-l direct pe POS și apăsați Verde [OK]</span>
-              </div>
             </div>
 
             {/* Official Payment Badges */}
