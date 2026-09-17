@@ -118,17 +118,13 @@ export default function PinScreen({ loc, brandId, onUnlock, isScheduleLock = fal
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [handleKey, handleDel, submitting]);
 
-  const subtitle = isScheduleLock
-    ? `Kiosk blocat temporar conform orarului (${loc?.lockStartTime || '22:00'} - ${loc?.lockEndTime || '09:00'}). Introduceți PIN-ul pentru acces.`
-    : 'Introduceți codul PIN autorizat pentru a debloca terminalul kiosk.';
-
   return (
     <div className="pin-screen">
       {/* Ambient background glow */}
       <div className="ios-pin-ambient-glow" />
 
       <div className="ios-pin-card">
-        {/* Brand Logo & Lock Badge */}
+        {/* Brand Logo */}
         <div className="ios-pin-brand-header">
           {brandLogo && (
             <div className="ios-pin-logo-box">
@@ -147,9 +143,8 @@ export default function PinScreen({ loc, brandId, onUnlock, isScheduleLock = fal
           )}
         </div>
 
-        {/* Passcode Title & Subtitle */}
+        {/* Passcode Title */}
         <h1 className="ios-pin-title">Introduceți codul PIN</h1>
-        <p className="ios-pin-sub">{subtitle}</p>
 
         {/* 4 iOS Passcode Dots */}
         <div className={`ios-pin-dots ${error ? 'ios-pin-dots-shake' : ''}`}>
