@@ -2361,9 +2361,6 @@ function KiosksManager({ backend, kiosksLiveStatus = {} }) {
                           </span>
                         )}
                       </div>
-                      <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">
-                        {isOnline ? (isLocked ? 'Ecran blocat (PIN)' : 'Online acum') : (loc.active ? 'Offline' : 'Inactiv')}
-                      </span>
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
