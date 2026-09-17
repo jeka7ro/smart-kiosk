@@ -1,140 +1,282 @@
+/* ==========================================================================
+   iPhone-Style Lock Screen (PinScreen)
+   ========================================================================== */
+
 .pin-screen {
+  position: fixed;
+  inset: 0;
   width: 100vw;
   height: 100vh;
-  background: #0f172a;
+  background: radial-gradient(circle at 50% 12%, #1e293b 0%, #0b0f19 60%, #05070c 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  z-index: 99999;
 }
 
-.pin-box {
-  background: #1e293b;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 40px 32px;
-  border-radius: 28px;
+/* Atmospheric Glow */
+.ios-pin-ambient-glow {
+  position: absolute;
+  top: 15%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 520px;
+  height: 520px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, rgba(238, 59, 36, 0.05) 40%, rgba(0, 0, 0, 0) 70%);
+  pointer-events: none;
+}
+
+/* Card Container */
+.ios-pin-card {
   width: 100%;
   max-width: 380px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  text-align: center;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  padding: 24px 20px;
+  position: relative;
+  z-index: 1;
 }
 
-.pin-title {
-  font-size: 1.6rem;
-  font-weight: 800;
-  margin: 0 0 8px 0;
-  color: #fff;
+/* Brand Header */
+.ios-pin-brand-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 22px;
 }
 
-.pin-sub {
-  color: #94a3b8;
-  font-size: 0.85rem;
-  margin: 0 0 24px 0;
-  line-height: 1.45;
-}
-
-/* 4 Circular Clean PIN Indicators */
-.pin-dots-container {
+.ios-pin-logo-box {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  padding: 10px 24px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  height: 44px;
-  margin-bottom: 28px;
-  width: 100%;
 }
 
-.pin-dot {
-  width: 16px;
-  height: 16px;
+.ios-pin-logo-img {
+  max-height: 56px;
+  max-width: 170px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
+}
+
+.ios-pin-location-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  color: #94a3b8;
+  backdrop-filter: blur(8px);
+}
+
+.ios-pin-lock-svg {
+  color: #60a5fa;
+  flex-shrink: 0;
+}
+
+/* Passcode Title & Sub */
+.ios-pin-title {
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.3px;
+  margin: 0 0 6px 0;
+  color: #ffffff;
+  text-align: center;
+}
+
+.ios-pin-sub {
+  color: #94a3b8;
+  font-size: 13px;
+  margin: 0 0 26px 0;
+  line-height: 1.45;
+  text-align: center;
+  max-width: 320px;
+}
+
+/* 4 iOS Passcode Dots */
+.ios-pin-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  height: 20px;
+  margin-bottom: 8px;
+}
+
+.ios-pin-dot {
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.25);
+  border: 1.5px solid rgba(255, 255, 255, 0.45);
   background: transparent;
-  transition: all 0.15s ease-out;
+  transition: all 0.16s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
 }
 
-.pin-dot-active {
-  background: #3b82f6;
-  border-color: #3b82f6;
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.6);
-  transform: scale(1.15);
+.ios-pin-dot.filled {
+  background: #ffffff;
+  border-color: #ffffff;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
+  transform: scale(1.12);
 }
 
-.pin-error {
-  animation: shake 0.4s ease-in-out;
-}
-
-.pin-error .pin-dot {
+.ios-pin-dot.error {
   border-color: #ef4444;
 }
 
-.pin-error .pin-dot-active {
+.ios-pin-dot.filled.error {
   background: #ef4444;
   border-color: #ef4444;
-  box-shadow: 0 0 10px rgba(239, 68, 68, 0.6);
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.8);
 }
 
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-8px); }
-  75% { transform: translateX(8px); }
+.ios-pin-dots-shake {
+  animation: iosShake 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
 
-/* Keypad Grid */
-.pin-pad {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-  width: 100%;
+@keyframes iosShake {
+  10%, 90% { transform: translate3d(-4px, 0, 0); }
+  20%, 80% { transform: translate3d(6px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-8px, 0, 0); }
+  40%, 60% { transform: translate3d(8px, 0, 0); }
 }
 
-.pin-key {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 16px;
-  height: 60px;
-  color: #fff;
-  font-size: 1.5rem;
-  font-weight: 700;
-  cursor: pointer;
+/* Feedback message area */
+.ios-pin-feedback-area {
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.1s;
+  margin-bottom: 22px;
 }
 
-.pin-key:hover {
-  background: rgba(255, 255, 255, 0.12);
+.ios-pin-error-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: #f87171;
+  animation: fadeIn 0.2s ease-in-out;
 }
 
-.pin-key:active {
-  background: rgba(255, 255, 255, 0.2);
-  transform: scale(0.95);
-}
-
-.pin-cmd {
-  font-size: 1.1rem;
+.ios-pin-verifying-text {
+  font-size: 13px;
+  font-weight: 500;
   color: #94a3b8;
-  background: rgba(0, 0, 0, 0.2);
 }
 
-.pin-ok {
-  background: #2563eb;
-  color: #fff;
-  border-color: #2563eb;
-  font-size: 1rem;
-  font-weight: 800;
+.ios-pin-feedback-placeholder {
+  font-size: 13px;
 }
 
-.pin-ok:hover {
-  background: #1d4ed8;
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.pin-ok:active {
-  background: #1e40af;
-  transform: scale(0.95);
+/* Keypad Grid - Identical to iPhone */
+.ios-pin-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 76px);
+  grid-gap: 16px 26px;
+  justify-content: center;
+  width: 100%;
+}
+
+.ios-pin-key {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.12s ease, transform 0.08s ease, border-color 0.12s ease;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  outline: none;
+  padding: 0;
+  box-sizing: border-box;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ios-pin-key:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.ios-pin-key:active {
+  background: rgba(255, 255, 255, 0.32);
+  transform: scale(0.92);
+}
+
+.ios-pin-key:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ios-pin-num {
+  font-size: 32px;
+  font-weight: 300;
+  line-height: 1;
+  color: #ffffff;
+  letter-spacing: -0.5px;
+}
+
+.ios-pin-letters {
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.65);
+  margin-top: 2px;
+  height: 11px;
+  line-height: 11px;
+}
+
+.ios-pin-key-spacer {
+  width: 76px;
+  height: 76px;
+}
+
+.ios-pin-backspace {
+  background: transparent;
+  border-color: transparent;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.ios-pin-backspace:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: transparent;
+  color: #ffffff;
+}
+
+.ios-pin-backspace:active {
+  background: rgba(255, 255, 255, 0.18);
+  transform: scale(0.92);
+}
+
+.ios-pin-del-icon {
+  stroke-width: 1.75;
 }

@@ -92,7 +92,9 @@ export default function App() {
   const activeBrandId = useKioskStore((s) => s.activeBrandId);
   const setActiveBrandId = useKioskStore((s) => s.setActiveBrandId);
   const brand = getBrand(activeBrandId);
-  const [isLocked, setIsLocked] = useState(false);
+  const [isLocked, setIsLocked] = useState(() => {
+    return new URLSearchParams(window.location.search).get('locked') === 'true';
+  });
   const [isScheduleLocked, setIsScheduleLocked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showManagerPortal, setShowManagerPortal] = useState(isManagerMode);
@@ -106,6 +108,12 @@ export default function App() {
 
   const evaluateLockState = (loc) => {
     if (!loc || !loc.id) return;
+
+    const isUrlLocked = new URLSearchParams(window.location.search).get('locked') === 'true';
+    if (isUrlLocked) {
+      setIsLocked(true);
+      return;
+    }
 
     if (loc.lockScheduleActive) {
       const inSchedule = isWithinLockSchedule(loc);
@@ -567,6 +575,7 @@ export default function App() {
     return (
       <PinScreen 
         loc={locationData} 
+        brandId={activeBrandId}
         isScheduleLock={isScheduleLocked}
         backendUrl={BACKEND}
         onUnlock={(role) => {
