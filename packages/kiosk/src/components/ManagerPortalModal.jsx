@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { io } from 'socket.io-client';
 import { proxySyrveImage } from '../utils/imageUtils.js';
+import { getBrand } from '../config/brands';
+import '../screens/PinScreen.css';
 import './ManagerPortalModal.css';
 
 const BRAND_COLORS = {
@@ -35,6 +37,10 @@ const CLOUD_BACKEND = 'https://smart-kiosk-v7ws.onrender.com';
 
 export default function ManagerPortalModal({ locationData, onClose, isStandalone = false }) {
   const localBackend = import.meta.env.VITE_BACKEND_URL || CLOUD_BACKEND;
+  const brandId = locationData?.brands?.[0] || 'smashme';
+  const brandConfig = getBrand(brandId);
+  const brandLogo = locationData?.logoUrl || brandConfig?.logoImg || BRAND_LOGOS[brandId] || '/brands/smashme-logo.png';
+  const brandName = brandConfig?.name || locationData?.name || 'Smart Kiosk';
 
   // Active Tab: 'orders' | 'logs' | 'status'
   const [activeTab, setActiveTab] = useState('orders');
@@ -170,13 +176,21 @@ export default function ManagerPortalModal({ locationData, onClose, isStandalone
       sendLog('manager_portal_access', 'manager');
     } else {
       setPinError(true);
-      setPinErrorMessage('PIN incorect.');
-      setPin('');
+      setPinErrorMessage('Cod PIN incorect. Încercați din nou.');
+      setTimeout(() => {
+        setPin('');
+      }, 450);
       sendLog('manager_portal_failed', 'unknown');
     }
   };
 
   const handlePinKey = (char) => {
+    if (pinError) {
+      setPinError(false);
+      setPinErrorMessage('');
+      setPin(char);
+      return;
+    }
     if (pin.length < 4) {
       const next = pin + char;
       setPin(next);
@@ -762,16 +776,16 @@ const KIOSK_EVENT_META = {
   }
 };
 
-  // If NOT authenticated, render PIN Keypad
+  // If NOT authenticated, render iPhone-style PIN Keypad
   if (!isAuthenticated) {
     return (
       <div className={`mgr-modal-backdrop mgr-pin-backdrop ${isStandalone ? 'mgr-standalone' : ''}`} onClick={isStandalone ? undefined : onClose}>
-        <div className="mgr-pin-box" onClick={e => e.stopPropagation()}>
+        <div className="ios-pin-card mgr-pin-ios-card" onClick={e => e.stopPropagation()}>
           {!isStandalone ? (
-            <button className="mgr-pin-close-btn" onClick={onClose} aria-label="Închide">✕</button>
+            <button className="ios-pin-close-btn" onClick={onClose} aria-label="Închide">✕</button>
           ) : (
             <button 
-              className="mgr-pin-close-btn" 
+              className="ios-pin-close-btn" 
               onClick={() => window.location.reload()} 
               title="Reîmprospătează pagina"
               aria-label="Refresh"
@@ -782,24 +796,31 @@ const KIOSK_EVENT_META = {
             </button>
           )}
 
-          <div className="mgr-pin-icon-wrapper">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-            </svg>
+          {/* Brand Avatar */}
+          <div className="ios-pin-brand-header">
+            {brandLogo && (
+              <img
+                src={brandLogo}
+                alt={brandName}
+                className="ios-pin-brand-avatar"
+                onError={(e) => {
+                  if (!e.currentTarget.dataset.fallback) {
+                    e.currentTarget.dataset.fallback = 'true';
+                    e.currentTarget.src = '/brands/smashme-logo.png';
+                  }
+                }}
+              />
+            )}
           </div>
 
-          <h2 className="mgr-pin-title">Portal Manager Kiosk</h2>
-          <p className="mgr-pin-subtitle">
-            {locationData?.name ? <strong>{locationData.name}<br /></strong> : null}
-            Introduceți codul PIN de Manager pentru acces securizat
-          </p>
+          {/* Passcode Title */}
+          <h2 className="ios-pin-title">Portal Manager Kiosk</h2>
 
+          {/* 4 iOS Passcode Dots */}
           <div 
-            className={`mgr-pin-dots ${pinError ? 'mgr-pin-dots-error' : ''}`}
+            className={`ios-pin-dots ${pinError ? 'ios-pin-dots-shake' : ''}`}
             onClick={() => isStandalone && pinInputRef.current?.focus()}
           >
-            {/* Input nativ exclusiv cand se acceseaza linkul de manager de pe telefon (?manager=true) */}
             {isStandalone && (
               <input
                 ref={pinInputRef}
@@ -835,49 +856,76 @@ const KIOSK_EVENT_META = {
                 aria-label="Cod PIN Manager"
               />
             )}
-            {[0, 1, 2, 3].map(idx => (
-              <div
-                key={idx}
-                className={`mgr-pin-dot ${idx < pin.length ? 'filled' : ''}`}
-              />
-            ))}
+            {[0, 1, 2, 3].map(idx => {
+              const isFilled = idx < pin.length;
+              return (
+                <div
+                  key={idx}
+                  className={`ios-pin-dot ${isFilled ? 'filled' : ''} ${pinError ? 'error' : ''}`}
+                />
+              );
+            })}
           </div>
 
-          {pinErrorMessage && (
-            <div className="mgr-pin-error-text">{pinErrorMessage}</div>
-          )}
+          {/* Feedback message area */}
+          <div className="ios-pin-feedback-area">
+            {pinErrorMessage ? (
+              <span className="ios-pin-error-text">{pinErrorMessage}</span>
+            ) : (
+              <span className="ios-pin-feedback-placeholder">&nbsp;</span>
+            )}
+          </div>
 
-          <div className="mgr-pin-pad">
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => (
+          {/* iOS Keypad Grid */}
+          <div className="ios-pin-keypad">
+            {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(num => (
               <button
-                key={n}
+                key={num}
                 type="button"
-                className="mgr-pin-num-btn"
-                onClick={() => handlePinKey(String(n))}
+                className="ios-pin-key"
+                onClick={() => handlePinKey(num)}
               >
-                {n}
+                <span className="ios-pin-num">{num}</span>
               </button>
             ))}
+
+            <div className="ios-pin-key-spacer" />
+
             <button
               type="button"
-              className="mgr-pin-num-btn mgr-pin-action-btn"
-              onClick={handlePinDel}
-            >
-              ⌫
-            </button>
-            <button
-              type="button"
-              className="mgr-pin-num-btn"
+              className="ios-pin-key"
               onClick={() => handlePinKey('0')}
             >
-              0
+              <span className="ios-pin-num">0</span>
             </button>
+
             <button
               type="button"
-              className="mgr-pin-num-btn mgr-pin-ok-btn"
-              onClick={handlePinSubmit}
+              className="ios-pin-key ios-pin-backspace"
+              onClick={handlePinDel}
+              aria-label="Șterge"
             >
-              OK
+              <svg
+                className="ios-pin-del-icon"
+                width="26"
+                height="22"
+                viewBox="0 0 26 22"
+                fill="none"
+                stroke="currentColor"
+              >
+                <path
+                  d="M9 2L2 11L9 20H23C23.5304 20 24.0391 19.7893 24.4142 19.4142C24.7893 19.0391 25 18.5304 25 18V4C25 3.46957 24.7893 2.96086 24.4142 2.58579C24.0391 2.21071 23.5304 2 23 2H9Z"
+                  strokeWidth="1.75"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M19 8L13 14M13 8L19 14"
+                  strokeWidth="1.75"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </button>
           </div>
 
