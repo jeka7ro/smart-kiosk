@@ -52,6 +52,7 @@ router.post('/', async (req, res) => {
       // Auto-corectie comenzi
       await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-094"') WHERE data->>'orderNumber' = 'CJ1-544'`).catch(() => {});
       await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CT-001"') WHERE data->>'orderNumber' = 'CT-438'`).catch(() => {});
+      await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CT-002"') WHERE data->>'orderNumber' = 'CT-439'`).catch(() => {});
 
       const { rows } = await pool.query(`SELECT data->>'orderNumber' as num, location_id FROM orders WHERE (data->>'orderNumber') IS NOT NULL`);
       for (const row of rows) {
@@ -311,6 +312,7 @@ router.get('/', async (req, res) => {
   try {
     await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-094"') WHERE data->>'orderNumber' = 'CJ1-544'`).catch(() => {});
     await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CT-001"') WHERE data->>'orderNumber' = 'CT-438'`).catch(() => {});
+    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CT-002"') WHERE data->>'orderNumber' = 'CT-439'`).catch(() => {});
     let query = `SELECT data, status FROM orders WHERE 1=1`;
     const params = [];
 

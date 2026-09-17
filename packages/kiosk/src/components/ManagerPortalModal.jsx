@@ -442,14 +442,18 @@ export default function ManagerPortalModal({ locationData, onClose, isStandalone
     return true;
   };
 
+  const locId = String(locationData?.id || '').toLowerCase();
+  const locName = String(locationData?.name || '').toLowerCase();
+  const kioskUrl = String(locationData?.kioskUrl || '').toLowerCase();
+  const isCluj = (locId.includes('cluj') || locName.includes('cluj') || kioskUrl.includes('cluj')) &&
+                 !locId.includes('constanta') && !locName.includes('constanta') && !kioskUrl.includes('constanta') &&
+                 !locId.includes('brasov') && !locName.includes('brasov') && !kioskUrl.includes('brasov');
+
   // Location filtering
   const locationOrders = useMemo(() => {
-    const locId = String(locationData?.id || '').toLowerCase();
-    const locName = String(locationData?.name || '').toLowerCase();
-    const kioskUrl = String(locationData?.kioskUrl || '').toLowerCase();
     const aliases = (locationData?.aliases || []).map(a => String(a).toLowerCase());
-
-    const isCluj = locId.includes('cluj') || locName.includes('cluj') || locName.includes('smashme') || kioskUrl.includes('cluj');
+    const isConstanta = locId.includes('constanta') || locName.includes('constanta') || kioskUrl.includes('constanta');
+    const isBrasov = locId.includes('brasov') || locName.includes('brasov') || kioskUrl.includes('brasov');
 
     return allOrders.filter(o => {
       const oLocId = String(o.locationId || o.location_id || '').toLowerCase();
@@ -458,11 +462,19 @@ export default function ManagerPortalModal({ locationData, onClose, isStandalone
 
       if (!locId && !locName && !kioskUrl) return true;
 
-      // When viewing Cluj locations, show all Cluj orders (both CJ1 and CJ2)
+      // When viewing Cluj locations, show ONLY Cluj orders (CJ1 and CJ2)
       if (isCluj) {
-        if (oNum.startsWith('CJ') || oLocId.includes('cluj') || oLocName.includes('cluj') || oLocId === 'smashme-main' || oLocName.includes('smashme')) {
-          return true;
-        }
+        return oNum.startsWith('CJ') || oLocId.includes('cluj') || oLocName.includes('cluj') || oLocId === 'smashme-main';
+      }
+
+      // When viewing Constanta, show ONLY Constanta orders (CT)
+      if (isConstanta) {
+        return oNum.startsWith('CT') || oLocId.includes('constanta') || oLocName.includes('constanta') || aliases.includes(oLocId);
+      }
+
+      // When viewing Brasov, show ONLY Brasov orders (BV)
+      if (isBrasov) {
+        return oNum.startsWith('BV') || oLocId.includes('brasov') || oLocName.includes('brasov') || aliases.includes(oLocId);
       }
 
       if (locId && oLocId === locId) return true;
@@ -472,7 +484,7 @@ export default function ManagerPortalModal({ locationData, onClose, isStandalone
 
       return false;
     });
-  }, [allOrders, locationData]);
+  }, [allOrders, locationData, isCluj, locId, locName, kioskUrl]);
 
   // Period filtered orders (used for Stat Cards)
   const periodFilteredOrders = useMemo(() => {
@@ -1100,35 +1112,38 @@ const KIOSK_EVENT_META = {
               </button>
             </div>
 
-            <div className="mgr-filter-divider" />
-
-            {/* Kiosk Filter Pills (CJ-1 / CJ-2) */}
-            <div className="mgr-btn-group">
-              <button
-                type="button"
-                onClick={() => { setKioskFilter('all'); setCurrentPage(1); }}
-                className={`mgr-pill-btn ${kioskFilter === 'all' ? 'active' : ''}`}
-                title="Afișează comenzile de pe toate kiosk-urile"
-              >
-                Toate Kiosk-urile
-              </button>
-              <button
-                type="button"
-                onClick={() => { setKioskFilter('cj1'); setCurrentPage(1); }}
-                className={`mgr-pill-btn ${kioskFilter === 'cj1' ? 'active' : ''}`}
-                title="Filtrează comenzile plasate pe Kiosk 1 (CJ-1)"
-              >
-                Kiosk 1 (CJ-1)
-              </button>
-              <button
-                type="button"
-                onClick={() => { setKioskFilter('cj2'); setCurrentPage(1); }}
-                className={`mgr-pill-btn ${kioskFilter === 'cj2' ? 'active' : ''}`}
-                title="Filtrează comenzile plasate pe Kiosk 2 (CJ-2)"
-              >
-                Kiosk 2 (CJ-2)
-              </button>
-            </div>
+            {/* Kiosk Filter Pills (CJ-1 / CJ-2) - doar pentru Cluj */}
+            {isCluj && (
+              <>
+                <div className="mgr-filter-divider" />
+                <div className="mgr-btn-group">
+                  <button
+                    type="button"
+                    onClick={() => { setKioskFilter('all'); setCurrentPage(1); }}
+                    className={`mgr-pill-btn ${kioskFilter === 'all' ? 'active' : ''}`}
+                    title="Afișează comenzile de pe toate kiosk-urile"
+                  >
+                    Toate Kiosk-urile
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setKioskFilter('cj1'); setCurrentPage(1); }}
+                    className={`mgr-pill-btn ${kioskFilter === 'cj1' ? 'active' : ''}`}
+                    title="Filtrează comenzile plasate pe Kiosk 1 (CJ-1)"
+                  >
+                    Kiosk 1 (CJ-1)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setKioskFilter('cj2'); setCurrentPage(1); }}
+                    className={`mgr-pill-btn ${kioskFilter === 'cj2' ? 'active' : ''}`}
+                    title="Filtrează comenzile plasate pe Kiosk 2 (CJ-2)"
+                  >
+                    Kiosk 2 (CJ-2)
+                  </button>
+                </div>
+              </>
+            )}
 
             <div className="mgr-filter-divider" />
 
