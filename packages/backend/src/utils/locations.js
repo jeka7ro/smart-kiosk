@@ -44,7 +44,8 @@ const CITY_CONFIG = {
     prefix: 'CT',
     minStart: 0,
     aliases: [
-      'constanta', 'smashme-constanta', 'ct', 'smashme constanta',
+      'constanta', 'constanta1', 'constanta2', 'constanta-1', 'constanta-2',
+      'smashme-constanta', 'ct', 'smashme constanta',
       '8308e796-8780-4d18-ae66-4e430178c778',
     ],
   },

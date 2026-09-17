@@ -21,10 +21,22 @@ router.get('/', requireApiKey, async (req, res) => {
   if (!orgId || orgId === 'undefined' || orgId === 'null') {
     if (locId) {
       try {
-        const { findLocation } = require('../utils/locations');
+        const { findLocation, getAllLocations } = require('../utils/locations');
         const loc = findLocation(locId);
         if (loc?.orgIds?.[brandId]) {
           orgId = loc.orgIds[brandId];
+        } else {
+          const all = getAllLocations();
+          const cleanLoc = locId.toLowerCase().replace(/[^a-z0-9]/g, '');
+          const alt = all.find(l => (l.orgIds?.[brandId]) && (
+            (l.kioskUrl && l.kioskUrl.toLowerCase().includes(cleanLoc)) ||
+            (l.id && l.id.toLowerCase().includes(cleanLoc)) ||
+            (l.name && l.name.toLowerCase().includes(cleanLoc)) ||
+            (cleanLoc.includes('constanta') && (l.id?.includes('8308e796') || l.name?.toLowerCase().includes('constanta')))
+          ));
+          if (alt?.orgIds?.[brandId]) {
+            orgId = alt.orgIds[brandId];
+          }
         }
       } catch (_) {}
     }
@@ -101,7 +113,6 @@ router.get('/', requireApiKey, async (req, res) => {
   let finalCategories = menu.categories || [];
   let finalProducts = enrichedProducts || [];
 
-  const locId = req.query.locId;
   if (locId && brandId) {
     try {
       let locData = null;

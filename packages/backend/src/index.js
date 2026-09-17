@@ -167,12 +167,18 @@ async function start() {
     console.warn('[REDIS] Not available — running without Redis:', err.message);
   }
 
-  // iiko — optional, needs API key
-  try {
-    await syncAllMenus();
-  } catch (err) {
-    console.warn('[IIKO] Menu sync skipped:', err.message);
-  }
+  const PORT = process.env.PORT || 4000;
+  server.listen(PORT, () => {
+    console.log(`\n🚀 Smart Kiosk API — http://localhost:${PORT}`);
+    console.log(`   Health: http://localhost:${PORT}/health`);
+    console.log(`   Orders: POST http://localhost:${PORT}/api/orders`);
+    console.log(`   QR gen: GET  http://localhost:${PORT}/api/qr/generate?brand=smashme&table=5&loc=1\n`);
+  });
+
+  // iiko — sync in background so server listens immediately
+  syncAllMenus().catch(err => {
+    console.warn('[IIKO] Initial menu sync skipped/failed:', err.message);
+  });
 
   // Cron: menu sync every N minutes
   const menuInterval = parseInt(process.env.MENU_SYNC_INTERVAL_MINUTES || '15');
@@ -183,14 +189,6 @@ async function start() {
   // Cron: stop-list every ~2 minutes
   cron.schedule('*/2 * * * *', async () => {
     try { await syncStopLists(); } catch(e) {}
-  });
-
-  const PORT = process.env.PORT || 4000;
-  server.listen(PORT, () => {
-    console.log(`\n🚀 Smart Kiosk API — http://localhost:${PORT}`);
-    console.log(`   Health: http://localhost:${PORT}/health`);
-    console.log(`   Orders: POST http://localhost:${PORT}/api/orders`);
-    console.log(`   QR gen: GET  http://localhost:${PORT}/api/qr/generate?brand=smashme&table=5&loc=1\n`);
   });
 }
 
