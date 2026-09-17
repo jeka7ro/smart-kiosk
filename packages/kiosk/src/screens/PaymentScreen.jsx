@@ -245,7 +245,7 @@ export default function PaymentScreen() {
             <line x1="19" y1="12" x2="5" y2="12" />
             <polyline points="12 19 5 12 12 5" />
           </svg>
-          <span>{t('back_to_cart', lang) || 'Înapoi la coș'}</span>
+          <span>{(t('back_to_cart', lang) || 'Înapoi la coș').replace(/^←\s*/, '')}</span>
         </button>
       )}
 
@@ -473,9 +473,9 @@ export default function PaymentScreen() {
                   </div>
                   <div className="kmc-nfc-icon">
                     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                      <path d="M8.5 16.5a5 5 0 0 1 0-9" />
-                      <path d="M12 19a8.5 8.5 0 0 1 0-14" />
-                      <path d="M15.5 21.5a12 12 0 0 1 0-19" />
+                      <path d="M8.5 7.5a5 5 0 0 1 0 9" />
+                      <path d="M12 5a8.5 8.5 0 0 1 0 14" />
+                      <path d="M15.5 2.5a12 12 0 0 1 0 19" />
                     </svg>
                   </div>
                   <div className="kmc-number">•••• •••• •••• 8842</div>
@@ -494,9 +494,9 @@ export default function PaymentScreen() {
                   <div className="kmp-screen">
                     <div className="kmp-contactless">
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                        <path d="M8.5 16.5a5 5 0 0 1 0-9" />
-                        <path d="M12 19a8.5 8.5 0 0 1 0-14" />
-                        <path d="M15.5 21.5a12 12 0 0 1 0-19" />
+                        <path d="M8.5 7.5a5 5 0 0 1 0 9" />
+                        <path d="M12 5a8.5 8.5 0 0 1 0 14" />
+                        <path d="M15.5 2.5a12 12 0 0 1 0 19" />
                       </svg>
                     </div>
                     <span className="kmp-pay-text">PAY</span>
@@ -537,9 +537,9 @@ export default function PaymentScreen() {
             <div className="kiosk-trust-badges-bar">
               <div className="ktb-pill" title="Contactless">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
-                  <path d="M8.5 16.5a5 5 0 0 1 0-9" />
-                  <path d="M12 19a8.5 8.5 0 0 1 0-14" />
-                  <path d="M15.5 21.5a12 12 0 0 1 0-19" />
+                  <path d="M8.5 7.5a5 5 0 0 1 0 9" />
+                  <path d="M12 5a8.5 8.5 0 0 1 0 14" />
+                  <path d="M15.5 2.5a12 12 0 0 1 0 19" />
                 </svg>
                 <span>Contactless</span>
               </div>
@@ -581,7 +581,7 @@ export default function PaymentScreen() {
                   <line x1="19" y1="12" x2="5" y2="12" />
                   <polyline points="12 19 5 12 12 5" />
                 </svg>
-                <span>{t('back_to_cart', lang) || 'Înapoi la coș'}</span>
+                <span>{(t('back_to_cart', lang) || 'Înapoi la coș').replace(/^←\s*/, '')}</span>
               </button>
               <button className="kiosk-touch-btn kiosk-btn-danger" onClick={handleCancelOrder}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -647,7 +647,7 @@ export default function PaymentScreen() {
                   <line x1="19" y1="12" x2="5" y2="12" />
                   <polyline points="12 19 5 12 12 5" />
                 </svg>
-                <span>{t('back_to_cart', lang) || 'Înapoi la coș'}</span>
+                <span>{(t('back_to_cart', lang) || 'Înapoi la coș').replace(/^←\s*/, '')}</span>
               </button>
               <button className="kiosk-touch-btn kiosk-btn-danger" onClick={handleCancelOrder}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -741,7 +741,7 @@ export default function PaymentScreen() {
                   <line x1="19" y1="12" x2="5" y2="12" />
                   <polyline points="12 19 5 12 12 5" />
                 </svg>
-                <span>{t('back_to_cart', lang) || 'Înapoi la coș'}</span>
+                <span>{(t('back_to_cart', lang) || 'Înapoi la coș').replace(/^←\s*/, '')}</span>
               </button>
             </div>
           </div>
