@@ -46,33 +46,18 @@
 /* Brand Header */
 .ios-pin-brand-header {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 28px;
-}
-
-.ios-pin-logo-box {
-  width: 76px;
-  height: 76px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1.5px solid rgba(255, 255, 255, 0.15);
-  padding: 11px;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
-  display: flex;
-  align-items: center;
   justify-content: center;
-  box-sizing: border-box;
-  overflow: hidden;
+  align-items: center;
+  margin-bottom: 26px;
 }
 
-.ios-pin-logo-img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
+.ios-pin-brand-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  display: block;
 }
 
 /* Passcode Title */

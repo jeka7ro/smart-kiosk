@@ -124,22 +124,20 @@ export default function PinScreen({ loc, brandId, onUnlock, isScheduleLock = fal
       <div className="ios-pin-ambient-glow" />
 
       <div className="ios-pin-card">
-        {/* Brand Logo */}
+        {/* Brand Avatar */}
         <div className="ios-pin-brand-header">
           {brandLogo && (
-            <div className="ios-pin-logo-box">
-              <img
-                src={brandLogo}
-                alt={brandName}
-                className="ios-pin-logo-img"
-                onError={(e) => {
-                  if (!e.currentTarget.dataset.fallback) {
-                    e.currentTarget.dataset.fallback = 'true';
-                    e.currentTarget.src = '/brands/smashme-logo.png';
-                  }
-                }}
-              />
-            </div>
+            <img
+              src={brandLogo}
+              alt={brandName}
+              className="ios-pin-brand-avatar"
+              onError={(e) => {
+                if (!e.currentTarget.dataset.fallback) {
+                  e.currentTarget.dataset.fallback = 'true';
+                  e.currentTarget.src = '/brands/smashme-logo.png';
+                }
+              }}
+            />
           )}
         </div>
 
