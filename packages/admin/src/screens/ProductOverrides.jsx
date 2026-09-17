@@ -90,9 +90,9 @@ export default function ProductOverrides() {
   const [page,        setPage]        = useState(1);
   const [pageSize,    setPageSize]    = useState(25);
   const [search,      setSearch]      = useState('');
-  const [activeBrand, setActiveBrand] = useState('smashme');
+  const [activeBrand, setActiveBrand] = useState(() => localStorage.getItem('admin_active_brand') || 'smashme');
   const [toast,       setToast]       = useState(null);
-  const [filterDiet,  setFilterDiet]  = useState(null); // null | 'veg' | 'spicy'
+  const [filterDiet,  setFilterDiet]  = useState(() => localStorage.getItem('admin_product_filter_diet') || null); // null | 'veg' | 'spicy' | 'promo' | 'featured'
   const [filterCategory, setFilterCategory] = useState(''); // empty = all
   const [previewImage,setPreviewImage]= useState(null);
   const [previewDesc, setPreviewDesc] = useState(null);
@@ -165,8 +165,11 @@ export default function ProductOverrides() {
         
         // Deduce known kiosks without forcing user to define them in Kiosks tab
         let known = loc.kiosks?.length > 0 ? [...loc.kiosks] : [];
-        if (known.length === 0 && loc.kioskUrl) {
+        if (loc.kioskUrl && !known.find(k => k.kioskId === loc.kioskUrl)) {
           known.push({ kioskId: loc.kioskUrl, name: loc.kioskUrl });
+        }
+        if (loc.id && !known.find(k => k.kioskId === loc.id)) {
+          known.push({ kioskId: loc.id, name: loc.name || loc.id });
         }
         Object.keys(kPromos).forEach(kid => {
           if (!known.find(k => k.kioskId === kid)) known.push({ kioskId: kid, name: kid });
@@ -383,12 +386,34 @@ export default function ProductOverrides() {
     }
   };
 
+  const returnKioskId = localStorage.getItem('admin_return_to_kiosk');
+  const returnKioskName = localStorage.getItem('admin_return_to_kiosk_name');
+
   return (
     <div className="w-full max-w-7xl mx-auto pb-10 animate-in fade-in duration-300">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
         <div>
-          <p className="m-0 text-slate-500 dark:text-slate-400">Meniul sincronizat din Syrve. Aici poți adăuga manual supra-scrieri (poză HD proprie, filtru Vegetarian).</p>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Produse & Etichete (Overrides)</h2>
+          <p className="m-0 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Meniul sincronizat din Syrve. Aici poți adăuga manual supra-scrieri (poză HD proprie, preț promo, ofertă Pop-up Start).
+          </p>
         </div>
+        {returnKioskId && (
+          <button
+            type="button"
+            onClick={() => {
+              window.location.hash = 'kiosks';
+            }}
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl border border-blue-200 dark:border-blue-800/70 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-xs font-bold transition-all shadow-xs cursor-pointer shrink-0"
+          >
+            <span>← Înapoi la Setări Kiosk</span>
+            {returnKioskName && (
+              <span className="px-2 py-0.5 rounded-md bg-blue-200/70 dark:bg-blue-800/80 text-blue-900 dark:text-blue-100 font-semibold text-[11px]">
+                {returnKioskName}
+              </span>
+            )}
+          </button>
+        )}
       </div>
 
       <input type="file" ref={fileInputRef} className="hidden" accept="image/png, image/jpeg, image/webp" onChange={onFileChange} />
@@ -402,8 +427,11 @@ export default function ProductOverrides() {
             return (
               <button
                 key={b.id}
-                onClick={() => setActiveBrand(b.id)}
-                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border shrink-0 ${
+                onClick={() => {
+                  setActiveBrand(b.id);
+                  localStorage.setItem('admin_active_brand', b.id);
+                }}
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border shrink-0 cursor-pointer ${
                   isActive
                     ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white shadow-2xs'
                     : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50'
@@ -481,8 +509,14 @@ export default function ProductOverrides() {
           
           <div className="flex items-center gap-1.5 shrink-0">
             <button
-              onClick={() => { setFilterDiet(filterDiet === 'veg' ? null : 'veg'); setPage(1); }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
+              onClick={() => {
+                const next = filterDiet === 'veg' ? null : 'veg';
+                setFilterDiet(next);
+                if (next) localStorage.setItem('admin_product_filter_diet', next);
+                else localStorage.removeItem('admin_product_filter_diet');
+                setPage(1);
+              }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border cursor-pointer ${
                 filterDiet === 'veg' 
                   ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white shadow-2xs' 
                   : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50'
@@ -491,8 +525,14 @@ export default function ProductOverrides() {
               Vegetarian
             </button>
             <button
-              onClick={() => { setFilterDiet(filterDiet === 'spicy' ? null : 'spicy'); setPage(1); }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
+              onClick={() => {
+                const next = filterDiet === 'spicy' ? null : 'spicy';
+                setFilterDiet(next);
+                if (next) localStorage.setItem('admin_product_filter_diet', next);
+                else localStorage.removeItem('admin_product_filter_diet');
+                setPage(1);
+              }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border cursor-pointer ${
                 filterDiet === 'spicy' 
                   ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white shadow-2xs' 
                   : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50'
@@ -501,8 +541,14 @@ export default function ProductOverrides() {
               Picant
             </button>
             <button
-              onClick={() => { setFilterDiet(filterDiet === 'promo' ? null : 'promo'); setPage(1); }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
+              onClick={() => {
+                const next = filterDiet === 'promo' ? null : 'promo';
+                setFilterDiet(next);
+                if (next) localStorage.setItem('admin_product_filter_diet', next);
+                else localStorage.removeItem('admin_product_filter_diet');
+                setPage(1);
+              }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border cursor-pointer ${
                 filterDiet === 'promo' 
                   ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white shadow-2xs' 
                   : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50'
@@ -511,8 +557,14 @@ export default function ProductOverrides() {
               Doar Promo
             </button>
             <button
-              onClick={() => { setFilterDiet(filterDiet === 'featured' ? null : 'featured'); setPage(1); }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
+              onClick={() => {
+                const next = filterDiet === 'featured' ? null : 'featured';
+                setFilterDiet(next);
+                if (next) localStorage.setItem('admin_product_filter_diet', next);
+                else localStorage.removeItem('admin_product_filter_diet');
+                setPage(1);
+              }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border cursor-pointer ${
                 filterDiet === 'featured' 
                   ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white shadow-2xs' 
                   : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50'

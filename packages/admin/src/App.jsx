@@ -1250,7 +1250,19 @@ export default function AdminApp() {
 
           {/* ─── KIOSKS / SCREENSAVER ─── */}
           {tab === 'kiosks' && (
-            <div className="admin-section"><KiosksManager backend={BACKEND} kiosksLiveStatus={kiosksLiveStatus} /></div>
+            <div className="admin-section">
+              <KiosksManager 
+                backend={BACKEND} 
+                kiosksLiveStatus={kiosksLiveStatus} 
+                onNavigateToProducts={(locId, kioskId, filterDiet = 'promo', brandId = 'smashme') => {
+                  if (locId) localStorage.setItem('admin_active_location', locId);
+                  if (kioskId) localStorage.setItem('admin_active_kiosk', kioskId);
+                  if (filterDiet) localStorage.setItem('admin_product_filter_diet', filterDiet);
+                  if (brandId) localStorage.setItem('admin_active_brand', brandId);
+                  setTab('products');
+                }}
+              />
+            </div>
           )}
 
           {/* ─── QR CODE GENERATOR ─── */}
@@ -1926,7 +1938,7 @@ function KioskPosterCard({ brandId, brandName, emoji, backend }) {
   );
 }
 
-function KiosksManager({ backend, kiosksLiveStatus = {} }) {
+function KiosksManager({ backend, kiosksLiveStatus = {}, onNavigateToProducts }) {
   const { fetchWithAuth } = useAuth();
   const confirm = useConfirm();
   const [locations, setLocations] = useState([]);
@@ -2008,6 +2020,21 @@ function KiosksManager({ backend, kiosksLiveStatus = {} }) {
       .catch(() => setLoading(false));
   };
   useEffect(fetchLocs, [backend]);
+
+  useEffect(() => {
+    const returnKioskId = localStorage.getItem('admin_return_to_kiosk');
+    const returnTab = localStorage.getItem('admin_return_to_kiosk_tab') || 'marketing';
+    if (returnKioskId && locations.length > 0) {
+      const found = locations.find(l => l.id === returnKioskId || l.kioskUrl === returnKioskId);
+      if (found) {
+        setEditingLoc(found);
+        setEditingTab(returnTab);
+      }
+      localStorage.removeItem('admin_return_to_kiosk');
+      localStorage.removeItem('admin_return_to_kiosk_name');
+      localStorage.removeItem('admin_return_to_kiosk_tab');
+    }
+  }, [locations]);
 
   const getKioskMenuStats = (loc) => {
     const brandsArr = loc.brands && loc.brands.length > 0 ? loc.brands : (loc.brandId ? [loc.brandId] : ['smashme']);
@@ -2097,7 +2124,7 @@ function KiosksManager({ backend, kiosksLiveStatus = {} }) {
   if (loading) return <p className="loading-text">Se încarcă kioskurile...</p>;
 
   if (editingLoc) {
-    return <KioskSettingsForm loc={editingLoc} backend={backend} initialTab={editingTab} onBack={() => setEditingLoc(null)} onSave={fetchLocs} />;
+    return <KioskSettingsForm loc={editingLoc} backend={backend} initialTab={editingTab} onBack={() => setEditingLoc(null)} onSave={fetchLocs} onNavigateToProducts={onNavigateToProducts} />;
   }
 
   const brandMeta = {
@@ -2434,6 +2461,28 @@ function KiosksManager({ backend, kiosksLiveStatus = {} }) {
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                       </button>
                       <button 
+                        type="button"
+                        title="Produse Promoționale & Pop-up Start (Overrides)"
+                        className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 dark:hover:bg-amber-500/10 dark:hover:text-amber-400 text-slate-600 dark:text-slate-400 flex items-center justify-center transition-colors cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const targetKioskId = loc.kioskUrl || loc.id;
+                          const bArr = loc.brands && loc.brands.length > 0 ? loc.brands : (loc.brandId ? [loc.brandId] : ['smashme']);
+                          const firstB = bArr[0] || 'smashme';
+                          localStorage.setItem('admin_active_location', loc.id);
+                          localStorage.setItem('admin_active_kiosk', targetKioskId);
+                          localStorage.setItem('admin_product_filter_diet', 'promo');
+                          localStorage.setItem('admin_active_brand', firstB);
+                          localStorage.setItem('admin_return_to_kiosk', loc.id);
+                          localStorage.setItem('admin_return_to_kiosk_name', loc.name || loc.id);
+                          localStorage.setItem('admin_return_to_kiosk_tab', 'marketing');
+                          if (onNavigateToProducts) onNavigateToProducts(loc.id, targetKioskId, 'promo', firstB);
+                          else window.location.hash = 'products';
+                        }}
+                      >
+                        <Tags className="w-4 h-4" />
+                      </button>
+                      <button 
                         title="Setări și Screensaver"
                         className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-purple-50 hover:text-purple-600 hover:border-purple-200 dark:hover:bg-purple-500/10 dark:hover:text-purple-400 text-slate-600 dark:text-slate-400 flex items-center justify-center transition-colors"
                         onClick={() => { setEditingLoc(loc); setEditingTab('design'); }}
@@ -2644,10 +2693,30 @@ function parseFooterDetails(rawText, explicitWebsite, explicitPhone) {
   return { website, phone, extra };
 }
 
-function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave }) {
+function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave, onNavigateToProducts }) {
   const { fetchWithAuth } = useAuth();
   const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState(initialTab || 'design');
+  const targetKioskId = loc.kioskUrl || loc.id;
+  const promoMap = loc.kioskPromos?.[targetKioskId] || {};
+  const activePromoCount = Object.keys(promoMap).filter(pid => promoMap[pid]?.price).length;
+  const startPopupCount = Object.keys(promoMap).filter(pid => promoMap[pid]?.price && promoMap[pid]?.popupStart).length;
+  const firstBrand = (loc.brands && loc.brands[0]) || loc.brandId || 'smashme';
+
+  const goToPromoProducts = () => {
+    localStorage.setItem('admin_active_location', loc.id);
+    localStorage.setItem('admin_active_kiosk', targetKioskId);
+    localStorage.setItem('admin_product_filter_diet', 'promo');
+    localStorage.setItem('admin_active_brand', firstBrand);
+    localStorage.setItem('admin_return_to_kiosk', loc.id);
+    localStorage.setItem('admin_return_to_kiosk_name', loc.name || loc.id);
+    localStorage.setItem('admin_return_to_kiosk_tab', activeTab);
+    if (onNavigateToProducts) {
+      onNavigateToProducts(loc.id, targetKioskId, 'promo', firstBrand);
+    } else {
+      window.location.hash = 'products';
+    }
+  };
   const [formData, setFormData] = useState({
     name: loc.name || '',
     kioskUrl: loc.kioskUrl || '',
@@ -3046,6 +3115,15 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
         </div>
 
         <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={goToPromoProducts}
+            className="inline-flex items-center gap-2 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/20 dark:hover:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-3.5 py-2 rounded-xl text-sm font-semibold border border-amber-200 dark:border-amber-800/60 transition-all shadow-xs cursor-pointer"
+            title="Deschide lista de produse promoționale și oferte Pop-up Start pentru acest Kiosk"
+          >
+            <Tags className="w-4 h-4 text-amber-500" />
+            <span>Produse Promo {activePromoCount > 0 ? `(${activePromoCount})` : ''}</span>
+          </button>
           <a
             href={finalKioskUrl}
             target="_blank" 
@@ -3124,6 +3202,23 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
               <p className="text-xs text-slate-500 dark:text-slate-400">
                 Configurează profilul de meniu pe care îl preia acest Kiosk pentru fiecare brand activ, sau editează vizibilitatea produselor strict pe această tabletă.
               </p>
+            </div>
+
+            <div className="p-3 bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/70 dark:border-amber-800/50 rounded-xl flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Tags className="w-4 h-4 text-amber-500 shrink-0" />
+                <span className="text-xs text-slate-700 dark:text-slate-300 font-medium">
+                  Prețurile promoționale și ofertele Pop-up Start se configurează pe produse în ecranul Overrides:
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={goToPromoProducts}
+                className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline inline-flex items-center gap-1 cursor-pointer shrink-0"
+              >
+                <span>Deschide Produse Promo (Overrides)</span>
+                <span>→</span>
+              </button>
             </div>
 
             <div className="space-y-3">
@@ -4262,6 +4357,46 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                   Alege formatul de afișare pe acest kiosk atunci când există 2 sau mai multe produse cu ofertă de start activă.
                 </p>
               </div>
+            </div>
+
+            {/* Quick Status & Direct Link to Product Overrides */}
+            <div className="mt-3 p-4 rounded-xl bg-gradient-to-r from-amber-50/90 to-orange-50/70 dark:from-amber-950/25 dark:to-orange-950/15 border border-amber-200/80 dark:border-amber-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+                    <Tags className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                    Produse cu Ofertă de Start pe acest Kiosk:
+                  </span>
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-black ${
+                    startPopupCount > 0 
+                      ? 'bg-emerald-600 text-white shadow-xs' 
+                      : activePromoCount > 0 
+                        ? 'bg-amber-500 text-white' 
+                        : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                  }`}>
+                    {startPopupCount > 0 
+                      ? `${startPopupCount} în Pop-up Start` 
+                      : activePromoCount > 0 
+                        ? `${activePromoCount} promo (fără Pop-up Start)` 
+                        : '0 configurate'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-amber-800/80 dark:text-amber-300/80 leading-relaxed">
+                  {startPopupCount > 0 
+                    ? `Kioskul afișează automat popup-ul cu ofertele de întâmpinare la primul contact al clientului cu ecranul.`
+                    : `Configurează prețul promoțional și bifează căsuța „Pop-up Start” în ecranul de Produse & Etichete.`}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={goToPromoProducts}
+                className="shrink-0 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-sm shadow-amber-600/20 transition-all cursor-pointer"
+                title="Deschide ecranul Produse & Etichete pre-filtrat pe acest kiosk și pe Doar Promo"
+              >
+                <span>Gestionează Produse Promo (Overrides)</span>
+                <span className="text-sm">→</span>
+              </button>
             </div>
 
             <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
