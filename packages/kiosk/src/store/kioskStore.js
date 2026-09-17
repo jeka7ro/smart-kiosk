@@ -12,7 +12,11 @@ export const useKioskStore = create((set, get) => ({
 
   // ─── Active Brand ──────────────────────────────────────────
   activeBrandId: 'smashme',
-  setActiveBrandId: (id) => set({ activeBrandId: id }),
+  setActiveBrandId: (id) => set({
+    activeBrandId: id,
+    menuScrollTop: 0,
+    menuActiveCategory: null,
+  }),
 
   // ─── Language ──────────────────────────────────────────────
   setLang: (lang) => set({ lang }),
@@ -108,6 +112,9 @@ export const useKioskStore = create((set, get) => ({
   setOrderType: (type, table = null) => set({
     orderType: type,
     tableNumber: table,
+    menuScrollTop: 0,
+    menuActiveCategory: null,
+    selectedProduct: null,
     screen: 'menu',
   }),
 
@@ -137,6 +144,9 @@ export const useKioskStore = create((set, get) => ({
     // Start iOS unlock sequence (start slide up CSS but instantly mount next route behind it)
     set({ 
       isUnlocking: true,
+      menuScrollTop: 0,
+      menuActiveCategory: null,
+      selectedProduct: null,
       screen: isMulti ? 'brandSelect' : 'orderType' 
     });
 
@@ -150,6 +160,9 @@ export const useKioskStore = create((set, get) => ({
   goToMenu: () => set({
     orderType: 'takeaway',
     tableNumber: null,
+    menuScrollTop: 0,
+    menuActiveCategory: null,
+    selectedProduct: null,
     screen: 'menu',
   }),
 
@@ -249,6 +262,8 @@ export const useKioskStore = create((set, get) => ({
     fiscalData: null,
     hasPlayedPromo: false,
     hasShownStartPromo: false,
+    menuScrollTop: 0,
+    menuActiveCategory: null,
     screen: 'welcome',
   }),
 
@@ -258,10 +273,13 @@ export const useKioskStore = create((set, get) => ({
     favorites: [],
     orderType: null,
     tableNumber: null,
+    paymentMethod: 'card',
     selectedProduct: null,
     fiscalData: null,
     hasPlayedPromo: false,
     hasShownStartPromo: false,
+    menuScrollTop: 0,
+    menuActiveCategory: null,
     screen: 'welcome',
   }),
 }));

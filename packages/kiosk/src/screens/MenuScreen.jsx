@@ -684,9 +684,11 @@ export default function MenuScreen() {
                 className={`cat-btn ${activeCategory === cat.id ? 'cat-btn--active' : ''}`}
                 onClick={() => {
                   setActiveCategory(cat.id);
+                  setMenuActiveCategory(cat.id);
                   setSearch('');
                   if (productsAreaRef.current) {
                     productsAreaRef.current.scrollTop = 0;
+                    setMenuScrollTop(0);
                   }
                 }}
               >

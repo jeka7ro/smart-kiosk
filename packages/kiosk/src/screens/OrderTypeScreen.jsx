@@ -47,7 +47,7 @@ export default function OrderTypeScreen() {
       </div>
       )}
 
-      <button className="back-btn-screen" onClick={() => goTo('welcome')}>
+      <button className="back-btn-screen" onClick={() => { useKioskStore.getState().resetAll(); goTo('welcome'); }}>
         ← {t('back', lang)}
       </button>
 

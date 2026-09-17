@@ -91,7 +91,7 @@ export default function BrandSelectScreen() {
         })}
       </div>
 
-      <button className="bss-back" onClick={() => goTo('welcome')}>
+      <button className="bss-back" onClick={() => { useKioskStore.getState().resetAll(); goTo('welcome'); }}>
         ← {t('back', lang) || 'Înapoi'}
       </button>
     </div>
