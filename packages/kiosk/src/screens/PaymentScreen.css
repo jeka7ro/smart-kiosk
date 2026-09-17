@@ -1,62 +1,855 @@
-.payment-screen { background: var(--bg-dark); }
+/* ==========================================================================
+   SMART KIOSK — ULTRA-PREMIUM PAYMENT SCREEN STYLES
+   Tailored for portrait touch display (1080x1920)
+   ========================================================================== */
+
+.payment-screen {
+  background: radial-gradient(circle at 50% 20%, #ffffff 0%, #f8fafc 55%, #f1f5f9 100%);
+  min-height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .payment-content {
-  flex: 1; display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  padding: 24px 20px 20px; gap: 12px; text-align: center;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 28px 36px;
+  gap: 20px;
+  text-align: center;
+  width: 100%;
+  max-width: 660px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+/* ── Absolute Top Back Button ── */
+.back-btn-abs {
+  position: absolute;
+  top: 28px;
+  left: 28px;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  color: #1e293b;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+  padding: 14px 28px;
+  min-height: 54px;
+  border-radius: 9999px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.back-btn-abs:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.1);
+}
+
+.back-btn-abs:active {
+  transform: scale(0.96);
+}
+
+/* ── Top Amount & Context Header Card ── */
+.kiosk-amount-header-card {
+  width: 100%;
+  background: #ffffff;
+  border-radius: 26px;
+  padding: 22px 32px;
+  box-shadow: 0 12px 36px -6px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.kahc-context-row {
+  margin-bottom: 2px;
+}
+
+.kahc-badge-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.86rem;
+  font-weight: 800;
+  color: #475569;
+  background: #f1f5f9;
+  padding: 6px 16px;
+  border-radius: 9999px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.kahc-label {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #94a3b8;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+.kahc-price-box {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.kahc-val {
+  font-size: 3.8rem;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--primary, #EE3B24);
+  letter-spacing: -0.03em;
+}
+
+.kahc-curr {
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: #64748b;
+  letter-spacing: 0.02em;
+}
+
+/* ── Live POS Status Pill ── */
+.kiosk-pos-live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #ecfdf5;
+  border: 1.5px solid #a7f3d0;
+  border-radius: 9999px;
+  padding: 8px 20px;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.12);
+  margin-bottom: 2px;
+}
+
+.kiosk-live-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  animation: pulseGreen 1.8s infinite;
+}
+
+@keyframes pulseGreen {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.kiosk-pill-pin {
+  background: #fffbeb;
+  border-color: #fde68a;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.12);
+}
+
+.kiosk-pill-pin .kiosk-live-title {
+  color: #b45309;
+}
+
+.kiosk-pill-pin .kiosk-live-timer {
+  color: #d97706;
+}
+
+.pin-dot-pulse {
+  background: #f59e0b;
+  box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+  animation: pulseAmber 1.8s infinite;
+}
+
+@keyframes pulseAmber {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+  70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+}
+
+.kiosk-live-title {
+  font-size: 0.96rem;
+  font-weight: 800;
+  color: #047857;
+  letter-spacing: 0.02em;
+}
+
+.kiosk-live-divider {
+  color: #a7f3d0;
+  font-weight: 900;
+}
+
+.kiosk-live-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.96rem;
+  font-weight: 800;
+  color: #059669;
+}
+
+/* ── Hero NFC & Contactless Visual Animation ── */
+.kiosk-hero-nfc-wrapper {
+  position: relative;
+  width: 100%;
+  height: 250px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 6px 0 10px;
+}
+
+.kiosk-nfc-radar {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 280px;
+  height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.radar-circle {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--primary, #EE3B24) 40%, transparent);
+  animation: radarPulse 2.6s cubic-bezier(0.2, 0.8, 0.4, 1) infinite;
+}
+
+.radar-c1 { width: 140px; height: 140px; animation-delay: 0s; }
+.radar-c2 { width: 210px; height: 210px; animation-delay: 0.8s; }
+.radar-c3 { width: 280px; height: 280px; animation-delay: 1.6s; }
+
+@keyframes radarPulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.85;
+    border-color: var(--primary, #EE3B24);
+  }
+  60% {
+    opacity: 0.25;
+  }
+  100% {
+    transform: scale(1.3);
+    opacity: 0;
+  }
+}
+
+.kiosk-devices-stage {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  animation: floatElevate 3s ease-in-out infinite;
+}
+
+@keyframes floatElevate {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+/* Premium Credit Card */
+.kiosk-mockup-card {
+  width: 225px;
+  height: 142px;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border-radius: 18px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+  position: relative;
+  transform: rotate(-6deg);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.kmc-chip {
+  width: 34px;
+  height: 25px;
+  background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+  border-radius: 5px;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.45);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  padding: 2px 0;
+}
+
+.kmc-chip-line {
+  height: 1px;
+  background: rgba(0, 0, 0, 0.25);
   width: 100%;
 }
 
+.kmc-nfc-icon {
+  position: absolute;
+  top: 15px;
+  right: 18px;
+  color: #38bdf8;
+  filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.7));
+}
 
-/* POS ICON */
-.payment-pos-icon { position: relative; margin-bottom: 8px; }
-.pos-emoji { font-size: 5rem; display: block; animation: float 2s ease-in-out infinite; }
-.pos-card-wrapper {
+.kmc-number {
+  font-family: monospace;
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  letter-spacing: 0.12em;
+  text-align: left;
+  margin-top: 4px;
+}
+
+.kmc-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.kmc-name {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.65);
+  letter-spacing: 0.08em;
+}
+
+.kmc-master-circles {
+  display: flex;
+  align-items: center;
+}
+
+.kmc-mc-1, .kmc-mc-2 {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+}
+
+.kmc-mc-1 { background: #ef4444; margin-right: -6px; opacity: 0.92; }
+.kmc-mc-2 { background: #f59e0b; opacity: 0.92; }
+
+/* Premium Smartphone */
+.kiosk-mockup-phone {
+  width: 96px;
+  height: 162px;
+  background: #0f172a;
+  border-radius: 22px;
+  padding: 7px;
+  box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.3), inset 0 0 0 2px #334155;
+  transform: rotate(6deg);
+  display: flex;
+  flex-direction: column;
+}
+
+.kmp-notch {
+  width: 32px;
+  height: 5px;
+  background: #000000;
+  border-radius: 4px;
+  margin: 2px auto 8px;
+}
+
+.kmp-screen {
+  flex: 1;
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  border-radius: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.kmp-contactless {
+  color: #38bdf8;
+  filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.7));
+}
+
+.kmp-pay-text {
+  font-size: 0.76rem;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 0.08em;
+}
+
+/* ── Primary Action Header & Typography ── */
+.kiosk-action-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.kiosk-action-title {
+  font-size: 2.3rem;
+  font-weight: 900;
+  color: #0f172a;
+  margin: 0;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.kiosk-action-subtitle {
+  font-size: 1.22rem;
+  font-weight: 500;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.kiosk-action-subtitle strong {
+  color: #0f172a;
+  font-weight: 800;
+}
+
+/* ── Direction / Guidance Banner ── */
+.kiosk-pos-direction-banner {
+  width: 100%;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  text-align: left;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
+}
+
+.kpd-icon-pos {
+  width: 50px;
+  height: 50px;
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--primary, #EE3B24) 10%, #f1f5f9);
+  color: var(--primary, #EE3B24);
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: float 2s ease-in-out infinite;
+  flex-shrink: 0;
 }
-.pos-card-vector {
-  filter: drop-shadow(0 8px 16px color-mix(in srgb, var(--primary) 25%, transparent));
+
+.kpd-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
-.pos-phone-vector {
+
+.kpd-main {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.kpd-sub {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+/* ── Official Payment Logos / Trust Badges Bar ── */
+.kiosk-trust-badges-bar {
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: float 2s ease-in-out infinite;
+  gap: 12px;
+  width: 100%;
+  flex-wrap: wrap;
+  margin: 4px 0;
 }
-.pos-waves { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; }
-.wave {
-  position: absolute; border: 2px solid color-mix(in srgb, var(--primary) 30%, transparent);
-  border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%);
-  animation: waveExpand 2.5s ease-out infinite;
+
+.ktb-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 10px 18px;
+  height: 48px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #334155;
 }
-.wave:nth-child(2) { animation-delay: 0.8s; }
-.wave:nth-child(3) { animation-delay: 1.6s; }
-@keyframes waveExpand { 0% { width: 80px; height: 80px; opacity: 0.6; } 100% { width: 200px; height: 200px; opacity: 0; } }
 
-.payment-title { font-size: 2.2rem; font-weight: 800; color: var(--text); margin: 0; }
-.payment-subtitle { font-size: 1rem; color: var(--text-muted); margin: 0; }
-
-.payment-amount {
-  display: flex; flex-direction: column; align-items: center; gap: 2px;
-  background: var(--bg-card); border: 1.5px solid color-mix(in srgb, var(--primary) 30%, transparent);
-  border-radius: 18px; padding: 10px 40px; box-shadow: var(--shadow-card);
+/* ── Touchscreen Action Buttons (Bottom) ── */
+.kiosk-pay-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+  margin-top: 10px;
 }
-.pa-label { font-size: 0.82rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
-.pa-amount { font-size: 2.5rem; font-weight: 900; color: var(--primary); }
 
-/* ─── FISCAL CUI IN PAYMENT SCREEN ──────────────────────────────── */
+.kiosk-touch-btn {
+  flex: 1;
+  min-height: 64px;
+  border-radius: 20px;
+  font-size: 1.2rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  border: none;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.kiosk-touch-btn:active {
+  transform: scale(0.97);
+}
+
+.kiosk-btn-secondary {
+  background: #ffffff;
+  border: 2px solid #cbd5e1;
+  color: #334155;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+}
+
+.kiosk-btn-secondary:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.kiosk-btn-danger {
+  background: #fef2f2;
+  border: 2px solid #fecaca;
+  color: #dc2626;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.06);
+}
+
+.kiosk-btn-danger:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+}
+
+.kiosk-btn-primary {
+  background: var(--primary, #EE3B24);
+  color: #ffffff;
+  box-shadow: 0 8px 22px -4px rgba(238, 59, 36, 0.45);
+}
+
+.kiosk-btn-primary:hover {
+  filter: brightness(1.05);
+}
+
+/* ── PIN Entry Mode ── */
+.kiosk-hero-pin-wrapper {
+  margin: 12px 0;
+}
+
+.kiosk-pin-terminal-illu {
+  width: 156px;
+  background: #1e293b;
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.35);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.kpt-screen {
+  background: #0f172a;
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 1.3rem;
+  color: #10b981;
+  font-weight: 900;
+}
+
+.active-blink {
+  animation: cursorBlink 1s infinite;
+}
+
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.kpt-keys {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+}
+
+.kpt-key {
+  height: 20px;
+  background: #334155;
+  border-radius: 5px;
+}
+
+.red-key { background: #ef4444; }
+.green-key { background: #10b981; }
+
+.kiosk-pin-dots-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 10px 0 16px;
+}
+
+.kpd-pin-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2.5px solid #cbd5e1;
+  background: transparent;
+  transition: all 0.2s ease;
+}
+
+.kpd-pin-dot.active {
+  border-color: #f59e0b;
+  background: #f59e0b;
+  box-shadow: 0 0 14px rgba(245, 158, 11, 0.55);
+}
+
+.kpd-pin-dot.blinking {
+  border-color: #f59e0b;
+  animation: pinDotBlink 1.2s infinite;
+}
+
+@keyframes pinDotBlink {
+  0%, 100% { background: #f59e0b; }
+  50% { background: transparent; }
+}
+
+/* ── Spinner / Dual Ring for Initiating & Authorizing ── */
+.kiosk-hero-spinner-wrapper {
+  margin: 20px 0;
+}
+
+.kiosk-dual-ring-spinner {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 5px solid color-mix(in srgb, var(--primary, #EE3B24) 20%, transparent);
+  border-top-color: var(--primary, #EE3B24);
+  border-right-color: var(--primary, #EE3B24);
+  animation: dualRingSpin 0.9s cubic-bezier(0.5, 0.1, 0.5, 0.9) infinite;
+  margin: 0 auto;
+}
+
+@keyframes dualRingSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ── Result Icons & Badges (Approved, Declined, Cash) ── */
+.kiosk-result-icon {
+  width: 104px;
+  height: 104px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 10px auto 14px;
+}
+
+.success-pop {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 16px 40px -8px rgba(16, 185, 129, 0.55);
+  animation: popScale 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.decline-pop {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  box-shadow: 0 16px 40px -8px rgba(239, 68, 68, 0.5);
+  animation: popScale 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.cash-pop {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  box-shadow: 0 16px 40px -8px rgba(245, 158, 11, 0.5);
+  animation: popScale 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popScale {
+  0% { transform: scale(0.5); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.text-success { color: #10b981 !important; }
+.text-danger { color: #ef4444 !important; }
+
+.kiosk-auth-code {
+  font-family: monospace;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #64748b;
+  margin: 4px 0 0;
+}
+
+/* ── Cash Success Box ── */
+.kiosk-cash-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.kcb-badge {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #b45309;
+  background: #fef3c7;
+  padding: 6px 18px;
+  border-radius: 9999px;
+  letter-spacing: 0.05em;
+}
+
+.kcb-order-num {
+  font-size: 5rem;
+  font-weight: 900;
+  color: #0f172a;
+  margin: 10px 0;
+  line-height: 1;
+}
+
+.kcb-instruction {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: #d97706;
+}
+
+.kcb-sub {
+  font-size: 1.05rem;
+  color: #64748b;
+  margin: 4px 0 0;
+}
+
+/* ── IDLE MODE: Payment Methods Selection Grid ── */
+.kiosk-idle-mode {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.kiosk-methods-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  margin: 4px 0;
+}
+
+.kiosk-method-choice-card {
+  width: 100%;
+  background: #ffffff;
+  border: 2.5px solid #e2e8f0;
+  border-radius: 22px;
+  padding: 22px 24px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-align: left;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.kiosk-method-choice-card:active {
+  transform: scale(0.98);
+}
+
+.kiosk-method-choice-card.active-method {
+  border-color: var(--primary, #EE3B24);
+  background: color-mix(in srgb, var(--primary, #EE3B24) 4%, #ffffff);
+  box-shadow: 0 10px 28px -6px color-mix(in srgb, var(--primary, #EE3B24) 22%, transparent);
+}
+
+.kmcc-icon {
+  width: 58px;
+  height: 58px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.kmcc-card-icon {
+  background: color-mix(in srgb, var(--primary, #EE3B24) 12%, #ffffff);
+  color: var(--primary, #EE3B24);
+}
+
+.kmcc-cash-icon {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.kmcc-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.kmcc-title {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.kmcc-sub {
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.kmcc-arrow {
+  color: #94a3b8;
+  transition: transform 0.2s ease;
+}
+
+.kiosk-method-choice-card:hover .kmcc-arrow {
+  transform: translateX(4px);
+  color: var(--primary, #EE3B24);
+}
+
+/* ── Fiscal CUI Prompt Container ── */
 .payment-fiscal-container {
   width: 100%;
-  max-width: 440px;
-  margin: 6px auto 4px;
+  margin: 2px 0;
 }
 
 .ps-fiscal-trigger-card {
   width: 100%;
-  background: var(--bg-card, #ffffff);
-  border: 1.5px dashed color-mix(in srgb, var(--primary) 45%, var(--border, #cbd5e1));
+  background: #ffffff;
+  border: 1.5px dashed color-mix(in srgb, var(--primary, #EE3B24) 45%, #cbd5e1);
   border-radius: 18px;
   padding: 12px 18px;
   display: flex;
@@ -69,8 +862,8 @@
 }
 
 .ps-fiscal-trigger-card:hover {
-  border-color: var(--primary);
-  background: color-mix(in srgb, var(--primary) 4%, var(--bg-card, #ffffff));
+  border-color: var(--primary, #EE3B24);
+  background: color-mix(in srgb, var(--primary, #EE3B24) 4%, #ffffff);
   transform: translateY(-1px);
 }
 
@@ -82,8 +875,8 @@
   width: 42px;
   height: 42px;
   border-radius: 12px;
-  background: color-mix(in srgb, var(--primary) 10%, #f1f5f9);
-  color: var(--primary);
+  background: color-mix(in srgb, var(--primary, #EE3B24) 10%, #f1f5f9);
+  color: var(--primary, #EE3B24);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -100,21 +893,21 @@
 .ps-fiscal-title {
   font-size: 0.98rem;
   font-weight: 800;
-  color: var(--text, #0f172a);
+  color: #0f172a;
 }
 
 .ps-fiscal-subtitle {
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 500;
-  color: var(--text-muted, #64748b);
+  color: #64748b;
 }
 
 .ps-fiscal-plus-badge {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--primary) 12%, transparent);
-  color: var(--primary);
+  background: color-mix(in srgb, var(--primary, #EE3B24) 12%, transparent);
+  color: var(--primary, #EE3B24);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -123,7 +916,7 @@
 }
 
 .ps-fiscal-trigger-card:hover .ps-fiscal-plus-badge {
-  background: var(--primary);
+  background: var(--primary, #EE3B24);
   color: #ffffff;
 }
 
@@ -169,7 +962,7 @@
 }
 
 .ps-fiscal-active-cui {
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   font-weight: 600;
   color: #15803d;
 }
@@ -198,581 +991,12 @@
   transform: scale(0.92);
 }
 
-.payment-instruction { display: flex; flex-direction: column; gap: 10px; width: 100%; text-align: left; margin-bottom: 8px; }
-.pi-step { display: flex; align-items: center; gap: 12px; }
-.pi-num {
-  width: 30px; height: 30px; border-radius: 50%;
-  background: color-mix(in srgb, var(--primary) 12%, transparent);
-  border: 1.5px solid color-mix(in srgb, var(--primary) 40%, transparent); color: var(--primary);
-  display: flex; align-items: center; justify-content: center;
-  font-weight: 700; font-size: 0.85rem; flex-shrink: 0;
-}
-.pi-step span:last-child { font-size: 0.9rem; color: var(--text-muted); }
-
-/* ── Pay button ─────────────────────────────────────────────────────────── */
-.pay-btn { width: 100%; max-width: 420px; font-size: 1.4rem !important; padding: 20px 32px !important; }
-
-/* ── Processing ─────────────────────────────────────────────────────────── */
-.payment-processing { display: flex; flex-direction: column; align-items: center; gap: 20px; }
-.processing-spinner {
-  width: 56px; height: 56px; border: 4px solid color-mix(in srgb, var(--primary) 20%, transparent);
-  border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite;
-}
-.processing-step  { font-size: 1.1rem; color: var(--text-muted); font-weight: 500; margin: 0; }
-.processing-title { font-size: 1.6rem; font-weight: 700; color: var(--text); margin: 0; }
-
-/* ── Back button ────────────────────────────────────────────────────────── */
-.back-btn-abs {
-  position: absolute;
-  top: 24px;
-  left: 24px;
-  z-index: 10;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background: var(--primary, #EE3B24);
-  border: none;
-  color: #ffffff;
-  font-size: 1.15rem;
-  font-weight: 800;
-  letter-spacing: -0.2px;
-  padding: 14px 28px;
-  min-height: 52px;
-  border-radius: 999px;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(238, 59, 36, 0.35);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  -webkit-tap-highlight-color: transparent;
+/* ── Generic Animations ── */
+.fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
 }
 
-.back-btn-abs:hover {
-  background: #d32f2f;
-  color: #ffffff;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(238, 59, 36, 0.45);
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-
-.back-btn-abs:active {
-  transform: scale(0.96);
-}
-
-/* ── NFC Animation ─────────────────────────────────────────────────────── */
-.pos-nfc-anim { position: relative; display: flex; align-items: center; justify-content: center; width: 140px; height: 140px; }
-.nfc-ring {
-  position: absolute; border-radius: 50%;
-  border: 3px solid color-mix(in srgb, var(--primary) 40%, transparent);
-  animation: nfcPulse 1.8s ease-out infinite;
-}
-.nfc-ring-1 { width: 80px;  height: 80px;  animation-delay: 0s;   }
-.nfc-ring-2 { width: 110px; height: 110px; animation-delay: 0.5s; }
-.nfc-ring-3 { width: 140px; height: 140px; animation-delay: 1.0s; }
-@keyframes nfcPulse {
-  0%   { opacity: 0.7; transform: scale(0.9); }
-  70%  { opacity: 0;   transform: scale(1.1); }
-  100% { opacity: 0;   transform: scale(1.1); }
-}
-
-/* ── Approved ───────────────────────────────────────────────────────────── */
-.payment-approved { display: flex; flex-direction: column; align-items: center; gap: 16px; }
-.approved-circle {
-  width: 100px; height: 100px; border-radius: 50%;
-  background: linear-gradient(135deg, #10b981, #059669);
-  display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 0 40px rgba(16,185,129,0.5);
-  animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-.approved-check { font-size: 3rem; color: white; font-weight: 900; }
-.approved-title { font-size: 2rem; font-weight: 800; color: #10b981; margin: 0; }
-.approved-info  { font-size: 1rem; color: var(--text-muted); margin: 0; }
-
-/* ── Declined / Error ───────────────────────────────────────────────────── */
-.payment-declined { display: flex; flex-direction: column; align-items: center; gap: 16px; }
-.declined-circle {
-  width: 90px; height: 90px; border-radius: 50%;
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 2.5rem; color: white; font-weight: 900;
-  box-shadow: 0 0 30px rgba(239,68,68,0.4);
-  animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-.declined-title { font-size: 1.8rem; font-weight: 800; color: #ef4444; margin: 0; }
-.declined-msg   { font-size: 1rem; color: var(--text-muted); max-width: 360px; margin: 0; }
-
-/* ── PIN Dots ───────────────────────────────────────────────────────────── */
-.pin-dots { display: flex; gap: 14px; }
-.pin-dot {
-  width: 18px; height: 18px; border-radius: 50%;
-  border: 2px solid var(--primary); background: transparent; transition: background 0.2s;
-}
-.pin-dot.active { background: var(--primary); }
-
-/* ── Payment Options Grid ───────────────────────────────────────────────── */
-.payment-options-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  width: 100%;
-  max-width: 480px;
-  margin: 0 auto 8px;
-}
-
-.payment-option-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  width: 100%;
-  padding: 18px 20px;
-  border-radius: 18px;
-  border: 2px solid transparent;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-align: left;
-  background: var(--bg-card, #fff);
-  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-}
-
-.payment-option-card--primary {
-  border-color: #22C55E;
-  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
-}
-.payment-option-card--primary:hover { box-shadow: 0 4px 20px rgba(34,197,94,0.3); }
-
-.payment-option-card--qr {
-  border-color: #3B82F6;
-  background: linear-gradient(135deg, #eff6ff, #dbeafe);
-}
-.payment-option-card--qr:hover { box-shadow: 0 4px 20px rgba(59,130,246,0.3); }
-
-.poc-icon {
-  flex-shrink: 0;
-  width: 52px; height: 52px;
-  display: flex; align-items: center; justify-content: center;
-  background: rgba(255,255,255,0.7);
-  border-radius: 12px;
-}
-
-.poc-text {
-  flex: 1;
-  display: flex; flex-direction: column; gap: 3px;
-}
-.poc-title { font-size: 1.05rem; font-weight: 700; color: var(--text, #111); }
-.poc-sub   { font-size: 0.82rem; color: var(--text-muted, #666); }
-
-.poc-amount {
-  font-size: 1.1rem; font-weight: 800;
-  color: #111827;
-  flex-shrink: 0;
-  background: rgba(255,255,255,0.8);
-  padding: 6px 12px;
-  border-radius: 10px;
-}
-
-/* ── Payment Methods Row ────────────────────────────────────────────────── */
-.payment-methods-row {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  margin: 20px 0 10px;
-}
-.pm-label {
-  font-size: 0.96rem;
-  color: var(--text-muted, #64748b);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-weight: 800;
-}
-.payment-methods-row .trust-pay-cards {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  width: 100%;
-  flex-wrap: wrap;
-}
-.payment-methods-row .trust-pay-card {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: #ffffff;
-  border: 2px solid var(--border, #e2e8f0);
-  border-radius: 16px;
-  padding: 10px 22px;
-  height: 56px;
-  min-width: 96px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
-  transition: all 0.2s ease;
-}
-.payment-methods-row .trust-pay-card:hover {
-  border-color: #cbd5e1;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
-  transform: translateY(-2px);
-}
-
-.pay-cancel-btn {
-  width: 100%;
-  max-width: 480px;
-  margin-top: 8px;
-}
-
-/* ── Split Card + QR ────────────────────────────────────────────────────── */
-.payment-split {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  gap: 24px;
-  width: 100%;
-  max-width: 600px;
-  margin: 12px auto;
-}
-
-.payment-split-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-}
-
-.payment-split-card .pay-btn {
-  width: 100%;
-}
-
-.payment-split-divider {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  color: var(--text-muted, #aaa);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  flex-shrink: 0;
-}
-.payment-split-divider::before,
-.payment-split-divider::after {
-  content: '';
-  display: block;
-  width: 1px;
-  height: 50px;
-  background: var(--border, #e5e7eb);
-}
-
-.payment-split-qr {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.qr-inline-label {
-  font-size: 0.75rem;
-  color: var(--text-muted, #888);
-  margin: 4px 0 0;
-  text-align: center;
-}
-
-.qr-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 160px;
-  height: 192px;
-  justify-content: center;
-}
-
-/* ── Icons Row: Card | OR | QR ─────────────────────────────────────────── */
-.payment-icons-row {
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  justify-content: center;
-  gap: 0;
-  width: 100%;
-  margin: 12px auto 24px;
-}
-
-.pir-card, .pir-qr {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  flex: 1;
-}
-
-.pir-label {
-  font-size: 0.82rem;
-  color: var(--text-muted, #666);
-  text-align: center;
-  font-weight: 500;
-  margin: 0;
-}
-
-.pir-sep {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 0 16px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--text-muted, #aaa);
-  letter-spacing: 0.06em;
-  flex-shrink: 0;
-}
-
-.pir-sep-line {
-  width: 1px;
-  height: 44px;
-  background: var(--border, #e5e7eb);
-}
-
-/* ── Keyframes ──────────────────────────────────────────────────────────── */
-@keyframes spin  { to { transform: rotate(360deg); } }
-@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-@keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-
-/* ── QR Payment ─────────────────────────────────────────────────────────── */
-.payment-qr {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  text-align: center;
-}
-
-.qr-code-wrapper {
-  background: #fff;
-  border-radius: 16px;
-  padding: 16px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.12);
-  margin: 8px 0;
-}
-
-.qr-link-text {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  margin: 8px 0 0;
-}
-
-.qr-link {
-  color: var(--primary);
-  word-break: break-all;
-  text-decoration: underline;
-}
-
-.qr-pay-btn {
-  width: 100%;
-  max-width: 380px;
-  border: 2px solid var(--border);
-}
-
-.pos-tap-hint-pill {
-  margin-top: 16px;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 18px;
-  border-radius: 9999px;
-  background: rgba(16, 185, 129, 0.08);
-  border: 1.5px solid rgba(16, 185, 129, 0.25);
-  font-size: 0.92rem;
-  font-weight: 700;
-  color: var(--text, #1e293b);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
-}
-
-/* ── POS Terminal Prominent Guidance Card ── */
-.pos-terminal-focus-card {
-  width: 100%;
-  max-width: 580px;
-  background: var(--bg-card, #ffffff);
-  border: 2.5px solid var(--brand-primary, var(--primary, #EE3B24));
-  border-radius: 20px;
-  padding: 14px 18px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.07), 0 0 0 4px color-mix(in srgb, var(--brand-primary, var(--primary, #EE3B24)) 14%, transparent);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  text-align: left;
-  animation: popIn 0.3s ease-out;
-  margin-bottom: 2px;
-}
-
-.pos-terminal-pin-focus {
-  border-color: #f59e0b;
-  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.15), 0 0 0 4px rgba(245, 158, 11, 0.2);
-}
-
-.ptfc-top-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-}
-
-.ptfc-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.8rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #047857;
-  background: #ecfdf5;
-  padding: 3px 12px;
-  border-radius: 999px;
-  border: 1px solid #a7f3d0;
-}
-
-.ptfc-pulse-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #10b981;
-  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-  animation: pulseGreen 1.5s infinite;
-}
-
-@keyframes pulseGreen {
-  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-  70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
-  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-}
-
-.ptfc-timer {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.86rem;
-  font-weight: 700;
-  color: var(--text-muted, #64748b);
-  background: color-mix(in srgb, var(--primary, #EE3B24) 6%, #f8fafc);
-  padding: 3px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--border, #e2e8f0);
-}
-
-.ptfc-main {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.ptfc-icon-box {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--brand-primary, var(--primary, #EE3B24)) 12%, #f8fafc);
-  color: var(--brand-primary, var(--primary, #EE3B24));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.ptfc-icon-pin {
-  background: #fef3c7;
-  color: #d97706;
-}
-
-.ptfc-text {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.ptfc-title {
-  font-size: 1.08rem;
-  font-weight: 900;
-  letter-spacing: 0.02em;
-  color: var(--brand-primary, var(--primary, #EE3B24));
-  margin: 0;
-  line-height: 1.25;
-}
-
-.pos-terminal-pin-focus .ptfc-title {
-  color: #b45309;
-}
-
-.ptfc-subtitle {
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: var(--text, #1e293b);
-  margin: 0;
-  line-height: 1.35;
-}
-
-/* ── 3-Step Visual Instruction Grid (No Emojis, Pure SVG) ── */
-.pos-steps-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  width: 100%;
-  max-width: 580px;
-  margin: 4px auto;
-}
-
-.pos-step-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: var(--bg-card, #ffffff);
-  border: 1.5px solid var(--border, #e2e8f0);
-  border-radius: 16px;
-  padding: 10px 14px;
-  text-align: left;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
-  transition: all 0.2s ease;
-}
-
-.pos-step-card:hover {
-  border-color: #cbd5e1;
-  transform: translateY(-1px);
-}
-
-.psc-icon-box {
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--primary, #EE3B24) 10%, #f1f5f9);
-  color: var(--primary, #EE3B24);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.psc-icon-accent {
-  background: #ecfdf5;
-  color: #059669;
-}
-
-.psc-text {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.psc-title {
-  font-size: 0.98rem;
-  font-weight: 800;
-  color: var(--text, #0f172a);
-  line-height: 1.25;
-}
-
-.psc-desc {
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--text-muted, #64748b);
-  line-height: 1.3;
-}
-
-
