@@ -337,7 +337,17 @@ function proxySyrveImage(url) {
   return `${BACKEND_URL}/api/image-proxy?url=${encodeURIComponent(url)}`;
 }
 
-export function MenuProfileEditorModal({ backend, brand, profile, onClose, onSave, localHiddenItemsOverride = null }) {
+export function MenuProfileEditorModal({ 
+  backend, 
+  brand, 
+  profile, 
+  onClose, 
+  onSave, 
+  localHiddenItemsOverride = null,
+  locId = null,
+  orgId = null,
+  locationName = null
+}) {
   const { fetchWithAuth } = useAuth();
   const [loading, setLoading] = useState(true);
   const [menu, setMenu] = useState({ categories: [], products: [] });
@@ -346,12 +356,55 @@ export function MenuProfileEditorModal({ backend, brand, profile, onClose, onSav
   const [rootFolderId, setRootFolderId] = useState(profile.rootFolderId || '');
   const [activeTab, setActiveTab] = useState(null); // Category ID for sidebar navigation
   const [searchQuery, setSearchQuery] = useState('');
+  const [locations, setLocations] = useState([]);
+  const [selectedLocId, setSelectedLocId] = useState(locId || '');
+  const [selectedOrgId, setSelectedOrgId] = useState(orgId || '');
 
   useEffect(() => {
     if (profile?.name) {
       setProfileName(profile.name);
     }
   }, [profile?.name]);
+
+  // Load locations carrying this brand to allow picking/scoping organization menu
+  useEffect(() => {
+    fetchWithAuth(`${backend}/api/locations?brandId=${brand.id}`)
+      .then(r => r.json())
+      .then(d => {
+        const locs = (d.locations || []).filter(l => l.active !== false);
+        setLocations(locs);
+        if (locId) {
+          setSelectedLocId(locId);
+          const found = locs.find(l => l.id === locId);
+          if (found?.orgIds?.[brand.id]) {
+            setSelectedOrgId(found.orgIds[brand.id]);
+          } else if (orgId) {
+            setSelectedOrgId(orgId);
+          }
+        } else if (orgId) {
+          setSelectedOrgId(orgId);
+          const found = locs.find(l => l.orgIds?.[brand.id] === orgId);
+          if (found) setSelectedLocId(found.id);
+        } else if (locs.length > 0) {
+          const savedLocId = localStorage.getItem(`admin_menu_loc_${brand.id}`);
+          const match = locs.find(l => l.id === savedLocId) || locs[0];
+          setSelectedLocId(match.id);
+          setSelectedOrgId(match.orgIds?.[brand.id] || '');
+        }
+      })
+      .catch(() => {});
+  }, [backend, brand.id, locId, orgId, fetchWithAuth]);
+
+  const handleLocationChange = (newLocId) => {
+    setSelectedLocId(newLocId);
+    localStorage.setItem(`admin_menu_loc_${brand.id}`, newLocId);
+    const found = locations.find(l => l.id === newLocId);
+    if (found?.orgIds?.[brand.id]) {
+      setSelectedOrgId(found.orgIds[brand.id]);
+    } else {
+      setSelectedOrgId('');
+    }
+  };
 
   const filteredProducts = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -400,14 +453,19 @@ export function MenuProfileEditorModal({ backend, brand, profile, onClose, onSav
   }, [menu.products, isProductHidden]);
 
   useEffect(() => {
-    fetchWithAuth(`${backend}/api/menu?brandId=${brand.id}`)
+    setLoading(true);
+    const effectiveOrgId = selectedOrgId || orgId || '';
+    const effectiveLocId = selectedLocId || locId || '';
+    const orgParam = effectiveOrgId ? `&orgId=${encodeURIComponent(effectiveOrgId)}` : '';
+    const locParam = effectiveLocId ? `&locId=${encodeURIComponent(effectiveLocId)}` : '';
+    fetchWithAuth(`${backend}/api/menu?brandId=${brand.id}${orgParam}${locParam}`)
       .then(r => r.json())
       .then(d => {
         setMenu({ categories: d.categories || [], products: d.products || [] });
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [backend, brand.id, fetchWithAuth]);
+  }, [backend, brand.id, selectedOrgId, selectedLocId, orgId, locId, fetchWithAuth]);
 
   useEffect(() => {
     if (localHiddenItemsOverride !== null) setHiddenItems(localHiddenItemsOverride);
@@ -525,12 +583,14 @@ export function MenuProfileEditorModal({ backend, brand, profile, onClose, onSav
      }
   }
 
-  // Auto-select first tab when available and not already set
+  // Auto-select first tab when available and not already set, or if current tab not in categories
   useEffect(() => {
-    if (!activeTab && rootMenuItems.length > 0) {
-      setActiveTab(rootMenuItems[0].id);
+    if (rootMenuItems.length > 0) {
+      if (!activeTab || !menu.categories.some(c => c.id === activeTab)) {
+        setActiveTab(rootMenuItems[0].id);
+      }
     }
-  }, [rootMenuItems, activeTab]);
+  }, [rootMenuItems, activeTab, menu.categories]);
 
   return (
     <div className="bg-slate-50 dark:bg-slate-900 rounded-[24px] border border-slate-200 dark:border-slate-800 p-8 flex flex-col gap-8 w-full max-w-6xl mx-auto shadow-2xl overflow-y-auto max-h-[90vh]">
@@ -542,13 +602,34 @@ export function MenuProfileEditorModal({ backend, brand, profile, onClose, onSav
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
           </button>
           <div className="flex-1 max-w-xl">
-            <div className="flex items-center gap-2 mb-1.5">
+            <div className="flex flex-wrap items-center gap-2 mb-1.5">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
                 {localHiddenItemsOverride !== null ? 'Personalizare Meniu Kiosk' : 'Editare Profil Meniu'}
               </span>
               <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold border border-slate-200 dark:border-slate-700">
                 Brand: {brand.name}
               </span>
+              {locationName && (
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-semibold border border-blue-200 dark:border-blue-800">
+                  Locație Kiosk: {locationName}
+                </span>
+              )}
+              {locations.length > 1 && (
+                <div className="flex items-center gap-1.5 ml-1">
+                  <span className="text-xs text-slate-400 font-medium">Sursă meniu:</span>
+                  <select
+                    value={selectedLocId}
+                    onChange={e => handleLocationChange(e.target.value)}
+                    className="text-xs px-2.5 py-0.5 rounded-full bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold border border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
+                  >
+                    {locations.map(l => (
+                      <option key={l.id} value={l.id}>
+                        {l.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <input

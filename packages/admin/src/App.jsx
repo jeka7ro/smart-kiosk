@@ -2863,9 +2863,12 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
   const [brandProfiles, setBrandProfiles] = useState({});
   useEffect(() => {
     activeBrands.forEach(brandId => {
+      const locOrgId = (formData.orgIds && formData.orgIds[brandId]) || (loc.orgIds && loc.orgIds[brandId]) || '';
+      const orgParam = locOrgId ? `&orgId=${encodeURIComponent(locOrgId)}` : '';
+      const locParam = loc.id ? `&locId=${encodeURIComponent(loc.id)}` : '';
       Promise.all([
         fetchWithAuth(`${backend}/api/brands/${brandId}`).then(r => r.ok ? r.json() : null),
-        fetchWithAuth(`${backend}/api/menu?brandId=${brandId}`).then(r => r.ok ? r.json() : null)
+        fetchWithAuth(`${backend}/api/menu?brandId=${brandId}${orgParam}${locParam}`).then(r => r.ok ? r.json() : null)
       ])
         .then(([brandData, menuData]) => {
           if (brandData) {
@@ -2874,14 +2877,14 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                [brandId]: { 
                  brand: brandData, 
                  profiles: brandData.data?.menuProfiles || [],
-                 menu: menuData?.menu || null
+                 menu: menuData || null
                } 
              }));
           }
         })
         .catch(() => {});
     });
-  }, [backend, activeBrands.join(',')]);
+  }, [backend, activeBrands.join(','), loc.id, JSON.stringify(formData.orgIds || {}), JSON.stringify(loc.orgIds || {})]);
 
   // Toggles for optional sections
   const [usePin, setUsePin] = useState(!!loc.kioskPin || !!loc.vendorPin || !!loc.lockScheduleActive);
@@ -2994,6 +2997,8 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
   };
 
   if (editingMenuBrand) {
+    const editBrandId = editingMenuBrand.brand.id;
+    const locOrgId = (formData.orgIds && formData.orgIds[editBrandId]) || (loc.orgIds && loc.orgIds[editBrandId]) || '';
     return (
       <div className="admin-section" style={{ padding: 0 }}>
         <MenuProfileEditorModal 
@@ -3001,6 +3006,9 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
           brand={editingMenuBrand.brand}
           profile={editingMenuBrand.profile}
           localHiddenItemsOverride={editingMenuBrand.localHiddenItemsOverride}
+          locId={loc.id}
+          orgId={locOrgId}
+          locationName={formData.name || loc.name}
           onClose={() => setEditingMenuBrand(null)}
           onSave={async (updatedConfig) => {
              const brandId = editingMenuBrand.brand.id;

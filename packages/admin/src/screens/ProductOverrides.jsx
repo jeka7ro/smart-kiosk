@@ -111,8 +111,12 @@ export default function ProductOverrides() {
     setLoading(true);
     try {
       // Fetch fresh menu directly from our API (which has syrve items)
-      // We pass orgId=null to force brand fallback
-      const mRes = await fetchWithAuth(`${BACKEND}/api/menu?brandId=${activeBrand}&orgId=null`);
+      // If activeLocation is selected, scope orgId and locId to show exact location items
+      const activeLocObj = locations.find(l => l.id === activeLocation);
+      const locOrgId = (activeLocObj?.orgIds && activeLocObj.orgIds[activeBrand]) || '';
+      const orgParam = locOrgId ? `&orgId=${encodeURIComponent(locOrgId)}` : '';
+      const locParam = activeLocation ? `&locId=${encodeURIComponent(activeLocation)}` : '';
+      const mRes = await fetchWithAuth(`${BACKEND}/api/menu?brandId=${activeBrand}${orgParam}${locParam}`);
       const mData = await mRes.json();
       
       const catMap = {};
@@ -135,7 +139,7 @@ export default function ProductOverrides() {
     setSearch('');
     setPage(1);
     fetchAll(); 
-  }, [activeBrand]);
+  }, [activeBrand, activeLocation, locations.length]);
 
   // Fetch locations for promo scoping
   useEffect(() => {
