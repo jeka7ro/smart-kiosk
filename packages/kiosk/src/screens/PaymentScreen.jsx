@@ -79,36 +79,55 @@ export default function PaymentScreen() {
     return () => clearInterval(interval);
   }, [payState]);
 
-  // Dacă timpul de 60s pentru card expiră, anulăm automat tranzacția pe POS
+  // Notificare dublă (HTTP + Socket) pentru garantarea anulării pe POS
+  const notifyCancelPos = useCallback(() => {
+    const payload = {
+      locationId: locationData?.kioskUrl || locationData?.id || '',
+      orderId: orderIdRef.current,
+    };
+    // 1. HTTP POST — garantat ajunge la server chiar dacă socket-ul se închide
+    try {
+      fetch(`${BACKEND}/api/payment/cancel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      }).catch(() => {});
+    } catch (_) {}
+
+    // 2. Socket.IO emit în timp real
+    if (socketRef.current) {
+      try {
+        socketRef.current.emit('cancel_pos_payment', payload);
+      } catch (_) {}
+      const s = socketRef.current;
+      setTimeout(() => {
+        try { s?.disconnect?.(); } catch (_) {}
+      }, 500);
+      socketRef.current = null;
+    }
+  }, [locationData]);
+
+  // Dacă timpul de 60s pentru card expiră, anulăm garantat tranzacția pe POS
   useEffect(() => {
     if (posTimer === 0 && (payState === STATE.WAITING_CARD || payState === STATE.PIN_ENTRY)) {
-      console.log('[PaymentScreen] ⏱️ Timeout card/PIN - emit cancel_pos_payment și comut pe DECLINED');
-      if (socketRef.current) {
-        socketRef.current.emit('cancel_pos_payment', {
-          locationId: locationData?.kioskUrl || locationData?.id || '',
-          orderId: orderIdRef.current,
-        });
-      }
+      console.log('[PaymentScreen] ⏱️ Timeout card/PIN - trimit anulare POS și comut pe DECLINED');
+      notifyCancelPos();
       setPayState(STATE.DECLINED);
       setErrorMsg('Timpul pentru apropierea cardului a expirat. Puteți reîncerca plata.');
     }
-  }, [posTimer, payState, locationData]);
+  }, [posTimer, payState, notifyCancelPos]);
 
   useEffect(() => {
     return () => {
       const activeStates = [STATE.WAITING_CARD, STATE.PIN_ENTRY, STATE.AUTHORIZING, STATE.INITIATING];
-      if (activeStates.includes(payStateRef.current) && socketRef.current) {
-        console.log('[PaymentScreen] Ieșire din ecran în timpul plății - emit cancel_pos_payment');
-        try {
-          socketRef.current.emit('cancel_pos_payment', {
-            locationId: locationData?.kioskUrl || locationData?.id || '',
-            orderId: orderIdRef.current,
-          });
-        } catch (_) {}
+      if (activeStates.includes(payStateRef.current)) {
+        console.log('[PaymentScreen] Ieșire din ecran în timpul plății - trimit anulare POS');
+        notifyCancelPos();
+      } else {
+        socketRef.current?.disconnect?.();
       }
-      socketRef.current?.disconnect?.();
     };
-  }, [locationData]);
+  }, [notifyCancelPos]);
 
   const sendOrder = useCallback(async (paymentResult, pMethod = 'card') => {
     try {
@@ -240,26 +259,14 @@ export default function PaymentScreen() {
   const handleCancel = () => {
     autoRetryCountRef.current = 0;
     setRetryNotice('');
-    if (socketRef.current) {
-      socketRef.current.emit('cancel_pos_payment', {
-        locationId: locationData?.kioskUrl || locationData?.id || '',
-        orderId: orderIdRef.current,
-      });
-      socketRef.current.disconnect();
-    }
+    notifyCancelPos();
     goTo('cart');
   };
 
   const handleCancelOrder = () => {
     autoRetryCountRef.current = 0;
     setRetryNotice('');
-    if (socketRef.current) {
-      socketRef.current.emit('cancel_pos_payment', {
-        locationId: locationData?.kioskUrl || locationData?.id || '',
-        orderId: orderIdRef.current,
-      });
-      socketRef.current.disconnect();
-    }
+    notifyCancelPos();
     resetOrder();
   };
 

@@ -219,6 +219,17 @@ router.post('/qr-link', async (req, res) => {
   }
 });
 
+// POST /api/payment/cancel — solicitare anulare plată pe POS
+router.post('/cancel', (req, res) => {
+  const { orderId, locationId } = req.body || {};
+  const io = req.app.get('io');
+  console.log(`[Payment] 🛑 Cerere HTTP anulare plată POS: order=${orderId || '?'}, loc=${locationId || '?'}`);
+  if (io) {
+    io.emit('cancel_pos_payment', { orderId, locationId });
+  }
+  return res.json({ success: true, message: 'Cerere de anulare trimisă la POS' });
+});
+
 // POST /api/payment/pos-settlement — declanșează Închiderea de Zi pe POS Bridge
 router.post('/pos-settlement', async (req, res) => {
   const { locationId } = req.body || {};

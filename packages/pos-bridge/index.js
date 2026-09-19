@@ -96,13 +96,49 @@ let currentLabel = null;
 function resetPosLine(reason = 'Reset') {
   if (!globalPort || !globalPort.isOpen) return;
   try {
-    log(`🧹 Resetare linie POS (${reason}): EOT + CAN + EOT...`);
+    log(`🧹 Resetare linie POS (${reason}): EOT + CAN + DTR toggle...`);
     globalPort.write(Buffer.from([EOT, CAN, EOT]));
+    if (typeof globalPort.set === 'function') {
+      globalPort.set({ dtr: false, rts: false }, () => {
+        setTimeout(() => {
+          try {
+            if (globalPort && globalPort.isOpen) {
+              globalPort.set({ dtr: true, rts: true });
+            }
+          } catch (_) {}
+        }, 150);
+      });
+    }
     if (typeof globalPort.flush === 'function') globalPort.flush();
   } catch (err) {
     log(`⚠️ Eroare resetPosLine: ${err.message}`);
   }
   rxBuf = Buffer.alloc(0);
+}
+
+function forceReopenPort(reason = 'Force Reset') {
+  return new Promise((resolve) => {
+    if (!globalPort || !globalPort.isOpen) return resolve();
+    log(`🔄 Re-ciclare completă port serial (${reason})...`);
+    try {
+      globalPort.close((err) => {
+        setTimeout(() => {
+          try {
+            globalPort.open((openErr) => {
+              if (openErr) log(`⚠️ Eroare re-deschidere port: ${openErr.message}`);
+              else log(`✅ Port serial re-deschis și reinițializat cu succes!`);
+              rxBuf = Buffer.alloc(0);
+              resolve();
+            });
+          } catch (e) {
+            resolve();
+          }
+        }, 300);
+      });
+    } catch (_) {
+      resolve();
+    }
+  });
 }
 
 function calcLRC(cmdBytes) {
@@ -200,19 +236,21 @@ function ecrSend(frame, ns, label, timeoutMs = 3000) {
   currentTransactionTimer = setTimeout(() => {
     enqRetries++;
     if (enqRetries < 3) {
-      log(`⚠️ Timeout ACK la ENQ (${label}). Resetăm linia cu EOT+CAN și reîncercăm (${enqRetries}/3)...`);
+      log(`⚠️ Timeout ACK la ENQ (${label}). Resetăm linia cu EOT+CAN+DTR și reîncercăm (${enqRetries}/3)...`);
       resetPosLine(`Timeout ENQ ${label}`);
       setTimeout(() => {
         ecrSend(frame, ns, label, timeoutMs);
       }, 400);
     } else {
       enqRetries = 0;
-      log(`❌ Eșuat 3 încercări ENQ (${label}). Curăț linia POS...`);
+      log(`❌ Eșuat 3 încercări ENQ (${label}). Reciclez conexiunea portului serial...`);
       resetPosLine(`Eșuat 3x ENQ ${label}`);
-      state = 'IDLE';
-      if (currentTransactionResolve) {
-        currentTransactionResolve({ success: false, reason: 'POS-ul nu răspunde (Timeout).', code: 'DECLINED' });
-      }
+      forceReopenPort(`Eșuat 3x ENQ ${label}`).finally(() => {
+        state = 'IDLE';
+        if (currentTransactionResolve) {
+          currentTransactionResolve({ success: false, reason: 'POS-ul nu răspunde (Timeout).', code: 'DECLINED' });
+        }
+      });
     }
   }, timeoutMs);
 }
@@ -424,11 +462,11 @@ async function start() {
           state = 'WAIT_POS_ENQ__LOGIN_RESP';
           currentTransactionTimer = setTimeout(() => fail('Timeout ENQ răspuns LOGIN'), 5000);
         } else if (ns === 'SALE') {
-          log('✅ SALE frame acceptat → EOT. Aștept card (2min)...');
+          log('✅ SALE frame acceptat → EOT. Aștept card (70s)...');
           onStatus && onStatus('Terminal activat — apropiați cardul');
           globalPort.write(Buffer.from([EOT]));
           state = 'WAIT_POS_ENQ__RESULT';
-          currentTransactionTimer = setTimeout(() => fail('Timeout card/rezultat tranzacție'), 120000);
+          currentTransactionTimer = setTimeout(() => fail('Timeout card/rezultat tranzacție'), 70000);
         } else if (ns === 'SETTLEMENT') {
           log('✅ SETTLEMENT frame acceptat → EOT. Aștept răspuns...');
           globalPort.write(Buffer.from([EOT]));
