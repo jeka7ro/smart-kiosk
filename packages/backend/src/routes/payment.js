@@ -219,4 +219,18 @@ router.post('/qr-link', async (req, res) => {
   }
 });
 
+// POST /api/payment/pos-settlement — declanșează Închiderea de Zi pe POS Bridge
+router.post('/pos-settlement', async (req, res) => {
+  const { locationId } = req.body || {};
+  const { triggerPosSettlement } = require('../services/socketService');
+  const ok = triggerPosSettlement(locationId);
+  if (!ok) {
+    return res.status(500).json({ success: false, error: 'Socket.IO neinițializat' });
+  }
+  return res.json({ 
+    success: true, 
+    message: `Cerere de Închidere de Zi (Settlement) trimisă către POS Bridge (${locationId || 'toate locațiile'})` 
+  });
+});
+
 module.exports = router;

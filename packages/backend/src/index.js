@@ -190,8 +190,17 @@ async function start() {
   cron.schedule('*/2 * * * *', async () => {
     try { await syncStopLists(); } catch(e) {}
   });
+
+  // Cron: POS Settlement (Închidere de Zi automată) în fiecare seară la 23:55
+  const { triggerPosSettlement } = require('./services/socketService');
+  cron.schedule('55 23 * * *', () => {
+    console.log('[CRON] 🌙 Rulare automată Închidere de Zi POS (Settlement) la 23:55...');
+    try {
+      triggerPosSettlement(); // declanșează settlement pe toate terminalele active
+    } catch (e) {
+      console.error('[CRON] Eroare la triggerPosSettlement:', e.message);
+    }
+  });
 }
 
 start();
-
-// touched at 1774353099603

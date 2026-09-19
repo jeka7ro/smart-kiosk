@@ -287,6 +287,12 @@ function initSocket(io) {
       }
     });
 
+    // ─── POS Settlement Result (from bridge) ──────────────────────────────
+    socket.on('pos_settlement_result', (data) => {
+      console.log(`[Socket] 📊 POS Settlement result received:`, data);
+      io.to('admin').emit('pos_settlement_result', data);
+    });
+
     socket.on('disconnect', () => {
       if (connectedKiosks.has(socket.id)) {
         const k = connectedKiosks.get(socket.id);
@@ -297,6 +303,18 @@ function initSocket(io) {
       console.log(`[Socket] Client disconnected: ${socket.id}`);
     });
   });
+}
+
+function triggerPosSettlement(locationId) {
+  if (!_io) return false;
+  console.log(`[Socket] 🔄 Triggering POS Settlement for location=${locationId || 'ALL'}`);
+  if (locationId) {
+    _io.to(`pos-bridge-${locationId}`).emit('pos_settlement', { locationId });
+    _io.emit('pos_settlement', { locationId });
+  } else {
+    _io.emit('pos_settlement', {});
+  }
+  return true;
 }
 
 function emitToKitchen(locationId, event, data) {
@@ -313,5 +331,6 @@ module.exports = {
   emitToAll, 
   getLiveKiosksSummary, 
   broadcastLiveKiosks, 
-  pingKioskLocation 
+  pingKioskLocation,
+  triggerPosSettlement
 };

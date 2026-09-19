@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useAuth } from '../context/AuthProvider';
 import { useConfirm } from '../components/ConfirmModal.jsx';
-import { CreditCard, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
+import { CreditCard, CheckCircle2, XCircle, AlertTriangle, RotateCcw } from 'lucide-react';
 import { io } from 'socket.io-client';
 import * as XLSX from 'xlsx';
 import BrandLogo from '../components/BrandLogo.jsx';
@@ -34,6 +34,8 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
   const [customEnd, setCustomEnd] = useState(tomorrowStr);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [settling, setSettling] = useState(false);
+  const [settlementNotice, setSettlementNotice] = useState(null);
   const socketRef = useRef(null);
 
   // Fetch logs
@@ -63,8 +65,47 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
       if ((Number(entry.amount) === 0 || !entry.amount) && !entry.paid && !entry.authCode) return;
       setLogs(prev => [entry, ...prev]);
     });
+    socket.on('pos_settlement_result', (data) => {
+      setSettling(false);
+      if (data?.success) {
+        setSettlementNotice({ type: 'success', text: 'Închiderea de Zi (Settlement) a fost finalizată cu succes pe POS!' });
+      } else {
+        setSettlementNotice({ type: 'error', text: `Settlement eșuat: ${data?.error || data?.result?.reason || 'Eroare necunoscută'}` });
+      }
+      setTimeout(() => setSettlementNotice(null), 10000);
+    });
     return () => socket.disconnect();
   }, []);
+
+  const handleTriggerSettlement = async () => {
+    const locName = locFilter !== 'all' ? locFilter : 'toate locațiile';
+    const confirmed = await confirm({
+      title: 'Închidere de Zi (Settlement POS)',
+      message: `Sigur doriți să declanșați Închiderea de Zi (Settlement) pe POS-ul fizic pentru ${locName}?\n\nAceastă operațiune transmite raportul zilnic către bancă și eliberează complet memoria terminalului, prevenind erorile de tip A0.`,
+      confirmText: 'Da, execută Settlement',
+      cancelText: 'Anulează',
+      danger: false,
+    });
+    if (!confirmed) return;
+
+    setSettling(true);
+    setSettlementNotice({ type: 'info', text: `Comandă transmisă către terminalul POS (${locName}). Aștept confirmarea băncii...` });
+
+    try {
+      const res = await fetchWithAuth(`${BACKEND}/api/payment/pos-settlement`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ locationId: locFilter !== 'all' ? locFilter : undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Eroare la trimiterea comenzii de settlement');
+      }
+    } catch (err) {
+      setSettling(false);
+      setSettlementNotice({ type: 'error', text: `Eroare settlement: ${err.message}` });
+    }
+  };
 
   const getOrderForLog = (log) => orders.find(o => 
     (log.authCode && o.paymentRef?.authCode === log.authCode) || 
@@ -406,6 +447,20 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
 
         <div className="flex items-center gap-2">
           <button
+            onClick={handleTriggerSettlement}
+            disabled={settling}
+            className={`px-4 h-9 rounded-full text-white shadow-sm text-sm font-bold transition-all flex items-center gap-2 ${
+              settling 
+                ? 'bg-slate-400 cursor-not-allowed' 
+                : 'bg-indigo-600 hover:bg-indigo-700 active:scale-95'
+            }`}
+            title="Declanșează comanda de Închidere de Zi (Settlement) pe POS pentru a curăța memoria terminalului"
+          >
+            <RotateCcw className={`w-4 h-4 ${settling ? 'animate-spin' : ''}`} />
+            {settling ? 'Se execută Settlement...' : 'Închidere de Zi (POS)'}
+          </button>
+
+          <button
             onClick={handleExportExcel}
             className="px-4 h-9 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm text-sm font-bold transition-colors flex items-center gap-2"
           >
@@ -414,6 +469,21 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
           </button>
         </div>
       </div>
+
+      {/* Settlement Status Notification Banner */}
+      {settlementNotice && (
+        <div className={`p-4 rounded-xl border flex items-center justify-between transition-all ${
+          settlementNotice.type === 'success' ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 text-emerald-800 dark:text-emerald-200' :
+          settlementNotice.type === 'error' ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-300 text-rose-800 dark:text-rose-200' :
+          'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-300 text-indigo-800 dark:text-indigo-200'
+        }`}>
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            {settling && <RotateCcw className="w-4 h-4 animate-spin text-indigo-600" />}
+            <span>{settlementNotice.text}</span>
+          </div>
+          <button onClick={() => setSettlementNotice(null)} className="text-xs opacity-70 hover:opacity-100 font-bold">✕</button>
+        </div>
+      )}
 
       {/* Table */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-x-auto">

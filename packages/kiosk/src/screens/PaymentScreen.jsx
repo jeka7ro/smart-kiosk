@@ -61,6 +61,10 @@ export default function PaymentScreen() {
   const handlePayRef = useRef(null);
 
   const [posTimer, setPosTimer] = useState(60);
+  const payStateRef = useRef(payState);
+  useEffect(() => {
+    payStateRef.current = payState;
+  }, [payState]);
 
   useEffect(() => {
     let interval;
@@ -75,11 +79,36 @@ export default function PaymentScreen() {
     return () => clearInterval(interval);
   }, [payState]);
 
+  // Dacă timpul de 60s pentru card expiră, anulăm automat tranzacția pe POS
+  useEffect(() => {
+    if (posTimer === 0 && (payState === STATE.WAITING_CARD || payState === STATE.PIN_ENTRY)) {
+      console.log('[PaymentScreen] ⏱️ Timeout card/PIN - emit cancel_pos_payment și comut pe DECLINED');
+      if (socketRef.current) {
+        socketRef.current.emit('cancel_pos_payment', {
+          locationId: locationData?.kioskUrl || locationData?.id || '',
+          orderId: orderIdRef.current,
+        });
+      }
+      setPayState(STATE.DECLINED);
+      setErrorMsg('Timpul pentru apropierea cardului a expirat. Puteți reîncerca plata.');
+    }
+  }, [posTimer, payState, locationData]);
+
   useEffect(() => {
     return () => {
+      const activeStates = [STATE.WAITING_CARD, STATE.PIN_ENTRY, STATE.AUTHORIZING, STATE.INITIATING];
+      if (activeStates.includes(payStateRef.current) && socketRef.current) {
+        console.log('[PaymentScreen] Ieșire din ecran în timpul plății - emit cancel_pos_payment');
+        try {
+          socketRef.current.emit('cancel_pos_payment', {
+            locationId: locationData?.kioskUrl || locationData?.id || '',
+            orderId: orderIdRef.current,
+          });
+        } catch (_) {}
+      }
       socketRef.current?.disconnect?.();
     };
-  }, []);
+  }, [locationData]);
 
   const sendOrder = useCallback(async (paymentResult, pMethod = 'card') => {
     try {
