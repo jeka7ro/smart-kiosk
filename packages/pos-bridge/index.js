@@ -559,6 +559,7 @@ async function start() {
         if (klasse === 0x05 && instr === 0x01) {
           log('📥 PIN Entry — clientul introduce PIN-ul');
           onStatus && onStatus('Introduceți PIN-ul');
+          globalPort.write(Buffer.from([EOT]));
           state = 'WAIT_POS_ENQ__RESULT';
           currentTransactionTimer = setTimeout(() => fail('Timeout rezultat după PIN'), 120000);
           break;
@@ -567,6 +568,7 @@ async function start() {
         if (klasse === 0x05 && instr === 0x02) {
           log('📥 Begin Auth — comunicare cu banca');
           onStatus && onStatus('Comunicare cu banca...');
+          globalPort.write(Buffer.from([EOT]));
           state = 'WAIT_POS_ENQ__RESULT';
           currentTransactionTimer = setTimeout(() => fail('Timeout rezultat după auth'), 120000);
           break;
@@ -612,6 +614,7 @@ async function start() {
           let explicitReason = `Tranzacție refuzată (Cod: 0x${errCode.toString(16).toUpperCase()})`;
           if (errCode === 0xA0) explicitReason = 'POS-ul trebuie resetat manual sau Închidere de Zi.';
 
+          globalPort.write(Buffer.from([EOT]));
           if (succeed) succeed({ success: false, code: errCode.toString(16).toUpperCase(), authCode: '', refNum: '', reason: explicitReason });
           break;
         }
@@ -623,6 +626,7 @@ async function start() {
         }
 
         log(`📥 Frame necunoscut: klasse=0x${klasse.toString(16)}`);
+        globalPort.write(Buffer.from([EOT]));
         state = 'WAIT_POS_ENQ__RESULT';
         if (fail) {
            currentTransactionTimer = setTimeout(() => fail('Timeout rezultat necunoscut'), 120000);
