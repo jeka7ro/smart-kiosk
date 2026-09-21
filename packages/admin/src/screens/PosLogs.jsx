@@ -10,11 +10,22 @@ import { formatThousands } from '../utils/formatters';
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
 
 const STATUS_CONFIG = {
-  approved: { label: 'Aprobat',  color: '#ffffff', bg: '#059669', icon: '✓' },
-  declined: { label: 'Respins',  color: '#ffffff', bg: '#dc2626', icon: '✕' },
-  timeout:  { label: 'Timeout',  color: '#ffffff', bg: '#d97706', icon: '' },
-  refunded: { label: 'Returnat', color: '#ffffff', bg: '#2563eb', icon: '' },
-  unsolicited: { label: 'POS Info', color: '#ffffff', bg: '#7c3aed', icon: '' },
+  approved:    { label: 'Aprobat',          color: '#ffffff', bg: '#059669', icon: '✓' },
+  declined:    { label: 'Respins',          color: '#ffffff', bg: '#dc2626', icon: '✕' },
+  cancelled:   { label: 'Anulat de client', color: '#ffffff', bg: '#64748b', icon: '⊘' },
+  timeout:     { label: 'Timeout',          color: '#ffffff', bg: '#d97706', icon: '' },
+  refunded:    { label: 'Returnat',         color: '#ffffff', bg: '#2563eb', icon: '' },
+  unsolicited: { label: 'POS Info',         color: '#ffffff', bg: '#7c3aed', icon: '' },
+};
+
+const isLogCancelled = (l) => {
+  if (!l) return false;
+  if (l.status === 'cancelled') return true;
+  if (typeof l.error === 'string') {
+    const err = l.error.toLowerCase();
+    return err.includes('anulat') || err.includes('kiosk timeout') || err.includes('cancel');
+  }
+  return false;
 };
 
 export default function PosLogs({ orders = [], onGoToOrder }) {
@@ -204,7 +215,8 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
     return {
       total: periodFilteredLogs.length,
       approved: periodFilteredLogs.filter(l => l.status === 'approved' || l.paid === true).length,
-      declined: periodFilteredLogs.filter(l => l.status === 'declined' || l.status === 'timeout' || (l.status !== 'approved' && l.paid === false)).length,
+      declined: periodFilteredLogs.filter(l => (l.status === 'declined' || l.status === 'timeout' || (l.status !== 'approved' && l.paid === false)) && !isLogCancelled(l)).length,
+      cancelled: periodFilteredLogs.filter(l => isLogCancelled(l)).length,
       iikoFailed: periodFilteredLogs.filter(l => (l.status === 'approved' || l.paid === true) && !l.iikoSent).length
     };
   }, [periodFilteredLogs]);
@@ -214,7 +226,8 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
     return periodFilteredLogs.filter(l => {
       if (filter !== 'all') {
         if (filter === 'approved') return l.status === 'approved' || l.paid === true;
-        if (filter === 'declined') return l.status === 'declined' || (l.status !== 'approved' && l.paid === false);
+        if (filter === 'cancelled') return isLogCancelled(l);
+        if (filter === 'declined') return (l.status === 'declined' || (l.status !== 'approved' && l.paid === false)) && !isLogCancelled(l);
         if (filter === 'timeout') return l.status === 'timeout';
         if (filter === 'iikoFailed') return (l.status === 'approved' || l.paid === true) && !l.iikoSent;
         if (l.status !== filter) return false;
@@ -290,7 +303,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
         'Nr. Bon': rNo || '',
         'Locatie': log.locationId || '',
         'Suma (RON)': Number((Number(log.amount) || 0).toFixed(2)),
-        'Status POS': STATUS_CONFIG[log.status]?.label || log.status,
+        'Status POS': isLogCancelled(log) ? 'Anulat de client' : (STATUS_CONFIG[log.status]?.label || log.status),
         'Auth Code': log.authCode || '',
         'Card': log.cardNo ? `****${log.cardNo.slice(-4)}` : '',
         'Ref#': log.refNum || '',
@@ -371,9 +384,10 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-2">
           {[
-            { id: 'all',      label: 'Toate' },
-            { id: 'approved', label: '✓ Aprobate' },
-            { id: 'declined', label: '✕ Respinse' },
+            { id: 'all',       label: 'Toate' },
+            { id: 'approved',  label: '✓ Aprobate' },
+            { id: 'declined',  label: '✕ Respinse' },
+            { id: 'cancelled', label: '⊘ Anulate de client' },
           ].map(f => (
             <button
               key={f.id}
@@ -511,7 +525,8 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                 </td>
               </tr>
             ) : paginated.map((log, idx) => {
-              const sc = STATUS_CONFIG[log.status] || STATUS_CONFIG.declined;
+              const isCancelled = isLogCancelled(log);
+              const sc = isCancelled ? STATUS_CONFIG.cancelled : (STATUS_CONFIG[log.status] || STATUS_CONFIG.declined);
               const dt = log.timestamp ? new Date(log.timestamp) : null;
               const order = getOrderForLog(log);
               return (
@@ -668,17 +683,28 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                           e.stopPropagation();
                           confirm(
                             <div className="flex flex-col gap-3 text-left mt-2">
-                              <p className="text-slate-600 dark:text-slate-300">Detaliu eroare POS:</p>
-                              <div className="bg-red-50 dark:bg-red-950/30 p-3 rounded-xl border border-red-100 dark:border-red-900/50">
-                                <span className="font-mono text-sm text-red-600 dark:text-red-400 break-all select-all whitespace-pre-wrap">
+                              <p className="text-slate-600 dark:text-slate-300">
+                                {isCancelled ? 'Detalii anulare comandă:' : 'Detaliu eroare POS:'}
+                              </p>
+                              <div className={`${isCancelled ? 'bg-slate-100 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700' : 'bg-red-50 dark:bg-red-950/30 border-red-100 dark:border-red-900/50'} p-3 rounded-xl border`}>
+                                <span className={`font-mono text-sm ${isCancelled ? 'text-slate-700 dark:text-slate-300' : 'text-red-600 dark:text-red-400'} break-all select-all whitespace-pre-wrap`}>
                                   {log.error}
                                 </span>
                               </div>
                             </div>,
-                            { title: 'Eroare POS', danger: true, hideCancel: true, okLabel: 'Închide' }
+                            { 
+                              title: isCancelled ? 'Comandă Anulată de Client' : 'Eroare POS', 
+                              danger: !isCancelled, 
+                              hideCancel: true, 
+                              okLabel: 'Închide' 
+                            }
                           );
                         }}
-                        className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-transform active:scale-95 cursor-pointer bg-red-600 hover:bg-red-700 text-white shadow-sm"
+                        className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-transform active:scale-95 cursor-pointer shadow-sm ${
+                          isCancelled 
+                            ? 'bg-slate-500 hover:bg-slate-600 text-white' 
+                            : 'bg-red-600 hover:bg-red-700 text-white'
+                        }`}
                       >
                         Detalii
                       </button>

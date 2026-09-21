@@ -20,7 +20,11 @@ async function addPosLog(entry) {
     order_id:    entry.orderId || '',
     amount:      entry.amount || 0,
     gateway:     entry.gateway || 'raiffeisen',
-    status:      entry.paid ? 'approved' : (entry.error === 'timeout' ? 'timeout' : 'declined'),
+    status:      entry.paid ? 'approved' : (
+      (entry.error && (String(entry.error).toLowerCase().includes('anulat') || String(entry.error).toLowerCase().includes('cancel')))
+        ? 'cancelled'
+        : (entry.error === 'timeout' ? 'timeout' : 'declined')
+    ),
     paid:        !!entry.paid,
     response_code: entry.responseCode || '',
     auth_code:   entry.authCode || '',
