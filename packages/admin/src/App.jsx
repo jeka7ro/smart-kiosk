@@ -15,7 +15,7 @@ import IikoLogs       from './screens/IikoLogs';
 import PrinterLogs    from './screens/PrinterLogs';
 import PortScans      from './screens/PortScans';
 import BrandLogo from './components/BrandLogo.jsx';
-import DashboardCharts3D from './components/DashboardCharts3D.jsx';
+import DashboardCharts3D, { detectCardBrand } from './components/DashboardCharts3D.jsx';
 import OrderToastNotificationStack, { playNewOrderSound } from './components/OrderToastNotification.jsx';
 import OrdersNotificationBell from './components/OrdersNotificationBell.jsx';
 import Promotions     from './screens/Promotions';
@@ -643,6 +643,8 @@ export default function AdminApp() {
         const isCard = o.paymentMethod === 'card' || !!o.paymentRef?.authCode;
         if (dashboardPayment === 'card' && !isCard) return false;
         if (dashboardPayment === 'cash' && isCard) return false;
+        if (dashboardPayment === 'visa' && (!isCard || detectCardBrand(o) !== 'visa')) return false;
+        if (dashboardPayment === 'mastercard' && (!isCard || detectCardBrand(o) !== 'mastercard')) return false;
       }
       if (!isDateInPeriod(o.createdAt, dashboardPeriod, dashboardCustomStart, dashboardCustomEnd)) return false;
       return true;
@@ -992,7 +994,9 @@ export default function AdminApp() {
                     onChange={(e) => setDashboardPayment(e.target.value)}
                   >
                     <option value="all">Toate plățile</option>
-                    <option value="card">Card (POS)</option>
+                    <option value="card">Card POS (Toate)</option>
+                    <option value="visa">Card Visa</option>
+                    <option value="mastercard">Card Mastercard</option>
                     <option value="cash">Numerar (Cash)</option>
                   </select>
 
@@ -1092,7 +1096,7 @@ export default function AdminApp() {
                 )}
                 {dashboardPayment !== 'all' && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold">
-                    Plată: {dashboardPayment === 'card' ? 'Card POS' : 'Numerar (Cash)'}
+                    Plată: {dashboardPayment === 'card' ? 'Card POS (Toate)' : dashboardPayment === 'visa' ? 'Card Visa' : dashboardPayment === 'mastercard' ? 'Card Mastercard' : 'Numerar (Cash)'}
                     <button onClick={() => toggleDashboardPayment(dashboardPayment)} className="hover:text-red-500 font-bold ml-1 cursor-pointer">✕</button>
                   </span>
                 )}
