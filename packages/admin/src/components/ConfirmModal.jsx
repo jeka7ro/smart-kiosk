@@ -1,5 +1,5 @@
 import { createContext, useContext, useRef, useState, useCallback } from 'react';
-import { AlertTriangle, Trash2, HelpCircle } from 'lucide-react';
+import { AlertTriangle, Trash2, HelpCircle, AlertCircle, Info } from 'lucide-react';
 
 /* ── Context ──────────────────────────────────────────────────────────────── */
 const ConfirmCtx = createContext(null);
@@ -27,6 +27,14 @@ export function ConfirmProvider({ children }) {
             <div className="mb-3">
               {state.opts?.icon && typeof state.opts.icon !== 'string' ? (
                 state.opts.icon
+              ) : state.opts?.type === 'info' ? (
+                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center">
+                  <Info size={24} strokeWidth={2} />
+                </div>
+              ) : state.opts?.type === 'error' || state.opts?.hideCancel ? (
+                <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 flex items-center justify-center">
+                  <AlertCircle size={24} strokeWidth={2} />
+                </div>
               ) : state.opts?.danger ? (
                 <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 flex items-center justify-center">
                   <Trash2 size={24} strokeWidth={2} />

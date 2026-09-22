@@ -1020,6 +1020,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                                 isSuccess ? successMessage : errorMessage,
                                 {
                                   title: isSuccess ? 'Status iiko: Succes' : 'Status iiko: Eroare',
+                                  type: isSuccess ? 'info' : 'error',
                                   hideCancel: true,
                                   danger: !isSuccess,
                                   okLabel: 'Închide'
@@ -1054,6 +1055,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                             </div>,
                             { 
                               title: isCancelled ? 'Comandă Anulată de Client' : 'Eroare POS', 
+                              type: isCancelled ? 'info' : 'error',
                               danger: !isCancelled, 
                               hideCancel: true, 
                               okLabel: 'Închide' 
