@@ -223,7 +223,9 @@ export function PosReceiptModal({ log, order, orders = [], onClose }) {
   const dt = log.timestamp ? new Date(log.timestamp) : null;
   const [copied, setCopied] = useState(false);
 
-  const brandId = order?.brand || log?.brand || log?.brandId || log?.raw?.brand || log?.raw?.cart?.brand || log?.raw?.items?.[0]?.brand || orders.find(o => (o.locationId && (o.locationId === log.locationId || o.locationId === log.locationName)) || (o.locationName && (o.locationName === log.locationId || o.locationName === log.locationName)))?.brand || null;
+  const brandId = order?.brand || log?.brand || log?.brandId || log?.raw?.brand || log?.raw?.cart?.brand || log?.raw?.items?.[0]?.brand || orders.find(o => (o.locationId && (o.locationId === log.locationId || o.locationId === log.locationName)) || (o.locationName && (o.locationName === log.locationId || o.locationName === log.locationName)))?.brand || (
+    (`${log?.locationName || ''} ${log?.locationId || ''}`.toLowerCase().includes('roll') || `${log?.locationName || ''} ${log?.locationId || ''}`.toLowerCase().includes('sushi') || `${log?.locationName || ''} ${log?.locationId || ''}`.toLowerCase().includes('oradea')) ? 'rollmaster' : 'smashme'
+  );
   const locationName = log.locationName || log.locationId || 'Terminal';
 
   const receiptText = `
@@ -492,6 +494,29 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
     );
   };
 
+  const getLogBrand = useCallback((log) => {
+    if (!log) return 'smashme';
+    const order = getOrderForLog(log);
+    if (order?.brand) return order.brand;
+    if (log.raw?.brand) return log.raw.brand;
+    if (log.brand) return log.brand;
+
+    const matchedOrder = orders.find(o => 
+      (o.locationId && (o.locationId === log.locationId || o.locationId === log.locationName)) || 
+      (o.locationName && (o.locationName === log.locationId || o.locationName === log.locationName))
+    );
+    if (matchedOrder?.brand) return matchedOrder.brand;
+
+    const locCombined = `${log.locationName || ''} ${log.locationId || ''}`.toLowerCase();
+    if (locCombined.includes('smash') || locCombined.includes('cluj')) return 'smashme';
+    if (locCombined.includes('crunch')) return 'crunch';
+    if (locCombined.includes('roll') || locCombined.includes('master') || locCombined.includes('sushi') || locCombined.includes('ikura') || locCombined.includes('oradea')) return 'rollmaster';
+    if (locCombined.includes('love')) return 'lovesushi';
+    if (locCombined.includes('poki')) return 'pokiwoki';
+
+    return 'smashme';
+  }, [orders]);
+
   const isLogIikoSuccess = (log) => {
     if (log.iikoSent) return true;
     const order = getOrderForLog(log);
@@ -578,11 +603,11 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
       if ((Number(l.amount) === 0 || !l.amount) && l.status !== 'approved' && !l.paid && !l.authCode) return false;
       if (isSupersededRetry(l, logs)) return false;
       if (locFilter !== 'all' && l.locationId !== locFilter) return false;
-      if (brandFilter !== 'all' && getOrderForLog(l)?.brand !== brandFilter) return false;
+      if (brandFilter !== 'all' && getLogBrand(l) !== brandFilter) return false;
       if (!isDateInPeriod(l.timestamp, periodFilter)) return false;
       return true;
     });
-  }, [logs, locFilter, brandFilter, periodFilter, customStart, customEnd, orders, isSupersededRetry]);
+  }, [logs, locFilter, brandFilter, periodFilter, customStart, customEnd, orders, isSupersededRetry, getLogBrand]);
 
   // Derived stats strictly reflect the selected period, location and brand
   const derivedStats = useMemo(() => {
@@ -615,7 +640,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
 
   // Unique locations and brands for filter
   const locations = [...new Set(logs.map(l => l.locationId).filter(Boolean))];
-  const brands = [...new Set(logs.map(l => getOrderForLog(l)?.brand).filter(Boolean))];
+  const brands = [...new Set(logs.map(l => getLogBrand(l)).filter(Boolean))];
 
   const extractReceiptNo = (log) => extractPosMeta(log).rNo;
 
@@ -877,7 +902,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                   <td className="px-4 py-3">
                     <div className="flex flex-col gap-1.5 items-start">
                       {(() => {
-                        const effectiveBrand = order?.brand || log.raw?.brand || log.brand || orders.find(o => (o.locationId && (o.locationId === log.locationId || o.locationId === log.locationName)) || (o.locationName && (o.locationName === log.locationId || o.locationName === log.locationName)))?.brand || null;
+                        const effectiveBrand = getLogBrand(log);
                         return effectiveBrand ? (
                           <div className="flex items-center gap-2">
                             <BrandLogo brandId={effectiveBrand} size={20} />
@@ -887,7 +912,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                       })()}
                       <div className="flex flex-wrap items-center gap-1">
                         <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-400">
-                          {log.locationName || log.locationId || 'Locație necunoscută'}
+                          {log.locationName || (log.locationId === 'cluj1' ? 'SmashMe Cluj' : (log.locationId === 'cluj2' ? 'SmashMe Cluj 2' : (log.locationId === 'sm-brasov' ? 'SmashMe Brașov' : (log.locationId || 'Locație necunoscută'))))}
                         </span>
                         {meta.tid && (
                           <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[9px] font-semibold text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700" title="Terminal ID">

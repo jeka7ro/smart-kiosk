@@ -89,13 +89,9 @@ POS -> EOT (0x04)               <--- DOAR POS-UL TRIMITE EOT!
 
 ---
 
-## 8. Prevenire Timeout & Auto-Heal Hardware (Cap. 4, Pag. 6)
-- **Timeout ENQ conform protocol**: Conform Cap. 4, Pag. 6, punctul 2.a, terminalul EFT-POS trebuie să răspundă cu `ACK` la `ENQ` în 0.6s. Timeout-ul în bridge este setat la `1200ms` (pentru a acoperi și latența adaptorului USB-Serial).
-- **Mecanism Auto-Heal pe loc (Fără eșuare tranzacție)**:
-  - Dacă terminalul POS nu răspunde la 3 încercări consecutive `ENQ` (de exemplu dacă a rămas agățat de un client anterior sau desincronizat după restart server), bridge-ul **NU refuză comanda**.
-  - Se execută imediat `forceReopenPort('Auto-Heal 3x ENQ')`: o pauză hardware de 300ms care taie DTR/RTS și deblochează terminalul Verifone înapoi în standby.
-  - Se retrimite automat comanda de vânzare (`SALE`) pe loc în cadrul aceleiași sesiuni.
-  - Astfel, clientul de pe Kiosk nu primește nicio eroare de tipul *„POS-ul nu răspunde (Timeout)”*, iar tranzacția se finalizează cu succes pe loc.
-- **Curățare Buffer la Anulare și Pornire**: La orice eveniment `cancel_pos_payment` sau la începerea unei plăți când starea anterioară nu a fost IDLE, bufferul portului serial este curățat complet (`flush`).
+## 8. Timeout ENQ și Retentivitate Linie Serială (Cap. 4, Pag. 6)
+- **Timeout ENQ conform specificației**: Timeout-ul pentru răspuns `ACK` la `ENQ` este setat la **3000ms** (3.0s). Aceasta oferă timp suficient terminalului Verifone V200t să se trezească din standby și previne declanșarea prematură a reîncercărilor ce produc coliziuni UART pe linia serială.
+- **Evitarea resetărilor inutile**: Portul serial NU trebuie re-deschis / resetat în timpul trimiterii ENQ, pentru a nu întrerupe alimentarea liniei și starea internă a terminalului.
+- **Anulare controlată**: Funcția `forceReopenPort` (pauză hardware de 300ms tăind DTR/RTS) se execută exclusiv atunci când clientul solicită explicit anularea tranzacției (`cancel_pos_payment`) din ecranul Kiosk, eliberând instantaneu ecranul POS în standby.
 
 

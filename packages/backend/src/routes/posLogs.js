@@ -12,11 +12,29 @@ const { pool } = require('../db');
  * Called internally by the socket handler when a POS payment result arrives.
  */
 async function addPosLog(entry) {
+  let detectedBrand = entry.brand || entry.raw?.brand || null;
+  if (!detectedBrand) {
+    const locStr = `${entry.locationId || ''} ${entry.locationName || ''}`.toLowerCase();
+    if (locStr.includes('smash') || locStr.includes('cluj')) detectedBrand = 'smashme';
+    else if (locStr.includes('crunch')) detectedBrand = 'crunch';
+    else if (locStr.includes('roll') || locStr.includes('sushi') || locStr.includes('oradea')) detectedBrand = 'rollmaster';
+    else if (locStr.includes('love')) detectedBrand = 'lovesushi';
+    else if (locStr.includes('poki')) detectedBrand = 'pokiwoki';
+    else detectedBrand = 'smashme';
+  }
+
+  let locName = entry.locationName || '';
+  if (!locName) {
+    if (entry.locationId === 'cluj1') locName = 'SmashMe Cluj';
+    else if (entry.locationId === 'cluj2') locName = 'SmashMe Cluj 2';
+    else if (entry.locationId === 'sm-brasov') locName = 'SmashMe Brașov';
+  }
+
   const log = {
     id:          `POS-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
     timestamp:   new Date().toISOString(),
     location_id: entry.locationId || '',
-    location_name: entry.locationName || '',
+    location_name: locName,
     order_id:    entry.orderId || '',
     amount:      entry.amount || 0,
     gateway:     entry.gateway || 'raiffeisen',
@@ -37,6 +55,7 @@ async function addPosLog(entry) {
     iiko_error:  entry.iikoError || null,
     raw:         { 
       ...(typeof entry.raw === 'object' && entry.raw !== null ? entry.raw : { data: entry.raw }), 
+      brand:       detectedBrand,
       ...(entry.receiptNo ? { receiptNo: entry.receiptNo } : {}) 
     },
   };

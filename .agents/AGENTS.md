@@ -40,9 +40,9 @@ Orice modificare a codului POS Bridge (`packages/pos-bridge/index.js`) sau a ser
    - Cadrul `06 1E 01 A0` este definit oficial în Anexa A (pag. 18-19) ca fiind refuzul/anularea standard raportată de POS (când clientul apasă tasta roșie X pe POS sau când expiră timpul de citire a cardului).
    - Codul `0xA0` **NU înseamnă defecțiune de memorie și NU necesită Închidere de Zi**. Confirmarea corectă cu `ACK` și așteptarea `EOT`-ului de la POS readuc terminalul în mod quiescent automat.
 
-6. **PREVENIRE TIMEOUT & AUTO-HEAL HARDWARE (Cap. 4, Pag. 6)**:
-   - Conform Cap. 4, Pag. 6 din protocol, terminalul răspunde la `ENQ` în 0.6s (timeout setat la 1.2s în bridge).
-   - Dacă POS-ul nu răspunde după 3x ENQ (blocat temporar de la o sesiune veche), bridge-ul **NU refuză comanda direct**.
-   - Se declanșează `forceReopenPort` (300ms tăiere DTR/RTS) și se retrimite comanda automat în aceeași sesiune (Auto-Heal), prevenind complet erorile de tip *„POS-ul nu răspunde (Timeout)”* pentru clienți și în log-uri.
+6. **TIMEOUT ENQ ȘI RETENTIVITATE LINIE SERIALĂ (Cap. 4, Pag. 6)**:
+   - Timeout-ul pentru răspuns `ACK` la `ENQ` este stabilit la **3000ms** (pentru a acoperi latența adaptorului USB-Serial și timpul de trezire din standby al terminalului Verifone).
+   - Nu reduceți timeout-ul sub 3000ms și nu resetați forțat portul serial în timpul încercărilor de ENQ, deoarece provoacă coliziuni UART și desincronizări ale terminalului.
+   - Resetarea hardware controlată a portului (`forceReopenPort` 300ms) se execută strict la comanda explicită de anulare (`cancel_pos_payment`) a unei plăți în curs.
 
 

@@ -2341,19 +2341,8 @@ export function TopProductsChart3D({
                         <span>Locul {rankNum}</span>
                       </span>
 
-                      {/* Brand pill cu avatar */}
-                      <div 
-                        className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border bg-white/90 dark:bg-slate-800/90 shadow-2xs"
-                        style={{ borderColor: `${brandColor}40` }}
-                      >
-                        <BrandLogo brandId={prod.brand} size={15} />
-                        <span 
-                          className="text-[10px] font-bold uppercase tracking-wider"
-                          style={{ color: brandColor }}
-                        >
-                          {prod.brand}
-                        </span>
-                      </div>
+                      {/* Brand Avatar */}
+                      <BrandLogo brandId={prod.brand} size={32} className="shadow-sm shrink-0 border border-slate-200/80 dark:border-slate-700/80" />
                     </div>
 
                     {/* Product Media & Title */}
@@ -2472,18 +2461,7 @@ export function TopProductsChart3D({
                             <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200 truncate group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
                               {prod.name}
                             </span>
-                            <div 
-                              className="flex items-center gap-1 px-2 py-0.5 rounded-full border shrink-0 bg-white/70 dark:bg-slate-800/70 shadow-2xs"
-                              style={{ borderColor: `${brandColor}40` }}
-                            >
-                              <BrandLogo brandId={prod.brand} size={13} />
-                              <span 
-                                className="text-[9.5px] font-bold uppercase tracking-wider"
-                                style={{ color: brandColor }}
-                              >
-                                {prod.brand}
-                              </span>
-                            </div>
+                            <BrandLogo brandId={prod.brand} size={20} className="shadow-xs shrink-0" />
                           </div>
                           <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
                             {prod.quantity} buc. vândute • {sharePct}% din total
