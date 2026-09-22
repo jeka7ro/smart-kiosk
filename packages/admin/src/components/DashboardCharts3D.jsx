@@ -251,13 +251,15 @@ export function SalesTrendChart3D({
             </div>
 
             <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-2 flex-wrap mt-0.5">
-              <span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-xs shadow-cyan-400/60" />
                 Total Azi: <strong className="text-slate-800 dark:text-slate-200">{formatThousands(totalRev)} lei</strong> ({totalCnt} comenzi)
               </span>
               {showYesterday && totalYesterdayRev > 0 && (
                 <>
                   <span className="text-slate-300 dark:text-slate-600">•</span>
-                  <span className="text-amber-600 dark:text-amber-400/90 font-medium">
+                  <span className="text-amber-600 dark:text-amber-400/90 font-medium flex items-center gap-1.5">
+                    <span className="w-2.5 h-1 bg-amber-400 rounded-full shadow-xs shadow-amber-400/50" />
                     Ieri la aceeași oră: <strong className="font-bold">{formatThousands(totalYesterdayRev)} lei</strong>
                   </span>
                 </>
@@ -481,6 +483,82 @@ export function SalesTrendChart3D({
             strokeLinecap="round"
             filter="url(#neonGlow)"
           />
+
+          {/* Valori Numerice Ieri afișate direct pe grafic (Data Labels în fundalul 3D) */}
+          {showValues && showYesterday && isHourly && (
+            <g className="transition-opacity duration-300 pointer-events-none select-none">
+              {ptsYesterday.map((ptY, idx) => {
+                if (ptY.val <= 0) return null;
+                const ptToday = pts[idx];
+                const isHovered = hoveredIndex === idx;
+
+                const valYText = metricMode === 'revenue' 
+                  ? `${formatThousands(Math.round(ptY.val))} lei` 
+                  : `${ptY.val} com.`;
+                const pillYW = Math.max(36, valYText.length * 6.0 + 12);
+
+                // Evităm suprapunerea: dacă ieri și azi au valori foarte apropiate la aceeași oră
+                const isCloseToToday = ptToday && Math.abs(ptY.y - ptToday.y) < 32;
+                const placeBelow = isCloseToToday && ptY.y >= ptToday.y;
+
+                const pillY = placeBelow ? ptY.y + 7 : ptY.y - 25;
+                const stemY1 = placeBelow ? ptY.y + 4 : ptY.y - 4;
+                const stemY2 = placeBelow ? ptY.y + 7 : ptY.y - 10;
+                const textY = placeBelow ? ptY.y + 19 : ptY.y - 13.5;
+
+                return (
+                  <g 
+                    key={`val-yest-${idx}`}
+                    className="transition-all duration-200"
+                    style={{ transformOrigin: `${ptY.x}px ${ptY.y}px` }}
+                  >
+                    {/* Conector discret către punctul de ieri */}
+                    <line
+                      x1={ptY.x}
+                      y1={stemY1}
+                      x2={ptY.x}
+                      y2={stemY2}
+                      stroke="#f59e0b"
+                      strokeWidth="1"
+                      strokeDasharray="2,2"
+                      opacity={isHovered ? 0.95 : 0.55}
+                    />
+
+                    {/* Pill Badge Glassmorphism 3D Ieri (Nuanță Caldă Chihlimbar / Aurie) */}
+                    <rect
+                      x={ptY.x - pillYW / 2}
+                      y={pillY}
+                      width={pillYW}
+                      height={16}
+                      rx={8}
+                      fill="rgba(30, 18, 8, 0.92)"
+                      stroke={isHovered ? "#f59e0b" : "rgba(245, 158, 11, 0.75)"}
+                      strokeWidth={isHovered ? "1.5" : "0.85"}
+                      strokeDasharray={isHovered ? undefined : "3,1.5"}
+                      style={{
+                        filter: isHovered 
+                          ? 'drop-shadow(0 0 8px rgba(245,158,11,0.7))' 
+                          : 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))'
+                      }}
+                    />
+
+                    {/* Valoare numerică Ieri */}
+                    <text
+                      x={ptY.x}
+                      y={textY}
+                      textAnchor="middle"
+                      fontSize="9"
+                      className={`font-bold tracking-tight ${
+                        isHovered ? 'fill-amber-200 font-extrabold' : 'fill-amber-300'
+                      }`}
+                    >
+                      {valYText}
+                    </text>
+                  </g>
+                );
+              })}
+            </g>
+          )}
 
           {/* Points & Interactive Hover Columns */}
           {pts.map((pt, i) => {
