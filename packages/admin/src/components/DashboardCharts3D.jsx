@@ -741,7 +741,7 @@ export function BrandDonutChart3D({
     const map = {
       smashme: { id: 'smashme', name: 'SmashMe', color: BRAND_COLORS.smashme, revenue: 0, count: 0 },
       crunch: { id: 'crunch', name: 'Crunch', color: BRAND_COLORS.crunch, revenue: 0, count: 0 },
-      rollmaster: { id: 'rollmaster', name: 'Roll Master', color: BRAND_COLORS.rollmaster, revenue: 0, count: 0 },
+      rollmaster: { id: 'rollmaster', name: 'Roll Master', color: '#10b981', revenue: 0, count: 0 }, // Culoare verde smarald dedicată doar acestui grafic pt contrast clar cu SmashMe
       lovesushi: { id: 'lovesushi', name: 'Love Sushi', color: BRAND_COLORS.lovesushi, revenue: 0, count: 0 },
       pokiwoki: { id: 'pokiwoki', name: 'Poki-Woki', color: BRAND_COLORS.pokiwoki, revenue: 0, count: 0 }
     };
