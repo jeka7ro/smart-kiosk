@@ -1124,6 +1124,7 @@ export default function AdminApp() {
             {/* 5 Interactive ZoomCharts with Cross-Filtering & Top Products */}
             <DashboardCharts3D 
               orders={dashboardPeriodOrders} 
+              allOrders={orders}
               period={dashboardPeriod} 
               selectedBrands={dashboardBrands}
               onSelectBrand={toggleDashboardBrand}
