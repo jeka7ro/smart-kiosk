@@ -240,14 +240,13 @@ function ecrSend(frame, ns, label, timeoutMs = 3000) {
       }, 400);
     } else {
       enqRetries = 0;
-      log(`❌ Eșuat 3 încercări ENQ (${label}). Reciclez conexiunea portului serial conform protocol...`);
-      globalPort.write(Buffer.from([EOT]));
-      forceReopenPort(`Eșuat 3x ENQ ${label}`).finally(() => {
-        state = 'IDLE';
-        if (currentTransactionResolve) {
-          currentTransactionResolve({ success: false, reason: 'POS-ul nu răspunde (Timeout).', code: 'DECLINED' });
-        }
-      });
+      log(`❌ Eșuat 3 încercări ENQ (${label}). Trimit EOT pentru a readuce magistrala în IDLE conform protocol.`);
+      try { globalPort.write(Buffer.from([EOT])); } catch (_) {}
+      state = 'IDLE';
+      currentOperation = null;
+      if (currentTransactionResolve) {
+        currentTransactionResolve({ success: false, reason: 'POS-ul nu răspunde (Timeout).', code: 'DECLINED' });
+      }
     }
   }, timeoutMs);
 }
@@ -322,15 +321,7 @@ function processPrintecPayment(amount, onStatus) {
       ecrSend(SALE_FRAME, 'SALE', 'SALE', 3000);
     };
 
-    if (posLoggedIn) {
-      startSale();
-    } else {
-      log('🔐 POS neautentificat — execut LOGIN înainte de SALE...');
-      onLoginSuccess = () => {
-        setTimeout(startSale, 300);
-      };
-      ecrSend(buildFrame([0x06, 0x00, 0x00]), 'LOGIN', 'LOGIN', 5000);
-    }
+    startSale();
   });
 }
 
@@ -430,9 +421,8 @@ async function start() {
 
     globalPort.on('open', () => {
       log(`✅ Port serial POS deschis: ${portPath} @ ${BAUD_RATE}`);
-      setTimeout(() => {
-        ensurePosLogin().catch(e => log(`⚠️ Eroare login inițial POS: ${e.message}`));
-      }, 500);
+      state = 'IDLE';
+      log('🟢 Terminal POS pregătit în mod direct (IDLE). Aștept tranzacții...');
     });
 
     globalPort.on('error', err => {
