@@ -87,3 +87,15 @@ POS -> EOT (0x04)               <--- DOAR POS-UL TRIMITE EOT!
 - **Nume Imprimantă Windows**: Preia din `.env` (ex: `EPSON TM-T20II` sau `POS-80`).
 - **Payload Socket.io**: Serverul trimite via Socket.io comanda `print_ticket` sub forma `{ order: {...} }`. Destructuring-ul trebuie să citească `data?.order || data` pentru a preveni erori dacă payload-ul variază.
 
+---
+
+## 8. Prevenire Timeout & Auto-Heal Hardware (Cap. 4, Pag. 6)
+- **Timeout ENQ conform protocol**: Conform Cap. 4, Pag. 6, punctul 2.a, terminalul EFT-POS trebuie să răspundă cu `ACK` la `ENQ` în 0.6s. Timeout-ul în bridge este setat la `1200ms` (pentru a acoperi și latența adaptorului USB-Serial).
+- **Mecanism Auto-Heal pe loc (Fără eșuare tranzacție)**:
+  - Dacă terminalul POS nu răspunde la 3 încercări consecutive `ENQ` (de exemplu dacă a rămas agățat de un client anterior sau desincronizat după restart server), bridge-ul **NU refuză comanda**.
+  - Se execută imediat `forceReopenPort('Auto-Heal 3x ENQ')`: o pauză hardware de 300ms care taie DTR/RTS și deblochează terminalul Verifone înapoi în standby.
+  - Se retrimite automat comanda de vânzare (`SALE`) pe loc în cadrul aceleiași sesiuni.
+  - Astfel, clientul de pe Kiosk nu primește nicio eroare de tipul *„POS-ul nu răspunde (Timeout)”*, iar tranzacția se finalizează cu succes pe loc.
+- **Curățare Buffer la Anulare și Pornire**: La orice eveniment `cancel_pos_payment` sau la începerea unei plăți când starea anterioară nu a fost IDLE, bufferul portului serial este curățat complet (`flush`).
+
+

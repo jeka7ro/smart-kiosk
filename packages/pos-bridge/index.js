@@ -216,12 +216,12 @@ async function resolvePosPort() {
 
 const detectPosPort = resolvePosPort;
 
-function ecrSend(frame, ns, label, timeoutMs = 3000) {
+function ecrSend(frame, ns, label, timeoutMs = 1200, isRetryAfterHeal = false) {
   if (enqRetries === 0) {
     const hexStr = [...frame].map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
     log(`📤 Frame pregătit [${frame.length} bytes]: ${hexStr}`);
   }
-  log(`📤 ENQ → (${label}) [Încercare ${enqRetries + 1}/3]`);
+  log(`📤 ENQ → (${label}) [Încercare ${enqRetries + 1}/3]${isRetryAfterHeal ? ' [după auto-heal]' : ''}`);
   
   globalPort.write(Buffer.from([ENQ]));
   state = `WAIT_ENQ_ACK__${ns}`;
@@ -236,11 +236,33 @@ function ecrSend(frame, ns, label, timeoutMs = 3000) {
     if (enqRetries < 3) {
       log(`⚠️ Timeout ACK la ENQ (${label}). Trimit ENQ reîncercare (${enqRetries + 1}/3)...`);
       setTimeout(() => {
-        ecrSend(frame, ns, label, timeoutMs);
-      }, 400);
+        ecrSend(frame, ns, label, timeoutMs, isRetryAfterHeal);
+      }, 300);
     } else {
       enqRetries = 0;
-      log(`❌ Eșuat 3 încercări ENQ (${label}). Reciclez conexiunea portului serial conform protocol...`);
+      
+      // AUTO-HEAL: Dacă POS-ul nu răspunde la 3x ENQ, nu dăm direct eroare!
+      // Resetăm hardware semnalele seriale DTR/RTS (300ms) pentru a trezi/debloca POS-ul și reîncercăm tranzacția!
+      if (!isRetryAfterHeal) {
+        log(`🔄 POS tăcut la 3x ENQ (${label}). Declanșez AUTO-HEAL hardware pe portul serial...`);
+        globalPort.write(Buffer.from([EOT]));
+        forceReopenPort(`Auto-Heal 3x ENQ ${label}`).then(async () => {
+          state = 'IDLE';
+          log(`🚀 Port serial resetat și sincronizat curat. Retrimit comanda (${label}) pe loc...`);
+          setTimeout(() => {
+            ecrSend(frame, ns, label, timeoutMs, true);
+          }, 300);
+        }).catch(() => {
+          state = 'IDLE';
+          if (currentTransactionResolve) {
+            currentTransactionResolve({ success: false, reason: 'POS-ul nu răspunde după resetare.', code: 'DECLINED' });
+          }
+        });
+        return;
+      }
+
+      // Doar dacă eșuează chiar și după auto-recuperare hardware
+      log(`❌ Eșuat definitiv 3 încercări ENQ (${label}) după auto-heal. Reciclez conexiunea...`);
       globalPort.write(Buffer.from([EOT]));
       forceReopenPort(`Eșuat 3x ENQ ${label}`).finally(() => {
         state = 'IDLE';
@@ -270,8 +292,11 @@ function processPrintecPayment(amount, onStatus) {
        return resolve({ success: false, reason: 'Portul POS nu este deschis', code: 'DECLINED' });
     }
     if (state !== 'IDLE') {
-       log(`⚠️ Stare anterioară (${state}) la inițiere plată. Reciclez starea în IDLE...`);
+       log(`⚠️ Stare anterioară (${state}) la inițiere plată. Reciclez starea în IDLE și curăț bufferul...`);
        state = 'IDLE';
+       if (globalPort && typeof globalPort.flush === 'function') {
+         try { globalPort.flush(); } catch (_) {}
+       }
     }
 
     rxBuf = Buffer.alloc(0);
@@ -319,7 +344,7 @@ function processPrintecPayment(amount, onStatus) {
 
     const startSale = () => {
       log('📤 Trimit comanda SALE către POS...');
-      ecrSend(SALE_FRAME, 'SALE', 'SALE', 3000);
+      ecrSend(SALE_FRAME, 'SALE', 'SALE', 1200);
     };
 
     if (posLoggedIn) {
@@ -789,24 +814,20 @@ async function start() {
     
     log('🛑 CANCEL payment solicitat din Kiosk (timeout / anulare client)!');
     if (paymentInProgress) {
-      // 1. Notificăm imediat Kiosk-ul ca interfața să redevină liberă instant
       paymentInProgress = false;
       if (globalPort && globalPort.currentFail) {
         globalPort.currentFail('Anulat de client din interfața Kiosk');
       }
+    }
 
-      // 2. Pentru POS-ul fizic (Verifone V200t):
-      // Închidem și redeschidem portul serial (300ms) pentru a tăia DTR/RTS.
-      // Aceasta determină terminalul Verifone să iasă imediat din ecranul "Apropiați cardul"
-      // înapoi în standby, fără să rămână blocat în tranzacția veche.
-      if (globalPort && globalPort.isOpen) {
-        log('🔄 Resetare hardware port serial pentru eliberare ecran POS...');
-        try {
-          await forceReopenPort('Anulare Kiosk');
-          await ensurePosLogin();
-        } catch (e) {
-          log(`⚠️ Eroare resetare port după cancel: ${e.message}`);
-        }
+    // Întotdeauna când Kiosk trimite cancel, asigurăm deblocarea hardware a ecranului POS
+    if (globalPort && globalPort.isOpen) {
+      log('🔄 Resetare hardware port serial pentru eliberare garantată ecran POS...');
+      try {
+        await forceReopenPort('Anulare Kiosk');
+        await ensurePosLogin();
+      } catch (e) {
+        log(`⚠️ Eroare resetare port după cancel: ${e.message}`);
       }
     }
   });
