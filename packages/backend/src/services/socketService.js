@@ -219,12 +219,51 @@ function initSocket(io) {
         console.error('[POS Logs] Error saving:', e.message);
       }
 
+      // Finalizare automată a comenzii pe Backend dacă plata a reușit
+      let finalizedOrder = null;
+      if (paid && orderId) {
+        try {
+          const { getPendingPosOrder, removePendingPosOrder } = require('../routes/payment');
+          const { processOrderCreation } = require('../routes/orders');
+          const pendingPayload = await getPendingPosOrder(orderId);
+          if (pendingPayload) {
+            console.log(`[Socket] 🚀 Finalizez comanda automat pe backend pentru POS ${orderId} (${pendingPayload.items?.length || 0} produse)`);
+            const createResult = await processOrderCreation({
+              ...pendingPayload,
+              posOrderId: orderId,
+              paymentMethod: 'card',
+              paymentRef: {
+                orderId,
+                authCode,
+                responseCode: responseCode || code,
+                receiptNo,
+                refNum,
+                cardNo,
+                txDate,
+                extraFields: raw?.extraFields,
+              }
+            }, io);
+            if (createResult?.data?.order) {
+              finalizedOrder = createResult.data.order;
+              console.log(`[Socket] ✅ Comandă creată și trimisă automat pe backend: #${finalizedOrder.orderNumber}`);
+            }
+            await removePendingPosOrder(orderId);
+          } else {
+            console.log(`[Socket] ℹ️ Nu s-a găsit draft pre-salvat pentru ${orderId}`);
+          }
+        } catch (autoErr) {
+          console.error(`[Socket] ❌ Eroare la finalizarea automată a comenzii:`, autoErr.message);
+        }
+      }
+
       io.emit(`payment_confirmed_${orderId}`, {
         paid,
         responseCode: responseCode || code,
         authCode,
         refNum,
         cardNo,
+        receiptNo,
+        order: finalizedOrder,
         error: paid ? undefined : (error || 'Plată refuzată'),
       });
     });

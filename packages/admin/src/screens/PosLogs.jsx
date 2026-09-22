@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useAuth } from '../context/AuthProvider';
 import { useConfirm } from '../components/ConfirmModal.jsx';
-import { CreditCard, CheckCircle2, XCircle, AlertTriangle, RotateCcw } from 'lucide-react';
+import { CreditCard, CheckCircle2, XCircle, AlertTriangle, RotateCcw, Receipt, Copy, Check, X } from 'lucide-react';
 import { io } from 'socket.io-client';
 import * as XLSX from 'xlsx';
 import BrandLogo from '../components/BrandLogo.jsx';
@@ -28,6 +28,322 @@ const isLogCancelled = (l) => {
   return false;
 };
 
+export function CardBrandAvatar({ brand, cardNo, isNfc }) {
+  let badge = null;
+  const isMc = brand === 'mastercard';
+  const isVisa = brand === 'visa';
+  const isMaestro = brand === 'maestro';
+
+  if (isMc) {
+    badge = (
+      <div className="relative w-8 h-5.5 sm:w-9 sm:h-6 rounded-md bg-gradient-to-br from-slate-950 via-slate-900 to-black border border-slate-700/60 shadow-sm flex items-center justify-center shrink-0 overflow-hidden" title="Mastercard">
+        <svg width="22" height="14" viewBox="0 0 24 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="7.5" cy="7.5" r="7" fill="#EB001B"/>
+          <circle cx="16.5" cy="7.5" r="7" fill="#F79E1B"/>
+          <path d="M12 2.2a6.98 6.98 0 0 1 0 10.6 6.98 6.98 0 0 1 0-10.6Z" fill="#FF5F00"/>
+        </svg>
+      </div>
+    );
+  } else if (isVisa) {
+    badge = (
+      <div className="relative w-8 h-5.5 sm:w-9 sm:h-6 rounded-md bg-gradient-to-br from-[#102468] via-[#0b1b4f] to-[#040c29] border border-blue-600/40 shadow-sm flex items-center justify-center shrink-0 overflow-hidden px-1" title="Visa">
+        <svg width="22" height="7.5" viewBox="0 0 780 250" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M293.4 12.8L192.5 240.4H134.2L81.7 58.7C78.5 46.2 75.7 41.7 65.7 36.3C49.3 27.5 23.1 19.3 0 14.4L5.4 2.1H106.6C120.3 2.1 132.8 11.2 135.8 26.6L162.2 165.7L228.6 2.1H293.4V12.8ZM550.9 164.7C551.4 102.3 464.3 98.7 464.9 70.8C465.2 62.3 473.4 53.2 491.5 50.8C500.4 49.6 525.4 48.6 553.6 61.6L564.7 9.8C549.4 4.3 529.7 0 504.7 0C443.4 0 399.7 32.6 399.3 79.5C398.9 114 430.1 133.3 453.6 144.8C477.8 156.6 485.9 164.1 485.7 174.7C485.4 191 465.9 198.1 448 198.4C416.7 198.8 398.5 190 384.1 183.3L372.4 237.9C388.6 245.4 418.5 251.7 449.6 252C513.7 252 550.4 220.4 550.9 164.7ZM712.5 240.4H768L719.2 2.1H668C656.7 2.1 647.2 8.7 643.1 18.5L549.4 240.4H611.8L624.2 206.3H700.5L712.5 240.4ZM641.4 159.2L672.7 73.1L690.7 159.2H641.4ZM387.6 2.1L338.4 240.4H280.4L329.6 2.1H387.6Z" fill="#FFFFFF"/>
+        </svg>
+      </div>
+    );
+  } else if (isMaestro) {
+    badge = (
+      <div className="relative w-8 h-5.5 sm:w-9 sm:h-6 rounded-md bg-gradient-to-br from-slate-900 via-slate-800 to-black border border-slate-700/60 shadow-sm flex items-center justify-center shrink-0 overflow-hidden" title="Maestro">
+        <svg width="22" height="14" viewBox="0 0 24 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="7.5" cy="7.5" r="7" fill="#0061A8"/>
+          <circle cx="16.5" cy="7.5" r="7" fill="#EB001B"/>
+          <path d="M12 2.2a6.98 6.98 0 0 1 0 10.6 6.98 6.98 0 0 1 0-10.6Z" fill="#6C6BBA"/>
+        </svg>
+      </div>
+    );
+  } else if (cardNo) {
+    badge = (
+      <div className="relative w-8 h-5.5 sm:w-9 sm:h-6 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center shrink-0" title="Card bancar">
+        <CreditCard size={14} />
+      </div>
+    );
+  }
+
+  if (!cardNo && !badge) return <span className="text-slate-400">—</span>;
+
+  const last4 = cardNo ? cardNo.slice(-4) : '';
+  const brandName = isMc ? 'Mastercard' : (isVisa ? 'Visa' : (isMaestro ? 'Maestro' : 'Card Bancar'));
+
+  return (
+    <div className="flex items-center gap-2">
+      {badge}
+      {cardNo ? (
+        <div className="flex flex-col text-left leading-tight">
+          <div className="flex items-center gap-1">
+            <span className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200">
+              •••• {last4}
+            </span>
+            {isNfc && (
+              <span title="Plată Contactless (NFC)" className="inline-flex items-center text-blue-500 dark:text-blue-400">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+                  <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+                  <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+                  <line x1="12" y1="20" x2="12.01" y2="20"/>
+                </svg>
+              </span>
+            )}
+          </div>
+          <span className="text-[10px] text-slate-400 font-semibold tracking-tight">
+            {brandName}
+          </span>
+        </div>
+      ) : (
+        <span className="text-[11px] text-slate-400 font-semibold">{brandName}</span>
+      )}
+    </div>
+  );
+}
+
+export function extractPosMeta(log) {
+  let rNo = log.receiptNo || log.raw?.receiptNo || log.raw?.InvoiceNum || log.raw?.receipt_number || null;
+  let tid = log.terminalId || log.termId || log.raw?.termId || null;
+  let cardBrand = 'generic';
+  let isNfc = false;
+  let respCode = log.responseCode || log.response_code || log.code || null;
+  let hostDate = log.txDate || null;
+  let pan = log.cardNo || log.card_no || '';
+
+  // Check extraFields in raw
+  const extra = log.raw?.extraFields;
+  if (Array.isArray(extra)) {
+    const extraJoined = extra.join(' ').toLowerCase();
+    if (extraJoined.includes('contactless') || extraJoined.includes('cl mc') || extraJoined.includes('cl visa') || extraJoined.includes('cl ')) isNfc = true;
+    if (extraJoined.includes('mastercard') || extraJoined.includes('cl mc') || extraJoined.includes(' mc ')) cardBrand = 'mastercard';
+    if (extraJoined.includes('visa') || extraJoined.includes('cl visa')) cardBrand = 'visa';
+    if (extraJoined.includes('maestro') || extraJoined.includes('cl maestro')) cardBrand = 'maestro';
+
+    if (extra[1] && typeof extra[1] === 'string' && extra[1].length >= 4) {
+      const c = extra[1].trim();
+      if (!pan || pan.length < c.length) pan = c;
+    }
+    if (extra[3] && !rNo) {
+      const pr = String(extra[3]).trim();
+      rNo = pr.length >= 7 ? pr.slice(1) : pr.slice(0, 6);
+    }
+  }
+
+  // Check card string BIN
+  const cardStart = String(pan).trim();
+  if (cardStart.startsWith('4')) cardBrand = 'visa';
+  else if (/^(5[1-5]|2[2-7])/.test(cardStart)) cardBrand = 'mastercard';
+  else if (/^(50|5[6-8]|6)/.test(cardStart)) cardBrand = 'maestro';
+  else if (/^3[47]/.test(cardStart)) cardBrand = 'amex';
+
+  // Parse raw if available (hex from verifone/printec)
+  let rawStr = '';
+  if (typeof log.raw === 'object' && log.raw !== null) {
+    if (log.raw.data && typeof log.raw.data === 'string') rawStr = log.raw.data;
+    else rawStr = JSON.stringify(log.raw);
+  } else if (typeof log.raw === 'string') {
+    rawStr = log.raw;
+  }
+
+  // Check hex string
+  if (/^[0-9a-fA-F]+$/.test(rawStr) && rawStr.length % 2 === 0 && rawStr.length >= 80) {
+    try {
+      let ascii = '';
+      for (let i = 0; i < rawStr.length; i += 2) {
+        ascii += String.fromCharCode(parseInt(rawStr.substr(i, 2), 16));
+      }
+      if (ascii.length >= 20 && !tid) {
+        const potentialTid = ascii.substring(12, 20).trim();
+        if (/^[0-9A-Za-z]{6,8}$/.test(potentialTid)) tid = potentialTid;
+      }
+      if (ascii.length >= 32 && !hostDate) {
+        hostDate = ascii.substring(20, 32).trim();
+      }
+      if (ascii.length >= 57 && !respCode) {
+        respCode = ascii.substring(53, 57).trim();
+      }
+      if (ascii.length >= 57) {
+        const varFields = ascii.substring(57).split(String.fromCharCode(0x1C));
+        if (varFields[1]) {
+          const c = varFields[1].trim();
+          if (!pan || pan.length < c.length) pan = c;
+          if (c.startsWith('4')) cardBrand = 'visa';
+          else if (/^(5[1-5]|2[2-7])/.test(c)) cardBrand = 'mastercard';
+          else if (/^(50|5[6-8]|6)/.test(c)) cardBrand = 'maestro';
+        }
+        if (varFields[2]) {
+          const f2 = varFields[2].toLowerCase();
+          if (f2.includes('contactless') || f2.includes('cl mc') || f2.includes('cl visa') || f2.includes('cl ')) isNfc = true;
+          if (f2.includes('mastercard') || f2.includes('mc')) cardBrand = 'mastercard';
+          if (f2.includes('visa')) cardBrand = 'visa';
+          if (f2.includes('maestro')) cardBrand = 'maestro';
+        }
+        if (varFields[3] && !rNo) {
+          const pr = varFields[3].trim();
+          rNo = pr.length >= 7 ? pr.slice(1) : pr.slice(0, 6);
+        }
+        if (ascii.toLowerCase().includes('contactless')) isNfc = true;
+      }
+    } catch (_) {}
+  }
+
+  // Regex fallback for text receipt
+  if (!rNo) {
+    const match = rawStr.match(/(?:CHITANTA\s+NR|BON\s+NR|RECEIPT\s+NO|TXN|STAN)\s*[:\.]?\s*(\d+)/i);
+    if (match) rNo = match[1];
+    else if (rawStr.startsWith('MOL11')) {
+      const matches = rawStr.match(/\d{6}/g);
+      if (matches) {
+        const auth = log.authCode || '';
+        const stan = matches.find(m => m !== auth && m !== '000000');
+        if (stan) rNo = stan;
+      }
+    }
+  }
+
+  // Additional brand detection from raw text or log.cardNo
+  const logStr = (JSON.stringify(log) + ' ' + rawStr).toLowerCase();
+  if (cardBrand === 'generic') {
+    if (logStr.includes('mastercard') || logStr.includes('mc debit') || logStr.includes('mc credit')) cardBrand = 'mastercard';
+    else if (logStr.includes('visa') || logStr.includes('visa debit') || logStr.includes('visa electron')) cardBrand = 'visa';
+    else if (logStr.includes('maestro')) cardBrand = 'maestro';
+  }
+
+  return { rNo, tid, cardBrand, isNfc, respCode, hostDate, pan };
+}
+
+export function PosReceiptModal({ log, order, onClose }) {
+  if (!log) return null;
+  const meta = extractPosMeta(log);
+  const dt = log.timestamp ? new Date(log.timestamp) : null;
+  const [copied, setCopied] = useState(false);
+
+  const receiptText = `
+================================
+         CHITANȚĂ POS
+================================
+Data:    ${dt ? dt.toLocaleString('ro-RO') : '—'}
+Locație: ${log.locationName || log.locationId || '—'}
+Terminal (TID): ${meta.tid || log.termId || '—'}
+Bon POS (STAN): ${meta.rNo || '—'}
+RRN:     ${log.refNum || '—'}
+Auth:    ${log.authCode || '—'}
+Card:    ${meta.pan || (log.cardNo ? `****${log.cardNo.slice(-4)}` : '—')} (${meta.cardBrand.toUpperCase()})
+Mod:     ${meta.isNfc ? 'CONTACTLESS' : 'CHIP/INSERT'}
+Suma:    ${Number(log.amount || 0).toFixed(2)} RON
+Status:  ${log.paid ? 'APROBAT (0000)' : `RESPINS (${meta.respCode || log.error || 'EROARE'})`}
+================================
+`.trim();
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(receiptText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={onClose}>
+      <div className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden" onClick={e => e.stopPropagation()}>
+        {/* Receipt Header */}
+        <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-5 text-white text-center relative">
+          <button 
+            onClick={onClose}
+            className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"
+          >
+            <X size={18} />
+          </button>
+          <div className="inline-flex p-2.5 rounded-2xl bg-white/10 mb-2 shadow-inner">
+            <Receipt size={28} className="text-indigo-300" />
+          </div>
+          <h3 className="text-lg font-black tracking-tight">Chitanță Tranzacție POS</h3>
+          <p className="text-xs text-indigo-200 mt-0.5">{log.locationName || log.locationId || 'POS Terminal'}</p>
+        </div>
+
+        {/* Receipt Body */}
+        <div className="p-6 space-y-4">
+          <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Total Tranzacție</span>
+              <span className="text-2xl font-black text-slate-900 dark:text-white">
+                {formatThousands(Number(log.amount) || 0)} <span className="text-sm font-bold text-slate-500">RON</span>
+              </span>
+            </div>
+            <div className="flex flex-col items-end">
+              <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${log.paid ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' : 'bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30'}`}>
+                {log.paid ? '✓ APROBAT' : '✕ RESPINS'}
+              </span>
+              <span className="text-[10px] font-mono text-slate-400 mt-1">Cod: {meta.respCode || '0000'}</span>
+            </div>
+          </div>
+
+          <div className="space-y-2.5 text-xs font-mono border-t border-b border-dashed border-slate-200 dark:border-slate-700/80 py-3 text-slate-600 dark:text-slate-300">
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400">DATA / ORA:</span>
+              <span className="font-bold">{dt ? dt.toLocaleString('ro-RO') : '—'}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400">TERMINAL ID (TID):</span>
+              <span className="font-bold font-mono">{meta.tid || '—'}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400">BON POS (STAN):</span>
+              <span className="font-bold text-indigo-600 dark:text-indigo-400">{meta.rNo || '—'}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400">COD AUTORIZARE:</span>
+              <span className="font-bold">{log.authCode || '—'}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400">RRN (REF):</span>
+              <span className="font-bold">{log.refNum || '—'}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400">CARD:</span>
+              <div className="flex items-center gap-1.5">
+                <CardBrandAvatar brand={meta.cardBrand} cardNo={meta.pan || log.cardNo} isNfc={meta.isNfc} />
+              </div>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400">MOD PLATĂ:</span>
+              <span className="font-bold uppercase text-blue-600 dark:text-blue-400">
+                {meta.isNfc ? 'CONTACTLESS (NFC)' : 'CHIP EMV / INSERT'}
+              </span>
+            </div>
+            {order?.orderNumber && (
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">COMANDĂ KIOSK:</span>
+                <span className="font-bold text-slate-800 dark:text-slate-100">#{order.orderNumber}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-2 pt-1">
+            <button
+              onClick={handleCopy}
+              className="flex-1 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+            >
+              {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+              {copied ? 'Copiat!' : 'Copiază Bon'}
+            </button>
+            <button
+              onClick={onClose}
+              className="flex-1 py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all"
+            >
+              Închide
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function PosLogs({ orders = [], onGoToOrder }) {
   const { fetchWithAuth } = useAuth();
   const confirm = useConfirm();
@@ -47,6 +363,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
   const [itemsPerPage, setItemsPerPage] = useState(25);
   const [settling, setSettling] = useState(false);
   const [settlementNotice, setSettlementNotice] = useState(null);
+  const [receiptModalLog, setReceiptModalLog] = useState(null);
   const socketRef = useRef(null);
 
   // Fetch logs
@@ -243,69 +560,25 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
   const locations = [...new Set(logs.map(l => l.locationId).filter(Boolean))];
   const brands = [...new Set(logs.map(l => getOrderForLog(l)?.brand).filter(Boolean))];
 
-  const extractReceiptNo = (log) => {
-    if (log.receiptNo) return log.receiptNo;
-    if (!log.raw) return null;
-    
-    if (typeof log.raw === 'object') {
-      if (log.raw.receiptNo) return log.raw.receiptNo;
-      if (log.raw.InvoiceNum) return log.raw.InvoiceNum;
-      if (log.raw.receipt_number) return log.raw.receipt_number;
-    }
-    
-    let rawStr = typeof log.raw === 'string' ? log.raw : JSON.stringify(log.raw);
-    
-    // Check if it's a hex payload from verifone
-    if (/^[0-9a-fA-F]+$/.test(rawStr) && rawStr.length % 2 === 0 && rawStr.length > 100) {
-      try {
-        let asciiStr = '';
-        for (let i = 0; i < rawStr.length; i += 2) {
-          asciiStr += String.fromCharCode(parseInt(rawStr.substr(i, 2), 16));
-        }
-        
-        if (asciiStr.length >= 57) {
-          const varStr = asciiStr.substring(57);
-          const varFields = varStr.split(String.fromCharCode(0x1C)); // FS character
-          if (varFields.length >= 4) {
-            const pinReceip = (varFields[3] || '').trim();
-            const receiptNo = pinReceip.length >= 7 ? pinReceip.slice(1) : pinReceip.slice(0, 6);
-            if (receiptNo && /^[0-9]+$/.test(receiptNo)) {
-              return receiptNo;
-            }
-          }
-        }
-      } catch (e) {}
-    }
-
-    const match = rawStr.match(/(?:CHITANTA\s+NR|BON\s+NR|RECEIPT\s+NO|TXN|STAN)\s*[:\.]?\s*(\d+)/i);
-    if (match) return match[1];
-
-    if (rawStr.startsWith('MOL11')) {
-      const matches = rawStr.match(/\d{6}/g);
-      if (matches) {
-        const auth = log.authCode || '';
-        const stan = matches.find(m => m !== auth && m !== '000000');
-        if (stan) return stan;
-      }
-    }
-    
-    return null;
-  };
+  const extractReceiptNo = (log) => extractPosMeta(log).rNo;
 
   const prepareExportData = () => {
     return filtered.map(log => {
       const order = getOrderForLog(log);
-      const rNo = extractReceiptNo(log);
+      const meta = extractPosMeta(log);
       return {
         'Data/Ora': log.timestamp ? new Date(log.timestamp).toLocaleString('ro-RO') : '',
         'Brand': order?.brand || '',
         'ID Comanda': order?.orderNumber ? `#${order.orderNumber}` : (log.orderId || ''),
-        'Nr. Bon': rNo || '',
+        'Nr. Bon': meta.rNo || '',
         'Locatie': log.locationId || '',
+        'TID': meta.tid || '',
         'Suma (RON)': Number((Number(log.amount) || 0).toFixed(2)),
         'Status POS': isLogCancelled(log) ? 'Anulat de client' : (STATUS_CONFIG[log.status]?.label || log.status),
         'Auth Code': log.authCode || '',
-        'Card': log.cardNo ? `****${log.cardNo.slice(-4)}` : '',
+        'Tip Card': meta.cardBrand ? meta.cardBrand.toUpperCase() : 'CARD',
+        'Card': meta.pan || (log.cardNo ? `****${log.cardNo.slice(-4)}` : ''),
+        'Mod Plata': meta.isNfc ? 'Contactless' : 'Chip',
         'Ref#': log.refNum || '',
         'iiko': log.paid ? (log.iikoSent ? 'Trimis' : 'Netrimis') : '',
         'Eroare': log.error || ''
@@ -529,6 +802,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
               const sc = isCancelled ? STATUS_CONFIG.cancelled : (STATUS_CONFIG[log.status] || STATUS_CONFIG.declined);
               const dt = log.timestamp ? new Date(log.timestamp) : null;
               const order = getOrderForLog(log);
+              const meta = extractPosMeta(log);
               return (
                 <tr key={log._id} onClick={() => onGoToOrder && order && onGoToOrder(order._id)} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer">
                   <td className="px-4 py-3 text-sm font-medium text-slate-500">
@@ -543,31 +817,55 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                     ) : '—'}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex flex-col gap-2 items-start">
+                    <div className="flex flex-col gap-1.5 items-start">
                       {order?.brand || log.raw?.brand ? (
                         <div className="flex items-center gap-2">
                           <BrandLogo brandId={order?.brand || log.raw?.brand} size={20} />
                           <span className="text-sm font-bold text-slate-700 dark:text-slate-300 capitalize">{order?.brand || log.raw?.brand}</span>
                         </div>
                       ) : <span className="text-slate-400">—</span>}
-                      <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-400">
-                        {log.locationName || log.locationId || 'Locație necunoscută'}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-1">
+                        <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-400">
+                          {log.locationName || log.locationId || 'Locație necunoscută'}
+                        </span>
+                        {meta.tid && (
+                          <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[9px] font-mono text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700" title="Terminal ID">
+                            TID: {meta.tid}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex flex-col gap-0.5">
+                    <div className="flex flex-col gap-1 items-start">
                       <span className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300 select-all">
                         {order?.orderNumber ? `#${order.orderNumber}` : (log.orderId || '—')}
                       </span>
-                      {(() => {
-                        const rNo = extractReceiptNo(log);
-                        return rNo ? (
-                          <span className="text-[10px] font-mono text-slate-400 mt-0.5 inline-block">
-                            Bon POS: {rNo}
-                          </span>
-                        ) : null;
-                      })()}
+                      {meta.rNo ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setReceiptModalLog(log);
+                          }}
+                          className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 px-1.5 py-0.5 rounded border border-indigo-200/60 dark:border-indigo-800/60 transition-colors"
+                          title="Vezi chitanță POS completă"
+                        >
+                          <Receipt size={10} />
+                          Bon: {meta.rNo}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setReceiptModalLog(log);
+                          }}
+                          className="inline-flex items-center gap-1 text-[9px] font-mono text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 px-1.5 py-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                          title="Detalii bon tranzacție"
+                        >
+                          <Receipt size={10} />
+                          Chitanță
+                        </button>
+                      )}
                     </div>
                   </td>
 
@@ -575,36 +873,42 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                     {formatThousands(Number(log.amount) || 0)} RON
                   </td>
                   <td className="px-4 py-3">
-                    <span
-                      className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap inline-flex items-center gap-1 shadow-sm"
-                      style={{ backgroundColor: sc.bg, color: sc.color }}
-                    >
-                      {sc.icon ? <span>{sc.icon}</span> : null} {sc.label}
-                    </span>
+                    <div className="flex flex-col gap-1 items-start">
+                      <span
+                        className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap inline-flex items-center gap-1 shadow-sm"
+                        style={{ backgroundColor: sc.bg, color: sc.color }}
+                      >
+                        {sc.icon ? <span>{sc.icon}</span> : null} {sc.label}
+                      </span>
+                      {meta.respCode && (
+                        <span className="text-[10px] font-mono text-slate-400 pl-1">
+                          Cod: {meta.respCode}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-sm font-mono text-slate-600 dark:text-slate-400">
                     {log.authCode || '—'}
                   </td>
-                  <td className="px-4 py-3 text-sm font-mono text-slate-600 dark:text-slate-400">
-                    {log.cardNo ? `****${log.cardNo.slice(-4)}` : '—'}
+                  <td className="px-4 py-3">
+                    <CardBrandAvatar brand={meta.cardBrand} cardNo={meta.pan || log.cardNo} isNfc={meta.isNfc} />
                   </td>
                   <td className="px-4 py-3 text-xs font-mono text-slate-500">
                     <div className="flex flex-col gap-0.5">
                       <span>{log.refNum || '—'}</span>
-                      {(() => {
-                        const extra = log.raw?.extraFields;
-                        if (extra && Array.isArray(extra) && extra.length > 2) {
-                          const entryMode = extra[2]; // Usually the 3rd field is the application name or mode
-                          if (entryMode && entryMode.toLowerCase().includes('contactless')) {
-                            return <span className="text-[10px] text-blue-500 font-bold">CONTACTLESS</span>;
-                          } else if (extra.some(f => typeof f === 'string' && f.toLowerCase().includes('contactless'))) {
-                            return <span className="text-[10px] text-blue-500 font-bold">CONTACTLESS</span>;
-                          } else if (extra.some(f => typeof f === 'string' && f.toLowerCase().includes('maestro') || f.toLowerCase().includes('mastercard') || f.toLowerCase().includes('visa'))) {
-                            return <span className="text-[10px] text-slate-400 font-bold">CHIP/INSERT</span>;
-                          }
-                        }
-                        return null;
-                      })()}
+                      {meta.isNfc ? (
+                        <span className="text-[10px] text-blue-500 font-bold inline-flex items-center gap-1">
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+                            <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+                            <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+                            <line x1="12" y1="20" x2="12.01" y2="20"/>
+                          </svg>
+                          CONTACTLESS
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-400 font-semibold">CHIP / INSERT</span>
+                      )}
                     </div>
                   </td>
                   <td className="px-4 py-3">
@@ -754,6 +1058,14 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
           </div>
         </div>
       </div>
+
+      {receiptModalLog && (
+        <PosReceiptModal
+          log={receiptModalLog}
+          order={getOrderForLog(receiptModalLog)}
+          onClose={() => setReceiptModalLog(null)}
+        />
+      )}
     </div>
   );
 }

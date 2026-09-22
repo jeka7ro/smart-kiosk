@@ -60,7 +60,7 @@ export default function PaymentScreen() {
   const autoRetryCountRef = useRef(0);
   const handlePayRef = useRef(null);
 
-  const [posTimer, setPosTimer] = useState(60);
+  const [posTimer, setPosTimer] = useState(120);
   const payStateRef = useRef(payState);
   useEffect(() => {
     payStateRef.current = payState;
@@ -69,12 +69,12 @@ export default function PaymentScreen() {
   useEffect(() => {
     let interval;
     if (payState === STATE.WAITING_CARD || payState === STATE.PIN_ENTRY) {
-      setPosTimer(60);
+      setPosTimer(120);
       interval = setInterval(() => {
         setPosTimer(p => (p > 0 ? p - 1 : 0));
       }, 1000);
     } else {
-      setPosTimer(60);
+      setPosTimer(120);
     }
     return () => clearInterval(interval);
   }, [payState]);
@@ -150,6 +150,7 @@ export default function PaymentScreen() {
           locationId:   locationData?.id,
           locationName: locationName,
           kioskId:      urlKiosk,
+          posOrderId:   orderIdRef.current,
           orderType, tableNumber,
           items: cartItems.map(i => ({
             productId: i.productId, name: i.name, quantity: i.quantity,
@@ -196,6 +197,35 @@ export default function PaymentScreen() {
       const orderId = `kiosk-${Date.now()}`;
       orderIdRef.current = orderId;
 
+      const urlBrand   = new URLSearchParams(window.location.search).get('brand');
+      const urlOrg     = new URLSearchParams(window.location.search).get('orgId');
+      const urlKiosk   = new URLSearchParams(window.location.search).get('kiosk') || '1';
+      const effectiveBrand = activeBrandId || urlBrand || DEFAULT_BRAND;
+      const locationOrgId  = locationData?.orgIds?.[effectiveBrand];
+      const effectiveOrgId = locationOrgId || urlOrg || DEFAULT_ORG;
+      const locationName   = locationData?.name || LOCATION_NAME;
+
+      const orderPayload = {
+        brand:        effectiveBrand,
+        orgId:        effectiveOrgId,
+        locationId:   locationData?.id,
+        locationName: locationName,
+        kioskId:      urlKiosk,
+        posOrderId:   orderId,
+        orderType, tableNumber,
+        items: cartItems.map(i => ({
+          productId: i.productId, name: i.name, quantity: i.quantity,
+          basePrice: i.basePrice !== undefined ? i.basePrice : null,
+          unitPrice: i.unitPrice, totalPrice: i.totalPrice,
+          brandId: i.brandId,
+          imageUrl: i.image || null,
+          selectedModifiers: i.selectedModifiers || [],
+          comment: i.comment || (i.selectedModifiers?.find(m => m.modId === 'custom_comment')?.optionName) || null,
+        })),
+        totalAmount: total, channel: 'kiosk', paymentMethod: 'card',
+        fiscal: fiscalData || null,
+      };
+
       const { io } = await import('socket.io-client');
       const socket = io(BACKEND, { transports: ['websocket'], reconnection: false });
       socketRef.current = socket;
@@ -213,7 +243,8 @@ export default function PaymentScreen() {
           setRetryNotice('');
           setTxInfo(result);
           setPayState(STATE.APPROVED);
-          const orderData = await sendOrder(result);
+          // Folosește comanda deja finalizată pe backend dacă există, altfel apelează sendOrder (idempotent)
+          const orderData = result.order || await sendOrder(result);
           if (orderData?.orderNumber) setLastOrderNumber(orderData.orderNumber);
           setTimeout(() => goTo('confirmation'), 2200);
         } else {
@@ -244,6 +275,7 @@ export default function PaymentScreen() {
           paymentGateway: locationData?.paymentGateway || 'none',
           locationId: locationData?.kioskUrl || locationData?.id || '',
           channel: 'kiosk',
+          orderPayload,
         }),
       });
       if (!res.ok) throw new Error(`Backend ${res.status}`);
@@ -252,7 +284,7 @@ export default function PaymentScreen() {
       setPayState(STATE.ERROR);
       setErrorMsg(err.message || 'Eroare conexiune terminal');
     }
-  }, [total, sendOrder, goTo, locationData]);
+  }, [total, sendOrder, goTo, locationData, activeBrandId, orderType, tableNumber, cartItems, fiscalData]);
 
   handlePayRef.current = handlePay;
 

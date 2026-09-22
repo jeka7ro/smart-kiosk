@@ -1,5 +1,19 @@
 const express = require('express');
 const router  = express.Router();
+const { pool } = require('../db');
+
+// In-memory cache for fast lookup during the payment cycle
+const pendingOrdersMap = new Map();
+
+// Periodic cleanup of stale pending orders (> 2 hours)
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of pendingOrdersMap.entries()) {
+    if (now - (val.timestamp || 0) > 7200000) {
+      pendingOrdersMap.delete(key);
+    }
+  }
+}, 300000);
 
 // ── Viva Wallet helpers ───────────────────────────────────────────────────────
 async function vivaGetAccessToken() {
@@ -41,7 +55,7 @@ async function vivaCreateOrder(amount, accessToken) {
 
 // POST /api/payment/initiate
 router.post('/initiate', async (req, res) => {
-  const { orderId, amount, channel, paymentGateway } = req.body;
+  const { orderId, amount, channel, paymentGateway, orderPayload } = req.body;
   const io = req.app.get('io');
 
   console.log(`\n[Payment] ════ INIȚIERE PLATĂ ════`);
@@ -50,6 +64,23 @@ router.post('/initiate', async (req, res) => {
   console.log(`[Payment]   gateway:    ${paymentGateway}`);
   console.log(`[Payment]   locationId: ${req.body.locationId || 'nedefinit'}`);
   console.log(`[Payment]   channel:    ${channel || 'kiosk'}`);
+  console.log(`[Payment]   hasPayload: ${!!orderPayload} (items: ${orderPayload?.items?.length || 0})`);
+
+  // Pre-salvează coșul de produse astfel încât dacă plata este aprobată pe POS,
+  // backend-ul poate finaliza comanda automat chiar dacă tableta se deconectează!
+  if (orderId && orderPayload) {
+    pendingOrdersMap.set(orderId, {
+      locationId: req.body.locationId || '',
+      payload: orderPayload,
+      timestamp: Date.now(),
+    });
+    pool.query(
+      `INSERT INTO pending_pos_orders (order_id, location_id, payload) 
+       VALUES ($1, $2, $3) 
+       ON CONFLICT (order_id) DO UPDATE SET payload = EXCLUDED.payload, location_id = EXCLUDED.location_id, created_at = NOW()`,
+      [orderId, req.body.locationId || '', JSON.stringify(orderPayload)]
+    ).catch(err => console.warn('[Payment] Could not persist pending order to DB:', err.message));
+  }
 
   const gatewayToUse = paymentGateway || process.env.DEFAULT_PAYMENT_GATEWAY || 'none';
 
@@ -244,4 +275,27 @@ router.post('/pos-settlement', async (req, res) => {
   });
 });
 
+async function getPendingPosOrder(orderId) {
+  if (!orderId) return null;
+  const inMem = pendingOrdersMap.get(orderId);
+  if (inMem?.payload) return inMem.payload;
+  try {
+    const res = await pool.query(`SELECT payload FROM pending_pos_orders WHERE order_id = $1`, [orderId]);
+    if (res.rows.length > 0) return res.rows[0].payload;
+  } catch (err) {
+    console.warn('[Payment] Error fetching pending order from DB:', err.message);
+  }
+  return null;
+}
+
+async function removePendingPosOrder(orderId) {
+  if (!orderId) return;
+  pendingOrdersMap.delete(orderId);
+  try {
+    await pool.query(`DELETE FROM pending_pos_orders WHERE order_id = $1`, [orderId]);
+  } catch (_) {}
+}
+
 module.exports = router;
+module.exports.getPendingPosOrder = getPendingPosOrder;
+module.exports.removePendingPosOrder = removePendingPosOrder;

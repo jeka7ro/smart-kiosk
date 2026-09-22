@@ -259,6 +259,17 @@ async function initDb() {
     CREATE INDEX IF NOT EXISTS kiosk_logs_timestamp_idx ON kiosk_logs(timestamp DESC);
   `);
 
+  // ─── Pending POS Orders (pre-saved cart before POS payment) ─────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS pending_pos_orders (
+      order_id     TEXT PRIMARY KEY,
+      location_id  TEXT,
+      payload      JSONB NOT NULL DEFAULT '{}',
+      created_at   TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS pending_pos_orders_created_idx ON pending_pos_orders(created_at DESC);
+  `);
+
   console.log('[DB] Tables initialized (Supabase/PostgreSQL)');
 }
 
