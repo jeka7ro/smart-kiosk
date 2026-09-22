@@ -292,40 +292,45 @@ class VerifoneSerialService {
             if ((klasse === 0x80 || klasse === 0x84) && state === 'WAIT_POS_FRAME__LOGIN_RESP') {
               const ok = (klasse === 0x80) || (klasse === 0x84 && instr === 0x00);
               if (ok) {
-                log('LOGIN OK → EOT → inițiez SALE');
-                port.write(Buffer.from([EOT]));
-                setTimeout(() => ecrSend(SALE_FRAME, 'SALE', 'SALE', 3000), 1000);
+                log('LOGIN OK de la POS. Aştept EOT...');
+                pendingPosAction = 'LOGIN_DONE';
               } else {
                 fail(`LOGIN refuzat de POS (APRW=0x${instr.toString(16)})`);
               }
               break;
             }
 
+            // ── SALE Acceptance (80 00 00 / 84 00 00) — Anexa A Pag. 18 ──
+            if ((klasse === 0x80 || klasse === 0x84) && state === 'WAIT_POS_FRAME__RESULT') {
+              const ok = (klasse === 0x80) || (klasse === 0x84 && instr === 0x00);
+              if (ok) {
+                log('SALE acceptat de POS! Terminal activat — apropiați cardul. Aştept EOT...');
+                onStatus('Terminal activat — apropiați cardul');
+                pendingPosAction = 'AWAIT_CARD';
+              } else {
+                fail(`Comandă SALE refuzată de POS (APRW=0x${instr.toString(16)})`);
+              }
+              break;
+            }
+
             // ── PIN Entry (05 01) ────────────────────────────────────────
             if (klasse === 0x05 && instr === 0x01) {
-              log('PIN Entry — clientul introduce PIN-ul');
-              onStatus('PIN Entry — aşteptați');
-              port.write(Buffer.from([EOT]));
-              setState('WAIT_POS_ENQ__RESULT');
-              armTimeout('rezultat după PIN', 120000);
+              log('PIN Entry — clientul introduce PIN-ul pe terminal');
+              onStatus('Introduceți PIN-ul pe terminal');
+              pendingPosAction = 'CONTINUE_RESULT';
               break;
             }
 
             // ── Begin Auth (05 02) ───────────────────────────────────────
             if (klasse === 0x05 && instr === 0x02) {
-              log('Begin Auth — comunicare cu banca');
+              log('Begin Auth — comunicare cu banca...');
               onStatus('Comunicare cu banca...');
-              port.write(Buffer.from([EOT]));
-              setState('WAIT_POS_ENQ__RESULT');
-              armTimeout('rezultat după auth', 120000);
+              pendingPosAction = 'CONTINUE_RESULT';
               break;
             }
 
             // ── Authorization End (06 0F) ─────────────────────────────────
             if (klasse === 0x06 && instr === 0x0F) {
-              // Parse Appendix B
-              // NOTĂ: XX = DLNG (cmdBytes[2]) — NU este un byte separat în data!
-              // data începe direct cu câmpurile (Reference Number, etc.)
               const payload = data;
 
               const refNum   = payload.subarray(0, 12).toString('ascii').trim();
@@ -336,7 +341,6 @@ class VerifoneSerialService {
               const authCode = payload.subarray(47, 53).toString('ascii').trim();
               const respCode = payload.subarray(53, 57).toString('ascii').trim();
 
-              // Câmpuri variabile separate prin FS
               const varStr    = payload.subarray(57).toString('ascii');
               const varFields = varStr.split(String.fromCharCode(FS));
               const respText  = (varFields[0] || '').trim();
@@ -349,9 +353,8 @@ class VerifoneSerialService {
 
               log(`Authorization End: respCode=${respCode} authCode=${authCode} refNum=${refNum}`);
 
-              port.write(Buffer.from([EOT]));
-
-              succeed({
+              pendingPosAction = 'TX_FINISHED';
+              pendingResult = {
                 success:   approved,
                 code:      respCode,
                 authCode,
@@ -365,24 +368,26 @@ class VerifoneSerialService {
                 termId,
                 respText,
                 raw:       payload.toString('hex'),
-              });
+              };
               break;
             }
 
             // ── Refusal (06 1E) ───────────────────────────────────────────
             if (klasse === 0x06 && instr === 0x1E) {
               const errCode = data[0];
-              log(`Refusal de la POS, cod=0x${errCode.toString(16)}`);
-              port.write(Buffer.from([EOT]));
-              succeed({
+              const hexCode = '0x' + errCode.toString(16).toUpperCase();
+              log(`Refusal de la POS, cod=${hexCode}`);
+              
+              pendingPosAction = 'TX_REFUSED';
+              pendingResult = {
                 success: false,
                 code:    errCode.toString(16).toUpperCase(),
                 authCode: '',
                 refNum: '',
                 receiptNo: '',
                 raw: '',
-                reason: 'Tranzacție refuzată de terminal',
-              });
+                reason: errCode === 0xA0 ? 'Tranzacție refuzată sau anulată de client' : `Tranzacție refuzată de terminal (Cod: ${hexCode})`,
+              };
               break;
             }
 
