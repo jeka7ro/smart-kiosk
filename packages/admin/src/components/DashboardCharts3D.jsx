@@ -19,6 +19,9 @@ export function SalesTrendChart3D({
   comparisonOrders = [],
   allOrders = [],
   period = 'today',
+  selectedBrands = [],
+  selectedPayment = 'all',
+  selectedProduct = '',
   selectedHour = null,
   onSelectHour = () => {},
   selectedDay = null,
@@ -28,6 +31,30 @@ export function SalesTrendChart3D({
   const [metricMode, setMetricMode] = useState('revenue'); // 'revenue' | 'count'
   const [showValues, setShowValues] = useState(true); // Afișare directă a valorilor pe grafic
   const [compareTarget, setCompareTarget] = useState('yesterday'); // 'none' | 'yesterday' | 'lastMonth'
+
+  // Helper potrivire filtre active pentru comparație (brand, plată, produs)
+  const matchesBrand = React.useCallback((o) => {
+    if (!selectedBrands || selectedBrands.length === 0) return true;
+    const b = (o.brand || '').toLowerCase();
+    return selectedBrands.includes(b);
+  }, [selectedBrands]);
+
+  const matchesPayment = React.useCallback((o) => {
+    if (!selectedPayment || selectedPayment === 'all') return true;
+    const isCard = o.paymentMethod === 'card' || !!o.paymentRef?.authCode;
+    if (selectedPayment === 'card') return isCard;
+    if (selectedPayment === 'cash') return !isCard;
+    if (selectedPayment === 'visa') return isCard && detectCardBrand(o) === 'visa';
+    if (selectedPayment === 'mastercard') return isCard && detectCardBrand(o) === 'mastercard';
+    return true;
+  }, [selectedPayment]);
+
+  const matchesProduct = React.useCallback((o) => {
+    if (!selectedProduct) return true;
+    const q = selectedProduct.toLowerCase().trim();
+    const items = Array.isArray(o.items) ? o.items : [];
+    return items.some(it => (it.name || '').toLowerCase().includes(q));
+  }, [selectedProduct]);
  
   // Determină buckets în funcție de perioadă
   const isHourly = period === 'today' || period === 'yesterday';
@@ -85,7 +112,7 @@ export function SalesTrendChart3D({
     };
   }, [isLastMonth, lastMonthLabel]);
 
-  // Filtrare comenzi pentru comparația activă selectată
+  // Filtrare comenzi pentru comparația activă selectată (filtrat după brand, plată, produs)
   const activeComparisonOrders = React.useMemo(() => {
     if (compareTarget === 'none') return [];
     const pool = (allOrders && allOrders.length > 0) ? allOrders : comparisonOrders;
@@ -100,6 +127,7 @@ export function SalesTrendChart3D({
 
     return pool.filter(o => {
       if (o.status === 'cancelled' || !o.createdAt) return false;
+      if (!matchesBrand(o) || !matchesPayment(o) || !matchesProduct(o)) return false;
       const d = new Date(o.createdAt);
       if (compareTarget === 'yesterday') {
         return d >= startOfYesterday && d < startOfToday;
@@ -109,7 +137,7 @@ export function SalesTrendChart3D({
       }
       return false;
     });
-  }, [allOrders, comparisonOrders, compareTarget, lastMonthDateObj]);
+  }, [allOrders, comparisonOrders, compareTarget, lastMonthDateObj, matchesBrand, matchesPayment, matchesProduct]);
 
   const buckets = React.useMemo(() => {
     if (isHourly) {
@@ -2593,23 +2621,14 @@ export default function DashboardCharts3D({
     return orders.filter(o => o.status !== 'cancelled' && matchesBrand(o) && matchesPayment(o) && matchesProduct(o));
   }, [orders, matchesBrand, matchesPayment, matchesProduct]);
 
-  // Comenzi pentru comparația cu ziua de ieri (din allOrders)
+  // Comenzi pentru comparația cu ziua de ieri (din allOrders, filtrate după brand, plată, produs)
   const comparisonSalesOrders = React.useMemo(() => {
     const pool = (allOrders && allOrders.length > 0) ? allOrders : orders;
-    const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-
     return pool.filter(o => {
       if (o.status === 'cancelled' || !o.createdAt) return false;
-      if (!matchesBrand(o) || !matchesPayment(o) || !matchesProduct(o)) return false;
-      const d = new Date(o.createdAt);
-      if (period === 'today') {
-        return d >= startOfYesterday && d < startOfToday;
-      }
-      return false;
+      return matchesBrand(o) && matchesPayment(o) && matchesProduct(o);
     });
-  }, [allOrders, orders, period, matchesBrand, matchesPayment, matchesProduct]);
+  }, [allOrders, orders, matchesBrand, matchesPayment, matchesProduct]);
 
   // 2. Comenzi pentru BrandDonutChart3D (filtrează după oră, zi, plată, produs - arată toate brandurile pt selecție)
   const brandDonutOrders = React.useMemo(() => {
@@ -2641,6 +2660,9 @@ export default function DashboardCharts3D({
             comparisonOrders={comparisonSalesOrders}
             allOrders={allOrders}
             period={period} 
+            selectedBrands={selectedBrands}
+            selectedPayment={selectedPayment}
+            selectedProduct={selectedProduct}
             selectedHour={selectedHour}
             onSelectHour={onSelectHour}
             selectedDay={selectedDay}
