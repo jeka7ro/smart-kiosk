@@ -10,12 +10,12 @@ import { formatThousands } from '../utils/formatters';
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
 
 const STATUS_CONFIG = {
-  approved:    { label: 'Aprobat',          color: '#ffffff', bg: '#059669', icon: '✓' },
-  declined:    { label: 'Respins',          color: '#ffffff', bg: '#dc2626', icon: '✕' },
-  cancelled:   { label: 'Anulat de client', color: '#ffffff', bg: '#64748b', icon: '⊘' },
-  timeout:     { label: 'Timeout',          color: '#ffffff', bg: '#d97706', icon: '' },
-  refunded:    { label: 'Returnat',         color: '#ffffff', bg: '#2563eb', icon: '' },
-  unsolicited: { label: 'POS Info',         color: '#ffffff', bg: '#7c3aed', icon: '' },
+  approved:    { label: 'Aprobat',          color: '#ffffff', bg: '#059669' },
+  declined:    { label: 'Respins',          color: '#ffffff', bg: '#dc2626' },
+  cancelled:   { label: 'Anulat de client', color: '#ffffff', bg: '#64748b' },
+  timeout:     { label: 'Timeout',          color: '#ffffff', bg: '#d97706' },
+  refunded:    { label: 'Returnat',         color: '#ffffff', bg: '#2563eb' },
+  unsolicited: { label: 'POS Info',         color: '#ffffff', bg: '#7c3aed' },
 };
 
 const isLogCancelled = (l) => {
@@ -81,7 +81,7 @@ export function CardBrandAvatar({ brand, cardNo, isNfc }) {
       {cardNo ? (
         <div className="flex flex-col text-left leading-tight">
           <div className="flex items-center gap-1">
-            <span className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200">
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 tracking-wider">
               •••• {last4}
             </span>
             {isNfc && (
@@ -223,12 +223,16 @@ export function PosReceiptModal({ log, order, onClose }) {
   const dt = log.timestamp ? new Date(log.timestamp) : null;
   const [copied, setCopied] = useState(false);
 
+  const brandId = order?.brand || log?.brand || log?.brandId || log?.raw?.brand || log?.raw?.cart?.brand || log?.raw?.items?.[0]?.brand || null;
+  const locationName = log.locationName || log.locationId || 'Terminal';
+
   const receiptText = `
 ================================
          CHITANȚĂ POS
 ================================
+Brand:   ${brandId ? brandId.toUpperCase() : '—'}
 Data:    ${dt ? dt.toLocaleString('ro-RO') : '—'}
-Locație: ${log.locationName || log.locationId || '—'}
+Locație: ${locationName}
 Terminal (TID): ${meta.tid || log.termId || '—'}
 Bon POS (STAN): ${meta.rNo || '—'}
 RRN:     ${log.refNum || '—'}
@@ -257,67 +261,83 @@ Status:  ${log.paid ? 'APROBAT (0000)' : `RESPINS (${meta.respCode || log.error 
           >
             <X size={18} />
           </button>
-          <div className="inline-flex p-2.5 rounded-2xl bg-white/10 mb-2 shadow-inner">
-            <Receipt size={28} className="text-indigo-300" />
+          <div className="flex flex-col items-center justify-center gap-2 mb-1">
+            {brandId ? (
+              <div className="p-1 rounded-2xl bg-white/10 shadow-md">
+                <BrandLogo brandId={brandId} size={48} className="rounded-xl" />
+              </div>
+            ) : (
+              <div className="p-2.5 rounded-2xl bg-white/10 shadow-inner">
+                <Receipt size={28} className="text-indigo-300" />
+              </div>
+            )}
+            <div>
+              <h3 className="text-lg font-black tracking-tight">Chitanță Tranzacție POS</h3>
+              <p className="text-xs text-indigo-200 mt-0.5 flex items-center justify-center gap-1.5 font-medium">
+                {brandId && <span className="font-bold capitalize">{brandId}</span>}
+                {brandId && <span>•</span>}
+                <span>{locationName}</span>
+              </p>
+            </div>
           </div>
-          <h3 className="text-lg font-black tracking-tight">Chitanță Tranzacție POS</h3>
-          <p className="text-xs text-indigo-200 mt-0.5">{log.locationName || log.locationId || 'POS Terminal'}</p>
         </div>
 
         {/* Receipt Body */}
         <div className="p-6 space-y-4">
           <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Total Tranzacție</span>
+              <span className="text-[11px] font-bold text-slate-400 block">Total tranzacție</span>
               <span className="text-2xl font-black text-slate-900 dark:text-white">
                 {formatThousands(Number(log.amount) || 0)} <span className="text-sm font-bold text-slate-500">RON</span>
               </span>
             </div>
             <div className="flex flex-col items-end">
               <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${log.paid ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' : 'bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30'}`}>
-                {log.paid ? '✓ APROBAT' : '✕ RESPINS'}
+                {log.paid ? 'Aprobat' : 'Respins'}
               </span>
-              <span className="text-[10px] font-mono text-slate-400 mt-1">Cod: {meta.respCode || '0000'}</span>
+              {!log.paid && meta.respCode && meta.respCode !== '0000' && (
+                <span className="text-[11px] font-semibold text-red-500 mt-1">Eroare: {meta.respCode}</span>
+              )}
             </div>
           </div>
 
-          <div className="space-y-2.5 text-xs font-mono border-t border-b border-dashed border-slate-200 dark:border-slate-700/80 py-3 text-slate-600 dark:text-slate-300">
+          <div className="space-y-2.5 text-xs border-t border-b border-slate-100 dark:border-slate-800 py-3 text-slate-600 dark:text-slate-300">
             <div className="flex justify-between items-center">
-              <span className="text-slate-400">DATA / ORA:</span>
-              <span className="font-bold">{dt ? dt.toLocaleString('ro-RO') : '—'}</span>
+              <span className="text-slate-400 font-medium">Dată și oră:</span>
+              <span className="font-semibold text-slate-800 dark:text-slate-100">{dt ? dt.toLocaleString('ro-RO') : '—'}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-slate-400">TERMINAL ID (TID):</span>
-              <span className="font-bold font-mono">{meta.tid || '—'}</span>
+              <span className="text-slate-400 font-medium">Terminal (TID):</span>
+              <span className="font-bold text-slate-800 dark:text-slate-100">{meta.tid || '—'}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-slate-400">BON POS (STAN):</span>
+              <span className="text-slate-400 font-medium">Număr bon (STAN):</span>
               <span className="font-bold text-indigo-600 dark:text-indigo-400">{meta.rNo || '—'}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-slate-400">COD AUTORIZARE:</span>
-              <span className="font-bold">{log.authCode || '—'}</span>
+              <span className="text-slate-400 font-medium">Cod autorizare:</span>
+              <span className="font-semibold text-slate-800 dark:text-slate-100">{log.authCode || '—'}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-slate-400">RRN (REF):</span>
-              <span className="font-bold">{log.refNum || '—'}</span>
+              <span className="text-slate-400 font-medium">Referință (RRN):</span>
+              <span className="font-semibold text-slate-800 dark:text-slate-100">{log.refNum || '—'}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-slate-400">CARD:</span>
+              <span className="text-slate-400 font-medium">Card utilizat:</span>
               <div className="flex items-center gap-1.5">
                 <CardBrandAvatar brand={meta.cardBrand} cardNo={meta.pan || log.cardNo} isNfc={meta.isNfc} />
               </div>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-slate-400">MOD PLATĂ:</span>
-              <span className="font-bold uppercase text-blue-600 dark:text-blue-400">
-                {meta.isNfc ? 'CONTACTLESS (NFC)' : 'CHIP EMV / INSERT'}
+              <span className="text-slate-400 font-medium">Modalitate plată:</span>
+              <span className="font-bold text-blue-600 dark:text-blue-400">
+                {meta.isNfc ? 'Contactless (NFC)' : 'Card cu cip (EMV)'}
               </span>
             </div>
             {order?.orderNumber && (
               <div className="flex justify-between items-center">
-                <span className="text-slate-400">COMANDĂ KIOSK:</span>
-                <span className="font-bold text-slate-800 dark:text-slate-100">#{order.orderNumber}</span>
+                <span className="text-slate-400 font-medium">Comandă Kiosk:</span>
+                <span className="font-bold text-slate-900 dark:text-white">#{order.orderNumber}</span>
               </div>
             )}
           </div>
@@ -393,6 +413,31 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
       if ((Number(entry.amount) === 0 || !entry.amount) && !entry.paid && !entry.authCode) return;
       setLogs(prev => [entry, ...prev]);
     });
+    socket.on('pos_log_updated', (data) => {
+      if (!data) return;
+      setLogs(prev => prev.map(l => {
+        const matches = (data.orderId && (l.orderId === data.orderId || l.order_id === data.orderId)) ||
+                        (data.authCode && l.authCode === data.authCode);
+        if (matches) {
+          return {
+            ...l,
+            iikoSent: data.iikoSent,
+            iikoOrderId: data.iikoOrderId || l.iikoOrderId,
+            iikoError: data.iikoError,
+          };
+        }
+        return l;
+      }));
+    });
+    socket.on('order_syrve_confirmed', (data) => {
+      if (!data) return;
+      setLogs(prev => prev.map(l => {
+        if (l.orderId === data.orderId || l.order_id === data.orderId) {
+          return { ...l, iikoSent: true, iikoOrderId: data.syrveOrderId };
+        }
+        return l;
+      }));
+    });
     socket.on('pos_settlement_result', (data) => {
       setSettling(false);
       if (data?.success) {
@@ -435,11 +480,23 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
     }
   };
 
-  const getOrderForLog = (log) => orders.find(o => 
-    (log.authCode && o.paymentRef?.authCode === log.authCode) || 
-    (log.refNum && o.paymentRef?.refNum === log.refNum) || 
-    o._id === log.orderId
-  );
+  const getOrderForLog = (log) => {
+    if (!log) return null;
+    return orders.find(o => 
+      (log.authCode && o.paymentRef?.authCode === log.authCode) || 
+      (log.refNum && o.paymentRef?.refNum === log.refNum) || 
+      o._id === log.orderId ||
+      o._id === log.order_id ||
+      (o.orderNumber && (String(o.orderNumber) === String(log.orderId) || `#${o.orderNumber}` === String(log.orderId))) ||
+      (o.posOrderId && (o.posOrderId === log.orderId || o.posOrderId === log.order_id))
+    );
+  };
+
+  const isLogIikoSuccess = (log) => {
+    if (log.iikoSent) return true;
+    const order = getOrderForLog(log);
+    return Boolean(order?.syrveOrderId);
+  };
 
   const isDateInPeriod = (dateStr, period) => {
     if (period === 'all') return true;
@@ -534,9 +591,9 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
       approved: periodFilteredLogs.filter(l => l.status === 'approved' || l.paid === true).length,
       declined: periodFilteredLogs.filter(l => (l.status === 'declined' || l.status === 'timeout' || (l.status !== 'approved' && l.paid === false)) && !isLogCancelled(l)).length,
       cancelled: periodFilteredLogs.filter(l => isLogCancelled(l)).length,
-      iikoFailed: periodFilteredLogs.filter(l => (l.status === 'approved' || l.paid === true) && !l.iikoSent).length
+      iikoFailed: periodFilteredLogs.filter(l => (l.status === 'approved' || l.paid === true) && !isLogIikoSuccess(l)).length
     };
-  }, [periodFilteredLogs]);
+  }, [periodFilteredLogs, isLogIikoSuccess]);
 
   // Table filtering adds status filter on top of periodFilteredLogs
   const filtered = useMemo(() => {
@@ -546,12 +603,12 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
         if (filter === 'cancelled') return isLogCancelled(l);
         if (filter === 'declined') return (l.status === 'declined' || (l.status !== 'approved' && l.paid === false)) && !isLogCancelled(l);
         if (filter === 'timeout') return l.status === 'timeout';
-        if (filter === 'iikoFailed') return (l.status === 'approved' || l.paid === true) && !l.iikoSent;
+        if (filter === 'iikoFailed') return (l.status === 'approved' || l.paid === true) && !isLogIikoSuccess(l);
         if (l.status !== filter) return false;
       }
       return true;
     });
-  }, [periodFilteredLogs, filter]);
+  }, [periodFilteredLogs, filter, isLogIikoSuccess]);
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
   const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -566,6 +623,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
     return filtered.map(log => {
       const order = getOrderForLog(log);
       const meta = extractPosMeta(log);
+      const isSuccess = isLogIikoSuccess(log);
       return {
         'Data/Ora': log.timestamp ? new Date(log.timestamp).toLocaleString('ro-RO') : '',
         'Brand': order?.brand || '',
@@ -580,7 +638,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
         'Card': meta.pan || (log.cardNo ? `****${log.cardNo.slice(-4)}` : ''),
         'Mod Plata': meta.isNfc ? 'Contactless' : 'Chip',
         'Ref#': log.refNum || '',
-        'iiko': log.paid ? (log.iikoSent ? 'Trimis' : 'Netrimis') : '',
+        'iiko': log.paid ? (isSuccess ? 'Trimis' : 'Netrimis') : '',
         'Eroare': log.error || ''
       };
     });
@@ -658,9 +716,9 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
         <div className="flex flex-wrap items-center gap-2">
           {[
             { id: 'all',       label: 'Toate' },
-            { id: 'approved',  label: '✓ Aprobate' },
-            { id: 'declined',  label: '✕ Respinse' },
-            { id: 'cancelled', label: '⊘ Anulate de client' },
+            { id: 'approved',  label: 'Aprobate' },
+            { id: 'declined',  label: 'Respinse' },
+            { id: 'cancelled', label: 'Anulate de client' },
           ].map(f => (
             <button
               key={f.id}
@@ -768,7 +826,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
             {settling && <RotateCcw className="w-4 h-4 animate-spin text-indigo-600" />}
             <span>{settlementNotice.text}</span>
           </div>
-          <button onClick={() => setSettlementNotice(null)} className="text-xs opacity-70 hover:opacity-100 font-bold">✕</button>
+          <button onClick={() => setSettlementNotice(null)} className="text-xs opacity-70 hover:opacity-100 font-bold p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/5"><X size={14} /></button>
         </div>
       )}
 
@@ -829,7 +887,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                           {log.locationName || log.locationId || 'Locație necunoscută'}
                         </span>
                         {meta.tid && (
-                          <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[9px] font-mono text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700" title="Terminal ID">
+                          <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[9px] font-semibold text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700" title="Terminal ID">
                             TID: {meta.tid}
                           </span>
                         )}
@@ -837,9 +895,9 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex flex-col gap-1 items-start">
-                      <span className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300 select-all">
-                        {order?.orderNumber ? `#${order.orderNumber}` : (log.orderId || '—')}
+                    <div className="flex flex-col gap-0.5 items-start">
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-100 select-all">
+                        {order?.orderNumber ? `#${order.orderNumber}` : (log.orderId?.startsWith('kiosk-') ? `Kiosk #${log.orderId.replace('kiosk-', '').slice(-4)}` : (log.orderId || '—'))}
                       </span>
                       {meta.rNo ? (
                         <button
@@ -847,11 +905,10 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                             e.stopPropagation();
                             setReceiptModalLog(log);
                           }}
-                          className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 px-1.5 py-0.5 rounded border border-indigo-200/60 dark:border-indigo-800/60 transition-colors"
+                          className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:underline transition-all flex items-center gap-1 cursor-pointer"
                           title="Vezi chitanță POS completă"
                         >
-                          <Receipt size={10} />
-                          Bon: {meta.rNo}
+                          Chitanță #{meta.rNo}
                         </button>
                       ) : (
                         <button
@@ -859,10 +916,9 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                             e.stopPropagation();
                             setReceiptModalLog(log);
                           }}
-                          className="inline-flex items-center gap-1 text-[9px] font-mono text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 px-1.5 py-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                          className="text-[11px] font-medium text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:underline transition-all cursor-pointer"
                           title="Detalii bon tranzacție"
                         >
-                          <Receipt size={10} />
                           Chitanță
                         </button>
                       )}
@@ -875,25 +931,25 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                   <td className="px-4 py-3">
                     <div className="flex flex-col gap-1 items-start">
                       <span
-                        className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap inline-flex items-center gap-1 shadow-sm"
+                        className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap inline-flex items-center shadow-xs"
                         style={{ backgroundColor: sc.bg, color: sc.color }}
                       >
-                        {sc.icon ? <span>{sc.icon}</span> : null} {sc.label}
+                        {sc.label}
                       </span>
-                      {meta.respCode && (
-                        <span className="text-[10px] font-mono text-slate-400 pl-1">
-                          Cod: {meta.respCode}
+                      {!log.paid && meta.respCode && meta.respCode !== '0000' && (
+                        <span className="text-[10px] font-semibold text-red-500 pl-1">
+                          Eroare: {meta.respCode}
                         </span>
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-sm font-mono text-slate-600 dark:text-slate-400">
+                  <td className="px-4 py-3 text-sm font-semibold text-slate-600 dark:text-slate-400">
                     {log.authCode || '—'}
                   </td>
                   <td className="px-4 py-3">
                     <CardBrandAvatar brand={meta.cardBrand} cardNo={meta.pan || log.cardNo} isNfc={meta.isNfc} />
                   </td>
-                  <td className="px-4 py-3 text-xs font-mono text-slate-500">
+                  <td className="px-4 py-3 text-xs font-semibold text-slate-500">
                     <div className="flex flex-col gap-0.5">
                       <span>{log.refNum || '—'}</span>
                       {meta.isNfc ? (
@@ -904,79 +960,83 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                             <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
                             <line x1="12" y1="20" x2="12.01" y2="20"/>
                           </svg>
-                          CONTACTLESS
+                          Contactless
                         </span>
                       ) : (
-                        <span className="text-[10px] text-slate-400 font-semibold">CHIP / INSERT</span>
+                        <span className="text-[10px] text-slate-400 font-semibold">Chip / Insert</span>
                       )}
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    {log.paid ? (
-                      <div className="flex flex-col gap-1 items-start">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation(); // prevent row click
-                            
-                            const successMessage = (
-                              <div className="flex flex-col gap-4 text-left mt-2">
-                                <p className="text-slate-600 dark:text-slate-300">Comanda a fost trimisă cu succes în iiko.</p>
-                                {log.iikoOrderId && (
-                                  <div className="bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-lg border border-slate-200 dark:border-slate-700/50 flex flex-col gap-1.5 mt-1">
-                                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">ID Comandă iiko</span>
-                                    <div className="flex items-center justify-between gap-2 bg-white dark:bg-slate-950 px-2 py-1.5 rounded border border-slate-200 dark:border-slate-800">
-                                      <span className="font-mono text-[11px] text-slate-700 dark:text-slate-300 overflow-hidden text-ellipsis whitespace-nowrap">
-                                        {log.iikoOrderId}
-                                      </span>
-                                      <button 
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          navigator.clipboard.writeText(log.iikoOrderId);
-                                          const btn = e.currentTarget;
-                                          const originalHTML = btn.innerHTML;
-                                          btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#059669" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>';
-                                          setTimeout(() => { btn.innerHTML = originalHTML; }, 1500);
-                                        }}
-                                        className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors shrink-0"
-                                        title="Copiază ID iiko"
-                                      >
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                          <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                        </svg>
-                                      </button>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            );
+                    {log.paid ? (() => {
+                      const isSuccess = isLogIikoSuccess(log);
+                      const iikoId = log.iikoOrderId || order?.syrveOrderId;
 
-                            const errorMessage = (
-                              <div className="flex flex-col gap-3 text-left mt-2">
-                                <p className="text-slate-600 dark:text-slate-300">Eroare la trimiterea comenzii în iiko:</p>
-                                <div className="bg-red-50 dark:bg-red-950/30 p-3 rounded-xl border border-red-100 dark:border-red-900/50">
-                                  <span className="font-mono text-xs text-red-600 dark:text-red-400 break-all select-all">
-                                    {log.iikoError || 'Eroare necunoscută. Vă rugăm să verificați manual.'}
-                                  </span>
-                                </div>
+                      const successMessage = (
+                        <div className="flex flex-col gap-4 text-left mt-2">
+                          <p className="text-slate-600 dark:text-slate-300">Comanda a fost trimisă cu succes în iiko.</p>
+                          {iikoId && (
+                            <div className="bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-lg border border-slate-200 dark:border-slate-700/50 flex flex-col gap-1.5 mt-1">
+                              <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">ID Comandă iiko</span>
+                              <div className="flex items-center justify-between gap-2 bg-white dark:bg-slate-950 px-2 py-1.5 rounded border border-slate-200 dark:border-slate-800">
+                                <span className="font-semibold text-[11px] text-slate-700 dark:text-slate-300 overflow-hidden text-ellipsis whitespace-nowrap">
+                                  {iikoId}
+                                </span>
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigator.clipboard.writeText(iikoId);
+                                    const btn = e.currentTarget;
+                                    const originalHTML = btn.innerHTML;
+                                    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#059669" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>';
+                                    setTimeout(() => { btn.innerHTML = originalHTML; }, 1500);
+                                  }}
+                                  className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors shrink-0"
+                                  title="Copiază ID iiko"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                  </svg>
+                                </button>
                               </div>
-                            );
+                            </div>
+                          )}
+                        </div>
+                      );
 
-                            confirm(
-                              log.iikoSent ? successMessage : errorMessage,
-                              {
-                                title: log.iikoSent ? 'Status iiko: Succes' : 'Status iiko: Eroare',
-                                hideCancel: true,
-                                danger: !log.iikoSent,
-                                okLabel: 'Închide'
-                              }
-                            );
-                          }}
-                          className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-transform active:scale-95 cursor-pointer shadow-sm ${log.iikoSent ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-red-600 text-white hover:bg-red-700'}`}
-                        >
-                          {log.iikoSent ? 'Trimis' : 'Eroare'}
-                        </button>
-                      </div>
-                    ) : (
+                      const errorMessage = (
+                        <div className="flex flex-col gap-3 text-left mt-2">
+                          <p className="text-slate-600 dark:text-slate-300">Eroare la trimiterea comenzii în iiko:</p>
+                          <div className="bg-red-50 dark:bg-red-950/30 p-3 rounded-xl border border-red-100 dark:border-red-900/50">
+                            <span className="font-semibold text-xs text-red-600 dark:text-red-400 break-all select-all">
+                              {log.iikoError || 'Eroare necunoscută. Vă rugăm să verificați manual.'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+
+                      return (
+                        <div className="flex flex-col gap-1 items-start">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              confirm(
+                                isSuccess ? successMessage : errorMessage,
+                                {
+                                  title: isSuccess ? 'Status iiko: Succes' : 'Status iiko: Eroare',
+                                  hideCancel: true,
+                                  danger: !isSuccess,
+                                  okLabel: 'Închide'
+                                }
+                              );
+                            }}
+                            className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-transform active:scale-95 cursor-pointer shadow-sm ${isSuccess ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-red-600 text-white hover:bg-red-700'}`}
+                          >
+                            {isSuccess ? 'Trimis' : 'Eroare'}
+                          </button>
+                        </div>
+                      );
+                    })() : (
                       <span className="text-slate-400 text-xs">—</span>
                     )}
                   </td>
@@ -991,7 +1051,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                                 {isCancelled ? 'Detalii anulare comandă:' : 'Detaliu eroare POS:'}
                               </p>
                               <div className={`${isCancelled ? 'bg-slate-100 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700' : 'bg-red-50 dark:bg-red-950/30 border-red-100 dark:border-red-900/50'} p-3 rounded-xl border`}>
-                                <span className={`font-mono text-sm ${isCancelled ? 'text-slate-700 dark:text-slate-300' : 'text-red-600 dark:text-red-400'} break-all select-all whitespace-pre-wrap`}>
+                                <span className={`font-semibold text-sm ${isCancelled ? 'text-slate-700 dark:text-slate-300' : 'text-red-600 dark:text-red-400'} break-all select-all whitespace-pre-wrap`}>
                                   {log.error}
                                 </span>
                               </div>

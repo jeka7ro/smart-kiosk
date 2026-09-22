@@ -301,17 +301,31 @@ async function processOrderCreation(body, io) {
           io.emit('order_syrve_confirmed', { orderId: order._id, syrveOrderId: order.syrveOrderId });
         }
 
-        if (order.paymentMethod === 'card' && order.paymentRef?.authCode) {
+        if (order.paymentMethod === 'card') {
           const { updateIikoStatusByAuthCode } = require('./posLogs');
           if (updateIikoStatusByAuthCode) {
-            updateIikoStatusByAuthCode(order.paymentRef.authCode, true, order.syrveOrderId, null);
+            updateIikoStatusByAuthCode(
+              order.paymentRef?.authCode, 
+              true, 
+              order.syrveOrderId, 
+              null, 
+              io, 
+              order.posOrderId || order._id
+            );
           }
         }
       } else {
-        if (order.paymentMethod === 'card' && order.paymentRef?.authCode) {
+        if (order.paymentMethod === 'card') {
           const { updateIikoStatusByAuthCode } = require('./posLogs');
           if (updateIikoStatusByAuthCode) {
-            updateIikoStatusByAuthCode(order.paymentRef.authCode, false, null, "iiko Error");
+            updateIikoStatusByAuthCode(
+              order.paymentRef?.authCode, 
+              false, 
+              null, 
+              "iiko Error", 
+              io, 
+              order.posOrderId || order._id
+            );
           }
         }
       }

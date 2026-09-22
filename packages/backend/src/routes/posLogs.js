@@ -66,27 +66,50 @@ async function addPosLog(entry) {
 /**
  * Update iiko status for an existing POS log entry.
  */
-async function updateIikoStatus(orderId, iikoSent, iikoOrderId, iikoError) {
+async function updateIikoStatus(orderId, iikoSent, iikoOrderId, iikoError, io, authCode) {
   try {
     await pool.query(
-      `UPDATE pos_logs SET iiko_sent = $1, iiko_order_id = $2, iiko_error = $3 WHERE order_id = $4`,
-      [iikoSent, iikoOrderId || null, iikoError || null, orderId]
+      `UPDATE pos_logs 
+       SET iiko_sent = $1, iiko_order_id = $2, iiko_error = $3 
+       WHERE order_id = $4 
+          OR ($5::text IS NOT NULL AND auth_code = $5 AND paid = true)`,
+      [iikoSent, iikoOrderId || null, iikoError || null, orderId, authCode || null]
     );
+    if (io) {
+      io.to('admin').emit('pos_log_updated', {
+        orderId,
+        authCode,
+        iikoSent,
+        iikoOrderId,
+        iikoError
+      });
+    }
   } catch (err) {
     console.error(`[POS Logs] Failed to update iiko status in DB:`, err.message);
   }
 }
 
 /**
- * Update iiko status for an existing POS log entry using authCode.
+ * Update iiko status for an existing POS log entry using authCode and orderId.
  */
-async function updateIikoStatusByAuthCode(authCode, iikoSent, iikoOrderId, iikoError) {
-  if (!authCode) return;
+async function updateIikoStatusByAuthCode(authCode, iikoSent, iikoOrderId, iikoError, io, orderId) {
   try {
     await pool.query(
-      `UPDATE pos_logs SET iiko_sent = $1, iiko_order_id = $2, iiko_error = $3 WHERE auth_code = $4 AND paid = true`,
-      [iikoSent, iikoOrderId || null, iikoError || null, authCode]
+      `UPDATE pos_logs 
+       SET iiko_sent = $1, iiko_order_id = $2, iiko_error = $3 
+       WHERE ($4::text IS NOT NULL AND auth_code = $4 AND paid = true)
+          OR ($5::text IS NOT NULL AND order_id = $5)`,
+      [iikoSent, iikoOrderId || null, iikoError || null, authCode || null, orderId || null]
     );
+    if (io) {
+      io.to('admin').emit('pos_log_updated', {
+        orderId,
+        authCode,
+        iikoSent,
+        iikoOrderId,
+        iikoError
+      });
+    }
   } catch (err) {
     console.error(`[POS Logs] Failed to update iiko status by auth code in DB:`, err.message);
   }
