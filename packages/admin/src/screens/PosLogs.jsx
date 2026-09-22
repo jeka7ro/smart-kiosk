@@ -217,13 +217,13 @@ export function extractPosMeta(log) {
   return { rNo, tid, cardBrand, isNfc, respCode, hostDate, pan };
 }
 
-export function PosReceiptModal({ log, order, onClose }) {
+export function PosReceiptModal({ log, order, orders = [], onClose }) {
   if (!log) return null;
   const meta = extractPosMeta(log);
   const dt = log.timestamp ? new Date(log.timestamp) : null;
   const [copied, setCopied] = useState(false);
 
-  const brandId = order?.brand || log?.brand || log?.brandId || log?.raw?.brand || log?.raw?.cart?.brand || log?.raw?.items?.[0]?.brand || null;
+  const brandId = order?.brand || log?.brand || log?.brandId || log?.raw?.brand || log?.raw?.cart?.brand || log?.raw?.items?.[0]?.brand || orders.find(o => (o.locationId && (o.locationId === log.locationId || o.locationId === log.locationName)) || (o.locationName && (o.locationName === log.locationId || o.locationName === log.locationName)))?.brand || null;
   const locationName = log.locationName || log.locationId || 'Terminal';
 
   const receiptText = `
@@ -876,12 +876,15 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-col gap-1.5 items-start">
-                      {order?.brand || log.raw?.brand ? (
-                        <div className="flex items-center gap-2">
-                          <BrandLogo brandId={order?.brand || log.raw?.brand} size={20} />
-                          <span className="text-sm font-bold text-slate-700 dark:text-slate-300 capitalize">{order?.brand || log.raw?.brand}</span>
-                        </div>
-                      ) : <span className="text-slate-400">—</span>}
+                      {(() => {
+                        const effectiveBrand = order?.brand || log.raw?.brand || log.brand || orders.find(o => (o.locationId && (o.locationId === log.locationId || o.locationId === log.locationName)) || (o.locationName && (o.locationName === log.locationId || o.locationName === log.locationName)))?.brand || null;
+                        return effectiveBrand ? (
+                          <div className="flex items-center gap-2">
+                            <BrandLogo brandId={effectiveBrand} size={20} />
+                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300 capitalize">{effectiveBrand}</span>
+                          </div>
+                        ) : <span className="text-slate-400">—</span>;
+                      })()}
                       <div className="flex flex-wrap items-center gap-1">
                         <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-400">
                           {log.locationName || log.locationId || 'Locație necunoscută'}
@@ -929,19 +932,12 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                     {formatThousands(Number(log.amount) || 0)} RON
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex flex-col gap-1 items-start">
-                      <span
-                        className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap inline-flex items-center shadow-xs"
-                        style={{ backgroundColor: sc.bg, color: sc.color }}
-                      >
-                        {sc.label}
-                      </span>
-                      {!log.paid && meta.respCode && meta.respCode !== '0000' && (
-                        <span className="text-[10px] font-semibold text-red-500 pl-1">
-                          Eroare: {meta.respCode}
-                        </span>
-                      )}
-                    </div>
+                    <span
+                      className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap inline-flex items-center shadow-xs"
+                      style={{ backgroundColor: sc.bg, color: sc.color }}
+                    >
+                      {sc.label}
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-sm font-semibold text-slate-600 dark:text-slate-400">
                     {log.authCode || '—'}
@@ -1123,6 +1119,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
         <PosReceiptModal
           log={receiptModalLog}
           order={getOrderForLog(receiptModalLog)}
+          orders={orders}
           onClose={() => setReceiptModalLog(null)}
         />
       )}

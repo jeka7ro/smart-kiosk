@@ -195,6 +195,13 @@ function initSocket(io) {
 
       // Salvează în POS Logs
       try {
+        let orderBrand = null;
+        try {
+          const { getPendingPosOrder } = require('../routes/payment');
+          const pendingDraft = await getPendingPosOrder(orderId);
+          if (pendingDraft?.brand) orderBrand = pendingDraft.brand;
+        } catch (_) {}
+
         const { addPosLog } = require('../routes/posLogs');
         const logEntry = await addPosLog({
           orderId,
@@ -209,7 +216,10 @@ function initSocket(io) {
           txDate: txDate || '',
           error: error || null,
           gateway: 'raiffeisen',
-          raw: raw || null,
+          raw: {
+            ...(typeof raw === 'object' && raw !== null ? raw : { data: raw }),
+            ...(orderBrand ? { brand: orderBrand } : {}),
+          },
         });
         // Emit to admin for live updates
         if (logEntry && logEntry._id) {
