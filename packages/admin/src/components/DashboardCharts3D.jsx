@@ -17,6 +17,7 @@ const BRAND_COLORS = {
 export function SalesTrendChart3D({ 
   orders = [], 
   comparisonOrders = [],
+  allOrders = [],
   period = 'today',
   selectedHour = null,
   onSelectHour = () => {},
@@ -26,11 +27,90 @@ export function SalesTrendChart3D({
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const [metricMode, setMetricMode] = useState('revenue'); // 'revenue' | 'count'
   const [showValues, setShowValues] = useState(true); // Afișare directă a valorilor pe grafic
-  const [showYesterday, setShowYesterday] = useState(true); // Comparație cu ziua de ieri în fundal
+  const [compareTarget, setCompareTarget] = useState('yesterday'); // 'none' | 'yesterday' | 'lastMonth'
  
   // Determină buckets în funcție de perioadă
   const isHourly = period === 'today' || period === 'yesterday';
-  
+  const isCompared = compareTarget !== 'none' && isHourly;
+  const isLastMonth = compareTarget === 'lastMonth';
+
+  // Calcul dinamic etichete date comparație (Ieri vs Aceeași zi luna trecută - ex: 22.08)
+  const { yesterdayLabel, lastMonthLabel, lastMonthDateObj } = React.useMemo(() => {
+    const now = new Date();
+    const yest = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    const yestLbl = yest.toLocaleDateString('ro-RO', { day: '2-digit', month: '2-digit' });
+
+    // Aceeași zi luna trecută (ex: 22.08 dacă azi e 22.09)
+    const curYear = now.getFullYear();
+    const curMonth = now.getMonth();
+    const curDay = now.getDate();
+    const targetMonth = curMonth === 0 ? 11 : curMonth - 1;
+    const targetYear = curMonth === 0 ? curYear - 1 : curYear;
+    const maxDaysInTargetMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+    const lmObj = new Date(targetYear, targetMonth, Math.min(curDay, maxDaysInTargetMonth));
+    const lmLbl = lmObj.toLocaleDateString('ro-RO', { day: '2-digit', month: '2-digit' });
+
+    return { yesterdayLabel: yestLbl, lastMonthLabel: lmLbl, lastMonthDateObj: lmObj };
+  }, []);
+
+  // Configurație vizuală dinamică: Chihlimbar pt Ieri vs Violet Regal pt Luna Trecută
+  const compareConfig = React.useMemo(() => {
+    if (isLastMonth) {
+      return {
+        id: 'lastMonth',
+        name: `Luna trecută (${lastMonthLabel})`,
+        shortLabel: lastMonthLabel,
+        color: '#a855f7', // Violet
+        colorDark: 'rgba(28, 12, 45, 0.92)',
+        gradId: 'lastMonthGrad',
+        areaGradId: 'lastMonthAreaGrad',
+        dotStroke: '#581c87',
+        badgeBg: 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/25',
+        subtitleColor: 'text-purple-600 dark:text-purple-400 font-medium',
+        pillText: 'fill-purple-200'
+      };
+    }
+    return {
+      id: 'yesterday',
+      name: 'Ieri',
+      shortLabel: 'Ieri',
+      color: '#f59e0b', // Chihlimbar
+      colorDark: 'rgba(30, 18, 8, 0.92)',
+      gradId: 'yesterdayGrad',
+      areaGradId: 'yesterdayAreaGrad',
+      dotStroke: '#78350f',
+      badgeBg: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/25',
+      subtitleColor: 'text-amber-600 dark:text-amber-400 font-medium',
+      pillText: 'fill-amber-300'
+    };
+  }, [isLastMonth, lastMonthLabel]);
+
+  // Filtrare comenzi pentru comparația activă selectată
+  const activeComparisonOrders = React.useMemo(() => {
+    if (compareTarget === 'none') return [];
+    const pool = (allOrders && allOrders.length > 0) ? allOrders : comparisonOrders;
+    if (!pool || pool.length === 0) return [];
+
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+
+    const startOfLastMonth = new Date(lastMonthDateObj.getFullYear(), lastMonthDateObj.getMonth(), lastMonthDateObj.getDate(), 0, 0, 0, 0);
+    const endOfLastMonth = new Date(lastMonthDateObj.getFullYear(), lastMonthDateObj.getMonth(), lastMonthDateObj.getDate() + 1, 0, 0, 0, 0);
+
+    return pool.filter(o => {
+      if (o.status === 'cancelled' || !o.createdAt) return false;
+      const d = new Date(o.createdAt);
+      if (compareTarget === 'yesterday') {
+        return d >= startOfYesterday && d < startOfToday;
+      }
+      if (compareTarget === 'lastMonth') {
+        return d >= startOfLastMonth && d < endOfLastMonth;
+      }
+      return false;
+    });
+  }, [allOrders, comparisonOrders, compareTarget, lastMonthDateObj]);
+
   const buckets = React.useMemo(() => {
     if (isHourly) {
       const currentHour = new Date().getHours();
@@ -74,10 +154,10 @@ export function SalesTrendChart3D({
         }
       });
 
-      // Mapează comenzile de ieri / din perioada de referință
-      let hasRealYesterday = false;
-      if (Array.isArray(comparisonOrders) && comparisonOrders.length > 0) {
-        comparisonOrders.forEach(o => {
+      // Mapează comenzile din perioada de referință selectată
+      let hasRealComparison = false;
+      if (Array.isArray(activeComparisonOrders) && activeComparisonOrders.length > 0) {
+        activeComparisonOrders.forEach(o => {
           if (!o.createdAt || o.status === 'cancelled') return;
           const d = new Date(o.createdAt);
           const h = d.getHours();
@@ -85,16 +165,18 @@ export function SalesTrendChart3D({
           if (slot) {
             slot.yesterdayRevenue += (o.totalAmount || 0);
             slot.yesterdayCount += 1;
-            hasRealYesterday = true;
+            hasRealComparison = true;
           }
         });
       }
 
-      // Dacă nu există comenzi salvate de ieri în baza de date locală,
-      // generăm un baseline realist (~82% din profilul zilei) conform cerinței
-      if (!hasRealYesterday && period === 'today') {
+      // Dacă nu există comenzi salvate în baza de date locală pentru acea zi,
+      // generăm un baseline realist (~82% sau profil diferențiat pt luna trecută)
+      if (!hasRealComparison && period === 'today' && compareTarget !== 'none') {
         slots.forEach((slot, idx) => {
-          const factor = 0.82 + Math.sin(idx * 1.25) * 0.14;
+          const factor = isLastMonth
+            ? (0.91 + Math.cos(idx * 0.95) * 0.16) // Profil specific lunii trecute (22.08)
+            : (0.82 + Math.sin(idx * 1.25) * 0.14); // Profil specific zilei de ieri
           slot.yesterdayRevenue = Math.round(slot.revenue * factor * 100) / 100;
           slot.yesterdayCount = Math.max(0, Math.round(slot.count * factor));
         });
@@ -136,11 +218,11 @@ export function SalesTrendChart3D({
       }
       return sorted;
     }
-  }, [orders, comparisonOrders, isHourly, period]);
+  }, [orders, activeComparisonOrders, isHourly, period, isLastMonth, compareTarget]);
 
   const maxVal = Math.max(
     ...buckets.map(b => metricMode === 'revenue' ? b.revenue : b.count),
-    ...(showYesterday ? buckets.map(b => metricMode === 'revenue' ? (b.yesterdayRevenue || 0) : (b.yesterdayCount || 0)) : []),
+    ...(isCompared ? buckets.map(b => metricMode === 'revenue' ? (b.yesterdayRevenue || 0) : (b.yesterdayCount || 0)) : []),
     10
   );
 
@@ -238,14 +320,14 @@ export function SalesTrendChart3D({
               </h4>
 
               {/* Badge comparativ dinamic */}
-              {isHourly && totalYesterdayRev > 0 && (
+              {isHourly && isCompared && totalYesterdayRev > 0 && (
                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-black border transition-all ${
                   deltaRev >= 0 
                     ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/25'
                     : 'bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/25'
                 }`}>
                   {deltaRev >= 0 ? '↗ +' : '↘ '}
-                  {Math.abs(Math.round(deltaPct))}% vs Ieri
+                  {Math.abs(Math.round(deltaPct))}% vs {compareConfig.shortLabel}
                 </span>
               )}
             </div>
@@ -255,12 +337,15 @@ export function SalesTrendChart3D({
                 <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-xs shadow-cyan-400/60" />
                 Total Azi: <strong className="text-slate-800 dark:text-slate-200">{formatThousands(totalRev)} lei</strong> ({totalCnt} comenzi)
               </span>
-              {showYesterday && totalYesterdayRev > 0 && (
+              {isCompared && totalYesterdayRev > 0 && (
                 <>
                   <span className="text-slate-300 dark:text-slate-600">•</span>
-                  <span className="text-amber-600 dark:text-amber-400/90 font-medium flex items-center gap-1.5">
-                    <span className="w-2.5 h-1 bg-amber-400 rounded-full shadow-xs shadow-amber-400/50" />
-                    Ieri la aceeași oră: <strong className="font-bold">{formatThousands(totalYesterdayRev)} lei</strong>
+                  <span className={`${compareConfig.subtitleColor} flex items-center gap-1.5`}>
+                    <span 
+                      className="w-2.5 h-1 rounded-full shadow-xs" 
+                      style={{ backgroundColor: compareConfig.color }}
+                    />
+                    {compareConfig.shortLabel} la aceeași oră: <strong className="font-bold">{formatThousands(totalYesterdayRev)} lei</strong>
                   </span>
                 </>
               )}
@@ -268,22 +353,49 @@ export function SalesTrendChart3D({
           </div>
         </div>
 
-        {/* Toggle Mode, Valori pe Grafic & Comparație cu Ieri */}
+        {/* Toggle Mode, Valori pe Grafic & Comutator Comparație (Ieri vs 22.08) */}
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Buton Toggle Comparație cu Ieri */}
+          {/* Segmented Controller Comparație: Fără | vs Ieri | vs Luna Trecută (22.08) */}
           {isHourly && (
-            <button
-              onClick={() => setShowYesterday(v => !v)}
-              className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full transition-all border flex items-center gap-1.5 cursor-pointer ${
-                showYesterday 
-                  ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 shadow-xs' 
-                  : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-              }`}
-              title="Afișează sau ascunde curba de comparație cu ziua de ieri în fundal"
-            >
-              <span className={`w-2 h-0.5 rounded-full ${showYesterday ? 'bg-amber-500' : 'bg-slate-400'}`} />
-              Comparație cu Ieri
-            </button>
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-full border border-slate-200 dark:border-slate-700 text-[11px] font-bold">
+              <button
+                onClick={() => setCompareTarget('none')}
+                className={`px-2.5 py-0.5 rounded-full transition-all cursor-pointer ${
+                  compareTarget === 'none' 
+                    ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 shadow-xs font-black' 
+                    : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                }`}
+                title="Ascunde curba de comparație din fundal"
+              >
+                Fără comp.
+              </button>
+
+              <button
+                onClick={() => setCompareTarget('yesterday')}
+                className={`px-2.5 py-0.5 rounded-full transition-all flex items-center gap-1.5 cursor-pointer ${
+                  compareTarget === 'yesterday' 
+                    ? 'bg-amber-500 text-white shadow-xs font-black' 
+                    : 'text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400'
+                }`}
+                title="Compară cu ziua de ieri"
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${compareTarget === 'yesterday' ? 'bg-white' : 'bg-amber-500'}`} />
+                vs Ieri
+              </button>
+
+              <button
+                onClick={() => setCompareTarget('lastMonth')}
+                className={`px-2.5 py-0.5 rounded-full transition-all flex items-center gap-1.5 cursor-pointer ${
+                  compareTarget === 'lastMonth' 
+                    ? 'bg-purple-600 text-white shadow-xs font-black' 
+                    : 'text-slate-600 dark:text-slate-300 hover:text-purple-600 dark:hover:text-purple-400'
+                }`}
+                title={`Compară cu aceeași dată de acum o lună (${lastMonthLabel})`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${compareTarget === 'lastMonth' ? 'bg-white' : 'bg-purple-500'}`} />
+                vs {lastMonthLabel}
+              </button>
+            </div>
           )}
 
           <button
@@ -342,7 +454,7 @@ export function SalesTrendChart3D({
               <stop offset="100%" stopColor="#ec4899" />
             </linearGradient>
 
-            {/* Gradients pentru Comparația cu Ieri în planul 3D din fundal */}
+            {/* Gradients pentru Comparația cu Ieri (Chihlimbar) */}
             <linearGradient id="yesterdayGrad" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="#f59e0b" />
               <stop offset="50%" stopColor="#fbbf24" />
@@ -355,7 +467,20 @@ export function SalesTrendChart3D({
               <stop offset="100%" stopColor="#b45309" stopOpacity="0.0" />
             </linearGradient>
 
-            <filter id="yesterdayGlow" x="-20%" y="-20%" width="140%" height="140%">
+            {/* Gradients pentru Comparația cu Luna Trecută (Violet Regal) */}
+            <linearGradient id="lastMonthGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#8b5cf6" />
+              <stop offset="50%" stopColor="#a855f7" />
+              <stop offset="100%" stopColor="#c084fc" />
+            </linearGradient>
+
+            <linearGradient id="lastMonthAreaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.35" />
+              <stop offset="50%" stopColor="#7c3aed" stopOpacity="0.12" />
+              <stop offset="100%" stopColor="#4c1d95" stopOpacity="0.0" />
+            </linearGradient>
+
+            <filter id="compareGlow" x="-20%" y="-20%" width="140%" height="140%">
               <feGaussianBlur stdDeviation="2.5" result="blur" />
               <feComposite in="SourceGraphic" in2="blur" operator="over" />
             </filter>
@@ -415,32 +540,32 @@ export function SalesTrendChart3D({
             strokeWidth="0.75"
           />
 
-          {/* ── Curba Comparație Ieri (În planul 3D din fundal) ── */}
-          {showYesterday && isHourly && (
+          {/* ── Curba Comparație (În planul 3D din fundal: Ieri sau 22.08) ── */}
+          {isCompared && (
             <g className="transition-opacity duration-300">
               <path
                 d={yesterdayArea}
-                fill="url(#yesterdayAreaGrad)"
+                fill={`url(#${compareConfig.areaGradId})`}
                 opacity="0.3"
               />
               <path
                 d={yesterdayPath}
                 fill="none"
-                stroke="url(#yesterdayGrad)"
+                stroke={`url(#${compareConfig.gradId})`}
                 strokeWidth="2.2"
                 strokeDasharray="4,4"
                 strokeLinecap="round"
                 opacity="0.85"
-                filter="url(#yesterdayGlow)"
+                filter="url(#compareGlow)"
               />
               {ptsYesterday.map((ptY, idx) => (
                 <circle
-                  key={`yest-${idx}`}
+                  key={`comp-${idx}`}
                   cx={ptY.x}
                   cy={ptY.y}
                   r={hoveredIndex === idx ? 4.5 : 2.5}
-                  fill="#f59e0b"
-                  stroke="#78350f"
+                  fill={compareConfig.color}
+                  stroke={compareConfig.dotStroke}
                   strokeWidth="1"
                   opacity={hoveredIndex === idx ? 1 : 0.65}
                   className="transition-all duration-150"
@@ -484,8 +609,8 @@ export function SalesTrendChart3D({
             filter="url(#neonGlow)"
           />
 
-          {/* Valori Numerice Ieri afișate direct pe grafic (Data Labels în fundalul 3D) */}
-          {showValues && showYesterday && isHourly && (
+          {/* Valori Numerice Comparație afișate direct pe grafic (Data Labels în fundalul 3D) */}
+          {showValues && isCompared && (
             <g className="transition-opacity duration-300 pointer-events-none select-none">
               {ptsYesterday.map((ptY, idx) => {
                 if (ptY.val <= 0) return null;
@@ -508,49 +633,48 @@ export function SalesTrendChart3D({
 
                 return (
                   <g 
-                    key={`val-yest-${idx}`}
+                    key={`val-comp-${idx}`}
                     className="transition-all duration-200"
                     style={{ transformOrigin: `${ptY.x}px ${ptY.y}px` }}
                   >
-                    {/* Conector discret către punctul de ieri */}
+                    {/* Conector discret către punctul de comparație */}
                     <line
                       x1={ptY.x}
                       y1={stemY1}
                       x2={ptY.x}
                       y2={stemY2}
-                      stroke="#f59e0b"
+                      stroke={compareConfig.color}
                       strokeWidth="1"
                       strokeDasharray="2,2"
                       opacity={isHovered ? 0.95 : 0.55}
                     />
 
-                    {/* Pill Badge Glassmorphism 3D Ieri (Nuanță Caldă Chihlimbar / Aurie) */}
+                    {/* Pill Badge Glassmorphism 3D Comparație */}
                     <rect
                       x={ptY.x - pillYW / 2}
                       y={pillY}
                       width={pillYW}
                       height={16}
                       rx={8}
-                      fill="rgba(30, 18, 8, 0.92)"
-                      stroke={isHovered ? "#f59e0b" : "rgba(245, 158, 11, 0.75)"}
+                      fill={compareConfig.colorDark}
+                      stroke={isHovered ? compareConfig.color : `${compareConfig.color}b0`}
                       strokeWidth={isHovered ? "1.5" : "0.85"}
                       strokeDasharray={isHovered ? undefined : "3,1.5"}
                       style={{
                         filter: isHovered 
-                          ? 'drop-shadow(0 0 8px rgba(245,158,11,0.7))' 
+                          ? `drop-shadow(0 0 8px ${compareConfig.color}b0)` 
                           : 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))'
                       }}
                     />
 
-                    {/* Valoare numerică Ieri */}
+                    {/* Valoare numerică Comparație */}
                     <text
                       x={ptY.x}
                       y={textY}
                       textAnchor="middle"
                       fontSize="9"
-                      className={`font-bold tracking-tight ${
-                        isHovered ? 'fill-amber-200 font-extrabold' : 'fill-amber-300'
-                      }`}
+                      fill={isHovered ? '#ffffff' : (isLastMonth ? '#e9d5ff' : '#fde68a')}
+                      className="font-bold tracking-tight select-none"
                     >
                       {valYText}
                     </text>
@@ -607,14 +731,14 @@ export function SalesTrendChart3D({
                       className={isPointSelected ? undefined : "animate-pulse"}
                     />
 
-                    {/* Conector 3D între punctul de Azi și punctul de Ieri */}
-                    {showYesterday && ptsYesterday[i] && (
+                    {/* Conector 3D între punctul de Azi și punctul de Comparație */}
+                    {isCompared && ptsYesterday[i] && (
                       <line
                         x1={pt.x}
                         y1={pt.y}
                         x2={ptsYesterday[i].x}
                         y2={ptsYesterday[i].y}
-                        stroke="#f59e0b"
+                        stroke={compareConfig.color}
                         strokeWidth="1.5"
                         strokeDasharray="2,2"
                         opacity="0.8"
@@ -784,14 +908,14 @@ export function SalesTrendChart3D({
                 </span>
               </div>
 
-              {/* Rând Ieri */}
-              {showYesterday && isHourly && (
+              {/* Rând Comparație (Ieri sau 22.08) */}
+              {isCompared && (
                 <div className="flex items-center justify-between gap-3 text-left py-0.5 mt-0.5">
-                  <span className="text-[10px] text-amber-300/90 flex items-center gap-1 font-semibold">
-                    <span className="w-2 h-0.5 bg-amber-400 rounded-full" /> Ieri:
+                  <span className="text-[10px] flex items-center gap-1 font-semibold" style={{ color: compareConfig.color }}>
+                    <span className="w-2 h-0.5 rounded-full" style={{ backgroundColor: compareConfig.color }} /> {compareConfig.shortLabel}:
                   </span>
-                  <span className="font-extrabold text-amber-300 text-xs">
-                    {formatThousands(pts[hoveredIndex].b.yesterdayRevenue || 0)} lei <span className="text-[9px] font-semibold text-amber-400/60">({pts[hoveredIndex].b.yesterdayCount || 0})</span>
+                  <span className="font-extrabold text-xs" style={{ color: compareConfig.color }}>
+                    {formatThousands(pts[hoveredIndex].b.yesterdayRevenue || 0)} lei <span className="text-[9px] font-semibold opacity-70">({pts[hoveredIndex].b.yesterdayCount || 0})</span>
                   </span>
                 </div>
               )}
@@ -2458,6 +2582,7 @@ export default function DashboardCharts3D({
           <SalesTrendChart3D 
             orders={salesTrendOrders} 
             comparisonOrders={comparisonSalesOrders}
+            allOrders={allOrders}
             period={period} 
             selectedHour={selectedHour}
             onSelectHour={onSelectHour}
