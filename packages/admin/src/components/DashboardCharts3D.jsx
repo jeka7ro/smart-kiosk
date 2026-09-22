@@ -2058,6 +2058,28 @@ export function CalendarHeatmapChart({
 /**
  * 5. GRAFIC 3D: Top Vânzări Produse (Best Sellers with 3D Apple Liquid Bars & Podium)
  */
+// Filtrare produse: doar ce se vinde separat sau în combo complet (exclude sosuri/accesorii, băuturi și garnituri vândute în combo)
+const SOSURI_ACCESORII_RX = /^sos\b|\b(15|25|50)\s*g\b|ketchup|maionez[aă]|mu[sș]tar|wasabi|ghimbir|bete sushi/i;
+const BAUTURI_RX = /bautur|băutur|drink|\bcola\b|pepsi|fanta|sprite|\bap[aă]\b|water|bere|beer|suc\b|juice|ceai|tea|limonad|lemonade|ayran|shake|smoothie|fuze|schweppes|cappy/i;
+const GARNITURI_RX = /^cartofi\s+prajiti/i;
+const COMBO_COMPLET_RX = /meniu|menu|combo|box|smart box|easy meal|\bset\b|platou/i;
+
+export const isStandaloneOrCompleteCombo = (productName) => {
+  const name = (productName || '').trim();
+  if (!name) return false;
+  // 1. Combo complet (Meniu, Combo, Smart Box, Set) -> Păstrează ca entitate întreagă
+  if (COMBO_COMPLET_RX.test(name)) return true;
+  // 2. Sosuri, accesorii, băuturi sau cartofi/garnituri vândute în combo -> Exclude din top produse
+  if (SOSURI_ACCESORII_RX.test(name)) return false;
+  if (BAUTURI_RX.test(name)) return false;
+  if (GARNITURI_RX.test(name)) return false;
+  // 3. Produse vândute separat (burgeri individuali, sushi roll-uri, feluri principale, wok, deserturi) -> Păstrează
+  return true;
+};
+
+/**
+ * 5. GRAFIC 3D: Top Vânzări Produse (Clasament Bestsellers cu Podium 3D & Bare Progresie Lichidă)
+ */
 export function TopProductsChart3D({
   orders = [],
   selectedProduct = '',
@@ -2068,6 +2090,7 @@ export function TopProductsChart3D({
   const [metricMode, setMetricMode] = useState('quantity'); // 'quantity' | 'revenue'
   const [limit, setLimit] = useState(10); // 5 | 10
   const [isExpanded, setIsExpanded] = useState(false); // Lista apare doar la extindere pe buton, nu permanent
+  const [productFilter, setProductFilter] = useState('combos_and_mains'); // 'combos_and_mains' | 'all'
 
   const { topProducts, totalUnits, totalRevenue, maxMetricVal } = React.useMemo(() => {
     const map = {};
@@ -2078,8 +2101,17 @@ export function TopProductsChart3D({
       if (order.status === 'cancelled') return;
       const items = Array.isArray(order.items) ? order.items : [];
       items.forEach(item => {
+        // Ignoră modificatorii sau sub-produsele imbricate
+        if (item.isModifier || item.isComboItem || item.comboItemId || item.parentId) return;
+
         const rawName = (item.name || '').trim();
         if (!rawName) return;
+
+        // Dacă filtrul este pe preparate & combo-uri complete, ignorăm produsele care se vând în combo (sosuri, băuturi, garnituri)
+        if (productFilter === 'combos_and_mains' && !isStandaloneOrCompleteCombo(rawName)) {
+          return;
+        }
+
         const qty = Number(item.quantity) || 1;
         const rev = Number(item.totalPrice) || (Number(item.unitPrice) * qty) || 0;
         const brand = (item.brandId || order.brand || '').toLowerCase();
@@ -2121,7 +2153,7 @@ export function TopProductsChart3D({
       totalRevenue: totalR,
       maxMetricVal: Math.max(1, maxVal)
     };
-  }, [orders, metricMode]);
+  }, [orders, metricMode, productFilter]);
 
   const displayedProducts = topProducts.slice(0, limit);
   const podiumTop3 = topProducts.slice(0, 3);
@@ -2141,7 +2173,7 @@ export function TopProductsChart3D({
             <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
               Top Vânzări Produse
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
-                Clasament Produse
+                {productFilter === 'combos_and_mains' ? 'Preparate & Combo Complet' : 'Toate Produsele'}
               </span>
             </h4>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
@@ -2152,8 +2184,33 @@ export function TopProductsChart3D({
           </div>
         </div>
 
-        {/* Controls: Metric Mode + Limit Switcher */}
-        <div className="flex items-center gap-2">
+        {/* Controls: Product Filter + Metric Mode + Limit Switcher */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Switcher Filtru: Meniuri & Preparate (Doar ce se vinde separat sau în combo complet) vs Toate */}
+          <div className="bg-slate-100 dark:bg-slate-800 p-0.5 rounded-full flex items-center border border-slate-200/50 dark:border-slate-700/50">
+            <button
+              onClick={() => setProductFilter('combos_and_mains')}
+              title="Exclude sosurile, băuturile și produsele vândute în combo. Afișează doar ce se vinde separat sau în combo complet."
+              className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full transition-all ${
+                productFilter === 'combos_and_mains'
+                  ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
+            >
+              Preparate & Combo
+            </button>
+            <button
+              onClick={() => setProductFilter('all')}
+              title="Include toate produsele, inclusiv sosuri, garnituri și băuturi."
+              className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full transition-all ${
+                productFilter === 'all'
+                  ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
+            >
+              Toate
+            </button>
+          </div>
 
           {/* Limit Switcher (apare când lista este extinsă) */}
           {isExpanded && (
