@@ -301,8 +301,9 @@ function processPrintecPayment(amount, onStatus) {
     const SALE_FRAME = buildFrame(saleCmd);
 
     log(`Sumă: ${amount.toFixed(2)} RON (${cents} bani)`);
-    log('📤 Reset & WakeUp POS (EOT + CAN + EOT)...');
-    resetPosLine('Pre-Sale Init');
+    log('📤 WakeUp POS (EOT)...');
+    globalPort.write(Buffer.from([EOT]));
+    rxBuf = Buffer.alloc(0);
     
     // Assign status callback to global port so data handler can use it
     globalPort.currentStatusCallback = onStatus;
@@ -314,7 +315,7 @@ function processPrintecPayment(amount, onStatus) {
 
     setTimeout(() => {
       ecrSend(buildFrame([0x06, 0x00, 0x00]), 'LOGIN', 'LOGIN', 5000);
-    }, 500);
+    }, 400);
   });
 }
 
@@ -704,14 +705,16 @@ async function start() {
     
     log('🛑 CANCEL payment requested din Kiosk (timeout/anulare)!');
     if (paymentInProgress && globalPort && globalPort.isOpen) {
-      log('📤 Trimit CAN + EOT pentru a forța anularea pe ecranul POS...');
+      log('📤 Trimit CAN, apoi EOT pentru a elibera ecranul POS...');
       try {
-        globalPort.write(Buffer.from([CAN, EOT]));
+        globalPort.write(Buffer.from([CAN]));
         setTimeout(() => {
           try {
-            resetPosLine('Kiosk Cancel finalizat');
+            if (globalPort && globalPort.isOpen) {
+              globalPort.write(Buffer.from([EOT]));
+            }
           } catch (_) {}
-        }, 250);
+        }, 400);
       } catch (err) {
         log(`⚠️ Eroare trimitere cancel la POS: ${err.message}`);
       }
