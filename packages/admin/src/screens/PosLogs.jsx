@@ -817,20 +817,6 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={handleTriggerSettlement}
-            disabled={settling}
-            className={`px-4 h-9 rounded-full text-white shadow-sm text-sm font-bold transition-all flex items-center gap-2 ${
-              settling 
-                ? 'bg-slate-400 cursor-not-allowed' 
-                : 'bg-indigo-600 hover:bg-indigo-700 active:scale-95'
-            }`}
-            title="Declanșează comanda de Închidere de Zi (Settlement) pe POS pentru a curăța memoria terminalului"
-          >
-            <RotateCcw className={`w-4 h-4 ${settling ? 'animate-spin' : ''}`} />
-            {settling ? 'Se execută Settlement...' : 'Închidere de Zi (POS)'}
-          </button>
-
-          <button
             onClick={handleExportExcel}
             className="px-4 h-9 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm text-sm font-bold transition-colors flex items-center gap-2"
           >
@@ -839,21 +825,6 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
           </button>
         </div>
       </div>
-
-      {/* Settlement Status Notification Banner */}
-      {settlementNotice && (
-        <div className={`p-4 rounded-xl border flex items-center justify-between transition-all ${
-          settlementNotice.type === 'success' ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 text-emerald-800 dark:text-emerald-200' :
-          settlementNotice.type === 'error' ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-300 text-rose-800 dark:text-rose-200' :
-          'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-300 text-indigo-800 dark:text-indigo-200'
-        }`}>
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            {settling && <RotateCcw className="w-4 h-4 animate-spin text-indigo-600" />}
-            <span>{settlementNotice.text}</span>
-          </div>
-          <button onClick={() => setSettlementNotice(null)} className="text-xs opacity-70 hover:opacity-100 font-bold p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/5"><X size={14} /></button>
-        </div>
-      )}
 
       {/* Table */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-x-auto">
