@@ -97,6 +97,7 @@ let posLoggedIn = false;
 let pendingPosAction = null;
 let pendingPosResult = null;
 let onLoginSuccess = null;
+let onLoginFailure = null;
 
 function resetPosLine(reason = 'Reset') {
   if (!globalPort || !globalPort.isOpen) return;
@@ -243,9 +244,15 @@ function ecrSend(frame, ns, label, timeoutMs = 3000) {
       log(`❌ Eșuat 3 încercări ENQ (${label}). Trimit EOT pentru a readuce magistrala în IDLE conform protocol.`);
       try { globalPort.write(Buffer.from([EOT])); } catch (_) {}
       state = 'IDLE';
+      const failedOp = currentOperation;
       currentOperation = null;
       if (currentTransactionResolve) {
         currentTransactionResolve({ success: false, reason: 'POS-ul nu răspunde (Timeout).', code: 'DECLINED' });
+      }
+      if (failedOp === 'LOGIN' && typeof onLoginFailure === 'function') {
+        const cb = onLoginFailure;
+        onLoginFailure = null;
+        cb('Timeout ENQ (POS nu răspunde)');
       }
     }
   }, timeoutMs);
@@ -255,11 +262,37 @@ function ensurePosLogin() {
   return new Promise((resolve) => {
     if (!globalPort || !globalPort.isOpen) return resolve(false);
     if (posLoggedIn) return resolve(true);
+    if (state !== 'IDLE') {
+      log(`⚠️ ensurePosLogin: starea portului este ocupată (${state}), amân LOGIN...`);
+      return resolve(false);
+    }
     log('🔐 Inițiez LOGIN ECR pe terminalul POS (Printec v3.9.3)...');
+
+    let timer = null;
+    const cleanup = () => {
+      if (timer) clearTimeout(timer);
+      onLoginSuccess = null;
+      onLoginFailure = null;
+    };
+
     onLoginSuccess = () => {
+      cleanup();
       resolve(true);
     };
-    ecrSend(buildFrame([0x06, 0x00, 0x00]), 'LOGIN', 'LOGIN', 5000);
+
+    onLoginFailure = (reason) => {
+      cleanup();
+      log(`⚠️ Login inițial POS eșuat: ${reason}`);
+      resolve(false);
+    };
+
+    timer = setTimeout(() => {
+      cleanup();
+      log('⚠️ Timeout global LOGIN la inițializare (POS în standby sau neconectat). Se va autentifica automat la prima plată.');
+      resolve(false);
+    }, 10000);
+
+    ecrSend(buildFrame([0x06, 0x00, 0x00]), 'LOGIN', 'LOGIN', 3000);
   });
 }
 
@@ -321,7 +354,21 @@ function processPrintecPayment(amount, onStatus) {
       ecrSend(SALE_FRAME, 'SALE', 'SALE', 3000);
     };
 
-    startSale();
+    if (posLoggedIn) {
+      startSale();
+    } else {
+      log('🔐 POS neautentificat — execut LOGIN înainte de vânzare conform protocol...');
+      onStatus && onStatus('Autentificare terminal POS...');
+      onLoginSuccess = () => {
+        log('✅ LOGIN finalizat cu succes! Pornesc vânzarea...');
+        setTimeout(startSale, 300);
+      };
+      onLoginFailure = (reason) => {
+        log(`❌ LOGIN eșuat înainte de vânzare: ${reason}`);
+        fail(`Eroare autentificare POS (${reason})`);
+      };
+      ecrSend(buildFrame([0x06, 0x00, 0x00]), 'LOGIN', 'LOGIN', 3000);
+    }
   });
 }
 
@@ -422,7 +469,9 @@ async function start() {
     globalPort.on('open', () => {
       log(`✅ Port serial POS deschis: ${portPath} @ ${BAUD_RATE}`);
       state = 'IDLE';
-      log('🟢 Terminal POS pregătit în mod direct (IDLE). Aștept tranzacții...');
+      setTimeout(() => {
+        ensurePosLogin().catch(e => log(`⚠️ Eroare login inițial POS: ${e.message}`));
+      }, 1000);
     });
 
     globalPort.on('error', err => {
@@ -439,7 +488,20 @@ async function start() {
       rxBuf = Buffer.concat([rxBuf, chunk]);
 
       const succeed = globalPort.currentSucceed;
-      const fail = globalPort.currentFail;
+      const rawFail = globalPort.currentFail;
+      const fail = (msg) => {
+        if (typeof rawFail === 'function') {
+          rawFail(msg);
+        } else if (typeof onLoginFailure === 'function') {
+          const cb = onLoginFailure;
+          onLoginFailure = null;
+          cb(msg);
+        } else {
+          log(`⚠️ POS Timeout/Fail nesolicitat în tranzacție: ${msg}`);
+          state = 'IDLE';
+          currentOperation = null;
+        }
+      };
       const onStatus = globalPort.currentStatusCallback;
 
       while (rxBuf.length > 0) {
@@ -503,12 +565,32 @@ async function start() {
           if (action === 'LOGIN_DONE') {
             posLoggedIn = true;
             state = 'IDLE';
+            currentOperation = null;
             log('✅ LOGIN finalizat complet cu POS-ul.');
             if (typeof onLoginSuccess === 'function') {
               const cb = onLoginSuccess;
               onLoginSuccess = null;
               cb();
             }
+          } else if (action === 'LOGIN_AND_RETRY_SALE') {
+            log('🔐 Re-execut LOGIN conform protocolului după APRW=0x02...');
+            onLoginSuccess = () => {
+              log('✅ Re-login reușit! Reiau comanda SALE...');
+              setTimeout(() => {
+                if (globalPort.currentSALE_FRAME) {
+                  ecrSend(globalPort.currentSALE_FRAME, 'SALE', 'SALE', 3000);
+                } else {
+                  fail('Cadrul de vânzare nu mai este disponibil pentru reîncercare');
+                }
+              }, 400);
+            };
+            onLoginFailure = (reason) => {
+              log(`❌ Re-login eșuat: ${reason}`);
+              fail(`Autentificare POS eșuată după APRW=0x02 (${reason})`);
+            };
+            setTimeout(() => {
+              ecrSend(buildFrame([0x06, 0x00, 0x00]), 'LOGIN', 'LOGIN', 3000);
+            }, 300);
           } else if (action === 'AWAIT_CARD') {
             // Cadrul 80 00 00 a fost confirmat cu EOT de POS -> POS așteaptă cardul (până la 2 minute)
             state = 'WAIT_POS_ENQ__RESULT';
@@ -601,7 +683,12 @@ async function start() {
               log(`❌ SALE refuzat de POS (APRW=0x${instr.toString(16)})`);
               if (instr === 0x02) {
                 // ECR has not executed login
+                log('🔄 POS raportează APRW=0x02 (ECR has not executed login). Execut LOGIN automat și reîncerc vânzarea...');
                 posLoggedIn = false;
+                pendingPosAction = 'LOGIN_AND_RETRY_SALE';
+                state = 'WAIT_POS_EOT';
+                currentTransactionTimer = setTimeout(() => fail('Timeout EOT după refuz SALE 0x02'), 3000);
+                break;
               }
               fail(`Comandă vânzare refuzată de POS (APRW=0x${instr.toString(16)})`);
             }
