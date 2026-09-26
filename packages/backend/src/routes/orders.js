@@ -71,6 +71,7 @@ async function processOrderCreation(body, io) {
     await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CT-002"') WHERE data->>'orderNumber' = 'CT-439'`).catch(() => {});
 
     // Auto-corectie dinamică secvență Cluj blocată la 500 (26.09.2026)
+    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-507"') WHERE id = 'ORD-1790425948655'`).catch(() => {});
     await pool.query(`
       WITH numbered AS (
         SELECT id,
@@ -369,6 +370,7 @@ router.get('/', async (req, res) => {
     await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CT-002"') WHERE data->>'orderNumber' = 'CT-439'`).catch(() => {});
 
     // Auto-corectie dinamică secvență Cluj blocată la 500 (26.09.2026)
+    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-507"') WHERE id = 'ORD-1790425948655'`).catch(() => {});
     await pool.query(`
       WITH numbered AS (
         SELECT id,
