@@ -59,7 +59,7 @@ async function processOrderCreation(body, io) {
 
   // Get max orderNumber from Postgres
   let maxOrderNumber = 358;
-  let clujMax = Math.max(93, memoryClujMax);
+  let clujMax = Math.max(93, (memoryClujMax < 10000 ? memoryClujMax : 93));
   let brasovMax = 0;
   const maxByPrefix = {};
   const usedClujSeqs = new Set();
@@ -85,6 +85,24 @@ async function processOrderCreation(body, io) {
       WHERE o.id = n.id AND n.offset > 0
     `).catch(() => {});
 
+    // Auto-corectie comenzi sarite la 10024+ (26.09.2026)
+    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-508"') WHERE id = 'ORD-1790426940073'`).catch(() => {});
+    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-509"') WHERE id = 'ORD-1790427016320'`).catch(() => {});
+    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-510"') WHERE id = 'ORD-1790427710472'`).catch(() => {});
+    await pool.query(`
+      WITH rogue_today AS (
+        SELECT id,
+               ROW_NUMBER() OVER (ORDER BY created_at ASC) - 1 AS offset
+        FROM orders
+        WHERE data->>'orderNumber' ~ '^CJ[0-9]*-1002[4-9]'
+          AND created_at >= '2026-09-26T12:00:00Z'
+      )
+      UPDATE orders o
+      SET data = jsonb_set(data, '{orderNumber}', to_jsonb('CJ1-' || (508 + r.offset)::text))
+      FROM rogue_today r
+      WHERE o.id = r.id
+    `).catch(() => {});
+
     const { rows } = await pool.query(`SELECT data->>'orderNumber' as num, location_id FROM orders WHERE (data->>'orderNumber') IS NOT NULL`);
     for (const row of rows) {
       const str = String(row.num || '').trim();
@@ -99,10 +117,12 @@ async function processOrderCreation(body, io) {
 
         if (!isNaN(seqNum) && seqNum < 1000000) {
           if (letterPrefix === 'CJ') {
-            usedClujSeqs.add(seqNum);
-            clujMax = Math.max(clujMax, seqNum);
-            maxByPrefix[fullPrefix] = Math.max(maxByPrefix[fullPrefix] || 0, seqNum);
-            maxByPrefix[letterPrefix] = Math.max(maxByPrefix[letterPrefix] || 0, seqNum);
+            if (seqNum < 10000) { // Ignorăm comenzile vechi de test (10000+)
+              usedClujSeqs.add(seqNum);
+              clujMax = Math.max(clujMax, seqNum);
+              maxByPrefix[fullPrefix] = Math.max(maxByPrefix[fullPrefix] || 0, seqNum);
+              maxByPrefix[letterPrefix] = Math.max(maxByPrefix[letterPrefix] || 0, seqNum);
+            }
           } else {
             maxByPrefix[fullPrefix] = Math.max(maxByPrefix[fullPrefix] || 0, seqNum);
             maxByPrefix[letterPrefix] = Math.max(maxByPrefix[letterPrefix] || 0, seqNum);
@@ -153,7 +173,9 @@ async function processOrderCreation(body, io) {
       nextSeq++;
     }
     orderNumber = `CJ${kioskNum}-${formatOrderSeq(nextSeq)}`;
-    memoryClujMax = Math.max(memoryClujMax, nextSeq);
+    if (nextSeq < 10000) {
+      memoryClujMax = Math.max(memoryClujMax, nextSeq);
+    }
   } else if (city === 'brasov') {
     const nextSeq = Math.max(brasovMax, maxOrderNumber) + 1;
     orderNumber = `BV-${formatOrderSeq(nextSeq)}`;
@@ -382,6 +404,24 @@ router.get('/', async (req, res) => {
       SET data = jsonb_set(data, '{orderNumber}', to_jsonb('CJ1-' || (500 + n.offset)::text))
       FROM numbered n
       WHERE o.id = n.id AND n.offset > 0
+    `).catch(() => {});
+
+    // Auto-corectie comenzi sarite la 10024+ (26.09.2026)
+    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-508"') WHERE id = 'ORD-1790426940073'`).catch(() => {});
+    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-509"') WHERE id = 'ORD-1790427016320'`).catch(() => {});
+    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-510"') WHERE id = 'ORD-1790427710472'`).catch(() => {});
+    await pool.query(`
+      WITH rogue_today AS (
+        SELECT id,
+               ROW_NUMBER() OVER (ORDER BY created_at ASC) - 1 AS offset
+        FROM orders
+        WHERE data->>'orderNumber' ~ '^CJ[0-9]*-1002[4-9]'
+          AND created_at >= '2026-09-26T12:00:00Z'
+      )
+      UPDATE orders o
+      SET data = jsonb_set(data, '{orderNumber}', to_jsonb('CJ1-' || (508 + r.offset)::text))
+      FROM rogue_today r
+      WHERE o.id = r.id
     `).catch(() => {});
 
     let query = `SELECT data, status FROM orders WHERE 1=1`;
