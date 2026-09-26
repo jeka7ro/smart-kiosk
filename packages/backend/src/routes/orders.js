@@ -70,13 +70,19 @@ async function processOrderCreation(body, io) {
     await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CT-001"') WHERE data->>'orderNumber' = 'CT-438'`).catch(() => {});
     await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CT-002"') WHERE data->>'orderNumber' = 'CT-439'`).catch(() => {});
 
-    // Auto-corectie secvență Cluj blocată la 500 (26.09.2026)
-    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-501"') WHERE id = 'ORD-1790423125081' AND data->>'orderNumber' = 'CJ1-500'`).catch(() => {});
-    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-502"') WHERE id = 'ORD-1790423592252' AND data->>'orderNumber' = 'CJ1-500'`).catch(() => {});
-    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-503"') WHERE id = 'ORD-1790423840215' AND data->>'orderNumber' = 'CJ1-500'`).catch(() => {});
-    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-504"') WHERE id = 'ORD-1790423931518' AND data->>'orderNumber' = 'CJ1-500'`).catch(() => {});
-    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-505"') WHERE id = 'ORD-1790425047828' AND data->>'orderNumber' = 'CJ1-500'`).catch(() => {});
-    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-506"') WHERE id = 'ORD-1790425392869' AND data->>'orderNumber' = 'CJ1-500'`).catch(() => {});
+    // Auto-corectie dinamică secvență Cluj blocată la 500 (26.09.2026)
+    await pool.query(`
+      WITH numbered AS (
+        SELECT id,
+               ROW_NUMBER() OVER (ORDER BY created_at ASC) - 1 AS offset
+        FROM orders
+        WHERE data->>'orderNumber' = 'CJ1-500'
+      )
+      UPDATE orders o
+      SET data = jsonb_set(data, '{orderNumber}', to_jsonb('CJ1-' || (500 + n.offset)::text))
+      FROM numbered n
+      WHERE o.id = n.id AND n.offset > 0
+    `).catch(() => {});
 
     const { rows } = await pool.query(`SELECT data->>'orderNumber' as num, location_id FROM orders WHERE (data->>'orderNumber') IS NOT NULL`);
     for (const row of rows) {
@@ -362,13 +368,19 @@ router.get('/', async (req, res) => {
     await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CT-001"') WHERE data->>'orderNumber' = 'CT-438'`).catch(() => {});
     await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CT-002"') WHERE data->>'orderNumber' = 'CT-439'`).catch(() => {});
 
-    // Auto-corectie secvență Cluj blocată la 500 (26.09.2026)
-    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-501"') WHERE id = 'ORD-1790423125081' AND data->>'orderNumber' = 'CJ1-500'`).catch(() => {});
-    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-502"') WHERE id = 'ORD-1790423592252' AND data->>'orderNumber' = 'CJ1-500'`).catch(() => {});
-    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-503"') WHERE id = 'ORD-1790423840215' AND data->>'orderNumber' = 'CJ1-500'`).catch(() => {});
-    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-504"') WHERE id = 'ORD-1790423931518' AND data->>'orderNumber' = 'CJ1-500'`).catch(() => {});
-    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-505"') WHERE id = 'ORD-1790425047828' AND data->>'orderNumber' = 'CJ1-500'`).catch(() => {});
-    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-506"') WHERE id = 'ORD-1790425392869' AND data->>'orderNumber' = 'CJ1-500'`).catch(() => {});
+    // Auto-corectie dinamică secvență Cluj blocată la 500 (26.09.2026)
+    await pool.query(`
+      WITH numbered AS (
+        SELECT id,
+               ROW_NUMBER() OVER (ORDER BY created_at ASC) - 1 AS offset
+        FROM orders
+        WHERE data->>'orderNumber' = 'CJ1-500'
+      )
+      UPDATE orders o
+      SET data = jsonb_set(data, '{orderNumber}', to_jsonb('CJ1-' || (500 + n.offset)::text))
+      FROM numbered n
+      WHERE o.id = n.id AND n.offset > 0
+    `).catch(() => {});
 
     let query = `SELECT data, status FROM orders WHERE 1=1`;
     const params = [];
