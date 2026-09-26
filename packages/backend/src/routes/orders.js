@@ -59,7 +59,7 @@ async function processOrderCreation(body, io) {
 
   // Get max orderNumber from Postgres
   let maxOrderNumber = 358;
-  let clujMax = 93;
+  let clujMax = Math.max(93, memoryClujMax);
   let brasovMax = 0;
   const maxByPrefix = {};
   const usedClujSeqs = new Set();
@@ -69,6 +69,14 @@ async function processOrderCreation(body, io) {
     await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-094"') WHERE data->>'orderNumber' = 'CJ1-544'`).catch(() => {});
     await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CT-001"') WHERE data->>'orderNumber' = 'CT-438'`).catch(() => {});
     await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CT-002"') WHERE data->>'orderNumber' = 'CT-439'`).catch(() => {});
+
+    // Auto-corectie secvență Cluj blocată la 500 (26.09.2026)
+    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-501"') WHERE id = 'ORD-1790423125081' AND data->>'orderNumber' = 'CJ1-500'`).catch(() => {});
+    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-502"') WHERE id = 'ORD-1790423592252' AND data->>'orderNumber' = 'CJ1-500'`).catch(() => {});
+    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-503"') WHERE id = 'ORD-1790423840215' AND data->>'orderNumber' = 'CJ1-500'`).catch(() => {});
+    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-504"') WHERE id = 'ORD-1790423931518' AND data->>'orderNumber' = 'CJ1-500'`).catch(() => {});
+    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-505"') WHERE id = 'ORD-1790425047828' AND data->>'orderNumber' = 'CJ1-500'`).catch(() => {});
+    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-506"') WHERE id = 'ORD-1790425392869' AND data->>'orderNumber' = 'CJ1-500'`).catch(() => {});
 
     const { rows } = await pool.query(`SELECT data->>'orderNumber' as num, location_id FROM orders WHERE (data->>'orderNumber') IS NOT NULL`);
     for (const row of rows) {
@@ -84,12 +92,10 @@ async function processOrderCreation(body, io) {
 
         if (!isNaN(seqNum) && seqNum < 1000000) {
           if (letterPrefix === 'CJ') {
-            if (seqNum < 500) {
-              usedClujSeqs.add(seqNum);
-              clujMax = Math.max(clujMax, seqNum);
-              maxByPrefix[fullPrefix] = Math.max(maxByPrefix[fullPrefix] || 0, seqNum);
-              maxByPrefix[letterPrefix] = Math.max(maxByPrefix[letterPrefix] || 0, seqNum);
-            }
+            usedClujSeqs.add(seqNum);
+            clujMax = Math.max(clujMax, seqNum);
+            maxByPrefix[fullPrefix] = Math.max(maxByPrefix[fullPrefix] || 0, seqNum);
+            maxByPrefix[letterPrefix] = Math.max(maxByPrefix[letterPrefix] || 0, seqNum);
           } else {
             maxByPrefix[fullPrefix] = Math.max(maxByPrefix[fullPrefix] || 0, seqNum);
             maxByPrefix[letterPrefix] = Math.max(maxByPrefix[letterPrefix] || 0, seqNum);
@@ -355,6 +361,15 @@ router.get('/', async (req, res) => {
     await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-094"') WHERE data->>'orderNumber' = 'CJ1-544'`).catch(() => {});
     await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CT-001"') WHERE data->>'orderNumber' = 'CT-438'`).catch(() => {});
     await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CT-002"') WHERE data->>'orderNumber' = 'CT-439'`).catch(() => {});
+
+    // Auto-corectie secvență Cluj blocată la 500 (26.09.2026)
+    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-501"') WHERE id = 'ORD-1790423125081' AND data->>'orderNumber' = 'CJ1-500'`).catch(() => {});
+    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-502"') WHERE id = 'ORD-1790423592252' AND data->>'orderNumber' = 'CJ1-500'`).catch(() => {});
+    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-503"') WHERE id = 'ORD-1790423840215' AND data->>'orderNumber' = 'CJ1-500'`).catch(() => {});
+    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-504"') WHERE id = 'ORD-1790423931518' AND data->>'orderNumber' = 'CJ1-500'`).catch(() => {});
+    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-505"') WHERE id = 'ORD-1790425047828' AND data->>'orderNumber' = 'CJ1-500'`).catch(() => {});
+    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-506"') WHERE id = 'ORD-1790425392869' AND data->>'orderNumber' = 'CJ1-500'`).catch(() => {});
+
     let query = `SELECT data, status FROM orders WHERE 1=1`;
     const params = [];
 
