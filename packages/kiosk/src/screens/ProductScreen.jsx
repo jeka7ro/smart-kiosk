@@ -776,6 +776,13 @@ export default function ProductScreen() {
       !pName.includes('nuggests & fries');
 
     return REMOVABLE_INGREDIENTS.filter(item => {
+      // Regula 0: La produsele Crunch de 12 și 6 bucăți, NU arăta "Fără sos" / "Fără ghimbir" (evită confuzia bucătăriei Cluj)
+      const isCrunch12or6 = (pName.includes('crunch') || catName.includes('crunch')) && 
+                            (pName.includes('12') || pName.includes('6'));
+      if (isCrunch12or6 && (item.id === 'sos' || item.id === 'ghimbir')) {
+        return false;
+      }
+
       // Regula 1: Pe platourile cu cartofi sau preparate pe bază de brânză prăjită, NU arăta "Fără cașcaval / brânză"
       if (item.id === 'branza') {
         if (isFriesPlatter || pName.includes('fried cheese') || pName.includes('mozzarella') || pName.includes('cheesy')) {

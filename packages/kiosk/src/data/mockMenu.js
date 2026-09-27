@@ -7,112 +7,7 @@ export const SMASHME_CATEGORIES = [
   { id: 'bauturi',        name: 'Băuturi',         icon: '🥤', color: '#1565C0' },
 ];
 
-export const SMASHME_PRODUCTS = [
-  {
-    id: 'sm1', categoryId: 'smash-burgers',
-    name: 'Classic Smash',
-    price: 42,
-    description: 'Cotlet de vită smash 180g, cheddar topit, salată, roșie, murături, sos special Smash Me',
-    image: 'https://backend.smashme.ro/uploads/products/classic-smash.jpg',
-    badge: 'Best Seller',
-    allergens: ['gluten', 'lactate', 'ou'],
-    modifiers: [
-      { id: 'size', name: 'Mărime', required: true, options: [
-        { id: 'single', name: 'Single 180g', priceDiff: 0 },
-        { id: 'double', name: 'Double 360g', priceDiff: 16 },
-        { id: 'triple', name: 'Triple 540g', priceDiff: 30 },
-      ]},
-      { id: 'side', name: 'Garnitură', required: true, options: [
-        { id: 'fries',   name: 'Cartofi prăjiți', priceDiff: 0 },
-        { id: 'coleslaw',name: 'Coleslaw',         priceDiff: 0 },
-        { id: 'sweet',   name: 'Cartofi dulci',    priceDiff: 7 },
-      ]},
-    ],
-  },
-  {
-    id: 'sm2', categoryId: 'smash-burgers',
-    name: 'BBQ Bacon Smash',
-    price: 48,
-    description: 'Cotlet de vită 180g, bacon crispy, sos BBQ, ceapă caramelizată, cheddar, castraveți murați',
-    image: 'https://backend.smashme.ro/uploads/products/bbq-bacon-smash.jpg',
-    badge: 'Nou',
-    allergens: ['gluten', 'lactate'],
-    modifiers: [
-      { id: 'size2', name: 'Mărime', required: true, options: [
-        { id: 'single2', name: 'Single 180g', priceDiff: 0 },
-        { id: 'double2', name: 'Double 360g', priceDiff: 16 },
-      ]},
-    ],
-  },
-  {
-    id: 'sm3', categoryId: 'smash-burgers',
-    name: 'Crispy Chicken Smash',
-    price: 39,
-    description: 'Piept de pui pane 180g, sos ranch, varză murată, castraveți, roșie',
-    image: '',
-    badge: null,
-    allergens: ['gluten', 'ou'],
-    modifiers: [],
-  },
-  {
-    id: 'sm4', categoryId: 'smash-burgers',
-    name: 'Mushroom Swiss Smash',
-    price: 44,
-    description: 'Cotlet de vită 180g, ciuperci sautéed, brânză elvețiană, maioneză trufe, rucola',
-    image: '',
-    badge: 'Chef Pick',
-    allergens: ['gluten', 'lactate', 'ou'],
-    modifiers: [
-      { id: 'size3', name: 'Mărime', required: true, options: [
-        { id: 'single3', name: 'Single 180g', priceDiff: 0 },
-        { id: 'double3', name: 'Double 360g', priceDiff: 16 },
-      ]},
-    ],
-  },
-  {
-    id: 'sm5', categoryId: 'bauturi',
-    name: 'Limonadă Smash',
-    price: 18,
-    description: 'Lămâie proaspătă, mentă, apă minerală, sirop natural',
-    image: '',
-    badge: null,
-    allergens: [],
-    modifiers: [
-      { id: 'flavor', name: 'Aromă', required: true, options: [
-        { id: 'lemon',   name: 'Lămâie clasic',      priceDiff: 0 },
-        { id: 'berry',   name: 'Fructe de pădure',   priceDiff: 0 },
-        { id: 'ginger',  name: 'Ghimbir & lemon',    priceDiff: 0 },
-      ]},
-    ],
-  },
-  {
-    id: 'sm6', categoryId: 'bauturi',
-    name: 'Milkshake',
-    price: 24,
-    description: 'Înghețată artizanală, lapte integral, sirop natural — 400ml',
-    image: '',
-    badge: null,
-    allergens: ['lactate'],
-    modifiers: [
-      { id: 'shflavor', name: 'Aromă', required: true, options: [
-        { id: 'vanilla',    name: 'Vanilie',       priceDiff: 0 },
-        { id: 'chocolate',  name: 'Ciocolată',     priceDiff: 0 },
-        { id: 'strawberry', name: 'Căpșuni',       priceDiff: 0 },
-        { id: 'caramel',    name: 'Caramel sărat', priceDiff: 0 },
-      ]},
-    ],
-  },
-  {
-    id: 'sm7', categoryId: 'deserturi',
-    name: 'Brownie Smash',
-    price: 22,
-    description: 'Brownie cald de ciocolată, înghețată de vanilie, sos caramel',
-    image: '',
-    badge: null,
-    allergens: ['gluten', 'lactate', 'ou'],
-    modifiers: [],
-  },
-];
+export const SMASHME_PRODUCTS = [];
 
 // ─── SUSHI MASTER ────────────────────────────────────────────────────────────
 
@@ -526,37 +421,7 @@ export const SUSHIMASTER_PRODUCTS = [
   }
 ];
 
-// Selector per brand
+// Selector per brand — returns empty in production so no mock items ever leak
 export function getMenuData(brandId) {
-  if (brandId === "pokiwoki") {
-    return { 
-      categories: [{ id: 'poke', name: 'Poke Bowls', icon: '🥗', color: '#2E7D32' }], 
-      products: [
-        { id: 'pw1', categoryId: 'poke', name: 'Poke Somon', price: 45, description: 'Orez, somon proaspăt, edamame, avocado, sos ponzu, susan', image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80', badge: 'Best', _brand: 'pokiwoki' },
-        { id: 'pw2', categoryId: 'poke', name: 'Poke Ton', price: 48, description: 'Orez, ton, mango, castravete, sos spicy mayo, ceapă crocantă', image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80', _brand: 'pokiwoki' }
-      ] 
-    };
-  }
-  if (brandId === "lovesushi") {
-    return { 
-      categories: [{ id: 'sushi-love', name: 'Sushi Lovers', icon: '🍣', color: '#ec4899' }], 
-      products: [
-        { id: 'ls1', categoryId: 'sushi-love', name: 'Love Salmon Set', price: 65, description: '8x Philadelphia, 4x Maki Somon, 2x Nigiri Somon', image: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=500&q=80', badge: 'Iubire', _brand: 'lovesushi' },
-        { id: 'ls2', categoryId: 'sushi-love', name: 'Pink Dragon Roll', price: 42, description: 'Somon, avocado, cremă de brânză, icre tobiko', image: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=500&q=80', _brand: 'lovesushi' }
-      ] 
-    };
-  }
-  if (brandId === "rollmaster") {
-    return { 
-      categories: [{ id: 'rolls', name: 'Master Rolls', icon: '🥢', color: '#3b82f6' }], 
-      products: [
-        { id: 'rm1', categoryId: 'rolls', name: 'Master Tempura', price: 55, description: 'Rolă caldă cu creveți tempura, somon picant, sos unagi', image: 'https://images.unsplash.com/photo-1553621042-f6e147245754?w=500&q=80', badge: 'Chef', _brand: 'rollmaster' },
-        { id: 'rm2', categoryId: 'rolls', name: 'Crunchy California', price: 38, description: 'Surimi, castravete, avocado, maioneză japoneză, ceapă prăjită', image: 'https://images.unsplash.com/photo-1553621042-f6e147245754?w=500&q=80', _brand: 'rollmaster' }
-      ] 
-    };
-  }
-  if (brandId === "sushimaster" || brandId === "ikura") {
-    return { categories: SUSHIMASTER_CATEGORIES, products: SUSHIMASTER_PRODUCTS };
-  }
-  return { categories: SMASHME_CATEGORIES, products: SMASHME_PRODUCTS };
+  return { categories: [], products: [] };
 }

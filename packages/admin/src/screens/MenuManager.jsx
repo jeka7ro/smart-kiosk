@@ -458,7 +458,7 @@ export function MenuProfileEditorModal({
     const effectiveLocId = selectedLocId || locId || '';
     const orgParam = effectiveOrgId ? `&orgId=${encodeURIComponent(effectiveOrgId)}` : '';
     const locParam = effectiveLocId ? `&locId=${encodeURIComponent(effectiveLocId)}` : '';
-    fetchWithAuth(`${backend}/api/menu?brandId=${brand.id}${orgParam}${locParam}`)
+    fetchWithAuth(`${backend}/api/menu?brandId=${brand.id}${orgParam}${locParam}&includeHidden=true`)
       .then(r => r.json())
       .then(d => {
         setMenu({ categories: d.categories || [], products: d.products || [] });

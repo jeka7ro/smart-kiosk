@@ -138,10 +138,11 @@ router.get('/', requireApiKey, async (req, res) => {
         
         if (overrides) {
           let profile = null;
+          let bData = null;
           if (overrides.profileId) {
             const { rows: brandRows } = await pool.query('SELECT data FROM brands WHERE id = $1', [brandId]);
             if (brandRows.length > 0) {
-              let bData = brandRows[0].data;
+              bData = brandRows[0].data;
               if (typeof bData === 'string') {
                 try { bData = JSON.parse(bData); } catch {}
               }
@@ -159,6 +160,8 @@ router.get('/', requireApiKey, async (req, res) => {
           for (const [k, v] of Object.entries(localHidden)) {
             mergedHidden[k] = v;
           }
+
+          const includeHidden = req.query.includeHidden === 'true' || req.query.includeHidden === '1';
 
           // 1. Root Folder Traversal (if specified)
           if (rootFolderId) {
@@ -180,7 +183,7 @@ router.get('/', requireApiKey, async (req, res) => {
                 mergedHidden[p.id] !== true && 
                 mergedHidden[p.categoryId] !== true
               );
-              if (survivingProds.length > 0) {
+              if (survivingProds.length > 0 || includeHidden) {
                 finalCategories = scopedCats;
               } else {
                 console.warn(`[Menu API] rootFolderId '${rootFolderId}' would result in 0 active products. Fallback to full menu to prevent kiosk blackout.`);
@@ -189,94 +192,98 @@ router.get('/', requireApiKey, async (req, res) => {
           }
 
           // 2. Hide specific categories (and prune their branches)
-          // We iteratively remove any category whose id OR parentGroup is hidden
-          let categoriesToKeep = [];
-          for (const cat of finalCategories) {
-            // Traverse up to see if any ancestor is hidden
-            let isHidden = false;
-            let currentCursor = cat;
-            while (currentCursor) {
-              if (mergedHidden[currentCursor.id] === true) {
-                isHidden = true;
-                break;
+          // When includeHidden is true (Admin mode), we do not prune categories so the user can see & unhide them.
+          if (!includeHidden) {
+            let categoriesToKeep = [];
+            for (const cat of finalCategories) {
+              // Traverse up to see if any ancestor is hidden
+              let isHidden = false;
+              let currentCursor = cat;
+              while (currentCursor) {
+                if (mergedHidden[currentCursor.id] === true) {
+                  isHidden = true;
+                  break;
+                }
+                currentCursor = finalCategories.find(c => c.id === currentCursor.parentGroup);
               }
-              currentCursor = finalCategories.find(c => c.id === currentCursor.parentGroup);
+              if (!isHidden) categoriesToKeep.push(cat);
             }
-            if (!isHidden) categoriesToKeep.push(cat);
+            finalCategories = categoriesToKeep;
           }
-          finalCategories = categoriesToKeep;
 
           // 3. Keep products only if their category survived AND the product itself is not hidden
-          const validCatIds = new Set(finalCategories.map(c => c.id));
-          const stopListIds = typeof getStopListIds === 'function' ? getStopListIds() : new Set();
+          if (!includeHidden) {
+            const validCatIds = new Set(finalCategories.map(c => c.id));
+            const stopListIds = typeof getStopListIds === 'function' ? getStopListIds() : new Set();
 
-          // Collect all hidden product IDs and names (including products whose category was pruned or hidden)
-          const hiddenProductIds = new Set();
-          const hiddenProductNames = new Set();
+            // Collect all hidden product IDs and names (including products whose category was pruned or hidden)
+            const hiddenProductIds = new Set();
+            const hiddenProductNames = new Set();
 
-          (menu.products || []).forEach(p => {
-            const isCatHidden = !validCatIds.has(p.categoryId) || mergedHidden[p.categoryId] === true;
-            const isProdExplicitlyHidden = mergedHidden[p.id] === true;
-            const isOutOfStock = p.outOfStock || stopListIds.has(p.id);
-            if (isCatHidden || isProdExplicitlyHidden || isOutOfStock) {
-              hiddenProductIds.add(p.id);
-              if (p.name) {
-                hiddenProductNames.add(p.name.trim().toLowerCase());
-                hiddenProductNames.add(p.name.replace(/^\*+\s*/, '').trim().toLowerCase());
+            (menu.products || []).forEach(p => {
+              const isCatHidden = !validCatIds.has(p.categoryId) || mergedHidden[p.categoryId] === true;
+              const isProdExplicitlyHidden = mergedHidden[p.id] === true;
+              const isOutOfStock = p.outOfStock || stopListIds.has(p.id);
+              if (isCatHidden || isProdExplicitlyHidden || isOutOfStock) {
+                hiddenProductIds.add(p.id);
+                if (p.name) {
+                  hiddenProductNames.add(p.name.trim().toLowerCase());
+                  hiddenProductNames.add(p.name.replace(/^\*+\s*/, '').trim().toLowerCase());
+                }
               }
-            }
-          });
+            });
 
-          // Also add any key explicitly set to true in mergedHidden or in stop list
-          Object.entries(mergedHidden).forEach(([k, v]) => {
-            if (v === true) hiddenProductIds.add(k);
-          });
-          stopListIds.forEach(id => hiddenProductIds.add(id));
+            // Also add any key explicitly set to true in mergedHidden or in stop list
+            Object.entries(mergedHidden).forEach(([k, v]) => {
+              if (v === true) hiddenProductIds.add(k);
+            });
+            stopListIds.forEach(id => hiddenProductIds.add(id));
 
-          // Filter top-level products
-          finalProducts = finalProducts.filter(p => {
-             return validCatIds.has(p.categoryId) && !hiddenProductIds.has(p.id);
-          });
+            // Filter top-level products
+            finalProducts = finalProducts.filter(p => {
+               return validCatIds.has(p.categoryId) && !hiddenProductIds.has(p.id);
+            });
 
-          // 4. Prune hidden modifier options and empty modifier groups from surviving products
-          const isModifierOptionHidden = (opt) => {
-            if (!opt) return true;
-            if (opt.outOfStock) return true;
-            if (hiddenProductIds.has(opt.id)) return true;
-            if (opt._matchedId && hiddenProductIds.has(opt._matchedId)) return true;
-            if (opt.name) {
-              const nameLower = opt.name.trim().toLowerCase();
-              const cleanNameLower = opt.name.replace(/^\*+\s*/, '').trim().toLowerCase();
-              if (hiddenProductNames.has(nameLower) || hiddenProductNames.has(cleanNameLower)) return true;
-            }
-            return false;
-          };
-
-          const cleanModifierGroup = (group) => {
-            const rawOptions = group.options || group.items || [];
-            const validOptions = rawOptions.filter(opt => !isModifierOptionHidden(opt));
-            return {
-              ...group,
-              options: validOptions,
-              items: validOptions
+            // 4. Prune hidden modifier options and empty modifier groups from surviving products
+            const isModifierOptionHidden = (opt) => {
+              if (!opt) return true;
+              if (opt.outOfStock) return true;
+              if (hiddenProductIds.has(opt.id)) return true;
+              if (opt._matchedId && hiddenProductIds.has(opt._matchedId)) return true;
+              if (opt.name) {
+                const nameLower = opt.name.trim().toLowerCase();
+                const cleanNameLower = opt.name.replace(/^\*+\s*/, '').trim().toLowerCase();
+                if (hiddenProductNames.has(nameLower) || hiddenProductNames.has(cleanNameLower)) return true;
+              }
+              return false;
             };
-          };
 
-          finalProducts = finalProducts.map(p => {
-            const cleanedModifierGroups = (p.modifierGroups || [])
-              .map(cleanModifierGroup)
-              .filter(group => (group.options || []).length > 0 || group.required);
-
-            const cleanedModifiers = (p.modifiers || [])
-              .map(cleanModifierGroup)
-              .filter(group => (group.options || []).length > 0 || group.required);
-
-            return {
-              ...p,
-              modifierGroups: cleanedModifierGroups,
-              modifiers: cleanedModifiers.length > 0 ? cleanedModifiers : cleanedModifierGroups
+            const cleanModifierGroup = (group) => {
+              const rawOptions = group.options || group.items || [];
+              const validOptions = rawOptions.filter(opt => !isModifierOptionHidden(opt));
+              return {
+                ...group,
+                options: validOptions,
+                items: validOptions
+              };
             };
-          });
+
+            finalProducts = finalProducts.map(p => {
+              const cleanedModifierGroups = (p.modifierGroups || [])
+                .map(cleanModifierGroup)
+                .filter(group => (group.options || []).length > 0 || group.required);
+
+              const cleanedModifiers = (p.modifiers || [])
+                .map(cleanModifierGroup)
+                .filter(group => (group.options || []).length > 0 || group.required);
+
+              return {
+                ...p,
+                modifierGroups: cleanedModifierGroups,
+                modifiers: cleanedModifiers.length > 0 ? cleanedModifiers : cleanedModifierGroups
+              };
+            });
+          }
         }
       }
     } catch (e) {

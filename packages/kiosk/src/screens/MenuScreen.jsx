@@ -3,7 +3,6 @@ import { useKioskStore } from '../store/kioskStore';
 import { useBrand } from '../context/BrandContext.js';
 import { BRANDS } from '../config/brands.js';
 import { t } from '../i18n/translations.js';
-import { getMenuData } from '../data/mockMenu.js';
 import { useInactivityTimeout } from '../hooks/useInactivityTimeout.js';
 import ProductCard from '../components/ProductCard.jsx';
 import ModifierModal from '../components/ModifierModal.jsx';
@@ -201,12 +200,23 @@ export default function MenuScreen() {
     };
 
     if (!orgId) {
-      console.warn(`[DEBUG] orgId is undefined for activeBrandId=${activeBrandId}. Falling back to mock data.`);
-      const { categories: cats, products: prods } = getMenuData(activeBrandId);
-      setCategories(cats);
-      setProducts(prods);
-      setActiveCategory(restoreOrPick(cats, prods));
-      setLoading(false);
+      console.warn(`[MenuScreen] orgId is undefined for activeBrandId=${activeBrandId}. Checking local cache.`);
+      const cached = localStorage.getItem(`kiosk_menu_cache_${activeBrandId}`);
+      if (cached) {
+        try {
+          const { categories: cats, products: prods } = JSON.parse(cached);
+          if (cats?.length > 0 && prods?.length > 0) {
+            setCategories(cats);
+            setProducts(prods);
+            setMenuProducts(prods);
+            setMenuCategories(cats);
+            setActiveCategory(restoreOrPick(cats, prods));
+            setLoading(false);
+            return;
+          }
+        } catch (e) {}
+      }
+      setLoading(true);
       return;
     }
 
@@ -233,6 +243,12 @@ export default function MenuScreen() {
         setMenuProducts(prods);
         setMenuCategories(cats);
         setActiveCategory(restoreOrPick(cats, prods));
+        // Cache real Syrve menu locally for offline resilience
+        try {
+          if (cats.length > 0 && prods.length > 0) {
+            localStorage.setItem(`kiosk_menu_cache_${activeBrandId}`, JSON.stringify({ categories: cats, products: prods }));
+          }
+        } catch (e) {}
         // Merge into allProducts for cross-brand global search
         setAllProducts(prev => {
           const existingIds = new Set(prev.filter(p => p._brand !== activeBrandId).map(p => p.id));
@@ -241,18 +257,22 @@ export default function MenuScreen() {
         setLoading(false);
       })
       .catch(err => {
-        console.warn('[MenuScreen] API fetch failed, falling back to mock:', err);
-        const { categories: cats, products: rawProds } = getMenuData(activeBrandId);
-        const brandOverrides = locationData?.menuOverrides?.[activeBrandId] || {};
-        const localHidden = brandOverrides.hiddenItems || {};
-        const prods = rawProds
-          .filter(p => p.price > 0 && !p.isHidden && !p.isDeleted && !p.outOfStock && localHidden[p.id] !== true && localHidden[p.categoryId] !== true)
-          .map(p => ({ ...p, _brand: activeBrandId }));
-        setCategories(cats);
-        setProducts(prods);
-        setMenuProducts(prods);
-        setMenuCategories(cats);
-        setActiveCategory(restoreOrPick(cats, prods));
+        console.warn('[MenuScreen] API fetch failed, checking local cache:', err);
+        const cached = localStorage.getItem(`kiosk_menu_cache_${activeBrandId}`);
+        if (cached) {
+          try {
+            const { categories: cats, products: prods } = JSON.parse(cached);
+            if (cats?.length > 0 && prods?.length > 0) {
+              setCategories(cats);
+              setProducts(prods);
+              setMenuProducts(prods);
+              setMenuCategories(cats);
+              setActiveCategory(restoreOrPick(cats, prods));
+              setLoading(false);
+              return;
+            }
+          } catch (e) {}
+        }
         setLoading(false);
       });
   }, [activeBrandId, locationOrgIds, locationData]);

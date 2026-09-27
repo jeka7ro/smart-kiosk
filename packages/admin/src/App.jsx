@@ -2873,7 +2873,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
       const locParam = loc.id ? `&locId=${encodeURIComponent(loc.id)}` : '';
       Promise.all([
         fetchWithAuth(`${backend}/api/brands/${brandId}`).then(r => r.ok ? r.json() : null),
-        fetchWithAuth(`${backend}/api/menu?brandId=${brandId}${orgParam}${locParam}`).then(r => r.ok ? r.json() : null)
+        fetchWithAuth(`${backend}/api/menu?brandId=${brandId}${orgParam}${locParam}&includeHidden=true`).then(r => r.ok ? r.json() : null)
       ])
         .then(([brandData, menuData]) => {
           if (brandData) {

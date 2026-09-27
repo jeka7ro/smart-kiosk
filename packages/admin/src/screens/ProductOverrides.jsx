@@ -116,7 +116,7 @@ export default function ProductOverrides() {
       const locOrgId = (activeLocObj?.orgIds && activeLocObj.orgIds[activeBrand]) || '';
       const orgParam = locOrgId ? `&orgId=${encodeURIComponent(locOrgId)}` : '';
       const locParam = activeLocation ? `&locId=${encodeURIComponent(activeLocation)}` : '';
-      const mRes = await fetchWithAuth(`${BACKEND}/api/menu?brandId=${activeBrand}${orgParam}${locParam}`);
+      const mRes = await fetchWithAuth(`${BACKEND}/api/menu?brandId=${activeBrand}${orgParam}${locParam}&includeHidden=true`);
       const mData = await mRes.json();
       
       const catMap = {};

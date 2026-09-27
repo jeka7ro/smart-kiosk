@@ -7,112 +7,7 @@ export const SMASHME_CATEGORIES = [
   { id: 'bauturi',        name: 'Băuturi',         icon: '🥤', color: '#1565C0' },
 ];
 
-export const SMASHME_PRODUCTS = [
-  {
-    id: 'sm1', categoryId: 'smash-burgers',
-    name: 'Classic Smash',
-    price: 42,
-    description: 'Cotlet de vită smash 180g, cheddar topit, salată, roșie, murături, sos special Smash Me',
-    image: 'https://smashme.ro/_next/image?url=https%3A%2F%2Fbackend.smashme.ro%2Fuploads%2Fproducts%2Fclassic-smash.jpg&w=640&q=75',
-    badge: 'Best Seller',
-    allergens: ['gluten', 'lactate', 'ou'],
-    modifiers: [
-      { id: 'size', name: 'Mărime', required: true, options: [
-        { id: 'single', name: 'Single 180g', priceDiff: 0 },
-        { id: 'double', name: 'Double 360g', priceDiff: 16 },
-        { id: 'triple', name: 'Triple 540g', priceDiff: 30 },
-      ]},
-      { id: 'side', name: 'Garnitură', required: true, options: [
-        { id: 'fries',   name: 'Cartofi prăjiți', priceDiff: 0 },
-        { id: 'coleslaw',name: 'Coleslaw',         priceDiff: 0 },
-        { id: 'sweet',   name: 'Cartofi dulci',    priceDiff: 7 },
-      ]},
-    ],
-  },
-  {
-    id: 'sm2', categoryId: 'smash-burgers',
-    name: 'BBQ Bacon Smash',
-    price: 48,
-    description: 'Cotlet de vită 180g, bacon crispy, sos BBQ, ceapă caramelizată, cheddar, castraveți murați',
-    image: 'https://smashme.ro/_next/image?url=https%3A%2F%2Fbackend.smashme.ro%2Fuploads%2Fproducts%2Fbbq-bacon-smash.jpg&w=640&q=75',
-    badge: 'Nou',
-    allergens: ['gluten', 'lactate'],
-    modifiers: [
-      { id: 'size2', name: 'Mărime', required: true, options: [
-        { id: 'single2', name: 'Single 180g', priceDiff: 0 },
-        { id: 'double2', name: 'Double 360g', priceDiff: 16 },
-      ]},
-    ],
-  },
-  {
-    id: 'sm3', categoryId: 'smash-burgers',
-    name: 'Crispy Chicken Smash',
-    price: 39,
-    description: 'Piept de pui pane 180g, sos ranch, varză murată, castraveți, roșie',
-    image: '',
-    badge: null,
-    allergens: ['gluten', 'ou'],
-    modifiers: [],
-  },
-  {
-    id: 'sm4', categoryId: 'smash-burgers',
-    name: 'Mushroom Swiss Smash',
-    price: 44,
-    description: 'Cotlet de vită 180g, ciuperci sautéed, brânză elvețiană, maioneză trufe, rucola',
-    image: '',
-    badge: 'Chef Pick',
-    allergens: ['gluten', 'lactate', 'ou'],
-    modifiers: [
-      { id: 'size3', name: 'Mărime', required: true, options: [
-        { id: 'single3', name: 'Single 180g', priceDiff: 0 },
-        { id: 'double3', name: 'Double 360g', priceDiff: 16 },
-      ]},
-    ],
-  },
-  {
-    id: 'sm5', categoryId: 'bauturi',
-    name: 'Limonadă Smash',
-    price: 18,
-    description: 'Lămâie proaspătă, mentă, apă minerală, sirop natural',
-    image: '',
-    badge: null,
-    allergens: [],
-    modifiers: [
-      { id: 'flavor', name: 'Aromă', required: true, options: [
-        { id: 'lemon',   name: 'Lămâie clasic',      priceDiff: 0 },
-        { id: 'berry',   name: 'Fructe de pădure',   priceDiff: 0 },
-        { id: 'ginger',  name: 'Ghimbir & lemon',    priceDiff: 0 },
-      ]},
-    ],
-  },
-  {
-    id: 'sm6', categoryId: 'bauturi',
-    name: 'Milkshake',
-    price: 24,
-    description: 'Înghețată artizanală, lapte integral, sirop natural — 400ml',
-    image: '',
-    badge: null,
-    allergens: ['lactate'],
-    modifiers: [
-      { id: 'shflavor', name: 'Aromă', required: true, options: [
-        { id: 'vanilla',    name: 'Vanilie',       priceDiff: 0 },
-        { id: 'chocolate',  name: 'Ciocolată',     priceDiff: 0 },
-        { id: 'strawberry', name: 'Căpșuni',       priceDiff: 0 },
-        { id: 'caramel',    name: 'Caramel sărat', priceDiff: 0 },
-      ]},
-    ],
-  },
-  {
-    id: 'sm7', categoryId: 'deserturi',
-    name: 'Brownie Smash',
-    price: 22,
-    description: 'Brownie cald de ciocolată, înghețată de vanilie, sos caramel',
-    image: '',
-    badge: null,
-    allergens: ['gluten', 'lactate', 'ou'],
-    modifiers: [],
-  },
-];
+export const SMASHME_PRODUCTS = [];
 
 // ─── SUSHI MASTER ────────────────────────────────────────────────────────────
 
@@ -229,10 +124,7 @@ export const SUSHIMASTER_PRODUCTS = [
   },
 ];
 
-// Selector per brand
+// Selector per brand — returns empty in production so no mock items ever leak
 export function getMenuData(brandId) {
-  if (brandId === 'sushimaster') {
-    return { categories: SUSHIMASTER_CATEGORIES, products: SUSHIMASTER_PRODUCTS };
-  }
-  return { categories: SMASHME_CATEGORIES, products: SMASHME_PRODUCTS };
+  return { categories: [], products: [] };
 }
