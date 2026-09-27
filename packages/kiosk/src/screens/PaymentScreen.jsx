@@ -249,15 +249,21 @@ export default function PaymentScreen() {
           setTimeout(() => goTo('confirmation'), 2200);
         } else {
           const isRetryable = result.code === 'A0' || 
-            (result.error && (result.error.includes('A0') || result.error.includes('resetat manual') || result.error.includes('Refusal')));
+            (result.error && (
+              result.error.includes('A0') || 
+              result.error.includes('resetat manual') || 
+              result.error.includes('Refusal') ||
+              result.error.includes('Timeout') ||
+              result.error.includes('nu răspunde')
+            ));
 
           if (isRetryable && autoRetryCountRef.current < 1) {
             autoRetryCountRef.current += 1;
-            setRetryNotice('Se reinițializează conexiunea cu POS-ul, vă rugăm așteptați...');
+            setRetryNotice('Se activează terminalul POS, vă rugăm așteptați...');
             setPayState(STATE.INITIATING);
             setTimeout(() => {
               handlePayRef.current?.();
-            }, 1500);
+            }, 2000);
           } else {
             autoRetryCountRef.current = 0;
             setRetryNotice('');
