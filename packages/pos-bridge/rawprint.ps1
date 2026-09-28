@@ -5,15 +5,26 @@ param (
 
 # 1. Auto-resolve exact installed printer name & fallback if in Error
 try {
-    $printers = @(Get-Printer)
-    $target = $printers | Where-Object { $_.Name -eq $PrinterName }
+    $allPrinters = @(Get-Printer)
+
+    # Excludem categoric dispozitivele virtuale sau cele pe port NUL: (Coupon Generator, PDF, XPS etc.)
+    $validPrinters = $allPrinters | Where-Object {
+        $name = $_.Name
+        $port = $_.PortName
+        ($port -ne "NUL:" -and $port -ne "NUL" -and $port -notlike "FILE*" -and $port -notlike "PORTPROMPT*") -and
+        ($name -notlike "*Coupon*" -and $name -notlike "*Generator*" -and $name -notlike "*PDF*" -and $name -notlike "*XPS*" -and $name -notlike "*Fax*" -and $name -notlike "*OneNote*")
+    }
+
+    $target = $validPrinters | Where-Object { $_.Name -eq $PrinterName }
     
-    # Daca imprimanta curenta e in stare de Error, comutam automat pe imprimanta sanatoasa Epson (ex: Receipt6)
-    if ($target -and ($target.PrinterStatus -eq "Error" -or $target.PrinterStatus -eq 1 -or $target.PrinterStatus -eq 2)) {
-        $healthy = $printers | Where-Object { 
+    # Comutam DOAR daca imprimanta curenta e intr-o stare reala de Error sau Offline
+    # (ATENTIE: PrinterStatus 2 = Unknown si 3 = Idle pe Windows WMI, sunt stari NORMALE pentru Epson APD!)
+    $isRealError = $target -and ($target.PrinterStatus -eq "Error" -or $target.PrinterStatus -eq "Offline")
+    if ($target -and $isRealError) {
+        $healthy = $validPrinters | Where-Object { 
             ($_.Name -like "*EPSON*" -or $_.Name -like "*Receipt*") -and 
             $_.Name -ne $PrinterName -and 
-            $_.PrinterStatus -ne "Error"
+            $_.PrinterStatus -ne "Error" -and $_.PrinterStatus -ne "Offline"
         } | Select-Object -First 1
         if ($healthy) {
             Write-Output "[WinSpool] Comut de la '$PrinterName' (Eroare) la '$($healthy.Name)'"
@@ -21,14 +32,16 @@ try {
         }
     }
     
-    if (-not ($printers.Name -contains $PrinterName)) {
-        $matched = $printers | Where-Object { 
+    if (-not ($validPrinters.Name -contains $PrinterName)) {
+        # Cautam dupa Receipt6 sau TM-T fizic din lista valida
+        $matched = $validPrinters | Where-Object { 
             ($_.Name -like "*$PrinterName*" -or 
             $PrinterName -like "*$($_.Name)*" -or 
             ($_.Name -like "*Receipt6*") -or
-            ($_ -like "*EPSON*" -and $_ -like "*Receipt*") -or
-            ($_ -like "*EPSON*" -and $_ -like "*TM*")) -and
-            $_.PrinterStatus -ne "Error"
+            ($_.PortName -like "TMUSB*" -or $_.PortName -like "USB*") -or
+            ($_.Name -like "*EPSON*" -and $_.Name -like "*Receipt*") -or
+            ($_.Name -like "*EPSON*" -and $_.Name -like "*TM*")) -and
+            $_.PrinterStatus -ne "Error" -and $_.PrinterStatus -ne "Offline"
         } | Select-Object -First 1
         if ($matched) {
             $PrinterName = $matched.Name
@@ -160,8 +173,8 @@ try {
 
 $res = [RawPrinterHelper]::SendFileToPrinter($PrinterName, $FilePath)
 if ($res) { 
-    Write-Output "OK" 
+    Write-Output "OK:$PrinterName" 
 } else { 
-    Write-Output "FAIL" 
+    Write-Output "FAIL:$PrinterName" 
 }
 

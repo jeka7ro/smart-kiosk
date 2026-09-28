@@ -17,26 +17,39 @@ function getActualPrinterName() {
       const parsed = JSON.parse(raw);
       const list = Array.isArray(parsed) ? parsed : [parsed];
       
-      const epsonPrinters = list.filter(p => p && p.Name && /epson|tm-t|receipt/i.test(p.Name));
-      
-      // 1. Căutăm imprimanta funcțională de pe USB fizic (ex: EPSON TM-T(203dpi) Receipt6 pe USB006)
-      const physicalUsbPrinter = epsonPrinters.find(p => 
-        (/receipt6/i.test(p.Name) || /^USB\d+/i.test(p.PortName || '')) &&
-        p.PrinterStatus !== 'Error' && p.PrinterStatus !== 1 && p.PrinterStatus !== 2
-      );
-      
-      // 2. Căutăm o imprimantă sănătoasă
-      const healthyEpson = epsonPrinters.find(p => 
-        p.PrinterStatus !== 'Error' && p.PrinterStatus !== 1 && p.PrinterStatus !== 2
-      );
-      
-      const isErr = (status) => {
-        const s = String(status || '').toLowerCase();
-        return s.includes('error') || s === '1' || s === '2' || s === '3';
+      // Exclude absolut toate imprimantele dummy/virtuale (Coupon Generator pe NUL:, PDF, XPS, Fax etc.)
+      const isDummyOrVirtual = (p) => {
+        if (!p || !p.Name) return true;
+        const name = String(p.Name).toLowerCase();
+        const port = String(p.PortName || '').toUpperCase();
+        if (/coupon|generator|pdf|xps|fax|onenote/i.test(name)) return true;
+        if (port === 'NUL:' || port === 'NUL' || port.startsWith('FILE') || port.startsWith('PORTPROMPT')) return true;
+        return false;
       };
 
-      const configuredPrinter = list.find(p => p && p.Name === configured);
-      const configuredHasError = configuredPrinter && isErr(configuredPrinter.PrinterStatus);
+      const validPrinters = list.filter(p => !isDummyOrVirtual(p));
+      const epsonPrinters = validPrinters.filter(p => /epson|tm-t|receipt/i.test(p.Name));
+      
+      // Porturi fizice recunoscute: TMUSB (Epson APD USB), USB (Windows generic USB), ESDPRT, COM
+      const isPhysicalPort = (port) => /^(TMUSB|USB|ESDPRT|COM)\d+/i.test(port || '');
+      
+      // Doar erori reale: "Error" sau "Offline" (status 2 = Unknown, 3 = Idle sunt stări NORMALE pe Epson APD)
+      const isRealError = (status) => {
+        const s = String(status || '').toLowerCase();
+        return s.includes('error') || s.includes('offline');
+      };
+
+      // 1. Căutăm imprimanta pe port fizic (ex: TMUSB001 sau USB006) sau Receipt6 fără eroare reală
+      const physicalUsbPrinter = epsonPrinters.find(p => 
+        (isPhysicalPort(p.PortName) || /receipt6/i.test(p.Name)) &&
+        !isRealError(p.PrinterStatus)
+      );
+      
+      // 2. Căutăm o imprimantă Epson validă fără eroare
+      const healthyEpson = epsonPrinters.find(p => !isRealError(p.PrinterStatus));
+
+      const configuredPrinter = validPrinters.find(p => p.Name === configured);
+      const configuredHasError = configuredPrinter && isRealError(configuredPrinter.PrinterStatus);
       
       if (configuredHasError) {
         console.warn(`[Printer] ⚠ Imprimanta configurată "${configured}" este în stare de EROARE pe Windows!`);
@@ -51,8 +64,8 @@ function getActualPrinterName() {
       }
       
       // Dacă imprimanta configurată în .env este instalată și fără erori, o folosim cu prioritate
-      if (configured && list.some(p => p.Name === configured) && !configuredHasError) {
-        return configured;
+      if (configuredPrinter && !configuredHasError) {
+        return configuredPrinter.Name;
       }
 
       if (physicalUsbPrinter) {
@@ -64,19 +77,21 @@ function getActualPrinterName() {
       }
       
       if (epsonPrinters.length > 0) return epsonPrinters[0].Name;
+      if (validPrinters.length > 0) return validPrinters[0].Name;
     }
   } catch (_) {
     try {
       const rawNames = execSync('powershell -NoProfile -Command "Get-Printer | Select-Object -ExpandProperty Name"', { timeout: 4000 }).toString();
       const names = rawNames.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
-      const r6 = names.find(n => /receipt6/i.test(n));
+      const validNames = names.filter(n => !/coupon|generator|pdf|xps|fax|onenote/i.test(n));
+      const r6 = validNames.find(n => /receipt6/i.test(n));
       if (r6) return r6;
-      if (configured && names.includes(configured)) return configured;
-      const match = names.find(name => /epson/i.test(name) || /tm-t/i.test(name) || /receipt/i.test(name));
+      if (configured && validNames.includes(configured)) return configured;
+      const match = validNames.find(name => /epson/i.test(name) || /tm-t/i.test(name) || /receipt/i.test(name));
       if (match) return match;
     } catch (_) {}
   }
-  return configured || 'EPSON TM-T20';
+  return configured || 'EPSON TM-T20III Receipt6';
 }
 
 let printerDriver;
@@ -314,8 +329,10 @@ async function printTicket(order) {
         const result = execSync(`powershell -NoProfile -ExecutionPolicy Bypass -Command "${psCmd}"`, { timeout: 12000 }).toString().trim();
         console.log(`[Printer] WinSpool rezultat: "${result}"`);
         if (result.includes('OK')) {
-          console.log(`[Printer] ✅ Bon printat via WinSpool pentru comanda #${order.orderNumber || '?'}`);
-          return { status: 'success', method: 'winspool', printerName: PRINTER_NAME, receiptContent };
+          const match = result.match(/OK:([^\r\n]+)/);
+          const usedPrinter = match ? match[1].trim() : PRINTER_NAME;
+          console.log(`[Printer] ✅ Bon printat via WinSpool pe "${usedPrinter}" pentru comanda #${order.orderNumber || '?'}`);
+          return { status: 'success', method: 'winspool', printerName: usedPrinter, receiptContent };
         }
       } catch (psErr) {
         console.warn(`[Printer] ⚠ WinSpool: ${psErr.message}`);

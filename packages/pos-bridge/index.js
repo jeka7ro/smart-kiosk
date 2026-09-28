@@ -407,8 +407,16 @@ async function start() {
     // ─── Port/Printer Scan ───────────────────────────────────────────────────
     try {
       const scanData = await scanPortsPc();
-      const actualPrinter = typeof getActualPrinterName === 'function' ? getActualPrinterName() : (process.env.PRINTER_NAME || 'EPSON TM-T20III Receipt');
-      const matchedPrinter = scanData.printers.find(p => (p.name || p.Name) === actualPrinter || (p.name || p.Name || '').toLowerCase().includes('epson') || (p.name || p.Name || '').toLowerCase().includes('receipt'));
+      const actualPrinter = typeof getActualPrinterName === 'function' ? getActualPrinterName() : (process.env.PRINTER_NAME || 'EPSON TM-T20III Receipt6');
+      const validPrinters = (scanData.printers || []).filter(p => {
+        const name = (p.name || p.Name || '').toLowerCase();
+        const port = (p.port || p.PortName || '').toUpperCase();
+        return !name.includes('coupon') && !name.includes('generator') && port !== 'NUL:' && port !== 'NUL';
+      });
+      const matchedPrinter = validPrinters.find(p => (p.name || p.Name) === actualPrinter) ||
+                             validPrinters.find(p => /^(TMUSB|USB|ESDPRT)\d+/i.test(p.port || p.PortName || '')) ||
+                             validPrinters.find(p => /receipt/i.test(p.name || p.Name || '')) ||
+                             validPrinters[0];
       if (matchedPrinter) {
         detectedPrinterPort = matchedPrinter.port || matchedPrinter.PortName || '';
       }
@@ -1026,6 +1034,18 @@ async function start() {
   }
 
   socket.on('pos_settlement', (data) => triggerSettlement(data?.locationId));
+
+  socket.on('remote_restart', (data) => {
+    if (!data || isMyLocation(data.locationId)) {
+      log('🔄 Comandă remote_restart primită. Repornesc bridge-ul...');
+      setTimeout(() => process.exit(0), 500);
+    }
+  });
+
+  socket.on(`remote_restart_${LOCATION_ID}`, () => {
+    log('🔄 Comandă remote_restart directă primită. Repornesc bridge-ul...');
+    setTimeout(() => process.exit(0), 500);
+  });
 }
 
 start().catch(err => {

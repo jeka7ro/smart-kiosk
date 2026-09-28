@@ -340,8 +340,9 @@ router.post('/:id/restart', requireApiKey, async (req, res) => {
 
       for (const lid of locationIdsToNotify) {
         io.to(`kiosk-${lid}`).emit('remote_restart', { locationId: lid });
+        io.to(`pos-bridge-${lid}`).emit('remote_restart', { locationId: lid });
         io.emit(`remote_restart_${lid}`, { locationId: lid });
-        console.log(`[Locations RESTART] Sent restart signal to kiosk-${lid}`);
+        console.log(`[Locations RESTART] Sent restart signal to kiosk-${lid} and pos-bridge-${lid}`);
       }
       res.json({ ok: true, message: 'Restart signal sent' });
     } else {
