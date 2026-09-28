@@ -111,6 +111,52 @@ export default function PaymentScreen() {
     }
   }, [locationData]);
 
+  // Pre-salvare imediată a coșului pe server la intrarea în ecranul de plată
+  useEffect(() => {
+    if (!cartItems || cartItems.length === 0 || total <= 0) return;
+    const draftId = orderIdRef.current || `kiosk-${Date.now()}`;
+    orderIdRef.current = draftId;
+
+    const urlBrand   = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('brand') : null;
+    const urlOrg     = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('orgId') : null;
+    const urlKiosk   = (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('kiosk') : null) || '1';
+    const effectiveBrand = activeBrandId || urlBrand || DEFAULT_BRAND;
+    const locationOrgId  = locationData?.orgIds?.[effectiveBrand];
+    const effectiveOrgId = locationOrgId || urlOrg || DEFAULT_ORG;
+    const locationName   = locationData?.name || LOCATION_NAME;
+
+    const payload = {
+      brand: effectiveBrand,
+      orgId: effectiveOrgId,
+      locationId: locationData?.id,
+      locationName: locationName,
+      kioskId: urlKiosk,
+      posOrderId: draftId,
+      orderType, tableNumber,
+      items: cartItems.map(i => ({
+        productId: i.productId, name: i.name, quantity: i.quantity,
+        basePrice: i.basePrice !== undefined ? i.basePrice : null,
+        unitPrice: i.unitPrice, totalPrice: i.totalPrice,
+        brandId: i.brandId,
+        imageUrl: i.image || null,
+        selectedModifiers: i.selectedModifiers || [],
+        comment: i.comment || (i.selectedModifiers?.find(m => m.modId === 'custom_comment')?.optionName) || null,
+      })),
+      totalAmount: total, channel: 'kiosk', paymentMethod: 'card',
+      fiscal: fiscalData || null,
+    };
+
+    fetch(`${BACKEND}/api/payment/pre-save-cart`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        orderId: draftId,
+        locationId: locationData?.kioskUrl || locationData?.id || '',
+        orderPayload: payload,
+      }),
+    }).catch(() => {});
+  }, [cartItems, total, locationData, activeBrandId, orderType, tableNumber, fiscalData]);
+
   // Dacă timpul de 60s pentru card expiră, anulăm garantat tranzacția pe POS
   useEffect(() => {
     if (posTimer === 0 && (payState === STATE.WAITING_CARD || payState === STATE.PIN_ENTRY)) {

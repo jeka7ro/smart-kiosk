@@ -297,6 +297,34 @@ async function removePendingPosOrder(orderId) {
   } catch (_) {}
 }
 
+// ── POST /api/payment/pre-save-cart ──────────────────────────────
+router.post('/pre-save-cart', async (req, res) => {
+  const { orderId, locationId, orderPayload } = req.body;
+  if (!orderId || !orderPayload) {
+    return res.status(400).json({ error: 'Missing orderId or orderPayload' });
+  }
+
+  try {
+    pendingOrdersMap.set(orderId, {
+      locationId: locationId || '',
+      payload: orderPayload,
+      timestamp: Date.now(),
+    });
+
+    await pool.query(
+      `INSERT INTO pending_pos_orders (order_id, location_id, payload) 
+       VALUES ($1, $2, $3) 
+       ON CONFLICT (order_id) DO UPDATE SET payload = EXCLUDED.payload, location_id = EXCLUDED.location_id, created_at = NOW()`,
+      [orderId, locationId || '', JSON.stringify(orderPayload)]
+    );
+
+    return res.json({ success: true, orderId });
+  } catch (err) {
+    console.warn('[Payment] Could not pre-save cart:', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // ── GET /api/payment/pending-orders ──────────────────────────────
 router.get('/pending-orders', requireApiKey, async (req, res) => {
   try {
@@ -304,6 +332,7 @@ router.get('/pending-orders', requireApiKey, async (req, res) => {
     const seenIds = new Set();
 
     // 1. Pending POS orders (pre-saved cart before/during POS card transaction)
+    // ONLY if not already converted into a real order in `orders`
     try {
       const { rows: posRows } = await pool.query(`
         SELECT 
@@ -325,6 +354,10 @@ router.get('/pending-orders', requireApiKey, async (req, res) => {
           l.iiko_error
         FROM pending_pos_orders p
         LEFT JOIN pos_logs l ON l.order_id = p.order_id
+        WHERE NOT EXISTS (
+          SELECT 1 FROM orders o 
+          WHERE o.id = p.order_id OR o.data->>'_id' = p.order_id OR o.data->>'posOrderId' = p.order_id
+        )
         ORDER BY p.created_at DESC
         LIMIT 100
       `);
@@ -373,7 +406,8 @@ router.get('/pending-orders', requireApiKey, async (req, res) => {
       }
     }
 
-    // 2. Orders awaiting cash payment or pending iiko in `orders` table (last 48 hours)
+    // 2. Orders awaiting cash payment in `orders` table (STRICTLY awaiting_payment)
+    // NOTE: Completed/delivered/confirmed/pending kitchen orders are NEVER included!
     try {
       const { rows: orderRows } = await pool.query(`
         SELECT 
@@ -382,16 +416,10 @@ router.get('/pending-orders', requireApiKey, async (req, res) => {
           data, 
           created_at
         FROM orders
-        WHERE (
-          data->>'status' = 'awaiting_payment'
-          OR (
-            (data->>'paymentMethod' = 'cash' OR data->>'paymentMethod' = 'card')
-            AND (data->>'syrveOrderId') IS NULL
-            AND status != 'cancelled'
-            AND (data->>'status') != 'cancelled'
-          )
-        )
-        AND created_at > NOW() - INTERVAL '48 hours'
+        WHERE (data->>'status' = 'awaiting_payment' OR status = 'awaiting_payment')
+          AND status != 'cancelled'
+          AND (data->>'status') != 'cancelled'
+          AND created_at > NOW() - INTERVAL '48 hours'
         ORDER BY created_at DESC
         LIMIT 100
       `);
@@ -402,49 +430,52 @@ router.get('/pending-orders', requireApiKey, async (req, res) => {
         if (seenIds.has(oId)) continue;
         seenIds.add(oId);
 
-        const isCashAwaiting = orderData.status === 'awaiting_payment' || orderData.paymentMethod === 'cash';
         list.push({
           order_id: oId,
           orderNumber: orderData.orderNumber || null,
           location_id: row.location_id,
           payload: orderData,
           created_at: row.created_at,
-          paid: orderData.paymentMethod === 'card',
-          pos_status: orderData.paymentMethod === 'card' ? 'approved' : 'cash_pending',
+          paid: false,
+          pos_status: 'cash_pending',
           pos_amount: orderData.totalAmount,
           auth_code: orderData.paymentRef?.authCode || null,
           ref_num: orderData.paymentRef?.refNum || null,
           card_no: orderData.paymentRef?.cardNo || null,
           iiko_sent: !!orderData.syrveOrderId,
           iiko_order_id: orderData.syrveOrderId || null,
-          kind: isCashAwaiting ? 'cash_awaiting' : 'iiko_pending',
+          kind: 'cash_awaiting',
         });
       }
     } catch (e) {
       console.warn('[Payment] Error fetching awaiting orders from orders table:', e.message);
     }
 
-    // 3. Orphan POS logs with paid=true and not sent to iiko
+    // 3. Orphan POS logs with paid=true and not sent to iiko and NOT already an order
     try {
       const { rows: orphanRows } = await pool.query(`
         SELECT 
-          order_id, 
-          location_id, 
-          location_name,
-          amount,
-          auth_code,
-          ref_num,
-          receipt_no,
-          card_no,
-          tx_date,
-          status,
-          paid,
-          timestamp as created_at
-        FROM pos_logs
-        WHERE paid = true
-          AND (iiko_sent = false OR iiko_sent IS NULL OR iiko_order_id IS NULL)
-          AND timestamp > NOW() - INTERVAL '48 hours'
-        ORDER BY timestamp DESC
+          l.order_id, 
+          l.location_id, 
+          l.location_name,
+          l.amount,
+          l.auth_code,
+          l.ref_num,
+          l.receipt_no,
+          l.card_no,
+          l.tx_date,
+          l.status,
+          l.paid,
+          l.timestamp as created_at
+        FROM pos_logs l
+        WHERE l.paid = true
+          AND (l.iiko_sent = false OR l.iiko_sent IS NULL OR l.iiko_order_id IS NULL)
+          AND l.timestamp > NOW() - INTERVAL '48 hours'
+          AND NOT EXISTS (
+            SELECT 1 FROM orders o 
+            WHERE o.id = l.order_id OR o.data->>'_id' = l.order_id OR o.data->>'posOrderId' = l.order_id
+          )
+        ORDER BY l.timestamp DESC
         LIMIT 50
       `);
 
@@ -488,6 +519,7 @@ router.get('/pending-orders', requireApiKey, async (req, res) => {
     return res.status(500).json({ error: err.message, pendingOrders: [], total: 0 });
   }
 });
+
 
 // ── POST /api/payment/pending-orders/:orderId/push-iiko ──────────
 router.post('/pending-orders/:orderId/push-iiko', requireApiKey, async (req, res) => {
