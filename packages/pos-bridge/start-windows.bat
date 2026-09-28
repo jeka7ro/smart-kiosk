@@ -59,6 +59,7 @@ curl -s -L -H "Cache-Control: no-cache" -o scan_port_pc.js "https://raw.githubus
 curl -s -L -H "Cache-Control: no-cache" -o PrinterServiceDatecsFP950.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/PrinterServiceDatecsFP950.js"
 curl -s -L -H "Cache-Control: no-cache" -o VivaPosService.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/VivaPosService.js"
 echo.
+powershell -NoProfile -Command "Get-PrintJob -ErrorAction SilentlyContinue | Remove-PrintJob -ErrorAction SilentlyContinue; Get-Printer -ErrorAction SilentlyContinue | Where-Object { $_.Name -like '*EPSON*' } | ForEach-Object { Set-Printer -Name $_.Name -Paused $false -ErrorAction SilentlyContinue }"
 node index.js
 echo.
 echo  [WARN] Bridge oprit - repornesc in 5 secunde...
