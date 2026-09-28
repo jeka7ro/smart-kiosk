@@ -76,6 +76,25 @@ async function scanPortsPc() {
     console.error(`[Scan] Eroare la scanare imprimante:`, e.message);
   }
 
+  // ─── PRINT QUEUE & PAUSED STATUS ──────────────────
+  try {
+    const qCmd = `Get-PrintJob -ErrorAction SilentlyContinue | Select-Object Id, PrinterName, JobStatus, DocumentName | ConvertTo-Json -Compress`;
+    const qRaw = execSync(`powershell -NoProfile -Command "${qCmd}"`, { timeout: 6000 }).toString().trim();
+    if (qRaw) {
+      const qParsed = JSON.parse(qRaw);
+      result.printJobs = Array.isArray(qParsed) ? qParsed : [qParsed];
+      console.log(`[Scan] ⚠️ Joburi blocate în coada Windows: ${result.printJobs.length}`);
+      result.printJobs.forEach(j => {
+        console.log(`   → Job #${j.Id} pe "${j.PrinterName}": status="${j.JobStatus}", doc="${j.DocumentName}"`);
+      });
+    } else {
+      result.printJobs = [];
+      console.log('[Scan] ✅ Coada Windows este liberă (0 joburi blocate).');
+    }
+  } catch (_) {
+    result.printJobs = [];
+  }
+
   return result;
 }
 

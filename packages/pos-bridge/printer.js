@@ -308,9 +308,9 @@ async function printTicket(order) {
         execSync(`powershell -NoProfile -Command "Set-Printer -Name '${PRINTER_NAME}' -Shared $true -ShareName '${shareName}' -ErrorAction SilentlyContinue"`, { timeout: 5000 });
       } catch (_) {}
 
-      // 2. Deblocăm coada Windows de orice joburi anterioare blocate (ex: Test Page)
+      // 2. Asigurăm că imprimanta nu e pe Paused și deblocăm coada complet de orice job anterior
       try {
-        execSync(`powershell -NoProfile -Command "Get-PrintJob -PrinterName '${PRINTER_NAME}' -ErrorAction SilentlyContinue | Where-Object { $_.JobStatus -like '*Error*' -or $_.JobStatus -like '*Blocked*' -or $_.JobStatus -like '*Deleting*' } | Remove-PrintJob -ErrorAction SilentlyContinue"`, { timeout: 5000 });
+        execSync(`powershell -NoProfile -Command "Set-Printer -Name '${PRINTER_NAME}' -Paused $false -ErrorAction SilentlyContinue; Get-PrintJob -PrinterName '${PRINTER_NAME}' -ErrorAction SilentlyContinue | Remove-PrintJob -ErrorAction SilentlyContinue"`, { timeout: 5000 });
       } catch (_) {}
 
       // Metoda 1: Trimitere directă RAW către Spooler Share (100% nativ Windows, fără compilare C#)
@@ -331,8 +331,19 @@ async function printTicket(order) {
         if (result.includes('OK')) {
           const match = result.match(/OK:([^\r\n]+)/);
           const usedPrinter = match ? match[1].trim() : PRINTER_NAME;
+
+          let queueInfo = null;
+          try {
+            const checkCmd = `Get-PrintJob -PrinterName '${usedPrinter}' -ErrorAction SilentlyContinue | Select-Object Id, JobStatus, DocumentName | ConvertTo-Json -Compress`;
+            const qRaw = execSync(`powershell -NoProfile -Command "${checkCmd}"`, { timeout: 3000 }).toString().trim();
+            if (qRaw) {
+              console.warn(`[Printer] ⚠ Joburi în coada Windows pentru "${usedPrinter}": ${qRaw}`);
+              queueInfo = qRaw;
+            }
+          } catch (_) {}
+
           console.log(`[Printer] ✅ Bon printat via WinSpool pe "${usedPrinter}" pentru comanda #${order.orderNumber || '?'}`);
-          return { status: 'success', method: 'winspool', printerName: usedPrinter, receiptContent };
+          return { status: 'success', method: 'winspool', printerName: usedPrinter, receiptContent, queueInfo };
         }
       } catch (psErr) {
         console.warn(`[Printer] ⚠ WinSpool: ${psErr.message}`);

@@ -49,12 +49,12 @@ try {
     }
 } catch {}
 
-# 2. De-blocheaza coada de printare pentru toate imprimantele Epson (sterge joburi blocate cu eroare)
+# 2. De-blocheaza complet coada de printare si asigura ca imprimanta nu este pe Paused
 try {
-    Get-Printer | Where-Object { $_.Name -like "*EPSON*" -or $_.Name -like "*Receipt*" } | ForEach-Object {
-        Get-PrintJob -PrinterName $_.Name -ErrorAction SilentlyContinue | Where-Object { 
-            $_.JobStatus -like "*Error*" -or $_.JobStatus -like "*Blocked*" -or $_.JobStatus -like "*Deleting*" -or $_.JobStatus -like "*PaperOut*"
-        } | Remove-PrintJob -ErrorAction SilentlyContinue
+    if ($PrinterName) {
+        Set-Printer -Name $PrinterName -Paused $false -ErrorAction SilentlyContinue
+        Get-PrintJob -PrinterName $PrinterName -ErrorAction SilentlyContinue | Remove-PrintJob -ErrorAction SilentlyContinue
+        Start-Sleep -Milliseconds 200
     }
 } catch {}
 
