@@ -2768,6 +2768,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
     langBarBg: loc.langBarBg || '',
     menuOverrides: loc.menuOverrides || {},
     paymentGateway: loc.paymentGateway || 'none',
+    paymentMode: loc.paymentMode || (loc.cashOnly ? 'cash_only' : 'both'),
     kioskUiSize: loc.kioskUiSize || 'S',
     visualEffects: loc.visualEffects || { parallax: true, steam: true, snow: false },
     categoryHeroActive: loc.categoryHeroActive ?? false,
@@ -4710,6 +4711,49 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                   </button>
                 );
               })}
+            </div>
+
+            <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white">Opțiuni Plată la Checkout</h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Alege ce metode de plată sunt afișate clienților pe ecranul Kiosk-ului.
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                {[
+                  { id: 'both', title: 'Card & Cash', desc: 'Implicit — clientul poate alege între Card POS și Cash la casierie' },
+                  { id: 'cash_only', title: 'Doar Cash (Numerar)', desc: 'Activ doar numerar — util când POS-ul e deconectat sau lipsește cablul' },
+                  { id: 'card_only', title: 'Doar Card (POS)', desc: 'Fără plată cash la casierie' },
+                ].map(opt => {
+                  const isSel = (formData.paymentMode || 'both') === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => handleChange('paymentMode', opt.id)}
+                      className={`p-3 rounded-xl text-left border transition-all cursor-pointer flex flex-col justify-between ${
+                        isSel
+                          ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/40 ring-2 ring-emerald-500/20'
+                          : 'border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/30 hover:border-slate-300'
+                      }`}
+                    >
+                      <div>
+                        <div className="text-xs font-bold text-slate-900 dark:text-white">{opt.title}</div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">{opt.desc}</div>
+                      </div>
+                      {isSel && (
+                        <div className="mt-2 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                          <Check className="w-3 h-3" />
+                          <span>Activ pe acest Kiosk</span>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
