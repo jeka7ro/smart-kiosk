@@ -71,6 +71,28 @@ const CITY_CONFIG = {
   },
 };
 
+// Strict location & kiosk specific aliases (guarantees printer & POS hardware isolation)
+const LOCATION_SPECIFIC_ALIASES = {
+  // Cluj - Kiosk 1 (SmashMe Centru)
+  '9c63cff6-1d66-442d-a98d-2302656e3943': [
+    'cluj1', 'cluj-centru', 'cluj-main', 'smashme-main', 'sm-cluj',
+    'smashme-cluj', 'cj', 'cluj', 'smashme centru', 'sm cluj',
+    '9c63cff6-1d66-442d-a98d-2302656e3943', '90296b11-9ba9-4279-a69b-1f84e193315e',
+    'kiosk-1', 'kiosk1',
+  ],
+  'cluj1': [
+    'cluj1', 'cluj-centru', 'cluj-main', 'smashme-main', 'sm-cluj',
+    'smashme-cluj', 'cj', 'cluj', 'smashme centru', 'sm cluj',
+    '9c63cff6-1d66-442d-a98d-2302656e3943', '90296b11-9ba9-4279-a69b-1f84e193315e',
+    'kiosk-1', 'kiosk1',
+  ],
+  // Cluj - Kiosk 2 (SmashMe CJ-2)
+  'cluj2': [
+    'cluj2', 'cluj-2', 'cj2', 'cj-2', 'smashme-cj2', 'smashme cj-2',
+    'kiosk-2', 'kiosk2',
+  ],
+};
+
 /**
  * Read all locations from data/locations.json
  */
@@ -108,7 +130,7 @@ function findLocation(identifier) {
 
   const locs = getAllLocations();
 
-  // 1. Exact ID match (UUID)
+  // 1. Exact ID match (UUID or slug)
   const byId = locs.find(l => l.id && normalize(l.id) === target);
   if (byId) return byId;
 
@@ -119,6 +141,14 @@ function findLocation(identifier) {
   // 3. Exact name match
   const byName = locs.find(l => l.name && normalize(l.name) === target);
   if (byName) return byName;
+
+  // 3b. Check location-specific aliases first (guarantees correct kiosk in multi-kiosk cities)
+  for (const [key, aliasList] of Object.entries(LOCATION_SPECIFIC_ALIASES)) {
+    if (aliasList.some(a => normalize(a) === target)) {
+      const match = locs.find(l => l.id && (normalize(l.id) === normalize(key) || (l.kioskUrl && normalize(l.kioskUrl) === normalize(key))));
+      if (match) return match;
+    }
+  }
 
   // 4. Check city aliases to find corresponding location
   for (const [cityKey, cfg] of Object.entries(CITY_CONFIG)) {
@@ -203,13 +233,23 @@ function getOrderPrefix(locationId, locationName) {
 function getLocationAliases(identifier) {
   if (!identifier) return [];
   const target = normalize(String(identifier));
-  const aliases = new Set([String(identifier)]);
 
-  const city = detectCity(identifier);
-  if (city && CITY_CONFIG[city]) {
-    CITY_CONFIG[city].aliases.forEach(a => aliases.add(a));
+  // 1. Check location-specific aliases first (guarantees strict isolation between kiosks in the same city)
+  for (const [key, aliasList] of Object.entries(LOCATION_SPECIFIC_ALIASES)) {
+    if (normalize(key) === target || aliasList.some(a => normalize(a) === target)) {
+      const set = new Set([String(identifier), ...aliasList]);
+      const loc = findLocation(identifier);
+      if (loc) {
+        if (loc.id) set.add(loc.id);
+        if (loc.kioskUrl) set.add(loc.kioskUrl);
+        if (loc.name) set.add(loc.name);
+      }
+      return Array.from(set);
+    }
   }
 
+  // 2. Generic fallback for single-location cities (Brasov, Constanta, etc.)
+  const aliases = new Set([String(identifier)]);
   const loc = findLocation(identifier);
   if (loc) {
     if (loc.id) aliases.add(loc.id);
@@ -217,11 +257,24 @@ function getLocationAliases(identifier) {
     if (loc.name) aliases.add(loc.name);
   }
 
+  const city = detectCity(identifier);
+  if (city && CITY_CONFIG[city]) {
+    // Only inherit generic city aliases if this city doesn't have multi-kiosk partitions
+    if (city !== 'cluj' || target === 'cluj') {
+      CITY_CONFIG[city].aliases.forEach(a => {
+        // Double safety: never leak cluj2 aliases into general or vice-versa
+        if (city === 'cluj' && a === 'cluj2') return;
+        aliases.add(a);
+      });
+    }
+  }
+
   return Array.from(aliases);
 }
 
 module.exports = {
   CITY_CONFIG,
+  LOCATION_SPECIFIC_ALIASES,
   getAllLocations,
   findLocation,
   detectCity,

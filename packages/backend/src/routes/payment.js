@@ -135,14 +135,25 @@ router.post('/initiate', async (req, res) => {
       }
 
       console.log(`[Payment] 📡 Trimit pos_payment_request (${gatewayToUse}) la POS Bridge...`);
-      // Trimite cererea de plată spre POS Bridge-ul din locație
-      io.emit('pos_payment_request', {
+      // Trimite cererea de plată spre POS Bridge-ul din locație (izolat per cameră socket)
+      const locId = req.body.locationId || '';
+      const kId = req.body.kioskId || (req.body.orderPayload && req.body.orderPayload.kioskId) || '';
+      const { getLocationAliases } = require('../utils/locations');
+      const bridgeAliases = locId ? getLocationAliases(locId) : [];
+      let target = io;
+      if (bridgeAliases.length > 0) {
+        for (const a of bridgeAliases) {
+          target = target.to(`pos-bridge-${a}`);
+        }
+      }
+      target.emit('pos_payment_request', {
         orderId,
         amount,
-        locationId: req.body.locationId || '',
+        locationId: locId,
+        kioskId: kId,
         paymentGateway: gatewayToUse,
       });
-      console.log(`[Payment] ✅ Cerere emise via socket — aştept răspuns de la Bridge`);
+      console.log(`[Payment] ✅ Cerere emise via socket (${bridgeAliases.length ? bridgeAliases.join(',') : 'all'}) — aştept răspuns de la Bridge`);
 
       // Timeout 3 minute — dacă Bridge-ul nu răspunde
       setTimeout(() => {
@@ -253,11 +264,19 @@ router.post('/qr-link', async (req, res) => {
 
 // POST /api/payment/cancel — solicitare anulare plată pe POS
 router.post('/cancel', (req, res) => {
-  const { orderId, locationId } = req.body || {};
+  const { orderId, locationId, kioskId } = req.body || {};
   const io = req.app.get('io');
-  console.log(`[Payment] 🛑 Cerere HTTP anulare plată POS: order=${orderId || '?'}, loc=${locationId || '?'}`);
+  console.log(`[Payment] 🛑 Cerere HTTP anulare plată POS: order=${orderId || '?'}, loc=${locationId || '?'}, kiosk=${kioskId || '?'}`);
   if (io) {
-    io.emit('cancel_pos_payment', { orderId, locationId });
+    const { getLocationAliases } = require('../utils/locations');
+    const bridgeAliases = locationId ? getLocationAliases(locationId) : [];
+    let target = io;
+    if (bridgeAliases.length > 0) {
+      for (const a of bridgeAliases) {
+        target = target.to(`pos-bridge-${a}`);
+      }
+    }
+    target.emit('cancel_pos_payment', { orderId, locationId, kioskId });
   }
   return res.json({ success: true, message: 'Cerere de anulare trimisă la POS' });
 });

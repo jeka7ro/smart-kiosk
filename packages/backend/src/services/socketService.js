@@ -179,7 +179,18 @@ function initSocket(io) {
     // Kiosk solicită anularea plății pe POS (clientul a apăsat Înapoi sau Anulează)
     socket.on('cancel_pos_payment', (data) => {
       console.log(`[Socket] 🛑 Cerere anulare plată POS pentru locația: ${data?.locationId}`);
-      io.emit('cancel_pos_payment', data);
+      const loc = data?.locationId;
+      if (loc) {
+        const { getLocationAliases } = require('../utils/locations');
+        const bridgeAliases = getLocationAliases(loc);
+        let target = io;
+        for (const a of bridgeAliases) {
+          target = target.to(`pos-bridge-${a}`);
+        }
+        target.emit('cancel_pos_payment', data);
+      } else {
+        io.emit('cancel_pos_payment', data);
+      }
     });
 
     // POS Bridge trimite rezultatul plății

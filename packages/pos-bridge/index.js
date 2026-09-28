@@ -36,12 +36,19 @@ const RENDER_URL  = process.env.RENDER_URL  || 'https://smart-kiosk-ttut.onrende
 const COM_PORT    = process.env.COM_PORT    || 'auto';
 const BAUD_RATE   = parseInt(process.env.BAUD_RATE || '9600');
 const LOCATION_ID = process.env.LOCATION_ID || 'sm-brasov';
+const KIOSK_ID    = process.env.KIOSK_ID    || '';
 const BRIDGE_KEY  = process.env.BRIDGE_KEY  || 'pos-bridge-2024';
 
 // Resolved location aliases (id + kioskUrl) — populated on startup
 let LOCATION_ALIASES = [LOCATION_ID];
 let detectedPrinterPort = process.env.PRINTER_PORT || '';
-function isMyLocation(lid) {
+function isMyLocation(lid, kioskId) {
+  // Izolare strictă pe bază de număr kiosk (1 vs 2) dacă este configurat sau dedus din LOCATION_ID
+  const myKioskNum = KIOSK_ID || (LOCATION_ID.includes('2') ? '2' : (LOCATION_ID.includes('1') ? '1' : ''));
+  const incomingKioskNum = kioskId ? String(kioskId).replace('kiosk-', '') : '';
+  if (myKioskNum && incomingKioskNum && myKioskNum !== incomingKioskNum) {
+    return false;
+  }
   if (!lid) return true; // no filter = accept
   return LOCATION_ALIASES.includes(lid);
 }
@@ -421,11 +428,11 @@ async function start() {
 
     // Resolve location aliases (id + kioskUrl) so bridge matches both
     try {
-      const https = require('https');
+      const httpModule = RENDER_URL.startsWith('https') ? require('https') : require('http');
       const apiKey = process.env.VITE_API_KEY || 'sk-live-2024-secure';
       const url = `${RENDER_URL}/api/locations/${LOCATION_ID}`;
       log(`📡 Rezolv aliases: GET ${url}`);
-      https.get(url, { headers: { 'x-api-key': apiKey } }, (res) => {
+      httpModule.get(url, { headers: { 'x-api-key': apiKey } }, (res) => {
         log(`📡 Răspuns status: ${res.statusCode}`);
         let body = '';
         res.on('data', (chunk) => body += chunk);
@@ -806,9 +813,12 @@ async function start() {
   let paymentInProgress = false;
 
   socket.on('pos_payment_request', async (data) => {
-    const { orderId, amount, locationId: lid } = data;
+    const { orderId, amount, locationId: lid, kioskId } = data || {};
     
-    if (!isMyLocation(lid)) return;
+    if (!isMyLocation(lid, kioskId)) {
+      log(`⏭️ Ignor pos_payment_request (destinat altei locații: ${lid}, kiosk: ${kioskId || '?'})`);
+      return;
+    }
 
     if (paymentInProgress) {
       log(`⚠️ SKIP: o plată e deja în curs`);
@@ -861,8 +871,8 @@ async function start() {
   });
 
   socket.on('cancel_pos_payment', async (data) => {
-    const { locationId: lid } = data || {};
-    if (!isMyLocation(lid)) return;
+    const { locationId: lid, kioskId } = data || {};
+    if (!isMyLocation(lid, kioskId)) return;
     
     log('🛑 CANCEL payment solicitat din Kiosk (timeout / anulare client)!');
     if (paymentInProgress) {
@@ -892,7 +902,7 @@ async function start() {
 
   socket.on('print_ticket', async (payload) => {
     const order = payload && payload.order ? payload.order : payload;
-    if (order && (isMyLocation(order.locationId))) {
+    if (order && isMyLocation(order.locationId, order.kioskId)) {
       const orderKey = `${order._id || order.id || ''}_${order.orderNumber || ''}`;
       const now = Date.now();
       if (orderKey && recentPrintedOrders.has(orderKey) && (now - recentPrintedOrders.get(orderKey) < 60000)) {
@@ -906,7 +916,7 @@ async function start() {
         }
       }
 
-      log(`🖨️  Cerere printare bon pentru comanda #${order.orderNumber}`);
+      log(`🖨️  Cerere printare bon pentru comanda #${order.orderNumber} (kiosk=${order.kioskId || '?'})`);
       let printResult = null;
       if (datecsPrinter) {
         try {
@@ -927,7 +937,7 @@ async function start() {
           locationId: LOCATION_ID,
           locationName: order.locationName || LOCATION_ID,
           brand: order.brand || (order.items && order.items[0] && order.items[0].brandId) || '',
-          kioskId: order.kioskId || '',
+          kioskId: order.kioskId || KIOSK_ID || '',
           orderId: order._id || order.id || '',
           orderNumber: order.orderNumber || '',
           status: printResult.status,
@@ -941,6 +951,8 @@ async function start() {
           receiptContent: printResult.receiptContent || null,
         });
       }
+    } else if (order) {
+      log(`⏭️ Ignor comanda #${order.orderNumber} (destinată altei locații/kiosk: loc=${order.locationId}, kiosk=${order.kioskId || '?'})`);
     }
   });
 

@@ -83,10 +83,23 @@ export default function PaymentScreen() {
     return () => clearInterval(interval);
   }, [payState]);
 
+  // Determinare sigură a ID-ului kiosk-ului curent (1 vs 2) chiar dacă lipsește parametrul din URL
+  const effectiveKioskId = useMemo(() => {
+    const param = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('kiosk') : null;
+    if (param) return param;
+    if (locationData?.kiosks?.[0]?.kioskId) {
+      return String(locationData.kiosks[0].kioskId).replace('kiosk-', '');
+    }
+    const locStr = String(locationData?.kioskUrl || locationData?.id || '');
+    if (locStr.includes('2')) return '2';
+    return '1';
+  }, [locationData]);
+
   // Notificare dublă (HTTP + Socket) pentru garantarea anulării pe POS
   const notifyCancelPos = useCallback(() => {
     const payload = {
       locationId: locationData?.kioskUrl || locationData?.id || '',
+      kioskId: effectiveKioskId,
       orderId: orderIdRef.current,
     };
     // 1. HTTP POST — garantat ajunge la server chiar dacă socket-ul se închide
@@ -109,7 +122,7 @@ export default function PaymentScreen() {
       }, 500);
       socketRef.current = null;
     }
-  }, [locationData]);
+  }, [locationData, effectiveKioskId]);
 
   // Pre-salvare imediată a coșului pe server la intrarea în ecranul de plată
   useEffect(() => {
@@ -119,7 +132,7 @@ export default function PaymentScreen() {
 
     const urlBrand   = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('brand') : null;
     const urlOrg     = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('orgId') : null;
-    const urlKiosk   = (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('kiosk') : null) || '1';
+    const urlKiosk   = effectiveKioskId;
     const effectiveBrand = activeBrandId || urlBrand || DEFAULT_BRAND;
     const locationOrgId  = locationData?.orgIds?.[effectiveBrand];
     const effectiveOrgId = locationOrgId || urlOrg || DEFAULT_ORG;
@@ -155,7 +168,7 @@ export default function PaymentScreen() {
         orderPayload: payload,
       }),
     }).catch(() => {});
-  }, [cartItems, total, locationData, activeBrandId, orderType, tableNumber, fiscalData]);
+  }, [cartItems, total, locationData, activeBrandId, orderType, tableNumber, fiscalData, effectiveKioskId]);
 
   // Dacă timpul de 60s pentru card expiră, anulăm garantat tranzacția pe POS
   useEffect(() => {
@@ -183,7 +196,7 @@ export default function PaymentScreen() {
     try {
       const urlBrand   = new URLSearchParams(window.location.search).get('brand');
       const urlOrg     = new URLSearchParams(window.location.search).get('orgId');
-      const urlKiosk   = new URLSearchParams(window.location.search).get('kiosk') || '1';
+      const urlKiosk   = effectiveKioskId;
       const effectiveBrand = activeBrandId || urlBrand || DEFAULT_BRAND;
       const locationOrgId  = locationData?.orgIds?.[effectiveBrand];
       const effectiveOrgId = locationOrgId || urlOrg || DEFAULT_ORG;
@@ -221,7 +234,7 @@ export default function PaymentScreen() {
       const data = await res.json();
       return data.order;
     } catch (err) { console.error('[PaymentScreen] sendOrder failed:', err); return null; }
-  }, [cartItems, total, orderType, tableNumber, activeBrandId, locationData, fiscalData]);
+  }, [cartItems, total, orderType, tableNumber, activeBrandId, locationData, fiscalData, effectiveKioskId]);
 
   const handlePayCash = async () => {
     if (payState !== STATE.IDLE) return;
@@ -249,7 +262,7 @@ export default function PaymentScreen() {
 
       const urlBrand   = new URLSearchParams(window.location.search).get('brand');
       const urlOrg     = new URLSearchParams(window.location.search).get('orgId');
-      const urlKiosk   = new URLSearchParams(window.location.search).get('kiosk') || '1';
+      const urlKiosk   = effectiveKioskId;
       const effectiveBrand = activeBrandId || urlBrand || DEFAULT_BRAND;
       const locationOrgId  = locationData?.orgIds?.[effectiveBrand];
       const effectiveOrgId = locationOrgId || urlOrg || DEFAULT_ORG;
@@ -330,6 +343,7 @@ export default function PaymentScreen() {
           amount: total,
           paymentGateway: locationData?.paymentGateway || 'none',
           locationId: locationData?.kioskUrl || locationData?.id || '',
+          kioskId: effectiveKioskId,
           channel: 'kiosk',
           orderPayload,
         }),
@@ -340,7 +354,7 @@ export default function PaymentScreen() {
       setPayState(STATE.ERROR);
       setErrorMsg(err.message || 'Eroare conexiune terminal');
     }
-  }, [total, sendOrder, goTo, locationData, activeBrandId, orderType, tableNumber, cartItems, fiscalData]);
+  }, [total, sendOrder, goTo, locationData, activeBrandId, orderType, tableNumber, cartItems, fiscalData, effectiveKioskId]);
 
   handlePayRef.current = handlePay;
 
