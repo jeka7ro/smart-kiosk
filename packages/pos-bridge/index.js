@@ -1,13 +1,14 @@
 const { execSync } = require('child_process');
 try {
   console.log('[INFO] Auto-sincronizare module POS Bridge (printer, etc.)...');
-  execSync('curl -s -L -o brandLogos.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/brandLogos.js"');
-  execSync('curl -s -L -o printer.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/printer.js"');
-  execSync('curl -s -L -o rawprint.ps1 "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/rawprint.ps1"');
-  execSync('curl -s -L -o start-windows.bat "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/start-windows.bat"');
-  execSync('curl -s -L -o PrinterServiceDatecsFP950.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/PrinterServiceDatecsFP950.js"');
-  execSync('curl -s -L -o VivaPosService.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/VivaPosService.js"');
-  execSync('curl -s -L -o scan_port_pc.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/scan_port_pc.js"');
+  const t = Date.now();
+  execSync(`curl -s -L -H "Cache-Control: no-cache" -o brandLogos.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/brandLogos.js?t=${t}"`);
+  execSync(`curl -s -L -H "Cache-Control: no-cache" -o printer.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/printer.js?t=${t}"`);
+  execSync(`curl -s -L -H "Cache-Control: no-cache" -o rawprint.ps1 "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/rawprint.ps1?t=${t}"`);
+  execSync(`curl -s -L -H "Cache-Control: no-cache" -o start-windows.bat "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/start-windows.bat?t=${t}"`);
+  execSync(`curl -s -L -H "Cache-Control: no-cache" -o PrinterServiceDatecsFP950.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/PrinterServiceDatecsFP950.js?t=${t}"`);
+  execSync(`curl -s -L -H "Cache-Control: no-cache" -o VivaPosService.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/VivaPosService.js?t=${t}"`);
+  execSync(`curl -s -L -H "Cache-Control: no-cache" -o scan_port_pc.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/scan_port_pc.js?t=${t}"`);
 } catch (e) {
   console.log('[WARN] Nu s-au putut sincroniza modulele:', e.message);
 }
