@@ -15,7 +15,8 @@ async function addPosLog(entry) {
   let detectedBrand = entry.brand || entry.raw?.brand || null;
   if (!detectedBrand) {
     const locStr = `${entry.locationId || ''} ${entry.locationName || ''}`.toLowerCase();
-    if (locStr.includes('smash') || locStr.includes('cluj')) detectedBrand = 'smashme';
+    if (locStr.includes('brasov') || locStr.includes('adddb5a0')) detectedBrand = 'rollmaster';
+    else if (locStr.includes('smash') || locStr.includes('cluj')) detectedBrand = 'smashme';
     else if (locStr.includes('crunch')) detectedBrand = 'crunch';
     else if (locStr.includes('roll') || locStr.includes('sushi') || locStr.includes('oradea')) detectedBrand = 'rollmaster';
     else if (locStr.includes('love')) detectedBrand = 'lovesushi';
@@ -24,10 +25,10 @@ async function addPosLog(entry) {
   }
 
   let locName = entry.locationName || '';
-  if (!locName) {
+  if (!locName || locName.includes('SmashMe Brașov') || locName.includes('SM BRASOV')) {
     if (entry.locationId === 'cluj1') locName = 'SmashMe Cluj';
     else if (entry.locationId === 'cluj2') locName = 'SmashMe Cluj 2';
-    else if (entry.locationId === 'sm-brasov') locName = 'SmashMe Brașov';
+    else if (entry.locationId === 'sm-brasov' || entry.locationId === 'brasov' || entry.locationId === 'adddb5a0-26e5-4d50-b472-1c74726c3f72') locName = 'RollMaster Brașov';
   }
 
   const log = {
@@ -165,27 +166,35 @@ router.get('/', async (req, res) => {
     const { rows } = await pool.query(query, params);
     
     // Map rows back to camelCase for frontend compatibility
-    const logs = rows.map(r => ({
-      _id: r.id,
-      timestamp: r.timestamp,
-      locationId: r.location_id,
-      locationName: r.location_name,
-      orderId: r.order_id,
-      amount: r.amount,
-      gateway: r.gateway,
-      status: r.status,
-      paid: r.paid,
-      responseCode: r.response_code,
-      authCode: r.auth_code,
-      refNum: r.ref_num,
-      cardNo: r.card_no,
-      txDate: r.tx_date,
-      error: r.error,
-      iikoSent: r.iiko_sent,
-      iikoOrderId: r.iiko_order_id,
-      iikoError: r.iiko_error,
-      raw: r.raw
-    }));
+    const logs = rows.map(r => {
+      let locName = r.location_name;
+      let rawData = typeof r.raw === 'object' && r.raw !== null ? { ...r.raw } : {};
+      if (r.location_id === 'sm-brasov' || r.location_id === 'brasov' || r.location_id === 'adddb5a0-26e5-4d50-b472-1c74726c3f72' || (locName && locName.toLowerCase().includes('brasov'))) {
+        locName = 'RollMaster Brașov';
+        rawData.brand = 'rollmaster';
+      }
+      return {
+        _id: r.id,
+        timestamp: r.timestamp,
+        locationId: r.location_id,
+        locationName: locName,
+        orderId: r.order_id,
+        amount: r.amount,
+        gateway: r.gateway,
+        status: r.status,
+        paid: r.paid,
+        responseCode: r.response_code,
+        authCode: r.auth_code,
+        refNum: r.ref_num,
+        cardNo: r.card_no,
+        txDate: r.tx_date,
+        error: r.error,
+        iikoSent: r.iiko_sent,
+        iikoOrderId: r.iiko_order_id,
+        iikoError: r.iiko_error,
+        raw: rawData
+      };
+    });
     
     res.json({ logs, total });
   } catch (err) {

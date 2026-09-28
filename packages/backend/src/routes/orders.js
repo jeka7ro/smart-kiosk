@@ -294,7 +294,14 @@ async function processOrderCreation(body, io) {
 
       const syrveIds = [];
       for (const [bId, brandData] of Object.entries(brandsMap)) {
-        const specificOrgId = orgIdsDict[bId] || orgId || null;
+        const specificOrgId = orgIdsDict[bId] 
+          || (bId === 'rollmaster' ? (orgIdsDict['sushimaster'] || orgIdsDict['welovesushi']) : null)
+          || (bId === 'sushimaster' ? orgIdsDict['rollmaster'] : null)
+          || (bId === 'smashme' ? orgIdsDict['crunch'] : null)
+          || (bId === 'crunch' ? orgIdsDict['smashme'] : null)
+          || orgId 
+          || (Object.values(orgIdsDict).length === 1 ? Object.values(orgIdsDict)[0] : null);
+
         const splitOrder = {
           ...order,
           brand: bId,
@@ -569,7 +576,14 @@ router.patch('/:id/status', async (req, res) => {
           }
           const syrveIds = [];
           for (const [bId, brandData] of Object.entries(brandsMap)) {
-            const specificOrgId = orgIdsDict[bId] || order.orgId || null;
+            const specificOrgId = orgIdsDict[bId] 
+              || (bId === 'rollmaster' ? (orgIdsDict['sushimaster'] || orgIdsDict['welovesushi']) : null)
+              || (bId === 'sushimaster' ? orgIdsDict['rollmaster'] : null)
+              || (bId === 'smashme' ? orgIdsDict['crunch'] : null)
+              || (bId === 'crunch' ? orgIdsDict['smashme'] : null)
+              || order.orgId 
+              || (Object.values(orgIdsDict).length === 1 ? Object.values(orgIdsDict)[0] : null);
+
             const splitOrder = { ...order, brand: bId, orgId: specificOrgId, items: brandData.items, totalAmount: Math.round(brandData.totalAmount * 100) / 100 };
             try {
               const syrveResult = await syrveCreateOrder({ brandId: bId, orgId: specificOrgId, order: splitOrder });

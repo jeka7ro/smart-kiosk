@@ -33,9 +33,9 @@ const CITY_CONFIG = {
     aliases: [
       'brasov', 'brasov1', 'brasov2', 'brasov-centru',
       'sm-brasov', 'smashme-brasov', 'smashme-bv', 'bv',
-      'sm brasov',
+      'sm brasov', 'rollmaster', 'rollmaster-brasov', 'rm-brasov',
       // UUIDs from locations.json
-      'adddb5a0-26e5-4d50-b472-1c74726c3f72', // SM BRASOV (sm-brasov)
+      'adddb5a0-26e5-4d50-b472-1c74726c3f72', // RollMaster Brașov (sm-brasov)
     ],
   },
   constanta: {
