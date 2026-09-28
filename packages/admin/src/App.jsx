@@ -10,6 +10,7 @@ import ProductOverrides from './screens/ProductOverrides';
 import TranslationsScreen from './screens/TranslationsScreen';
 import Integrations   from './screens/Integrations';
 import PosLogs        from './screens/PosLogs';
+import PendingOrders  from './screens/PendingOrders';
 import KioskLogs      from './screens/KioskLogs';
 import IikoLogs       from './screens/IikoLogs';
 import PrinterLogs    from './screens/PrinterLogs';
@@ -76,7 +77,7 @@ export default function AdminApp() {
   
   const [tab, setTabState] = useState(() => {
     const hash = window.location.hash.replace('#', '');
-    const validTabs = ['dashboard', 'orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'modifiers', 'products', 'users', 'integrations', 'promotions', 'brands', 'translations', 'pos-logs', 'printer-logs', 'port-scans', 'iiko-logs', 'kiosk-logs'];
+    const validTabs = ['dashboard', 'orders', 'pending-orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'modifiers', 'products', 'users', 'integrations', 'promotions', 'brands', 'translations', 'pos-logs', 'printer-logs', 'port-scans', 'iiko-logs', 'kiosk-logs'];
     return validTabs.includes(hash) ? hash : 'orders';
   });
 
@@ -88,7 +89,7 @@ export default function AdminApp() {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '');
-      const validTabs = ['dashboard', 'orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'modifiers', 'products', 'users', 'integrations', 'promotions', 'brands', 'translations', 'pos-logs', 'printer-logs', 'port-scans', 'iiko-logs', 'kiosk-logs'];
+      const validTabs = ['dashboard', 'orders', 'pending-orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'modifiers', 'products', 'users', 'integrations', 'promotions', 'brands', 'translations', 'pos-logs', 'printer-logs', 'port-scans', 'iiko-logs', 'kiosk-logs'];
       if (validTabs.includes(hash)) setTabState(hash);
     };
     window.addEventListener('hashchange', handleHashChange);
@@ -815,6 +816,7 @@ export default function AdminApp() {
             {[
               { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
               { id: 'orders',    label: 'Comenzi', icon: <Receipt className="w-5 h-5" /> },
+              { id: 'pending-orders', label: 'Comenzi În Așteptare', icon: <Clock className="w-5 h-5" /> },
               { id: 'locations', label: 'Locații', icon: <MapPin className="w-5 h-5" /> },
               { id: 'kiosks',    label: 'Kioskuri', icon: <MonitorSmartphone className="w-5 h-5" /> },
               { id: 'qrcodes',   label: 'QR Coduri', icon: <QrCode className="w-5 h-5" /> },
@@ -873,6 +875,7 @@ export default function AdminApp() {
            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
               {tab === 'dashboard' && 'Dashboard Overview'}
               {tab === 'orders' && 'Gestionare Comenzi'}
+              {tab === 'pending-orders' && 'Comenzi În Așteptare (Pending Coșuri)'}
               {tab === 'locations' && 'Gestionare Locații'}
               {tab === 'kiosks' && 'Kiosk-uri & Screensavere'}
               {tab === 'qrcodes' && 'Coduri QR & Portal Mobil'}
@@ -1303,6 +1306,28 @@ export default function AdminApp() {
               }
             }
           }} />}
+          {tab === 'pending-orders' && (
+            <PendingOrders 
+              backend={BACKEND} 
+              onGoToOrder={async (orderId) => {
+                const foundOrder = orders.find(o => o._id === orderId);
+                if (foundOrder) {
+                  setSelectedOrder(foundOrder);
+                } else {
+                  try {
+                    const res = await fetchWithAuth(`${BACKEND}/api/orders/${orderId}`);
+                    if (res.ok) {
+                      const data = await res.json();
+                      setOrders(prev => [data, ...prev.filter(o => o._id !== data._id)]);
+                      setSelectedOrder(data);
+                    }
+                  } catch (e) {
+                    console.error('Failed to fetch order', e);
+                  }
+                }
+              }} 
+            />
+          )}
           {tab === 'iiko-logs' && <IikoLogs />}
           {tab === 'printer-logs' && <PrinterLogs />}
           {tab === 'port-scans' && <PortScans />}

@@ -1,6 +1,7 @@
 const express = require('express');
 const router  = express.Router();
 const { pool } = require('../db');
+const { requireApiKey } = require('../middleware/authMiddleware');
 
 // In-memory cache for fast lookup during the payment cycle
 const pendingOrdersMap = new Map();
@@ -295,6 +296,107 @@ async function removePendingPosOrder(orderId) {
     await pool.query(`DELETE FROM pending_pos_orders WHERE order_id = $1`, [orderId]);
   } catch (_) {}
 }
+
+// ── GET /api/payment/pending-orders ──────────────────────────────
+router.get('/pending-orders', requireApiKey, async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT 
+        p.order_id, 
+        p.location_id, 
+        p.payload, 
+        p.created_at,
+        l.paid,
+        l.status as pos_status,
+        l.amount as pos_amount,
+        l.auth_code,
+        l.ref_num,
+        l.receipt_no,
+        l.card_no,
+        l.tx_date,
+        l.error as pos_error,
+        l.iiko_sent,
+        l.iiko_order_id,
+        l.iiko_error
+      FROM pending_pos_orders p
+      LEFT JOIN pos_logs l ON l.order_id = p.order_id
+      ORDER BY p.created_at DESC
+      LIMIT 100
+    `);
+    return res.json({ pendingOrders: rows, total: rows.length });
+  } catch (err) {
+    console.error('[Payment] Error fetching pending orders:', err.message);
+    const inMem = [];
+    for (const [orderId, val] of pendingOrdersMap.entries()) {
+      inMem.push({
+        order_id: orderId,
+        location_id: val.locationId,
+        payload: val.payload,
+        created_at: new Date(val.timestamp).toISOString(),
+        paid: false,
+      });
+    }
+    return res.json({ pendingOrders: inMem, total: inMem.length });
+  }
+});
+
+// ── POST /api/payment/pending-orders/:orderId/push-iiko ──────────
+router.post('/pending-orders/:orderId/push-iiko', requireApiKey, async (req, res) => {
+  const { orderId } = req.params;
+  try {
+    const pendingPayload = await getPendingPosOrder(orderId);
+    if (!pendingPayload) {
+      return res.status(404).json({ error: 'Comanda în așteptare nu a fost găsită' });
+    }
+    const { processOrderCreation } = require('./orders');
+    const io = req.app.get('io');
+    
+    let payRef = {};
+    try {
+      const pLog = await pool.query('SELECT * FROM pos_logs WHERE order_id = $1 LIMIT 1', [orderId]);
+      if (pLog.rows.length > 0) {
+        const r = pLog.rows[0];
+        payRef = {
+          orderId,
+          authCode: r.auth_code,
+          receiptNo: r.receipt_no,
+          refNum: r.ref_num,
+          cardNo: r.card_no,
+          txDate: r.tx_date,
+          extraFields: r.raw?.extraFields,
+        };
+      }
+    } catch (_) {}
+
+    const createResult = await processOrderCreation({
+      ...pendingPayload,
+      posOrderId: orderId,
+      paymentMethod: 'card',
+      paymentRef: Object.keys(payRef).length > 0 ? payRef : (pendingPayload.paymentRef || {}),
+    }, io);
+
+    if (createResult?.data?.order) {
+      await removePendingPosOrder(orderId);
+      return res.json({ success: true, order: createResult.data.order });
+    } else {
+      return res.status(500).json({ error: 'Nu s-a putut crea comanda în sistem' });
+    }
+  } catch (err) {
+    console.error('[Payment] Error pushing pending order:', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// ── DELETE /api/payment/pending-orders/:orderId ───────────────────
+router.delete('/pending-orders/:orderId', requireApiKey, async (req, res) => {
+  const { orderId } = req.params;
+  try {
+    await removePendingPosOrder(orderId);
+    return res.json({ success: true, message: 'Comandă în așteptare eliminată' });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
 
 module.exports = router;
 module.exports.getPendingPosOrder = getPendingPosOrder;
