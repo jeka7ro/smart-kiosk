@@ -256,13 +256,16 @@ function initSocket(io) {
             if (createResult?.data?.order) {
               finalizedOrder = createResult.data.order;
               console.log(`[Socket] ✅ Comandă creată și trimisă automat pe backend: #${finalizedOrder.orderNumber}`);
+              await removePendingPosOrder(orderId);
+            } else {
+              console.error(`[Socket] ⚠️ Comanda pre-salvată pentru ${orderId} NU s-a putut finaliza. PĂSTREZ coșul în baza de date ca să nu se piardă!`);
             }
-            await removePendingPosOrder(orderId);
           } else {
             console.log(`[Socket] ℹ️ Nu s-a găsit draft pre-salvat pentru ${orderId}`);
           }
         } catch (autoErr) {
           console.error(`[Socket] ❌ Eroare la finalizarea automată a comenzii:`, autoErr.message);
+          // NU ștergem draftul la eroare ca să nu pierdem produsele!
         }
       }
 
