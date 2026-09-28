@@ -875,7 +875,7 @@ export default function AdminApp() {
            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
               {tab === 'dashboard' && 'Dashboard Overview'}
               {tab === 'orders' && 'Gestionare Comenzi'}
-              {tab === 'pending-orders' && 'Comenzi În Așteptare (Pending Coșuri)'}
+              {tab === 'pending-orders' && 'Comenzi În Așteptare'}
               {tab === 'locations' && 'Gestionare Locații'}
               {tab === 'kiosks' && 'Kiosk-uri & Screensavere'}
               {tab === 'qrcodes' && 'Coduri QR & Portal Mobil'}

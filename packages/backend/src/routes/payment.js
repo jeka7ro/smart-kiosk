@@ -300,89 +300,304 @@ async function removePendingPosOrder(orderId) {
 // ── GET /api/payment/pending-orders ──────────────────────────────
 router.get('/pending-orders', requireApiKey, async (req, res) => {
   try {
-    const { rows } = await pool.query(`
-      SELECT 
-        p.order_id, 
-        p.location_id, 
-        p.payload, 
-        p.created_at,
-        l.paid,
-        l.status as pos_status,
-        l.amount as pos_amount,
-        l.auth_code,
-        l.ref_num,
-        l.receipt_no,
-        l.card_no,
-        l.tx_date,
-        l.error as pos_error,
-        l.iiko_sent,
-        l.iiko_order_id,
-        l.iiko_error
-      FROM pending_pos_orders p
-      LEFT JOIN pos_logs l ON l.order_id = p.order_id
-      ORDER BY p.created_at DESC
-      LIMIT 100
-    `);
-    return res.json({ pendingOrders: rows, total: rows.length });
-  } catch (err) {
-    console.error('[Payment] Error fetching pending orders:', err.message);
-    const inMem = [];
-    for (const [orderId, val] of pendingOrdersMap.entries()) {
-      inMem.push({
-        order_id: orderId,
-        location_id: val.locationId,
-        payload: val.payload,
-        created_at: new Date(val.timestamp).toISOString(),
-        paid: false,
-      });
+    const list = [];
+    const seenIds = new Set();
+
+    // 1. Pending POS orders (pre-saved cart before/during POS card transaction)
+    try {
+      const { rows: posRows } = await pool.query(`
+        SELECT 
+          p.order_id, 
+          p.location_id, 
+          p.payload, 
+          p.created_at,
+          l.paid,
+          l.status as pos_status,
+          l.amount as pos_amount,
+          l.auth_code,
+          l.ref_num,
+          l.receipt_no,
+          l.card_no,
+          l.tx_date,
+          l.error as pos_error,
+          l.iiko_sent,
+          l.iiko_order_id,
+          l.iiko_error
+        FROM pending_pos_orders p
+        LEFT JOIN pos_logs l ON l.order_id = p.order_id
+        ORDER BY p.created_at DESC
+        LIMIT 100
+      `);
+
+      for (const r of posRows) {
+        seenIds.add(r.order_id);
+        list.push({
+          order_id: r.order_id,
+          orderNumber: r.payload?.orderNumber || null,
+          location_id: r.location_id,
+          payload: r.payload,
+          created_at: r.created_at,
+          paid: !!r.paid,
+          pos_status: r.pos_status || (r.paid ? 'approved' : 'waiting'),
+          pos_amount: r.pos_amount || r.payload?.totalAmount,
+          auth_code: r.auth_code,
+          ref_num: r.ref_num,
+          receipt_no: r.receipt_no,
+          card_no: r.card_no,
+          tx_date: r.tx_date,
+          error: r.pos_error,
+          iiko_sent: !!r.iiko_sent,
+          iiko_order_id: r.iiko_order_id,
+          kind: r.paid ? 'pos_paid_pending_iiko' : 'pos_in_progress',
+        });
+      }
+    } catch (e) {
+      console.warn('[Payment] Error fetching pending_pos_orders table:', e.message);
     }
-    return res.json({ pendingOrders: inMem, total: inMem.length });
+
+    // In-memory fallback if any
+    for (const [orderId, val] of pendingOrdersMap.entries()) {
+      if (!seenIds.has(orderId)) {
+        seenIds.add(orderId);
+        list.push({
+          order_id: orderId,
+          orderNumber: val.payload?.orderNumber || null,
+          location_id: val.locationId,
+          payload: val.payload,
+          created_at: new Date(val.timestamp).toISOString(),
+          paid: false,
+          pos_status: 'waiting',
+          pos_amount: val.payload?.totalAmount,
+          kind: 'pos_in_progress',
+        });
+      }
+    }
+
+    // 2. Orders awaiting cash payment or pending iiko in `orders` table (last 48 hours)
+    try {
+      const { rows: orderRows } = await pool.query(`
+        SELECT 
+          id, 
+          location_id, 
+          data, 
+          created_at
+        FROM orders
+        WHERE (
+          data->>'status' = 'awaiting_payment'
+          OR (
+            (data->>'paymentMethod' = 'cash' OR data->>'paymentMethod' = 'card')
+            AND (data->>'syrveOrderId') IS NULL
+            AND status != 'cancelled'
+            AND (data->>'status') != 'cancelled'
+          )
+        )
+        AND created_at > NOW() - INTERVAL '48 hours'
+        ORDER BY created_at DESC
+        LIMIT 100
+      `);
+
+      for (const row of orderRows) {
+        const orderData = row.data || {};
+        const oId = orderData._id || row.id;
+        if (seenIds.has(oId)) continue;
+        seenIds.add(oId);
+
+        const isCashAwaiting = orderData.status === 'awaiting_payment' || orderData.paymentMethod === 'cash';
+        list.push({
+          order_id: oId,
+          orderNumber: orderData.orderNumber || null,
+          location_id: row.location_id,
+          payload: orderData,
+          created_at: row.created_at,
+          paid: orderData.paymentMethod === 'card',
+          pos_status: orderData.paymentMethod === 'card' ? 'approved' : 'cash_pending',
+          pos_amount: orderData.totalAmount,
+          auth_code: orderData.paymentRef?.authCode || null,
+          ref_num: orderData.paymentRef?.refNum || null,
+          card_no: orderData.paymentRef?.cardNo || null,
+          iiko_sent: !!orderData.syrveOrderId,
+          iiko_order_id: orderData.syrveOrderId || null,
+          kind: isCashAwaiting ? 'cash_awaiting' : 'iiko_pending',
+        });
+      }
+    } catch (e) {
+      console.warn('[Payment] Error fetching awaiting orders from orders table:', e.message);
+    }
+
+    // 3. Orphan POS logs with paid=true and not sent to iiko
+    try {
+      const { rows: orphanRows } = await pool.query(`
+        SELECT 
+          order_id, 
+          location_id, 
+          location_name,
+          amount,
+          auth_code,
+          ref_num,
+          receipt_no,
+          card_no,
+          tx_date,
+          status,
+          paid,
+          timestamp as created_at
+        FROM pos_logs
+        WHERE paid = true
+          AND (iiko_sent = false OR iiko_sent IS NULL OR iiko_order_id IS NULL)
+          AND timestamp > NOW() - INTERVAL '48 hours'
+        ORDER BY timestamp DESC
+        LIMIT 50
+      `);
+
+      for (const r of orphanRows) {
+        if (!r.order_id || seenIds.has(r.order_id)) continue;
+        seenIds.add(r.order_id);
+
+        list.push({
+          order_id: r.order_id,
+          orderNumber: null,
+          location_id: r.location_id,
+          payload: {
+            brand: 'smashme',
+            items: [],
+            totalAmount: Number(r.amount) || 0,
+            locationName: r.location_name,
+          },
+          created_at: r.created_at,
+          paid: true,
+          pos_status: r.status || 'approved',
+          pos_amount: r.amount,
+          auth_code: r.auth_code,
+          ref_num: r.ref_num,
+          receipt_no: r.receipt_no,
+          card_no: r.card_no,
+          tx_date: r.tx_date,
+          iiko_sent: false,
+          kind: 'pos_paid_pending_iiko',
+        });
+      }
+    } catch (e) {
+      console.warn('[Payment] Error fetching orphan pos_logs:', e.message);
+    }
+
+    // Sort by created_at DESC
+    list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    return res.json({ pendingOrders: list, total: list.length });
+  } catch (err) {
+    console.error('[Payment] Error in pending-orders endpoint:', err.message);
+    return res.status(500).json({ error: err.message, pendingOrders: [], total: 0 });
   }
 });
 
 // ── POST /api/payment/pending-orders/:orderId/push-iiko ──────────
 router.post('/pending-orders/:orderId/push-iiko', requireApiKey, async (req, res) => {
   const { orderId } = req.params;
+  const io = req.app.get('io');
+  const { createOrder: syrveCreateOrder } = require('../services/iikoService');
+  const { findLocation } = require('../utils/locations');
+
   try {
+    // A) Check if exists in pending_pos_orders
     const pendingPayload = await getPendingPosOrder(orderId);
-    if (!pendingPayload) {
-      return res.status(404).json({ error: 'Comanda în așteptare nu a fost găsită' });
-    }
-    const { processOrderCreation } = require('./orders');
-    const io = req.app.get('io');
-    
-    let payRef = {};
-    try {
-      const pLog = await pool.query('SELECT * FROM pos_logs WHERE order_id = $1 LIMIT 1', [orderId]);
-      if (pLog.rows.length > 0) {
-        const r = pLog.rows[0];
-        payRef = {
-          orderId,
-          authCode: r.auth_code,
-          receiptNo: r.receipt_no,
-          refNum: r.ref_num,
-          cardNo: r.card_no,
-          txDate: r.tx_date,
-          extraFields: r.raw?.extraFields,
-        };
+    if (pendingPayload) {
+      const { processOrderCreation } = require('./orders');
+      let payRef = {};
+      try {
+        const pLog = await pool.query('SELECT * FROM pos_logs WHERE order_id = $1 LIMIT 1', [orderId]);
+        if (pLog.rows.length > 0) {
+          const r = pLog.rows[0];
+          payRef = {
+            orderId,
+            authCode: r.auth_code,
+            receiptNo: r.receipt_no,
+            refNum: r.ref_num,
+            cardNo: r.card_no,
+            txDate: r.tx_date,
+            extraFields: r.raw?.extraFields,
+          };
+        }
+      } catch (_) {}
+
+      const createResult = await processOrderCreation({
+        ...pendingPayload,
+        posOrderId: orderId,
+        paymentMethod: 'card',
+        paymentRef: Object.keys(payRef).length > 0 ? payRef : (pendingPayload.paymentRef || {}),
+      }, io);
+
+      if (createResult?.data?.order) {
+        await removePendingPosOrder(orderId);
+        return res.json({ success: true, order: createResult.data.order });
       }
-    } catch (_) {}
-
-    const createResult = await processOrderCreation({
-      ...pendingPayload,
-      posOrderId: orderId,
-      paymentMethod: 'card',
-      paymentRef: Object.keys(payRef).length > 0 ? payRef : (pendingPayload.paymentRef || {}),
-    }, io);
-
-    if (createResult?.data?.order) {
-      await removePendingPosOrder(orderId);
-      return res.json({ success: true, order: createResult.data.order });
-    } else {
-      return res.status(500).json({ error: 'Nu s-a putut crea comanda în sistem' });
     }
+
+    // B) Check if exists in `orders` table (e.g. awaiting_payment cash or unsynced order)
+    const orderRes = await pool.query(
+      `SELECT id, location_id, data FROM orders WHERE data->>'_id' = $1 OR id = $1 OR data->>'orderNumber' = $1 LIMIT 1`,
+      [orderId]
+    );
+
+    if (orderRes.rows.length > 0) {
+      const orderRow = orderRes.rows[0];
+      const order = orderRow.data;
+
+      // Send to Syrve
+      const locData = findLocation(order.locationId || orderRow.location_id);
+      const orgIdsDict = locData?.orgIds || {};
+      const brandsMap = {};
+      for (const item of (order.items || [])) {
+        const bId = item.brandId || order.brand || 'smashme';
+        if (!brandsMap[bId]) brandsMap[bId] = { items: [], totalAmount: 0 };
+        brandsMap[bId].items.push(item);
+        brandsMap[bId].totalAmount += (item.totalPrice || 0);
+      }
+
+      const syrveIds = [];
+      for (const [bId, brandData] of Object.entries(brandsMap)) {
+        const specificOrgId = orgIdsDict[bId]
+          || (bId === 'rollmaster' ? (orgIdsDict['sushimaster'] || orgIdsDict['welovesushi']) : null)
+          || (bId === 'sushimaster' ? orgIdsDict['rollmaster'] : null)
+          || (bId === 'smashme' ? orgIdsDict['crunch'] : null)
+          || (bId === 'crunch' ? orgIdsDict['smashme'] : null)
+          || order.orgId
+          || (Object.values(orgIdsDict).length === 1 ? Object.values(orgIdsDict)[0] : null);
+
+        const splitOrder = {
+          ...order,
+          brand: bId,
+          orgId: specificOrgId,
+          items: brandData.items,
+          totalAmount: Math.round(brandData.totalAmount * 100) / 100,
+        };
+
+        try {
+          const syrveResult = await syrveCreateOrder({ brandId: bId, orgId: specificOrgId, order: splitOrder });
+          const sid = syrveResult?.orderInfo?.id || syrveResult?.id;
+          if (sid) syrveIds.push(sid);
+        } catch (e) {
+          console.error(`[Payment] Syrve push error for brand ${bId}:`, e.message);
+        }
+      }
+
+      const syrveIdStr = syrveIds.join(',') || 'MANUAL-CONFIRMED';
+      order.syrveOrderId = syrveIdStr;
+      order.status = 'confirmed';
+
+      await pool.query(
+        `UPDATE orders SET status = 'confirmed', data = jsonb_set(jsonb_set(data, '{syrveOrderId}', $1), '{status}', '"confirmed"') WHERE id = $2`,
+        [JSON.stringify(syrveIdStr), orderRow.id]
+      );
+
+      if (io) {
+        io.emit('order_status_updated', { orderId: orderRow.id, status: 'confirmed', syrveOrderId: syrveIdStr });
+      }
+
+      return res.json({ success: true, order });
+    }
+
+    return res.status(404).json({ error: 'Comanda nu a fost găsită în sistem' });
   } catch (err) {
-    console.error('[Payment] Error pushing pending order:', err.message);
+    console.error('[Payment] Error pushing order to iiko:', err.message);
     return res.status(500).json({ error: err.message });
   }
 });
@@ -392,7 +607,14 @@ router.delete('/pending-orders/:orderId', requireApiKey, async (req, res) => {
   const { orderId } = req.params;
   try {
     await removePendingPosOrder(orderId);
-    return res.json({ success: true, message: 'Comandă în așteptare eliminată' });
+
+    // Also cancel in orders if it exists as awaiting_payment
+    await pool.query(
+      `UPDATE orders SET status = 'cancelled', data = jsonb_set(data, '{status}', '"cancelled"') WHERE (data->>'_id' = $1 OR id = $1) AND data->>'status' = 'awaiting_payment'`,
+      [orderId]
+    ).catch(() => {});
+
+    return res.json({ success: true, message: 'Comandă eliminată' });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

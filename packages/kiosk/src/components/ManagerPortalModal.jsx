@@ -137,15 +137,7 @@ export default function ManagerPortalModal({ locationData, onClose, isStandalone
     }
   };
 
-  // Ieșire automată din fullscreen la accesarea portalului manager
-  useEffect(() => {
-    if (document.fullscreenElement || document.webkitFullscreenElement) {
-      try {
-        if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
-        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-      } catch (_) {}
-    }
-  }, []);
+  // Nu mai forțăm ieșirea din fullscreen la deschiderea portalului manager (păstrează modul Kiosk activ)
 
   const sendLog = async (eventType, role) => {
     try {
@@ -978,6 +970,25 @@ const KIOSK_EVENT_META = {
               </svg>
               <span>Actualizează</span>
             </button>
+
+            {!isStandalone && (
+              <button
+                type="button"
+                onClick={() => {
+                  const el = document.documentElement;
+                  const rfs = el.requestFullscreen || el.webkitRequestFullscreen;
+                  if (rfs) rfs.call(el).catch(() => {});
+                }}
+                className="mgr-btn-refresh"
+                title="Activează Ecran Complet (Fullscreen)"
+                style={{ background: '#3b82f6', color: '#fff', borderColor: '#2563eb' }}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+                </svg>
+                <span>Fullscreen</span>
+              </button>
+            )}
 
             {isStandalone ? (
               <button

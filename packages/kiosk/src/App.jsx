@@ -473,10 +473,9 @@ export default function App() {
     };
   }, [locationData?.id, setLocationData, screen, isLocked]);
 
-  // Auto-fullscreen pentru kiosk/tabletă (activ doar pentru clienți, NICIODATĂ pe linkul de manager)
+  // Auto-fullscreen pentru kiosk/tabletă (activ doar pentru modul kiosk, NICIODATĂ pe linkul de manager)
   useEffect(() => {
     if (isManagerMode) {
-      // Scoate automat ecranul din fullscreen dacă s-a deschis linkul de manager
       if (document.fullscreenElement || document.webkitFullscreenElement) {
         try {
           if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
@@ -499,27 +498,25 @@ export default function App() {
       }
     };
 
-    // Reintră în fullscreen dacă utilizatorul iese accidental (Esc)
-    const onFSChange = () => {
-      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-        // Așteaptă următoarea interacțiune pentru a reintra în fullscreen
-      }
-    };
-    document.addEventListener('fullscreenchange', onFSChange);
-    document.addEventListener('webkitfullscreenchange', onFSChange);
-
-    // Intră în fullscreen la prima interacțiune (click sau touch - conform cerinței browserului)
+    // Reintră în fullscreen la orice interacțiune pe ecran (touch, pointer, click, tastă)
     const onInteraction = () => requestFS();
-    document.addEventListener('touchstart', onInteraction, { passive: true });
-    document.addEventListener('click', onInteraction);
+    window.addEventListener('pointerdown', onInteraction, { passive: true });
+    window.addEventListener('touchstart', onInteraction, { passive: true });
+    window.addEventListener('touchend', onInteraction, { passive: true });
+    window.addEventListener('click', onInteraction);
+    window.addEventListener('keydown', onInteraction);
+
+    // Încercare la montare sau la schimbarea ecranului
+    requestFS();
 
     return () => {
-      document.removeEventListener('fullscreenchange', onFSChange);
-      document.removeEventListener('webkitfullscreenchange', onFSChange);
-      document.removeEventListener('touchstart', onInteraction);
-      document.removeEventListener('click', onInteraction);
+      window.removeEventListener('pointerdown', onInteraction);
+      window.removeEventListener('touchstart', onInteraction);
+      window.removeEventListener('touchend', onInteraction);
+      window.removeEventListener('click', onInteraction);
+      window.removeEventListener('keydown', onInteraction);
     };
-  }, [isManagerMode]);
+  }, [isManagerMode, screen, showManagerPortal]);
 
   if (loading) {
     return (
