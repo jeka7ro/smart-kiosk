@@ -120,39 +120,66 @@ function StatCard({ label, value, color, icon: Icon, onClick, active, highlight 
   );
 }
 
+// ─── HELPER: Detecție Unificată Brand ───
+export function detectBrand(item) {
+  if (!item) return 'smashme';
+  const p = item.payload || {};
+  const bRaw = String(p.brand || item.brand || p.brandId || item.brand_id || '').toLowerCase().trim();
+  if (bRaw) {
+    if (bRaw.includes('sushi') || bRaw.includes('ikura') || bRaw.includes('roll')) return 'rollmaster';
+    if (bRaw.includes('crunch')) return 'crunch';
+    if (bRaw.includes('poki')) return 'pokiwoki';
+    if (bRaw.includes('smash')) return 'smashme';
+    return bRaw;
+  }
+  const orderNum = String(item.orderNumber || p.orderNumber || '').toUpperCase();
+  const locCombined = `${item.location_id || ''} ${item.locationId || ''} ${p.locationName || ''} ${orderNum}`.toLowerCase();
+  if (locCombined.includes('roll') || locCombined.includes('sushi') || locCombined.includes('ikura') || locCombined.includes('bv') || locCombined.includes('brasov') || orderNum.startsWith('BV')) {
+    return 'rollmaster';
+  }
+  if (locCombined.includes('crunch')) return 'crunch';
+  return 'smashme';
+}
+
 // ─── HELPER: Formatează Locația curată (fără brand) și Kiosk-ul ───
 export function formatLocationAndKiosk(item) {
   const p = item?.payload || {};
-  const rawLoc = p.locationName || item?.location_id || item?.locationId || '';
+  const rawLoc = p.locationName || item?.location_id || item?.locationId || p.locationId || '';
   const locIdStr = String(item?.location_id || item?.locationId || p.locationId || '').toLowerCase();
   const orderNum = String(item?.orderNumber || p.orderNumber || '').toUpperCase();
   const rawLocLower = String(rawLoc).toLowerCase();
-  
-  // 1. Curățare Nume Oraș / Locație (eliminăm brandurile ca RollMaster, SmashMe, etc.)
-  let clean = rawLoc
-    .replace(/\b(rollmaster|roll master|smashme|smash me|sm|ikura|crunch|lovesushi|love sushi|pokiwoki|poki woki)\b/gi, '')
-    .replace(/[-_]/g, ' ')
-    .trim();
-    
-  const combined = `${rawLocLower} ${locIdStr}`;
-  if (!clean || clean.length <= 1) {
-    if (combined.includes('bv') || combined.includes('brasov')) clean = 'Brașov';
-    else if (combined.includes('cj') || combined.includes('cluj')) clean = 'Cluj';
-    else if (combined.includes('ct') || combined.includes('constanta')) clean = 'Constanța';
-    else if (combined.includes('oradea') || combined.includes('ikura')) clean = 'Oradea';
-    else if (combined.includes('balotesti')) clean = 'Balotești';
-    else if (combined.includes('bacau')) clean = 'Bacău';
-    else if (combined.includes('targumures') || combined.includes('mures')) clean = 'Târgu Mureș';
-    else clean = rawLoc || '—';
+  const normStr = `${rawLocLower} ${locIdStr} ${orderNum}`.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+  // 1. Curățare Nume Oraș / Locație (strict orașul, fără niciun brand repetat)
+  let clean = '';
+  if (normStr.includes('brasov') || normStr.includes('bv') || orderNum.startsWith('BV')) {
+    clean = 'Brașov';
+  } else if (normStr.includes('cluj') || normStr.includes('cj') || orderNum.startsWith('CJ')) {
+    clean = normStr.includes('centru') ? 'Cluj (Centru)' : 'Cluj';
+  } else if (normStr.includes('constanta') || normStr.includes('ct') || orderNum.startsWith('CT')) {
+    clean = 'Constanța';
+  } else if (normStr.includes('oradea') || normStr.includes('ikura') || orderNum.startsWith('OR')) {
+    clean = 'Oradea';
+  } else if (normStr.includes('balotesti') || orderNum.startsWith('BAL')) {
+    clean = 'Balotești';
+  } else if (normStr.includes('bacau') || orderNum.startsWith('BC')) {
+    clean = 'Bacău';
+  } else if (normStr.includes('mures') || normStr.includes('targu') || orderNum.startsWith('MS')) {
+    clean = 'Târgu Mureș';
   } else {
-    const clLow = clean.toLowerCase();
-    if (clLow.includes('brasov')) clean = 'Brașov';
-    else if (clLow.includes('centru')) clean = 'Cluj (Centru)';
-    else if (clLow.includes('cluj')) clean = 'Cluj';
-    else if (clLow.includes('constanta')) clean = 'Constanța';
-    else if (clLow.includes('oradea')) clean = 'Oradea';
-    else if (clLow.includes('balotesti')) clean = 'Balotești';
-    else if (clLow.includes('bacau')) clean = 'Bacău';
+    clean = rawLoc
+      .replace(/roll\s*master/gi, '')
+      .replace(/smash\s*me/gi, '')
+      .replace(/love\s*sushi/gi, '')
+      .replace(/sushi\s*master/gi, '')
+      .replace(/we\s*love\s*sushi/gi, '')
+      .replace(/poki\s*woki/gi, '')
+      .replace(/crunch/gi, '')
+      .replace(/ikura/gi, '')
+      .replace(/\bsm\b/gi, '')
+      .replace(/[-_]/g, ' ')
+      .trim();
+    if (!clean) clean = rawLoc || '—';
   }
 
   // 2. Detecție Kiosk (Kiosk 1, Kiosk 2, etc.)
@@ -167,12 +194,10 @@ export function formatLocationAndKiosk(item) {
       kNum = '2';
     } else if (orderNum.startsWith('CJ1-') || orderNum.startsWith('CT1-') || orderNum.startsWith('BV1-')) {
       kNum = '1';
-    } else if (['cluj2', 'cj2', 'constanta2', 'ct2', 'kiosk2', 'kiosk-2'].some(k => combined.includes(k))) {
+    } else if (['cluj2', 'cj2', 'constanta2', 'ct2', 'kiosk2', 'kiosk-2'].some(k => normStr.includes(k))) {
       kNum = '2';
-    } else if (['cluj3', 'cj3', 'kiosk3', 'kiosk-3'].some(k => combined.includes(k))) {
+    } else if (['cluj3', 'cj3', 'kiosk3', 'kiosk-3'].some(k => normStr.includes(k))) {
       kNum = '3';
-    } else if (['cluj1', 'cj1', 'constanta1', 'ct1', 'kiosk1', 'kiosk-1'].some(k => combined.includes(k))) {
-      kNum = '1';
     } else {
       kNum = '1';
     }
@@ -371,7 +396,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
   const filteredList = useMemo(() => {
     return groupedList.filter(item => {
       const p = item.payload || {};
-      const brand = (p.brand || 'smashme').toLowerCase();
+      const brand = detectBrand(item);
       const loc = (p.locationName || item.location_id || '').toLowerCase();
       const orderId = (item.order_id || '').toLowerCase();
       const orderNum = (item.orderNumber || p.orderNumber || '').toLowerCase();
@@ -579,7 +604,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
             ) : (
               paginated.map((item, index) => {
                 const p = item.payload || {};
-                const brand = p.brand || 'smashme';
+                const brand = detectBrand(item);
                 const rowNumber = (safePage - 1) * itemsPerPage + index + 1;
                 const dt = item.created_at ? new Date(item.created_at) : null;
                 const items = p.items || [];
@@ -728,37 +753,33 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                           <div className="space-y-3">
                             {/* Accordion Header */}
                             <div className="flex flex-wrap items-center justify-between gap-3 pb-2.5 border-b border-slate-200 dark:border-slate-700">
-                              <div className="flex items-center gap-2.5">
-                                <BrandLogo brandId={brand} size={28} className="shadow-2xs shrink-0" />
-                                <div>
-                                  <div className="flex items-center gap-1.5 flex-wrap">
-                                    <span className="text-sm font-bold text-slate-900 dark:text-white">
-                                      Comandă #{item.orderNumber || item.order_id}
-                                    </span>
-                                    <button
-                                      type="button"
-                                      onClick={() => setSelectedDraft(item)}
-                                      className="p-1 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors cursor-pointer"
-                                      title="Vezi bon / coș complet"
-                                      aria-label="Vezi bon / coș complet"
-                                    >
-                                      <Eye size={15} />
-                                    </button>
-                                    <span 
-                                      style={{ color: BRAND_COLORS[brand] || '#e11d48' }}
-                                      className="text-[10px] px-2 py-0.2 rounded-full font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
-                                    >
-                                      {BRAND_LABELS[brand] || brand}
-                                    </span>
-                                    <span className="text-[10px] px-2 py-0.2 rounded-full font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 flex items-center gap-1 shadow-2xs">
-                                      <Monitor size={10} className="text-blue-500" />
-                                      <span>{locInfo.locationName} • {locInfo.kioskLabel}</span>
-                                    </span>
-                                  </div>
-                                  <span className="text-[10.5px] text-slate-500 mt-0.5 block">
-                                    {dt ? dt.toLocaleString('ro-RO') : '—'} • {p.orderType === 'takeaway' ? 'La Pachet' : 'În Restaurant'}
-                                  </span>
-                                </div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm font-bold text-slate-900 dark:text-white">
+                                  Comandă #{item.orderNumber || item.order_id}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedDraft(item)}
+                                  className="p-1 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors cursor-pointer"
+                                  title="Vezi bon / coș complet"
+                                  aria-label="Vezi bon / coș complet"
+                                >
+                                  <Eye size={15} />
+                                </button>
+                                <span 
+                                  style={{ color: BRAND_COLORS[brand] || '#e11d48' }}
+                                  className="inline-flex items-center gap-1.5 text-[10.5px] px-2.5 py-0.5 rounded-full font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xs"
+                                >
+                                  <BrandLogo brandId={brand} size={15} />
+                                  <span>{BRAND_LABELS[brand] || brand}</span>
+                                </span>
+                                <span className="inline-flex items-center gap-1.5 text-[10.5px] px-2.5 py-0.5 rounded-full font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-2xs">
+                                  <Monitor size={10} className="text-blue-500" />
+                                  <span>{locInfo.locationName} • {locInfo.kioskLabel}</span>
+                                </span>
+                                <span className="text-[10.5px] text-slate-400 ml-1">
+                                  {dt ? dt.toLocaleString('ro-RO') : '—'} • {p.orderType === 'takeaway' ? 'La Pachet' : 'În Restaurant'}
+                                </span>
                               </div>
                               <div className="flex items-center gap-3">
                                 {(!item.iiko_sent && !p.syrveOrderId) && (
@@ -1102,23 +1123,33 @@ export default function PendingOrders({ backend, onGoToOrder }) {
           >
             {/* Modal Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-3">
-                <BrandLogo brandId={selectedDraft.payload?.brand} size={32} />
-                <div>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                    Detalii Comandă #{selectedDraft.orderNumber || selectedDraft.order_id}
-                  </h3>
-                  {(() => {
-                    const sInfo = formatLocationAndKiosk(selectedDraft);
-                    return (
+              {(() => {
+                const mBrand = detectBrand(selectedDraft);
+                const sInfo = formatLocationAndKiosk(selectedDraft);
+                return (
+                  <div className="flex items-center gap-3">
+                    <BrandLogo brandId={mBrand} size={32} />
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                          Detalii Comandă #{selectedDraft.orderNumber || selectedDraft.order_id}
+                        </h3>
+                        <span 
+                          style={{ color: BRAND_COLORS[mBrand] || '#e11d48' }}
+                          className="inline-flex items-center gap-1 text-[10px] px-2 py-0.2 rounded-full font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xs"
+                        >
+                          <BrandLogo brandId={mBrand} size={12} />
+                          <span>{BRAND_LABELS[mBrand] || mBrand}</span>
+                        </span>
+                      </div>
                       <span className="text-xs font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1.5 mt-0.5">
                         <Monitor size={11} className="text-blue-500" />
                         <span>{sInfo.locationName} • {sInfo.kioskLabel}</span>
                       </span>
-                    );
-                  })()}
-                </div>
-              </div>
+                    </div>
+                  </div>
+                );
+              })()}
               <button
                 onClick={() => setSelectedDraft(null)}
                 className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
