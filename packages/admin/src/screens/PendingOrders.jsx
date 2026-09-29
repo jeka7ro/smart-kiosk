@@ -29,6 +29,45 @@ const BRAND_LABELS = {
   ikura: 'Ikura',
 };
 
+// ─── Standard Status Labels & Helper (Identic cu Gestionare Comenzi / App.jsx) ───
+const STATUS_LABELS = {
+  pending:          { label: 'Achitată cu succes',  color: '#059669' },
+  awaiting_payment: { label: 'Trimis la bucătărie', color: '#059669' },
+  confirmed:        { label: 'Trimis la bucătărie', color: '#059669' },
+  preparing:        { label: 'În preparare',        color: '#3b82f6' },
+  ready:            { label: 'Gata',                color: '#059669' },
+  delivered:        { label: 'Livrat',              color: '#8b5cf6' },
+  cancelled:        { label: 'Anulată',             color: '#ef4444' },
+};
+
+function getOrderStatus(item, isTimeoutUnfinalized) {
+  if (!item) return { label: '—', color: '#6b7a99' };
+  const p = item.payload || {};
+
+  if (isTimeoutUnfinalized || item.kind === 'unfinalized_abandoned' || item.status === 'cancelled' || p.status === 'cancelled') {
+    return { label: 'Anulată', color: '#ef4444' };
+  }
+  if (item.status === 'delivered' || p.status === 'delivered') return { label: 'Livrat', color: '#8b5cf6' };
+  if (item.status === 'ready' || p.status === 'ready')         return { label: 'Gata', color: '#059669' };
+  if (item.status === 'preparing' || p.status === 'preparing') return { label: 'În preparare', color: '#3b82f6' };
+
+  // Comenzi plătite cu cardul -> Achitată cu succes
+  if (item.paid || p.paymentMethod === 'card' || p.paymentRef?.authCode || item.auth_code || item.kind === 'finalized_success' || item.kind === 'pos_paid_pending_iiko') {
+    return { label: 'Achitată cu succes', color: '#059669' };
+  }
+
+  // Comenzi trimise la bucătărie (Syrve / iiko) sau cash
+  if (item.iiko_order_id || p.syrveOrderId || p.status === 'awaiting_payment' || item.status === 'awaiting_payment' || p.paymentMethod === 'cash' || item.kind === 'cash_awaiting') {
+    return { label: 'Trimis la bucătărie', color: '#059669' };
+  }
+
+  if (item.kind === 'pos_in_progress') {
+    return { label: 'În curs', color: '#3b82f6' };
+  }
+
+  return STATUS_LABELS[p.status || item.status] || { label: 'Achitată cu succes', color: '#059669' };
+}
+
 function StatCard({ label, value, color, icon: Icon, onClick, active, highlight }) {
   return (
     <div
@@ -286,7 +325,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
 
   // Derived stats
   const stats = useMemo(() => {
-    let awaitingCash = 0;
+    let kitchen = 0;
     let finalized = 0;
     let cardInProgress = 0;
     let unfinalized = 0;
@@ -294,17 +333,16 @@ export default function PendingOrders({ backend, onGoToOrder }) {
       const isFin = item.kind === 'finalized_success' || item.paid || (item.kind === 'cash_awaiting' && item.orderNumber);
       const ageMs = item.created_at ? (Date.now() - new Date(item.created_at).getTime()) : 0;
       const isTimeout = !isFin && (item.kind === 'unfinalized_abandoned' || item.isUnfinalized || ageMs > 2.5 * 60 * 1000);
+      const sc = getOrderStatus(item, isTimeout);
 
-      if (item.kind === 'cash_awaiting') awaitingCash++;
-      else if (item.kind === 'finalized_success') finalized++;
-      else if (item.kind === 'pos_in_progress' || item.kind === 'unfinalized_abandoned') {
-        if (isTimeout) unfinalized++;
-        else cardInProgress++;
-      }
+      if (sc.label === 'Trimis la bucătărie') kitchen++;
+      else if (sc.label === 'Achitată cu succes') finalized++;
+      else if (sc.label === 'În curs') cardInProgress++;
+      else if (sc.label === 'Anulată') unfinalized++;
     });
     return {
       total: groupedList.length,
-      awaitingCash,
+      kitchen,
       finalized,
       cardInProgress,
       unfinalized,
@@ -335,29 +373,16 @@ export default function PendingOrders({ backend, onGoToOrder }) {
       }
 
       // Status filter
-      if (statusFilter === 'cash' && item.kind !== 'cash_awaiting') {
-        return false;
-      }
-      if (statusFilter === 'finalized' && item.kind !== 'finalized_success') {
-        return false;
-      }
-      if (statusFilter === 'card_approved' && (item.kind !== 'pos_paid_pending_iiko' && !item.paid)) {
-        return false;
-      }
-      if (statusFilter === 'card_waiting') {
-        const isFin = item.kind === 'finalized_success' || item.paid;
+      if (statusFilter !== 'all') {
+        const isFin = item.kind === 'finalized_success' || item.paid || (item.kind === 'cash_awaiting' && item.orderNumber);
         const ageMs = item.created_at ? (Date.now() - new Date(item.created_at).getTime()) : 0;
         const isTimeout = !isFin && (item.kind === 'unfinalized_abandoned' || item.isUnfinalized || ageMs > 2.5 * 60 * 1000);
-        if (isTimeout || item.kind !== 'pos_in_progress') return false;
-      }
-      if (statusFilter === 'unfinalized') {
-        const isFin = item.kind === 'finalized_success' || item.paid;
-        const ageMs = item.created_at ? (Date.now() - new Date(item.created_at).getTime()) : 0;
-        const isTimeout = !isFin && (item.kind === 'unfinalized_abandoned' || item.isUnfinalized || ageMs > 2.5 * 60 * 1000);
-        if (!isTimeout) return false;
-      }
-      if (statusFilter === 'iiko_pending' && item.kind !== 'iiko_pending') {
-        return false;
+        const itemSc = getOrderStatus(item, isTimeout);
+
+        if (statusFilter === 'kitchen' && itemSc.label !== 'Trimis la bucătărie') return false;
+        if (statusFilter === 'success' && itemSc.label !== 'Achitată cu succes') return false;
+        if (statusFilter === 'in_progress' && itemSc.label !== 'În curs') return false;
+        if (statusFilter === 'cancelled' && itemSc.label !== 'Anulată') return false;
       }
 
       // Search match
@@ -499,28 +524,28 @@ export default function PendingOrders({ backend, onGoToOrder }) {
           active={statusFilter === 'all'}
         />
         <StatCard 
-          label="În Așteptare Cash" 
-          value={stats.awaitingCash} 
-          color="#64748b" 
-          icon={Banknote}
-          onClick={() => { setStatusFilter(statusFilter === 'cash' ? 'all' : 'cash'); setCurrentPage(1); }}
-          active={statusFilter === 'cash'}
+          label="Trimis la Bucătărie" 
+          value={stats.kitchen} 
+          color="#059669" 
+          icon={ShoppingBag}
+          onClick={() => { setStatusFilter(statusFilter === 'kitchen' ? 'all' : 'kitchen'); setCurrentPage(1); }}
+          active={statusFilter === 'kitchen'}
         />
         <StatCard 
-          label="Finalizate cu Succes" 
+          label="Achitată cu Succes" 
           value={stats.finalized} 
           color="#059669" 
           icon={CheckCircle2}
-          onClick={() => { setStatusFilter(statusFilter === 'finalized' ? 'all' : 'finalized'); setCurrentPage(1); }}
-          active={statusFilter === 'finalized'}
+          onClick={() => { setStatusFilter(statusFilter === 'success' ? 'all' : 'success'); setCurrentPage(1); }}
+          active={statusFilter === 'success'}
         />
         <StatCard 
-          label="Nefinalizate (Abandonate)" 
-          value={stats.unfinalized} 
-          color="#64748b" 
-          icon={XCircle}
-          onClick={() => { setStatusFilter(statusFilter === 'unfinalized' ? 'all' : 'unfinalized'); setCurrentPage(1); }}
-          active={statusFilter === 'unfinalized'}
+          label="În Curs" 
+          value={stats.cardInProgress} 
+          color="#3b82f6" 
+          icon={Clock}
+          onClick={() => { setStatusFilter(statusFilter === 'in_progress' ? 'all' : 'in_progress'); setCurrentPage(1); }}
+          active={statusFilter === 'in_progress'}
         />
       </div>
 
@@ -577,11 +602,10 @@ export default function PendingOrders({ backend, onGoToOrder }) {
           onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
         >
           <option value="all">Toate statusurile</option>
-          <option value="cash">Cash la Casierie (Neachitat)</option>
-          <option value="finalized">✓ Finalizate cu Succes</option>
-          <option value="card_approved">Card Aprobat (Netrimis iiko)</option>
-          <option value="card_waiting">Card în Curs pe POS</option>
-          <option value="iiko_pending">În Așteptare iiko</option>
+          <option value="kitchen">Trimis la bucătărie</option>
+          <option value="success">Achitată cu succes</option>
+          <option value="in_progress">În curs</option>
+          <option value="cancelled">Anulată</option>
         </select>
 
         {/* Refresh Button */}
@@ -636,6 +660,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                 const ageMs = item.created_at ? (Date.now() - new Date(item.created_at).getTime()) : 0;
                 const isTimeoutUnfinalized = !isFinalized && (item.kind === 'unfinalized_abandoned' || item.isUnfinalized || ageMs > 2.5 * 60 * 1000);
                 const ageMinutes = Math.max(1, Math.round(ageMs / 60000));
+                const sc = getOrderStatus(item, isTimeoutUnfinalized);
 
                 return (
                   <div key={itemKey} style={{ display: 'contents' }}>
@@ -653,7 +678,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                         {rowNumber}
                       </td>
 
-                      {/* # Comandă / ID & Grouping Badge */}
+                      {/* # Comandă */}
                       <td className="px-6 py-4">
                         <div className="flex flex-col items-start gap-0.5">
                           <span className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
@@ -662,22 +687,6 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                           {dt && (
                             <span className="text-[11px] text-slate-400">
                               {dt.toLocaleString('ro-RO')}
-                            </span>
-                          )}
-
-                          {/* Finalizată cu Succes Badge */}
-                          {item.kind === 'finalized_success' && (
-                            <span className="inline-flex items-center gap-1.5 mt-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 whitespace-nowrap">
-                              <CheckCircle2 size={12} />
-                              <span>Finalizată cu Succes</span>
-                            </span>
-                          )}
-
-                          {/* Nefinalizată de Client Badge */}
-                          {isTimeoutUnfinalized && (
-                            <span className="inline-flex items-center gap-1.5 mt-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 whitespace-nowrap">
-                              <XCircle size={12} className="text-slate-400" />
-                              <span>Nefinalizată de Client</span>
                             </span>
                           )}
                         </div>
@@ -743,44 +752,14 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                         </span>
                       </td>
 
-                      {/* Status Badge */}
+                      {/* Status - Standard Comenzi (App.jsx) */}
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {item.kind === 'finalized_success' && (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            <span>Finalizat cu Succes</span>
-                          </span>
-                        )}
-                        {item.kind === 'cash_awaiting' && (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 whitespace-nowrap">
-                            <Banknote className="w-3.5 h-3.5 text-slate-500" />
-                            <span>Cash Neachitat</span>
-                          </span>
-                        )}
-                        {item.kind === 'pos_paid_pending_iiko' && (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            <span>Card Aprobat (Netrimis iiko)</span>
-                          </span>
-                        )}
-                        {(item.kind === 'unfinalized_abandoned' || (item.kind === 'pos_in_progress' && isTimeoutUnfinalized)) && (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 whitespace-nowrap">
-                            <XCircle className="w-3.5 h-3.5 text-slate-400" />
-                            <span>Nefinalizată de Client</span>
-                          </span>
-                        )}
-                        {item.kind === 'pos_in_progress' && !isTimeoutUnfinalized && (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30 whitespace-nowrap">
-                            <Clock className="w-3.5 h-3.5 animate-pulse" />
-                            <span>Card în Curs POS</span>
-                          </span>
-                        )}
-                        {item.kind === 'iiko_pending' && (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30">
-                            <AlertTriangle className="w-3.5 h-3.5" />
-                            <span>În Așteptare iiko</span>
-                          </span>
-                        )}
+                        <span 
+                          className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap inline-block" 
+                          style={{ backgroundColor: `${sc.color}20`, color: sc.color, border: `1px solid ${sc.color}40` }}
+                        >
+                          ● {sc.label}
+                        </span>
                       </td>
 
                       {/* Acțiuni & Expand Toggle */}
@@ -1284,35 +1263,18 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                   </div>
                 </div>
                 <div>
-                  <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Stare Plată</span>
-                  <div className="font-bold mt-1">
-                    {selectedDraft.paid || selectedDraft.kind === 'finalized_success' ? (
-                      <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-bold">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Finalizată cu Succes</span>
-                      </span>
-                    ) : selectedDraft.kind === 'cash_awaiting' ? (
-                      <span className="text-slate-700 dark:text-slate-300 flex items-center gap-1 font-bold">
-                        <Banknote className="w-3.5 h-3.5 text-slate-500" />
-                        <span>Cash la Casierie (Neachitat)</span>
-                      </span>
-                    ) : (
-                      (() => {
-                        const mAge = selectedDraft.created_at ? (Date.now() - new Date(selectedDraft.created_at).getTime()) : 0;
-                        const mTimeout = mAge > 2.5 * 60 * 1000;
-                        return mTimeout ? (
-                          <span className="text-slate-600 dark:text-slate-400 flex items-center gap-1 font-bold">
-                            <XCircle className="w-3.5 h-3.5 text-slate-400" />
-                            <span>Comandă Nefinalizată de Client (Expirată)</span>
-                          </span>
-                        ) : (
-                          <span className="text-blue-600 dark:text-blue-400 flex items-center gap-1 font-bold">
-                            <Clock className="w-3.5 h-3.5" />
-                            <span>În Curs POS</span>
-                          </span>
-                        );
-                      })()
-                    )}
+                  <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Status Comandă</span>
+                  <div className="mt-1">
+                    {(() => {
+                      const mAge = selectedDraft.created_at ? (Date.now() - new Date(selectedDraft.created_at).getTime()) : 0;
+                      const mTimeout = mAge > 2.5 * 60 * 1000;
+                      const mSc = getOrderStatus(selectedDraft, mTimeout);
+                      return (
+                        <span className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap inline-block" style={{ backgroundColor: `${mSc.color}20`, color: mSc.color, border: `1px solid ${mSc.color}40` }}>
+                          ● {mSc.label}
+                        </span>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
