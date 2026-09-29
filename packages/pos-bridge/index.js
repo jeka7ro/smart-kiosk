@@ -493,6 +493,21 @@ async function start() {
 
     globalPort.on('error', err => {
       log(`❌ Eroare port serial POS: ${err.message}`);
+      if (err.message && (err.message.includes('Access denied') || err.message.includes('cannot open') || err.message.includes('File not found'))) {
+        log(`💡 Portul ${portPath} este ocupat sau indisponibil. Posibile cauze:`);
+        log(`   1. O altă instanță de POS Bridge rulează deja în fundal (închide 'node.exe' din Task Manager).`);
+        log(`   2. O altă aplicație (FiscalNet / driver serial) ține portul ocupat.`);
+        log(`🔄 Reîncerc automat deschiderea portului ${portPath} în 5 secunde...`);
+        setTimeout(() => {
+          if (globalPort && !globalPort.isOpen) {
+            globalPort.open((openErr) => {
+              if (openErr) {
+                log(`⚠️ Reîncercare port ${portPath} eșuată: ${openErr.message}`);
+              }
+            });
+          }
+        }, 5000);
+      }
       posLoggedIn = false;
       if (currentTransactionResolve) {
         currentTransactionResolve({ success: false, reason: err.message, code: 'DECLINED' });

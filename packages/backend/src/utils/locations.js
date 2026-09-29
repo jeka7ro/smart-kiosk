@@ -44,8 +44,7 @@ const CITY_CONFIG = {
     prefix: 'CT',
     minStart: 0,
     aliases: [
-      'constanta', 'constanta1', 'constanta2', 'constanta-1', 'constanta-2',
-      'smashme-constanta', 'ct', 'smashme constanta',
+      'constanta', 'smashme-constanta', 'ct', 'smashme constanta',
       '8308e796-8780-4d18-ae66-4e430178c778',
     ],
   },
@@ -89,6 +88,22 @@ const LOCATION_SPECIFIC_ALIASES = {
   // Cluj - Kiosk 2 (SmashMe CJ-2)
   'cluj2': [
     'cluj2', 'cluj-2', 'cj2', 'cj-2', 'smashme-cj2', 'smashme cj-2',
+    'kiosk-2', 'kiosk2',
+  ],
+  // Constanța - Kiosk 1 (Smash Me Constanța)
+  '8308e796-8780-4d18-ae66-4e430178c778': [
+    'constanta1', 'constanta-1', 'smashme-constanta', 'smashme constanta',
+    'constanta', 'ct', 'ct1', '8308e796-8780-4d18-ae66-4e430178c778',
+    'kiosk-1', 'kiosk1',
+  ],
+  'constanta1': [
+    'constanta1', 'constanta-1', 'smashme-constanta', 'smashme constanta',
+    'constanta', 'ct', 'ct1', '8308e796-8780-4d18-ae66-4e430178c778',
+    'kiosk-1', 'kiosk1',
+  ],
+  // Constanța - Kiosk 2
+  'constanta2': [
+    'constanta2', 'constanta-2', 'ct2', 'ct-2', 'smashme-ct2', 'smashme ct-2',
     'kiosk-2', 'kiosk2',
   ],
 };
@@ -260,10 +275,11 @@ function getLocationAliases(identifier) {
   const city = detectCity(identifier);
   if (city && CITY_CONFIG[city]) {
     // Only inherit generic city aliases if this city doesn't have multi-kiosk partitions
-    if (city !== 'cluj' || target === 'cluj') {
+    if ((city !== 'cluj' && city !== 'constanta') || target === 'cluj' || target === 'constanta') {
       CITY_CONFIG[city].aliases.forEach(a => {
-        // Double safety: never leak cluj2 aliases into general or vice-versa
+        // Double safety: never leak cluj2 or constanta2 aliases into general or vice-versa
         if (city === 'cluj' && a === 'cluj2') return;
+        if (city === 'constanta' && a === 'constanta2') return;
         aliases.add(a);
       });
     }

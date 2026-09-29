@@ -317,7 +317,9 @@ async function printTicket(order) {
 
       // 2. Asigurăm că imprimanta nu e pe Paused și deblocăm coada complet de orice job anterior
       try {
-        execSync(`powershell -NoProfile -Command "Set-Printer -Name '${PRINTER_NAME}' -Paused $false -ErrorAction SilentlyContinue; Get-PrintJob -PrinterName '${PRINTER_NAME}' -ErrorAction SilentlyContinue | Remove-PrintJob -ErrorAction SilentlyContinue"`, { timeout: 5000 });
+        if (PRINTER_NAME) {
+          execSync(`powershell -NoProfile -Command "Set-Printer -Name '${PRINTER_NAME}' -Paused $false -ErrorAction SilentlyContinue; Get-PrintJob -PrinterName '${PRINTER_NAME}' -ErrorAction SilentlyContinue | Remove-PrintJob -ErrorAction SilentlyContinue"`, { timeout: 5000 });
+        }
       } catch (_) {}
 
       // Metoda 1: Trimitere directă RAW către Spooler Share (100% nativ Windows, fără compilare C#)

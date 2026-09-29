@@ -183,11 +183,11 @@ async function processOrderCreation(body, io) {
   let kioskNum = '1';
   const kioskIdStr = String(kioskId || '').toLowerCase();
   const locIdStr = String(locId || '').toLowerCase();
-  if (kioskIdStr.includes('2') || locIdStr.includes('kiosk2') || locIdStr.includes('kiosk-2') || locIdStr.includes('cluj2') || locIdStr.includes('cj2') || locIdStr.includes('cj-2')) {
+  if (kioskIdStr.includes('2') || locIdStr.includes('kiosk2') || locIdStr.includes('kiosk-2') || locIdStr.includes('cluj2') || locIdStr.includes('cj2') || locIdStr.includes('cj-2') || locIdStr.includes('constanta2') || locIdStr.includes('ct2') || locIdStr.includes('ct-2')) {
     kioskNum = '2';
   } else if (kioskIdStr.includes('3') || locIdStr.includes('kiosk3') || locIdStr.includes('kiosk-3')) {
     kioskNum = '3';
-  } else if (kioskIdStr.includes('1') || locIdStr.includes('kiosk1') || locIdStr.includes('kiosk-1') || locIdStr.includes('cluj1')) {
+  } else if (kioskIdStr.includes('1') || locIdStr.includes('kiosk1') || locIdStr.includes('kiosk-1') || locIdStr.includes('cluj1') || locIdStr.includes('constanta1') || locIdStr.includes('ct1')) {
     kioskNum = '1';
   }
 
