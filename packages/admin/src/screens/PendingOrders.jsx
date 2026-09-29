@@ -6,6 +6,8 @@ import {
   Banknote, ArrowRight, ChevronDown, ChevronUp, Copy, Check, Sparkles, Utensils, Monitor
 } from 'lucide-react';
 import BrandLogo from '../components/BrandLogo.jsx';
+import BankLogo from '../components/BankLogo.jsx';
+import { detectCardBank } from '../utils/cardUtils';
 import { formatThousands, formatLocationAndKiosk } from '../utils/formatters';
 export { formatLocationAndKiosk };
 
@@ -921,7 +923,17 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                                       <div className="flex items-center justify-between">
                                         <span className="text-slate-400 font-medium">Metodă Plată Aleasă:</span>
                                         <span className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1">
-                                          {p.paymentMethod === 'cash' ? <><Banknote className="w-3.5 h-3.5 text-slate-500" /> Numerar (Cash la Casierie)</> : <><CreditCard className="w-3.5 h-3.5 text-blue-500" /> Card Bancar</>}
+                                          {p.paymentMethod === 'cash' ? (
+                                            <><Banknote className="w-3.5 h-3.5 text-slate-500" /> Numerar (Cash la Casierie)</>
+                                          ) : (() => {
+                                            const bank = detectCardBank(item);
+                                            return (
+                                              <span className="inline-flex items-center gap-1.5">
+                                                <BankLogo bankId={bank.id} bank={bank} size={15} />
+                                                <span>Card Bancar ({bank.shortName || bank.name})</span>
+                                              </span>
+                                            );
+                                          })()}
                                         </span>
                                       </div>
                                       <div className="flex items-center justify-between">

@@ -1749,7 +1749,8 @@ function OrdersTable({ orders, full, onRowClick, selectedId, defaultRows = 10, m
             <th className="w-14 px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 text-center">Nr.</th>
             <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500"># Comandă</th>
             <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Brand</th>
-            <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Produse / Coș</th>
+            <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Locație</th>
+            <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Comandă / Plată</th>
             <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Total</th>
             <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Status</th>
           </tr>
@@ -1757,7 +1758,7 @@ function OrdersTable({ orders, full, onRowClick, selectedId, defaultRows = 10, m
         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
           {paginated.length === 0 ? (
             <tr>
-              <td colSpan={6} className="text-center py-10 text-slate-500 dark:text-slate-400 text-sm font-medium">
+              <td colSpan={7} className="text-center py-10 text-slate-500 dark:text-slate-400 text-sm font-medium">
                 Nicio comandă găsită în perioada selectată.
               </td>
             </tr>
@@ -1766,7 +1767,6 @@ function OrdersTable({ orders, full, onRowClick, selectedId, defaultRows = 10, m
               const sc = getOrderStatus(o);
               const rowNumber = (safePage - 1) * itemsPerPage + index + 1;
               const iikoId = o.syrveOrderId || o.iiko_order_id || o.iikoOrderId;
-              const shortId = iikoId ? (iikoId.length > 12 ? `${iikoId.slice(0, 8)}...` : iikoId) : null;
 
               return (
                 <tr key={o._id} className={`transition-colors group cursor-pointer ${selectedId === o._id ? 'bg-blue-50 dark:bg-blue-500/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`} onClick={() => onRowClick && onRowClick(o)}>
@@ -1784,9 +1784,6 @@ function OrdersTable({ orders, full, onRowClick, selectedId, defaultRows = 10, m
                           {new Date(o.createdAt).toLocaleString('ro-RO')}
                         </span>
                       )}
-                      <span className="text-[10.5px] text-slate-500 font-medium">
-                        {o.orderType === 'dine-in' ? (o.tableNumber ? `Masa ${o.tableNumber}` : 'La masă') : 'La pachet'} • {o.paymentMethod === 'cash' ? 'Cash' : (o.paymentMethod === 'card' ? 'Card' : (o.paymentMethod || '—'))}
-                      </span>
                     </div>
                   </td>
                   <td className="px-5 py-3.5 whitespace-nowrap">
@@ -1797,56 +1794,15 @@ function OrdersTable({ orders, full, onRowClick, selectedId, defaultRows = 10, m
                       </span>
                     </div>
                   </td>
-                  {/* Produse / Coș cu preview imagini mici */}
-                  <td className="px-5 py-3.5 max-w-[200px] lg:max-w-xs">
-                    {(() => {
-                      const items = o.items || [];
-                      if (!items.length) {
-                        return <span className="text-xs text-slate-400 italic">Fără detalii</span>;
-                      }
-                      return (
-                        <div className="flex items-center gap-2">
-                          {/* Mini imagini produse */}
-                          <div className="flex -space-x-1.5 shrink-0">
-                            {items.slice(0, 3).map((it, pIdx) => {
-                              const img = resolveProductImage(it);
-                              return (
-                                <div key={pIdx} className="w-6 h-6 rounded-full border border-white dark:border-slate-800 bg-slate-100 dark:bg-slate-700 overflow-hidden shrink-0 flex items-center justify-center shadow-2xs">
-                                  {img ? (
-                                    <img src={img} alt={it.name} className="w-full h-full object-cover" />
-                                  ) : (
-                                    <Utensils className="w-3 h-3 text-slate-400" />
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-
-                          <div className="flex flex-col min-w-0">
-                            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate" title={items.map(i => `${i.quantity || 1}x ${i.name}`).join(', ')}>
-                              {items.map(i => `${i.quantity || 1}x ${i.name}`).join(', ')}
-                            </span>
-                            <span className="text-[10px] text-slate-400">
-                              {items.length} {items.length === 1 ? 'produs' : 'produse'}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </td>
-                  <td className="px-5 py-3.5 text-sm font-bold text-slate-900 dark:text-white whitespace-nowrap">
-                    {formatThousands(o.totalAmount || 0)} lei
-                  </td>
-                  {/* Status cu ID iiko dedesubt */}
-                  <td className="px-5 py-3.5 whitespace-nowrap">
-                    <div className="flex flex-col items-start gap-1">
-                      <span className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap inline-block" style={{ backgroundColor: `${sc.color}20`, color: sc.color, border: `1px solid ${sc.color}40` }}>
-                        ● {sc.label}
+                  <td className="px-6 py-3.5 whitespace-nowrap">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-sm text-slate-700 dark:text-slate-300 font-medium">
+                        {o.locationName || o.locationId || '—'}
                       </span>
                       {iikoId && (
-                        <div className="flex items-center gap-1.5 pl-0.5" title={iikoId}>
-                          <span className="font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                            {shortId}
+                        <div className="flex items-center gap-1.5 mt-0.5" title={iikoId}>
+                          <span className="font-mono text-[10.5px] font-bold text-emerald-600 dark:text-emerald-400">
+                            {iikoId}
                           </span>
                           <button 
                             type="button"
@@ -1858,7 +1814,7 @@ function OrdersTable({ orders, full, onRowClick, selectedId, defaultRows = 10, m
                               btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#059669" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>';
                               setTimeout(() => { btn.innerHTML = originalHTML; }, 1500);
                             }}
-                            className="p-0.5 rounded text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors cursor-pointer"
+                            className="p-0.5 rounded text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors cursor-pointer shrink-0"
                             title="Copiază ID iiko complet"
                             aria-label="Copiază ID iiko complet"
                           >
@@ -1867,6 +1823,47 @@ function OrdersTable({ orders, full, onRowClick, selectedId, defaultRows = 10, m
                         </div>
                       )}
                     </div>
+                  </td>
+                  <td className="px-6 py-3.5 whitespace-nowrap">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-sm text-slate-700 dark:text-slate-300 font-medium">
+                        {o.orderType === 'dine-in' ? (o.tableNumber ? `Masa ${o.tableNumber}` : 'La masă') : 'La pachet'}
+                      </span>
+                      {o.paymentMethod === 'card' ? (() => {
+                        const bank = detectCardBank(o);
+                        return (
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                              Plată: Card
+                            </span>
+                            <span 
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9.5px] font-bold border shadow-xs"
+                              style={{
+                                backgroundColor: `${bank.color}15`,
+                                color: bank.textColor || bank.color,
+                                borderColor: `${bank.color}35`
+                              }}
+                              title={`Bancă emitentă: ${bank.name}`}
+                            >
+                              <BankLogo bankId={bank.id} bank={bank} size={13} />
+                              {bank.shortName}
+                            </span>
+                          </div>
+                        );
+                      })() : (
+                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                          Plată: {o.paymentMethod === 'cash' ? 'Cash' : (o.paymentMethod || '—')}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-5 py-3.5 text-sm font-bold text-slate-900 dark:text-white whitespace-nowrap">
+                    {formatThousands(o.totalAmount || 0)} lei
+                  </td>
+                  <td className="px-5 py-3.5 whitespace-nowrap">
+                    <span className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap inline-block" style={{ backgroundColor: `${sc.color}20`, color: sc.color, border: `1px solid ${sc.color}40` }}>
+                      ● {sc.label}
+                    </span>
                   </td>
                 </tr>
               );
