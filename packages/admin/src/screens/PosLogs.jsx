@@ -35,112 +35,149 @@ const isLogCancelled = (l) => {
 };
 
 export function CardBrandAvatar({ brand, cardNo, isNfc, cardBank }) {
-  let badge = null;
   const isMc = brand === 'mastercard';
   const isVisa = brand === 'visa';
   const isMaestro = brand === 'maestro';
 
+  const cleanDigits = cardNo ? String(cardNo).replace(/\D/g, '') : '';
+  const last4 = cleanDigits.length >= 4 ? cleanDigits.slice(-4) : (cardNo ? String(cardNo).slice(-4) : '');
+  const brandName = isMc ? 'Mastercard' : (isVisa ? 'Visa' : (isMaestro ? 'Maestro' : 'Card Bancar'));
+  
+  const effBank = cardBank || (cardNo ? detectCardBank({ cardNo, brand }) : null);
+  const hasBank = effBank && effBank.id && effBank.id !== 'other';
+
+  if (!cardNo && !hasBank && !isMc && !isVisa && !isMaestro) {
+    return <span className="text-slate-400">—</span>;
+  }
+
+  // Micro-badge pentru rețeaua cardului (Mastercard / Visa / Maestro)
+  // Se suprapune elegant în colțul din dreapta-jos al logo-ului băncii
+  let networkMicroBadge = null;
   if (isMc) {
-    badge = (
-      <div className="relative w-8 h-5.5 sm:w-9 sm:h-6 rounded-md bg-gradient-to-br from-slate-950 via-slate-900 to-black border border-slate-700/60 shadow-sm flex items-center justify-center shrink-0 overflow-hidden" title="Mastercard">
-        <svg width="22" height="14" viewBox="0 0 24 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+    networkMicroBadge = (
+      <span 
+        className="absolute -bottom-1 -right-1 w-[19px] h-[13px] bg-slate-950 rounded-[4px] ring-2 ring-white dark:ring-slate-900 shadow-xs flex items-center justify-center overflow-hidden pointer-events-none" 
+        title="Mastercard"
+      >
+        <svg width="15" height="9" viewBox="0 0 24 15" fill="none" xmlns="http://www.w3.org/2000/svg">
           <circle cx="7.5" cy="7.5" r="7" fill="#EB001B"/>
           <circle cx="16.5" cy="7.5" r="7" fill="#F79E1B"/>
           <path d="M12 2.2a6.98 6.98 0 0 1 0 10.6 6.98 6.98 0 0 1 0-10.6Z" fill="#FF5F00"/>
         </svg>
-      </div>
+      </span>
     );
   } else if (isVisa) {
-    badge = (
-      <div className="relative w-8 h-5.5 sm:w-9 sm:h-6 rounded-md bg-gradient-to-br from-[#102468] via-[#0b1b4f] to-[#040c29] border border-blue-600/40 shadow-sm flex items-center justify-center shrink-0 overflow-hidden px-1" title="Visa">
-        <svg width="22" height="7.5" viewBox="0 0 780 250" fill="none" xmlns="http://www.w3.org/2000/svg">
+    networkMicroBadge = (
+      <span 
+        className="absolute -bottom-1 -right-1 w-[19px] h-[13px] bg-[#0c2054] rounded-[4px] ring-2 ring-white dark:ring-slate-900 shadow-xs flex items-center justify-center overflow-hidden px-0.5 pointer-events-none" 
+        title="Visa"
+      >
+        <svg width="14" height="5" viewBox="0 0 780 250" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M293.4 12.8L192.5 240.4H134.2L81.7 58.7C78.5 46.2 75.7 41.7 65.7 36.3C49.3 27.5 23.1 19.3 0 14.4L5.4 2.1H106.6C120.3 2.1 132.8 11.2 135.8 26.6L162.2 165.7L228.6 2.1H293.4V12.8ZM550.9 164.7C551.4 102.3 464.3 98.7 464.9 70.8C465.2 62.3 473.4 53.2 491.5 50.8C500.4 49.6 525.4 48.6 553.6 61.6L564.7 9.8C549.4 4.3 529.7 0 504.7 0C443.4 0 399.7 32.6 399.3 79.5C398.9 114 430.1 133.3 453.6 144.8C477.8 156.6 485.9 164.1 485.7 174.7C485.4 191 465.9 198.1 448 198.4C416.7 198.8 398.5 190 384.1 183.3L372.4 237.9C388.6 245.4 418.5 251.7 449.6 252C513.7 252 550.4 220.4 550.9 164.7ZM712.5 240.4H768L719.2 2.1H668C656.7 2.1 647.2 8.7 643.1 18.5L549.4 240.4H611.8L624.2 206.3H700.5L712.5 240.4ZM641.4 159.2L672.7 73.1L690.7 159.2H641.4ZM387.6 2.1L338.4 240.4H280.4L329.6 2.1H387.6Z" fill="#FFFFFF"/>
         </svg>
-      </div>
+      </span>
     );
   } else if (isMaestro) {
-    badge = (
-      <div className="relative w-8 h-5.5 sm:w-9 sm:h-6 rounded-md bg-gradient-to-br from-slate-900 via-slate-800 to-black border border-slate-700/60 shadow-sm flex items-center justify-center shrink-0 overflow-hidden" title="Maestro">
-        <svg width="22" height="14" viewBox="0 0 24 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+    networkMicroBadge = (
+      <span 
+        className="absolute -bottom-1 -right-1 w-[19px] h-[13px] bg-slate-900 rounded-[4px] ring-2 ring-white dark:ring-slate-900 shadow-xs flex items-center justify-center overflow-hidden pointer-events-none" 
+        title="Maestro"
+      >
+        <svg width="15" height="9" viewBox="0 0 24 15" fill="none" xmlns="http://www.w3.org/2000/svg">
           <circle cx="7.5" cy="7.5" r="7" fill="#0061A8"/>
           <circle cx="16.5" cy="7.5" r="7" fill="#EB001B"/>
           <path d="M12 2.2a6.98 6.98 0 0 1 0 10.6 6.98 6.98 0 0 1 0-10.6Z" fill="#6C6BBA"/>
         </svg>
-      </div>
-    );
-  } else if (cardNo) {
-    badge = (
-      <div className="relative w-8 h-5.5 sm:w-9 sm:h-6 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center shrink-0" title="Card bancar">
-        <CreditCard size={14} />
-      </div>
+      </span>
     );
   }
 
-  if (!cardNo && !badge) return <span className="text-slate-400">—</span>;
-
-  const last4 = cardNo ? cardNo.slice(-4) : '';
-  const brandName = isMc ? 'Mastercard' : (isVisa ? 'Visa' : (isMaestro ? 'Maestro' : 'Card Bancar'));
-  const effBank = cardBank || (cardNo ? detectCardBank({ cardNo, brand }) : null);
-
-  return (
-    <div className="flex items-center gap-2.5">
-      {badge}
-      {cardNo ? (
-        <div className="flex flex-col text-left leading-tight">
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 tracking-wider">
-              •••• {last4}
-            </span>
-            {isNfc && (
-              <span title="Plată Contactless (NFC)" className="inline-flex items-center text-blue-500 dark:text-blue-400">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
-                  <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
-                  <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
-                  <line x1="12" y1="20" x2="12.01" y2="20"/>
-                </svg>
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="text-[10px] text-slate-400 font-semibold tracking-tight">
-              {brandName}
-            </span>
-            {effBank && (
-              <span 
-                className="inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded text-[9px] font-bold tracking-tight border shadow-xs"
-                style={{
-                  backgroundColor: `${effBank.color}15`,
-                  color: effBank.color,
-                  borderColor: `${effBank.color}35`
-                }}
-                title={`Bancă emitentă: ${effBank.name}`}
-              >
-                <BankLogo bankId={effBank.id} bank={effBank} size={13} />
-                {effBank.shortName}
-              </span>
-            )}
-          </div>
+  // Randare Avatar Principal (36px):
+  // 1. Dacă banca este recunoscută: Logo-ul oficial autentic al băncii + Network badge la colț
+  // 2. Dacă banca nu este recunoscută: Badge modern de rețea (Visa/Mastercard) sau card bancar
+  const avatarNode = hasBank ? (
+    <div className="relative shrink-0">
+      <BankLogo bankId={effBank.id} bank={effBank} size={36} className="shadow-xs" />
+      {networkMicroBadge}
+    </div>
+  ) : (
+    <div className="relative shrink-0">
+      {isMc ? (
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-slate-950 via-slate-900 to-black border border-slate-700/60 shadow-xs flex items-center justify-center shrink-0" title="Mastercard">
+          <svg width="22" height="14" viewBox="0 0 24 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="7.5" cy="7.5" r="7" fill="#EB001B"/>
+            <circle cx="16.5" cy="7.5" r="7" fill="#F79E1B"/>
+            <path d="M12 2.2a6.98 6.98 0 0 1 0 10.6 6.98 6.98 0 0 1 0-10.6Z" fill="#FF5F00"/>
+          </svg>
+        </div>
+      ) : isVisa ? (
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#102468] via-[#0b1b4f] to-[#040c29] border border-blue-600/40 shadow-xs flex items-center justify-center shrink-0 px-1" title="Visa">
+          <svg width="24" height="8" viewBox="0 0 780 250" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M293.4 12.8L192.5 240.4H134.2L81.7 58.7C78.5 46.2 75.7 41.7 65.7 36.3C49.3 27.5 23.1 19.3 0 14.4L5.4 2.1H106.6C120.3 2.1 132.8 11.2 135.8 26.6L162.2 165.7L228.6 2.1H293.4V12.8ZM550.9 164.7C551.4 102.3 464.3 98.7 464.9 70.8C465.2 62.3 473.4 53.2 491.5 50.8C500.4 49.6 525.4 48.6 553.6 61.6L564.7 9.8C549.4 4.3 529.7 0 504.7 0C443.4 0 399.7 32.6 399.3 79.5C398.9 114 430.1 133.3 453.6 144.8C477.8 156.6 485.9 164.1 485.7 174.7C485.4 191 465.9 198.1 448 198.4C416.7 198.8 398.5 190 384.1 183.3L372.4 237.9C388.6 245.4 418.5 251.7 449.6 252C513.7 252 550.4 220.4 550.9 164.7ZM712.5 240.4H768L719.2 2.1H668C656.7 2.1 647.2 8.7 643.1 18.5L549.4 240.4H611.8L624.2 206.3H700.5L712.5 240.4ZM641.4 159.2L672.7 73.1L690.7 159.2H641.4ZM387.6 2.1L338.4 240.4H280.4L329.6 2.1H387.6Z" fill="#FFFFFF"/>
+          </svg>
+        </div>
+      ) : isMaestro ? (
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-slate-900 via-slate-800 to-black border border-slate-700/60 shadow-xs flex items-center justify-center shrink-0" title="Maestro">
+          <svg width="22" height="14" viewBox="0 0 24 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="7.5" cy="7.5" r="7" fill="#0061A8"/>
+            <circle cx="16.5" cy="7.5" r="7" fill="#EB001B"/>
+            <path d="M12 2.2a6.98 6.98 0 0 1 0 10.6 6.98 6.98 0 0 1 0-10.6Z" fill="#6C6BBA"/>
+          </svg>
         </div>
       ) : (
+        <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-xs flex items-center justify-center shrink-0" title="Card bancar">
+          <CreditCard size={18} />
+        </div>
+      )}
+    </div>
+  );
+
+  const primaryTitle = hasBank 
+    ? effBank.name 
+    : (cardNo ? (isMc ? 'Card Mastercard' : (isVisa ? 'Card Visa' : 'Card Bancar')) : brandName);
+
+  const tooltipTitle = `${primaryTitle}${brandName && brandName !== primaryTitle ? ` • ${brandName}` : ''}${last4 ? ` •••• ${last4}` : ''}${isNfc ? ' (Contactless NFC)' : ''}`;
+
+  return (
+    <div className="flex items-center gap-3 min-w-0" title={tooltipTitle}>
+      {avatarNode}
+      
+      <div className="flex flex-col text-left justify-center min-w-0 leading-tight">
+        {/* Linia 1: Numele Băncii / Identitatea Cardului + Indicator NFC */}
         <div className="flex items-center gap-1.5">
-          <span className="text-[11px] text-slate-400 font-semibold">{brandName}</span>
-          {effBank && (
+          <span className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate max-w-[170px]">
+            {primaryTitle}
+          </span>
+          {isNfc && (
             <span 
-              className="inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded text-[9px] font-bold tracking-tight border shadow-xs"
-              style={{
-                backgroundColor: `${effBank.color}15`,
-                color: effBank.color,
-                borderColor: `${effBank.color}35`
-              }}
-              title={`Bancă emitentă: ${effBank.name}`}
+              title="Plată Contactless (NFC)" 
+              className="inline-flex items-center text-blue-500 dark:text-blue-400 shrink-0"
             >
-              <BankLogo bankId={effBank.id} bank={effBank} size={13} />
-              {effBank.shortName}
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+                <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+                <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+                <line x1="12" y1="20" x2="12.01" y2="20"/>
+              </svg>
             </span>
           )}
         </div>
-      )}
+
+        {/* Linia 2: Rețea card + Cifre Mascate Monospace */}
+        {cardNo ? (
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-400 dark:text-slate-500 font-medium tracking-tight mt-0.5">
+            <span className="font-semibold text-slate-500 dark:text-slate-400">{brandName}</span>
+            <span className="text-slate-300 dark:text-slate-600 font-sans">•</span>
+            <span className="font-mono font-bold text-slate-700 dark:text-slate-200 tracking-wider">
+              •••• {last4}
+            </span>
+          </div>
+        ) : (
+          <div className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">
+            {brandName}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
