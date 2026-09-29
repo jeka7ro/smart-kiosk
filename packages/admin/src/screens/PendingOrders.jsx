@@ -590,7 +590,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
               <th className="px-2 py-2 text-[10.5px] font-bold uppercase tracking-wider text-slate-500">Produse / Coș</th>
               <th className="px-2 py-2 text-[10.5px] font-bold uppercase tracking-wider text-slate-500">Total</th>
               <th className="px-2 py-2 text-[10.5px] font-bold uppercase tracking-wider text-slate-500">Status</th>
-              <th className="w-14 px-2 py-2 text-[10.5px] font-bold uppercase tracking-wider text-slate-500 text-right"></th>
+              <th className="w-8 px-1.5 py-2 text-[10.5px] font-bold uppercase tracking-wider text-slate-500 text-right"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -720,30 +720,16 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                         </span>
                       </td>
 
-                      {/* Acțiuni & Expand Toggle */}
-                      <td className="w-14 px-2 py-2 text-right whitespace-nowrap" onClick={e => e.stopPropagation()}>
-                        <div className="inline-flex items-center gap-1 justify-end">
-                          {(!item.iiko_sent && !p.syrveOrderId) && (
-                            <button
-                              onClick={() => handlePushToIiko(item.order_id, isCash)}
-                              disabled={isProcessing}
-                              className="p-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-2xs cursor-pointer flex items-center justify-center shrink-0"
-                              title="Trimite comanda în iiko"
-                              aria-label="Trimite comanda în iiko"
-                            >
-                              <Send className={`w-3.5 h-3.5 ${isProcessing ? 'animate-spin' : ''}`} />
-                            </button>
-                          )}
-
-                          <button
-                            onClick={() => setExpandedId(isExpanded ? null : itemKey)}
-                            className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                            title={isExpanded ? 'Restrânge detaliile' : 'Deschide detaliile'}
-                            aria-label={isExpanded ? 'Restrânge detaliile' : 'Deschide detaliile'}
-                          >
-                            {isExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-                          </button>
-                        </div>
+                      {/* Expand Toggle */}
+                      <td className="w-8 px-1.5 py-2 text-right whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                        <button
+                          onClick={() => setExpandedId(isExpanded ? null : itemKey)}
+                          className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                          title={isExpanded ? 'Restrânge detaliile' : 'Deschide detaliile'}
+                          aria-label={isExpanded ? 'Restrânge detaliile' : 'Deschide detaliile'}
+                        >
+                          {isExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                        </button>
                       </td>
                     </tr>
 
