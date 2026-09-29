@@ -508,7 +508,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
       </div>
 
       {/* ── Filters Bar (Matching Orders Page) ── */}
-      <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
         {/* Brand Switcher Pills */}
         <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide shrink-0">
           {['all', 'smashme', 'crunch', 'rollmaster', 'lovesushi', 'pokiwoki'].map(b => (
@@ -519,7 +519,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                 brandFilter === b 
                   ? 'bg-blue-600 text-white border-blue-600 shadow-sm' 
                   : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-              } ${b === 'all' ? 'px-5 text-sm font-bold' : 'w-10'}`}
+              } ${b === 'all' ? 'px-4 text-xs font-bold' : 'w-10'}`}
               onClick={() => { setBrandFilter(b); setCurrentPage(1); }}
             >
               {b === 'all' ? 'Toate' : <BrandLogo brandId={b} size={22} />}
@@ -528,22 +528,22 @@ export default function PendingOrders({ backend, onGoToOrder }) {
         </div>
 
         {/* Global Search Bar */}
-        <div className="relative flex-1 min-w-[200px] max-w-[320px]">
+        <div className="relative flex-1 min-w-[170px] max-w-[280px]">
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
             placeholder="Caută comandă, iiko, locație..."
-            className="h-10 pl-10 pr-4 rounded-full text-sm font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full transition-all"
+            className="h-10 pl-9 pr-3 rounded-full text-xs font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full transition-all"
           />
-          <svg className="w-4 h-4 text-slate-400 absolute left-4 top-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-4 h-4 text-slate-400 absolute left-3 top-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         </div>
 
         {/* Location Filter */}
         <select 
-          className="shrink-0 px-4 h-10 rounded-full text-sm font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 outline-none hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+          className="shrink-0 px-3 h-10 rounded-full text-xs font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 outline-none hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
           value={locationFilter}
           onChange={(e) => { setLocationFilter(e.target.value); setCurrentPage(1); }}
         >
@@ -555,7 +555,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
 
         {/* Status Filter */}
         <select 
-          className="shrink-0 px-4 h-10 rounded-full text-sm font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 outline-none hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+          className="shrink-0 px-3 h-10 rounded-full text-xs font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 outline-none hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
         >
@@ -566,15 +566,15 @@ export default function PendingOrders({ backend, onGoToOrder }) {
           <option value="cancelled">Anulată</option>
         </select>
 
-        {/* Refresh Button */}
+        {/* Refresh Button - Icon Only */}
         <button
           onClick={() => fetchPendingOrders()}
           disabled={loading}
-          className="shrink-0 px-4 h-10 rounded-full text-sm font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 outline-none hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer flex items-center gap-2"
+          className="shrink-0 w-10 h-10 rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-blue-600 hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors cursor-pointer flex items-center justify-center shadow-2xs"
           title="Reîmprospătează lista"
+          aria-label="Reîmprospătează lista"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          <span>Reîmprospătează</span>
         </button>
       </div>
 
