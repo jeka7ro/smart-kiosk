@@ -97,7 +97,7 @@ echo [INFO] Instalez scurtaturile in Autostart si pe Desktop...
 echo.
 
 :: 3. Creare scurtaturi prin PowerShell folosind folderele de sistem oficiale
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$ws = New-Object -ComObject WScript.Shell; $target = '!CHROME_PATH!'; $args = '--app=\"\"!KIOSK_URL!\"\" --start-fullscreen'; $startup = [Environment]::GetFolderPath('Startup') + '\SmartKiosk.lnk'; $s1 = $ws.CreateShortcut($startup); $s1.TargetPath = $target; $s1.Arguments = $args; $s1.WindowStyle = 3; $s1.Save(); $desktop = [Environment]::GetFolderPath('Desktop') + '\Smart Kiosk (!LOC_NAME!).lnk'; $s2 = $ws.CreateShortcut($desktop); $s2.TargetPath = $target; $s2.Arguments = $args; $s2.WindowStyle = 3; $s2.Save();"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$ws = New-Object -ComObject WScript.Shell; $target = '!CHROME_PATH!'; $args = '--kiosk \"\"!KIOSK_URL!\"\" --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check'; $startup = [Environment]::GetFolderPath('Startup') + '\SmartKiosk.lnk'; $s1 = $ws.CreateShortcut($startup); $s1.TargetPath = $target; $s1.Arguments = $args; $s1.WindowStyle = 3; $s1.Save(); $desktop = [Environment]::GetFolderPath('Desktop') + '\Smart Kiosk (!LOC_NAME!).lnk'; $s2 = $ws.CreateShortcut($desktop); $s2.TargetPath = $target; $s2.Arguments = $args; $s2.WindowStyle = 3; $s2.Save();"
 
 echo =============================================================
 echo   [SUCCES] KIOSKUL A FOST CONFIGURAT CU SUCCES!
@@ -118,7 +118,7 @@ if /i "!RUN_NOW!"=="N" (
 
 echo.
 echo [INFO] Pornesc Kiosk-ul in Fullscreen...
-start "" "!CHROME_PATH!" --app="!KIOSK_URL!" --start-fullscreen
+start "" "!CHROME_PATH!" --kiosk "!KIOSK_URL!" --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check
 echo.
 echo [OK] Kiosk pornit! Fereastra se va inchide in 5 secunde...
 timeout /t 5 >nul
