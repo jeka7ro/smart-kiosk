@@ -1294,7 +1294,11 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                                 }
                               );
                             }}
-                            className={`w-[78px] h-[26px] rounded-full text-xs font-bold whitespace-nowrap inline-flex items-center justify-center text-center transition-transform active:scale-95 cursor-pointer shadow-xs ${isSuccess ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-red-600 text-white hover:bg-red-700'}`}
+                            className="w-[78px] h-[26px] rounded-full text-xs font-bold whitespace-nowrap inline-flex items-center justify-center text-center transition-transform active:scale-95 cursor-pointer shadow-xs hover:opacity-90"
+                            style={{ 
+                              backgroundColor: isSuccess ? STATUS_CONFIG.approved.bg : STATUS_CONFIG.declined.bg, 
+                              color: '#ffffff' 
+                            }}
                           >
                             {isSuccess ? 'Trimis' : 'Eroare'}
                           </button>
