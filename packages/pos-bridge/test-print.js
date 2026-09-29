@@ -47,6 +47,7 @@ async function runTest() {
       printer.bold(true);
       printer.setTextSize(2,2);
       printer.println("SMASHME (TEST)");
+      printer.bold(false);
       printer.setTextNormal();
     }
     

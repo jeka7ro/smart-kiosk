@@ -27,6 +27,7 @@ curl -s -L -H "Cache-Control: no-cache" -o rawprint.ps1 "https://raw.githubuserc
 curl -s -L -H "Cache-Control: no-cache" -o scan_port_pc.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/scan_port_pc.js"
 curl -s -L -H "Cache-Control: no-cache" -o PrinterServiceDatecsFP950.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/PrinterServiceDatecsFP950.js"
 curl -s -L -H "Cache-Control: no-cache" -o VivaPosService.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/VivaPosService.js"
+curl -s -L -H "Cache-Control: no-cache" -o setup_kiosk_autostart.bat "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/setup_kiosk_autostart.bat"
 echo  [INFO] Fisiere actualizate cu succes!
 
 :: Verifica daca exista .env
@@ -58,6 +59,7 @@ curl -s -L -H "Cache-Control: no-cache" -o rawprint.ps1 "https://raw.githubuserc
 curl -s -L -H "Cache-Control: no-cache" -o scan_port_pc.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/scan_port_pc.js"
 curl -s -L -H "Cache-Control: no-cache" -o PrinterServiceDatecsFP950.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/PrinterServiceDatecsFP950.js"
 curl -s -L -H "Cache-Control: no-cache" -o VivaPosService.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/VivaPosService.js"
+curl -s -L -H "Cache-Control: no-cache" -o setup_kiosk_autostart.bat "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/setup_kiosk_autostart.bat"
 echo.
 powershell -NoProfile -Command "Get-PrintJob -ErrorAction SilentlyContinue | Remove-PrintJob -ErrorAction SilentlyContinue; Get-Printer -ErrorAction SilentlyContinue | Where-Object { $_.Name -like '*EPSON*' } | ForEach-Object { Set-Printer -Name $_.Name -Paused $false -ErrorAction SilentlyContinue }"
 node index.js

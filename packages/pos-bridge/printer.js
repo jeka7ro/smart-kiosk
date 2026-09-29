@@ -130,6 +130,11 @@ async function printTicket(order) {
       }
     }
 
+    // Hardware reset and initialization to prevent any inherited formatting state from previous jobs
+    printer.initHardware();
+    printer.setCharacterSet(CharacterSet.PC852_LATIN2);
+    printer.setTextNormal();
+    printer.bold(false);
     printer.alignCenter();
     
     const uniqueBrands = [...new Set((order.items || []).map(i => i.brandId || order.brand || 'KIOSK'))];
@@ -173,6 +178,8 @@ async function printTicket(order) {
     } else if (order.locationId && String(order.locationId).includes('2')) {
       kioskLabel = 'Kiosk 2';
     }
+    printer.setTextNormal();
+    printer.bold(false);
     printer.println(kioskLabel);
     
     printer.newLine();

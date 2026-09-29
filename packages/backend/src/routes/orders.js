@@ -16,7 +16,8 @@ const { addPosLog } = require('./posLogs');
 const { detectCity, getOrderPrefix, findLocation, getLocationAliases } = require('../utils/locations');
 
 // Module-level fallback sequence memory (for offline / dev fallback)
-let memoryClujMax = 93;
+let memoryCj1Max = 648;
+let memoryCj2Max = 0;
 
 // ── Core order creation logic (callable via HTTP or directly on POS socket confirmation) ──
 async function processOrderCreation(body, io) {
@@ -59,10 +60,14 @@ async function processOrderCreation(body, io) {
 
   // Get max orderNumber from Postgres
   let maxOrderNumber = 358;
-  let clujMax = Math.max(93, (memoryClujMax < 10000 ? memoryClujMax : 93));
+  let cj1Max = Math.max(648, memoryCj1Max || 648);
+  let cj2Max = Math.max(0, memoryCj2Max || 0);
   let brasovMax = 0;
   const maxByPrefix = {};
-  const usedClujSeqs = new Set();
+  const usedSeqsByPrefix = {
+    CJ1: new Set(),
+    CJ2: new Set(),
+  };
 
   try {
     // Auto-corectie comenzi
@@ -103,26 +108,46 @@ async function processOrderCreation(body, io) {
       WHERE o.id = r.id
     `).catch(() => {});
 
+    // Corectie comenzi din perioada tranzitorie partajata (647, 648 etc.) trecute pe CJ1 pentru a elibera seria CJ2 de la 001
+    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-647"') WHERE data->>'orderNumber' = 'CJ2-647'`).catch(() => {});
+    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-648"') WHERE data->>'orderNumber' = 'CJ2-648'`).catch(() => {});
+
     const { rows } = await pool.query(`SELECT data->>'orderNumber' as num, location_id FROM orders WHERE (data->>'orderNumber') IS NOT NULL`);
     for (const row of rows) {
       const str = String(row.num || '').trim();
       if (!str) continue;
 
-      // Căutăm prefix cu format [LITERE][CIFRĂ]?-[NUMĂR] (ex: CJ1-093, CJ2-1002, BV-561, CT-045, OR-1002)
+      // Căutăm prefix cu format [LITERE][CIFRĂ]?-[NUMĂR] (ex: CJ1-093, CJ2-001, CJ2-1002, BV-561, CT-045, OR-1002)
       const prefixMatch = str.match(/^([a-zA-Z]+)(\d*)-(\d+)$/);
       if (prefixMatch) {
         const letterPrefix = prefixMatch[1].toUpperCase(); // ex: 'CJ', 'BV', 'CT'
-        const fullPrefix = `${letterPrefix}${prefixMatch[2]}`; // ex: 'CJ1', 'CJ2', 'BV'
+        const kioskDigit = prefixMatch[2] || '';
+        const fullPrefix = `${letterPrefix}${kioskDigit}`; // ex: 'CJ1', 'CJ2', 'BV'
         const seqNum = parseInt(prefixMatch[3], 10);
 
-        if (!isNaN(seqNum) && seqNum < 1000000) {
+        if (!isNaN(seqNum)) {
           if (letterPrefix === 'CJ') {
-            if (seqNum < 10000) { // Ignorăm comenzile vechi de test (10000+)
-              usedClujSeqs.add(seqNum);
-              clujMax = Math.max(clujMax, seqNum);
-              maxByPrefix[fullPrefix] = Math.max(maxByPrefix[fullPrefix] || 0, seqNum);
-              maxByPrefix[letterPrefix] = Math.max(maxByPrefix[letterPrefix] || 0, seqNum);
+            if (fullPrefix === 'CJ2') {
+              if (seqNum >= 500 && seqNum <= 650) {
+                // Comenzi anterioare din perioada partajata (ex: 647, 648) asociate seriei CJ1 pentru continuitate
+                cj1Max = Math.max(cj1Max, seqNum);
+                usedSeqsByPrefix.CJ1.add(seqNum);
+              } else {
+                // Comenzi din seria noua proprie CJ2 (inceputa de la 001, fara plafon / suma maxima)
+                cj2Max = Math.max(cj2Max, seqNum);
+                usedSeqsByPrefix.CJ2.add(seqNum);
+                maxByPrefix['CJ2'] = Math.max(maxByPrefix['CJ2'] || 0, seqNum);
+              }
+            } else {
+              // CJ1 sau comenzi istorice CJ fara sufix (fara plafon / suma maxima)
+              if (seqNum < 10000 || seqNum > 10030) { // Excludem doar numerele vechi rogue test 10024-10029
+                cj1Max = Math.max(cj1Max, seqNum);
+                usedSeqsByPrefix.CJ1.add(seqNum);
+                maxByPrefix['CJ1'] = Math.max(maxByPrefix['CJ1'] || 0, seqNum);
+              }
             }
+            maxByPrefix[fullPrefix] = Math.max(maxByPrefix[fullPrefix] || 0, seqNum);
+            maxByPrefix[letterPrefix] = Math.max(maxByPrefix[letterPrefix] || 0, seqNum);
           } else {
             maxByPrefix[fullPrefix] = Math.max(maxByPrefix[fullPrefix] || 0, seqNum);
             maxByPrefix[letterPrefix] = Math.max(maxByPrefix[letterPrefix] || 0, seqNum);
@@ -134,7 +159,7 @@ async function processOrderCreation(body, io) {
       } else {
         // Format numeric pur sau comenzi vechi - NU afectează Cluj!
         const numOnly = parseInt(str.replace(/[^0-9]/g, ''), 10);
-        if (!isNaN(numOnly) && numOnly < 1000000 && numOnly !== 946 && numOnly !== 862) {
+        if (!isNaN(numOnly) && numOnly !== 946 && numOnly !== 862) {
           const city = detectCity(row.location_id);
           if (city === 'brasov') {
             brasovMax = Math.max(brasovMax, numOnly);
@@ -168,13 +193,21 @@ async function processOrderCreation(body, io) {
 
   let orderNumber;
   if (city === 'cluj') {
-    let nextSeq = clujMax + 1;
-    while (usedClujSeqs.has(nextSeq)) {
-      nextSeq++;
-    }
-    orderNumber = `CJ${kioskNum}-${formatOrderSeq(nextSeq)}`;
-    if (nextSeq < 10000) {
-      memoryClujMax = Math.max(memoryClujMax, nextSeq);
+    if (kioskNum === '2') {
+      let nextSeq = cj2Max + 1;
+      while (usedSeqsByPrefix.CJ2.has(nextSeq)) {
+        nextSeq++;
+      }
+      orderNumber = `CJ2-${formatOrderSeq(nextSeq)}`;
+      memoryCj2Max = Math.max(memoryCj2Max, nextSeq);
+    } else {
+      // Kiosk 1 (sau implicit)
+      let nextSeq = cj1Max + 1;
+      while (usedSeqsByPrefix.CJ1.has(nextSeq)) {
+        nextSeq++;
+      }
+      orderNumber = `CJ1-${formatOrderSeq(nextSeq)}`;
+      memoryCj1Max = Math.max(memoryCj1Max, nextSeq);
     }
   } else if (city === 'brasov') {
     const nextSeq = Math.max(brasovMax, maxOrderNumber) + 1;
