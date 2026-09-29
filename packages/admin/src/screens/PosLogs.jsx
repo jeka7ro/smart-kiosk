@@ -1136,9 +1136,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">ID Comandă</th>
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Sumă</th>
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Status POS</th>
-              <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Auth Code</th>
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Card / Bancă</th>
-              <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Ref#</th>
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">iiko</th>
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Eroare</th>
             </tr>
@@ -1146,7 +1144,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
             {paginated.length === 0 ? (
               <tr>
-                <td colSpan={11} className="px-6 py-12 text-center text-slate-400">
+                <td colSpan={9} className="px-6 py-12 text-center text-slate-400">
                   Nicio tranzacție POS înregistrată
                 </td>
               </tr>
@@ -1229,29 +1227,8 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                       {sc.label}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm font-semibold text-slate-600 dark:text-slate-400">
-                    {log.authCode || '—'}
-                  </td>
                   <td className="px-4 py-3">
                     <CardBrandAvatar brand={meta.cardBrand} cardNo={meta.pan || log.cardNo} isNfc={meta.isNfc} cardBank={meta.cardBank} />
-                  </td>
-                  <td className="px-4 py-3 text-xs font-semibold text-slate-500">
-                    <div className="flex flex-col gap-0.5">
-                      <span>{log.refNum || '—'}</span>
-                      {meta.isNfc ? (
-                        <span className="text-[10px] text-blue-500 font-bold inline-flex items-center gap-1">
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
-                            <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
-                            <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
-                            <line x1="12" y1="20" x2="12.01" y2="20"/>
-                          </svg>
-                          Contactless
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-slate-400 font-semibold">Chip / Insert</span>
-                      )}
-                    </div>
                   </td>
                   <td className="px-4 py-3">
                     {log.paid ? (() => {
