@@ -78,7 +78,7 @@ async function scanPortsPc() {
 
   // ─── PRINT QUEUE & PAUSED STATUS ──────────────────
   try {
-    const qCmd = `Get-PrintJob -ErrorAction SilentlyContinue | Select-Object Id, PrinterName, JobStatus, DocumentName | ConvertTo-Json -Compress`;
+    const qCmd = `Get-Printer -ErrorAction SilentlyContinue | ForEach-Object { Get-PrintJob -PrinterName $_.Name -ErrorAction SilentlyContinue } | Select-Object Id, PrinterName, JobStatus, DocumentName | ConvertTo-Json -Compress`;
     const qRaw = execSync(`powershell -NoProfile -Command "${qCmd}"`, { timeout: 6000 }).toString().trim();
     if (qRaw) {
       const qParsed = JSON.parse(qRaw);

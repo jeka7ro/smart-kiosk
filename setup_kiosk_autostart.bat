@@ -60,10 +60,12 @@ echo Alege locatia pentru acest ecran:
 echo   1. Cluj Kiosk 1 (cluj1) [Implicit]
 echo   2. Cluj Kiosk 2 (cluj2)
 echo   3. Brasov (sm-brasov)
-echo   4. Alt URL personalizat
+echo   4. Constanta 1 (constanta1)
+echo   5. Constanta 2 (constanta2)
+echo   6. Alt URL personalizat
 echo.
 set "CHOICE=1"
-set /p "CHOICE=Selecteaza 1-4 si apasa Enter (implicit 1): "
+set /p "CHOICE=Selecteaza 1-6 si apasa Enter (implicit 1): "
 
 set "KIOSK_URL=https://kiosk-smashme.netlify.app/?loc=cluj1"
 set "LOC_NAME=Cluj 1"
@@ -77,6 +79,14 @@ if "!CHOICE!"=="3" (
     set "LOC_NAME=Brasov"
 )
 if "!CHOICE!"=="4" (
+    set "KIOSK_URL=https://kiosk-smashme.netlify.app/?loc=constanta1"
+    set "LOC_NAME=Constanta 1"
+)
+if "!CHOICE!"=="5" (
+    set "KIOSK_URL=https://kiosk-smashme.netlify.app/?loc=constanta2"
+    set "LOC_NAME=Constanta 2"
+)
+if "!CHOICE!"=="6" (
     set /p "KIOSK_URL=Introdu URL-ul complet: "
     set "LOC_NAME=Custom"
 )

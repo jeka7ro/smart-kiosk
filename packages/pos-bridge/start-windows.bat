@@ -61,7 +61,7 @@ curl -s -L -H "Cache-Control: no-cache" -o PrinterServiceDatecsFP950.js "https:/
 curl -s -L -H "Cache-Control: no-cache" -o VivaPosService.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/VivaPosService.js"
 curl -s -L -H "Cache-Control: no-cache" -o setup_kiosk_autostart.bat "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/setup_kiosk_autostart.bat"
 echo.
-powershell -NoProfile -Command "Get-PrintJob -ErrorAction SilentlyContinue | Remove-PrintJob -ErrorAction SilentlyContinue; Get-Printer -ErrorAction SilentlyContinue | Where-Object { $_.Name -like '*EPSON*' } | ForEach-Object { Set-Printer -Name $_.Name -Paused $false -ErrorAction SilentlyContinue }"
+powershell -NoProfile -Command "Get-Printer -ErrorAction SilentlyContinue | ForEach-Object { Get-PrintJob -PrinterName $_.Name -ErrorAction SilentlyContinue | Remove-PrintJob -ErrorAction SilentlyContinue; if ($_.Name -like '*EPSON*') { Set-Printer -Name $_.Name -Paused $false -ErrorAction SilentlyContinue } }"
 node index.js
 echo.
 echo  [WARN] Bridge oprit - repornesc in 5 secunde...
