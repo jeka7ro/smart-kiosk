@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import BrandLogo from './BrandLogo';
-import { TrendingUp, PieChart, CreditCard, Clock, Banknote, Calendar, Flame, Trophy, Award, ShoppingBag, Utensils, ChevronDown, ChevronUp } from 'lucide-react';
-import { formatThousands } from '../utils/formatters';
+import { TrendingUp, PieChart, CreditCard, Clock, Banknote, Calendar, Flame, Trophy, Award, ShoppingBag, Utensils, ChevronDown, ChevronUp, Monitor, Sparkles, Layers } from 'lucide-react';
+import { formatThousands, formatLocationAndKiosk } from '../utils/formatters';
 
 const BRAND_COLORS = {
   smashme: '#ef4444',
@@ -9,6 +9,41 @@ const BRAND_COLORS = {
   rollmaster: '#e31e24',
   lovesushi: '#ec4899',
   pokiwoki: '#f97316'
+};
+
+const BRAND_KIOSK_PALETTES = {
+  smashme: [
+    '#ef4444', // Kiosk 1 (Vibrant Red)
+    '#f43f5e', // Kiosk 2 (Rose Coral)
+    '#b91c1c', // Kiosk 3 (Deep Crimson)
+    '#fb7185', // Kiosk 4 (Soft Rose)
+    '#fda4af', // Light Rose
+  ],
+  rollmaster: [
+    '#10b981', // Kiosk 1 (Emerald)
+    '#059669', // Kiosk 2 (Dark Green)
+    '#34d399', // Kiosk 3 (Mint)
+    '#047857', // Deep Forest
+    '#6ee7b7', // Pale Mint
+  ],
+  crunch: [
+    '#f59e0b', // Kiosk 1 (Amber)
+    '#d97706', // Kiosk 2 (Ochre)
+    '#fbbf24', // Kiosk 3 (Gold)
+    '#b45309', // Dark Amber
+  ],
+  lovesushi: [
+    '#ec4899', // Kiosk 1 (Fuchsia)
+    '#db2777', // Kiosk 2 (Deep Pink)
+    '#f472b6', // Kiosk 3 (Light Pink)
+    '#be185d', // Plum
+  ],
+  pokiwoki: [
+    '#f97316', // Kiosk 1 (Orange)
+    '#ea580c', // Kiosk 2 (Rust Orange)
+    '#fb923c', // Kiosk 3 (Light Orange)
+    '#c2410c', // Dark Orange
+  ]
 };
 
 /**
@@ -956,7 +991,8 @@ export function SalesTrendChart3D({
 }
 
 /**
- * 2. GRAFIC 3D: Distribuție pe Branduri (ZoomCharts 3D Extruded Donut Ring)
+ * 2. GRAFIC 3D: Distribuție pe Branduri & Kioskuri (ZoomCharts 3D Extruded Donut Ring)
+ * Suportă secționare pe locații & kioskuri (ex: SmashMe Kiosk 1 vs Kiosk 2) și duel direct Cluj.
  */
 export function BrandDonutChart3D({ 
   orders = [], 
@@ -965,43 +1001,199 @@ export function BrandDonutChart3D({
   selectedHour = null,
   selectedDay = null
 }) {
-  const [hoveredBrand, setHoveredBrand] = useState(null);
+  const [viewMode, setViewMode] = useState('kiosks'); // 'kiosks' | 'brands'
+  const [hoveredSliceId, setHoveredSliceId] = useState(null);
+  const [hoveredBrandId, setHoveredBrandId] = useState(null);
+  const [hoveredKioskLabel, setHoveredKioskLabel] = useState(null);
 
   const brandData = React.useMemo(() => {
     const map = {
-      smashme: { id: 'smashme', name: 'SmashMe', color: BRAND_COLORS.smashme, revenue: 0, count: 0 },
-      crunch: { id: 'crunch', name: 'Crunch', color: BRAND_COLORS.crunch, revenue: 0, count: 0 },
-      rollmaster: { id: 'rollmaster', name: 'Roll Master', color: '#10b981', revenue: 0, count: 0 }, // Culoare verde smarald dedicată doar acestui grafic pt contrast clar cu SmashMe
-      lovesushi: { id: 'lovesushi', name: 'Love Sushi', color: BRAND_COLORS.lovesushi, revenue: 0, count: 0 },
-      pokiwoki: { id: 'pokiwoki', name: 'Poki-Woki', color: BRAND_COLORS.pokiwoki, revenue: 0, count: 0 }
+      smashme: { id: 'smashme', name: 'SmashMe', color: BRAND_COLORS.smashme || '#ef4444', revenue: 0, count: 0, kiosksMap: {} },
+      crunch: { id: 'crunch', name: 'Crunch', color: BRAND_COLORS.crunch || '#eab308', revenue: 0, count: 0, kiosksMap: {} },
+      rollmaster: { id: 'rollmaster', name: 'Roll Master', color: '#10b981', revenue: 0, count: 0, kiosksMap: {} },
+      lovesushi: { id: 'lovesushi', name: 'Love Sushi', color: BRAND_COLORS.lovesushi || '#ec4899', revenue: 0, count: 0, kiosksMap: {} },
+      pokiwoki: { id: 'pokiwoki', name: 'Poki-Woki', color: BRAND_COLORS.pokiwoki || '#f97316', revenue: 0, count: 0, kiosksMap: {} }
+    };
+
+    // Statistică dedicată pentru Kiosk 1 vs Kiosk 2 Cluj
+    const clujStats = {
+      k1: { rev: 0, count: 0 },
+      k2: { rev: 0, count: 0 },
+      totalOrders: 0,
+      totalRev: 0
     };
 
     orders.forEach(o => {
       if (!o.brand || o.status === 'cancelled') return;
-      if (map[o.brand]) {
-        map[o.brand].revenue += (o.totalAmount || 0);
-        map[o.brand].count += 1;
+      const bKey = o.brand.toLowerCase();
+      if (!map[bKey]) {
+        map[bKey] = {
+          id: bKey,
+          name: o.brand.charAt(0).toUpperCase() + o.brand.slice(1),
+          color: BRAND_COLORS[bKey] || '#64748b',
+          revenue: 0,
+          count: 0,
+          kiosksMap: {}
+        };
+      }
+
+      const rev = Number(o.totalAmount || 0);
+      map[bKey].revenue += rev;
+      map[bKey].count += 1;
+
+      // Extragere Kiosk & Locație
+      const locInfo = formatLocationAndKiosk(o);
+      const kKey = locInfo.fullDisplay; // ex: "Cluj • Kiosk 1"
+
+      if (!map[bKey].kiosksMap[kKey]) {
+        map[bKey].kiosksMap[kKey] = {
+          key: kKey,
+          locationName: locInfo.locationName,
+          kioskLabel: locInfo.kioskLabel,
+          fullDisplay: locInfo.fullDisplay,
+          revenue: 0,
+          count: 0
+        };
+      }
+      map[bKey].kiosksMap[kKey].revenue += rev;
+      map[bKey].kiosksMap[kKey].count += 1;
+
+      // Agregare duel Cluj
+      if (locInfo.locationName.includes('Cluj')) {
+        clujStats.totalOrders += 1;
+        clujStats.totalRev += rev;
+        if (locInfo.kioskLabel === 'Kiosk 1') {
+          clujStats.k1.rev += rev;
+          clujStats.k1.count += 1;
+        } else if (locInfo.kioskLabel === 'Kiosk 2') {
+          clujStats.k2.rev += rev;
+          clujStats.k2.count += 1;
+        }
       }
     });
 
-    // Exclude brandurile cu 0 (cele neconectate încă)
+    // Finalizare indicatori Cluj
+    clujStats.k1.avg = clujStats.k1.count > 0 ? (clujStats.k1.rev / clujStats.k1.count) : 0;
+    clujStats.k2.avg = clujStats.k2.count > 0 ? (clujStats.k2.rev / clujStats.k2.count) : 0;
+    const clujRevSum = clujStats.k1.rev + clujStats.k2.rev;
+    clujStats.k1Pct = clujRevSum > 0 ? (clujStats.k1.rev / clujRevSum) * 100 : (clujStats.totalOrders > 0 ? 50 : 0);
+    clujStats.k2Pct = clujRevSum > 0 ? (clujStats.k2.rev / clujRevSum) * 100 : (clujStats.totalOrders > 0 ? 50 : 0);
+
     const activeList = Object.values(map).filter(b => b.count > 0 || b.revenue > 0);
     const totalRev = activeList.reduce((s, b) => s + b.revenue, 0);
     const totalCnt = activeList.reduce((s, b) => s + b.count, 0);
 
-    return {
-      list: activeList.map(b => ({
+    const formattedList = activeList.map(b => {
+      const brandRev = b.revenue;
+      const brandCount = b.count;
+      const rawKiosks = Object.values(b.kiosksMap);
+
+      rawKiosks.sort((a, b) => {
+        if (a.locationName !== b.locationName) return a.locationName.localeCompare(b.locationName);
+        return a.kioskLabel.localeCompare(b.kioskLabel);
+      });
+
+      const palette = BRAND_KIOSK_PALETTES[b.id] || [b.color];
+
+      const kiosks = rawKiosks.map((k, idx) => {
+        const kColor = palette[idx % palette.length];
+        const kPctOfBrand = brandRev > 0 ? (k.revenue / brandRev) * 100 : (brandCount > 0 ? (k.count / brandCount) * 100 : 0);
+        const kPctOfTotal = totalRev > 0 ? (k.revenue / totalRev) * 100 : (totalCnt > 0 ? (k.count / totalCnt) * 100 : 0);
+        const kSliceId = `${b.id}__${k.key.replace(/\s+/g, '_')}`;
+
+        return {
+          ...k,
+          id: kSliceId,
+          brandId: b.id,
+          brandName: b.name,
+          color: kColor,
+          avg: k.count > 0 ? (k.revenue / k.count) : 0,
+          pctOfBrand: kPctOfBrand,
+          pctOfTotal: kPctOfTotal
+        };
+      });
+
+      return {
         ...b,
-        avg: b.count > 0 ? (b.revenue / b.count) : 0,
-        pct: totalRev > 0 ? (b.revenue / totalRev) * 100 : (totalCnt > 0 ? (b.count / totalCnt) * 100 : 0)
-      })),
+        avg: brandCount > 0 ? (brandRev / brandCount) : 0,
+        pct: totalRev > 0 ? (brandRev / totalRev) * 100 : (totalCnt > 0 ? (brandCount / totalCnt) * 100 : 0),
+        kiosks
+      };
+    });
+
+    return {
+      list: formattedList,
       totalRevenue: totalRev,
-      totalCount: totalCnt
+      totalCount: totalCnt,
+      clujStats
     };
   }, [orders]);
 
+  // Construire felii 3D Donut: pe kioskuri (default) sau per brand
+  const rawSlices = React.useMemo(() => {
+    if (viewMode === 'kiosks') {
+      const allKioskSlices = [];
+      brandData.list.forEach(b => {
+        if (b.kiosks && b.kiosks.length > 0) {
+          b.kiosks.forEach(k => {
+            if (k.pctOfTotal > 0 || (brandData.totalRevenue === 0 && k.count > 0)) {
+              allKioskSlices.push({
+                id: k.id,
+                brandId: b.id,
+                brandName: b.name,
+                kioskLabel: k.kioskLabel,
+                locationName: k.locationName,
+                fullDisplay: `${b.name} (${k.fullDisplay})`,
+                shortDisplay: `${b.name} ${k.kioskLabel}`,
+                revenue: k.revenue,
+                count: k.count,
+                avg: k.avg,
+                color: k.color,
+                pct: k.pctOfTotal,
+                pctOfBrand: k.pctOfBrand
+              });
+            }
+          });
+        } else {
+          allKioskSlices.push({
+            id: b.id,
+            brandId: b.id,
+            brandName: b.name,
+            kioskLabel: '',
+            locationName: '',
+            fullDisplay: b.name,
+            shortDisplay: b.name,
+            revenue: b.revenue,
+            count: b.count,
+            avg: b.avg,
+            color: b.color,
+            pct: b.pct,
+            pctOfBrand: 100
+          });
+        }
+      });
+      return allKioskSlices;
+    } else {
+      return brandData.list.map(b => ({
+        id: b.id,
+        brandId: b.id,
+        brandName: b.name,
+        kioskLabel: '',
+        locationName: '',
+        fullDisplay: b.name,
+        shortDisplay: b.name,
+        revenue: b.revenue,
+        count: b.count,
+        avg: b.avg,
+        color: b.color,
+        pct: b.pct,
+        pctOfBrand: 100
+      }));
+    }
+  }, [brandData, viewMode]);
+
   const cx = 150;
-  const cy = 115;
+  const cy = 112;
   const rx = 110;
   const ry = 62;
   const innerRatio = 0.58;
@@ -1010,17 +1202,18 @@ export function BrandDonutChart3D({
   const depth = 22;
 
   let cumulativeAngle = 0;
-  const slices = brandData.list.map(b => {
-    const angleSpan = (b.pct / 100) * 360;
+  const slices = rawSlices.map(s => {
+    const angleSpan = (s.pct / 100) * 360;
     const startAngle = cumulativeAngle;
     const endAngle = cumulativeAngle + angleSpan;
     cumulativeAngle += angleSpan;
 
     return {
-      ...b,
+      ...s,
       startAngle,
       endAngle,
-      angleSpan
+      angleSpan,
+      midAngle: startAngle + angleSpan / 2
     };
   });
 
@@ -1032,15 +1225,21 @@ export function BrandDonutChart3D({
     };
   };
 
+  const activeHoveredSlice = slices.find(s => 
+    s.id === hoveredSliceId || 
+    (hoveredBrandId && s.brandId === hoveredBrandId && !hoveredSliceId)
+  );
+
   return (
     <div className="relative bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden group h-full flex flex-col justify-between">
-      <div className="flex items-center justify-between mb-2.5">
+      {/* Header cu Titlu și Toggle Mod Vizualizare */}
+      <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-rose-500 to-amber-500 text-white flex items-center justify-center shadow-lg shadow-rose-500/25 shrink-0">
             <PieChart className="w-4.5 h-4.5" />
           </div>
           <div>
-            <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5 flex-wrap">
               Vânzări pe Branduri 3D
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
                 Donut 3D Ring
@@ -1051,16 +1250,44 @@ export function BrandDonutChart3D({
                 ? `Vânzări pe branduri la ora ${selectedHour}:00 - ${selectedHour + 1}:00` 
                 : selectedDay?.label 
                 ? `Vânzări pe branduri în ziua de ${selectedDay.label}` 
-                : 'Pondere vânzări per brand în perioada selectată'}
+                : 'Pondere vânzări per brand și kiosk'}
             </p>
           </div>
         </div>
+
+        {/* Butoane Toggle: Pe Kioskuri vs Per Brand */}
+        <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700/80 shrink-0">
+          <button
+            type="button"
+            onClick={() => setViewMode('kiosks')}
+            title="Secționează inelul 3D pe locații și kioskuri"
+            className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${
+              viewMode === 'kiosks'
+                ? 'bg-white dark:bg-slate-700 text-rose-600 dark:text-rose-400 shadow-xs ring-1 ring-black/5 dark:ring-white/10'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            Pe Kioskuri
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('brands')}
+            title="Afișează inelul 3D agregat per brand"
+            className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${
+              viewMode === 'brands'
+                ? 'bg-white dark:bg-slate-700 text-rose-600 dark:text-rose-400 shadow-xs ring-1 ring-black/5 dark:ring-white/10'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            Per Brand
+          </button>
+        </div>
       </div>
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-2.5">
         {/* 3D Donut SVG Canvas */}
-        <div className="relative flex items-center justify-center min-h-[160px]">
-          <svg viewBox="0 0 300 240" className="w-full max-w-[210px] h-[160px] overflow-visible">
+        <div className="relative flex items-center justify-center min-h-[155px]">
+          <svg viewBox="0 0 300 235" className="w-full max-w-[215px] h-[155px] overflow-visible">
             {/* Base Drop Shadow - Ring with Hollow Hole */}
             <path
               d={`
@@ -1077,11 +1304,14 @@ export function BrandDonutChart3D({
               opacity="0.14"
             />
 
-            {/* Side walls */}
+            {/* Side walls (3D Depth Extrusion) */}
             {slices.map(s => {
               if (s.angleSpan <= 0) return null;
-              const isHovered = hoveredBrand === s.id;
-              const isSelected = selectedBrands.includes(s.id);
+              const isDirectlyHovered = hoveredSliceId === s.id;
+              const isBrandHovered = hoveredBrandId === s.brandId;
+              const isKioskLabelHovered = hoveredKioskLabel && s.kioskLabel === hoveredKioskLabel;
+              const isHovered = isDirectlyHovered || (isBrandHovered && !hoveredSliceId) || isKioskLabelHovered;
+              const isSelected = selectedBrands.includes(s.brandId);
               const liftY = isSelected ? -12 : (isHovered ? -8 : 0);
 
               const pStartTop = getEllipsePoint(s.startAngle, rx, ry, liftY);
@@ -1089,29 +1319,34 @@ export function BrandDonutChart3D({
               const pStartBot = getEllipsePoint(s.startAngle, rx, ry, liftY + depth);
               const pEndBot = getEllipsePoint(s.endAngle, rx, ry, liftY + depth);
 
+              const largeArc = s.angleSpan > 180 ? 1 : 0;
+
               return (
                 <g key={`side-${s.id}`}>
                   <path
                     d={`
                       M ${pStartTop.x},${pStartTop.y}
-                      A ${rx} ${ry} 0 ${s.angleSpan > 180 ? 1 : 0} 1 ${pEndTop.x},${pEndTop.y}
+                      A ${rx} ${ry} 0 ${largeArc} 1 ${pEndTop.x},${pEndTop.y}
                       L ${pEndBot.x},${pEndBot.y}
-                      A ${rx} ${ry} 0 ${s.angleSpan > 180 ? 1 : 0} 0 ${pStartBot.x},${pStartBot.y}
+                      A ${rx} ${ry} 0 ${largeArc} 0 ${pStartBot.x},${pStartBot.y}
                       Z
                     `}
                     fill={s.color}
                     style={{ filter: 'brightness(0.72) contrast(1.15)' }}
-                    opacity={isSelected ? 1 : (selectedBrands.length > 0 ? 0.35 : (isHovered ? 1 : 0.9))}
+                    opacity={isSelected ? 1 : (selectedBrands.length > 0 && !selectedBrands.includes(s.brandId) ? 0.35 : (isHovered ? 1 : 0.9))}
                   />
                 </g>
               );
             })}
 
-            {/* Top Elliptical Faces */}
+            {/* Top Elliptical Faces (Sectioned Donut Slices) */}
             {slices.map(s => {
               if (s.angleSpan <= 0) return null;
-              const isHovered = hoveredBrand === s.id;
-              const isSelected = selectedBrands.includes(s.id);
+              const isDirectlyHovered = hoveredSliceId === s.id;
+              const isBrandHovered = hoveredBrandId === s.brandId;
+              const isKioskLabelHovered = hoveredKioskLabel && s.kioskLabel === hoveredKioskLabel;
+              const isHovered = isDirectlyHovered || (isBrandHovered && !hoveredSliceId) || isKioskLabelHovered;
+              const isSelected = selectedBrands.includes(s.brandId);
               const liftY = isSelected ? -12 : (isHovered ? -8 : 0);
 
               const pOutStart = getEllipsePoint(s.startAngle, rx, ry, liftY);
@@ -1135,17 +1370,17 @@ export function BrandDonutChart3D({
                   d={pathData}
                   fill={s.color}
                   stroke={isSelected ? "#3b82f6" : "#ffffff"}
-                  strokeWidth={isSelected ? "3" : "1.5"}
-                  onClick={() => onSelectBrand(s.id)}
-                  onMouseEnter={() => setHoveredBrand(s.id)}
-                  onMouseLeave={() => setHoveredBrand(null)}
+                  strokeWidth={isSelected ? "3" : isHovered ? "2.5" : "1.8"}
+                  onClick={() => onSelectBrand(s.brandId)}
+                  onMouseEnter={() => setHoveredSliceId(s.id)}
+                  onMouseLeave={() => setHoveredSliceId(null)}
                   className="cursor-pointer transition-all duration-200"
-                  opacity={isSelected ? 1 : (selectedBrands.length > 0 ? 0.45 : 1)}
+                  opacity={isSelected ? 1 : (selectedBrands.length > 0 && !selectedBrands.includes(s.brandId) ? 0.45 : 1)}
                   style={{
                     filter: isSelected
                       ? 'drop-shadow(0 -6px 12px rgba(59,130,246,0.5)) brightness(1.2)'
                       : isHovered 
-                      ? 'drop-shadow(0 -4px 8px rgba(0,0,0,0.3)) brightness(1.1)' 
+                      ? 'drop-shadow(0 -4px 8px rgba(0,0,0,0.3)) brightness(1.12)' 
                       : 'brightness(1.0)',
                     transformOrigin: `${cx}px ${cy}px`
                   }}
@@ -1153,11 +1388,14 @@ export function BrandDonutChart3D({
               );
             })}
 
-            {/* Slice Labels with Percentage (Data Labels pe Donut 3D) */}
+            {/* Slice Data Badges */}
             {slices.map(s => {
-              if (s.angleSpan < 16) return null;
-              const isHovered = hoveredBrand === s.id;
-              const isSelected = selectedBrands.includes(s.id);
+              if (s.angleSpan < 14) return null;
+              const isDirectlyHovered = hoveredSliceId === s.id;
+              const isBrandHovered = hoveredBrandId === s.brandId;
+              const isKioskLabelHovered = hoveredKioskLabel && s.kioskLabel === hoveredKioskLabel;
+              const isHovered = isDirectlyHovered || (isBrandHovered && !hoveredSliceId) || isKioskLabelHovered;
+              const isSelected = selectedBrands.includes(s.brandId);
               const liftY = isSelected ? -12 : (isHovered ? -8 : 0);
               const midAngle = s.startAngle + s.angleSpan / 2;
               const midRx = (rx + innerRx) / 2;
@@ -1170,9 +1408,9 @@ export function BrandDonutChart3D({
                   className="pointer-events-none select-none transition-transform duration-200"
                 >
                   <rect
-                    x={pos.x - 20}
+                    x={pos.x - 19}
                     y={pos.y - 9}
-                    width={40}
+                    width={38}
                     height={18}
                     rx={9}
                     fill="rgba(15, 23, 42, 0.88)"
@@ -1184,7 +1422,7 @@ export function BrandDonutChart3D({
                     x={pos.x}
                     y={pos.y + 3.5}
                     textAnchor="middle"
-                    fontSize="9.5"
+                    fontSize="9"
                     className="font-bold tracking-tight fill-white select-none"
                   >
                     {s.pct.toFixed(0)}%
@@ -1193,71 +1431,257 @@ export function BrandDonutChart3D({
               );
             })}
 
-            {/* Donut Center Hole Metrics */}
+            {/* Donut Center Hole Metrics (Live Inspection on Hover) */}
             <g className="pointer-events-none select-none">
-              <text
-                x={cx}
-                y={cy + 6}
-                textAnchor="middle"
-                className="fill-slate-900 dark:fill-white font-black text-xs tracking-tight select-none"
-              >
-                {formatThousands(brandData.totalRevenue)} lei
-              </text>
-              <text
-                x={cx}
-                y={cy + 19}
-                textAnchor="middle"
-                className="fill-slate-500 dark:fill-slate-400 font-bold text-[9px] select-none"
-              >
-                {brandData.totalCount} comenzi
-              </text>
+              {activeHoveredSlice ? (
+                <>
+                  <text
+                    x={cx}
+                    y={cy - 4}
+                    textAnchor="middle"
+                    className="fill-slate-600 dark:fill-slate-300 font-bold text-[9px] select-none"
+                  >
+                    {activeHoveredSlice.shortDisplay}
+                  </text>
+                  <text
+                    x={cx}
+                    y={cy + 9}
+                    textAnchor="middle"
+                    className="fill-slate-900 dark:fill-white font-black text-xs tracking-tight select-none"
+                  >
+                    {formatThousands(activeHoveredSlice.revenue)} lei
+                  </text>
+                  <text
+                    x={cx}
+                    y={cy + 20}
+                    textAnchor="middle"
+                    className="fill-rose-600 dark:fill-rose-400 font-extrabold text-[9px] select-none"
+                  >
+                    {activeHoveredSlice.pct.toFixed(0)}% • {activeHoveredSlice.count} cmd
+                  </text>
+                </>
+              ) : (
+                <>
+                  <text
+                    x={cx}
+                    y={cy + 6}
+                    textAnchor="middle"
+                    className="fill-slate-900 dark:fill-white font-black text-xs tracking-tight select-none"
+                  >
+                    {formatThousands(brandData.totalRevenue)} lei
+                  </text>
+                  <text
+                    x={cx}
+                    y={cy + 19}
+                    textAnchor="middle"
+                    className="fill-slate-500 dark:fill-slate-400 font-bold text-[9px] select-none"
+                  >
+                    {brandData.totalCount} comenzi
+                  </text>
+                </>
+              )}
             </g>
-
           </svg>
         </div>
 
-        {/* Brand Legend */}
-        <div className="flex flex-col gap-1.5 max-h-[130px] overflow-y-auto pr-1">
+        {/* 📊 DUEL KIOSKURI CLUJ: Statistica directă Kiosk 1 vs Kiosk 2 la Cluj */}
+        {brandData.clujStats.totalOrders > 0 && (
+          <div className="p-2.5 rounded-xl bg-gradient-to-r from-blue-50/80 via-indigo-50/50 to-purple-50/80 dark:from-blue-950/20 dark:via-indigo-950/20 dark:to-purple-950/20 border border-blue-200/70 dark:border-blue-800/50 transition-all">
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs">⚔️</span>
+                <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">
+                  Duel Kioskuri Cluj
+                </span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                  {brandData.clujStats.totalOrders} {brandData.clujStats.totalOrders === 1 ? 'comandă' : 'comenzi'}
+                </span>
+              </div>
+              <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                Total: <span className="text-slate-900 dark:text-white font-black">{formatThousands(brandData.clujStats.totalRev)} lei</span>
+              </div>
+            </div>
+
+            {/* Split Comparison Bar */}
+            <div className="w-full h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex mb-2 shadow-inner">
+              <div 
+                className="h-full bg-blue-500 transition-all duration-500" 
+                style={{ width: `${brandData.clujStats.k1Pct}%` }}
+                title={`Kiosk 1 Cluj: ${brandData.clujStats.k1Pct.toFixed(0)}%`}
+              />
+              <div 
+                className="h-full bg-purple-500 transition-all duration-500" 
+                style={{ width: `${brandData.clujStats.k2Pct}%` }}
+                title={`Kiosk 2 Cluj: ${brandData.clujStats.k2Pct.toFixed(0)}%`}
+              />
+            </div>
+
+            {/* Kiosk 1 vs Kiosk 2 Cards Side-by-Side */}
+            <div className="grid grid-cols-2 gap-2">
+              {/* Kiosk 1 */}
+              <div 
+                onMouseEnter={() => setHoveredKioskLabel('Kiosk 1')}
+                onMouseLeave={() => setHoveredKioskLabel(null)}
+                className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                  hoveredKioskLabel === 'Kiosk 1'
+                    ? 'bg-blue-100/90 dark:bg-blue-900/40 border-blue-500 shadow-sm'
+                    : 'bg-white/80 dark:bg-slate-900/80 border-blue-200/60 dark:border-blue-900/60 hover:bg-blue-50/50'
+                }`}
+              >
+                <div className="flex items-center justify-between text-[10px] font-bold">
+                  <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
+                    <span className="w-2 h-2 rounded-full bg-blue-500 inline-block shrink-0 shadow-xs" />
+                    Kiosk 1
+                  </span>
+                  <span className="font-extrabold text-blue-700 dark:text-blue-300">
+                    {brandData.clujStats.k1Pct.toFixed(0)}%
+                  </span>
+                </div>
+                <div className="text-xs font-black text-slate-900 dark:text-white mt-0.5">
+                  {formatThousands(brandData.clujStats.k1.rev)} lei
+                </div>
+                <div className="text-[9.5px] text-slate-500 dark:text-slate-400 font-medium">
+                  {brandData.clujStats.k1.count} cmd • <span className="font-semibold text-slate-600 dark:text-slate-300">med. {formatThousands(brandData.clujStats.k1.avg)} lei</span>
+                </div>
+              </div>
+
+              {/* Kiosk 2 */}
+              <div 
+                onMouseEnter={() => setHoveredKioskLabel('Kiosk 2')}
+                onMouseLeave={() => setHoveredKioskLabel(null)}
+                className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                  hoveredKioskLabel === 'Kiosk 2'
+                    ? 'bg-purple-100/90 dark:bg-purple-900/40 border-purple-500 shadow-sm'
+                    : 'bg-white/80 dark:bg-slate-900/80 border-purple-200/60 dark:border-purple-900/60 hover:bg-purple-50/50'
+                }`}
+              >
+                <div className="flex items-center justify-between text-[10px] font-bold">
+                  <span className="flex items-center gap-1 text-purple-600 dark:text-purple-400">
+                    <span className="w-2 h-2 rounded-full bg-purple-500 inline-block shrink-0 shadow-xs" />
+                    Kiosk 2
+                  </span>
+                  <span className="font-extrabold text-purple-700 dark:text-purple-300">
+                    {brandData.clujStats.k2Pct.toFixed(0)}%
+                  </span>
+                </div>
+                <div className="text-xs font-black text-slate-900 dark:text-white mt-0.5">
+                  {formatThousands(brandData.clujStats.k2.rev)} lei
+                </div>
+                <div className="text-[9.5px] text-slate-500 dark:text-slate-400 font-medium">
+                  {brandData.clujStats.k2.count} cmd • <span className="font-semibold text-slate-600 dark:text-slate-300">med. {formatThousands(brandData.clujStats.k2.avg)} lei</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Winner / Summary Footer */}
+            <div className="mt-1.5 pt-1.5 border-t border-blue-200/50 dark:border-blue-900/40 flex items-center justify-between text-[10px]">
+              {brandData.clujStats.k1.rev > brandData.clujStats.k2.rev ? (
+                <span className="text-blue-700 dark:text-blue-400 font-bold flex items-center gap-1">
+                  🏆 Kiosk 1 conduce cu +{formatThousands(brandData.clujStats.k1.rev - brandData.clujStats.k2.rev)} lei (+{Math.round(((brandData.clujStats.k1.rev - brandData.clujStats.k2.rev) / (brandData.clujStats.k2.rev || 1)) * 100)}%)
+                </span>
+              ) : brandData.clujStats.k2.rev > brandData.clujStats.k1.rev ? (
+                <span className="text-purple-700 dark:text-purple-400 font-bold flex items-center gap-1">
+                  🏆 Kiosk 2 conduce cu +{formatThousands(brandData.clujStats.k2.rev - brandData.clujStats.k1.rev)} lei (+{Math.round(((brandData.clujStats.k2.rev - brandData.clujStats.k1.rev) / (brandData.clujStats.k1.rev || 1)) * 100)}%)
+                </span>
+              ) : (
+                <span className="text-slate-500 dark:text-slate-400 font-semibold">
+                  ⚖️ Vânzări egale între Kiosk 1 și Kiosk 2
+                </span>
+              )}
+              <span className="text-slate-400 text-[9px] font-medium">
+                Locația Cluj
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Legendă Branduri cu Divizare pe Kioskuri */}
+        <div className="flex flex-col gap-2 max-h-[195px] overflow-y-auto pr-1">
           {brandData.list.length === 0 ? (
             <div className="p-4 text-center text-slate-400 text-xs font-medium bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800">
               Niciun brand cu vânzări în perioada selectată.
             </div>
           ) : (
             brandData.list.map(b => {
-              const isHovered = hoveredBrand === b.id;
+              const isHovered = hoveredBrandId === b.id;
               const isSelected = selectedBrands.includes(b.id);
+
               return (
                 <div
                   key={b.id}
-                  onClick={() => onSelectBrand(b.id)}
-                  onMouseEnter={() => setHoveredBrand(b.id)}
-                  onMouseLeave={() => setHoveredBrand(null)}
-                  className={`flex items-center justify-between p-2 rounded-xl border transition-all cursor-pointer ${
+                  className={`p-2.5 rounded-xl border transition-all ${
                     isSelected
-                      ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 shadow-sm ring-2 ring-blue-500/20 scale-[1.01]'
+                      ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 shadow-sm ring-2 ring-blue-500/20'
                       : isHovered 
-                      ? 'bg-slate-100 dark:bg-slate-800 border-blue-500/40 shadow-sm scale-[1.01]' 
+                      ? 'bg-slate-100 dark:bg-slate-800 border-blue-500/40 shadow-sm' 
                       : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800'
                   }`}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-3.5 h-3.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: b.color }} />
-                    <BrandLogo brandId={b.id} size={16} />
-                    <span className={`text-xs ${isSelected ? 'font-black text-blue-600 dark:text-blue-400' : 'font-bold text-slate-800 dark:text-slate-200'}`}>
-                      {b.name}
-                    </span>
-                    {isSelected && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
-                    )}
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xs font-black text-slate-900 dark:text-white">
-                      {formatThousands(b.revenue)} lei
+                  {/* Brand Header Row */}
+                  <div
+                    onClick={() => onSelectBrand(b.id)}
+                    onMouseEnter={() => setHoveredBrandId(b.id)}
+                    onMouseLeave={() => setHoveredBrandId(null)}
+                    className="flex items-center justify-between cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-3.5 h-3.5 rounded-full shrink-0 shadow-sm ring-1 ring-white/60" style={{ backgroundColor: b.color }} />
+                      <BrandLogo brandId={b.id} size={16} />
+                      <span className={`text-xs ${isSelected ? 'font-black text-blue-600 dark:text-blue-400' : 'font-bold text-slate-800 dark:text-slate-200'}`}>
+                        {b.name}
+                      </span>
+                      {isSelected && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
+                      )}
                     </div>
-                    <div className="text-[10px] font-semibold text-slate-400">
-                      {b.count} {b.count === 1 ? 'comandă' : 'comenzi'} • <span className="text-slate-600 dark:text-slate-300 font-bold">med. {formatThousands(b.avg)} lei</span> • <strong className="text-blue-600 dark:text-blue-400">{b.pct.toFixed(0)}%</strong>
+                    <div className="text-right">
+                      <div className="text-xs font-black text-slate-900 dark:text-white">
+                        {formatThousands(b.revenue)} lei
+                      </div>
+                      <div className="text-[10px] font-semibold text-slate-400">
+                        {b.count} {b.count === 1 ? 'comandă' : 'comenzi'} • <span className="text-slate-600 dark:text-slate-300 font-bold">med. {formatThousands(b.avg)} lei</span> • <strong className="text-blue-600 dark:text-blue-400">{b.pct.toFixed(0)}%</strong>
+                      </div>
                     </div>
                   </div>
+
+                  {/* Divizare pe Kioskuri sub Brand */}
+                  {b.kiosks && b.kiosks.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex flex-col gap-1 pl-4">
+                      {b.kiosks.map(k => {
+                        const isKioskHovered = hoveredSliceId === k.id;
+                        return (
+                          <div 
+                            key={k.id}
+                            onMouseEnter={() => setHoveredSliceId(k.id)}
+                            onMouseLeave={() => setHoveredSliceId(null)}
+                            className={`flex items-center justify-between py-1 px-1.5 rounded-lg text-[11px] transition-colors cursor-pointer ${
+                              isKioskHovered 
+                                ? 'bg-rose-100/70 dark:bg-rose-950/40 text-rose-900 dark:text-rose-100 font-medium ring-1 ring-rose-400/40' 
+                                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/40 dark:hover:bg-slate-700/40'
+                            }`}
+                          >
+                            <div className="flex items-center gap-1.5 truncate">
+                              <span 
+                                className="w-2.5 h-2.5 rounded-full shrink-0 shadow-xs ring-1 ring-white/60" 
+                                style={{ backgroundColor: k.color }} 
+                              />
+                              <span className="font-semibold text-slate-700 dark:text-slate-200 truncate">
+                                {k.fullDisplay}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0 font-medium">
+                              <span className="font-bold text-slate-900 dark:text-white">
+                                {formatThousands(k.revenue)} lei
+                              </span>
+                              <span className="text-[10px] text-slate-400">
+                                ({k.count} cmd • <strong className="text-slate-600 dark:text-slate-300">{k.pctOfBrand.toFixed(0)}%</strong>)
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               );
             })

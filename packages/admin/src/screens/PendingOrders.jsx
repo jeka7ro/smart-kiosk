@@ -6,7 +6,8 @@ import {
   Banknote, ArrowRight, ChevronDown, ChevronUp, Copy, Check, Sparkles, Utensils, Monitor
 } from 'lucide-react';
 import BrandLogo from '../components/BrandLogo.jsx';
-import { formatThousands } from '../utils/formatters';
+import { formatThousands, formatLocationAndKiosk } from '../utils/formatters';
+export { formatLocationAndKiosk };
 
 const BRAND_COLORS = {
   smashme: '#e11d48',
@@ -141,76 +142,7 @@ export function detectBrand(item) {
   return 'smashme';
 }
 
-// ─── HELPER: Formatează Locația curată (fără brand) și Kiosk-ul ───
-export function formatLocationAndKiosk(item) {
-  const p = item?.payload || {};
-  const rawLoc = p.locationName || item?.location_id || item?.locationId || p.locationId || '';
-  const locIdStr = String(item?.location_id || item?.locationId || p.locationId || '').toLowerCase();
-  const orderNum = String(item?.orderNumber || p.orderNumber || '').toUpperCase();
-  const rawLocLower = String(rawLoc).toLowerCase();
-  const normStr = `${rawLocLower} ${locIdStr} ${orderNum}`.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-  // 1. Curățare Nume Oraș / Locație (strict orașul, fără niciun brand repetat)
-  let clean = '';
-  if (normStr.includes('brasov') || normStr.includes('bv') || orderNum.startsWith('BV')) {
-    clean = 'Brașov';
-  } else if (normStr.includes('cluj') || normStr.includes('cj') || orderNum.startsWith('CJ')) {
-    clean = normStr.includes('centru') ? 'Cluj (Centru)' : 'Cluj';
-  } else if (normStr.includes('constanta') || normStr.includes('ct') || orderNum.startsWith('CT')) {
-    clean = 'Constanța';
-  } else if (normStr.includes('oradea') || normStr.includes('ikura') || orderNum.startsWith('OR')) {
-    clean = 'Oradea';
-  } else if (normStr.includes('balotesti') || orderNum.startsWith('BAL')) {
-    clean = 'Balotești';
-  } else if (normStr.includes('bacau') || orderNum.startsWith('BC')) {
-    clean = 'Bacău';
-  } else if (normStr.includes('mures') || normStr.includes('targu') || orderNum.startsWith('MS')) {
-    clean = 'Târgu Mureș';
-  } else {
-    clean = rawLoc
-      .replace(/roll\s*master/gi, '')
-      .replace(/smash\s*me/gi, '')
-      .replace(/love\s*sushi/gi, '')
-      .replace(/sushi\s*master/gi, '')
-      .replace(/we\s*love\s*sushi/gi, '')
-      .replace(/poki\s*woki/gi, '')
-      .replace(/crunch/gi, '')
-      .replace(/ikura/gi, '')
-      .replace(/\bsm\b/gi, '')
-      .replace(/[-_]/g, ' ')
-      .trim();
-    if (!clean) clean = rawLoc || '—';
-  }
-
-  // 2. Detecție Kiosk (Kiosk 1, Kiosk 2, etc.)
-  let kNum = String(p.kioskId || item?.kioskId || p.kiosk_id || item?.kiosk_id || '')
-    .toLowerCase()
-    .replace('kiosk', '')
-    .replace(/[-_]/g, '')
-    .trim();
-
-  if (!kNum) {
-    if (orderNum.startsWith('CJ2-') || orderNum.startsWith('CT2-') || orderNum.startsWith('BV2-')) {
-      kNum = '2';
-    } else if (orderNum.startsWith('CJ1-') || orderNum.startsWith('CT1-') || orderNum.startsWith('BV1-')) {
-      kNum = '1';
-    } else if (['cluj2', 'cj2', 'constanta2', 'ct2', 'kiosk2', 'kiosk-2'].some(k => normStr.includes(k))) {
-      kNum = '2';
-    } else if (['cluj3', 'cj3', 'kiosk3', 'kiosk-3'].some(k => normStr.includes(k))) {
-      kNum = '3';
-    } else {
-      kNum = '1';
-    }
-  }
-
-  const kioskLabel = `Kiosk ${kNum}`;
-
-  return {
-    locationName: clean,
-    kioskLabel,
-    fullDisplay: `${clean} • ${kioskLabel}`
-  };
-}
 
 export default function PendingOrders({ backend, onGoToOrder }) {
   const { fetchWithAuth } = useAuth();
