@@ -1750,7 +1750,6 @@ function OrdersTable({ orders, full, onRowClick, selectedId, defaultRows = 10, m
             <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500"># Comandă</th>
             <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Brand</th>
             <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Produse / Coș</th>
-            <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Tip Comandă</th>
             <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Total</th>
             <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Status</th>
           </tr>
@@ -1758,7 +1757,7 @@ function OrdersTable({ orders, full, onRowClick, selectedId, defaultRows = 10, m
         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
           {paginated.length === 0 ? (
             <tr>
-              <td colSpan={7} className="text-center py-10 text-slate-500 dark:text-slate-400 text-sm font-medium">
+              <td colSpan={6} className="text-center py-10 text-slate-500 dark:text-slate-400 text-sm font-medium">
                 Nicio comandă găsită în perioada selectată.
               </td>
             </tr>
@@ -1823,18 +1822,17 @@ function OrdersTable({ orders, full, onRowClick, selectedId, defaultRows = 10, m
                             <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate" title={items.map(i => `${i.quantity || 1}x ${i.name}`).join(', ')}>
                               {items.map(i => `${i.quantity || 1}x ${i.name}`).join(', ')}
                             </span>
-                            <span className="text-[10px] text-slate-400">
-                              {items.length} {items.length === 1 ? 'produs' : 'produse'}
+                            <span className="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5">
+                              <span>{items.length} {items.length === 1 ? 'produs' : 'produse'}</span>
+                              <span>•</span>
+                              <span className="font-semibold text-slate-600 dark:text-slate-300">
+                                {o.orderType === 'dine-in' ? (o.tableNumber ? `Masa ${o.tableNumber}` : 'La masă') : 'La pachet'}
+                              </span>
                             </span>
                           </div>
                         </div>
                       );
                     })()}
-                  </td>
-                  <td className="px-5 py-3.5 whitespace-nowrap">
-                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      {o.orderType === 'dine-in' ? (o.tableNumber ? `Masa ${o.tableNumber}` : 'La masă') : 'La pachet'}
-                    </span>
                   </td>
                   <td className="px-5 py-3.5 whitespace-nowrap">
                     <div className="flex flex-col gap-1 items-start">
