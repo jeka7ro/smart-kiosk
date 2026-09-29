@@ -62,7 +62,7 @@ function getOrderStatus(item, isTimeoutUnfinalized) {
   }
 
   if (item.kind === 'pos_in_progress') {
-    return { label: 'În curs', color: '#3b82f6' };
+    return { label: 'Comandă în curs', color: '#3b82f6' };
   }
 
   return STATUS_LABELS[p.status || item.status] || { label: 'Achitată cu succes', color: '#059669' };
@@ -327,7 +327,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
   const stats = useMemo(() => {
     let kitchen = 0;
     let finalized = 0;
-    let cardInProgress = 0;
+    let inProgress = 0;
     let unfinalized = 0;
     groupedList.forEach(item => {
       const isFin = item.kind === 'finalized_success' || item.paid || (item.kind === 'cash_awaiting' && item.orderNumber);
@@ -337,14 +337,14 @@ export default function PendingOrders({ backend, onGoToOrder }) {
 
       if (sc.label === 'Trimis la bucătărie') kitchen++;
       else if (sc.label === 'Achitată cu succes') finalized++;
-      else if (sc.label === 'În curs') cardInProgress++;
+      else if (sc.label === 'Comandă în curs') inProgress++;
       else if (sc.label === 'Anulată') unfinalized++;
     });
     return {
       total: groupedList.length,
       kitchen,
       finalized,
-      cardInProgress,
+      inProgress,
       unfinalized,
     };
   }, [groupedList]);
@@ -381,7 +381,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
 
         if (statusFilter === 'kitchen' && itemSc.label !== 'Trimis la bucătărie') return false;
         if (statusFilter === 'success' && itemSc.label !== 'Achitată cu succes') return false;
-        if (statusFilter === 'in_progress' && itemSc.label !== 'În curs') return false;
+        if (statusFilter === 'in_progress' && itemSc.label !== 'Comandă în curs') return false;
         if (statusFilter === 'cancelled' && itemSc.label !== 'Anulată') return false;
       }
 
@@ -540,8 +540,8 @@ export default function PendingOrders({ backend, onGoToOrder }) {
           active={statusFilter === 'success'}
         />
         <StatCard 
-          label="În Curs" 
-          value={stats.cardInProgress} 
+          label="Comenzi în Curs" 
+          value={stats.inProgress} 
           color="#3b82f6" 
           icon={Clock}
           onClick={() => { setStatusFilter(statusFilter === 'in_progress' ? 'all' : 'in_progress'); setCurrentPage(1); }}
@@ -604,7 +604,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
           <option value="all">Toate statusurile</option>
           <option value="kitchen">Trimis la bucătărie</option>
           <option value="success">Achitată cu succes</option>
-          <option value="in_progress">În curs</option>
+          <option value="in_progress">Comandă în curs</option>
           <option value="cancelled">Anulată</option>
         </select>
 
@@ -850,7 +850,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                                       <span>1. Înainte de Finalizare (Kiosk)</span>
                                     </div>
                                     <span className="px-2.5 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 whitespace-nowrap">
-                                      {item.initialAttempt ? 'Tentativă Card POS' : 'Coș Inițiat'}
+                                      {item.initialAttempt ? 'Tentativă Anterioară' : 'Sesiune Kiosk'}
                                     </span>
                                   </div>
 
