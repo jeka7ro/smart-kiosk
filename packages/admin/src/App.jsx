@@ -1784,28 +1784,6 @@ function OrdersTable({ orders, full, onRowClick, selectedId, defaultRows = 10, m
                           {new Date(o.createdAt).toLocaleString('ro-RO')}
                         </span>
                       )}
-                      {iikoId && (
-                        <div className="flex items-center gap-1 mt-0.5" title={`iiko ID: ${iikoId}`}>
-                          <span className="font-mono text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                            {iikoId.length > 8 ? `${iikoId.slice(0, 8)}...` : iikoId}
-                          </span>
-                          <button 
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigator.clipboard.writeText(iikoId);
-                              const btn = e.currentTarget;
-                              const originalHTML = btn.innerHTML;
-                              btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="#059669" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>';
-                              setTimeout(() => { btn.innerHTML = originalHTML; }, 1500);
-                            }}
-                            className="p-0.5 rounded text-slate-400 hover:text-emerald-600 transition-colors cursor-pointer shrink-0"
-                            title="Copiază ID iiko complet"
-                          >
-                            <Copy size={11} />
-                          </button>
-                        </div>
-                      )}
                     </div>
                   </td>
                   <td className="px-5 py-3.5 whitespace-nowrap">
