@@ -4,7 +4,7 @@ import { useConfirm } from '../components/ConfirmModal.jsx';
 import { 
   Clock, RefreshCw, ShoppingBag, CreditCard, 
   CheckCircle2, XCircle, AlertTriangle, Trash2, Send, X, Eye, 
-  Banknote, ArrowRight, ChevronDown, ChevronUp, Copy, Check, Sparkles, Utensils
+  Banknote, ArrowRight, ChevronDown, ChevronUp, Copy, Check, Sparkles, Utensils, Monitor
 } from 'lucide-react';
 import BrandLogo from '../components/BrandLogo.jsx';
 import { formatThousands } from '../utils/formatters';
@@ -60,6 +60,73 @@ function StatCard({ label, value, color, icon: Icon, onClick, active, highlight 
       )}
     </div>
   );
+}
+
+// ─── HELPER: Formatează Locația curată (fără brand) și Kiosk-ul ───
+export function formatLocationAndKiosk(item) {
+  const p = item?.payload || {};
+  const rawLoc = p.locationName || item?.location_id || item?.locationId || '';
+  const locIdStr = String(item?.location_id || item?.locationId || p.locationId || '').toLowerCase();
+  const orderNum = String(item?.orderNumber || p.orderNumber || '').toUpperCase();
+  const rawLocLower = String(rawLoc).toLowerCase();
+  
+  // 1. Curățare Nume Oraș / Locație (eliminăm brandurile ca RollMaster, SmashMe, etc.)
+  let clean = rawLoc
+    .replace(/\b(rollmaster|roll master|smashme|smash me|sm|ikura|crunch|lovesushi|love sushi|pokiwoki|poki woki)\b/gi, '')
+    .replace(/[-_]/g, ' ')
+    .trim();
+    
+  const combined = `${rawLocLower} ${locIdStr}`;
+  if (!clean || clean.length <= 1) {
+    if (combined.includes('bv') || combined.includes('brasov')) clean = 'Brașov';
+    else if (combined.includes('cj') || combined.includes('cluj')) clean = 'Cluj';
+    else if (combined.includes('ct') || combined.includes('constanta')) clean = 'Constanța';
+    else if (combined.includes('oradea') || combined.includes('ikura')) clean = 'Oradea';
+    else if (combined.includes('balotesti')) clean = 'Balotești';
+    else if (combined.includes('bacau')) clean = 'Bacău';
+    else if (combined.includes('targumures') || combined.includes('mures')) clean = 'Târgu Mureș';
+    else clean = rawLoc || '—';
+  } else {
+    const clLow = clean.toLowerCase();
+    if (clLow.includes('brasov')) clean = 'Brașov';
+    else if (clLow.includes('centru')) clean = 'Cluj (Centru)';
+    else if (clLow.includes('cluj')) clean = 'Cluj';
+    else if (clLow.includes('constanta')) clean = 'Constanța';
+    else if (clLow.includes('oradea')) clean = 'Oradea';
+    else if (clLow.includes('balotesti')) clean = 'Balotești';
+    else if (clLow.includes('bacau')) clean = 'Bacău';
+  }
+
+  // 2. Detecție Kiosk (Kiosk 1, Kiosk 2, etc.)
+  let kNum = String(p.kioskId || item?.kioskId || p.kiosk_id || item?.kiosk_id || '')
+    .toLowerCase()
+    .replace('kiosk', '')
+    .replace(/[-_]/g, '')
+    .trim();
+
+  if (!kNum) {
+    if (orderNum.startsWith('CJ2-') || orderNum.startsWith('CT2-') || orderNum.startsWith('BV2-')) {
+      kNum = '2';
+    } else if (orderNum.startsWith('CJ1-') || orderNum.startsWith('CT1-') || orderNum.startsWith('BV1-')) {
+      kNum = '1';
+    } else if (['cluj2', 'cj2', 'constanta2', 'ct2', 'kiosk2', 'kiosk-2'].some(k => combined.includes(k))) {
+      kNum = '2';
+    } else if (['cluj3', 'cj3', 'kiosk3', 'kiosk-3'].some(k => combined.includes(k))) {
+      kNum = '3';
+    } else if (['cluj1', 'cj1', 'constanta1', 'ct1', 'kiosk1', 'kiosk-1'].some(k => combined.includes(k))) {
+      kNum = '1';
+    } else {
+      kNum = '1';
+    }
+  }
+
+  const kioskLabel = `Kiosk ${kNum}`;
+
+  return {
+    locationName: clean,
+    kioskLabel,
+    fullDisplay: `${clean} • ${kioskLabel}`
+  };
 }
 
 export default function PendingOrders({ backend, onGoToOrder }) {
@@ -148,14 +215,14 @@ export default function PendingOrders({ backend, onGoToOrder }) {
     return imgSrc;
   }, [menuProducts, menuImages, backend]);
 
-  // Unique locations for filter
+  // Unique locations for filter (nume curate de locații)
   const uniqueLocations = useMemo(() => {
     const set = new Set();
-    pendingList.forEach(p => {
-      const loc = p.payload?.locationName || p.location_id;
-      if (loc) set.add(loc);
+    pendingList.forEach(item => {
+      const info = formatLocationAndKiosk(item);
+      if (info.locationName && info.locationName !== '—') set.add(info.locationName);
     });
-    return Array.from(set);
+    return Array.from(set).sort();
   }, [pendingList]);
 
   // Group related drafts (înainte de finalizare) with their finalized orders (după finalizare)
@@ -261,8 +328,10 @@ export default function PendingOrders({ backend, onGoToOrder }) {
 
       // Location filter
       if (locationFilter !== 'all') {
-        const itemLoc = p.locationName || item.location_id;
-        if (itemLoc !== locationFilter) return false;
+        const info = formatLocationAndKiosk(item);
+        if (info.locationName !== locationFilter && !loc.includes(locationFilter.toLowerCase())) {
+          return false;
+        }
       }
 
       // Status filter
@@ -535,7 +604,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
               <th className="w-14 px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 text-center">Nr.</th>
               <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500"># Comandă</th>
               <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Brand</th>
-              <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Locație</th>
+              <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Locație & Kiosk</th>
               <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Produse / Coș</th>
               <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Total</th>
               <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Status</th>
@@ -564,6 +633,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                 const isExpanded = expandedId === itemKey;
                 const hasInitialAttempt = !!item.initialAttempt;
                 const isFinalized = item.kind === 'finalized_success' || item.paid || (item.kind === 'cash_awaiting' && item.orderNumber);
+                const locInfo = formatLocationAndKiosk(item);
                 const ageMs = item.created_at ? (Date.now() - new Date(item.created_at).getTime()) : 0;
                 const isTimeoutUnfinalized = !isFinalized && (item.kind === 'unfinalized_abandoned' || item.isUnfinalized || ageMs > 2.5 * 60 * 1000);
                 const ageMinutes = Math.max(1, Math.round(ageMs / 60000));
@@ -635,11 +705,17 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                         </div>
                       </td>
 
-                      {/* Locație */}
-                      <td className="px-6 py-4">
-                        <span className="text-sm text-slate-700 dark:text-slate-300 font-semibold">
-                          {p.locationName || item.location_id || '—'}
-                        </span>
+                      {/* Locație & Kiosk */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex flex-col items-start gap-1">
+                          <span className="text-sm text-slate-900 dark:text-white font-bold">
+                            {locInfo.locationName}
+                          </span>
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10.5px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-2xs">
+                            <Monitor size={11} className="text-blue-500" />
+                            <span>{locInfo.kioskLabel}</span>
+                          </span>
+                        </div>
                       </td>
 
                       {/* Produse / Coș cu preview imagini mici */}
@@ -777,8 +853,9 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                                     >
                                       {BRAND_LABELS[brand] || brand}
                                     </span>
-                                    <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
-                                      {p.locationName || item.location_id}
+                                    <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 shadow-2xs">
+                                      <Monitor size={11} className="text-blue-500" />
+                                      <span>{locInfo.locationName} • {locInfo.kioskLabel}</span>
                                     </span>
                                   </div>
                                   <span className="text-xs text-slate-500 mt-0.5 block">
@@ -839,6 +916,13 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                                     </div>
                                   ) : (
                                     <div className="space-y-2 text-xs">
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-slate-400 font-medium">Terminal Kiosk:</span>
+                                        <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                                          <Monitor size={12} className="text-blue-500" />
+                                          <span>{locInfo.locationName} • {locInfo.kioskLabel}</span>
+                                        </span>
+                                      </div>
                                       <div className="flex items-center justify-between">
                                         <span className="text-slate-400 font-medium">Inițiat la:</span>
                                         <span className="font-semibold text-slate-700 dark:text-slate-300">
@@ -1162,9 +1246,15 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                   <h3 className="text-base font-bold text-slate-900 dark:text-white">
                     Detalii Comandă #{selectedDraft.orderNumber || selectedDraft.order_id}
                   </h3>
-                  <span style={{ color: BRAND_COLORS[selectedDraft.payload?.brand] || '#e11d48' }} className="text-xs font-bold capitalize">
-                    {BRAND_LABELS[selectedDraft.payload?.brand] || selectedDraft.payload?.brand} • {selectedDraft.payload?.locationName || selectedDraft.location_id}
-                  </span>
+                  {(() => {
+                    const sInfo = formatLocationAndKiosk(selectedDraft);
+                    return (
+                      <span className="text-xs font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1.5 mt-0.5">
+                        <Monitor size={11} className="text-blue-500" />
+                        <span>{sInfo.locationName} • {sInfo.kioskLabel}</span>
+                      </span>
+                    );
+                  })()}
                 </div>
               </div>
               <button
@@ -1180,13 +1270,18 @@ export default function PendingOrders({ backend, onGoToOrder }) {
               {/* Meta Info Box */}
               <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 grid grid-cols-2 gap-3">
                 <div>
-                  <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Locație & Brand</span>
-                  <div className="flex items-center gap-2 mt-1">
-                    <BrandLogo brandId={selectedDraft.payload?.brand} size={22} />
-                    <span className="font-bold text-slate-800 dark:text-slate-100">
-                      {BRAND_LABELS[selectedDraft.payload?.brand] || selectedDraft.payload?.brand} • {selectedDraft.payload?.locationName || selectedDraft.location_id}
-                    </span>
-                  </div>
+                  <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Locație & Kiosk</span>
+                  {(() => {
+                    const sInfo = formatLocationAndKiosk(selectedDraft);
+                    return (
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                          <Monitor size={13} className="text-blue-500" />
+                          <span>{sInfo.locationName} • {sInfo.kioskLabel}</span>
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </div>
                 <div>
                   <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Tip Servire</span>
