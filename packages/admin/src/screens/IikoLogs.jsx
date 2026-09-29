@@ -8,6 +8,14 @@ import { formatThousands } from '../utils/formatters';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
 
+const BRAND_LABELS = {
+  smashme: 'SmashMe',
+  crunch: 'Crunch',
+  rollmaster: 'Roll Master',
+  lovesushi: 'Love Sushi',
+  pokiwoki: 'Poki-Woki'
+};
+
 const STATUS_CONFIG = {
   success: { label: 'Succes', color: '#ffffff', bg: '#059669', icon: '✓' },
   error:   { label: 'Eroare', color: '#ef4444', bg: '#ef444420', icon: '✕' },
@@ -245,20 +253,22 @@ export default function IikoLogs() {
       fetch(`${BACKEND}/api/menu/all`).then(r => r.json()).catch(() => ({})),
       fetch(`${BACKEND}/api/products/overrides/smashme`).then(r => r.json()).catch(() => ({})),
       fetch(`${BACKEND}/api/products/overrides/rollmaster`).then(r => r.json()).catch(() => ({})),
-      fetch(`${BACKEND}/api/products/overrides/crunch`).then(r => r.json()).catch(() => ({}))
-    ]).then(([allMenuData, ovSmash, ovRoll, ovCrunch]) => {
+      fetch(`${BACKEND}/api/products/overrides/crunch`).then(r => r.json()).catch(() => ({})),
+      fetch(`${BACKEND}/api/products/overrides/lovesushi`).then(r => r.json()).catch(() => ({})),
+      fetch(`${BACKEND}/api/products/overrides/pokiwoki`).then(r => r.json()).catch(() => ({}))
+    ]).then(([allMenuData, ovSmash, ovRoll, ovCrunch, ovLove, ovPoki]) => {
       const prodMap = {};
       Object.keys(allMenuData || {}).forEach(b => {
         const prods = allMenuData[b]?.menu?.products || [];
         prods.forEach(p => {
           if (p.id) prodMap[p.id] = p;
-          if (p.name) prodMap[p.name.toLowerCase()] = p;
+          if (p.name) prodMap[p.name.toLowerCase().trim()] = p;
         });
       });
       setMenuProducts(prodMap);
 
       const imgMap = {};
-      [ovSmash, ovRoll, ovCrunch].forEach(ovSet => {
+      [ovSmash, ovRoll, ovCrunch, ovLove, ovPoki].forEach(ovSet => {
         if (ovSet && typeof ovSet === 'object') {
           Object.entries(ovSet).forEach(([pid, val]) => {
             if (val?.imageUrl) imgMap[pid] = val.imageUrl;
@@ -277,9 +287,9 @@ export default function IikoLogs() {
     let items = [];
     if (matched?.items && Array.isArray(matched.items) && matched.items.length > 0) {
       items = matched.items.map(it => {
-        const fullP = menuProducts[it.productId] || (it.name && menuProducts[it.name.toLowerCase()]);
+        const fullP = menuProducts[it.productId] || (it.name && menuProducts[it.name.toLowerCase().trim()]);
         const overrideImg = menuImages[it.productId];
-        let imgSrc = overrideImg || it.imageUrl || (fullP?.imageLinks && fullP.imageLinks[0]) || fullP?.image || null;
+        let imgSrc = overrideImg || it.imageUrl || it.image || (fullP?.imageLinks && fullP.imageLinks[0]) || fullP?.image || null;
         if (imgSrc && imgSrc.startsWith('/uploads')) imgSrc = `${BACKEND}${imgSrc}`;
 
         return {
@@ -297,9 +307,9 @@ export default function IikoLogs() {
       const payloadItems = log.payload?.order?.items || log.payload?.items || [];
       if (Array.isArray(payloadItems) && payloadItems.length > 0) {
         items = payloadItems.map(it => {
-          const fullP = menuProducts[it.productId];
+          const fullP = menuProducts[it.productId] || (it.name && menuProducts[it.name.toLowerCase().trim()]);
           const overrideImg = menuImages[it.productId];
-          let imgSrc = overrideImg || (fullP?.imageLinks && fullP.imageLinks[0]) || fullP?.image || null;
+          let imgSrc = overrideImg || it.imageUrl || it.image || (fullP?.imageLinks && fullP.imageLinks[0]) || fullP?.image || null;
           if (imgSrc && imgSrc.startsWith('/uploads')) imgSrc = `${BACKEND}${imgSrc}`;
 
           return {
@@ -308,7 +318,7 @@ export default function IikoLogs() {
             quantity: it.amount || it.quantity || 1,
             price: it.price !== undefined ? it.price : (fullP?.price || 0),
             selectedModifiers: (it.modifiers || []).map(m => {
-              const fullMod = menuProducts[m.productId];
+              const fullMod = menuProducts[m.productId] || (m.name && menuProducts[m.name.toLowerCase().trim()]);
               return {
                 optionName: fullMod?.name || m.name || m.productId,
                 price: m.price || 0
@@ -380,6 +390,31 @@ export default function IikoLogs() {
   };
 
   const brands = [...new Set(logs.map(l => l.brandId).filter(Boolean))];
+
+  const brandList = useMemo(() => {
+    const known = ['smashme', 'crunch', 'rollmaster', 'lovesushi', 'pokiwoki'];
+    const dynamic = new Set();
+    logs.forEach(l => {
+      if (l.brandId) {
+        const b = String(l.brandId).toLowerCase();
+        if (!known.includes(b)) dynamic.add(b);
+      }
+    });
+    return ['all', ...known, ...Array.from(dynamic)];
+  }, [logs]);
+
+  const handleBrandClick = (b) => {
+    if (b === 'all') {
+      setSelectedBrands([]);
+    } else {
+      if (selectedBrands.length === 1 && selectedBrands[0] === b) {
+        setSelectedBrands([]);
+      } else {
+        setSelectedBrands([b]);
+      }
+    }
+    setCurrentPage(1);
+  };
 
   // ── Filtered by Period & Brands for StatCards ────────────────
   const periodFilteredLogs = useMemo(() => {
@@ -534,106 +569,116 @@ export default function IikoLogs() {
         />
       </div>
 
-      {/* Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-2">
+      {/* Controls Bar - Matching Dashboard & PendingOrders design family */}
+      <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+        {/* Brand Switcher Pills */}
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide shrink-0">
+          {brandList.map(b => {
+            const isSelected = b === 'all' ? selectedBrands.length === 0 : selectedBrands.includes(b);
+            return (
+              <button
+                key={b}
+                type="button"
+                title={b === 'all' ? 'Toate Brandurile' : BRAND_LABELS[b] || b}
+                className={`shrink-0 h-10 rounded-full flex items-center justify-center border transition-all ${
+                  isSelected
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                } ${b === 'all' ? 'px-4 text-xs font-bold' : 'w-10'}`}
+                onClick={() => handleBrandClick(b)}
+              >
+                {b === 'all' ? 'Toate' : <BrandLogo brandId={b} size={22} />}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Status Switcher Pills */}
+        <div className="flex items-center gap-1.5 shrink-0">
           {[
             { id: 'all',     label: 'Toate' },
             { id: 'success', label: '✓ Succes' },
             { id: 'error',   label: '✕ Erori' },
-          ].map(f => (
-            <button
-              key={f.id}
-              onClick={() => { setFilter(f.id); setCurrentPage(1); }}
-              className={`px-4 h-9 rounded-full text-sm font-bold border transition-colors ${
-                filter === f.id
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-
-          <select
-            value={periodFilter}
-            onChange={e => { setPeriodFilter(e.target.value); setCurrentPage(1); }}
-            className="h-9 px-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-medium text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">Toată perioada</option>
-            <option value="today">Azi</option>
-            <option value="yesterday">Ieri</option>
-            <option value="this_week">Săptămâna curentă</option>
-            <option value="this_month">Luna curentă</option>
-            <option value="last_month">Luna trecută</option>
-            <option value="this_year">Anul curent</option>
-            <option value="custom">Personalizat</option>
-          </select>
-
-          {periodFilter === 'custom' && (
-            <div className="flex items-center gap-1">
-              <input type="date" value={customStart} onChange={e => {setCustomStart(e.target.value); setCurrentPage(1);}} className="h-9 px-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500" />
-              <span className="text-slate-400 font-bold">-</span>
-              <input type="date" value={customEnd} onChange={e => {setCustomEnd(e.target.value); setCurrentPage(1);}} className="h-9 px-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
-          )}
-
-          {brands.length > 0 && (
-            <div className="flex items-center gap-1.5 p-0.5 bg-slate-100 dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700">
+          ].map(f => {
+            const isSelected = filter === f.id;
+            return (
               <button
-                onClick={selectAllBrands}
-                className={`h-8 px-3 rounded-full text-xs font-bold transition-all ${
-                  selectedBrands.length === 0
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                key={f.id}
+                onClick={() => { setFilter(f.id); setCurrentPage(1); }}
+                className={`h-10 px-3.5 rounded-full text-xs font-bold border transition-all ${
+                  isSelected
+                    ? f.id === 'success'
+                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                      : f.id === 'error'
+                      ? 'bg-rose-600 text-white border-rose-600 shadow-sm'
+                      : 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
                 }`}
               >
-                Toate
+                {f.label}
               </button>
-              {brands.map(b => {
-                const isSelected = selectedBrands.includes(b.toLowerCase());
-                return (
-                  <button
-                    key={b}
-                    onClick={() => toggleBrand(b)}
-                    title={`Filtru ${b} (Click pentru selecție multiplă)`}
-                    className={`h-8 w-8 rounded-full flex items-center justify-center transition-all border ${
-                      isSelected
-                        ? 'bg-blue-600 text-white border-blue-600 shadow-sm ring-2 ring-blue-500/20'
-                        : 'bg-transparent border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
-                    }`}
-                  >
-                    <BrandLogo brandId={b} size={16} />
-                  </button>
-                );
-              })}
+            );
+          })}
+        </div>
+
+        {/* Period Selector */}
+        <select
+          value={periodFilter}
+          onChange={e => { setPeriodFilter(e.target.value); setCurrentPage(1); }}
+          className="shrink-0 h-10 px-3 rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-bold text-slate-600 dark:text-slate-400 outline-none hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+        >
+          <option value="all">Toată perioada</option>
+          <option value="today">Azi</option>
+          <option value="yesterday">Ieri</option>
+          <option value="this_week">Săptămâna curentă</option>
+          <option value="this_month">Luna curentă</option>
+          <option value="last_month">Luna trecută</option>
+          <option value="this_year">Anul curent</option>
+          <option value="custom">Personalizat</option>
+        </select>
+
+        {periodFilter === 'custom' && (
+          <div className="flex items-center gap-1.5 shrink-0">
+            <input 
+              type="date" 
+              value={customStart} 
+              onChange={e => {setCustomStart(e.target.value); setCurrentPage(1);}} 
+              className="h-10 px-3 rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-bold text-slate-600 dark:text-slate-400 outline-none hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" 
+            />
+            <span className="text-slate-400 font-bold">-</span>
+            <input 
+              type="date" 
+              value={customEnd} 
+              onChange={e => {setCustomEnd(e.target.value); setCurrentPage(1);}} 
+              className="h-10 px-3 rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-bold text-slate-600 dark:text-slate-400 outline-none hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" 
+            />
+          </div>
+        )}
+
+        {/* Global Search Bar */}
+        <div className="relative flex-1 min-w-[170px] max-w-[280px]">
+          <input
+            placeholder="Caută..."
+            value={search}
+            onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
+            className="h-10 pl-9 pr-3 rounded-full text-xs font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full transition-all"
+          />
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+          {search && (
+            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 bg-blue-600 text-white rounded-full px-2 py-0.5 text-[10px] font-bold">
+              {filtered.length} / {logs.length}
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Search */}
-          <div style={{ position: 'relative' }}>
-            <Search className="w-3.5 h-3.5 text-slate-400" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
-            <input
-              placeholder="Caută..."
-              value={search}
-              onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
-              className="h-9 pl-8 pr-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500"
-              style={{ width: 160 }}
-            />
-            {search && (
-              <div style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: '#6366f1', color: 'white', borderRadius: 9999, padding: '2px 8px', fontSize: 10, fontWeight: 700 }}>
-                {filtered.length} / {logs.length}
-              </div>
-            )}
-          </div>
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2 shrink-0 ml-auto">
           <button
             onClick={() => setShowAuditModal(true)}
-            className="px-4 h-9 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold transition-colors flex items-center gap-2"
+            className="px-4 h-10 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold border border-slate-200 dark:border-slate-700 transition-colors flex items-center gap-1.5"
             title="Audit Reconciliere & Reduceri Syrve"
           >
-            <ShieldCheck size={15} />
+            <ShieldCheck size={14} />
             <span>Audit Syrve</span>
             {auditStats.discrepancyCount > 0 && (
               <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
@@ -643,7 +688,7 @@ export default function IikoLogs() {
           </button>
           <button
             onClick={handleExportExcel}
-            className="px-4 h-9 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm text-sm font-bold transition-colors flex items-center gap-2"
+            className="px-4 h-10 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm text-xs font-bold transition-colors flex items-center gap-1.5"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Excel
@@ -724,15 +769,30 @@ export default function IikoLogs() {
                         <BrandLogo brandId={log.brandId} size={24} />
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-xs max-w-[240px]">
+                    <td className="px-4 py-3 text-xs max-w-[240px] lg:max-w-xs">
                       {details.items.length > 0 ? (
-                        <div className="flex flex-col gap-0.5">
-                          <span className="font-semibold text-slate-800 dark:text-slate-200 truncate" title={details.items.map(it => `${it.quantity}x ${it.name}`).join(', ')}>
-                            {details.items.map(it => `${it.quantity}x ${it.name}`).join(', ')}
-                          </span>
-                          <span className="text-[10px] text-slate-400">
-                            {details.items.reduce((s, it) => s + (it.quantity || 1), 0)} buc • {details.orderType === 'dine-in' ? (details.tableNumber ? `Masa ${details.tableNumber}` : 'La masă') : 'La pachet'}
-                          </span>
+                        <div className="flex items-center gap-2 min-w-0">
+                          {/* Mini imagini produse */}
+                          <div className="flex -space-x-1.5 shrink-0">
+                            {details.items.slice(0, 3).map((it, pIdx) => (
+                              <div key={pIdx} className="w-6 h-6 rounded-full border border-white dark:border-slate-800 bg-slate-100 dark:bg-slate-700 overflow-hidden shrink-0 flex items-center justify-center shadow-2xs">
+                                {it.imageUrl ? (
+                                  <img src={it.imageUrl} alt={it.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <Utensils className="w-3 h-3 text-slate-400" />
+                                )}
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-semibold text-slate-800 dark:text-slate-200 truncate" title={details.items.map(it => `${it.quantity}x ${it.name}`).join(', ')}>
+                              {details.items.map(it => `${it.quantity}x ${it.name}`).join(', ')}
+                            </span>
+                            <span className="text-[10px] text-slate-400">
+                              {details.items.reduce((s, it) => s + (it.quantity || 1), 0)} buc • {details.orderType === 'dine-in' ? (details.tableNumber ? `Masa ${details.tableNumber}` : 'La masă') : 'La pachet'}
+                            </span>
+                          </div>
                         </div>
                       ) : (
                         <span className="text-slate-400 italic">Detalii în payload</span>
