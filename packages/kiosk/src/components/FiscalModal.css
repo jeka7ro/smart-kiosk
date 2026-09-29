@@ -237,8 +237,8 @@
 .fm-vat-pill {
   font-size: 0.75rem;
   font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 8px;
+  padding: 4px 12px;
+  border-radius: 9999px !important;
   white-space: nowrap;
 }
 
@@ -263,8 +263,8 @@
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: #ffffff;
   border: none;
-  border-radius: 16px;
-  padding: 14px;
+  border-radius: 9999px !important;
+  padding: 14px 28px;
   font-size: 1.05rem;
   font-weight: 800;
   cursor: pointer;
@@ -341,8 +341,8 @@
   font-weight: 700;
   color: #64748b;
   cursor: pointer;
-  padding: 8px 16px;
-  border-radius: 12px;
+  padding: 8px 20px;
+  border-radius: 9999px !important;
 }
 
 .fm-cancel-btn:active {

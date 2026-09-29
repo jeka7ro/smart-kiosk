@@ -108,8 +108,8 @@ export default function ProductCard({ product, delay, lang, activeBrand, onQuick
                   color: '#ffffff',
                   fontSize: '0.72rem',
                   fontWeight: 800,
-                  padding: '4px 8px',
-                  borderRadius: 8,
+                  padding: '4px 10px',
+                  borderRadius: 9999,
                   display: 'flex',
                   alignItems: 'center',
                   gap: 4,
@@ -159,9 +159,9 @@ export default function ProductCard({ product, delay, lang, activeBrand, onQuick
         {cartQty === 0 ? (
           <button 
             style={{ 
-              flex: 1, height: 44, borderRadius: 22, border: 'none', background: '#d32f2f', 
+              flex: 1, height: 44, borderRadius: 9999, border: 'none', background: '#d32f2f', 
               color: '#fff', fontSize: '0.92rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 12px',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px',
               gap: 6, overflow: 'hidden',
               boxShadow: '0 4px 12px rgba(211, 47, 47, 0.3)'
             }}
@@ -186,7 +186,7 @@ export default function ProductCard({ product, delay, lang, activeBrand, onQuick
             })()}
           </button>
         ) : (
-          <div style={{ flex: 1, height: 44, borderRadius: 10, border: '1px solid #fca5a5', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }} onClick={e => e.stopPropagation()}>
+          <div style={{ flex: 1, height: 44, borderRadius: 9999, border: '1px solid #fca5a5', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px' }} onClick={e => e.stopPropagation()}>
             <button style={{ width: 40, height: '100%', background: 'transparent', border: 'none', color: '#ef4444', fontSize: '1.4rem', fontWeight: 600, cursor: 'pointer' }} onClick={handleMinus}>−</button>
             <span style={{ color: '#ef4444', fontWeight: 600, fontSize: '0.9rem' }}>{cartQty} {t('pcs', lang) || 'buc.'}</span>
             <button style={{ width: 40, height: '100%', background: 'transparent', border: 'none', color: '#ef4444', fontSize: '1.4rem', fontWeight: 600, cursor: 'pointer' }} onClick={handleAdd}>+</button>

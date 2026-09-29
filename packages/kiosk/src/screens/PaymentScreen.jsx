@@ -47,6 +47,21 @@ export default function PaymentScreen() {
   const brandName = currentBrand?.name || 'Smash Me';
   const brandLogo = currentBrand?.logoImg || `/brands/${effectiveBrand}-logo.png`;
 
+  const displayBrands = useMemo(() => {
+    if (locationData?.isMultiBrand && Array.isArray(locationData?.brands) && locationData.brands.length > 1) {
+      return locationData.brands;
+    }
+    if (Array.isArray(locationData?.brands) && locationData.brands.length > 1) {
+      return locationData.brands;
+    }
+    const cartBrandIds = Array.from(new Set(cartItems.map(i => i.brandId).filter(Boolean)));
+    if (cartBrandIds.length > 1) {
+      return cartBrandIds;
+    }
+    const single = cartBrandIds[0] || activeBrandId || urlBrand || locationData?.brands?.[0] || DEFAULT_BRAND;
+    return [single];
+  }, [cartItems, locationData, activeBrandId, urlBrand]);
+
   const [showFiscalModal, setShowFiscalModal] = useState(false);
 
   const total      = getCartTotal();
@@ -395,6 +410,32 @@ export default function PaymentScreen() {
       )}
 
       <div className="payment-content fade-in">
+        {/* ── Brand Logo(s) Above Amount Card ── */}
+        {displayBrands.length > 0 && (
+          <div className="kiosk-payment-brands-bar">
+            {displayBrands.map((bId) => {
+              const b = BRANDS[bId] || BRANDS[DEFAULT_BRAND];
+              const logoSrc = (displayBrands.length === 1 && locationData?.logoUrl) 
+                ? locationData.logoUrl 
+                : (b?.logoImg || `/brands/${bId}-logo.png`);
+              return (
+                <div 
+                  key={bId} 
+                  className={`kiosk-payment-brand-avatar ${displayBrands.length > 1 ? 'kiosk-payment-brand-avatar--multi' : ''}`} 
+                  title={b?.name || bId}
+                >
+                  <img
+                    src={logoSrc}
+                    alt={b?.name || bId}
+                    className="kiosk-payment-brand-avatar-img"
+                    onError={(e) => { e.currentTarget.parentElement.style.display = 'none'; }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         {/* ── Top Amount & Context Display ── */}
         <div className="kiosk-amount-header-card">
           <div className="kahc-context-row">
@@ -523,8 +564,8 @@ export default function PaymentScreen() {
               )}
             </div>
 
-            {/* Badges logo */}
-            {allowCard ? (
+            {/* Badges logo - doar când plata cu cardul este activă */}
+            {allowCard && (
               <div className="kiosk-trust-badges-bar">
                 <div className="ktb-pill" title="Contactless">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
@@ -564,21 +605,21 @@ export default function PaymentScreen() {
                   </svg>
                 </div>
               </div>
-            ) : (
-              <div className="kiosk-trust-badges-bar">
-                <div className="ktb-pill" style={{ color: '#059669', borderColor: 'rgba(5, 150, 105, 0.3)', fontWeight: 600 }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="2" y="6" width="20" height="12" rx="2" />
-                    <circle cx="12" cy="12" r="2.5" />
-                  </svg>
-                  <span>Plată numerar la casa de marcat</span>
-                </div>
-              </div>
             )}
 
-            <button className="kiosk-touch-btn kiosk-btn-danger" style={{ maxWidth: '400px', margin: '8px auto 0' }} onClick={handleCancelOrder}>
-              <span>{t('cancel_order', lang) || 'Anulează comanda'}</span>
-            </button>
+            <div className="kiosk-cancel-action-wrap">
+              <button 
+                type="button" 
+                className="kiosk-touch-btn kiosk-btn-danger kiosk-btn-cancel-hero" 
+                onClick={handleCancelOrder}
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+                <span>{t('cancel_order', lang) || 'Anulează comanda'}</span>
+              </button>
+            </div>
           </div>
         )}
 

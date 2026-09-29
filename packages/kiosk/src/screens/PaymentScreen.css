@@ -23,10 +23,10 @@
   align-items: center;
   justify-content: center;
   padding: 36px 28px 36px;
-  gap: 20px;
+  gap: 22px;
   text-align: center;
   width: 100%;
-  max-width: 660px;
+  max-width: 720px;
   margin: 0 auto;
   box-sizing: border-box;
 }
@@ -67,54 +67,116 @@
   transform: scale(0.96);
 }
 
+/* ── Brand Logo(s) Above Amount Card — exact ca în coșul meu (.cart-brand-avatar) ── */
+.kiosk-payment-brands-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.kiosk-payment-brand-avatar {
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  flex-shrink: 0;
+  border: none;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28), 0 6px 18px rgba(0, 0, 0, 0.16);
+  animation: logoAvatarBreathe 3.5s ease-in-out infinite alternate;
+  transform-origin: center center;
+  will-change: transform, box-shadow;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.kiosk-payment-brand-avatar--multi {
+  width: 96px;
+  height: 96px;
+}
+
+.kiosk-payment-brand-avatar:hover {
+  transform: scale(1.08);
+  box-shadow: 0 24px 52px rgba(0, 0, 0, 0.35), 0 10px 24px rgba(0, 0, 0, 0.2);
+}
+
+.kiosk-payment-brand-avatar:active {
+  transform: scale(0.96);
+}
+
+.kiosk-payment-brand-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+@keyframes logoAvatarBreathe {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.24), 0 5px 14px rgba(0, 0, 0, 0.14);
+  }
+  100% {
+    transform: scale(1.08);
+    box-shadow: 0 24px 50px rgba(0, 0, 0, 0.34), 0 8px 22px rgba(0, 0, 0, 0.18);
+  }
+}
+
 /* ── Top Amount & Context Header Card ── */
 .kiosk-amount-header-card {
   width: 100%;
   background: #ffffff;
-  border-radius: 26px;
-  padding: 22px 32px;
-  box-shadow: 0 12px 36px -6px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  border-radius: 36px;
+  padding: 36px 44px;
+  box-shadow: 0 16px 44px -8px rgba(0, 0, 0, 0.08), 0 0 0 1.5px rgba(0, 0, 0, 0.04);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
+  box-sizing: border-box;
 }
 
 .kahc-context-row {
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 .kahc-badge-type {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.86rem;
+  gap: 8px;
+  font-size: 0.95rem;
   font-weight: 800;
   color: #475569;
   background: #f1f5f9;
-  padding: 6px 16px;
+  padding: 8px 22px;
   border-radius: 9999px;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
 .kahc-label {
-  font-size: 0.88rem;
+  font-size: 1.05rem;
   font-weight: 800;
   color: #94a3b8;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 .kahc-price-box {
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  gap: 12px;
 }
 
 .kahc-val {
-  font-size: 3.8rem;
+  font-size: 4.8rem;
   font-weight: 900;
   line-height: 1;
   color: var(--primary, #EE3B24);
@@ -122,7 +184,7 @@
 }
 
 .kahc-curr {
-  font-size: 1.65rem;
+  font-size: 1.95rem;
   font-weight: 800;
   color: #64748b;
   letter-spacing: 0.02em;
@@ -539,7 +601,8 @@
 .kiosk-touch-btn {
   flex: 1;
   min-height: 64px;
-  border-radius: 20px;
+  padding: 0 32px;
+  border-radius: 9999px;
   font-size: 1.2rem;
   font-weight: 800;
   display: inline-flex;
@@ -570,15 +633,32 @@
 }
 
 .kiosk-btn-danger {
-  background: #fef2f2;
-  border: 2px solid #fecaca;
-  color: #dc2626;
-  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.06);
+  background: linear-gradient(135deg, #FF3823 0%, #D82613 100%);
+  border: none;
+  color: #ffffff !important;
+  box-shadow: 0 8px 22px -4px rgba(238, 59, 36, 0.42);
 }
 
 .kiosk-btn-danger:hover {
-  background: #fee2e2;
-  border-color: #fca5a5;
+  background: linear-gradient(135deg, #e62e1a 0%, #c41e0d 100%);
+  color: #ffffff !important;
+  filter: brightness(1.06);
+  box-shadow: 0 10px 26px -4px rgba(238, 59, 36, 0.52);
+}
+
+.kiosk-cancel-action-wrap {
+  width: 100%;
+  margin-top: 8px;
+  display: flex;
+}
+
+.kiosk-btn-cancel-hero {
+  width: 100%;
+  min-height: 68px;
+  border-radius: 9999px;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
 }
 
 .kiosk-btn-primary {
@@ -802,8 +882,8 @@
   width: 100%;
   background: #ffffff;
   border: 2.5px solid #e2e8f0;
-  border-radius: 22px;
-  padding: 22px 24px;
+  border-radius: 32px;
+  padding: 22px 28px;
   display: flex;
   align-items: center;
   gap: 18px;
@@ -827,7 +907,7 @@
 .kmcc-icon {
   width: 58px;
   height: 58px;
-  border-radius: 16px;
+  border-radius: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -876,28 +956,29 @@
 /* ── Fiscal CUI Prompt Container ── */
 .payment-fiscal-container {
   width: 100%;
-  margin: 2px 0;
+  margin: 0;
 }
 
 .ps-fiscal-trigger-card {
   width: 100%;
   background: #ffffff;
-  border: 1.5px dashed color-mix(in srgb, var(--primary, #EE3B24) 45%, #cbd5e1);
-  border-radius: 18px;
-  padding: 12px 18px;
+  border: 2.5px solid #e2e8f0;
+  border-radius: 32px;
+  padding: 22px 28px;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 18px;
   cursor: pointer;
   text-align: left;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  -webkit-tap-highlight-color: transparent;
 }
 
 .ps-fiscal-trigger-card:hover {
   border-color: var(--primary, #EE3B24);
   background: color-mix(in srgb, var(--primary, #EE3B24) 4%, #ffffff);
-  transform: translateY(-1px);
+  box-shadow: 0 8px 24px -4px color-mix(in srgb, var(--primary, #EE3B24) 18%, transparent);
 }
 
 .ps-fiscal-trigger-card:active {
@@ -905,10 +986,10 @@
 }
 
 .ps-fiscal-icon-box {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--primary, #EE3B24) 10%, #f1f5f9);
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--primary, #EE3B24) 10%, #f8fafc);
   color: var(--primary, #EE3B24);
   display: flex;
   align-items: center;
@@ -920,26 +1001,26 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 
 .ps-fiscal-title {
-  font-size: 0.98rem;
+  font-size: 1.25rem;
   font-weight: 800;
   color: #0f172a;
 }
 
 .ps-fiscal-subtitle {
-  font-size: 0.82rem;
+  font-size: 0.92rem;
   font-weight: 500;
   color: #64748b;
 }
 
 .ps-fiscal-plus-badge {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--primary, #EE3B24) 12%, transparent);
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--primary, #EE3B24) 10%, #f8fafc);
   color: var(--primary, #EE3B24);
   display: flex;
   align-items: center;
@@ -956,21 +1037,21 @@
 .ps-fiscal-active-card {
   width: 100%;
   background: #f0fdf4;
-  border: 1.5px solid #86efac;
-  border-radius: 18px;
-  padding: 12px 18px;
+  border: 2.5px solid #86efac;
+  border-radius: 32px;
+  padding: 22px 28px;
   display: flex;
   align-items: center;
-  gap: 14px;
-  box-shadow: 0 4px 14px rgba(34, 197, 94, 0.08);
+  gap: 18px;
+  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.08);
 }
 
 .ps-fiscal-active-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: #22c55e;
-  color: #ffffff;
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+  background: #dcfce7;
+  color: #16a34a;
   display: flex;
   align-items: center;
   justify-content: center;

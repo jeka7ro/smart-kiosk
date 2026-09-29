@@ -116,7 +116,7 @@ html, body, #root {
   cursor: pointer;
   font-family: var(--font);
   font-weight: 700;
-  border-radius: var(--radius-xl);
+  border-radius: 9999px;
   transition: transform 0.1s, opacity 0.2s, box-shadow 0.2s;
   outline: none;
   letter-spacing: 0.3px;

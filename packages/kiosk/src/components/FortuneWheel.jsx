@@ -50,7 +50,7 @@ export default function FortuneWheel({ config, onClose, onWin }) {
     return (
       <div className="fortune-wheel-container">
         <h2>{t('wheel_not_configured', lang)}</h2>
-        <button onClick={onClose} style={{ marginTop: 20, padding: '12px 24px', borderRadius: 12, background: '#fff', color: '#000', fontWeight: 800, border: 'none' }}>{t('close', lang)}</button>
+        <button onClick={onClose} style={{ marginTop: 20, padding: '12px 24px', borderRadius: 9999, background: '#fff', color: '#000', fontWeight: 800, border: 'none', cursor: 'pointer' }}>{t('close', lang)}</button>
       </div>
     );
   }
@@ -283,7 +283,7 @@ export default function FortuneWheel({ config, onClose, onWin }) {
             <>
               <h2 style={{ fontSize: '2.5rem', margin: 0, fontWeight: 900 }}>{t('wheel_no_win_title', lang).replace('{name}', winningSlice.name)}</h2>
               <p style={{ fontSize: '1.2rem', opacity: 0.8, marginTop: 10 }}>{t('wheel_no_win_sub', lang)}</p>
-              <button onClick={onClose} style={{ marginTop: 30, padding: '16px 40px', fontSize: '1.2rem', fontWeight: 800, borderRadius: 20, border: 'none', background: '#fff', color: '#0f172a', cursor: 'pointer' }}>{t('wheel_no_win_back', lang)}</button>
+              <button onClick={onClose} style={{ marginTop: 30, padding: '16px 40px', fontSize: '1.2rem', fontWeight: 800, borderRadius: 9999, border: 'none', background: '#fff', color: '#0f172a', cursor: 'pointer' }}>{t('wheel_no_win_back', lang)}</button>
             </>
           ) : (
             <>
@@ -294,7 +294,7 @@ export default function FortuneWheel({ config, onClose, onWin }) {
               <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
                 <button 
                   onClick={() => { onWin && onWin(winningSlice); onClose(); }} 
-                  style={{ padding: '20px 48px', fontSize: '1.3rem', fontWeight: 900, borderRadius: 24, border: 'none', background: winBg, color: '#fff', cursor: 'pointer', boxShadow: `0 10px 30px ${winBg}66` }}
+                  style={{ padding: '20px 48px', fontSize: '1.3rem', fontWeight: 900, borderRadius: 9999, border: 'none', background: winBg, color: '#fff', cursor: 'pointer', boxShadow: `0 10px 30px ${winBg}66` }}
                 >
                   {t('wheel_claim_prize', lang)}
                 </button>

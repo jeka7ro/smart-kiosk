@@ -130,11 +130,11 @@
   gap: 16px;
 }
 
-/* Round brand avatar */
+/* Circular brand avatar */
 .hero-kfc-brand-avatar {
   width: 60px;
   height: 60px;
-  border-radius: 50%;
+  border-radius: 50% !important;
   overflow: hidden;
   background: #ffffff;
   border: 2.5px solid rgba(255, 255, 255, 0.95);
@@ -149,7 +149,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 50%;
+  border-radius: 50% !important;
   display: block;
 }
 

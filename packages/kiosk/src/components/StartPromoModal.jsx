@@ -426,7 +426,7 @@ export default function StartPromoModal({
                             color: '#ffffff',
                             background: '#10b981',
                             padding: '3px 8px',
-                            borderRadius: 8,
+                            borderRadius: 9999,
                           }}
                         >
                           {t.save} {sav.toFixed(2)}
@@ -443,7 +443,7 @@ export default function StartPromoModal({
                         background: 'var(--primary, #EE3B24)',
                         color: '#ffffff',
                         border: 'none',
-                        borderRadius: 14,
+                        borderRadius: 9999,
                         fontSize: '0.96rem',
                         fontWeight: 800,
                         display: 'flex',
@@ -471,7 +471,7 @@ export default function StartPromoModal({
                 background: '#f8fafc',
                 border: '1.5px solid #e2e8f0',
                 color: '#64748b',
-                borderRadius: 14,
+                borderRadius: 9999,
                 fontSize: '0.9rem',
                 fontWeight: 700,
                 cursor: 'pointer',
@@ -761,7 +761,7 @@ export default function StartPromoModal({
                               color: '#ffffff',
                               background: '#10b981',
                               padding: '4px 10px',
-                              borderRadius: 10,
+                              borderRadius: 9999,
                               boxShadow: '0 2px 6px rgba(16, 185, 129, 0.3)',
                             }}
                           >
@@ -783,7 +783,7 @@ export default function StartPromoModal({
                           background: 'var(--primary, #EE3B24)',
                           color: '#ffffff',
                           border: 'none',
-                          borderRadius: 16,
+                          borderRadius: 9999,
                           fontSize: '1rem',
                           fontWeight: 800,
                           display: 'flex',
@@ -838,7 +838,7 @@ export default function StartPromoModal({
                   background: '#f8fafc',
                   border: '1.5px solid #e2e8f0',
                   color: '#64748b',
-                  borderRadius: 14,
+                  borderRadius: 9999,
                   fontSize: '0.92rem',
                   fontWeight: 700,
                   cursor: 'pointer',
