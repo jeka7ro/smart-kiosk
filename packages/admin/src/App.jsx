@@ -1867,27 +1867,20 @@ function OrdersTable({ orders, full, onRowClick, selectedId, defaultRows = 10, m
                         const bank = detectCardBank(o);
                         const brand = detectCardBrand(o);
                         return (
-                          <div className="flex items-center gap-1.5" title={`Plată cu Card • ${bank.name}${brand && brand !== 'generic' ? ` (${brand})` : ''}`}>
-                            <span 
-                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9.5px] font-bold border shadow-xs"
-                              style={{
-                                backgroundColor: `${bank.color}15`,
-                                color: bank.textColor || bank.color,
-                                borderColor: `${bank.color}35`
-                              }}
-                            >
-                              <BankLogo bankId={bank.id} bank={bank} size={13} />
-                              {bank.shortName}
+                          <div className="flex items-center gap-1.5 mt-0.5" title={`Plată cu Card • ${bank.name}`}>
+                            <BankLogo bankId={bank.id} bank={bank} size={15} className="shrink-0" />
+                            <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                              {bank.shortName || bank.name}
                             </span>
                             {brand && brand !== 'generic' && (
-                              <span className="text-[10px] font-semibold text-slate-400 capitalize">
-                                {brand === 'mastercard' ? 'MC' : (brand === 'visa' ? 'Visa' : brand)}
+                              <span className="text-[10px] font-semibold text-slate-400">
+                                {brand === 'mastercard' ? 'Mastercard' : (brand === 'visa' ? 'Visa' : brand)}
                               </span>
                             )}
                           </div>
                         );
                       })() : (
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
                           {o.paymentMethod === 'cash' ? 'Cash' : (o.paymentMethod || '—')}
                         </span>
                       )}
