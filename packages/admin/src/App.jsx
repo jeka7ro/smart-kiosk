@@ -1749,9 +1749,8 @@ function OrdersTable({ orders, full, onRowClick, selectedId, defaultRows = 10, m
             <th className="w-14 px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 text-center">Nr.</th>
             <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500"># Comandă</th>
             <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Brand</th>
-            <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Locație</th>
             <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Produse / Coș</th>
-            <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Comandă / Plată</th>
+            <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Tip Comandă</th>
             <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Total</th>
             <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Status</th>
           </tr>
@@ -1759,7 +1758,7 @@ function OrdersTable({ orders, full, onRowClick, selectedId, defaultRows = 10, m
         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
           {paginated.length === 0 ? (
             <tr>
-              <td colSpan={8} className="text-center py-10 text-slate-500 dark:text-slate-400 text-sm font-medium">
+              <td colSpan={7} className="text-center py-10 text-slate-500 dark:text-slate-400 text-sm font-medium">
                 Nicio comandă găsită în perioada selectată.
               </td>
             </tr>
@@ -1785,25 +1784,10 @@ function OrdersTable({ orders, full, onRowClick, selectedId, defaultRows = 10, m
                           {new Date(o.createdAt).toLocaleString('ro-RO')}
                         </span>
                       )}
-                    </div>
-                  </td>
-                  <td className="px-5 py-3.5 whitespace-nowrap">
-                    <div className="flex items-center gap-2">
-                      <BrandLogo brandId={o.brand} size={24} className="shadow-2xs shrink-0" />
-                      <span style={{ color: BRAND_COLORS[o.brand] }} className="text-xs font-bold">
-                        {o.brand}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-3.5 whitespace-nowrap">
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-sm text-slate-700 dark:text-slate-300 font-medium">
-                        {o.locationName || o.locationId || '—'}
-                      </span>
                       {iikoId && (
-                        <div className="flex items-center gap-1.5 mt-0.5" title={iikoId}>
-                          <span className="font-mono text-[10.5px] font-bold text-emerald-600 dark:text-emerald-400">
-                            {iikoId}
+                        <div className="flex items-center gap-1 mt-0.5" title={`iiko ID: ${iikoId}`}>
+                          <span className="font-mono text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                            {iikoId.length > 8 ? `${iikoId.slice(0, 8)}...` : iikoId}
                           </span>
                           <button 
                             type="button"
@@ -1812,17 +1796,24 @@ function OrdersTable({ orders, full, onRowClick, selectedId, defaultRows = 10, m
                               navigator.clipboard.writeText(iikoId);
                               const btn = e.currentTarget;
                               const originalHTML = btn.innerHTML;
-                              btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#059669" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>';
+                              btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="#059669" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>';
                               setTimeout(() => { btn.innerHTML = originalHTML; }, 1500);
                             }}
-                            className="p-0.5 rounded text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors cursor-pointer shrink-0"
+                            className="p-0.5 rounded text-slate-400 hover:text-emerald-600 transition-colors cursor-pointer shrink-0"
                             title="Copiază ID iiko complet"
-                            aria-label="Copiază ID iiko complet"
                           >
-                            <Copy size={12} />
+                            <Copy size={11} />
                           </button>
                         </div>
                       )}
+                    </div>
+                  </td>
+                  <td className="px-5 py-3.5 whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      <BrandLogo brandId={o.brand} size={24} className="shadow-2xs shrink-0" />
+                      <span style={{ color: BRAND_COLORS[o.brand] }} className="text-xs font-bold">
+                        {o.brand}
+                      </span>
                     </div>
                   </td>
                   {/* Produse / Coș cu preview imagini mici */}
@@ -1862,18 +1853,21 @@ function OrdersTable({ orders, full, onRowClick, selectedId, defaultRows = 10, m
                       );
                     })()}
                   </td>
-                  <td className="px-6 py-3.5 whitespace-nowrap">
-                    <div className="flex flex-col gap-1">
-                      <span className="text-sm text-slate-700 dark:text-slate-300 font-medium">
-                        {o.orderType === 'dine-in' ? (o.tableNumber ? `Masa ${o.tableNumber}` : 'La masă') : 'La pachet'}
+                  <td className="px-5 py-3.5 whitespace-nowrap">
+                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      {o.orderType === 'dine-in' ? (o.tableNumber ? `Masa ${o.tableNumber}` : 'La masă') : 'La pachet'}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3.5 whitespace-nowrap">
+                    <div className="flex flex-col gap-1 items-start">
+                      <span className="text-sm font-bold text-slate-900 dark:text-white">
+                        {formatThousands(o.totalAmount || 0)} lei
                       </span>
                       {o.paymentMethod === 'card' ? (() => {
                         const bank = detectCardBank(o);
+                        const brand = detectCardBrand(o);
                         return (
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                              Plată: Card
-                            </span>
+                          <div className="flex items-center gap-1.5" title={`Plată cu Card • ${bank.name}${brand && brand !== 'generic' ? ` (${brand})` : ''}`}>
                             <span 
                               className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9.5px] font-bold border shadow-xs"
                               style={{
@@ -1881,22 +1875,23 @@ function OrdersTable({ orders, full, onRowClick, selectedId, defaultRows = 10, m
                                 color: bank.textColor || bank.color,
                                 borderColor: `${bank.color}35`
                               }}
-                              title={`Bancă emitentă: ${bank.name}`}
                             >
                               <BankLogo bankId={bank.id} bank={bank} size={13} />
                               {bank.shortName}
                             </span>
+                            {brand && brand !== 'generic' && (
+                              <span className="text-[10px] font-semibold text-slate-400 capitalize">
+                                {brand === 'mastercard' ? 'MC' : (brand === 'visa' ? 'Visa' : brand)}
+                              </span>
+                            )}
                           </div>
                         );
                       })() : (
-                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                          Plată: {o.paymentMethod === 'cash' ? 'Cash' : (o.paymentMethod || '—')}
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                          {o.paymentMethod === 'cash' ? 'Cash' : (o.paymentMethod || '—')}
                         </span>
                       )}
                     </div>
-                  </td>
-                  <td className="px-5 py-3.5 text-sm font-bold text-slate-900 dark:text-white whitespace-nowrap">
-                    {formatThousands(o.totalAmount || 0)} lei
                   </td>
                   <td className="px-5 py-3.5 whitespace-nowrap">
                     <span className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap inline-block" style={{ backgroundColor: `${sc.color}20`, color: sc.color, border: `1px solid ${sc.color}40` }}>
