@@ -350,8 +350,8 @@ router.get('/pending-orders', requireApiKey, async (req, res) => {
     const list = [];
     const seenIds = new Set();
 
-    // 1. Pending POS orders (pre-saved cart before/during POS card transaction)
-    // ONLY if not already converted into a real order in `orders`
+    // 1. Fetch pending POS orders (pre-saved cart before/during POS card transaction)
+    const posRowsMap = new Map();
     try {
       const { rows: posRows } = await pool.query(`
         SELECT 
@@ -373,17 +373,13 @@ router.get('/pending-orders', requireApiKey, async (req, res) => {
           l.iiko_error
         FROM pending_pos_orders p
         LEFT JOIN pos_logs l ON l.order_id = p.order_id
-        WHERE NOT EXISTS (
-          SELECT 1 FROM orders o 
-          WHERE o.id = p.order_id OR o.data->>'_id' = p.order_id OR o.data->>'posOrderId' = p.order_id
-        )
+        WHERE p.created_at > NOW() - INTERVAL '48 hours'
         ORDER BY p.created_at DESC
         LIMIT 100
       `);
 
       for (const r of posRows) {
-        seenIds.add(r.order_id);
-        list.push({
+        posRowsMap.set(r.order_id, {
           order_id: r.order_id,
           orderNumber: r.payload?.orderNumber || null,
           location_id: r.location_id,
@@ -409,9 +405,8 @@ router.get('/pending-orders', requireApiKey, async (req, res) => {
 
     // In-memory fallback if any
     for (const [orderId, val] of pendingOrdersMap.entries()) {
-      if (!seenIds.has(orderId)) {
-        seenIds.add(orderId);
-        list.push({
+      if (!posRowsMap.has(orderId)) {
+        posRowsMap.set(orderId, {
           order_id: orderId,
           orderNumber: val.payload?.orderNumber || null,
           location_id: val.locationId,
@@ -425,17 +420,19 @@ router.get('/pending-orders', requireApiKey, async (req, res) => {
       }
     }
 
-    // 2. Orders awaiting cash payment in `orders` table (STRICTLY awaiting_payment)
-    // NOTE: Completed/delivered/confirmed/pending kitchen orders are NEVER included!
+    // 2. Fetch orders from `orders` table (both awaiting_payment cash and recently finalized)
+    const consumedDraftIds = new Set();
     try {
       const { rows: orderRows } = await pool.query(`
         SELECT 
           id, 
           location_id, 
           data, 
+          status,
           created_at
         FROM orders
-        WHERE (data->>'status' = 'awaiting_payment' OR status = 'awaiting_payment')
+        WHERE (data->>'status' IN ('awaiting_payment', 'confirmed', 'completed', 'delivered', 'ready', 'preparing') 
+               OR status IN ('awaiting_payment', 'confirmed', 'completed', 'delivered', 'ready', 'preparing'))
           AND status != 'cancelled'
           AND (data->>'status') != 'cancelled'
           AND created_at > NOW() - INTERVAL '48 hours'
@@ -449,25 +446,66 @@ router.get('/pending-orders', requireApiKey, async (req, res) => {
         if (seenIds.has(oId)) continue;
         seenIds.add(oId);
 
+        const currentStatus = orderData.status || row.status || 'awaiting_payment';
+        const isPaid = orderData.paid || ['confirmed', 'completed', 'delivered', 'ready', 'preparing'].includes(currentStatus);
+        const isCashAwaiting = currentStatus === 'awaiting_payment';
+
+        // Check if there was an initial attempt (draft or previous POS card attempt)
+        let initialAttempt = null;
+        const posOrderId = orderData.posOrderId || orderData.paymentRef?.orderId;
+        if (posOrderId && posRowsMap.has(posOrderId)) {
+          const draft = posRowsMap.get(posOrderId);
+          initialAttempt = { ...draft };
+          consumedDraftIds.add(posOrderId);
+        } else {
+          // Proximity correlation (same location, same amount +/- 0.05, within 20 mins)
+          const orderTime = new Date(row.created_at).getTime();
+          const orderAmt = Number(orderData.totalAmount) || 0;
+          for (const [dId, draft] of posRowsMap.entries()) {
+            if (consumedDraftIds.has(dId)) continue;
+            const draftTime = new Date(draft.created_at).getTime();
+            const draftAmt = Number(draft.pos_amount) || Number(draft.payload?.totalAmount) || 0;
+            const sameLoc = (draft.location_id === row.location_id) || (draft.payload?.locationName === orderData.locationName);
+            const closeTime = Math.abs(orderTime - draftTime) < 20 * 60 * 1000;
+            const closeAmt = Math.abs(orderAmt - draftAmt) < 0.05;
+
+            if (sameLoc && closeTime && closeAmt) {
+              initialAttempt = { ...draft };
+              consumedDraftIds.add(dId);
+              break;
+            }
+          }
+        }
+
         list.push({
           order_id: oId,
           orderNumber: orderData.orderNumber || null,
           location_id: row.location_id,
           payload: orderData,
           created_at: row.created_at,
-          paid: false,
-          pos_status: 'cash_pending',
+          paid: isPaid,
+          status: currentStatus,
+          pos_status: isPaid ? 'completed' : 'cash_pending',
           pos_amount: orderData.totalAmount,
           auth_code: orderData.paymentRef?.authCode || null,
           ref_num: orderData.paymentRef?.refNum || null,
           card_no: orderData.paymentRef?.cardNo || null,
           iiko_sent: !!orderData.syrveOrderId,
           iiko_order_id: orderData.syrveOrderId || null,
-          kind: 'cash_awaiting',
+          kind: isCashAwaiting ? 'cash_awaiting' : 'finalized_success',
+          initialAttempt: initialAttempt,
         });
       }
     } catch (e) {
       console.warn('[Payment] Error fetching awaiting orders from orders table:', e.message);
+    }
+
+    // 3. Add standalone unconsumed POS drafts
+    for (const [dId, draft] of posRowsMap.entries()) {
+      if (!consumedDraftIds.has(dId) && !seenIds.has(dId)) {
+        seenIds.add(dId);
+        list.push(draft);
+      }
     }
 
     // 3. Orphan POS logs with paid=true and not sent to iiko and NOT already an order
@@ -592,6 +630,20 @@ router.post('/pending-orders/:orderId/push-iiko', requireApiKey, async (req, res
       const orderRow = orderRes.rows[0];
       const order = orderRow.data;
 
+      // If already has syrveOrderId, don't duplicate to Syrve! Just mark as confirmed
+      if (order.syrveOrderId && order.syrveOrderId !== 'MANUAL-CONFIRMED') {
+        order.status = 'confirmed';
+        order.paid = true;
+        await pool.query(
+          `UPDATE orders SET status = 'confirmed', data = jsonb_set(jsonb_set(data, '{status}', '"confirmed"'), '{paid}', 'true') WHERE id = $1`,
+          [orderRow.id]
+        );
+        if (io) {
+          io.emit('order_status_updated', { orderId: orderRow.id, status: 'confirmed', syrveOrderId: order.syrveOrderId });
+        }
+        return res.json({ success: true, order, message: 'Comanda era deja înregistrată în iiko și a fost marcată ca finalizată cu succes.' });
+      }
+
       // Send to Syrve
       const locData = findLocation(order.locationId || orderRow.location_id);
       const orgIdsDict = locData?.orgIds || {};
@@ -633,9 +685,10 @@ router.post('/pending-orders/:orderId/push-iiko', requireApiKey, async (req, res
       const syrveIdStr = syrveIds.join(',') || 'MANUAL-CONFIRMED';
       order.syrveOrderId = syrveIdStr;
       order.status = 'confirmed';
+      order.paid = true;
 
       await pool.query(
-        `UPDATE orders SET status = 'confirmed', data = jsonb_set(jsonb_set(data, '{syrveOrderId}', $1), '{status}', '"confirmed"') WHERE id = $2`,
+        `UPDATE orders SET status = 'confirmed', data = jsonb_set(jsonb_set(jsonb_set(data, '{syrveOrderId}', $1), '{status}', '"confirmed"'), '{paid}', 'true') WHERE id = $2`,
         [JSON.stringify(syrveIdStr), orderRow.id]
       );
 
@@ -649,6 +702,42 @@ router.post('/pending-orders/:orderId/push-iiko', requireApiKey, async (req, res
     return res.status(404).json({ error: 'Comanda nu a fost găsită în sistem' });
   } catch (err) {
     console.error('[Payment] Error pushing order to iiko:', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// ── POST /api/payment/pending-orders/:orderId/mark-paid ───────────
+router.post('/pending-orders/:orderId/mark-paid', requireApiKey, async (req, res) => {
+  const { orderId } = req.params;
+  const io = req.app.get('io');
+  try {
+    const orderRes = await pool.query(
+      `SELECT id, location_id, data FROM orders WHERE data->>'_id' = $1 OR id = $1 OR data->>'orderNumber' = $1 LIMIT 1`,
+      [orderId]
+    );
+
+    if (orderRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Comanda nu a fost găsită' });
+    }
+
+    const orderRow = orderRes.rows[0];
+    const order = orderRow.data || {};
+    order.status = 'confirmed';
+    order.paid = true;
+    order.updatedAt = new Date().toISOString();
+
+    await pool.query(
+      `UPDATE orders SET status = 'confirmed', data = jsonb_set(jsonb_set(data, '{status}', '"confirmed"'), '{paid}', 'true') WHERE id = $1`,
+      [orderRow.id]
+    );
+
+    if (io) {
+      io.emit('order_status_updated', { orderId: orderRow.id, status: 'confirmed', syrveOrderId: order.syrveOrderId });
+    }
+
+    return res.json({ success: true, order, message: 'Comanda a fost marcată ca finalizată cu succes.' });
+  } catch (err) {
+    console.error('[Payment] Error marking order as paid:', err.message);
     return res.status(500).json({ error: err.message });
   }
 });
