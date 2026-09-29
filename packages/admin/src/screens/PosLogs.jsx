@@ -1082,11 +1082,6 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                         <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-400">
                           {log.locationName || (log.locationId === 'cluj1' ? 'SmashMe Cluj' : (log.locationId === 'cluj2' ? 'SmashMe Cluj 2' : (log.locationId === 'sm-brasov' ? 'SmashMe Brașov' : (log.locationId || 'Locație necunoscută'))))}
                         </span>
-                        {meta.tid && (
-                          <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[9px] font-semibold text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700" title="Terminal ID">
-                            TID: {meta.tid}
-                          </span>
-                        )}
                       </div>
                     </div>
                   </td>
@@ -1101,10 +1096,10 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                             e.stopPropagation();
                             setReceiptModalLog(log);
                           }}
-                          className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:underline transition-all flex items-center gap-1 cursor-pointer"
-                          title="Vezi chitanță POS completă"
+                          className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:underline transition-all cursor-pointer"
+                          title="Vezi chitanță POS completă (STAN)"
                         >
-                          Chitanță #{meta.rNo}
+                          #{meta.rNo}
                         </button>
                       ) : (
                         <button
@@ -1112,10 +1107,10 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                             e.stopPropagation();
                             setReceiptModalLog(log);
                           }}
-                          className="text-[11px] font-medium text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:underline transition-all cursor-pointer"
-                          title="Detalii bon tranzacție"
+                          className="text-[11px] font-medium text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer flex items-center gap-1"
+                          title="Vezi chitanță POS completă"
                         >
-                          Chitanță
+                          <Receipt size={12} />
                         </button>
                       )}
                     </div>
