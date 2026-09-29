@@ -1010,7 +1010,6 @@ export function BrandDonutChart3D({
   const [viewMode, setViewMode] = useState('kiosks'); // 'kiosks' | 'brands'
   const [hoveredSliceId, setHoveredSliceId] = useState(null);
   const [hoveredBrandId, setHoveredBrandId] = useState(null);
-  const [hoveredKioskLabel, setHoveredKioskLabel] = useState(null);
 
   const brandData = React.useMemo(() => {
     const map = {
@@ -1019,14 +1018,6 @@ export function BrandDonutChart3D({
       rollmaster: { id: 'rollmaster', name: 'Roll Master', color: '#10b981', revenue: 0, count: 0, kiosksMap: {} },
       lovesushi: { id: 'lovesushi', name: 'Love Sushi', color: BRAND_COLORS.lovesushi || '#ec4899', revenue: 0, count: 0, kiosksMap: {} },
       pokiwoki: { id: 'pokiwoki', name: 'Poki-Woki', color: BRAND_COLORS.pokiwoki || '#f97316', revenue: 0, count: 0, kiosksMap: {} }
-    };
-
-    // Statistică dedicată pentru Kiosk 1 vs Kiosk 2 Cluj
-    const clujStats = {
-      k1: { rev: 0, count: 0 },
-      k2: { rev: 0, count: 0 },
-      totalOrders: 0,
-      totalRev: 0
     };
 
     orders.forEach(o => {
@@ -1063,27 +1054,7 @@ export function BrandDonutChart3D({
       }
       map[bKey].kiosksMap[kKey].revenue += rev;
       map[bKey].kiosksMap[kKey].count += 1;
-
-      // Agregare duel Cluj
-      if (locInfo.locationName.includes('Cluj')) {
-        clujStats.totalOrders += 1;
-        clujStats.totalRev += rev;
-        if (locInfo.kioskLabel === 'Kiosk 1') {
-          clujStats.k1.rev += rev;
-          clujStats.k1.count += 1;
-        } else if (locInfo.kioskLabel === 'Kiosk 2') {
-          clujStats.k2.rev += rev;
-          clujStats.k2.count += 1;
-        }
-      }
     });
-
-    // Finalizare indicatori Cluj
-    clujStats.k1.avg = clujStats.k1.count > 0 ? (clujStats.k1.rev / clujStats.k1.count) : 0;
-    clujStats.k2.avg = clujStats.k2.count > 0 ? (clujStats.k2.rev / clujStats.k2.count) : 0;
-    const clujRevSum = clujStats.k1.rev + clujStats.k2.rev;
-    clujStats.k1Pct = clujRevSum > 0 ? (clujStats.k1.rev / clujRevSum) * 100 : (clujStats.totalOrders > 0 ? 50 : 0);
-    clujStats.k2Pct = clujRevSum > 0 ? (clujStats.k2.rev / clujRevSum) * 100 : (clujStats.totalOrders > 0 ? 50 : 0);
 
     const activeList = Object.values(map).filter(b => b.count > 0 || b.revenue > 0);
     const totalRev = activeList.reduce((s, b) => s + b.revenue, 0);
@@ -1130,8 +1101,7 @@ export function BrandDonutChart3D({
     return {
       list: formattedList,
       totalRevenue: totalRev,
-      totalCount: totalCnt,
-      clujStats
+      totalCount: totalCnt
     };
   }, [orders]);
 
@@ -1315,8 +1285,7 @@ export function BrandDonutChart3D({
               if (s.angleSpan <= 0) return null;
               const isDirectlyHovered = hoveredSliceId === s.id;
               const isBrandHovered = hoveredBrandId === s.brandId;
-              const isKioskLabelHovered = hoveredKioskLabel && s.kioskLabel === hoveredKioskLabel;
-              const isHovered = isDirectlyHovered || (isBrandHovered && !hoveredSliceId) || isKioskLabelHovered;
+              const isHovered = isDirectlyHovered || (isBrandHovered && !hoveredSliceId);
               const isSelected = selectedBrands.includes(s.brandId);
               const liftY = isSelected ? -12 : (isHovered ? -8 : 0);
 
@@ -1350,8 +1319,7 @@ export function BrandDonutChart3D({
               if (s.angleSpan <= 0) return null;
               const isDirectlyHovered = hoveredSliceId === s.id;
               const isBrandHovered = hoveredBrandId === s.brandId;
-              const isKioskLabelHovered = hoveredKioskLabel && s.kioskLabel === hoveredKioskLabel;
-              const isHovered = isDirectlyHovered || (isBrandHovered && !hoveredSliceId) || isKioskLabelHovered;
+              const isHovered = isDirectlyHovered || (isBrandHovered && !hoveredSliceId);
               const isSelected = selectedBrands.includes(s.brandId);
               const liftY = isSelected ? -12 : (isHovered ? -8 : 0);
 
@@ -1399,8 +1367,7 @@ export function BrandDonutChart3D({
               if (s.angleSpan < 14) return null;
               const isDirectlyHovered = hoveredSliceId === s.id;
               const isBrandHovered = hoveredBrandId === s.brandId;
-              const isKioskLabelHovered = hoveredKioskLabel && s.kioskLabel === hoveredKioskLabel;
-              const isHovered = isDirectlyHovered || (isBrandHovered && !hoveredSliceId) || isKioskLabelHovered;
+              const isHovered = isDirectlyHovered || (isBrandHovered && !hoveredSliceId);
               const isSelected = selectedBrands.includes(s.brandId);
               const liftY = isSelected ? -12 : (isHovered ? -8 : 0);
               const midAngle = s.startAngle + s.angleSpan / 2;
@@ -1489,117 +1456,6 @@ export function BrandDonutChart3D({
             </g>
           </svg>
         </div>
-
-        {/* 📊 DUEL KIOSKURI CLUJ: Statistica directă Kiosk 1 vs Kiosk 2 la Cluj */}
-        {brandData.clujStats.totalOrders > 0 && (
-          <div className="p-2.5 rounded-xl bg-gradient-to-r from-blue-50/80 via-indigo-50/50 to-purple-50/80 dark:from-blue-950/20 dark:via-indigo-950/20 dark:to-purple-950/20 border border-blue-200/70 dark:border-blue-800/50 transition-all">
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs">⚔️</span>
-                <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">
-                  Duel Kioskuri Cluj
-                </span>
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                  {brandData.clujStats.totalOrders} {brandData.clujStats.totalOrders === 1 ? 'comandă' : 'comenzi'}
-                </span>
-              </div>
-              <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
-                Total: <span className="text-slate-900 dark:text-white font-black">{formatThousands(brandData.clujStats.totalRev)} lei</span>
-              </div>
-            </div>
-
-            {/* Split Comparison Bar */}
-            <div className="w-full h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex mb-2 shadow-inner">
-              <div 
-                className="h-full bg-blue-500 transition-all duration-500" 
-                style={{ width: `${brandData.clujStats.k1Pct}%` }}
-                title={`Kiosk 1 Cluj: ${brandData.clujStats.k1Pct.toFixed(0)}%`}
-              />
-              <div 
-                className="h-full bg-purple-500 transition-all duration-500" 
-                style={{ width: `${brandData.clujStats.k2Pct}%` }}
-                title={`Kiosk 2 Cluj: ${brandData.clujStats.k2Pct.toFixed(0)}%`}
-              />
-            </div>
-
-            {/* Kiosk 1 vs Kiosk 2 Cards Side-by-Side */}
-            <div className="grid grid-cols-2 gap-2">
-              {/* Kiosk 1 */}
-              <div 
-                onMouseEnter={() => setHoveredKioskLabel('Kiosk 1')}
-                onMouseLeave={() => setHoveredKioskLabel(null)}
-                className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
-                  hoveredKioskLabel === 'Kiosk 1'
-                    ? 'bg-blue-100/90 dark:bg-blue-900/40 border-blue-500 shadow-sm'
-                    : 'bg-white/80 dark:bg-slate-900/80 border-blue-200/60 dark:border-blue-900/60 hover:bg-blue-50/50'
-                }`}
-              >
-                <div className="flex items-center justify-between text-[10px] font-bold">
-                  <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
-                    <span className="w-2 h-2 rounded-full bg-blue-500 inline-block shrink-0 shadow-xs" />
-                    Kiosk 1
-                  </span>
-                  <span className="font-extrabold text-blue-700 dark:text-blue-300">
-                    {brandData.clujStats.k1Pct.toFixed(0)}%
-                  </span>
-                </div>
-                <div className="text-xs font-black text-slate-900 dark:text-white mt-0.5">
-                  {formatThousands(brandData.clujStats.k1.rev)} lei
-                </div>
-                <div className="text-[9.5px] text-slate-500 dark:text-slate-400 font-medium">
-                  {brandData.clujStats.k1.count} cmd • <span className="font-semibold text-slate-600 dark:text-slate-300">med. {formatThousands(brandData.clujStats.k1.avg)} lei</span>
-                </div>
-              </div>
-
-              {/* Kiosk 2 */}
-              <div 
-                onMouseEnter={() => setHoveredKioskLabel('Kiosk 2')}
-                onMouseLeave={() => setHoveredKioskLabel(null)}
-                className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
-                  hoveredKioskLabel === 'Kiosk 2'
-                    ? 'bg-purple-100/90 dark:bg-purple-900/40 border-purple-500 shadow-sm'
-                    : 'bg-white/80 dark:bg-slate-900/80 border-purple-200/60 dark:border-purple-900/60 hover:bg-purple-50/50'
-                }`}
-              >
-                <div className="flex items-center justify-between text-[10px] font-bold">
-                  <span className="flex items-center gap-1 text-purple-600 dark:text-purple-400">
-                    <span className="w-2 h-2 rounded-full bg-purple-500 inline-block shrink-0 shadow-xs" />
-                    Kiosk 2
-                  </span>
-                  <span className="font-extrabold text-purple-700 dark:text-purple-300">
-                    {brandData.clujStats.k2Pct.toFixed(0)}%
-                  </span>
-                </div>
-                <div className="text-xs font-black text-slate-900 dark:text-white mt-0.5">
-                  {formatThousands(brandData.clujStats.k2.rev)} lei
-                </div>
-                <div className="text-[9.5px] text-slate-500 dark:text-slate-400 font-medium">
-                  {brandData.clujStats.k2.count} cmd • <span className="font-semibold text-slate-600 dark:text-slate-300">med. {formatThousands(brandData.clujStats.k2.avg)} lei</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Winner / Summary Footer */}
-            <div className="mt-1.5 pt-1.5 border-t border-blue-200/50 dark:border-blue-900/40 flex items-center justify-between text-[10px]">
-              {brandData.clujStats.k1.rev > brandData.clujStats.k2.rev ? (
-                <span className="text-blue-700 dark:text-blue-400 font-bold flex items-center gap-1">
-                  🏆 Kiosk 1 conduce cu +{formatThousands(brandData.clujStats.k1.rev - brandData.clujStats.k2.rev)} lei (+{Math.round(((brandData.clujStats.k1.rev - brandData.clujStats.k2.rev) / (brandData.clujStats.k2.rev || 1)) * 100)}%)
-                </span>
-              ) : brandData.clujStats.k2.rev > brandData.clujStats.k1.rev ? (
-                <span className="text-purple-700 dark:text-purple-400 font-bold flex items-center gap-1">
-                  🏆 Kiosk 2 conduce cu +{formatThousands(brandData.clujStats.k2.rev - brandData.clujStats.k1.rev)} lei (+{Math.round(((brandData.clujStats.k2.rev - brandData.clujStats.k1.rev) / (brandData.clujStats.k1.rev || 1)) * 100)}%)
-                </span>
-              ) : (
-                <span className="text-slate-500 dark:text-slate-400 font-semibold">
-                  ⚖️ Vânzări egale între Kiosk 1 și Kiosk 2
-                </span>
-              )}
-              <span className="text-slate-400 text-[9px] font-medium">
-                Locația Cluj
-              </span>
-            </div>
-          </div>
-        )}
 
         {/* Legendă Branduri cu Divizare pe Kioskuri */}
         <div className="flex flex-col gap-2 max-h-[195px] overflow-y-auto pr-1">
