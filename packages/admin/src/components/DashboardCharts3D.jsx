@@ -1600,6 +1600,7 @@ export function PaymentMethodsChart3D({
       bcr: { ...BANK_CONFIG.bcr, revenue: 0, count: 0 },
       raiffeisen: { ...BANK_CONFIG.raiffeisen, revenue: 0, count: 0 },
       brd: { ...BANK_CONFIG.brd, revenue: 0, count: 0 },
+      cec: { ...BANK_CONFIG.cec, revenue: 0, count: 0 },
       other: { ...BANK_CONFIG.other, revenue: 0, count: 0 },
     };
 
