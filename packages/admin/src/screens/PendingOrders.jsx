@@ -777,7 +777,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                             </button>
                           )}
 
-                          {(!item.iiko_sent && !p.syrveOrderId && (item.paid || item.kind === 'iiko_pending')) && (
+                          {(!item.iiko_sent && !p.syrveOrderId) && (
                             <button
                               onClick={() => handlePushToIiko(item.order_id, isCash)}
                               disabled={isProcessing}
@@ -1125,7 +1125,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                                   </button>
                                 )}
 
-                                {(!item.iiko_sent && !p.syrveOrderId && !isTimeoutUnfinalized) && (
+                                {(!item.iiko_sent && !p.syrveOrderId) && (
                                   <button
                                     onClick={() => handlePushToIiko(item.order_id, isCash)}
                                     disabled={isProcessing}
@@ -1370,6 +1370,17 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                 >
                   Închide
                 </button>
+
+                {(!selectedDraft.iiko_sent && !selectedDraft.payload?.syrveOrderId) && (
+                  <button
+                    onClick={() => handlePushToIiko(selectedDraft.order_id, selectedDraft.kind === 'cash_awaiting')}
+                    disabled={isProcessingId === selectedDraft.order_id}
+                    className="px-4 py-2 rounded-xl text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-md bg-blue-600 hover:bg-blue-700 cursor-pointer"
+                  >
+                    <Send className={`w-3.5 h-3.5 ${isProcessingId === selectedDraft.order_id ? 'animate-spin' : ''}`} />
+                    <span>Trimite în iiko</span>
+                  </button>
+                )}
 
                 {selectedDraft.kind === 'cash_awaiting' && (
                   <button
