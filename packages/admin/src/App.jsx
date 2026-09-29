@@ -16,7 +16,7 @@ import IikoLogs       from './screens/IikoLogs';
 import PrinterLogs    from './screens/PrinterLogs';
 import PortScans      from './screens/PortScans';
 import BrandLogo from './components/BrandLogo.jsx';
-import DashboardCharts3D, { detectCardBrand } from './components/DashboardCharts3D.jsx';
+import DashboardCharts3D, { detectCardBrand, detectCardBank, BANK_CONFIG } from './components/DashboardCharts3D.jsx';
 import OrderToastNotificationStack, { playNewOrderSound } from './components/OrderToastNotification.jsx';
 import OrdersNotificationBell from './components/OrdersNotificationBell.jsx';
 import Promotions     from './screens/Promotions';
@@ -650,6 +650,10 @@ export default function AdminApp() {
         if (dashboardPayment === 'cash' && isCard) return false;
         if (dashboardPayment === 'visa' && (!isCard || detectCardBrand(o) !== 'visa')) return false;
         if (dashboardPayment === 'mastercard' && (!isCard || detectCardBrand(o) !== 'mastercard')) return false;
+        if (dashboardPayment.startsWith('bank_')) {
+          const targetBankId = dashboardPayment.replace('bank_', '');
+          if (!isCard || detectCardBank(o).id !== targetBankId) return false;
+        }
       }
       if (!isDateInPeriod(o.createdAt, dashboardPeriod, dashboardCustomStart, dashboardCustomEnd)) return false;
       return true;
@@ -1103,7 +1107,13 @@ export default function AdminApp() {
                 )}
                 {dashboardPayment !== 'all' && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold">
-                    Plată: {dashboardPayment === 'card' ? 'Card POS (Toate)' : dashboardPayment === 'visa' ? 'Card Visa' : dashboardPayment === 'mastercard' ? 'Card Mastercard' : 'Numerar (Cash)'}
+                    Plată: {
+                      dashboardPayment === 'card' ? 'Card POS (Toate)' :
+                      dashboardPayment === 'visa' ? 'Card Visa' :
+                      dashboardPayment === 'mastercard' ? 'Card Mastercard' :
+                      dashboardPayment.startsWith('bank_') ? `Card ${BANK_CONFIG[dashboardPayment.replace('bank_', '')]?.name || 'Bancă'}` :
+                      'Numerar (Cash)'
+                    }
                     <button onClick={() => toggleDashboardPayment(dashboardPayment)} className="hover:text-red-500 font-bold ml-1 cursor-pointer">✕</button>
                   </span>
                 )}
@@ -1391,7 +1401,31 @@ export default function AdminApp() {
                 <p><strong>Tip Comandă:</strong> {selectedOrder.orderType === 'dine-in' ? (selectedOrder.tableNumber ? `La masă (Masa ${selectedOrder.tableNumber})` : 'La masă') : 'La pachet'}</p>
               </div>
               <div className="flex items-center gap-6">
-                <p className="flex items-center gap-2"><strong>Plată:</strong> <span className="font-bold">{selectedOrder.paymentMethod === 'cash' ? 'CASH' : (selectedOrder.paymentMethod === 'card' ? 'CARD' : '—')}</span> {selectedOrder.paymentMethod === 'card' ? <span className="px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap bg-emerald-500/20 text-emerald-500 border border-emerald-500/40">✓ Aprobat</span> : (selectedOrder.paymentMethod === 'cash' ? <span className="px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap bg-amber-500/20 text-amber-500 border border-amber-500/40">La Casă</span> : '')}</p>
+                <p className="flex items-center gap-2 flex-wrap">
+                  <strong>Plată:</strong> 
+                  <span className="font-bold">{selectedOrder.paymentMethod === 'cash' ? 'CASH' : (selectedOrder.paymentMethod === 'card' ? 'CARD' : '—')}</span> 
+                  {selectedOrder.paymentMethod === 'card' ? (
+                    <>
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap bg-emerald-500/20 text-emerald-500 border border-emerald-500/40">✓ Aprobat</span>
+                      {(() => {
+                        const bank = detectCardBank(selectedOrder);
+                        return bank ? (
+                          <span 
+                            className="px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap border inline-flex items-center gap-1 shadow-2xs"
+                            style={{
+                              backgroundColor: `${bank.color}15`,
+                              color: bank.color,
+                              borderColor: `${bank.color}35`
+                            }}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: bank.color }} />
+                            {bank.name}
+                          </span>
+                        ) : null;
+                      })()}
+                    </>
+                  ) : (selectedOrder.paymentMethod === 'cash' ? <span className="px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap bg-amber-500/20 text-amber-500 border border-amber-500/40">La Casă</span> : '')}
+                </p>
                 <p><strong>Data/Ora:</strong> {selectedOrder.createdAt ? new Date(selectedOrder.createdAt).toLocaleString('ro-RO') : '—'}</p>
               </div>
               {/* CUI / Date Fiscale */}

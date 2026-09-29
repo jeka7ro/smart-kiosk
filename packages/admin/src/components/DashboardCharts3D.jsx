@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import BrandLogo from './BrandLogo';
 import { TrendingUp, PieChart, CreditCard, Clock, Banknote, Calendar, Flame, Trophy, Award, ShoppingBag, Utensils, ChevronDown, ChevronUp, Monitor, Sparkles, Layers } from 'lucide-react';
 import { formatThousands, formatLocationAndKiosk } from '../utils/formatters';
+import { detectCardBrand, detectCardBank, BANK_CONFIG } from '../utils/cardUtils';
+export { detectCardBrand, detectCardBank, BANK_CONFIG };
 
 const BRAND_COLORS = {
   smashme: '#ef4444',
@@ -81,6 +83,10 @@ export function SalesTrendChart3D({
     if (selectedPayment === 'cash') return !isCard;
     if (selectedPayment === 'visa') return isCard && detectCardBrand(o) === 'visa';
     if (selectedPayment === 'mastercard') return isCard && detectCardBrand(o) === 'mastercard';
+    if (selectedPayment.startsWith('bank_')) {
+      const bankId = selectedPayment.replace('bank_', '');
+      return isCard && detectCardBank(o).id === bankId;
+    }
     return true;
   }, [selectedPayment]);
 
@@ -1693,51 +1699,7 @@ export function BrandDonutChart3D({
 }
 
 /**
- * Detectează emisorul cardului bancar (Visa vs Mastercard vs Maestro)
- * cu verificare BIN, extraFields de la POS Verifone/Viva, și hash determinist pentru comenzi istorice.
- */
-export function detectCardBrand(order) {
-  if (!order) return 'visa';
-  const pRef = order.paymentRef;
-  const cardNo = String(pRef?.cardNo || pRef?.pan || order.cardNo || '').trim();
-  const extra = pRef?.extraFields || [];
-  const extraStr = (Array.isArray(extra) ? extra.join(' ') : String(extra)).toLowerCase();
-  const rawStr = (typeof pRef?.raw === 'object' ? JSON.stringify(pRef.raw) : String(pRef?.raw || '')).toLowerCase();
-
-  // 1. Câmpuri explicite salvate de POS
-  const explicit = (pRef?.brand || pRef?.cardBrand || order.cardBrand || '').toLowerCase();
-  if (explicit.includes('master') || explicit.includes('mc')) return 'mastercard';
-  if (explicit.includes('visa')) return 'visa';
-
-  // 2. Extra fields sau payload brut emis de Verifone / Viva POS
-  if (extraStr.includes('mastercard') || extraStr.includes('cl mc') || extraStr.includes(' mc ')) return 'mastercard';
-  if (extraStr.includes('visa') || extraStr.includes('cl visa')) return 'visa';
-  if (rawStr.includes('mastercard') || rawStr.includes('cl mc')) return 'mastercard';
-  if (rawStr.includes('visa') || rawStr.includes('cl visa')) return 'visa';
-
-  // 3. Verificare BIN (4 = Visa; 51-55 sau 22-27 = Mastercard; 50/56-58/6 = Maestro)
-  const cleanNum = cardNo.replace(/\D/g, '');
-  if (cleanNum.startsWith('4')) return 'visa';
-  if (/^(5[1-5]|2[2-7])/.test(cleanNum)) return 'mastercard';
-  if (cardNo.startsWith('4')) return 'visa';
-  if (/^(5[1-5]|2[2-7])/.test(cardNo)) return 'mastercard';
-
-  // 4. Distribuție pseudo-aleatoare deterministă pentru comenzi istorice/mock fără BIN înregistrat
-  // Produce o pondere realistă de piață (~58% Visa / 42% Mastercard) bazată pe ID-ul comenzii
-  const seed = String(order._id || order.id || order.orderNumber || pRef?.authCode || '');
-  if (seed) {
-    let hash = 0;
-    for (let i = 0; i < seed.length; i++) {
-      hash = (hash * 31 + seed.charCodeAt(i)) & 0xffffffff;
-    }
-    return Math.abs(hash) % 10 < 6 ? 'visa' : 'mastercard';
-  }
-
-  return 'visa';
-}
-
-/**
- * 3. GRAFIC 3D: Metode de Plată (Card POS vs Cash + Comparație Visa vs Mastercard)
+ * 3. GRAFIC 3D: Metode de Plată (Card POS vs Cash + Analiză Bănci Emitente & Rețele)
  */
 export function PaymentMethodsChart3D({ 
   orders = [], 
@@ -1747,12 +1709,23 @@ export function PaymentMethodsChart3D({
   selectedDay = null
 }) {
   const [hoveredMethod, setHoveredMethod] = useState(null);
+  const [cardSubMode, setCardSubMode] = useState('banks'); // 'banks' | 'networks'
 
   const stats = React.useMemo(() => {
     let cardRev = 0, cardCnt = 0;
     let cashRev = 0, cashCnt = 0;
     let visaRev = 0, visaCnt = 0;
     let mcRev = 0, mcCnt = 0;
+
+    const banksMap = {
+      bt: { ...BANK_CONFIG.bt, revenue: 0, count: 0 },
+      revolut: { ...BANK_CONFIG.revolut, revenue: 0, count: 0 },
+      ing: { ...BANK_CONFIG.ing, revenue: 0, count: 0 },
+      bcr: { ...BANK_CONFIG.bcr, revenue: 0, count: 0 },
+      raiffeisen: { ...BANK_CONFIG.raiffeisen, revenue: 0, count: 0 },
+      brd: { ...BANK_CONFIG.brd, revenue: 0, count: 0 },
+      other: { ...BANK_CONFIG.other, revenue: 0, count: 0 },
+    };
 
     orders.forEach(o => {
       if (o.status === 'cancelled') return;
@@ -1769,6 +1742,12 @@ export function PaymentMethodsChart3D({
           visaRev += amt;
           visaCnt += 1;
         }
+
+        const bank = detectCardBank(o);
+        if (banksMap[bank.id]) {
+          banksMap[bank.id].revenue += amt;
+          banksMap[bank.id].count += 1;
+        }
       } else {
         cashRev += amt;
         cashCnt += 1;
@@ -1780,6 +1759,16 @@ export function PaymentMethodsChart3D({
 
     const visaPctOfCard = cardRev > 0 ? (visaRev / cardRev) * 100 : 0;
     const mcPctOfCard = cardRev > 0 ? (mcRev / cardRev) * 100 : 0;
+
+    const activeBanks = Object.values(banksMap)
+      .filter(b => b.count > 0 || b.revenue > 0)
+      .map(b => ({
+        ...b,
+        avg: b.count > 0 ? b.revenue / b.count : 0,
+        pctOfCard: cardRev > 0 ? (b.revenue / cardRev) * 100 : 0,
+        pctOfTotal: totalRev > 0 ? (b.revenue / totalRev) * 100 : 0
+      }))
+      .sort((a, b) => b.revenue - a.revenue);
 
     return {
       card: {
@@ -1797,7 +1786,8 @@ export function PaymentMethodsChart3D({
           revenue: mcRev,
           count: mcCnt,
           pctOfCard: mcPctOfCard,
-        }
+        },
+        banks: activeBanks
       },
       cash: {
         id: 'cash',
@@ -1814,7 +1804,8 @@ export function PaymentMethodsChart3D({
   const isCardActive = selectedPayment === 'card';
   const isVisaActive = selectedPayment === 'visa';
   const isMastercardActive = selectedPayment === 'mastercard';
-  const isAnyCardActive = isCardActive || isVisaActive || isMastercardActive;
+  const isBankActive = typeof selectedPayment === 'string' && selectedPayment.startsWith('bank_');
+  const isAnyCardActive = isCardActive || isVisaActive || isMastercardActive || isBankActive;
   const isCashActive = selectedPayment === 'cash';
 
   return (
@@ -1838,7 +1829,7 @@ export function PaymentMethodsChart3D({
             </h4>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
               {selectedHour !== null 
-                ? `la ora ${selectedHour}:00 - ${selectedHour + 1}:00 • Card POS vs Cash`
+                ? `la ora ${selectedHour}:00 - ${selectedHour + 1}:00 • Card POS vs Cash` 
                 : selectedDay
                 ? `${selectedDay.label} • Card POS vs Cash`
                 : 'Card POS vs Cash la Casă (click pentru filtrare)'}
@@ -1902,9 +1893,7 @@ export function PaymentMethodsChart3D({
               boxShadow: 'inset 0 2px 2px rgba(255,255,255,0.9), inset 0 -3px 4px rgba(0,0,0,0.45)'
             }}
           >
-            {/* Cash Top Specular Reflection */}
             <div className="absolute inset-x-1 top-0 h-[42%] rounded-t-full bg-gradient-to-b from-white/80 via-white/25 to-transparent pointer-events-none" />
-            {/* Cash Bottom Bounce Light */}
             <div className="absolute inset-x-2 bottom-0 h-[28%] rounded-b-full bg-gradient-to-t from-amber-200/40 to-transparent pointer-events-none" />
           </div>
 
@@ -1917,11 +1906,8 @@ export function PaymentMethodsChart3D({
             }}
             className="relative h-full rounded-l-full flex items-center justify-end overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] z-10"
           >
-            {/* Top Specular Glass Reflection */}
             <div className="absolute inset-x-1 top-0 h-[42%] rounded-t-full bg-gradient-to-b from-white/85 via-white/30 to-transparent pointer-events-none" />
-            {/* Bottom Bounce Light */}
             <div className="absolute inset-x-2 bottom-0 h-[28%] rounded-b-full bg-gradient-to-t from-emerald-200/40 to-transparent pointer-events-none" />
-            {/* 3D Physical Seam Divider Bead */}
             <div 
               className="w-1.5 h-full bg-gradient-to-b from-white via-slate-100 to-white/80 shrink-0 z-20"
               style={{
@@ -1930,7 +1916,6 @@ export function PaymentMethodsChart3D({
             />
           </div>
 
-          {/* Diagonal Glass Sheen across entire capsule */}
           <div 
             className="absolute inset-0 pointer-events-none rounded-full z-30"
             style={{
@@ -1940,9 +1925,9 @@ export function PaymentMethodsChart3D({
         </div>
       </div>
 
-      {/* ─── Carduri Metode de Plată (Exact stil StatCard Dashboard) ─── */}
+      {/* ─── Carduri Metode de Plată ─── */}
       <div className="space-y-3 relative z-10">
-        {/* Card POS (cu Comparație Visa vs Mastercard integrată) */}
+        {/* Card POS (cu Comparație Bănci Emitente & Visa vs Mastercard) */}
         <div
           onClick={() => onSelectPayment(isCardActive ? 'all' : 'card')}
           className={`bg-white dark:bg-slate-900 rounded-2xl shadow-sm border p-4 flex flex-col justify-between relative overflow-hidden transition-all duration-200 group cursor-pointer select-none ${
@@ -1983,12 +1968,10 @@ export function PaymentMethodsChart3D({
             </div>
 
             <div className="relative shrink-0 ml-2">
-              {/* 3D Atmosphere Glow */}
               <div 
                 className="absolute -inset-1.5 rounded-full blur-md opacity-35 group-hover:opacity-75 transition-opacity pointer-events-none"
                 style={{ backgroundColor: '#059669' }}
               />
-              {/* 3D Raised Bezel Container */}
               <div 
                 className="relative w-12 h-12 rounded-full p-0.5 flex items-center justify-center bg-gradient-to-b from-white via-slate-50 to-slate-100 dark:from-slate-700 dark:via-slate-800 dark:to-slate-900 border border-white/80 dark:border-slate-600/60 shadow-md transition-transform duration-200 group-hover:scale-110 group-hover:-translate-y-0.5"
                 style={{ 
@@ -2000,115 +1983,227 @@ export function PaymentMethodsChart3D({
             </div>
           </div>
 
-          {/* ─── Comparație Sub-Panou: Visa vs Mastercard ─── */}
+          {/* ─── Sub-Panou: Bănci Emitente (BT, Revolut, ING, BCR) vs Rețele (Visa/MC) ─── */}
           <div className="mt-3.5 pt-3 border-t border-slate-100 dark:border-slate-800/80 z-10">
-            {/* Header Comparație */}
-            <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-2">
+            {/* Header Comparație cu Toggle Bănci vs Rețele */}
+            <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-2.5">
               <span className="flex items-center gap-1.5 uppercase tracking-wider text-[9.5px] font-extrabold text-slate-600 dark:text-slate-300">
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                Comparație Emisori Card
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                {cardSubMode === 'banks' ? 'Distribuție Bănci' : 'Comparație Emisori'}
               </span>
-              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500">
-                Visa vs Mastercard
-              </span>
-            </div>
 
-            {/* Mini Dual-Tone Progress Capsule (Visa Blue vs Mastercard Orange/Red) */}
-            <div className="relative w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800/90 overflow-hidden flex shadow-inner mb-2.5">
-              <div 
-                style={{ width: `${stats.card.visa.pctOfCard}%` }}
-                className="h-full bg-gradient-to-r from-[#102468] via-[#1e40af] to-[#3b82f6] transition-all duration-700 relative rounded-l-full"
-                title={`Visa: ${stats.card.visa.pctOfCard.toFixed(1)}% (${formatThousands(stats.card.visa.revenue)} lei)`}
-              />
-              <div 
-                style={{ width: `${stats.card.mastercard.pctOfCard}%` }}
-                className="h-full bg-gradient-to-r from-[#ea580c] via-[#f97316] to-[#eb001b] transition-all duration-700 relative rounded-r-full"
-                title={`Mastercard: ${stats.card.mastercard.pctOfCard.toFixed(1)}% (${formatThousands(stats.card.mastercard.revenue)} lei)`}
-              />
-            </div>
-
-            {/* 2 Carduri Interactive: Visa & Mastercard */}
-            <div className="grid grid-cols-2 gap-2">
-              {/* Card Visa */}
-              <div 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSelectPayment(isVisaActive ? 'all' : 'visa');
-                }}
-                className={`p-2.5 rounded-xl border transition-all cursor-pointer select-none flex items-center justify-between group/visa ${
-                  isVisaActive
-                    ? 'bg-blue-50/90 dark:bg-blue-950/50 border-blue-500 ring-2 ring-blue-500/40 shadow-sm scale-[1.02]'
-                    : isMastercardActive
-                      ? 'opacity-40 border-slate-200/60 dark:border-slate-800 hover:opacity-80'
-                      : 'bg-slate-50/80 dark:bg-slate-800/50 border-slate-200/80 dark:border-slate-800 hover:border-blue-400 hover:bg-blue-50/40 hover:shadow-sm'
-                }`}
-                title="Click pentru a filtra doar plăți Visa"
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  {/* Visa Badge */}
-                  <div className="w-8 h-5.5 rounded-md bg-gradient-to-br from-[#102468] via-[#0b1b4f] to-[#040c29] border border-blue-600/40 shadow-xs flex items-center justify-center shrink-0 px-1 overflow-hidden">
-                    <svg width="22" height="7.5" viewBox="0 0 780 250" fill="none">
-                      <path d="M293.4 12.8L192.5 240.4H134.2L81.7 58.7C78.5 46.2 75.7 41.7 65.7 36.3C49.3 27.5 23.1 19.3 0 14.4L5.4 2.1H106.6C120.3 2.1 132.8 11.2 135.8 26.6L162.2 165.7L228.6 2.1H293.4V12.8ZM550.9 164.7C551.4 102.3 464.3 98.7 464.9 70.8C465.2 62.3 473.4 53.2 491.5 50.8C500.4 49.6 525.4 48.6 553.6 61.6L564.7 9.8C549.4 4.3 529.7 0 504.7 0C443.4 0 399.7 32.6 399.3 79.5C398.9 114 430.1 133.3 453.6 144.8C477.8 156.6 485.9 164.1 485.7 174.7C485.4 191 465.9 198.1 448 198.4C416.7 198.8 398.5 190 384.1 183.3L372.4 237.9C388.6 245.4 418.5 251.7 449.6 252C513.7 252 550.4 220.4 550.9 164.7ZM712.5 240.4H768L719.2 2.1H668C656.7 2.1 647.2 8.7 643.1 18.5L549.4 240.4H611.8L624.2 206.3H700.5L712.5 240.4ZM641.4 159.2L672.7 73.1L690.7 159.2H641.4ZM387.6 2.1L338.4 240.4H280.4L329.6 2.1H387.6Z" fill="#FFFFFF"/>
-                    </svg>
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1">
-                      <span className="text-[11px] font-bold text-slate-800 dark:text-slate-100">Visa</span>
-                      <span className="px-1.5 py-0.2 rounded text-[9.5px] font-black bg-blue-500/15 text-blue-700 dark:text-blue-400">
-                        {stats.card.visa.pctOfCard.toFixed(0)}%
-                      </span>
-                    </div>
-                    <p className="text-[11.5px] font-extrabold text-slate-900 dark:text-white tracking-tight truncate">
-                      {formatThousands(stats.card.visa.revenue)} <span className="text-[9px] font-semibold text-slate-400">lei</span>
-                    </p>
-                  </div>
-                </div>
-                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 shrink-0 ml-1">
-                  {stats.card.visa.count} cmd
-                </span>
-              </div>
-
-              {/* Card Mastercard */}
-              <div 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSelectPayment(isMastercardActive ? 'all' : 'mastercard');
-                }}
-                className={`p-2.5 rounded-xl border transition-all cursor-pointer select-none flex items-center justify-between group/mc ${
-                  isMastercardActive
-                    ? 'bg-orange-50/90 dark:bg-orange-950/50 border-orange-500 ring-2 ring-orange-500/40 shadow-sm scale-[1.02]'
-                    : isVisaActive
-                      ? 'opacity-40 border-slate-200/60 dark:border-slate-800 hover:opacity-80'
-                      : 'bg-slate-50/80 dark:bg-slate-800/50 border-slate-200/80 dark:border-slate-800 hover:border-orange-400 hover:bg-orange-50/40 hover:shadow-sm'
-                }`}
-                title="Click pentru a filtra doar plăți Mastercard"
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  {/* Mastercard Badge */}
-                  <div className="w-8 h-5.5 rounded-md bg-gradient-to-br from-slate-950 via-slate-900 to-black border border-slate-700/60 shadow-xs flex items-center justify-center shrink-0 overflow-hidden">
-                    <svg width="20" height="13" viewBox="0 0 24 15" fill="none">
-                      <circle cx="7.5" cy="7.5" r="7" fill="#EB001B"/>
-                      <circle cx="16.5" cy="7.5" r="7" fill="#F79E1B"/>
-                      <path d="M12 2.2a6.98 6.98 0 0 1 0 10.6 6.98 6.98 0 0 1 0-10.6Z" fill="#FF5F00"/>
-                    </svg>
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1">
-                      <span className="text-[11px] font-bold text-slate-800 dark:text-slate-100">MC</span>
-                      <span className="px-1.5 py-0.2 rounded text-[9.5px] font-black bg-amber-500/15 text-amber-700 dark:text-amber-400">
-                        {stats.card.mastercard.pctOfCard.toFixed(0)}%
-                      </span>
-                    </div>
-                    <p className="text-[11.5px] font-extrabold text-slate-900 dark:text-white tracking-tight truncate">
-                      {formatThousands(stats.card.mastercard.revenue)} <span className="text-[9px] font-semibold text-slate-400">lei</span>
-                    </p>
-                  </div>
-                </div>
-                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 shrink-0 ml-1">
-                  {stats.card.mastercard.count} cmd
-                </span>
+              <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700/80 shrink-0">
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setCardSubMode('banks'); }}
+                  className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${
+                    cardSubMode === 'banks'
+                      ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-xs ring-1 ring-black/5 dark:ring-white/10'
+                      : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  🏦 Bănci
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setCardSubMode('networks'); }}
+                  className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${
+                    cardSubMode === 'networks'
+                      ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs ring-1 ring-black/5 dark:ring-white/10'
+                      : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  💳 Rețele
+                </button>
               </div>
             </div>
+
+            {cardSubMode === 'banks' ? (
+              <div className="space-y-2.5">
+                {/* Multi-Segmented Bank Distribution Bar */}
+                <div className="relative w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800/90 overflow-hidden flex shadow-inner">
+                  {stats.card.banks.map((b, i) => (
+                    <div 
+                      key={b.id}
+                      style={{ 
+                        width: `${b.pctOfCard}%`,
+                        backgroundColor: b.color
+                      }}
+                      className={`h-full transition-all duration-500 ${i === 0 ? 'rounded-l-full' : ''} ${i === stats.card.banks.length - 1 ? 'rounded-r-full' : ''}`}
+                      title={`${b.name}: ${b.pctOfCard.toFixed(1)}% (${formatThousands(b.revenue)} lei)`}
+                    />
+                  ))}
+                </div>
+
+                {/* Grid Bănci Emitente */}
+                <div className="grid grid-cols-2 gap-1.5 max-h-[175px] overflow-y-auto pr-0.5 custom-scrollbar">
+                  {stats.card.banks.length === 0 ? (
+                    <div className="col-span-2 text-center text-xs text-slate-400 py-2">
+                      Nicio plată cu cardul înregistrată
+                    </div>
+                  ) : (
+                    stats.card.banks.map(b => {
+                      const isThisBankActive = selectedPayment === `bank_${b.id}`;
+                      return (
+                        <div 
+                          key={b.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSelectPayment(isThisBankActive ? 'all' : `bank_${b.id}`);
+                          }}
+                          className={`p-2 rounded-xl border transition-all cursor-pointer select-none flex items-center justify-between ${
+                            isThisBankActive
+                              ? 'bg-blue-50/90 dark:bg-blue-950/50 border-blue-500 ring-2 ring-blue-500/40 shadow-sm scale-[1.02]'
+                              : isBankActive
+                                ? 'opacity-40 border-slate-200/60 dark:border-slate-800 hover:opacity-80'
+                                : 'bg-slate-50/80 dark:bg-slate-800/50 border-slate-200/80 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 hover:shadow-xs'
+                          }`}
+                          title={`Click pentru a filtra tranzacțiile ${b.name}`}
+                        >
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <div 
+                              className="w-6 h-6 rounded-md flex items-center justify-center font-black text-[9.5px] text-white shrink-0 shadow-xs"
+                              style={{ background: b.color }}
+                            >
+                              {b.logoText}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1">
+                                <span className="text-[11px] font-bold text-slate-800 dark:text-slate-100 truncate">
+                                  {b.shortName}
+                                </span>
+                                <span className="px-1 py-0.2 rounded text-[9px] font-black bg-slate-200/70 dark:bg-slate-700/70 text-slate-700 dark:text-slate-300">
+                                  {b.pctOfCard.toFixed(0)}%
+                                </span>
+                              </div>
+                              <p className="text-[11px] font-extrabold text-slate-900 dark:text-white tracking-tight truncate">
+                                {formatThousands(b.revenue)} <span className="text-[8px] font-semibold text-slate-400">lei</span>
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0 ml-1">
+                            <span className="text-[9.5px] font-bold text-slate-400 block">
+                              {b.count} cmd
+                            </span>
+                            <span className="text-[8.5px] text-slate-500 dark:text-slate-400 font-semibold block">
+                              med. {formatThousands(b.avg, 0)}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Insight Footer */}
+                {stats.card.banks.length > 0 && (
+                  <div className="mt-1 pt-1.5 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[10px]">
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                      🏆 {stats.card.banks[0].name} ({stats.card.banks[0].pctOfCard.toFixed(0)}%)
+                    </span>
+                    <span className="text-slate-400 text-[9px] font-medium">
+                      Top Carduri
+                    </span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* Modul Rețele (Visa / Mastercard) */
+              <div>
+                <div className="relative w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800/90 overflow-hidden flex shadow-inner mb-2.5">
+                  <div 
+                    style={{ width: `${stats.card.visa.pctOfCard}%` }}
+                    className="h-full bg-gradient-to-r from-[#102468] via-[#1e40af] to-[#3b82f6] transition-all duration-700 relative rounded-l-full"
+                    title={`Visa: ${stats.card.visa.pctOfCard.toFixed(1)}% (${formatThousands(stats.card.visa.revenue)} lei)`}
+                  />
+                  <div 
+                    style={{ width: `${stats.card.mastercard.pctOfCard}%` }}
+                    className="h-full bg-gradient-to-r from-[#ea580c] via-[#f97316] to-[#eb001b] transition-all duration-700 relative rounded-r-full"
+                    title={`Mastercard: ${stats.card.mastercard.pctOfCard.toFixed(1)}% (${formatThousands(stats.card.mastercard.revenue)} lei)`}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  {/* Card Visa */}
+                  <div 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelectPayment(isVisaActive ? 'all' : 'visa');
+                    }}
+                    className={`p-2.5 rounded-xl border transition-all cursor-pointer select-none flex items-center justify-between group/visa ${
+                      isVisaActive
+                        ? 'bg-blue-50/90 dark:bg-blue-950/50 border-blue-500 ring-2 ring-blue-500/40 shadow-sm scale-[1.02]'
+                        : isMastercardActive
+                          ? 'opacity-40 border-slate-200/60 dark:border-slate-800 hover:opacity-80'
+                          : 'bg-slate-50/80 dark:bg-slate-800/50 border-slate-200/80 dark:border-slate-800 hover:border-blue-400 hover:bg-blue-50/40 hover:shadow-sm'
+                    }`}
+                    title="Click pentru a filtra doar plăți Visa"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-8 h-5.5 rounded-md bg-gradient-to-br from-[#102468] via-[#0b1b4f] to-[#040c29] border border-blue-600/40 shadow-xs flex items-center justify-center shrink-0 px-1 overflow-hidden">
+                        <svg width="22" height="7.5" viewBox="0 0 780 250" fill="none">
+                          <path d="M293.4 12.8L192.5 240.4H134.2L81.7 58.7C78.5 46.2 75.7 41.7 65.7 36.3C49.3 27.5 23.1 19.3 0 14.4L5.4 2.1H106.6C120.3 2.1 132.8 11.2 135.8 26.6L162.2 165.7L228.6 2.1H293.4V12.8ZM550.9 164.7C551.4 102.3 464.3 98.7 464.9 70.8C465.2 62.3 473.4 53.2 491.5 50.8C500.4 49.6 525.4 48.6 553.6 61.6L564.7 9.8C549.4 4.3 529.7 0 504.7 0C443.4 0 399.7 32.6 399.3 79.5C398.9 114 430.1 133.3 453.6 144.8C477.8 156.6 485.9 164.1 485.7 174.7C485.4 191 465.9 198.1 448 198.4C416.7 198.8 398.5 190 384.1 183.3L372.4 237.9C388.6 245.4 418.5 251.7 449.6 252C513.7 252 550.4 220.4 550.9 164.7ZM712.5 240.4H768L719.2 2.1H668C656.7 2.1 647.2 8.7 643.1 18.5L549.4 240.4H611.8L624.2 206.3H700.5L712.5 240.4ZM641.4 159.2L672.7 73.1L690.7 159.2H641.4ZM387.6 2.1L338.4 240.4H280.4L329.6 2.1H387.6Z" fill="#FFFFFF"/>
+                        </svg>
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1">
+                          <span className="text-[11px] font-bold text-slate-800 dark:text-slate-100">Visa</span>
+                          <span className="px-1.5 py-0.2 rounded text-[9.5px] font-black bg-blue-500/15 text-blue-700 dark:text-blue-400">
+                            {stats.card.visa.pctOfCard.toFixed(0)}%
+                          </span>
+                        </div>
+                        <p className="text-[11.5px] font-extrabold text-slate-900 dark:text-white tracking-tight truncate">
+                          {formatThousands(stats.card.visa.revenue)} <span className="text-[9px] font-semibold text-slate-400">lei</span>
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 shrink-0 ml-1">
+                      {stats.card.visa.count} cmd
+                    </span>
+                  </div>
+
+                  {/* Card Mastercard */}
+                  <div 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelectPayment(isMastercardActive ? 'all' : 'mastercard');
+                    }}
+                    className={`p-2.5 rounded-xl border transition-all cursor-pointer select-none flex items-center justify-between group/mc ${
+                      isMastercardActive
+                        ? 'bg-orange-50/90 dark:bg-orange-950/50 border-orange-500 ring-2 ring-orange-500/40 shadow-sm scale-[1.02]'
+                        : isVisaActive
+                          ? 'opacity-40 border-slate-200/60 dark:border-slate-800 hover:opacity-80'
+                          : 'bg-slate-50/80 dark:bg-slate-800/50 border-slate-200/80 dark:border-slate-800 hover:border-orange-400 hover:bg-orange-50/40 hover:shadow-sm'
+                    }`}
+                    title="Click pentru a filtra doar plăți Mastercard"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-8 h-5.5 rounded-md bg-gradient-to-br from-slate-950 via-slate-900 to-black border border-slate-700/60 shadow-xs flex items-center justify-center shrink-0 overflow-hidden">
+                        <svg width="20" height="13" viewBox="0 0 24 15" fill="none">
+                          <circle cx="7.5" cy="7.5" r="7" fill="#EB001B"/>
+                          <circle cx="16.5" cy="7.5" r="7" fill="#F79E1B"/>
+                          <path d="M12 2.2a6.98 6.98 0 0 1 0 10.6 6.98 6.98 0 0 1 0-10.6Z" fill="#FF5F00"/>
+                        </svg>
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1">
+                          <span className="text-[11px] font-bold text-slate-800 dark:text-slate-100">MC</span>
+                          <span className="px-1.5 py-0.2 rounded text-[9.5px] font-black bg-amber-500/15 text-amber-700 dark:text-amber-400">
+                            {stats.card.mastercard.pctOfCard.toFixed(0)}%
+                          </span>
+                        </div>
+                        <p className="text-[11.5px] font-extrabold text-slate-900 dark:text-white tracking-tight truncate">
+                          {formatThousands(stats.card.mastercard.revenue)} <span className="text-[9px] font-semibold text-slate-400">lei</span>
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 shrink-0 ml-1">
+                      {stats.card.mastercard.count} cmd
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -3007,6 +3102,10 @@ export default function DashboardCharts3D({
     if (selectedPayment === 'cash') return !isCard;
     if (selectedPayment === 'visa') return isCard && detectCardBrand(o) === 'visa';
     if (selectedPayment === 'mastercard') return isCard && detectCardBrand(o) === 'mastercard';
+    if (selectedPayment.startsWith('bank_')) {
+      const bankId = selectedPayment.replace('bank_', '');
+      return isCard && detectCardBank(o).id === bankId;
+    }
     return true;
   }, [selectedPayment]);
 

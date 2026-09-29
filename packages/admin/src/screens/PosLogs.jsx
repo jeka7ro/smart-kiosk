@@ -6,6 +6,7 @@ import { io } from 'socket.io-client';
 import * as XLSX from 'xlsx';
 import BrandLogo from '../components/BrandLogo.jsx';
 import { formatThousands } from '../utils/formatters';
+import { detectCardBrand, detectCardBank, BANK_CONFIG } from '../utils/cardUtils';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
 
@@ -28,7 +29,7 @@ const isLogCancelled = (l) => {
   return false;
 };
 
-export function CardBrandAvatar({ brand, cardNo, isNfc }) {
+export function CardBrandAvatar({ brand, cardNo, isNfc, cardBank }) {
   let badge = null;
   const isMc = brand === 'mastercard';
   const isVisa = brand === 'visa';
@@ -74,13 +75,14 @@ export function CardBrandAvatar({ brand, cardNo, isNfc }) {
 
   const last4 = cardNo ? cardNo.slice(-4) : '';
   const brandName = isMc ? 'Mastercard' : (isVisa ? 'Visa' : (isMaestro ? 'Maestro' : 'Card Bancar'));
+  const effBank = cardBank || (cardNo ? detectCardBank({ cardNo, brand }) : null);
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2.5">
       {badge}
       {cardNo ? (
         <div className="flex flex-col text-left leading-tight">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             <span className="text-xs font-bold text-slate-800 dark:text-slate-200 tracking-wider">
               •••• {last4}
             </span>
@@ -95,12 +97,44 @@ export function CardBrandAvatar({ brand, cardNo, isNfc }) {
               </span>
             )}
           </div>
-          <span className="text-[10px] text-slate-400 font-semibold tracking-tight">
-            {brandName}
-          </span>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="text-[10px] text-slate-400 font-semibold tracking-tight">
+              {brandName}
+            </span>
+            {effBank && (
+              <span 
+                className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-bold tracking-tight border shadow-xs"
+                style={{
+                  backgroundColor: `${effBank.color}15`,
+                  color: effBank.color,
+                  borderColor: `${effBank.color}35`
+                }}
+                title={`Bancă emitentă: ${effBank.name}`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: effBank.color }} />
+                {effBank.shortName}
+              </span>
+            )}
+          </div>
         </div>
       ) : (
-        <span className="text-[11px] text-slate-400 font-semibold">{brandName}</span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[11px] text-slate-400 font-semibold">{brandName}</span>
+          {effBank && (
+            <span 
+              className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-bold tracking-tight border"
+              style={{
+                backgroundColor: `${effBank.color}15`,
+                color: effBank.color,
+                borderColor: `${effBank.color}35`
+              }}
+              title={`Bancă emitentă: ${effBank.name}`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: effBank.color }} />
+              {effBank.shortName}
+            </span>
+          )}
+        </div>
       )}
     </div>
   );
@@ -214,7 +248,21 @@ export function extractPosMeta(log) {
     else if (logStr.includes('maestro')) cardBrand = 'maestro';
   }
 
-  return { rNo, tid, cardBrand, isNfc, respCode, hostDate, pan };
+  const cardBank = detectCardBank({
+    ...log,
+    cardNo: pan || log.cardNo,
+    pan: pan || log.cardNo,
+    cardBrand,
+    paymentRef: {
+      cardNo: pan || log.cardNo,
+      pan: pan || log.cardNo,
+      brand: cardBrand,
+      raw: log.raw,
+      extraFields: log.raw?.extraFields
+    }
+  });
+
+  return { rNo, tid, cardBrand, cardBank, isNfc, respCode, hostDate, pan };
 }
 
 export function PosReceiptModal({ log, order, orders = [], onClose }) {
@@ -240,6 +288,7 @@ Bon POS (STAN): ${meta.rNo || '—'}
 RRN:     ${log.refNum || '—'}
 Auth:    ${log.authCode || '—'}
 Card:    ${meta.pan || (log.cardNo ? `****${log.cardNo.slice(-4)}` : '—')} (${meta.cardBrand.toUpperCase()})
+Bancă:   ${meta.cardBank?.name || '—'}
 Mod:     ${meta.isNfc ? 'CONTACTLESS' : 'CHIP/INSERT'}
 Suma:    ${Number(log.amount || 0).toFixed(2)} RON
 Status:  ${log.paid ? 'APROBAT (0000)' : `RESPINS (${meta.respCode || log.error || 'EROARE'})`}
@@ -327,7 +376,27 @@ Status:  ${log.paid ? 'APROBAT (0000)' : `RESPINS (${meta.respCode || log.error 
             <div className="flex justify-between items-center">
               <span className="text-slate-400 font-medium">Card utilizat:</span>
               <div className="flex items-center gap-1.5">
-                <CardBrandAvatar brand={meta.cardBrand} cardNo={meta.pan || log.cardNo} isNfc={meta.isNfc} />
+                <CardBrandAvatar brand={meta.cardBrand} cardNo={meta.pan || log.cardNo} isNfc={meta.isNfc} cardBank={meta.cardBank} />
+              </div>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400 font-medium">Bancă emitentă:</span>
+              <div className="flex items-center gap-1.5">
+                {meta.cardBank ? (
+                  <span 
+                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold border"
+                    style={{
+                      backgroundColor: `${meta.cardBank.color}15`,
+                      color: meta.cardBank.color,
+                      borderColor: `${meta.cardBank.color}35`
+                    }}
+                  >
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: meta.cardBank.color }} />
+                    {meta.cardBank.name}
+                  </span>
+                ) : (
+                  <span className="font-semibold text-slate-800 dark:text-slate-100">—</span>
+                )}
               </div>
             </div>
             <div className="flex justify-between items-center">
@@ -374,6 +443,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
   const [filter, setFilter]   = useState('all');     // all | approved | declined | timeout
   const [locFilter, setLocFilter] = useState('all');
   const [brandFilter, setBrandFilter] = useState('all');
+  const [bankFilter, setBankFilter] = useState('all');
   const [periodFilter, setPeriodFilter] = useState('all');
   const todayStr = new Date().toISOString().slice(0, 10);
   const tomorrow = new Date();
@@ -620,7 +690,38 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
     };
   }, [periodFilteredLogs, isLogIikoSuccess]);
 
-  // Table filtering adds status filter on top of periodFilteredLogs
+  // ── Derived Bank Breakdown for Card Payments ───────
+  const bankStats = useMemo(() => {
+    const map = {};
+    Object.keys(BANK_CONFIG).forEach(k => {
+      map[k] = { ...BANK_CONFIG[k], count: 0, volume: 0 };
+    });
+
+    periodFilteredLogs.forEach(l => {
+      if (l.status === 'approved' || l.paid === true) {
+        const meta = extractPosMeta(l);
+        const bankKey = meta.cardBank?.id || 'other';
+        if (!map[bankKey]) {
+          map[bankKey] = {
+            id: bankKey,
+            name: meta.cardBank?.name || 'Altele',
+            shortName: meta.cardBank?.shortName || 'Altele',
+            color: meta.cardBank?.color || '#64748b',
+            count: 0,
+            volume: 0
+          };
+        }
+        map[bankKey].count += 1;
+        map[bankKey].volume += Number(l.amount) || 0;
+      }
+    });
+
+    const list = Object.values(map).filter(b => b.count > 0).sort((a, b) => b.volume - a.volume);
+    const totalVol = list.reduce((sum, b) => sum + b.volume, 0);
+    return { list, totalVol };
+  }, [periodFilteredLogs]);
+
+  // Table filtering adds status and bank filters on top of periodFilteredLogs
   const filtered = useMemo(() => {
     return periodFilteredLogs.filter(l => {
       if (filter !== 'all') {
@@ -631,9 +732,13 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
         if (filter === 'iikoFailed') return (l.status === 'approved' || l.paid === true) && !isLogIikoSuccess(l);
         if (l.status !== filter) return false;
       }
+      if (bankFilter !== 'all') {
+        const meta = extractPosMeta(l);
+        if (meta.cardBank?.id !== bankFilter) return false;
+      }
       return true;
     });
-  }, [periodFilteredLogs, filter, isLogIikoSuccess]);
+  }, [periodFilteredLogs, filter, bankFilter, isLogIikoSuccess]);
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
   const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -660,6 +765,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
         'Status POS': isLogCancelled(log) ? 'Anulat de client' : (STATUS_CONFIG[log.status]?.label || log.status),
         'Auth Code': log.authCode || '',
         'Tip Card': meta.cardBrand ? meta.cardBrand.toUpperCase() : 'CARD',
+        'Bancă Emitentă': meta.cardBank?.name || '—',
         'Card': meta.pan || (log.cardNo ? `****${log.cardNo.slice(-4)}` : ''),
         'Mod Plata': meta.isNfc ? 'Contactless' : 'Chip',
         'Ref#': log.refNum || '',
@@ -733,6 +839,85 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
           active={filter === 'iikoFailed'}
           highlight={derivedStats.iikoFailed > 0}
         />
+      </div>
+
+      {/* Distribuție Bănci Emitente (Statistici Carduri) */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-sm border border-slate-200 dark:border-slate-800 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-base">🏦</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200">
+              Bănci Emitente Carduri
+            </span>
+            <span className="text-xs font-semibold text-slate-400">
+              ({bankStats.list.reduce((acc, b) => acc + b.count, 0)} plăți aprobate • {formatThousands(bankStats.totalVol)} RON)
+            </span>
+          </div>
+          {bankFilter !== 'all' && (
+            <button
+              onClick={() => { setBankFilter('all'); setCurrentPage(1); }}
+              className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-bold flex items-center gap-1 cursor-pointer"
+            >
+              Resetează filtru bancă ✕
+            </button>
+          )}
+        </div>
+
+        {/* 3D Multi-segmented distribution bar */}
+        {bankStats.totalVol > 0 && (
+          <div className="w-full h-3 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex shadow-inner">
+            {bankStats.list.map(b => {
+              const pct = (b.volume / bankStats.totalVol) * 100;
+              if (pct < 0.5) return null;
+              return (
+                <div
+                  key={b.id}
+                  style={{
+                    width: `${pct}%`,
+                    backgroundColor: b.color,
+                  }}
+                  className="h-full transition-all duration-300 relative group cursor-pointer"
+                  onClick={() => { setBankFilter(bankFilter === b.id ? 'all' : b.id); setCurrentPage(1); }}
+                  title={`${b.name}: ${formatThousands(b.volume)} RON (${pct.toFixed(1)}%) - ${b.count} tranzacții`}
+                />
+              );
+            })}
+          </div>
+        )}
+
+        {/* Interactive Bank Filter Badges */}
+        <div className="flex flex-wrap gap-2 pt-0.5">
+          {bankStats.list.map(b => {
+            const isSelected = bankFilter === b.id;
+            const pct = bankStats.totalVol > 0 ? ((b.volume / bankStats.totalVol) * 100).toFixed(0) : 0;
+            return (
+              <button
+                key={b.id}
+                onClick={() => { setBankFilter(isSelected ? 'all' : b.id); setCurrentPage(1); }}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                  isSelected
+                    ? 'ring-2 shadow-sm scale-105'
+                    : 'bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700/80 text-slate-700 dark:text-slate-300'
+                }`}
+                style={isSelected ? {
+                  backgroundColor: `${b.color}18`,
+                  color: b.color,
+                  borderColor: b.color,
+                  boxShadow: `0 2px 8px ${b.color}30`
+                } : {}}
+              >
+                <span className="w-2.5 h-2.5 rounded-full shrink-0 shadow-xs" style={{ backgroundColor: b.color }} />
+                <span>{b.shortName}</span>
+                <span className="text-[11px] font-extrabold px-1.5 py-0.2 rounded bg-black/5 dark:bg-white/10">
+                  {b.count}
+                </span>
+                <span className="text-[11px] opacity-75 font-semibold">
+                  {formatThousands(b.volume)} lei ({pct}%)
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Controls */}
@@ -813,6 +998,18 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
               {brands.map(b => <option key={b} value={b}>{b}</option>)}
             </select>
           )}
+
+          {/* Bank Filter */}
+          <select
+            value={bankFilter}
+            onChange={e => { setBankFilter(e.target.value); setCurrentPage(1); }}
+            className="h-9 px-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-medium text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">Toate băncile</option>
+            {Object.values(BANK_CONFIG).map(b => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
         </div>
 
         <div className="flex items-center gap-2">
@@ -838,7 +1035,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Sumă</th>
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Status POS</th>
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Auth Code</th>
-              <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Card</th>
+              <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Card / Bancă</th>
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Ref#</th>
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">iiko</th>
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Eroare</th>
@@ -847,7 +1044,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
             {paginated.length === 0 ? (
               <tr>
-                <td colSpan={10} className="px-6 py-12 text-center text-slate-400">
+                <td colSpan={11} className="px-6 py-12 text-center text-slate-400">
                   Nicio tranzacție POS înregistrată
                 </td>
               </tr>
@@ -939,7 +1136,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                     {log.authCode || '—'}
                   </td>
                   <td className="px-4 py-3">
-                    <CardBrandAvatar brand={meta.cardBrand} cardNo={meta.pan || log.cardNo} isNfc={meta.isNfc} />
+                    <CardBrandAvatar brand={meta.cardBrand} cardNo={meta.pan || log.cardNo} isNfc={meta.isNfc} cardBank={meta.cardBank} />
                   </td>
                   <td className="px-4 py-3 text-xs font-semibold text-slate-500">
                     <div className="flex flex-col gap-0.5">
