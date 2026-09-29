@@ -1011,6 +1011,7 @@ export function BrandDonutChart3D({
   const [viewMode, setViewMode] = useState('kiosks'); // 'kiosks' | 'brands'
   const [hoveredSliceId, setHoveredSliceId] = useState(null);
   const [hoveredBrandId, setHoveredBrandId] = useState(null);
+  const [expandedBrands, setExpandedBrands] = useState({});
 
   const brandData = React.useMemo(() => {
     const map = {
@@ -1469,6 +1470,9 @@ export function BrandDonutChart3D({
               const isHovered = hoveredBrandId === b.id;
               const isSelected = selectedBrands.includes(b.id);
 
+              const hasMultipleKiosks = b.kiosks && b.kiosks.length > 1;
+              const isExpanded = !!expandedBrands[b.id];
+
               return (
                 <div
                   key={b.id}
@@ -1487,14 +1491,28 @@ export function BrandDonutChart3D({
                     onMouseLeave={() => setHoveredBrandId(null)}
                     className="flex items-center justify-between cursor-pointer"
                   >
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
                       <div className="w-3.5 h-3.5 rounded-full shrink-0 shadow-sm ring-1 ring-white/60" style={{ backgroundColor: b.color }} />
                       <BrandLogo brandId={b.id} size={16} />
-                      <span className={`text-xs ${isSelected ? 'font-black text-blue-600 dark:text-blue-400' : 'font-bold text-slate-800 dark:text-slate-200'}`}>
+                      <span className={`text-xs truncate ${isSelected ? 'font-black text-blue-600 dark:text-blue-400' : 'font-bold text-slate-800 dark:text-slate-200'}`}>
                         {b.name}
                       </span>
                       {isSelected && (
                         <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
+                      )}
+                      {hasMultipleKiosks && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedBrands(prev => ({ ...prev, [b.id]: !prev[b.id] }));
+                          }}
+                          className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white bg-slate-200/60 hover:bg-slate-200 dark:bg-slate-700/60 dark:hover:bg-slate-700 transition-colors shrink-0 cursor-pointer ml-0.5"
+                          title={isExpanded ? "Restrânge lista de kioskuri" : "Extinde lista de kioskuri"}
+                        >
+                          <span>{b.kiosks.length} kioskuri</span>
+                          <ChevronDown size={11} className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                        </button>
                       )}
                     </div>
                     <div className="text-right">
@@ -1507,9 +1525,9 @@ export function BrandDonutChart3D({
                     </div>
                   </div>
 
-                  {/* Divizare pe Kioskuri sub Brand */}
-                  {b.kiosks && b.kiosks.length > 0 && (
-                    <div className="mt-2 pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex flex-col gap-1 pl-4">
+                  {/* Divizare pe Kioskuri sub Brand (Restrâns implicit, se extinde doar la cerere) */}
+                  {hasMultipleKiosks && isExpanded && (
+                    <div className="mt-2 pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex flex-col gap-1 pl-4 animate-fadeIn">
                       {b.kiosks.map(k => {
                         const isKioskHovered = hoveredSliceId === k.id;
                         return (
@@ -1567,6 +1585,7 @@ export function PaymentMethodsChart3D({
 }) {
   const [hoveredMethod, setHoveredMethod] = useState(null);
   const [cardSubMode, setCardSubMode] = useState('banks'); // 'banks' | 'networks'
+  const [isCardDetailsExpanded, setIsCardDetailsExpanded] = useState(false);
 
   const stats = React.useMemo(() => {
     let cardRev = 0, cardCnt = 0;
@@ -1840,14 +1859,43 @@ export function PaymentMethodsChart3D({
             </div>
           </div>
 
-          {/* ─── Sub-Panou: Bănci Emitente (BT, Revolut, ING, BCR) vs Rețele (Visa/MC) ─── */}
-          <div className="mt-3.5 pt-3 border-t border-slate-100 dark:border-slate-800/80 z-10">
-            {/* Header Comparație cu Toggle Bănci vs Rețele */}
-            <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-2.5">
-              <span className="flex items-center gap-1.5 uppercase tracking-wider text-[9.5px] font-extrabold text-slate-600 dark:text-slate-300">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                {cardSubMode === 'banks' ? 'Distribuție Bănci' : 'Comparație Emisori'}
-              </span>
+          {/* ─── Sub-Panou: Bănci Emitente (BT, Revolut, ING, BCR) vs Rețele (Visa/MC) (Restrâns implicit) ─── */}
+          <div className="mt-3.5 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 z-10">
+            {!(isCardDetailsExpanded || isBankActive || isVisaActive || isMastercardActive) ? (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setIsCardDetailsExpanded(true); }}
+                className="w-full flex items-center justify-between py-1.5 px-3 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 hover:bg-slate-100 dark:bg-slate-800/50 dark:hover:bg-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-300 transition-all cursor-pointer group/btn shadow-2xs"
+              >
+                <span className="flex items-center gap-1.5">
+                  <span>🏦</span>
+                  <span>Bănci Emitente & Rețele</span>
+                  <span className="text-[10px] font-semibold text-slate-400">({stats.card.banks.length} bănci • Visa / MC)</span>
+                </span>
+                <span className="flex items-center gap-1 text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400">
+                  <span>Extinde</span>
+                  <ChevronDown size={13} className="group-hover/btn:translate-y-0.5 transition-transform" />
+                </span>
+              </button>
+            ) : (
+              <div className="animate-fadeIn">
+                {/* Header Comparație cu Toggle Bănci vs Rețele */}
+                <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="flex items-center gap-1.5 uppercase tracking-wider text-[9.5px] font-extrabold text-slate-600 dark:text-slate-300">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      {cardSubMode === 'banks' ? 'Distribuție Bănci' : 'Comparație Emisori'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setIsCardDetailsExpanded(false); }}
+                      className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9.5px] font-bold text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                      title="Restrânge panoul de bănci"
+                    >
+                      <span>Restrânge</span>
+                      <ChevronUp size={11} />
+                    </button>
+                  </div>
 
               <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700/80 shrink-0">
                 <button
@@ -2054,6 +2102,8 @@ export function PaymentMethodsChart3D({
                     </span>
                   </div>
                 </div>
+              </div>
+            )}
               </div>
             )}
           </div>

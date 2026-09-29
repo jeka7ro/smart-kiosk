@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useAuth } from '../context/AuthProvider';
 import { useConfirm } from '../components/ConfirmModal.jsx';
-import { CreditCard, CheckCircle2, XCircle, AlertTriangle, RotateCcw, Receipt, Copy, Check, X } from 'lucide-react';
+import { CreditCard, CheckCircle2, XCircle, AlertTriangle, RotateCcw, Receipt, Copy, Check, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { io } from 'socket.io-client';
 import * as XLSX from 'xlsx';
 import BrandLogo from '../components/BrandLogo.jsx';
@@ -445,6 +445,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
   const [locFilter, setLocFilter] = useState('all');
   const [brandFilter, setBrandFilter] = useState('all');
   const [bankFilter, setBankFilter] = useState('all');
+  const [isBankStatsOpen, setIsBankStatsOpen] = useState(false);
   const [periodFilter, setPeriodFilter] = useState('all');
   const todayStr = new Date().toISOString().slice(0, 10);
   const tomorrow = new Date();
@@ -842,10 +843,13 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
         />
       </div>
 
-      {/* Distribuție Bănci Emitente (Statistici Carduri) */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-sm border border-slate-200 dark:border-slate-800 space-y-3">
+      {/* Distribuție Bănci Emitente (Statistici Carduri - Restrâns implicit) */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 shadow-sm border border-slate-200 dark:border-slate-800 transition-all">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
+          <div 
+            className="flex items-center gap-2 cursor-pointer select-none"
+            onClick={() => setIsBankStatsOpen(!isBankStatsOpen)}
+          >
             <span className="text-base">🏦</span>
             <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200">
               Bănci Emitente Carduri
@@ -854,71 +858,85 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
               ({bankStats.list.reduce((acc, b) => acc + b.count, 0)} plăți aprobate • {formatThousands(bankStats.totalVol)} RON)
             </span>
           </div>
-          {bankFilter !== 'all' && (
+          <div className="flex items-center gap-2">
+            {bankFilter !== 'all' && (
+              <button
+                onClick={() => { setBankFilter('all'); setCurrentPage(1); }}
+                className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-bold flex items-center gap-1 cursor-pointer"
+              >
+                Resetează filtru bancă ✕
+              </button>
+            )}
             <button
-              onClick={() => { setBankFilter('all'); setCurrentPage(1); }}
-              className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-bold flex items-center gap-1 cursor-pointer"
+              type="button"
+              onClick={() => setIsBankStatsOpen(!isBankStatsOpen)}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors cursor-pointer"
             >
-              Resetează filtru bancă ✕
+              <span>{isBankStatsOpen || bankFilter !== 'all' ? 'Restrânge' : 'Extinde'}</span>
+              <ChevronDown size={14} className={`transition-transform duration-200 ${isBankStatsOpen || bankFilter !== 'all' ? 'rotate-180' : ''}`} />
             </button>
-          )}
+          </div>
         </div>
 
-        {/* 3D Multi-segmented distribution bar */}
-        {bankStats.totalVol > 0 && (
-          <div className="w-full h-3 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex shadow-inner">
-            {bankStats.list.map(b => {
-              const pct = (b.volume / bankStats.totalVol) * 100;
-              if (pct < 0.5) return null;
-              return (
-                <div
-                  key={b.id}
-                  style={{
-                    width: `${pct}%`,
-                    backgroundColor: b.color,
-                  }}
-                  className="h-full transition-all duration-300 relative group cursor-pointer"
-                  onClick={() => { setBankFilter(bankFilter === b.id ? 'all' : b.id); setCurrentPage(1); }}
-                  title={`${b.name}: ${formatThousands(b.volume)} RON (${pct.toFixed(1)}%) - ${b.count} tranzacții`}
-                />
-              );
-            })}
+        {(isBankStatsOpen || bankFilter !== 'all') && (
+          <div className="space-y-3 pt-3 mt-3 border-t border-slate-100 dark:border-slate-800 animate-fadeIn">
+            {/* 3D Multi-segmented distribution bar */}
+            {bankStats.totalVol > 0 && (
+              <div className="w-full h-3 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex shadow-inner">
+                {bankStats.list.map(b => {
+                  const pct = (b.volume / bankStats.totalVol) * 100;
+                  if (pct < 0.5) return null;
+                  return (
+                    <div
+                      key={b.id}
+                      style={{
+                        width: `${pct}%`,
+                        backgroundColor: b.color,
+                      }}
+                      className="h-full transition-all duration-300 relative group cursor-pointer"
+                      onClick={() => { setBankFilter(bankFilter === b.id ? 'all' : b.id); setCurrentPage(1); }}
+                      title={`${b.name}: ${formatThousands(b.volume)} RON (${pct.toFixed(1)}%) - ${b.count} tranzacții`}
+                    />
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Interactive Bank Filter Badges */}
+            <div className="flex flex-wrap gap-2 pt-0.5">
+              {bankStats.list.map(b => {
+                const isSelected = bankFilter === b.id;
+                const pct = bankStats.totalVol > 0 ? ((b.volume / bankStats.totalVol) * 100).toFixed(0) : 0;
+                return (
+                  <button
+                    key={b.id}
+                    onClick={() => { setBankFilter(isSelected ? 'all' : b.id); setCurrentPage(1); }}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                      isSelected
+                        ? 'ring-2 shadow-sm scale-105'
+                        : 'bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700/80 text-slate-700 dark:text-slate-300'
+                    }`}
+                    style={isSelected ? {
+                      backgroundColor: `${b.color}18`,
+                      color: b.color,
+                      borderColor: b.color,
+                      boxShadow: `0 2px 8px ${b.color}30`
+                    } : {}}
+                  >
+                    <BankLogo bankId={b.id} bank={b} size={22} className="shadow-xs shrink-0" />
+                    <span>{b.shortName}</span>
+                    <span className="text-[11px] font-extrabold px-1.5 py-0.2 rounded bg-black/5 dark:bg-white/10">
+                      {b.count}
+                    </span>
+                    <span className="text-[11px] opacity-75 font-semibold">
+                      {formatThousands(b.volume)} lei ({pct}%)
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
-
-        {/* Interactive Bank Filter Badges */}
-        <div className="flex flex-wrap gap-2 pt-0.5">
-          {bankStats.list.map(b => {
-            const isSelected = bankFilter === b.id;
-            const pct = bankStats.totalVol > 0 ? ((b.volume / bankStats.totalVol) * 100).toFixed(0) : 0;
-            return (
-              <button
-                key={b.id}
-                onClick={() => { setBankFilter(isSelected ? 'all' : b.id); setCurrentPage(1); }}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                  isSelected
-                    ? 'ring-2 shadow-sm scale-105'
-                    : 'bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700/80 text-slate-700 dark:text-slate-300'
-                }`}
-                style={isSelected ? {
-                  backgroundColor: `${b.color}18`,
-                  color: b.color,
-                  borderColor: b.color,
-                  boxShadow: `0 2px 8px ${b.color}30`
-                } : {}}
-              >
-                <BankLogo bankId={b.id} bank={b} size={22} className="shadow-xs shrink-0" />
-                <span>{b.shortName}</span>
-                <span className="text-[11px] font-extrabold px-1.5 py-0.2 rounded bg-black/5 dark:bg-white/10">
-                  {b.count}
-                </span>
-                <span className="text-[11px] opacity-75 font-semibold">
-                  {formatThousands(b.volume)} lei ({pct}%)
-                </span>
-              </button>
-            );
-          })}
-        </div>
       </div>
 
       {/* Controls */}
