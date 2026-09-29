@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthProvider';
 import { useConfirm } from '../components/ConfirmModal.jsx';
 import { 
   Clock, RefreshCw, ShoppingBag, CreditCard, 
-  CheckCircle2, AlertTriangle, Trash2, Send, X, Eye, 
+  CheckCircle2, XCircle, AlertTriangle, Trash2, Send, X, Eye, 
   Banknote, ArrowRight, ChevronDown, ChevronUp, Copy, Check, Sparkles, Utensils
 } from 'lucide-react';
 import BrandLogo from '../components/BrandLogo.jsx';
@@ -222,16 +222,25 @@ export default function PendingOrders({ backend, onGoToOrder }) {
     let awaitingCash = 0;
     let finalized = 0;
     let cardInProgress = 0;
+    let unfinalized = 0;
     groupedList.forEach(item => {
+      const isFin = item.kind === 'finalized_success' || item.paid || (item.kind === 'cash_awaiting' && item.orderNumber);
+      const ageMs = item.created_at ? (Date.now() - new Date(item.created_at).getTime()) : 0;
+      const isTimeout = !isFin && (item.kind === 'unfinalized_abandoned' || item.isUnfinalized || ageMs > 2.5 * 60 * 1000);
+
       if (item.kind === 'cash_awaiting') awaitingCash++;
       else if (item.kind === 'finalized_success') finalized++;
-      else if (item.kind === 'pos_in_progress') cardInProgress++;
+      else if (item.kind === 'pos_in_progress' || item.kind === 'unfinalized_abandoned') {
+        if (isTimeout) unfinalized++;
+        else cardInProgress++;
+      }
     });
     return {
       total: groupedList.length,
       awaitingCash,
       finalized,
-      cardInProgress
+      cardInProgress,
+      unfinalized,
     };
   }, [groupedList]);
 
@@ -266,8 +275,17 @@ export default function PendingOrders({ backend, onGoToOrder }) {
       if (statusFilter === 'card_approved' && (item.kind !== 'pos_paid_pending_iiko' && !item.paid)) {
         return false;
       }
-      if (statusFilter === 'card_waiting' && item.kind !== 'pos_in_progress') {
-        return false;
+      if (statusFilter === 'card_waiting') {
+        const isFin = item.kind === 'finalized_success' || item.paid;
+        const ageMs = item.created_at ? (Date.now() - new Date(item.created_at).getTime()) : 0;
+        const isTimeout = !isFin && (item.kind === 'unfinalized_abandoned' || item.isUnfinalized || ageMs > 2.5 * 60 * 1000);
+        if (isTimeout || item.kind !== 'pos_in_progress') return false;
+      }
+      if (statusFilter === 'unfinalized') {
+        const isFin = item.kind === 'finalized_success' || item.paid;
+        const ageMs = item.created_at ? (Date.now() - new Date(item.created_at).getTime()) : 0;
+        const isTimeout = !isFin && (item.kind === 'unfinalized_abandoned' || item.isUnfinalized || ageMs > 2.5 * 60 * 1000);
+        if (!isTimeout) return false;
       }
       if (statusFilter === 'iiko_pending' && item.kind !== 'iiko_pending') {
         return false;
@@ -428,12 +446,12 @@ export default function PendingOrders({ backend, onGoToOrder }) {
           active={statusFilter === 'finalized'}
         />
         <StatCard 
-          label="Card în Curs POS" 
-          value={stats.cardInProgress} 
-          color="#3b82f6" 
-          icon={CreditCard}
-          onClick={() => { setStatusFilter(statusFilter === 'card_waiting' ? 'all' : 'card_waiting'); setCurrentPage(1); }}
-          active={statusFilter === 'card_waiting'}
+          label="Nefinalizate (Abandonate)" 
+          value={stats.unfinalized} 
+          color="#64748b" 
+          icon={XCircle}
+          onClick={() => { setStatusFilter(statusFilter === 'unfinalized' ? 'all' : 'unfinalized'); setCurrentPage(1); }}
+          active={statusFilter === 'unfinalized'}
         />
       </div>
 
@@ -545,6 +563,10 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                 const itemKey = item.order_id || index;
                 const isExpanded = expandedId === itemKey;
                 const hasInitialAttempt = !!item.initialAttempt;
+                const isFinalized = item.kind === 'finalized_success' || item.paid || (item.kind === 'cash_awaiting' && item.orderNumber);
+                const ageMs = item.created_at ? (Date.now() - new Date(item.created_at).getTime()) : 0;
+                const isTimeoutUnfinalized = !isFinalized && (item.kind === 'unfinalized_abandoned' || item.isUnfinalized || ageMs > 2.5 * 60 * 1000);
+                const ageMinutes = Math.max(1, Math.round(ageMs / 60000));
 
                 return (
                   <div key={itemKey} style={{ display: 'contents' }}>
@@ -590,6 +612,14 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                             <span className="inline-flex items-center gap-1.5 mt-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 whitespace-nowrap">
                               <CheckCircle2 size={12} />
                               <span>Finalizată cu Succes</span>
+                            </span>
+                          )}
+
+                          {/* Nefinalizată de Client Badge */}
+                          {isTimeoutUnfinalized && (
+                            <span className="inline-flex items-center gap-1.5 mt-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 whitespace-nowrap">
+                              <XCircle size={12} className="text-slate-400" />
+                              <span>Nefinalizată de Client</span>
                             </span>
                           )}
                         </div>
@@ -669,8 +699,14 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                             <span>Card Aprobat (Netrimis iiko)</span>
                           </span>
                         )}
-                        {item.kind === 'pos_in_progress' && (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30">
+                        {(item.kind === 'unfinalized_abandoned' || (item.kind === 'pos_in_progress' && isTimeoutUnfinalized)) && (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 whitespace-nowrap">
+                            <XCircle className="w-3.5 h-3.5 text-slate-400" />
+                            <span>Nefinalizată de Client</span>
+                          </span>
+                        )}
+                        {item.kind === 'pos_in_progress' && !isTimeoutUnfinalized && (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30 whitespace-nowrap">
                             <Clock className="w-3.5 h-3.5 animate-pulse" />
                             <span>Card în Curs POS</span>
                           </span>
@@ -886,85 +922,125 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                               </div>
 
                               {/* 2. DUPĂ FINALIZARE */}
-                              <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-emerald-200/80 dark:border-emerald-900/50 shadow-xs flex flex-col justify-between">
-                                <div>
-                                  <div className="flex items-center justify-between pb-2 mb-3 border-b border-emerald-100 dark:border-emerald-900/30">
-                                    <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-xs uppercase tracking-wider">
-                                      <CheckCircle2 className="w-4 h-4" />
-                                      <span>2. După Finalizare (Comandă & iiko)</span>
+                              {isTimeoutUnfinalized ? (
+                                <div className="bg-slate-50/70 dark:bg-slate-900/60 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between">
+                                  <div>
+                                    <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-200/80 dark:border-slate-800">
+                                      <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 font-bold text-xs uppercase tracking-wider">
+                                        <XCircle className="w-4 h-4 text-slate-400" />
+                                        <span>2. După Finalizare (Comandă & iiko)</span>
+                                      </div>
+                                      <span className="px-2.5 py-0.5 rounded-md text-[10px] font-semibold bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 whitespace-nowrap">
+                                        ✕ Nefinalizată de Client
+                                      </span>
                                     </div>
-                                    <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold ${
-                                      item.kind === 'finalized_success' 
-                                        ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
-                                    }`}>
-                                      {item.kind === 'finalized_success' ? '✓ Finalizată cu Succes' : 'Așteaptă Încasare'}
-                                    </span>
+
+                                    <div className="py-6 px-4 rounded-xl bg-white dark:bg-slate-800/80 border border-slate-200/70 dark:border-slate-700/60 text-center space-y-2.5">
+                                      <div className="w-11 h-11 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-400 mx-auto flex items-center justify-center">
+                                        <XCircle className="w-6 h-6 text-slate-400" />
+                                      </div>
+                                      <div>
+                                        <div className="font-bold text-slate-800 dark:text-slate-100 text-sm">
+                                          Comanda nu a fost finalizată de client
+                                        </div>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto leading-relaxed">
+                                          În termen de 2-3 minute nu a venit nicio confirmare a plății. Clientul a părăsit ecranul Kiosk sau nu a autorizat plata la POS.
+                                        </p>
+                                      </div>
+                                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600">
+                                        <span>Fără bon emis • Netransmis în iiko / bucătărie</span>
+                                      </div>
+                                    </div>
                                   </div>
 
-                                  <div className="space-y-2 text-xs">
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-slate-400 font-medium">Număr Bon / Ordine:</span>
-                                      <span className="text-sm font-black text-blue-600 dark:text-blue-400">
-                                        #{item.orderNumber || item.order_id}
+                                  <div className="mt-4 pt-3 border-t border-slate-200/80 dark:border-slate-800 flex items-center justify-between text-xs">
+                                    <span className="text-slate-400 font-medium">Stare Sesiune Kiosk:</span>
+                                    <span className="font-bold text-slate-600 dark:text-slate-400 flex items-center gap-1">
+                                      <Clock className="w-3.5 h-3.5 text-slate-400" /> Abandonată ({ageMinutes} min)
+                                    </span>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-emerald-200/80 dark:border-emerald-900/50 shadow-xs flex flex-col justify-between">
+                                  <div>
+                                    <div className="flex items-center justify-between pb-2 mb-3 border-b border-emerald-100 dark:border-emerald-900/30">
+                                      <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-xs uppercase tracking-wider">
+                                        <CheckCircle2 className="w-4 h-4" />
+                                        <span>2. După Finalizare (Comandă & iiko)</span>
+                                      </div>
+                                      <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-semibold whitespace-nowrap ${
+                                        item.kind === 'finalized_success' 
+                                          ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                                          : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
+                                      }`}>
+                                        {item.kind === 'finalized_success' ? '✓ Finalizată cu Succes' : 'Așteaptă Încasare'}
                                       </span>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-slate-400 font-medium">Metodă Plată Aleasă:</span>
-                                      <span className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
-                                        {p.paymentMethod === 'cash' ? <><Banknote className="w-4 h-4 text-slate-500" /> Numerar (Cash la Casierie)</> : <><CreditCard className="w-4 h-4 text-blue-500" /> Card Bancar</>}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-slate-400 font-medium">Stare Sincronizare iiko:</span>
-                                      {item.iiko_sent || p.syrveOrderId ? (
-                                        <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                                          <CheckCircle2 className="w-3.5 h-3.5" /> Transmis cu Succes
-                                        </span>
-                                      ) : (
-                                        <span className="font-bold text-slate-600 dark:text-slate-400 flex items-center gap-1">
-                                          <AlertTriangle className="w-3.5 h-3.5 text-slate-500" /> Netrimis încă
-                                        </span>
-                                      )}
                                     </div>
 
-                                    {(item.iiko_order_id || p.syrveOrderId) && (
-                                      <div className="p-2.5 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between gap-2 mt-2">
-                                        <span className="text-xs text-slate-700 dark:text-slate-300 truncate">
-                                          ID iiko: <strong className="text-emerald-600 dark:text-emerald-400">{item.iiko_order_id || p.syrveOrderId}</strong>
+                                    <div className="space-y-2 text-xs">
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-slate-400 font-medium">Număr Bon / Ordine:</span>
+                                        <span className="text-sm font-black text-blue-600 dark:text-blue-400">
+                                          #{item.orderNumber || item.order_id}
                                         </span>
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            navigator.clipboard.writeText(item.iiko_order_id || p.syrveOrderId);
-                                            const btn = e.currentTarget;
-                                            const prev = btn.innerText;
-                                            btn.innerText = 'Copiat!';
-                                            setTimeout(() => { btn.innerText = prev; }, 1500);
-                                          }}
-                                          className="px-2.5 py-1 bg-white dark:bg-slate-700 rounded-lg text-xs font-bold border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 transition-colors"
-                                        >
-                                          Copiază
-                                        </button>
                                       </div>
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-slate-400 font-medium">Metodă Plată Aleasă:</span>
+                                        <span className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                                          {p.paymentMethod === 'cash' ? <><Banknote className="w-4 h-4 text-slate-500" /> Numerar (Cash la Casierie)</> : <><CreditCard className="w-4 h-4 text-blue-500" /> Card Bancar</>}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-slate-400 font-medium">Stare Sincronizare iiko:</span>
+                                        {item.iiko_sent || p.syrveOrderId ? (
+                                          <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                                            <CheckCircle2 className="w-3.5 h-3.5" /> Transmis cu Succes
+                                          </span>
+                                        ) : (
+                                          <span className="font-bold text-slate-600 dark:text-slate-400 flex items-center gap-1">
+                                            <AlertTriangle className="w-3.5 h-3.5 text-slate-500" /> Netrimis încă
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      {(item.iiko_order_id || p.syrveOrderId) && (
+                                        <div className="p-2.5 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between gap-2 mt-2">
+                                          <span className="text-xs text-slate-700 dark:text-slate-300 truncate">
+                                            ID iiko: <strong className="text-emerald-600 dark:text-emerald-400">{item.iiko_order_id || p.syrveOrderId}</strong>
+                                          </span>
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              navigator.clipboard.writeText(item.iiko_order_id || p.syrveOrderId);
+                                              const btn = e.currentTarget;
+                                              const prev = btn.innerText;
+                                              btn.innerText = 'Copiat!';
+                                              setTimeout(() => { btn.innerText = prev; }, 1500);
+                                            }}
+                                            className="px-2.5 py-1 bg-white dark:bg-slate-700 rounded-lg text-xs font-bold border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 transition-colors"
+                                          >
+                                            Copiază
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Stare casierie */}
+                                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                                    <span className="text-slate-500 text-xs font-medium">Stare Încasare:</span>
+                                    {item.paid || item.kind === 'finalized_success' ? (
+                                      <span className="text-emerald-600 dark:text-emerald-400 font-bold text-xs flex items-center gap-1">
+                                        <CheckCircle2 className="w-4 h-4" /> Încasat & Confirmat
+                                      </span>
+                                    ) : (
+                                      <span className="text-slate-600 dark:text-slate-400 font-semibold text-xs flex items-center gap-1">
+                                        <Clock className="w-4 h-4 text-slate-500" /> Așteaptă plata la casierie
+                                      </span>
                                     )}
                                   </div>
                                 </div>
-
-                                {/* Stare casierie */}
-                                <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                                  <span className="text-slate-500 text-xs font-medium">Stare Încasare:</span>
-                                  {item.paid || item.kind === 'finalized_success' ? (
-                                    <span className="text-emerald-600 dark:text-emerald-400 font-bold text-xs flex items-center gap-1">
-                                      <CheckCircle2 className="w-4 h-4" /> Încasat & Confirmat
-                                    </span>
-                                  ) : (
-                                    <span className="text-slate-600 dark:text-slate-400 font-semibold text-xs flex items-center gap-1">
-                                      <Clock className="w-4 h-4 text-slate-500" /> Așteaptă plata la casierie
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
+                              )}
                             </div>
 
                             {/* ── ACTION BUTTONS ── */}
@@ -998,7 +1074,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                                   </button>
                                 )}
 
-                                {(!item.iiko_sent && !p.syrveOrderId) && (
+                                {(!item.iiko_sent && !p.syrveOrderId && !isTimeoutUnfinalized) && (
                                   <button
                                     onClick={() => handlePushToIiko(item.order_id, isCash)}
                                     disabled={isProcessing}
@@ -1138,10 +1214,21 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                         <span>Cash la Casierie (Neachitat)</span>
                       </span>
                     ) : (
-                      <span className="text-blue-600 dark:text-blue-400 flex items-center gap-1 font-bold">
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>În Curs POS</span>
-                      </span>
+                      (() => {
+                        const mAge = selectedDraft.created_at ? (Date.now() - new Date(selectedDraft.created_at).getTime()) : 0;
+                        const mTimeout = mAge > 2.5 * 60 * 1000;
+                        return mTimeout ? (
+                          <span className="text-slate-600 dark:text-slate-400 flex items-center gap-1 font-bold">
+                            <XCircle className="w-3.5 h-3.5 text-slate-400" />
+                            <span>Comandă Nefinalizată de Client (Expirată)</span>
+                          </span>
+                        ) : (
+                          <span className="text-blue-600 dark:text-blue-400 flex items-center gap-1 font-bold">
+                            <Clock className="w-3.5 h-3.5" />
+                            <span>În Curs POS</span>
+                          </span>
+                        );
+                      })()
                     )}
                   </div>
                 </div>

@@ -379,6 +379,8 @@ router.get('/pending-orders', requireApiKey, async (req, res) => {
       `);
 
       for (const r of posRows) {
+        const ageMs = Date.now() - new Date(r.created_at).getTime();
+        const isTimeout = !r.paid && ageMs > 2.5 * 60 * 1000;
         posRowsMap.set(r.order_id, {
           order_id: r.order_id,
           orderNumber: r.payload?.orderNumber || null,
@@ -396,7 +398,8 @@ router.get('/pending-orders', requireApiKey, async (req, res) => {
           error: r.pos_error,
           iiko_sent: !!r.iiko_sent,
           iiko_order_id: r.iiko_order_id,
-          kind: r.paid ? 'pos_paid_pending_iiko' : 'pos_in_progress',
+          kind: r.paid ? 'pos_paid_pending_iiko' : (isTimeout ? 'unfinalized_abandoned' : 'pos_in_progress'),
+          isUnfinalized: isTimeout,
         });
       }
     } catch (e) {
@@ -406,6 +409,8 @@ router.get('/pending-orders', requireApiKey, async (req, res) => {
     // In-memory fallback if any
     for (const [orderId, val] of pendingOrdersMap.entries()) {
       if (!posRowsMap.has(orderId)) {
+        const ageMs = Date.now() - new Date(val.timestamp).getTime();
+        const isTimeout = ageMs > 2.5 * 60 * 1000;
         posRowsMap.set(orderId, {
           order_id: orderId,
           orderNumber: val.payload?.orderNumber || null,
@@ -415,7 +420,8 @@ router.get('/pending-orders', requireApiKey, async (req, res) => {
           paid: false,
           pos_status: 'waiting',
           pos_amount: val.payload?.totalAmount,
-          kind: 'pos_in_progress',
+          kind: isTimeout ? 'unfinalized_abandoned' : 'pos_in_progress',
+          isUnfinalized: isTimeout,
         });
       }
     }
