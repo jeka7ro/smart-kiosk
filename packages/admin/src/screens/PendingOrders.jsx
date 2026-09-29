@@ -580,17 +580,17 @@ export default function PendingOrders({ backend, onGoToOrder }) {
 
       {/* ── Table Container (Matching IikoLogs / Orders 1:1 with Accordion) ── */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-x-auto">
-        <table className="w-full text-left border-collapse">
+        <table className="w-full text-left border-collapse table-auto">
           <thead>
             <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
-              <th className="w-10 px-2 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 text-center">Nr.</th>
-              <th className="px-3 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500"># Comandă</th>
-              <th className="px-3 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Brand</th>
-              <th className="px-3 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Locație & Kiosk</th>
-              <th className="px-3 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Produse / Coș</th>
-              <th className="px-3 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Total</th>
-              <th className="px-3 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Status</th>
-              <th className="px-3 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 text-right">Acțiuni</th>
+              <th className="w-8 px-1.5 py-2 text-[10.5px] font-bold uppercase tracking-wider text-slate-500 text-center">Nr.</th>
+              <th className="px-2 py-2 text-[10.5px] font-bold uppercase tracking-wider text-slate-500"># Comandă</th>
+              <th className="px-2 py-2 text-[10.5px] font-bold uppercase tracking-wider text-slate-500">Brand</th>
+              <th className="px-2 py-2 text-[10.5px] font-bold uppercase tracking-wider text-slate-500">Locație & Kiosk</th>
+              <th className="px-2 py-2 text-[10.5px] font-bold uppercase tracking-wider text-slate-500">Produse / Coș</th>
+              <th className="px-2 py-2 text-[10.5px] font-bold uppercase tracking-wider text-slate-500">Total</th>
+              <th className="px-2 py-2 text-[10.5px] font-bold uppercase tracking-wider text-slate-500">Status</th>
+              <th className="w-14 px-2 py-2 text-[10.5px] font-bold uppercase tracking-wider text-slate-500 text-right"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -632,18 +632,18 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                       onClick={() => setExpandedId(isExpanded ? null : itemKey)}
                     >
                       {/* Nr. */}
-                      <td className="w-10 px-2 py-2.5 text-center text-xs font-bold text-slate-400">
+                      <td className="w-8 px-1.5 py-2 text-center text-xs font-bold text-slate-400">
                         {rowNumber}
                       </td>
 
                       {/* # Comandă */}
-                      <td className="px-3 py-2.5 whitespace-nowrap">
-                        <div className="flex flex-col items-start gap-0.5">
-                          <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1">
+                      <td className="px-2 py-2 whitespace-nowrap">
+                        <div className="flex flex-col items-start gap-0.5 max-w-[110px] lg:max-w-[135px]">
+                          <span className="text-xs font-bold text-slate-900 dark:text-white truncate w-full" title={item.orderNumber || item.order_id}>
                             #{item.orderNumber || item.order_id}
                           </span>
                           {dt && (
-                            <span className="text-[10px] text-slate-400">
+                            <span className="text-[9.5px] text-slate-400">
                               {dt.toLocaleString('ro-RO')}
                             </span>
                           )}
@@ -651,52 +651,52 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                       </td>
 
                       {/* Brand cu Logo Prominent */}
-                      <td className="px-3 py-2.5 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <BrandLogo brandId={brand} size={24} className="shadow-2xs shrink-0" />
-                          <span style={{ color: BRAND_COLORS[brand] || '#e11d48' }} className="text-xs font-bold">
+                      <td className="px-2 py-2 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
+                          <BrandLogo brandId={brand} size={20} className="shadow-2xs shrink-0" />
+                          <span style={{ color: BRAND_COLORS[brand] || '#e11d48' }} className="text-xs font-bold truncate max-w-[90px]">
                             {BRAND_LABELS[brand] || brand}
                           </span>
                         </div>
                       </td>
 
                       {/* Locație & Kiosk */}
-                      <td className="px-3 py-2.5 whitespace-nowrap">
+                      <td className="px-2 py-2 whitespace-nowrap">
                         <div className="flex flex-col items-start gap-0.5">
-                          <span className="text-xs text-slate-900 dark:text-white font-bold truncate max-w-[130px]" title={locInfo.locationName}>
+                          <span className="text-xs text-slate-900 dark:text-white font-bold truncate max-w-[95px] lg:max-w-[120px]" title={locInfo.locationName}>
                             {locInfo.locationName}
                           </span>
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-2xs">
-                            <Monitor size={10} className="text-blue-500" />
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-2xs">
+                            <Monitor size={9} className="text-blue-500" />
                             <span>{locInfo.kioskLabel}</span>
                           </span>
                         </div>
                       </td>
 
                       {/* Produse / Coș cu preview imagini mici */}
-                      <td className="px-3 py-2.5 max-w-[180px] lg:max-w-xs">
-                        <div className="flex items-center gap-2">
+                      <td className="px-2 py-2 max-w-[130px] lg:max-w-[180px]">
+                        <div className="flex items-center gap-1.5 min-w-0">
                           {/* Mini imagini produse */}
-                          <div className="flex -space-x-1.5 shrink-0">
+                          <div className="flex -space-x-1 shrink-0">
                             {items.slice(0, 3).map((it, pIdx) => {
                               const img = resolveProductImage(it);
                               return (
-                                <div key={pIdx} className="w-6 h-6 rounded-full border border-white dark:border-slate-800 bg-slate-100 dark:bg-slate-700 overflow-hidden shrink-0 flex items-center justify-center shadow-2xs">
+                                <div key={pIdx} className="w-5 h-5 rounded-full border border-white dark:border-slate-800 bg-slate-100 dark:bg-slate-700 overflow-hidden shrink-0 flex items-center justify-center shadow-2xs">
                                   {img ? (
                                     <img src={img} alt={it.name} className="w-full h-full object-cover" />
                                   ) : (
-                                    <Utensils className="w-3 h-3 text-slate-400" />
+                                    <Utensils className="w-2.5 h-2.5 text-slate-400" />
                                   )}
                                 </div>
                               );
                             })}
                           </div>
 
-                          <div className="flex flex-col min-w-0">
-                            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                          <div className="flex flex-col min-w-0 flex-1">
+                            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate" title={items.map(i => `${i.quantity}x ${i.name}`).join(', ')}>
                               {items.map(i => `${i.quantity}x ${i.name}`).join(', ') || 'Coș fără detalii'}
                             </span>
-                            <span className="text-[10px] text-slate-400">
+                            <span className="text-[9.5px] text-slate-400">
                               {items.length} {items.length === 1 ? 'produs' : 'produse'}
                             </span>
                           </div>
@@ -704,16 +704,16 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                       </td>
 
                       {/* Total */}
-                      <td className="px-3 py-2.5 whitespace-nowrap">
+                      <td className="px-2 py-2 whitespace-nowrap">
                         <span className="text-xs font-black text-slate-900 dark:text-white">
                           {formatThousands(total)} <span className="text-[10px] font-normal text-slate-400">lei</span>
                         </span>
                       </td>
 
                       {/* Status - Standard Comenzi (App.jsx) */}
-                      <td className="px-3 py-2.5 whitespace-nowrap">
+                      <td className="px-2 py-2 whitespace-nowrap">
                         <span 
-                          className="px-2.5 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap inline-block" 
+                          className="px-2 py-0.5 rounded-full text-[10.5px] font-bold whitespace-nowrap inline-block" 
                           style={{ backgroundColor: `${sc.color}20`, color: sc.color, border: `1px solid ${sc.color}40` }}
                         >
                           ● {sc.label}
@@ -721,26 +721,27 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                       </td>
 
                       {/* Acțiuni & Expand Toggle */}
-                      <td className="px-3 py-2.5 text-right whitespace-nowrap" onClick={e => e.stopPropagation()}>
-                        <div className="inline-flex items-center gap-1.5 justify-end">
+                      <td className="w-14 px-2 py-2 text-right whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                        <div className="inline-flex items-center gap-1 justify-end">
                           {(!item.iiko_sent && !p.syrveOrderId) && (
                             <button
                               onClick={() => handlePushToIiko(item.order_id, isCash)}
                               disabled={isProcessing}
-                              className="px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-2xs cursor-pointer"
+                              className="p-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-2xs cursor-pointer flex items-center justify-center shrink-0"
                               title="Trimite comanda în iiko"
+                              aria-label="Trimite comanda în iiko"
                             >
-                              <Send className={`w-3 h-3 ${isProcessing ? 'animate-spin' : ''}`} />
-                              <span>Trimite iiko</span>
+                              <Send className={`w-3.5 h-3.5 ${isProcessing ? 'animate-spin' : ''}`} />
                             </button>
                           )}
 
                           <button
                             onClick={() => setExpandedId(isExpanded ? null : itemKey)}
-                            className="p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                            className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                             title={isExpanded ? 'Restrânge detaliile' : 'Deschide detaliile'}
+                            aria-label={isExpanded ? 'Restrânge detaliile' : 'Deschide detaliile'}
                           >
-                            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                            {isExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
                           </button>
                         </div>
                       </td>
@@ -749,12 +750,12 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                     {/* Accordion Expanded Detail View (Exact ca în IikoLogs cu poze și informații complete) */}
                     {isExpanded && (
                       <tr className="bg-slate-50/80 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-700">
-                        <td colSpan={8} className="px-3 py-3 sm:px-4 sm:py-3.5">
-                          <div className="space-y-3">
+                        <td colSpan={8} className="px-2.5 py-2.5 sm:px-3 sm:py-3">
+                          <div className="space-y-2.5">
                             {/* Accordion Header */}
-                            <div className="flex flex-wrap items-center justify-between gap-3 pb-2.5 border-b border-slate-200 dark:border-slate-700">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-sm font-bold text-slate-900 dark:text-white">
+                            <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-200 dark:border-slate-700">
+                              <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                                <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate max-w-[200px]" title={item.orderNumber || item.order_id}>
                                   Comandă #{item.orderNumber || item.order_id}
                                 </span>
                                 <button
@@ -764,56 +765,56 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                                   title="Vezi bon / coș complet"
                                   aria-label="Vezi bon / coș complet"
                                 >
-                                  <Eye size={15} />
+                                  <Eye size={14} />
                                 </button>
                                 <span 
                                   style={{ color: BRAND_COLORS[brand] || '#e11d48' }}
-                                  className="inline-flex items-center gap-1.5 text-[10.5px] px-2.5 py-0.5 rounded-full font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xs"
+                                  className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xs"
                                 >
-                                  <BrandLogo brandId={brand} size={15} />
+                                  <BrandLogo brandId={brand} size={13} />
                                   <span>{BRAND_LABELS[brand] || brand}</span>
                                 </span>
-                                <span className="inline-flex items-center gap-1.5 text-[10.5px] px-2.5 py-0.5 rounded-full font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-2xs">
-                                  <Monitor size={10} className="text-blue-500" />
+                                <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-2xs">
+                                  <Monitor size={9} className="text-blue-500" />
                                   <span>{locInfo.locationName} • {locInfo.kioskLabel}</span>
                                 </span>
-                                <span className="text-[10.5px] text-slate-400 ml-1">
-                                  {dt ? dt.toLocaleString('ro-RO') : '—'} • {p.orderType === 'takeaway' ? 'La Pachet' : 'În Restaurant'}
+                                <span className="text-[10px] text-slate-400">
+                                  {dt ? dt.toLocaleTimeString('ro-RO') : '—'} • {p.orderType === 'takeaway' ? 'La Pachet' : 'În Restaurant'}
                                 </span>
                               </div>
-                              <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-2.5 shrink-0 ml-auto">
                                 {(!item.iiko_sent && !p.syrveOrderId) && (
                                   <button
                                     onClick={() => handlePushToIiko(item.order_id, isCash)}
                                     disabled={isProcessing}
-                                    className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                                    className="px-2.5 py-1 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1 shadow-xs transition-all cursor-pointer"
                                     title="Trimite comanda în iiko"
                                   >
-                                    <Send className={`w-3.5 h-3.5 ${isProcessing ? 'animate-spin' : ''}`} />
+                                    <Send className={`w-3 h-3 ${isProcessing ? 'animate-spin' : ''}`} />
                                     <span>Trimite în iiko</span>
                                   </button>
                                 )}
                                 <div className="text-right">
-                                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Total de Plată</span>
-                                  <span className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+                                  <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block leading-tight">Total</span>
+                                  <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white leading-tight">
                                     {formatThousands(total)} lei
                                   </span>
                                 </div>
                               </div>
                             </div>
 
-                            {/* ── TIMELINE: ÎNAINTE DE FINALIZARE vs DUPĂ FINALIZARE (2 CARDURI MAI MICI) ── */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {/* ── TIMELINE: ÎNAINTE DE FINALIZARE vs DUPĂ FINALIZARE (2 CARDURI COMPACTE) ── */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5">
                               
                               {/* 1. ÎNAINTE DE FINALIZARE */}
-                              <div className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between">
+                              <div className="bg-white dark:bg-slate-900 rounded-xl p-2.5 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between">
                                 <div>
                                   <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-slate-100 dark:border-slate-800">
-                                    <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-bold text-[11px] uppercase tracking-wider">
+                                    <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-bold text-[10.5px] uppercase tracking-wider">
                                       <Clock className="w-3.5 h-3.5 text-slate-500" />
-                                      <span>1. Înainte de Finalizare (Kiosk)</span>
+                                      <span>1. Sesiune Kiosk</span>
                                     </div>
-                                    <span className="px-2 py-0.5 rounded text-[9.5px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 whitespace-nowrap">
+                                    <span className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 whitespace-nowrap">
                                       {item.initialAttempt ? 'Tentativă Anterioară' : 'Sesiune Kiosk'}
                                     </span>
                                   </div>
@@ -938,57 +939,57 @@ export default function PendingOrders({ backend, onGoToOrder }) {
 
                               {/* 2. DUPĂ FINALIZARE */}
                               {isTimeoutUnfinalized ? (
-                                <div className="bg-slate-50/70 dark:bg-slate-900/60 rounded-xl p-3 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between">
+                                <div className="bg-slate-50/70 dark:bg-slate-900/60 rounded-xl p-2.5 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between">
                                   <div>
                                     <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-slate-200/80 dark:border-slate-800">
-                                      <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400 font-bold text-[11px] uppercase tracking-wider">
+                                      <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400 font-bold text-[10.5px] uppercase tracking-wider">
                                         <XCircle className="w-3.5 h-3.5 text-slate-400" />
-                                        <span>2. După Finalizare (Comandă & iiko)</span>
+                                        <span>2. Sincronizare & iiko</span>
                                       </div>
-                                      <span className="px-2 py-0.5 rounded text-[9.5px] font-semibold bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 whitespace-nowrap">
-                                        ✕ Nefinalizată de Client
+                                      <span className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 whitespace-nowrap">
+                                        ✕ Nefinalizată
                                       </span>
                                     </div>
 
-                                    <div className="py-3 px-3 rounded-lg bg-white dark:bg-slate-800/80 border border-slate-200/70 dark:border-slate-700/60 text-center space-y-1.5">
-                                      <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-400 mx-auto flex items-center justify-center">
-                                        <XCircle className="w-4 h-4 text-slate-400" />
+                                    <div className="py-2 px-2.5 rounded-lg bg-white dark:bg-slate-800/80 border border-slate-200/70 dark:border-slate-700/60 text-center space-y-1">
+                                      <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-400 mx-auto flex items-center justify-center">
+                                        <XCircle className="w-3.5 h-3.5 text-slate-400" />
                                       </div>
                                       <div>
                                         <div className="font-bold text-slate-800 dark:text-slate-100 text-xs">
                                           Comanda nu a fost finalizată de client
                                         </div>
-                                        <p className="text-[10.5px] text-slate-500 dark:text-slate-400 mt-0.5 max-w-sm mx-auto leading-normal">
-                                          În termen de 2-3 minute nu a venit nicio confirmare a plății. Clientul a părăsit ecranul Kiosk sau nu a autorizat plata la POS.
+                                        <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 max-w-sm mx-auto leading-normal">
+                                          În termen de 2-3 minute nu a venit nicio confirmare a plății. Clientul a părăsit ecranul sau a anulat plata la POS.
                                         </p>
                                       </div>
-                                      <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600">
-                                        <span>Fără bon emis • Netransmis în iiko / bucătărie</span>
+                                      <div className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full text-[9.5px] font-semibold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600">
+                                        <span>Fără bon emis • Netransmis în iiko</span>
                                       </div>
                                     </div>
                                   </div>
 
-                                  <div className="mt-2.5 pt-2 border-t border-slate-200/80 dark:border-slate-800 flex items-center justify-between text-[11px]">
-                                    <span className="text-slate-400 font-medium">Stare Sesiune Kiosk:</span>
+                                  <div className="mt-2.5 pt-2 border-t border-slate-200/80 dark:border-slate-800 flex items-center justify-between text-[10.5px]">
+                                    <span className="text-slate-400 font-medium">Stare Kiosk:</span>
                                     <span className="font-bold text-slate-600 dark:text-slate-400 flex items-center gap-1">
                                       <Clock className="w-3 h-3 text-slate-400" /> Abandonată ({ageMinutes} min)
                                     </span>
                                   </div>
                                 </div>
                               ) : (
-                                <div className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-emerald-200/80 dark:border-emerald-900/50 shadow-xs flex flex-col justify-between">
+                                <div className="bg-white dark:bg-slate-900 rounded-xl p-2.5 border border-emerald-200/80 dark:border-emerald-900/50 shadow-xs flex flex-col justify-between">
                                   <div>
                                     <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-emerald-100 dark:border-emerald-900/30">
-                                      <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold text-[11px] uppercase tracking-wider">
+                                      <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold text-[10.5px] uppercase tracking-wider">
                                         <CheckCircle2 className="w-3.5 h-3.5" />
-                                        <span>2. După Finalizare (Comandă & iiko)</span>
+                                        <span>2. Sincronizare & iiko</span>
                                       </div>
-                                      <span className={`px-2 py-0.5 rounded text-[9.5px] font-semibold whitespace-nowrap ${
+                                      <span className={`px-1.5 py-0.2 rounded text-[9px] font-semibold whitespace-nowrap ${
                                         item.kind === 'finalized_success' 
                                           ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
                                           : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
                                       }`}>
-                                        {item.kind === 'finalized_success' ? '✓ Finalizată cu Succes' : 'Așteaptă Încasare'}
+                                        {item.kind === 'finalized_success' ? '✓ Finalizată' : 'Așteaptă Încasare'}
                                       </span>
                                     </div>
 
