@@ -87,11 +87,11 @@ export const BANK_ASSETS = {
     fallbackColor: '#ffffff'
   },
   patria: {
-    src: '/banks/patria.svg',
+    src: '/banks/patria.png',
     name: 'Patria Bank',
     short: 'PAT',
-    padding: 'p-0',
-    bgColor: 'bg-[#002e6d]',
+    padding: 'p-[1px]',
+    bgColor: 'bg-white',
     borderColor: 'border-blue-700/80',
     fallbackBg: 'linear-gradient(135deg, #002e6d 0%, #1e40af 100%)',
     fallbackColor: '#ffffff'
@@ -110,9 +110,9 @@ export const BANK_ASSETS = {
     src: '/banks/libra.svg',
     name: 'Libra Bank',
     short: 'LIB',
-    padding: 'p-0',
-    bgColor: 'bg-[#0a2540]',
-    borderColor: 'border-sky-600/80',
+    padding: 'p-[1px]',
+    bgColor: 'bg-white',
+    borderColor: 'border-slate-200 dark:border-slate-700',
     fallbackBg: 'linear-gradient(135deg, #0a2540 0%, #0284c7 100%)',
     fallbackColor: '#ffffff'
   },

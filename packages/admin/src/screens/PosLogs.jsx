@@ -1,8 +1,12 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useAuth } from '../context/AuthProvider';
 import { useConfirm } from '../components/ConfirmModal.jsx';
-import { CreditCard, CheckCircle2, XCircle, AlertTriangle, RotateCcw, Receipt, Copy, Check, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { io } from 'socket.io-client';
+import { 
+  CreditCard, CheckCircle2, XCircle, AlertTriangle, RotateCcw, 
+  Receipt, Copy, Check, X, ChevronDown, ChevronUp,
+  TrendingUp, BarChart3, PieChart, Landmark, ArrowUpRight, ArrowRight, Wallet, ShieldCheck
+} from 'lucide-react';
 import * as XLSX from 'xlsx';
 import BrandLogo from '../components/BrandLogo.jsx';
 import BankLogo from '../components/BankLogo.jsx';
@@ -441,6 +445,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
   const confirm = useConfirm();
   const [logs, setLogs]   = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('logs'); // 'logs' | 'bankStats'
   const [filter, setFilter]   = useState('all');     // all | approved | declined | timeout
   const [locFilter, setLocFilter] = useState('all');
   const [brandFilter, setBrandFilter] = useState('all');
@@ -696,31 +701,62 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
   const bankStats = useMemo(() => {
     const map = {};
     Object.keys(BANK_CONFIG).forEach(k => {
-      map[k] = { ...BANK_CONFIG[k], count: 0, volume: 0 };
+      map[k] = { 
+        ...BANK_CONFIG[k], 
+        count: 0, 
+        volume: 0,
+        brands: { mastercard: 0, visa: 0, maestro: 0, other: 0 }
+      };
     });
+
+    let totalCardCount = 0;
+    let totalCardVol = 0;
+    const networkStats = {
+      mastercard: { name: 'Mastercard', count: 0, volume: 0 },
+      visa: { name: 'Visa', count: 0, volume: 0 },
+      maestro: { name: 'Maestro', count: 0, volume: 0 },
+      other: { name: 'Altele', count: 0, volume: 0 }
+    };
 
     periodFilteredLogs.forEach(l => {
       if (l.status === 'approved' || l.paid === true) {
         const meta = extractPosMeta(l);
         const bankKey = meta.cardBank?.id || 'other';
+        const amt = Number(l.amount) || 0;
+
+        totalCardCount += 1;
+        totalCardVol += amt;
+
+        const bKey = meta.cardBrand === 'mastercard' ? 'mastercard' : 
+                     (meta.cardBrand === 'visa' ? 'visa' : 
+                     (meta.cardBrand === 'maestro' ? 'maestro' : 'other'));
+        networkStats[bKey].count += 1;
+        networkStats[bKey].volume += amt;
+
         if (!map[bankKey]) {
           map[bankKey] = {
             id: bankKey,
-            name: meta.cardBank?.name || 'Altele',
+            name: meta.cardBank?.name || 'Alte Bănci',
             shortName: meta.cardBank?.shortName || 'Altele',
             color: meta.cardBank?.color || '#64748b',
             count: 0,
-            volume: 0
+            volume: 0,
+            brands: { mastercard: 0, visa: 0, maestro: 0, other: 0 }
           };
         }
         map[bankKey].count += 1;
-        map[bankKey].volume += Number(l.amount) || 0;
+        map[bankKey].volume += amt;
+        if (!map[bankKey].brands) map[bankKey].brands = { mastercard: 0, visa: 0, maestro: 0, other: 0 };
+        map[bankKey].brands[bKey] = (map[bankKey].brands[bKey] || 0) + 1;
       }
     });
 
     const list = Object.values(map).filter(b => b.count > 0).sort((a, b) => b.volume - a.volume);
     const totalVol = list.reduce((sum, b) => sum + b.volume, 0);
-    return { list, totalVol };
+    const avgTicket = totalCardCount > 0 ? (totalVol / totalCardCount) : 0;
+    const topBank = list.length > 0 ? list[0] : null;
+
+    return { list, totalVol, totalCount: totalCardCount, avgTicket, topBank, networkStats };
   }, [periodFilteredLogs]);
 
   // Table filtering adds status and bank filters on top of periodFilteredLogs
@@ -806,167 +842,69 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
 
   return (
     <div className="space-y-6">
-      {/* Stats Cards - Identical to Dashboard StatCard */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard 
-          label={periodLabel} 
-          value={derivedStats.total} 
-          color="#6366f1" 
-          icon={CreditCard}
-          onClick={() => { setFilter('all'); setCurrentPage(1); }}
-          active={filter === 'all'}
-        />
-        <StatCard 
-          label="Aprobate" 
-          value={derivedStats.approved} 
-          color="#059669" 
-          icon={CheckCircle2}
-          onClick={() => { setFilter(filter === 'approved' ? 'all' : 'approved'); setCurrentPage(1); }}
-          active={filter === 'approved'}
-        />
-        <StatCard 
-          label="Respinse" 
-          value={derivedStats.declined} 
-          color="#ef4444" 
-          icon={XCircle}
-          onClick={() => { setFilter(filter === 'declined' ? 'all' : 'declined'); setCurrentPage(1); }}
-          active={filter === 'declined'}
-        />
-        <StatCard 
-          label="iiko Eșuat" 
-          value={derivedStats.iikoFailed} 
-          color="#f97316" 
-          icon={AlertTriangle}
-          onClick={() => { setFilter(filter === 'iikoFailed' ? 'all' : 'iikoFailed'); setCurrentPage(1); }}
-          active={filter === 'iikoFailed'}
-          highlight={derivedStats.iikoFailed > 0}
-        />
-      </div>
-
-      {/* Distribuție Bănci Emitente (Statistici Carduri - Restrâns implicit) */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 shadow-sm border border-slate-200 dark:border-slate-800 transition-all">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div 
-            className="flex items-center gap-2 cursor-pointer select-none"
-            onClick={() => setIsBankStatsOpen(!isBankStatsOpen)}
-          >
-            <span className="text-base">🏦</span>
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200">
-              Bănci Emitente Carduri
-            </span>
-            <span className="text-xs font-semibold text-slate-400">
-              ({bankStats.list.reduce((acc, b) => acc + b.count, 0)} plăți aprobate • {formatThousands(bankStats.totalVol)} RON)
-            </span>
-          </div>
+      {/* Settlement Alert Notice */}
+      {settlementNotice && (
+        <div className={`p-4 rounded-2xl flex items-center justify-between gap-3 text-sm font-bold shadow-md animate-fadeIn ${
+          settlementNotice.type === 'success' 
+            ? 'bg-emerald-50 border border-emerald-300 text-emerald-800 dark:bg-emerald-950/60 dark:border-emerald-700 dark:text-emerald-200' 
+            : settlementNotice.type === 'info'
+            ? 'bg-blue-50 border border-blue-300 text-blue-800 dark:bg-blue-950/60 dark:border-blue-700 dark:text-blue-200'
+            : 'bg-red-50 border border-red-300 text-red-800 dark:bg-red-950/60 dark:border-red-700 dark:text-red-200'
+        }`}>
           <div className="flex items-center gap-2">
-            {bankFilter !== 'all' && (
-              <button
-                onClick={() => { setBankFilter('all'); setCurrentPage(1); }}
-                className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-bold flex items-center gap-1 cursor-pointer"
-              >
-                Resetează filtru bancă ✕
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => setIsBankStatsOpen(!isBankStatsOpen)}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-            >
-              <span>{isBankStatsOpen || bankFilter !== 'all' ? 'Restrânge' : 'Extinde'}</span>
-              <ChevronDown size={14} className={`transition-transform duration-200 ${isBankStatsOpen || bankFilter !== 'all' ? 'rotate-180' : ''}`} />
-            </button>
+            {settlementNotice.type === 'success' ? <CheckCircle2 size={18} /> : settlementNotice.type === 'info' ? <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /> : <AlertTriangle size={18} />}
+            <span>{settlementNotice.text}</span>
           </div>
+          <button onClick={() => setSettlementNotice(null)} className="p-1 hover:bg-black/10 rounded-lg cursor-pointer">
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* Top Header with Segmented Navigation Tab & Global Period/Location Controls */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 p-2.5 sm:p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+        {/* Segmented Tab Pill */}
+        <div className="inline-flex p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700/60 shadow-inner">
+          <button
+            type="button"
+            onClick={() => { setActiveTab('logs'); setCurrentPage(1); }}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              activeTab === 'logs'
+                ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs scale-[1.02]'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <CreditCard size={15} />
+            <span>Jurnal Tranzacții POS</span>
+            <span className="text-[11px] px-1.5 py-0.2 rounded-md bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-black">
+              {derivedStats.total}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('bankStats')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              activeTab === 'bankStats'
+                ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs scale-[1.02]'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <span className="text-sm">🏦</span>
+            <span>Statistici Bănci & Carduri</span>
+            <span className="text-[11px] px-1.5 py-0.2 rounded-md bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-black">
+              {bankStats.list.length} bănci • {formatThousands(bankStats.totalVol)} lei
+            </span>
+          </button>
         </div>
 
-        {(isBankStatsOpen || bankFilter !== 'all') && (
-          <div className="space-y-3 pt-3 mt-3 border-t border-slate-100 dark:border-slate-800 animate-fadeIn">
-            {/* 3D Multi-segmented distribution bar */}
-            {bankStats.totalVol > 0 && (
-              <div className="w-full h-3 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex shadow-inner">
-                {bankStats.list.map(b => {
-                  const pct = (b.volume / bankStats.totalVol) * 100;
-                  if (pct < 0.5) return null;
-                  return (
-                    <div
-                      key={b.id}
-                      style={{
-                        width: `${pct}%`,
-                        backgroundColor: b.color,
-                      }}
-                      className="h-full transition-all duration-300 relative group cursor-pointer"
-                      onClick={() => { setBankFilter(bankFilter === b.id ? 'all' : b.id); setCurrentPage(1); }}
-                      title={`${b.name}: ${formatThousands(b.volume)} RON (${pct.toFixed(1)}%) - ${b.count} tranzacții`}
-                    />
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Interactive Bank Filter Badges */}
-            <div className="flex flex-wrap gap-2 pt-0.5">
-              {bankStats.list.map(b => {
-                const isSelected = bankFilter === b.id;
-                const pct = bankStats.totalVol > 0 ? ((b.volume / bankStats.totalVol) * 100).toFixed(0) : 0;
-                return (
-                  <button
-                    key={b.id}
-                    onClick={() => { setBankFilter(isSelected ? 'all' : b.id); setCurrentPage(1); }}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                      isSelected
-                        ? 'ring-2 shadow-sm scale-105'
-                        : 'bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700/80 text-slate-700 dark:text-slate-300'
-                    }`}
-                    style={isSelected ? {
-                      backgroundColor: `${b.color}18`,
-                      color: b.color,
-                      borderColor: b.color,
-                      boxShadow: `0 2px 8px ${b.color}30`
-                    } : {}}
-                  >
-                    <BankLogo bankId={b.id} bank={b} size={22} className="shadow-xs shrink-0" />
-                    <span>{b.shortName}</span>
-                    <span className="text-[11px] font-extrabold px-1.5 py-0.2 rounded bg-black/5 dark:bg-white/10">
-                      {b.count}
-                    </span>
-                    <span className="text-[11px] opacity-75 font-semibold">
-                      {formatThousands(b.volume)} lei ({pct}%)
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        {/* Filters */}
-        <div className="flex flex-wrap items-center gap-2">
-          {[
-            { id: 'all',       label: 'Toate' },
-            { id: 'approved',  label: 'Aprobate' },
-            { id: 'declined',  label: 'Respinse' },
-            { id: 'cancelled', label: 'Anulate de client' },
-          ].map(f => (
-            <button
-              key={f.id}
-              onClick={() => { setFilter(f.id); setCurrentPage(1); }}
-              className={`px-4 h-9 rounded-full text-sm font-bold border transition-colors ${
-                filter === f.id
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-
+        {/* Global Filter Bar (Period, Custom Date, Location, Brand, Export) */}
+        <div className="flex flex-wrap items-center gap-2 ml-auto">
           {/* Period Filter */}
           <select
             value={periodFilter}
             onChange={e => { setPeriodFilter(e.target.value); setCurrentPage(1); }}
-            className="h-9 px-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-medium text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500"
+            className="h-8.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
           >
             <option value="all">Toată perioada</option>
             <option value="today">Azi</option>
@@ -984,14 +922,14 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                 type="date" 
                 value={customStart} 
                 onChange={e => {setCustomStart(e.target.value); setCurrentPage(1);}} 
-                className="h-9 px-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500" 
+                className="h-8.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500" 
               />
               <span className="text-slate-400 font-bold">-</span>
               <input 
                 type="date" 
                 value={customEnd} 
                 onChange={e => {setCustomEnd(e.target.value); setCurrentPage(1);}} 
-                className="h-9 px-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500" 
+                className="h-8.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500" 
               />
             </div>
           )}
@@ -1000,7 +938,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
             <select
               value={locFilter}
               onChange={e => { setLocFilter(e.target.value); setCurrentPage(1); }}
-              className="h-9 px-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-medium text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500"
+              className="h-8.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
             >
               <option value="all">Toate locațiile</option>
               {locations.map(l => <option key={l} value={l}>{l}</option>)}
@@ -1011,39 +949,147 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
             <select
               value={brandFilter}
               onChange={e => { setBrandFilter(e.target.value); setCurrentPage(1); }}
-              className="h-9 px-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-medium text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500 capitalize"
+              className="h-8.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500 capitalize shadow-2xs"
             >
               <option value="all">Toate brandurile</option>
               {brands.map(b => <option key={b} value={b}>{b}</option>)}
             </select>
           )}
 
-          {/* Bank Filter */}
-          <select
-            value={bankFilter}
-            onChange={e => { setBankFilter(e.target.value); setCurrentPage(1); }}
-            className="h-9 px-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-medium text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500"
+          {/* Settlement POS button */}
+          <button
+            onClick={handleTriggerSettlement}
+            disabled={settling}
+            className="px-3 h-8.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            title="Trimite comanda de Închidere de Zi (Settlement) către POS"
           >
-            <option value="all">Toate băncile</option>
-            {Object.values(BANK_CONFIG).map(b => (
-              <option key={b.id} value={b.id}>{b.name}</option>
-            ))}
-          </select>
-        </div>
+            <RotateCcw size={13} className={settling ? 'animate-spin text-blue-600' : ''} />
+            <span>Settlement POS</span>
+          </button>
 
-        <div className="flex items-center gap-2">
+          {/* Export Excel */}
           <button
             onClick={handleExportExcel}
-            className="px-4 h-9 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm text-sm font-bold transition-colors flex items-center gap-2"
+            className="px-3 h-8.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
+            title="Exportă tranzacțiile în Excel"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            Excel
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <span>Excel</span>
           </button>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-x-auto">
+      {/* ─── TAB 1: JURNAL TRANZACȚII POS ─── */}
+      {activeTab === 'logs' && (
+        <div className="space-y-5 animate-fadeIn">
+          {/* Stats Cards - Identical to Dashboard StatCard */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <StatCard 
+              label={periodLabel} 
+              value={derivedStats.total} 
+              color="#6366f1" 
+              icon={CreditCard}
+              onClick={() => { setFilter('all'); setCurrentPage(1); }}
+              active={filter === 'all'}
+            />
+            <StatCard 
+              label="Aprobate" 
+              value={derivedStats.approved} 
+              color="#059669" 
+              icon={CheckCircle2}
+              onClick={() => { setFilter(filter === 'approved' ? 'all' : 'approved'); setCurrentPage(1); }}
+              active={filter === 'approved'}
+            />
+            <StatCard 
+              label="Respinse" 
+              value={derivedStats.declined} 
+              color="#ef4444" 
+              icon={XCircle}
+              onClick={() => { setFilter(filter === 'declined' ? 'all' : 'declined'); setCurrentPage(1); }}
+              active={filter === 'declined'}
+            />
+            <StatCard 
+              label="iiko Eșuat" 
+              value={derivedStats.iikoFailed} 
+              color="#f97316" 
+              icon={AlertTriangle}
+              onClick={() => { setFilter(filter === 'iikoFailed' ? 'all' : 'iikoFailed'); setCurrentPage(1); }}
+              active={filter === 'iikoFailed'}
+              highlight={derivedStats.iikoFailed > 0}
+            />
+          </div>
+
+          {/* Quick Bank Filter Banner if a bank is selected */}
+          {bankFilter !== 'all' && (
+            <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-2xl text-xs font-bold text-blue-900 dark:text-blue-200 animate-fadeIn">
+              <div className="flex items-center gap-2">
+                <span>Filtru bancar activ:</span>
+                <BankLogo bankId={bankFilter} size={20} />
+                <span className="font-extrabold">{BANK_CONFIG[bankFilter]?.name || bankFilter}</span>
+                <span className="opacity-75">
+                  ({filtered.length} tranzacții găsite)
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setActiveTab('bankStats')}
+                  className="px-2.5 py-1 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center gap-1 cursor-pointer"
+                >
+                  <span>Vezi analiză bancară</span>
+                  <ArrowRight size={13} />
+                </button>
+                <button
+                  onClick={() => { setBankFilter('all'); setCurrentPage(1); }}
+                  className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  Resetează filtru ✕
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Table Controls (Status pills + Bank selector) */}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {[
+                { id: 'all',       label: 'Toate' },
+                { id: 'approved',  label: 'Aprobate' },
+                { id: 'declined',  label: 'Respinse' },
+                { id: 'cancelled', label: 'Anulate de client' },
+              ].map(f => (
+                <button
+                  key={f.id}
+                  onClick={() => { setFilter(f.id); setCurrentPage(1); }}
+                  className={`px-3.5 h-8.5 rounded-full text-xs font-bold border transition-colors cursor-pointer ${
+                    filter === f.id
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+
+              {/* Bank Filter Dropdown */}
+              <select
+                value={bankFilter}
+                onChange={e => { setBankFilter(e.target.value); setCurrentPage(1); }}
+                className="h-8.5 px-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
+              >
+                <option value="all">Toate băncile</option>
+                {Object.values(BANK_CONFIG).map(b => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="text-xs font-bold text-slate-400">
+              {filtered.length} tranzacții afișate (pag. {currentPage} din {totalPages})
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-x-auto">
         <table className="w-full text-left border-collapse min-w-[900px]">
           <thead>
             <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
@@ -1323,6 +1369,485 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
           </div>
         </div>
       </div>
+    </div>
+  )}
+
+      {/* ─── TAB 2: STATISTICI BĂNCI & CARDURI ─── */}
+      {activeTab === 'bankStats' && (
+        <div className="space-y-6 animate-fadeIn">
+          {/* 1. High-Level KPIs */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            {/* KPI 1: Volum Total Carduri */}
+            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs relative overflow-hidden">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Volum Total Carduri
+                </span>
+                <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                  <Landmark size={18} />
+                </div>
+              </div>
+              <div className="mt-2 flex items-baseline gap-1.5">
+                <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                  {formatThousands(bankStats.totalVol)}
+                </span>
+                <span className="text-xs font-bold text-slate-400">RON</span>
+              </div>
+              <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                din {bankStats.totalCount} plăți aprobate
+              </div>
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
+            </div>
+
+            {/* KPI 2: Plăți Card Aprobate */}
+            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs relative overflow-hidden">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Tranzacții Aprobate
+                </span>
+                <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                  <CheckCircle2 size={18} />
+                </div>
+              </div>
+              <div className="mt-2 flex items-baseline gap-1.5">
+                <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                  {bankStats.totalCount}
+                </span>
+                <span className="text-xs font-bold text-slate-400">plăți</span>
+              </div>
+              <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                la {bankStats.list.length} bănci emitente diferite
+              </div>
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-500" />
+            </div>
+
+            {/* KPI 3: Valoare Medie / Bon Card (AOV) */}
+            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs relative overflow-hidden">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Ticket Mediu / Card
+                </span>
+                <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                  <TrendingUp size={18} />
+                </div>
+              </div>
+              <div className="mt-2 flex items-baseline gap-1.5">
+                <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                  {bankStats.avgTicket.toFixed(2)}
+                </span>
+                <span className="text-xs font-bold text-slate-400">RON / bon</span>
+              </div>
+              <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                cheltuială medie per client la POS
+              </div>
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 to-orange-500" />
+            </div>
+
+            {/* KPI 4: Bancă Lider */}
+            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs relative overflow-hidden">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Bancă Lider (Volum)
+                </span>
+                {bankStats.topBank ? (
+                  <BankLogo bankId={bankStats.topBank.id} size={28} className="shadow-xs shrink-0" />
+                ) : (
+                  <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center">
+                    <ShieldCheck size={18} />
+                  </div>
+                )}
+              </div>
+              <div className="mt-2 flex items-baseline gap-1.5">
+                <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight truncate max-w-[170px]">
+                  {bankStats.topBank ? bankStats.topBank.shortName : '—'}
+                </span>
+                {bankStats.topBank && bankStats.totalVol > 0 && (
+                  <span className="text-xs font-extrabold px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
+                    {((bankStats.topBank.volume / bankStats.totalVol) * 100).toFixed(1)}%
+                  </span>
+                )}
+              </div>
+              <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
+                {bankStats.topBank ? `${formatThousands(bankStats.topBank.volume)} RON • ${bankStats.topBank.count} tranzacții` : 'Nicio tranzacție'}
+              </div>
+              <div 
+                className="absolute bottom-0 left-0 right-0 h-1" 
+                style={{ backgroundColor: bankStats.topBank?.color || '#3b82f6' }}
+              />
+            </div>
+          </div>
+
+          {/* 2. Visual Multi-Segment Distribution Bar */}
+          <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <BarChart3 size={18} className="text-blue-600 dark:text-blue-400" />
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                  Distribuție Volum per Bancă Emitentă
+                </h3>
+              </div>
+              <span className="text-xs text-slate-400 font-semibold">
+                {bankStats.list.length} bănci identificate
+              </span>
+            </div>
+
+            {/* The 3D multi-color segmented progress bar */}
+            {bankStats.totalVol > 0 ? (
+              <div className="w-full h-4 sm:h-5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex shadow-inner p-0.5 border border-slate-200/50 dark:border-slate-700/50">
+                {bankStats.list.map(b => {
+                  const pct = (b.volume / bankStats.totalVol) * 100;
+                  if (pct < 0.3) return null;
+                  return (
+                    <div
+                      key={b.id}
+                      style={{
+                        width: `${pct}%`,
+                        backgroundColor: b.color,
+                      }}
+                      className="h-full first:rounded-l-full last:rounded-r-full transition-all duration-300 relative group cursor-pointer hover:opacity-90"
+                      onClick={() => {
+                        setBankFilter(b.id);
+                        setActiveTab('logs');
+                        setCurrentPage(1);
+                      }}
+                      title={`${b.name}: ${formatThousands(b.volume)} RON (${pct.toFixed(1)}%) • ${b.count} tranzacții`}
+                    />
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="py-6 text-center text-xs text-slate-400 font-medium">
+                Nu există plăți cu cardul în perioada selectată.
+              </div>
+            )}
+
+            {/* Quick Badges below bar */}
+            <div className="flex flex-wrap gap-2 pt-1">
+              {bankStats.list.map(b => {
+                const pct = bankStats.totalVol > 0 ? ((b.volume / bankStats.totalVol) * 100).toFixed(1) : '0';
+                return (
+                  <div
+                    key={b.id}
+                    onClick={() => {
+                      setBankFilter(b.id);
+                      setActiveTab('logs');
+                      setCurrentPage(1);
+                    }}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-bold transition-all cursor-pointer hover:scale-[1.02] shadow-2xs group"
+                  >
+                    <BankLogo bankId={b.id} bank={b} size={22} className="shrink-0" />
+                    <span>{b.shortName}</span>
+                    <span className="text-[11px] font-extrabold px-1.5 py-0.2 rounded bg-black/5 dark:bg-white/10 text-slate-700 dark:text-slate-300">
+                      {pct}%
+                    </span>
+                    <span className="text-[11px] text-slate-400 font-semibold group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                      {formatThousands(b.volume)} lei
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 3. Rețele Carduri (Mastercard vs. Visa vs. Maestro vs. Altele) */}
+          <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <PieChart size={18} className="text-amber-500" />
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                  Rețele de Plată (Card Brand)
+                </h3>
+              </div>
+              <span className="text-xs text-slate-400 font-semibold">
+                Mastercard vs. Visa vs. Maestro
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-1">
+              {[
+                { 
+                  id: 'mastercard', 
+                  name: 'Mastercard', 
+                  data: bankStats.networkStats?.mastercard, 
+                  color: '#eb001b',
+                  avatar: (
+                    <div className="w-8 h-5 rounded bg-black border border-slate-700 flex items-center justify-center shrink-0">
+                      <svg width="20" height="12" viewBox="0 0 24 15" fill="none">
+                        <circle cx="7.5" cy="7.5" r="7" fill="#EB001B"/>
+                        <circle cx="16.5" cy="7.5" r="7" fill="#F79E1B"/>
+                        <path d="M12 2.2a6.98 6.98 0 0 1 0 10.6 6.98 6.98 0 0 1 0-10.6Z" fill="#FF5F00"/>
+                      </svg>
+                    </div>
+                  )
+                },
+                { 
+                  id: 'visa', 
+                  name: 'Visa', 
+                  data: bankStats.networkStats?.visa, 
+                  color: '#1a1f71',
+                  avatar: (
+                    <div className="w-8 h-5 rounded bg-[#102468] border border-blue-600/40 flex items-center justify-center px-1 shrink-0">
+                      <span className="text-[10px] font-black text-white italic tracking-wider">VISA</span>
+                    </div>
+                  )
+                },
+                { 
+                  id: 'maestro', 
+                  name: 'Maestro', 
+                  data: bankStats.networkStats?.maestro, 
+                  color: '#0061a8',
+                  avatar: (
+                    <div className="w-8 h-5 rounded bg-black border border-slate-700 flex items-center justify-center shrink-0">
+                      <svg width="20" height="12" viewBox="0 0 24 15" fill="none">
+                        <circle cx="7.5" cy="7.5" r="7" fill="#0061A8"/>
+                        <circle cx="16.5" cy="7.5" r="7" fill="#EB001B"/>
+                        <path d="M12 2.2a6.98 6.98 0 0 1 0 10.6 6.98 6.98 0 0 1 0-10.6Z" fill="#6C6BBA"/>
+                      </svg>
+                    </div>
+                  )
+                },
+                { 
+                  id: 'other', 
+                  name: 'Card Bancar / Altele', 
+                  data: bankStats.networkStats?.other, 
+                  color: '#64748b',
+                  avatar: (
+                    <div className="w-8 h-5 rounded bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-300 flex items-center justify-center shrink-0">
+                      <CreditCard size={12} />
+                    </div>
+                  )
+                }
+              ].map(net => {
+                const count = net.data?.count || 0;
+                const vol = net.data?.volume || 0;
+                const pct = bankStats.totalCount > 0 ? ((count / bankStats.totalCount) * 100).toFixed(1) : '0';
+                return (
+                  <div key={net.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        {net.avatar}
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{net.name}</span>
+                      </div>
+                      <span className="text-[11px] font-black px-1.5 py-0.2 rounded bg-black/5 dark:bg-white/10 text-slate-700 dark:text-slate-300">
+                        {pct}%
+                      </span>
+                    </div>
+                    <div className="mt-2 flex items-baseline justify-between">
+                      <span className="text-base font-black text-slate-900 dark:text-white">
+                        {formatThousands(vol)} RON
+                      </span>
+                      <span className="text-xs font-semibold text-slate-400">
+                        {count} plăți
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 4. Grid de Carduri Bănci Emitente (Detailed Bank Cards) */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                <span>🏦</span>
+                <span>Analiză Bănci Emitente ({bankStats.list.length})</span>
+              </h3>
+              <span className="text-xs text-slate-400 font-semibold">
+                Ordonate descrescător după volumul încasat
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {bankStats.list.map((b, idx) => {
+                const pct = bankStats.totalVol > 0 ? ((b.volume / bankStats.totalVol) * 100).toFixed(1) : '0';
+                const avg = b.count > 0 ? (b.volume / b.count).toFixed(2) : '0.00';
+                const maxVol = bankStats.topBank?.volume || 1;
+                const relativeProgress = Math.min(100, Math.round((b.volume / maxVol) * 100));
+
+                return (
+                  <div
+                    key={b.id}
+                    className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-xs hover:shadow-md transition-all flex flex-col justify-between relative group"
+                  >
+                    {/* Top bank badge / rank */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <BankLogo bankId={b.id} bank={b} size={42} className="shadow-xs shrink-0" />
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <h4 className="text-sm font-black text-slate-900 dark:text-white leading-tight">
+                              {b.name}
+                            </h4>
+                          </div>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                              {b.shortName}
+                            </span>
+                            <span className="text-[11px] font-extrabold text-blue-600 dark:text-blue-400">
+                              #{idx + 1} în top
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <span 
+                          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-black shadow-2xs"
+                          style={{
+                            backgroundColor: `${b.color}18`,
+                            color: b.color,
+                            border: `1px solid ${b.color}35`
+                          }}
+                        >
+                          {pct}%
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Middle: Volume and Metrics */}
+                    <div className="my-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 grid grid-cols-3 gap-2 text-center">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-bold uppercase text-slate-400">Volum</span>
+                        <span className="text-sm font-black text-slate-900 dark:text-white mt-0.5">
+                          {formatThousands(b.volume)} lei
+                        </span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-bold uppercase text-slate-400">Tranzacții</span>
+                        <span className="text-sm font-black text-slate-900 dark:text-white mt-0.5">
+                          {b.count} plăți
+                        </span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-bold uppercase text-slate-400">Medie / Bon</span>
+                        <span className="text-sm font-black text-slate-900 dark:text-white mt-0.5">
+                          {avg} lei
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Relative volume progress bar */}
+                    <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden mb-3">
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{
+                          width: `${relativeProgress}%`,
+                          backgroundColor: b.color
+                        }}
+                      />
+                    </div>
+
+                    {/* Action button: Drill-down to transactions */}
+                    <button
+                      onClick={() => {
+                        setBankFilter(b.id);
+                        setActiveTab('logs');
+                        setCurrentPage(1);
+                      }}
+                      className="w-full py-2 px-3 rounded-xl bg-slate-50 hover:bg-blue-50 dark:bg-slate-800/60 dark:hover:bg-blue-950/40 text-slate-700 hover:text-blue-600 dark:text-slate-300 dark:hover:text-blue-400 border border-slate-200 dark:border-slate-700/80 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer group-hover:border-blue-300 dark:group-hover:border-blue-700"
+                    >
+                      <span>Vezi tranzacțiile în Jurnal</span>
+                      <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 5. Tabel Comparativ Bănci */}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xs border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+              <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                Clasament Detaliat Bănci Emitente
+              </h4>
+              <span className="text-xs font-semibold text-slate-400">
+                {bankStats.list.length} bănci • {bankStats.totalCount} tranzacții analizate
+              </span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[700px]">
+                <thead>
+                  <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    <th className="px-4 py-3 w-12 text-center">#</th>
+                    <th className="px-4 py-3">Bancă Emitentă</th>
+                    <th className="px-4 py-3 text-right">Tranzacții</th>
+                    <th className="px-4 py-3 text-right">Pondere Tranzacții</th>
+                    <th className="px-4 py-3 text-right">Volum Total (RON)</th>
+                    <th className="px-4 py-3 text-right">Pondere Volum</th>
+                    <th className="px-4 py-3 text-right">Ticket Mediu</th>
+                    <th className="px-4 py-3 text-center w-28">Acțiune</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs">
+                  {bankStats.list.map((b, idx) => {
+                    const countPct = bankStats.totalCount > 0 ? ((b.count / bankStats.totalCount) * 100).toFixed(1) : '0';
+                    const volPct = bankStats.totalVol > 0 ? ((b.volume / bankStats.totalVol) * 100).toFixed(1) : '0';
+                    const avg = b.count > 0 ? (b.volume / b.count).toFixed(2) : '0.00';
+
+                    return (
+                      <tr key={b.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                        <td className="px-4 py-3 font-black text-slate-400 text-center">
+                          {idx + 1}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2.5">
+                            <BankLogo bankId={b.id} bank={b} size={26} className="shrink-0" />
+                            <div>
+                              <div className="font-bold text-slate-900 dark:text-white leading-tight">
+                                {b.name}
+                              </div>
+                              <span className="text-[10px] text-slate-400 font-semibold">
+                                {b.shortName}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-right font-black text-slate-800 dark:text-slate-200">
+                          {b.count}
+                        </td>
+                        <td className="px-4 py-3 text-right text-slate-500 dark:text-slate-400 font-semibold">
+                          {countPct}%
+                        </td>
+                        <td className="px-4 py-3 text-right font-black text-slate-900 dark:text-white">
+                          {formatThousands(b.volume)} lei
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <span 
+                            className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-black"
+                            style={{
+                              backgroundColor: `${b.color}15`,
+                              color: b.color,
+                            }}
+                          >
+                            {volPct}%
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right font-bold text-slate-700 dark:text-slate-300">
+                          {avg} lei
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            onClick={() => {
+                              setBankFilter(b.id);
+                              setActiveTab('logs');
+                              setCurrentPage(1);
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white transition-colors text-[11px] font-bold cursor-pointer"
+                          >
+                            Filtrează
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
       {receiptModalLog && (
         <PosReceiptModal
