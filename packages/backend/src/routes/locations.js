@@ -205,28 +205,50 @@ router.put('/:id/promos', (req, res, next) => {
   return protect(req, res, next);
 }, async (req, res) => {
   try {
-    const { productId, price, start, end, kioskId, popupStart } = req.body;
+    const { productId, price, start, end, kioskId, popupStart, productName } = req.body;
     if (!productId) return res.status(400).json({ error: 'productId is required' });
     if (!kioskId) return res.status(400).json({ error: 'kioskId is required' });
 
     if (hasDb) {
-      const existing = await pool.query('SELECT * FROM locations WHERE id = $1 OR data->>\'kioskUrl\' = $1', [req.params.id]);
+      let existing = await pool.query('SELECT * FROM locations WHERE id = $1 OR data->>\'kioskUrl\' = $1', [req.params.id]);
+      if (!existing.rows.length) {
+        existing = await pool.query("SELECT * FROM locations WHERE data->'aliases' ? $1", [req.params.id]).catch(() => ({ rows: [] }));
+      }
+      if (!existing.rows.length) {
+        const { findLocation } = require('../utils/locations');
+        const loc = findLocation(req.params.id);
+        if (loc?.id) {
+          existing = await pool.query('SELECT * FROM locations WHERE id = $1', [loc.id]);
+        }
+      }
       if (!existing.rows.length) return res.status(404).json({ error: 'Location not found' });
       
       const targetId = existing.rows[0].id;
-      const data = existing.rows[0].data || {};
+      let data = existing.rows[0].data || {};
+      if (typeof data === 'string') {
+        try { data = JSON.parse(data); } catch {}
+      }
       data.kioskPromos = data.kioskPromos || {};
       data.kioskPromos[kioskId] = data.kioskPromos[kioskId] || {};
       
       const numPrice = (price !== undefined && price !== null && price !== '') ? parseFloat(String(price).replace(',', '.')) : null;
       if (numPrice && numPrice > 0) {
-        data.kioskPromos[kioskId][productId] = { 
+        const promoObj = { 
           price: Math.round(numPrice * 100) / 100, 
+          productName: productName || null,
           start: start || null, 
           end: end || null,
           popupStart: popupStart !== undefined ? !!popupStart : false
         };
+        data.kioskPromos[kioskId][productId] = promoObj;
+        if (productName) {
+          data.kioskPromos[kioskId][productName.trim().toLowerCase()] = promoObj;
+        }
       } else {
+        const old = data.kioskPromos[kioskId][productId];
+        if (old?.productName) {
+          delete data.kioskPromos[kioskId][old.productName.trim().toLowerCase()];
+        }
         delete data.kioskPromos[kioskId][productId];
       }
       
@@ -242,13 +264,22 @@ router.put('/:id/promos', (req, res, next) => {
 
       const numPrice = (price !== undefined && price !== null && price !== '') ? parseFloat(String(price).replace(',', '.')) : null;
       if (numPrice && numPrice > 0) {
-        locs[idx].kioskPromos[kioskId][productId] = { 
+        const promoObj = { 
           price: Math.round(numPrice * 100) / 100, 
+          productName: productName || null,
           start: start || null, 
           end: end || null,
           popupStart: popupStart !== undefined ? !!popupStart : false
         };
+        locs[idx].kioskPromos[kioskId][productId] = promoObj;
+        if (productName) {
+          locs[idx].kioskPromos[kioskId][productName.trim().toLowerCase()] = promoObj;
+        }
       } else {
+        const old = locs[idx].kioskPromos[kioskId][productId];
+        if (old?.productName) {
+          delete locs[idx].kioskPromos[kioskId][old.productName.trim().toLowerCase()];
+        }
         delete locs[idx].kioskPromos[kioskId][productId];
       }
 

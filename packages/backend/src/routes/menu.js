@@ -15,6 +15,7 @@ const DEFAULT_ORG = ORG_IDS[0] || '9c63cff6-1d66-442d-a98d-2302656e3943';
 // Returns cached menu (populated on startup by iikoService.syncAllMenus)
 router.get('/', requireApiKey, async (req, res) => {
   const { brandId = 'smashme', locId } = req.query;
+  const includeHidden = req.query.includeHidden === 'true' || req.query.includeHidden === '1';
   let orgId = req.query.orgId;
   
   // Resolve orgId from location if missing or string undefined
@@ -68,27 +69,40 @@ router.get('/', requireApiKey, async (req, res) => {
     rows.forEach(r => { modifierImages[r.modifier_id] = r.image_url; });
   } catch (_) { /* graceful — don't block menu if DB is slow */ }
 
-  // Fetch product overrides (custom images, tags)
+  // Fetch product overrides (custom images, tags, promo price)
   let productOverrides = {};
+  let productOverridesByName = {};
   try {
-    const { rows } = await pool.query('SELECT * FROM product_overrides WHERE brand_id = $1', [brandId]);
-    rows.forEach(r => { productOverrides[r.id] = r; });
+    const isSushi = brandId === 'sushimaster' || brandId === 'rollmaster';
+    const query = isSushi
+      ? "SELECT * FROM product_overrides WHERE brand_id IN ('sushimaster', 'rollmaster')"
+      : "SELECT * FROM product_overrides WHERE brand_id = $1";
+    const params = isSushi ? [] : [brandId];
+    const { rows } = await pool.query(query, params);
+    rows.forEach(r => { 
+      productOverrides[r.id] = r; 
+      if (r.product_name) {
+        productOverridesByName[r.product_name.trim().toLowerCase()] = r;
+      }
+    });
   } catch (_) { /* graceful */ }
 
   // Build maps of product id/name → image so modifier options can inherit product images
   const productImageMap = {};
   const productNameImageMap = {};
   (menu.products || []).forEach(p => {
-    const over = productOverrides[p.id] || {};
+    const pNameLower = (p.name || '').trim().toLowerCase();
+    const over = productOverrides[p.id] || productOverridesByName[pNameLower] || {};
     const img = over.custom_image_url || over.syrve_image_url || p.image || over.local_image_url;
     if (img) {
       productImageMap[p.id] = img;
-      if (p.name) productNameImageMap[p.name.toLowerCase().trim()] = img;
+      if (p.name) productNameImageMap[pNameLower] = img;
     }
   });
 
   const enrichedProducts = menu.products.map(p => {
-    const over = productOverrides[p.id] || {};
+    const pNameLower = (p.name || '').trim().toLowerCase();
+    const over = productOverrides[p.id] || productOverridesByName[pNameLower] || {};
     return {
       ...p,
       image: over.custom_image_url || over.syrve_image_url || p.image || over.local_image_url,
@@ -108,33 +122,37 @@ router.get('/', requireApiKey, async (req, res) => {
         })),
       })),
     };
-  }).filter(p => !p.isHidden);
+  }).filter(p => includeHidden || !p.isHidden);
 
   let finalCategories = menu.categories || [];
   let finalProducts = enrichedProducts || [];
 
-  if (locId && brandId) {
+  let locData = null;
+  if (locId) {
     try {
-      let locData = null;
+      const { findLocation } = require('../utils/locations');
       try {
-        const { rows: locRows } = await pool.query('SELECT data FROM locations WHERE id = $1 OR data->>\'kioskUrl\' = $1', [locId]);
-        if (locRows.length > 0) {
+        let { rows: locRows } = await pool.query('SELECT data FROM locations WHERE id = $1 OR data->>\'kioskUrl\' = $1', [locId]);
+        if (!locRows || !locRows.length) {
+          const aliasRes = await pool.query("SELECT data FROM locations WHERE data->'aliases' ? $1", [locId]).catch(() => ({ rows: [] }));
+          locRows = aliasRes.rows;
+        }
+        if (locRows && locRows.length > 0) {
           locData = locRows[0].data;
           if (typeof locData === 'string') {
             try { locData = JSON.parse(locData); } catch {}
           }
         }
-      } catch (e) {
-        const fs = require('fs');
-        const path = require('path');
-        const raw = JSON.parse(fs.readFileSync(path.join(__dirname, '../../data/locations.json'), 'utf8'));
-        const locs = Array.isArray(raw) ? raw : (raw.locations || []);
-        const l = locs.find(x => x.id === locId || x.kioskUrl === locId || (x.aliases && x.aliases.includes(locId)));
-        if (l) locData = l;
+      } catch (_) {}
+      
+      if (!locData) {
+        const found = findLocation(locId);
+        if (found) locData = found.data || found;
       }
 
       if (locData) {
-        const overrides = locData.menuOverrides?.[brandId];
+        const overrides = locData.menuOverrides?.[brandId]
+          || (brandId === 'sushimaster' ? locData.menuOverrides?.['rollmaster'] : (brandId === 'rollmaster' ? locData.menuOverrides?.['sushimaster'] : null));
         
         if (overrides) {
           let profile = null;
@@ -221,13 +239,14 @@ router.get('/', requireApiKey, async (req, res) => {
             const hiddenProductNames = new Set();
 
             (menu.products || []).forEach(p => {
+              const pNameLower = (p.name || '').trim().toLowerCase();
               const isCatHidden = !validCatIds.has(p.categoryId) || mergedHidden[p.categoryId] === true;
-              const isProdExplicitlyHidden = mergedHidden[p.id] === true;
+              const isProdExplicitlyHidden = mergedHidden[p.id] === true || (p.name && mergedHidden[pNameLower] === true);
               const isOutOfStock = p.outOfStock || stopListIds.has(p.id);
               if (isCatHidden || isProdExplicitlyHidden || isOutOfStock) {
                 hiddenProductIds.add(p.id);
                 if (p.name) {
-                  hiddenProductNames.add(p.name.trim().toLowerCase());
+                  hiddenProductNames.add(pNameLower);
                   hiddenProductNames.add(p.name.replace(/^\*+\s*/, '').trim().toLowerCase());
                 }
               }
@@ -235,13 +254,17 @@ router.get('/', requireApiKey, async (req, res) => {
 
             // Also add any key explicitly set to true in mergedHidden or in stop list
             Object.entries(mergedHidden).forEach(([k, v]) => {
-              if (v === true) hiddenProductIds.add(k);
+              if (v === true) {
+                hiddenProductIds.add(k);
+                hiddenProductNames.add(k.trim().toLowerCase());
+              }
             });
             stopListIds.forEach(id => hiddenProductIds.add(id));
 
             // Filter top-level products
             finalProducts = finalProducts.filter(p => {
-               return validCatIds.has(p.categoryId) && !hiddenProductIds.has(p.id);
+               const pNameLower = (p.name || '').trim().toLowerCase();
+               return validCatIds.has(p.categoryId) && !hiddenProductIds.has(p.id) && !hiddenProductNames.has(pNameLower);
             });
 
             // 4. Prune hidden modifier options and empty modifier groups from surviving products
@@ -293,26 +316,22 @@ router.get('/', requireApiKey, async (req, res) => {
     // Apply location & kiosk-specific promo overrides
     try {
       const kioskId = req.query.kioskId || '1';
-      let locData = null;
-      try {
-        const { rows: locRows2 } = await pool.query('SELECT data FROM locations WHERE id = $1 OR data->>\'kioskUrl\' = $1', [locId]);
-        if (locRows2.length > 0) locData = locRows2[0].data;
-      } catch (e) {
-        // JSON fallback
-        const fs = require('fs');
-        const path = require('path');
-        const raw = JSON.parse(fs.readFileSync(path.join(__dirname, '../../data/locations.json'), 'utf8'));
-        const locs = Array.isArray(raw) ? raw : (raw.locations || []);
-        const l = locs.find(x => x.id === locId || x.kioskUrl === locId || (x.aliases && x.aliases.includes(locId)));
-        if (l) locData = l;
-      }
-
       if (locData) {
         const kioskPromos = locData.kioskPromos || {};
-        const promoOverrides = kioskPromos[kioskId] || kioskPromos[locData.kioskUrl] || (kioskPromos['cluj1'] || {}) || (Object.keys(kioskPromos).length > 0 ? kioskPromos[Object.keys(kioskPromos)[0]] : {}) || {};
+        const promoOverrides = kioskPromos[kioskId] 
+          || kioskPromos[locData.kioskUrl] 
+          || (locData.id && kioskPromos[locData.id])
+          || (kioskPromos['cluj1'] || {}) 
+          || (Object.keys(kioskPromos).length > 0 ? kioskPromos[Object.keys(kioskPromos)[0]] : {}) 
+          || {};
         const now = new Date();
         finalProducts = finalProducts.map(p => {
-          const promo = promoOverrides[p.id];
+          const pNameLower = (p.name || '').trim().toLowerCase();
+          const promo = promoOverrides[p.id] 
+            || promoOverrides[pNameLower] 
+            || (productOverrides[p.id]?.promo_price ? { price: productOverrides[p.id].promo_price, start: productOverrides[p.id].promo_start, end: productOverrides[p.id].promo_end, popupStart: productOverrides[p.id].popup_start } : null) 
+            || (productOverridesByName[pNameLower]?.promo_price ? { price: productOverridesByName[pNameLower].promo_price, start: productOverridesByName[pNameLower].promo_start, end: productOverridesByName[pNameLower].promo_end, popupStart: productOverridesByName[pNameLower].popup_start } : null);
+
           if (!promo || !promo.price) return p;
           const inRange = (!promo.start || new Date(promo.start) <= now) && (!promo.end || new Date(promo.end) >= now);
           if (!inRange) return p;

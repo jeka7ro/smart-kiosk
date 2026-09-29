@@ -30,7 +30,12 @@ const upload = multer({
 // GET /api/products/overrides/:brandId — get all manual overrides for a brand
 router.get('/overrides/:brandId', protect, async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM product_overrides WHERE brand_id = $1', [req.params.brandId]);
+    const isSushi = req.params.brandId === 'sushimaster' || req.params.brandId === 'rollmaster';
+    const query = isSushi
+      ? "SELECT * FROM product_overrides WHERE brand_id IN ('sushimaster', 'rollmaster')"
+      : "SELECT * FROM product_overrides WHERE brand_id = $1";
+    const params = isSushi ? [] : [req.params.brandId];
+    const { rows } = await pool.query(query, params);
     res.json({ overrides: rows });
   } catch (e) {
     // Graceful fallback when DB is down
@@ -40,25 +45,27 @@ router.get('/overrides/:brandId', protect, async (req, res) => {
 
 // PUT /api/products/overrides/:brandId/:productId/tags — update boolean tags
 router.put('/overrides/:brandId/:productId/tags', protect, async (req, res) => {
-  const { is_vegetarian, is_spicy, is_hidden, is_featured } = req.body;
+  const { is_vegetarian, is_spicy, is_hidden, is_featured, product_name } = req.body;
   const { brandId, productId } = req.params;
 
   try {
     // Auto-migrate column if it doesn't exist
     await pool.query(`ALTER TABLE product_overrides ADD COLUMN IF NOT EXISTS is_hidden BOOLEAN DEFAULT false;`).catch(() => {});
     await pool.query(`ALTER TABLE product_overrides ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT false;`).catch(() => {});
+    await pool.query(`ALTER TABLE product_overrides ADD COLUMN IF NOT EXISTS product_name TEXT;`).catch(() => {});
 
     const { rows } = await pool.query(
-      `INSERT INTO product_overrides (id, brand_id, is_vegetarian, is_spicy, is_hidden, is_featured, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, NOW())
+      `INSERT INTO product_overrides (id, brand_id, product_name, is_vegetarian, is_spicy, is_hidden, is_featured, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
        ON CONFLICT (id) DO UPDATE SET
+         product_name = COALESCE(EXCLUDED.product_name, product_overrides.product_name),
          is_vegetarian = EXCLUDED.is_vegetarian,
          is_spicy = EXCLUDED.is_spicy,
          is_hidden = EXCLUDED.is_hidden,
          is_featured = EXCLUDED.is_featured,
          updated_at = NOW()
        RETURNING *`,
-      [productId, brandId, !!is_vegetarian, !!is_spicy, !!is_hidden, !!is_featured]
+      [productId, brandId, product_name || null, !!is_vegetarian, !!is_spicy, !!is_hidden, !!is_featured]
     );
     res.json({ override: rows[0] });
   } catch (e) {
@@ -106,7 +113,7 @@ router.delete('/overrides/:brandId/:productId/image', protect, async (req, res) 
 
 // PUT /api/products/overrides/:brandId/:productId/promo — set promo price
 router.put('/overrides/:brandId/:productId/promo', protect, async (req, res) => {
-  const { promo_price, promo_start, promo_end } = req.body;
+  const { promo_price, promo_start, promo_end, product_name } = req.body;
   const { brandId, productId } = req.params;
 
   try {
@@ -114,17 +121,19 @@ router.put('/overrides/:brandId/:productId/promo', protect, async (req, res) => 
     await pool.query(`ALTER TABLE product_overrides ADD COLUMN IF NOT EXISTS promo_price NUMERIC;`).catch(() => {});
     await pool.query(`ALTER TABLE product_overrides ADD COLUMN IF NOT EXISTS promo_start TIMESTAMPTZ;`).catch(() => {});
     await pool.query(`ALTER TABLE product_overrides ADD COLUMN IF NOT EXISTS promo_end TIMESTAMPTZ;`).catch(() => {});
+    await pool.query(`ALTER TABLE product_overrides ADD COLUMN IF NOT EXISTS product_name TEXT;`).catch(() => {});
 
     const { rows } = await pool.query(
-      `INSERT INTO product_overrides (id, brand_id, promo_price, promo_start, promo_end, updated_at)
-       VALUES ($1, $2, $3, $4, $5, NOW())
+      `INSERT INTO product_overrides (id, brand_id, product_name, promo_price, promo_start, promo_end, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW())
        ON CONFLICT (id) DO UPDATE SET
+         product_name = COALESCE(EXCLUDED.product_name, product_overrides.product_name),
          promo_price = EXCLUDED.promo_price,
          promo_start = EXCLUDED.promo_start,
          promo_end = EXCLUDED.promo_end,
          updated_at = NOW()
        RETURNING *`,
-      [productId, brandId, promo_price || null, promo_start || null, promo_end || null]
+      [productId, brandId, product_name || null, promo_price || null, promo_start || null, promo_end || null]
     );
     res.json({ override: rows[0] });
   } catch (e) {

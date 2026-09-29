@@ -436,9 +436,10 @@ export function MenuProfileEditorModal({
       cur = menu.categories.find(c => c.id === cur.parentGroup);
     }
 
-    const isPHiddenByTemplate = profile.hiddenItems?.[p.id] === true;
-    const isPLocallyHidden = hiddenItems[p.id] === true;
-    const isPLocallyVisible = hiddenItems[p.id] === false;
+    const pNameLower = p.name ? p.name.trim().toLowerCase() : null;
+    const isPHiddenByTemplate = profile.hiddenItems?.[p.id] === true || (pNameLower && profile.hiddenItems?.[pNameLower] === true);
+    const isPLocallyHidden = hiddenItems[p.id] === true || (pNameLower && hiddenItems[pNameLower] === true);
+    const isPLocallyVisible = hiddenItems[p.id] === false || (pNameLower && hiddenItems[pNameLower] === false);
     let pSelfHidden = isPHiddenByTemplate;
     if (localHiddenItemsOverride !== null) {
       pSelfHidden = isPLocallyHidden || (isPHiddenByTemplate && !isPLocallyVisible);
@@ -472,11 +473,20 @@ export function MenuProfileEditorModal({
   }, [localHiddenItemsOverride]);
 
   const handleToggleHide = (id, hidden) => {
+    const prod = menu.products.find(p => p.id === id);
+    const prodNameLower = prod?.name ? prod.name.trim().toLowerCase() : null;
     setHiddenItems(prev => {
       const next = { ...prev };
-      if (hidden) next[id] = true;
-      else if (localHiddenItemsOverride !== null) next[id] = false; 
-      else delete next[id]; 
+      if (hidden) {
+        next[id] = true;
+        if (prodNameLower) next[prodNameLower] = true;
+      } else if (localHiddenItemsOverride !== null) {
+        next[id] = false; 
+        if (prodNameLower) next[prodNameLower] = false;
+      } else {
+        delete next[id]; 
+        if (prodNameLower) delete next[prodNameLower];
+      }
       return next;
     });
   };

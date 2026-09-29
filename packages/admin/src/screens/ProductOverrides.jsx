@@ -232,8 +232,10 @@ export default function ProductOverrides() {
   const pageItems  = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   const toggleTag = async (productId, tagType) => {
+    const prod = products.find(p => p.id === productId);
     const currentOver = overrides[productId] || {};
     const payload = {
+      product_name: prod?.name || '',
       is_vegetarian: tagType === 'veg' ? !currentOver.is_vegetarian : !!currentOver.is_vegetarian,
       is_spicy: tagType === 'spicy' ? !currentOver.is_spicy : !!currentOver.is_spicy,
       is_hidden: tagType === 'hidden' ? !currentOver.is_hidden : !!currentOver.is_hidden,
@@ -271,13 +273,13 @@ export default function ProductOverrides() {
     const fieldName = tagType === 'veg' ? 'is_vegetarian' : tagType === 'spicy' ? 'is_spicy' : tagType === 'featured' ? 'is_featured' : 'is_hidden';
     filtered.forEach(p => {
        const currentOver = overrides[p.id] || {};
-       updates[p.id] = { ...currentOver, [fieldName]: newValue };
+       updates[p.id] = { ...currentOver, [fieldName]: newValue, product_name: p.name || '' };
     });
     setOverrides(prev => ({ ...prev, ...updates }));
 
     // Send requests
     for (const p of filtered) {
-       const payload = updates[p.id];
+       const payload = { ...updates[p.id], product_name: p.name || '' };
        try {
          await fetchWithAuth(`${BACKEND}/api/products/overrides/${activeBrand}/${p.id}/tags`, {
            method: 'PUT',
@@ -339,6 +341,7 @@ export default function ProductOverrides() {
     if (!activeLocation) return showToast('Alege locația mai întâi', 'err');
     if (!activeKiosk) return showToast('Scrie ID-ul Kiosk-ului mai întâi! (ex: cluj1)', 'err');
     try {
+      const prod = products.find(p => p.id === prodId);
       const po = promoOverrides[prodId] || {};
       const rawVal = String(explicitPrice !== undefined ? explicitPrice : (po.price || '')).replace(',', '.').trim();
       if (!rawVal) return;
@@ -347,6 +350,7 @@ export default function ProductOverrides() {
       const numPrice = Math.round(parsedPrice * 100) / 100;
       const payload = {
         productId: prodId,
+        productName: prod?.name || '',
         price: numPrice,
         start: po.start || null,
         end: po.end || null,
@@ -358,8 +362,20 @@ export default function ProductOverrides() {
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error('Eroare la salvare');
+
+      // Mirror promo price into global product_overrides table as durable backup
+      fetchWithAuth(`${BACKEND}/api/products/overrides/${activeBrand}/${prodId}/promo`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          promo_price: numPrice,
+          promo_start: po.start || null,
+          promo_end: po.end || null,
+          product_name: prod?.name || ''
+        }),
+      }).catch(() => {});
+
       setSavedPromos(prev => ({ ...prev, [prodId]: payload }));
-      setPromoOverrides(prev => ({ ...prev, [prodId]: { ...prev[prodId], price: numPrice.toFixed(2) } }));
+      setPromoOverrides(prev => ({ ...prev, [prodId]: { ...prev[prodId], price: numPrice.toFixed(2), productName: prod?.name || '' } }));
       showToast(`Promoție salvată: ${numPrice.toFixed(2)} lei pe Kiosk ${activeKiosk}`);
     } catch (e) {
       showToast('Eroare: ' + e.message, 'err');
@@ -369,11 +385,19 @@ export default function ProductOverrides() {
   const handleDeletePromo = async (prodId) => {
     if (!activeLocation) return;
     try {
+      const prod = products.find(p => p.id === prodId);
       const res = await fetchWithAuth(`${BACKEND}/api/locations/${activeLocation}/promos`, {
         method: 'PUT',
-        body: JSON.stringify({ productId: prodId, price: null, start: null, end: null, kioskId: activeKiosk }),
+        body: JSON.stringify({ productId: prodId, productName: prod?.name || '', price: null, start: null, end: null, kioskId: activeKiosk }),
       });
       if (!res.ok) throw new Error('Eroare la ștergere');
+
+      // Also reset in product_overrides
+      fetchWithAuth(`${BACKEND}/api/products/overrides/${activeBrand}/${prodId}/promo`, {
+        method: 'PUT',
+        body: JSON.stringify({ promo_price: null, promo_start: null, promo_end: null, product_name: prod?.name || '' }),
+      }).catch(() => {});
+
       setPromoOverrides(prev => {
         const copy = { ...prev };
         delete copy[prodId];
@@ -780,6 +804,7 @@ export default function ProductOverrides() {
                                           method: 'PUT',
                                           body: JSON.stringify({
                                             productId: prod.id,
+                                            productName: prod.name || '',
                                             price: parseFloat(promoOverrides[prod.id]?.price),
                                             popupStart: checked,
                                             kioskId: activeKiosk
