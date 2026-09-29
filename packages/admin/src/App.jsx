@@ -24,7 +24,7 @@ import FortuneWheelPreview from './components/FortuneWheelPreview';
 import MenuManager, { MenuProfileEditorModal } from './screens/MenuManager';
 import QrGenerator from './screens/QrGenerator';
 import { useConfirm } from './components/ConfirmModal';
-import { LayoutDashboard, Receipt, TrendingUp, MapPin, MonitorSmartphone, QrCode, Utensils, Languages, Image as ImageIcon, Tags, Users, Blocks, Gift, Store, Sun, Moon, LogOut, Menu, X, CreditCard, Download, Printer, Building2, Palette, Sparkles, Flame, Snowflake, Layers, Upload, Star, ChevronUp, ChevronDown, Check, Zap, Wifi, Sliders, Info, Trash2, AlertTriangle, Globe, Phone, Lock, Clock, ShieldCheck, ShieldAlert, Unlock, Eye, EyeOff, Activity, RotateCcw, Calendar } from 'lucide-react';
+import { LayoutDashboard, Receipt, TrendingUp, MapPin, MonitorSmartphone, QrCode, Utensils, Languages, Image as ImageIcon, Tags, Users, Blocks, Gift, Store, Sun, Moon, LogOut, Menu, X, CreditCard, Download, Printer, Building2, Palette, Sparkles, Flame, Snowflake, Layers, Upload, Star, ChevronUp, ChevronDown, Check, Zap, Wifi, Sliders, Info, Trash2, AlertTriangle, Globe, Phone, Lock, Clock, ShieldCheck, ShieldAlert, Unlock, Eye, EyeOff, Activity, RotateCcw, Calendar, Copy } from 'lucide-react';
 import { formatThousands } from './utils/formatters';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
@@ -518,35 +518,39 @@ export default function AdminApp() {
   }, []);
   useEffect(() => { if (tab === 'menu') fetchMenuStatus(); }, [tab, fetchMenuStatus]);
 
-  /* ─── Fetch menu products + images for order detail ── */
+  /* ─── Fetch menu products + images for orders tables and detail ── */
   useEffect(() => {
-    if (selectedOrder && selectedOrder.items) {
-      Promise.all([
-        fetch(`${BACKEND}/api/menu/all`).then(r => r.json()),
-        fetch(`${BACKEND}/api/products/overrides/${selectedOrder.brand || 'smashme'}`).then(r => r.json()).catch(() => ({})),
-      ]).then(([allMenuData, overridesData]) => {
-        // Build image map from overrides
-        const imgMap = {};
-        if (overridesData && typeof overridesData === 'object') {
-          Object.entries(overridesData).forEach(([pid, ov]) => {
-            if (ov.imageUrl) imgMap[pid] = ov.imageUrl;
+    Promise.all([
+      fetch(`${BACKEND}/api/menu/all`).then(r => r.json()).catch(() => ({})),
+      fetch(`${BACKEND}/api/products/overrides/smashme`).then(r => r.json()).catch(() => ({})),
+      fetch(`${BACKEND}/api/products/overrides/rollmaster`).then(r => r.json()).catch(() => ({})),
+      fetch(`${BACKEND}/api/products/overrides/crunch`).then(r => r.json()).catch(() => ({})),
+      fetch(`${BACKEND}/api/products/overrides/lovesushi`).then(r => r.json()).catch(() => ({})),
+      fetch(`${BACKEND}/api/products/overrides/pokiwoki`).then(r => r.json()).catch(() => ({}))
+    ]).then(([allMenuData, ovSmash, ovRoll, ovCrunch, ovLove, ovPoki]) => {
+      // Build product map from iiko menu
+      const prodMap = {};
+      Object.keys(allMenuData || {}).forEach(b => {
+        const brandMenu = allMenuData[b]?.menu?.products || [];
+        brandMenu.forEach(p => {
+          if (p.id) prodMap[p.id] = p;
+          if (p.name) prodMap[p.name.toLowerCase().trim()] = p;
+        });
+      });
+      setMenuProducts(prodMap);
+
+      // Build image map from all overrides
+      const imgMap = {};
+      [ovSmash, ovRoll, ovCrunch, ovLove, ovPoki].forEach(ovSet => {
+        if (ovSet && typeof ovSet === 'object') {
+          Object.entries(ovSet).forEach(([pid, val]) => {
+            if (val?.imageUrl) imgMap[pid] = val.imageUrl;
           });
         }
-        setMenuImages(imgMap);
-
-        // Build product map from iiko menu
-        const prodMap = {};
-        Object.keys(allMenuData || {}).forEach(b => {
-          const brandMenu = allMenuData[b]?.menu?.products || [];
-          brandMenu.forEach(p => {
-            prodMap[p.id] = p;
-            if (p.name) prodMap[p.name.toLowerCase()] = p;
-          });
-        });
-        setMenuProducts(prodMap);
-      }).catch(() => {});
-    }
-  }, [selectedOrder]);
+      });
+      setMenuImages(imgMap);
+    }).catch(() => {});
+  }, []);
 
   const addNotif = (msg) => {
     const id = Date.now();
@@ -1156,6 +1160,9 @@ export default function AdminApp() {
                 onRowClick={setSelectedOrder} 
                 selectedId={selectedOrder?._id}
                 defaultRows={10}
+                menuProducts={menuProducts}
+                menuImages={menuImages}
+                backend={BACKEND}
               />
             </div>
           </div>
@@ -1240,7 +1247,15 @@ export default function AdminApp() {
                   <option value="card">Card</option>
                 </select>
               </div>
-            <OrdersTable orders={filteredOrders} full onRowClick={setSelectedOrder} selectedId={selectedOrder?._id} />
+            <OrdersTable 
+              orders={filteredOrders} 
+              full 
+              onRowClick={setSelectedOrder} 
+              selectedId={selectedOrder?._id} 
+              menuProducts={menuProducts}
+              menuImages={menuImages}
+              backend={BACKEND}
+            />
           </div>
         )}
 
@@ -1661,9 +1676,18 @@ function StatCard({ label, value, color, large, brandId, icon: Icon, onClick, ac
   );
 }
 
-function OrdersTable({ orders, full, onRowClick, selectedId, defaultRows = 10 }) {
+function OrdersTable({ orders, full, onRowClick, selectedId, defaultRows = 10, menuProducts = {}, menuImages = {}, backend = '' }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(defaultRows);
+
+  const resolveProductImage = (item) => {
+    if (!item) return null;
+    const fullProd = menuProducts[item.productId] || (item.name && menuProducts[item.name.toLowerCase().trim()]);
+    const overrideImg = menuImages[item.productId];
+    let imgSrc = overrideImg || item.imageUrl || item.image || (fullProd?.imageLinks && fullProd.imageLinks[0]) || fullProd?.image || null;
+    if (imgSrc && imgSrc.startsWith('/uploads')) imgSrc = `${backend || BACKEND}${imgSrc}`;
+    return imgSrc;
+  };
 
   const safeOrders = useMemo(() => {
     if (!orders || !orders.length) return [];
@@ -1688,12 +1712,12 @@ function OrdersTable({ orders, full, onRowClick, selectedId, defaultRows = 10 })
         <thead>
           <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
             <th className="w-14 px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 text-center">Nr.</th>
-            <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500"># Comandă</th>
-            <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Brand</th>
-            <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Locație</th>
-            <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Comandă / Plată</th>
-            <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Total</th>
-            <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Status</th>
+            <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500"># Comandă</th>
+            <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Brand</th>
+            <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">ID iiko</th>
+            <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Produse / Coș</th>
+            <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Total</th>
+            <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Status</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -1709,70 +1733,108 @@ function OrdersTable({ orders, full, onRowClick, selectedId, defaultRows = 10 })
               const rowNumber = (safePage - 1) * itemsPerPage + index + 1;
               return (
                 <tr key={o._id} className={`transition-colors group cursor-pointer ${selectedId === o._id ? 'bg-blue-50 dark:bg-blue-500/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`} onClick={() => onRowClick && onRowClick(o)}>
-                  <td className="w-14 px-4 py-4 text-center text-xs font-bold text-slate-500 dark:text-slate-400">
+                  <td className="w-14 px-4 py-3.5 text-center text-xs font-bold text-slate-500 dark:text-slate-400">
                     {rowNumber}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-5 py-3.5 whitespace-nowrap">
                     <div className="flex flex-col gap-0.5">
-                      <span className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1">#{o.orderNumber}{o.fiscal && <span title={`CUI: ${o.fiscal.rawCui || o.fiscal.cui}`} className="inline-flex items-center text-indigo-600 dark:text-indigo-400"><Building2 size={13} /></span>}</span>
+                      <span className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1">
+                        #{o.orderNumber}
+                        {o.fiscal && <span title={`CUI: ${o.fiscal.rawCui || o.fiscal.cui}`} className="inline-flex items-center text-indigo-600 dark:text-indigo-400"><Building2 size={13} /></span>}
+                      </span>
                       {o.createdAt && (
                         <span className="text-[10px] text-slate-400">
                           {new Date(o.createdAt).toLocaleString('ro-RO')}
                         </span>
                       )}
+                      <span className="text-[10.5px] text-slate-500 font-medium">
+                        {o.orderType === 'dine-in' ? (o.tableNumber ? `Masa ${o.tableNumber}` : 'La masă') : 'La pachet'} • {o.paymentMethod === 'cash' ? 'Cash' : (o.paymentMethod === 'card' ? 'Card' : (o.paymentMethod || '—'))}
+                      </span>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2.5">
-                      <BrandLogo brandId={o.brand} size={28} className="shadow-xs shrink-0" />
-                      <span style={{ color: BRAND_COLORS[o.brand] }} className="text-sm font-bold">
+                  <td className="px-5 py-3.5 whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      <BrandLogo brandId={o.brand} size={24} className="shadow-2xs shrink-0" />
+                      <span style={{ color: BRAND_COLORS[o.brand] }} className="text-xs font-bold">
                         {o.brand}
                       </span>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-sm text-slate-600 dark:text-slate-300 font-medium">
-                        {o.locationName || o.locationId || '—'}
-                      </span>
-                      {o.syrveOrderId && (
-                        <div className="flex items-center gap-1 mt-0.5" title={o.syrveOrderId}>
-                          <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
-                            {o.syrveOrderId}
+                  {/* ID iiko - În loc de Locație */}
+                  <td className="px-5 py-3.5 whitespace-nowrap">
+                    {(() => {
+                      const iikoId = o.syrveOrderId || o.iiko_order_id || o.iikoOrderId;
+                      if (!iikoId) {
+                        return <span className="text-xs text-slate-400 italic">—</span>;
+                      }
+                      const shortId = iikoId.length > 12 ? `${iikoId.slice(0, 8)}...` : iikoId;
+                      return (
+                        <div className="flex items-center gap-1.5" title={iikoId}>
+                          <span className="font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                            {shortId}
                           </span>
                           <button 
+                            type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              navigator.clipboard.writeText(o.syrveOrderId);
+                              navigator.clipboard.writeText(iikoId);
                               const btn = e.currentTarget;
                               const originalHTML = btn.innerHTML;
-                              btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="#059669" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>';
+                              btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#059669" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>';
                               setTimeout(() => { btn.innerHTML = originalHTML; }, 1500);
                             }}
-                            className="text-slate-400 hover:text-emerald-500 transition-colors"
-                            title="Copiază ID iiko"
+                            className="p-1 rounded text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors cursor-pointer"
+                            title="Copiază ID iiko complet"
+                            aria-label="Copiază ID iiko complet"
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                            </svg>
+                            <Copy size={12} />
                           </button>
                         </div>
-                      )}
-                    </div>
+                      );
+                    })()}
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col gap-1">
-                      <span className="text-sm text-slate-600 dark:text-slate-300 font-medium">
-                        {o.orderType === 'dine-in' ? (o.tableNumber ? `Masa ${o.tableNumber}` : 'La masă') : 'La pachet'}
-                      </span>
-                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                        Plată: {o.paymentMethod === 'cash' ? 'Cash' : (o.paymentMethod === 'card' ? 'Card' : (o.paymentMethod || '—'))}
-                      </span>
-                    </div>
+                  {/* Produse / Coș cu preview imagini mici */}
+                  <td className="px-5 py-3.5 max-w-[200px] lg:max-w-xs">
+                    {(() => {
+                      const items = o.items || [];
+                      if (!items.length) {
+                        return <span className="text-xs text-slate-400 italic">Fără detalii</span>;
+                      }
+                      return (
+                        <div className="flex items-center gap-2">
+                          {/* Mini imagini produse */}
+                          <div className="flex -space-x-1.5 shrink-0">
+                            {items.slice(0, 3).map((it, pIdx) => {
+                              const img = resolveProductImage(it);
+                              return (
+                                <div key={pIdx} className="w-6 h-6 rounded-full border border-white dark:border-slate-800 bg-slate-100 dark:bg-slate-700 overflow-hidden shrink-0 flex items-center justify-center shadow-2xs">
+                                  {img ? (
+                                    <img src={img} alt={it.name} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <Utensils className="w-3 h-3 text-slate-400" />
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate" title={items.map(i => `${i.quantity || 1}x ${i.name}`).join(', ')}>
+                              {items.map(i => `${i.quantity || 1}x ${i.name}`).join(', ')}
+                            </span>
+                            <span className="text-[10px] text-slate-400">
+                              {items.length} {items.length === 1 ? 'produs' : 'produse'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </td>
-                  <td className="px-6 py-4 text-sm font-bold text-slate-900 dark:text-white">{formatThousands(o.totalAmount || 0)} lei</td>
-                  <td className="px-6 py-4">
-                    <span className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap" style={{ backgroundColor: `${sc.color}20`, color: sc.color, border: `1px solid ${sc.color}40` }}>
+                  <td className="px-5 py-3.5 text-sm font-bold text-slate-900 dark:text-white whitespace-nowrap">
+                    {formatThousands(o.totalAmount || 0)} lei
+                  </td>
+                  <td className="px-5 py-3.5 whitespace-nowrap">
+                    <span className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap inline-block" style={{ backgroundColor: `${sc.color}20`, color: sc.color, border: `1px solid ${sc.color}40` }}>
                       ● {sc.label}
                     </span>
                   </td>
