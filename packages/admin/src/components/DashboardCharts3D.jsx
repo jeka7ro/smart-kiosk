@@ -1593,16 +1593,10 @@ export function PaymentMethodsChart3D({
     let visaRev = 0, visaCnt = 0;
     let mcRev = 0, mcCnt = 0;
 
-    const banksMap = {
-      bt: { ...BANK_CONFIG.bt, revenue: 0, count: 0 },
-      revolut: { ...BANK_CONFIG.revolut, revenue: 0, count: 0 },
-      ing: { ...BANK_CONFIG.ing, revenue: 0, count: 0 },
-      bcr: { ...BANK_CONFIG.bcr, revenue: 0, count: 0 },
-      raiffeisen: { ...BANK_CONFIG.raiffeisen, revenue: 0, count: 0 },
-      brd: { ...BANK_CONFIG.brd, revenue: 0, count: 0 },
-      cec: { ...BANK_CONFIG.cec, revenue: 0, count: 0 },
-      other: { ...BANK_CONFIG.other, revenue: 0, count: 0 },
-    };
+    const banksMap = {};
+    Object.keys(BANK_CONFIG).forEach(k => {
+      banksMap[k] = { ...BANK_CONFIG[k], revenue: 0, count: 0 };
+    });
 
     orders.forEach(o => {
       if (o.status === 'cancelled') return;

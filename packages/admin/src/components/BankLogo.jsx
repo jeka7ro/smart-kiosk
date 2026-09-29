@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 /**
  * Componentă oficială pentru Avatar / Logo Bănci Emitente Carduri
- * (BT, Revolut, ING, BCR, Raiffeisen, BRD, CEC, Altele)
+ * (BT, Revolut, ING, BCR, Raiffeisen, UniCredit, BRD, CEC, Patria, Salt, Libra, Tichete Masă, Internațional, Altele)
  * Încarcă logo-urile oficiale reale vector/PNG din /banks/
  */
 export const BANK_ASSETS = {
@@ -56,6 +56,16 @@ export const BANK_ASSETS = {
     fallbackBg: 'linear-gradient(135deg, #fee600 0%, #eab308 100%)',
     fallbackColor: '#000000'
   },
+  unicredit: {
+    src: '/banks/unicredit.svg',
+    name: 'UniCredit Bank',
+    short: 'UCB',
+    padding: 'p-0',
+    bgColor: 'bg-[#e2001a]',
+    borderColor: 'border-red-600/80',
+    fallbackBg: 'linear-gradient(135deg, #e2001a 0%, #b91c1c 100%)',
+    fallbackColor: '#ffffff'
+  },
   brd: {
     src: '/banks/brd.svg',
     name: 'BRD (Groupe Société Générale)',
@@ -75,6 +85,56 @@ export const BANK_ASSETS = {
     borderColor: 'border-emerald-600/80',
     fallbackBg: 'linear-gradient(135deg, #004710 0%, #059669 100%)',
     fallbackColor: '#ffffff'
+  },
+  patria: {
+    src: '/banks/patria.svg',
+    name: 'Patria Bank',
+    short: 'PAT',
+    padding: 'p-0',
+    bgColor: 'bg-[#002e6d]',
+    borderColor: 'border-blue-700/80',
+    fallbackBg: 'linear-gradient(135deg, #002e6d 0%, #1e40af 100%)',
+    fallbackColor: '#ffffff'
+  },
+  salt: {
+    src: '/banks/salt.svg',
+    name: 'Salt Bank',
+    short: 'SALT',
+    padding: 'p-0',
+    bgColor: 'bg-black',
+    borderColor: 'border-emerald-400/80',
+    fallbackBg: 'linear-gradient(135deg, #052e16 0%, #000000 100%)',
+    fallbackColor: '#10b981'
+  },
+  libra: {
+    src: '/banks/libra.svg',
+    name: 'Libra Bank',
+    short: 'LIB',
+    padding: 'p-0',
+    bgColor: 'bg-[#0a2540]',
+    borderColor: 'border-sky-600/80',
+    fallbackBg: 'linear-gradient(135deg, #0a2540 0%, #0284c7 100%)',
+    fallbackColor: '#ffffff'
+  },
+  meal_vouchers: {
+    src: '/banks/meal_vouchers.svg',
+    name: 'Card Masă (Tichete)',
+    short: 'Tichete',
+    padding: 'p-0',
+    bgColor: 'bg-orange-600',
+    borderColor: 'border-orange-500/80',
+    fallbackBg: 'linear-gradient(135deg, #ea580c 0%, #c2410c 100%)',
+    fallbackColor: '#ffffff'
+  },
+  international: {
+    src: '/banks/international.svg',
+    name: 'Card Internațional',
+    short: 'INT',
+    padding: 'p-0',
+    bgColor: 'bg-blue-600',
+    borderColor: 'border-blue-500/80',
+    fallbackBg: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+    fallbackColor: '#ffffff'
   }
 };
 
@@ -85,8 +145,14 @@ export function resolveBankKey(bankId, bank) {
   if (rawId.includes('ing')) return 'ing';
   if (rawId.includes('bcr') || rawId.includes('erste') || rawId.includes('comerciala')) return 'bcr';
   if (rawId.includes('raif') || rawId.includes('rzb')) return 'raiffeisen';
+  if (rawId.includes('unicredit') || rawId.includes('ucb') || rawId.includes('tiriac')) return 'unicredit';
   if (rawId.includes('brd') || rawId.includes('societe')) return 'brd';
   if (rawId.includes('cec')) return 'cec';
+  if (rawId.includes('patria') || rawId.includes('carpatica')) return 'patria';
+  if (rawId.includes('salt')) return 'salt';
+  if (rawId.includes('libra')) return 'libra';
+  if (rawId.includes('meal') || rawId.includes('tichete') || rawId.includes('edenred') || rawId.includes('pluxee') || rawId.includes('sodexo') || rawId.includes('up')) return 'meal_vouchers';
+  if (rawId.includes('internat') || rawId.includes('global') || rawId.includes('foreign')) return 'international';
   return 'other';
 }
 
@@ -124,7 +190,7 @@ export default function BankLogo({ bankId, bank, size = 20, className = "" }) {
           minHeight: s, 
           background: asset.fallbackBg, 
           color: asset.fallbackColor,
-          fontSize: Math.max(8, Math.round(s * 0.38))
+          fontSize: Math.max(7, Math.round(s * 0.35))
         }}
         title={asset.name}
       >
