@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <circle cx="32" cy="32" r="32" fill="#004710"/>
+  <!-- CEC Bank Shield Outline -->
+  <path d="M32 9 C22 9 17 15 17 23 L17 38 C17 48 27 55 32 55 C37 55 47 48 47 38 L47 23 C47 15 42 9 32 9 Z" fill="#fffac1"/>
+  <!-- Oak Leaf inside Shield -->
+  <path d="M32 13 C29 17 21 21 21 27 C21 31 23 33 26 33 C23 35 21 38 23 42 C24 44 27 45 29 44 C27 46 27 49 29 51 C30.5 52.5 32 53 32 53 C32 53 33.5 52.5 35 51 C37 49 37 46 35 44 C37 45 40 44 41 42 C43 38 41 35 38 33 C41 33 43 31 43 27 C43 21 35 17 32 13 Z" fill="#004710"/>
+  <!-- Oak Leaf stem & central vein -->
+  <path d="M32 18 L32 50" stroke="#fffac1" stroke-width="1.2" stroke-linecap="round"/>
+  <path d="M32 26 L27 23 M32 30 L37 27 M32 35 L26 33 M32 39 L38 37 M32 44 L28 42 M32 46 L36 44" stroke="#fffac1" stroke-width="1" stroke-linecap="round"/>
+</svg>
