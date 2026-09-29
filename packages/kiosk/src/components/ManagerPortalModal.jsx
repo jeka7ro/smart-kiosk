@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { io } from 'socket.io-client';
 import { proxySyrveImage } from '../utils/imageUtils.js';
@@ -52,24 +52,19 @@ export default function ManagerPortalModal({ locationData, onClose, isStandalone
   const [pin, setPin] = useState('');
   const [pinError, setPinError] = useState(false);
   const [pinErrorMessage, setPinErrorMessage] = useState('');
-  const pinInputRef = useRef(null);
-
+  // Suport tastatură fizică (pe laptop/desktop) fără a deschide tastatura nativă virtuală pe mobil/tabletă
   useEffect(() => {
-    const p = String(locationData?.kioskPin || '').trim();
-    if (!p || p === '1234') {
-      setIsAuthenticated(true);
-    }
-  }, [locationData?.kioskPin]);
-
-  // Deschide tastatura doar pe telefon / mod standalone (?manager=true) daca se cere PIN
-  useEffect(() => {
-    if (isStandalone && !isAuthenticated) {
-      const timer = setTimeout(() => {
-        pinInputRef.current?.focus();
-      }, 250);
-      return () => clearTimeout(timer);
-    }
-  }, [isStandalone, isAuthenticated]);
+    if (isAuthenticated) return;
+    const onKeyDown = (e) => {
+      if (['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'].includes(e.key)) {
+        handlePinKey(e.key);
+      } else if (e.key === 'Backspace') {
+        handlePinDel();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isAuthenticated, pin, pinError]);
 
   // Kiosk Logs State
   const [kioskLogs, setKioskLogs] = useState([]);
@@ -809,45 +804,7 @@ const KIOSK_EVENT_META = {
           <h2 className="ios-pin-title">Portal Manager Kiosk</h2>
 
           {/* 4 iOS Passcode Dots */}
-          <div 
-            className={`ios-pin-dots ${pinError ? 'ios-pin-dots-shake' : ''}`}
-            onClick={() => isStandalone && pinInputRef.current?.focus()}
-          >
-            {isStandalone && (
-              <input
-                ref={pinInputRef}
-                type="tel"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                maxLength={4}
-                value={pin}
-                autoComplete="one-time-code"
-                onChange={(e) => {
-                  const val = e.target.value.replace(/\D/g, '').slice(0, 4);
-                  setPin(val);
-                  setPinError(false);
-                  setPinErrorMessage('');
-                  if (val.length === 4) {
-                    verifyPin(val);
-                  }
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && pin.length === 4) {
-                    verifyPin(pin);
-                  }
-                }}
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  width: '100%',
-                  height: '100%',
-                  opacity: 0,
-                  zIndex: 3,
-                  cursor: 'pointer'
-                }}
-                aria-label="Cod PIN Manager"
-              />
-            )}
+          <div className={`ios-pin-dots ${pinError ? 'ios-pin-dots-shake' : ''}`}>
             {[0, 1, 2, 3].map(idx => {
               const isFilled = idx < pin.length;
               return (
