@@ -89,7 +89,13 @@ export default function ManagerPortalModal({ locationData, onClose, isStandalone
   const [customEnd, setCustomEnd] = useState(todayStr);
 
   const [search, setSearch] = useState('');
-  const [showRevenue, setShowRevenue] = useState(false);
+  const [showRevenue, setShowRevenue] = useState(() => {
+    if (isStandalone) {
+      const saved = localStorage.getItem('mgr_show_revenue_standalone');
+      return saved !== null ? saved === 'true' : true;
+    }
+    return false;
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(50);
   const [retryingId, setRetryingId] = useState(null);
@@ -1073,7 +1079,13 @@ const KIOSK_EVENT_META = {
                 </span>
                 <button
                   type="button"
-                  onClick={() => setShowRevenue(prev => !prev)}
+                  onClick={() => setShowRevenue(prev => {
+                    const next = !prev;
+                    if (isStandalone) {
+                      localStorage.setItem('mgr_show_revenue_standalone', String(next));
+                    }
+                    return next;
+                  })}
                   className="mgr-eye-btn"
                   title={showRevenue ? 'Ascunde suma încasată' : 'Afișează suma încasată'}
                 >
