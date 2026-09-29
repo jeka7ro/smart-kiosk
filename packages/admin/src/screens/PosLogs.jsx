@@ -1221,7 +1221,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                   </td>
                   <td className="px-4 py-3">
                     <span
-                      className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap inline-flex items-center shadow-xs"
+                      className={`${(sc.label && sc.label.length > 8) ? 'px-3 min-w-[78px]' : 'w-[78px]'} h-[26px] rounded-full text-xs font-bold whitespace-nowrap inline-flex items-center justify-center text-center shadow-xs`}
                       style={{ backgroundColor: sc.bg, color: sc.color }}
                     >
                       {sc.label}
@@ -1294,7 +1294,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                                 }
                               );
                             }}
-                            className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-transform active:scale-95 cursor-pointer shadow-sm ${isSuccess ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-red-600 text-white hover:bg-red-700'}`}
+                            className={`w-[78px] h-[26px] rounded-full text-xs font-bold whitespace-nowrap inline-flex items-center justify-center text-center transition-transform active:scale-95 cursor-pointer shadow-xs ${isSuccess ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-red-600 text-white hover:bg-red-700'}`}
                           >
                             {isSuccess ? 'Trimis' : 'Eroare'}
                           </button>
