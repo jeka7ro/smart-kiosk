@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../context/AuthProvider';
 import { 
   Clock, RefreshCw, ShoppingBag, CreditCard, 
-  CheckCircle2, XCircle, AlertTriangle, Trash2, Send, X, Eye, 
+  CheckCircle2, XCircle, AlertTriangle, Send, X, Eye, 
   Banknote, ArrowRight, ChevronDown, ChevronUp, Copy, Check, Sparkles, Utensils, Monitor
 } from 'lucide-react';
 import BrandLogo from '../components/BrandLogo.jsx';
@@ -444,22 +444,6 @@ export default function PendingOrders({ backend, onGoToOrder }) {
     }
   };
 
-  const handleDeleteDraft = async (orderId) => {
-    if (!window.confirm('Sigur dorești să elimini această comandă din listă?')) return;
-
-    try {
-      const res = await fetchWithAuth(`${backend}/api/payment/pending-orders/${orderId}`, {
-        method: 'DELETE',
-      });
-      if (res.ok) {
-        setPendingList(prev => prev.filter(p => p.order_id !== orderId));
-        if (selectedDraft?.order_id === orderId) setSelectedDraft(null);
-      }
-    } catch (err) {
-      console.error('Failed to delete pending order', err);
-    }
-  };
-
   return (
     <div className="space-y-4 px-3 sm:px-4 md:px-6 pb-10">
       {/* ── Stats Cards Bar (Matching IikoLogs / Dashboard) ── */}
@@ -751,6 +735,15 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                                     <span className="text-sm font-bold text-slate-900 dark:text-white">
                                       Comandă #{item.orderNumber || item.order_id}
                                     </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setSelectedDraft(item)}
+                                      className="p-1 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors cursor-pointer"
+                                      title="Vezi bon / coș complet"
+                                      aria-label="Vezi bon / coș complet"
+                                    >
+                                      <Eye size={15} />
+                                    </button>
                                     <span 
                                       style={{ color: BRAND_COLORS[brand] || '#e11d48' }}
                                       className="text-[10px] px-2 py-0.2 rounded-full font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
@@ -767,11 +760,24 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                                   </span>
                                 </div>
                               </div>
-                              <div className="text-right">
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Total de Plată</span>
-                                <span className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
-                                  {formatThousands(total)} lei
-                                </span>
+                              <div className="flex items-center gap-3">
+                                {(!item.iiko_sent && !p.syrveOrderId) && (
+                                  <button
+                                    onClick={() => handlePushToIiko(item.order_id, isCash)}
+                                    disabled={isProcessing}
+                                    className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                                    title="Trimite comanda în iiko"
+                                  >
+                                    <Send className={`w-3.5 h-3.5 ${isProcessing ? 'animate-spin' : ''}`} />
+                                    <span>Trimite în iiko</span>
+                                  </button>
+                                )}
+                                <div className="text-right">
+                                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Total de Plată</span>
+                                  <span className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+                                    {formatThousands(total)} lei
+                                  </span>
+                                </div>
                               </div>
                             </div>
 
@@ -1026,39 +1032,6 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                                 </div>
                               )}
                             </div>
-
-                            {/* ── ACTION BUTTONS ── */}
-                            <div className="flex flex-wrap items-center justify-between gap-2.5 pt-2.5 border-t border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-900/50 p-2.5 rounded-xl">
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={() => setSelectedDraft(item)}
-                                  className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-1.5 cursor-pointer"
-                                >
-                                  <Eye className="w-3.5 h-3.5" />
-                                  <span>Vezi Bon / Coș Complet</span>
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteDraft(item.order_id)}
-                                  className="px-3 py-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                  <span>Elimină</span>
-                                </button>
-                              </div>
-
-                              <div className="flex items-center gap-2">
-                                {(!item.iiko_sent && !p.syrveOrderId) && (
-                                  <button
-                                    onClick={() => handlePushToIiko(item.order_id, isCash)}
-                                    disabled={isProcessing}
-                                    className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
-                                  >
-                                    <Send className={`w-3.5 h-3.5 ${isProcessing ? 'animate-spin' : ''}`} />
-                                    <span>Trimite în iiko</span>
-                                  </button>
-                                )}
-                              </div>
-                            </div>
                           </div>
                         </td>
                       </tr>
@@ -1294,33 +1267,24 @@ export default function PendingOrders({ backend, onGoToOrder }) {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
+            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
               <button
-                onClick={() => handleDeleteDraft(selectedDraft.order_id)}
-                className="px-3 py-2 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
+                onClick={() => setSelectedDraft(null)}
+                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
-                Șterge
+                Închide
               </button>
 
-              <div className="flex items-center gap-2">
+              {(!selectedDraft.iiko_sent && !selectedDraft.payload?.syrveOrderId) && (
                 <button
-                  onClick={() => setSelectedDraft(null)}
-                  className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  onClick={() => handlePushToIiko(selectedDraft.order_id, selectedDraft.kind === 'cash_awaiting')}
+                  disabled={isProcessingId === selectedDraft.order_id}
+                  className="px-4 py-2 rounded-xl text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-md bg-blue-600 hover:bg-blue-700 cursor-pointer"
                 >
-                  Închide
+                  <Send className={`w-3.5 h-3.5 ${isProcessingId === selectedDraft.order_id ? 'animate-spin' : ''}`} />
+                  <span>Trimite în iiko</span>
                 </button>
-
-                {(!selectedDraft.iiko_sent && !selectedDraft.payload?.syrveOrderId) && (
-                  <button
-                    onClick={() => handlePushToIiko(selectedDraft.order_id, selectedDraft.kind === 'cash_awaiting')}
-                    disabled={isProcessingId === selectedDraft.order_id}
-                    className="px-4 py-2 rounded-xl text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-md bg-blue-600 hover:bg-blue-700 cursor-pointer"
-                  >
-                    <Send className={`w-3.5 h-3.5 ${isProcessingId === selectedDraft.order_id ? 'animate-spin' : ''}`} />
-                    <span>Trimite în iiko</span>
-                  </button>
-                )}
-              </div>
+              )}
             </div>
           </div>
         </div>
