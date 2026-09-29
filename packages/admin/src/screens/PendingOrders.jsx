@@ -4,7 +4,7 @@ import { useConfirm } from '../components/ConfirmModal.jsx';
 import { 
   Clock, RefreshCw, ShoppingBag, CreditCard, 
   CheckCircle2, AlertTriangle, Trash2, Send, X, Eye, 
-  Banknote, ArrowRight, ChevronDown, ChevronUp, Copy, Check, Sparkles
+  Banknote, ArrowRight, ChevronDown, ChevronUp, Copy, Check, Sparkles, Utensils
 } from 'lucide-react';
 import BrandLogo from '../components/BrandLogo.jsx';
 import { formatThousands } from '../utils/formatters';
@@ -17,6 +17,16 @@ const BRAND_COLORS = {
   sushimaster: '#dc2626',
   pokiwoki: '#7c3aed',
   ikura: '#ea580c',
+};
+
+const BRAND_LABELS = {
+  smashme: 'SmashMe',
+  crunch: 'Crunch',
+  rollmaster: 'Roll Master',
+  lovesushi: 'Love Sushi',
+  sushimaster: 'Sushi Master',
+  pokiwoki: 'Poki Woki',
+  ikura: 'Ikura',
 };
 
 function StatCard({ label, value, color, icon: Icon, onClick, active, highlight }) {
@@ -62,6 +72,10 @@ export default function PendingOrders({ backend, onGoToOrder }) {
   const [isProcessingId, setIsProcessingId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
 
+  // Products and overrides for photos and rich descriptions
+  const [menuProducts, setMenuProducts] = useState({});
+  const [menuImages, setMenuImages] = useState({});
+
   // Filters matching Orders page style
   const [brandFilter, setBrandFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -92,6 +106,47 @@ export default function PendingOrders({ backend, onGoToOrder }) {
     const interval = setInterval(() => fetchPendingOrders(true), 15000);
     return () => clearInterval(interval);
   }, [fetchPendingOrders]);
+
+  // Load menu products and images
+  useEffect(() => {
+    Promise.all([
+      fetch(`${backend}/api/menu/all`).then(r => r.json()).catch(() => ({})),
+      fetch(`${backend}/api/products/overrides/smashme`).then(r => r.json()).catch(() => ({})),
+      fetch(`${backend}/api/products/overrides/rollmaster`).then(r => r.json()).catch(() => ({})),
+      fetch(`${backend}/api/products/overrides/crunch`).then(r => r.json()).catch(() => ({})),
+      fetch(`${backend}/api/products/overrides/lovesushi`).then(r => r.json()).catch(() => ({})),
+      fetch(`${backend}/api/products/overrides/pokiwoki`).then(r => r.json()).catch(() => ({}))
+    ]).then(([allMenuData, ovSmash, ovRoll, ovCrunch, ovLove, ovPoki]) => {
+      const prodMap = {};
+      Object.keys(allMenuData || {}).forEach(b => {
+        const prods = allMenuData[b]?.menu?.products || [];
+        prods.forEach(p => {
+          if (p.id) prodMap[p.id] = p;
+          if (p.name) prodMap[p.name.toLowerCase().trim()] = p;
+        });
+      });
+      setMenuProducts(prodMap);
+
+      const imgMap = {};
+      [ovSmash, ovRoll, ovCrunch, ovLove, ovPoki].forEach(ovSet => {
+        if (ovSet && typeof ovSet === 'object') {
+          Object.entries(ovSet).forEach(([pid, val]) => {
+            if (val?.imageUrl) imgMap[pid] = val.imageUrl;
+          });
+        }
+      });
+      setMenuImages(imgMap);
+    }).catch(() => {});
+  }, [backend]);
+
+  const resolveProductImage = useCallback((item) => {
+    if (!item) return null;
+    const fullProd = menuProducts[item.productId] || (item.name && menuProducts[item.name.toLowerCase().trim()]);
+    const overrideImg = menuImages[item.productId];
+    let imgSrc = overrideImg || item.imageUrl || item.image || (fullProd?.imageLinks && fullProd.imageLinks[0]) || fullProd?.image || null;
+    if (imgSrc && imgSrc.startsWith('/uploads')) imgSrc = `${backend}${imgSrc}`;
+    return imgSrc;
+  }, [menuProducts, menuImages, backend]);
 
   // Unique locations for filter
   const uniqueLocations = useMemo(() => {
@@ -390,7 +445,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
           {['all', 'smashme', 'crunch', 'rollmaster', 'lovesushi', 'pokiwoki'].map(b => (
             <button
               key={b}
-              title={b === 'all' ? 'Toate Brandurile' : b}
+              title={b === 'all' ? 'Toate Brandurile' : BRAND_LABELS[b] || b}
               className={`shrink-0 h-10 rounded-full flex items-center justify-center border transition-colors ${
                 brandFilter === b 
                   ? 'bg-blue-600 text-white border-blue-600 shadow-sm' 
@@ -398,7 +453,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
               } ${b === 'all' ? 'px-5 text-sm font-bold' : 'w-10'}`}
               onClick={() => { setBrandFilter(b); setCurrentPage(1); }}
             >
-              {b === 'all' ? 'Toate' : <BrandLogo brandId={b} size={20} />}
+              {b === 'all' ? 'Toate' : <BrandLogo brandId={b} size={22} />}
             </button>
           ))}
         </div>
@@ -504,7 +559,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                       onClick={() => setExpandedId(isExpanded ? null : itemKey)}
                     >
                       {/* Nr. */}
-                      <td className="w-14 px-4 py-4 text-center text-xs font-bold text-slate-500 dark:text-slate-400 font-mono">
+                      <td className="w-14 px-4 py-4 text-center text-xs font-bold text-slate-400">
                         {rowNumber}
                       </td>
 
@@ -515,7 +570,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                             #{item.orderNumber || item.order_id}
                           </span>
                           {dt && (
-                            <span className="text-[10px] text-slate-400">
+                            <span className="text-[11px] text-slate-400">
                               {dt.toLocaleString('ro-RO')}
                             </span>
                           )}
@@ -523,56 +578,74 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                           {/* Grouping Badge: Tentativă anterioară (Card ➔ Cash) */}
                           {hasInitialAttempt && (
                             <span 
-                              className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50"
+                              className="inline-flex items-center gap-1 mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50"
                               title="Clientul a încercat plata cu cardul pe POS înainte de finalizarea comenzii"
                             >
-                              <CreditCard size={10} />
+                              <CreditCard size={11} />
                               <span>Card ➔ Cash (Grupate)</span>
                             </span>
                           )}
 
                           {/* Finalizată cu Succes Badge */}
                           {item.kind === 'finalized_success' && (
-                            <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50">
-                              <CheckCircle2 size={10} />
+                            <span className="inline-flex items-center gap-1 mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50">
+                              <CheckCircle2 size={11} />
                               <span>Finalizată cu Succes</span>
                             </span>
                           )}
                         </div>
                       </td>
 
-                      {/* Brand */}
+                      {/* Brand cu Logo Prominent */}
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2.5">
-                          <BrandLogo brandId={brand} size={28} className="shadow-xs shrink-0" />
-                          <span style={{ color: BRAND_COLORS[brand] || '#e11d48' }} className="text-sm font-bold capitalize">
-                            {brand}
+                          <BrandLogo brandId={brand} size={30} className="shadow-xs shrink-0" />
+                          <span style={{ color: BRAND_COLORS[brand] || '#e11d48' }} className="text-sm font-bold">
+                            {BRAND_LABELS[brand] || brand}
                           </span>
                         </div>
                       </td>
 
                       {/* Locație */}
                       <td className="px-6 py-4">
-                        <span className="text-sm text-slate-600 dark:text-slate-300 font-medium">
+                        <span className="text-sm text-slate-700 dark:text-slate-300 font-semibold">
                           {p.locationName || item.location_id || '—'}
                         </span>
                       </td>
 
-                      {/* Produse / Coș */}
+                      {/* Produse / Coș cu preview imagini mici */}
                       <td className="px-6 py-4 max-w-xs">
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
-                            {items.map(i => `${i.quantity}x ${i.name}`).join(', ') || 'Coș fără detalii'}
-                          </span>
-                          <span className="text-[10px] text-slate-400">
-                            {items.length} {items.length === 1 ? 'produs' : 'produse'}
-                          </span>
+                        <div className="flex items-center gap-2.5">
+                          {/* Mini imagini produse */}
+                          <div className="flex -space-x-2 shrink-0">
+                            {items.slice(0, 3).map((it, pIdx) => {
+                              const img = resolveProductImage(it);
+                              return (
+                                <div key={pIdx} className="w-8 h-8 rounded-full border-2 border-white dark:border-slate-800 bg-slate-100 dark:bg-slate-700 overflow-hidden shrink-0 flex items-center justify-center shadow-xs">
+                                  {img ? (
+                                    <img src={img} alt={it.name} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <Utensils className="w-3.5 h-3.5 text-slate-400" />
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                              {items.map(i => `${i.quantity}x ${i.name}`).join(', ') || 'Coș fără detalii'}
+                            </span>
+                            <span className="text-[10px] text-slate-400">
+                              {items.length} {items.length === 1 ? 'produs' : 'produse'}
+                            </span>
+                          </div>
                         </div>
                       </td>
 
                       {/* Total */}
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm font-bold text-slate-900 dark:text-white">
+                        <span className="text-sm font-black text-slate-900 dark:text-white">
                           {formatThousands(total)} <span className="text-xs font-normal text-slate-400">lei</span>
                         </span>
                       </td>
@@ -618,7 +691,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                             <button
                               onClick={() => handleMarkPaid(item.order_id)}
                               disabled={isProcessing}
-                              className="px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white transition-all shadow-sm cursor-pointer"
+                              className="px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white transition-all shadow-sm cursor-pointer"
                               title="Confirmă încasarea cash și marchează ca finalizată cu succes"
                             >
                               <CheckCircle2 className={`w-3.5 h-3.5 ${isProcessing ? 'animate-spin' : ''}`} />
@@ -630,10 +703,10 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                             <button
                               onClick={() => handlePushToIiko(item.order_id, isCash)}
                               disabled={isProcessing}
-                              className="px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-sm cursor-pointer"
+                              className="px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-sm cursor-pointer"
                               title="Trimite comanda în iiko"
                             >
-                              <Send className={`w-3 h-3 ${isProcessing ? 'animate-spin' : ''}`} />
+                              <Send className={`w-3.5 h-3.5 ${isProcessing ? 'animate-spin' : ''}`} />
                               <span>Trimite iiko</span>
                             </button>
                           )}
@@ -649,7 +722,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                       </td>
                     </tr>
 
-                    {/* Accordion Expanded Detail View (Exact ca în IikoLogs) */}
+                    {/* Accordion Expanded Detail View (Exact ca în IikoLogs cu poze și informații complete) */}
                     {isExpanded && (
                       <tr className="bg-slate-50/80 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-700">
                         <td colSpan={8} className="px-6 py-5">
@@ -657,24 +730,30 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                             {/* Accordion Header */}
                             <div className="flex flex-wrap items-center justify-between gap-4 pb-3 border-b border-slate-200 dark:border-slate-700">
                               <div className="flex items-center gap-3">
-                                <BrandLogo brandId={brand} size={28} />
+                                <BrandLogo brandId={brand} size={36} className="shadow-sm" />
                                 <div>
                                   <div className="flex items-center gap-2">
                                     <span className="text-base font-bold text-slate-900 dark:text-white">
                                       Comandă #{item.orderNumber || item.order_id}
                                     </span>
-                                    <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                                    <span 
+                                      style={{ color: BRAND_COLORS[brand] || '#e11d48' }}
+                                      className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+                                    >
+                                      {BRAND_LABELS[brand] || brand}
+                                    </span>
+                                    <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
                                       {p.locationName || item.location_id}
                                     </span>
                                   </div>
-                                  <span className="text-xs text-slate-400">
+                                  <span className="text-xs text-slate-500 mt-0.5 block">
                                     {dt ? dt.toLocaleString('ro-RO') : '—'} • {p.orderType === 'takeaway' ? 'La Pachet' : 'În Restaurant'}
                                   </span>
                                 </div>
                               </div>
                               <div className="text-right">
                                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Total de Plată</span>
-                                <span className="text-xl font-black text-slate-900 dark:text-white">
+                                <span className="text-2xl font-black text-slate-900 dark:text-white">
                                   {formatThousands(total)} lei
                                 </span>
                               </div>
@@ -691,7 +770,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                                       <Clock className="w-4 h-4" />
                                       <span>1. Înainte de Finalizare (Kiosk)</span>
                                     </div>
-                                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                                    <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                                       {item.initialAttempt ? 'Tentativă Card POS' : 'Coș Inițiat'}
                                     </span>
                                   </div>
@@ -699,41 +778,41 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                                   {item.initialAttempt ? (
                                     <div className="space-y-2 text-xs">
                                       <div className="flex items-center justify-between">
-                                        <span className="text-slate-400">ID Draft Kiosk:</span>
-                                        <span className="font-mono font-bold text-slate-700 dark:text-slate-200">
+                                        <span className="text-slate-400 font-medium">ID Draft Kiosk:</span>
+                                        <span className="font-bold text-slate-800 dark:text-slate-200">
                                           {item.initialAttempt.order_id || item.initialAttempt.orderId}
                                         </span>
                                       </div>
                                       <div className="flex items-center justify-between">
-                                        <span className="text-slate-400">Ora tentativă:</span>
+                                        <span className="text-slate-400 font-medium">Ora tentativă:</span>
                                         <span className="font-semibold text-slate-700 dark:text-slate-300">
                                           {new Date(item.initialAttempt.created_at).toLocaleTimeString('ro-RO')}
                                         </span>
                                       </div>
                                       <div className="flex items-center justify-between">
-                                        <span className="text-slate-400">Metodă inițială:</span>
+                                        <span className="text-slate-400 font-medium">Metodă inițială:</span>
                                         <span className="font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1">
                                           <CreditCard className="w-3.5 h-3.5" /> Plată Card la POS
                                         </span>
                                       </div>
                                       <div className="flex items-center justify-between">
-                                        <span className="text-slate-400">Rezultat terminal:</span>
-                                        <span className="font-bold text-slate-600 dark:text-slate-400">
-                                          {item.initialAttempt.error || 'Tranzacție refuzată sau clientul a comutat la Cash'}
+                                        <span className="text-slate-400 font-medium">Rezultat terminal:</span>
+                                        <span className="font-semibold text-slate-600 dark:text-slate-400">
+                                          {item.initialAttempt.error || 'Tranzacție card refuzată / clientul a trecut la Cash'}
                                         </span>
                                       </div>
                                     </div>
                                   ) : (
                                     <div className="space-y-2 text-xs">
                                       <div className="flex items-center justify-between">
-                                        <span className="text-slate-400">Inițiat la:</span>
+                                        <span className="text-slate-400 font-medium">Inițiat la:</span>
                                         <span className="font-semibold text-slate-700 dark:text-slate-300">
                                           {dt ? dt.toLocaleTimeString('ro-RO') : '—'}
                                         </span>
                                       </div>
                                       <div className="flex items-center justify-between">
-                                        <span className="text-slate-400">Coș generat:</span>
-                                        <span className="font-bold text-slate-700 dark:text-slate-200">
+                                        <span className="text-slate-400 font-medium">Coș generat:</span>
+                                        <span className="font-bold text-slate-800 dark:text-slate-200">
                                           {items.length} produse ({formatThousands(total)} lei)
                                         </span>
                                       </div>
@@ -743,22 +822,65 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                                     </div>
                                   )}
 
-                                  {/* Produse din coș */}
-                                  <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800">
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                                      Produse selectate pe ecran:
+                                  {/* Produse din coș cu POZE complete */}
+                                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
+                                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-2">
+                                      Produse în Coș ({items.length})
                                     </span>
-                                    <div className="space-y-1 max-h-28 overflow-y-auto pr-1">
-                                      {items.map((it, idx) => (
-                                        <div key={idx} className="flex items-center justify-between text-[11px] py-0.5">
-                                          <span className="text-slate-700 dark:text-slate-300 truncate max-w-[200px]">
-                                            <strong className="text-blue-600 mr-1">{it.quantity}x</strong> {it.name}
-                                          </span>
-                                          <span className="font-semibold text-slate-900 dark:text-white shrink-0">
-                                            {formatThousands(it.totalPrice || it.unitPrice || 0)} lei
-                                          </span>
-                                        </div>
-                                      ))}
+                                    <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                                      {items.map((it, idx) => {
+                                        const img = resolveProductImage(it);
+                                        return (
+                                          <div key={idx} className="flex items-center gap-3 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+                                            {/* Foto Produs */}
+                                            <div className="w-12 h-12 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 overflow-hidden shrink-0 flex items-center justify-center shadow-xs">
+                                              {img ? (
+                                                <img src={img} alt={it.name} className="w-full h-full object-cover" />
+                                              ) : (
+                                                <Utensils className="w-5 h-5 text-slate-400" />
+                                              )}
+                                            </div>
+
+                                            {/* Info Produs */}
+                                            <div className="flex-1 min-w-0">
+                                              <div className="flex items-center gap-1.5">
+                                                <span className="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded">
+                                                  {it.quantity}x
+                                                </span>
+                                                <span className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                                                  {it.name}
+                                                </span>
+                                              </div>
+                                              {it.selectedModifiers && it.selectedModifiers.length > 0 && (
+                                                <div className="flex flex-wrap gap-1 mt-1">
+                                                  {it.selectedModifiers.map((m, mIdx) => (
+                                                    <span key={mIdx} className="px-1.5 py-0.2 rounded bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-[10px] text-slate-600 dark:text-slate-300">
+                                                      + {m.optionName || m.name || m.modId} {Number(m.price) > 0 ? `(${formatThousands(m.price)} lei)` : ''}
+                                                    </span>
+                                                  ))}
+                                                </div>
+                                              )}
+                                              {it.comment && (
+                                                <div className="text-[10px] text-amber-600 dark:text-amber-400 italic mt-0.5">
+                                                  Notă: {it.comment}
+                                                </div>
+                                              )}
+                                            </div>
+
+                                            {/* Preț Produs */}
+                                            <div className="text-right shrink-0">
+                                              <span className="text-xs font-black text-slate-900 dark:text-white block">
+                                                {formatThousands(it.totalPrice || it.unitPrice || 0)} lei
+                                              </span>
+                                              {it.quantity > 1 && (
+                                                <span className="text-[10px] text-slate-400 block">
+                                                  {formatThousands(it.unitPrice || 0)} / buc
+                                                </span>
+                                              )}
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
                                     </div>
                                   </div>
                                 </div>
@@ -772,7 +894,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                                       <CheckCircle2 className="w-4 h-4" />
                                       <span>2. După Finalizare (Comandă & iiko)</span>
                                     </div>
-                                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                                    <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold ${
                                       item.kind === 'finalized_success' 
                                         ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
                                         : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
@@ -783,19 +905,19 @@ export default function PendingOrders({ backend, onGoToOrder }) {
 
                                   <div className="space-y-2 text-xs">
                                     <div className="flex items-center justify-between">
-                                      <span className="text-slate-400">Număr Bon / Ordine:</span>
+                                      <span className="text-slate-400 font-medium">Număr Bon / Ordine:</span>
                                       <span className="text-sm font-black text-blue-600 dark:text-blue-400">
                                         #{item.orderNumber || item.order_id}
                                       </span>
                                     </div>
                                     <div className="flex items-center justify-between">
-                                      <span className="text-slate-400">Metodă Plată Aleasă:</span>
-                                      <span className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1">
-                                        {p.paymentMethod === 'cash' ? <><Banknote className="w-3.5 h-3.5 text-amber-500" /> Numerar (Cash la Casierie)</> : <><CreditCard className="w-3.5 h-3.5 text-blue-500" /> Card Bancar</>}
+                                      <span className="text-slate-400 font-medium">Metodă Plată Aleasă:</span>
+                                      <span className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                                        {p.paymentMethod === 'cash' ? <><Banknote className="w-4 h-4 text-amber-500" /> Numerar (Cash la Casierie)</> : <><CreditCard className="w-4 h-4 text-blue-500" /> Card Bancar</>}
                                       </span>
                                     </div>
                                     <div className="flex items-center justify-between">
-                                      <span className="text-slate-400">Stare Sincronizare iiko:</span>
+                                      <span className="text-slate-400 font-medium">Stare Sincronizare iiko:</span>
                                       {item.iiko_sent || p.syrveOrderId ? (
                                         <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                                           <CheckCircle2 className="w-3.5 h-3.5" /> Transmis cu Succes
@@ -808,9 +930,9 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                                     </div>
 
                                     {(item.iiko_order_id || p.syrveOrderId) && (
-                                      <div className="p-2 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between gap-2 mt-2">
-                                        <span className="text-[10px] font-mono text-slate-600 dark:text-slate-300 truncate">
-                                          ID iiko: <strong>{item.iiko_order_id || p.syrveOrderId}</strong>
+                                      <div className="p-2.5 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between gap-2 mt-2">
+                                        <span className="text-xs text-slate-700 dark:text-slate-300 truncate">
+                                          ID iiko: <strong className="text-emerald-600 dark:text-emerald-400">{item.iiko_order_id || p.syrveOrderId}</strong>
                                         </span>
                                         <button
                                           onClick={(e) => {
@@ -821,7 +943,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                                             btn.innerText = 'Copiat!';
                                             setTimeout(() => { btn.innerText = prev; }, 1500);
                                           }}
-                                          className="px-2 py-0.5 bg-white dark:bg-slate-700 rounded text-[10px] font-bold border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100"
+                                          className="px-2.5 py-1 bg-white dark:bg-slate-700 rounded-lg text-xs font-bold border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 transition-colors"
                                         >
                                           Copiază
                                         </button>
@@ -831,15 +953,15 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                                 </div>
 
                                 {/* Stare casierie */}
-                                <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                                  <span className="text-slate-500 text-xs">Stare Încasare:</span>
+                                <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                                  <span className="text-slate-500 text-xs font-medium">Stare Încasare:</span>
                                   {item.paid || item.kind === 'finalized_success' ? (
                                     <span className="text-emerald-600 dark:text-emerald-400 font-bold text-xs flex items-center gap-1">
-                                      <CheckCircle2 className="w-3.5 h-3.5" /> Încasat & Confirmat
+                                      <CheckCircle2 className="w-4 h-4" /> Încasat & Confirmat
                                     </span>
                                   ) : (
                                     <span className="text-amber-600 dark:text-amber-400 font-bold text-xs flex items-center gap-1">
-                                      <Clock className="w-3.5 h-3.5" /> Așteaptă plata la casierie
+                                      <Clock className="w-4 h-4" /> Așteaptă plata la casierie
                                     </span>
                                   )}
                                 </div>
@@ -851,16 +973,16 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                               <div className="flex items-center gap-2">
                                 <button
                                   onClick={() => setSelectedDraft(item)}
-                                  className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-1.5 cursor-pointer"
+                                  className="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-1.5 cursor-pointer"
                                 >
-                                  <Eye className="w-3.5 h-3.5" />
+                                  <Eye className="w-4 h-4" />
                                   <span>Vezi Bon / Coș Complet</span>
                                 </button>
                                 <button
                                   onClick={() => handleDeleteDraft(item.order_id)}
-                                  className="px-3 py-1.5 rounded-xl text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
+                                  className="px-3.5 py-2 rounded-xl text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
                                 >
-                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <Trash2 className="w-4 h-4" />
                                   <span>Elimină</span>
                                 </button>
                               </div>
@@ -883,7 +1005,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                                     disabled={isProcessing}
                                     className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition-all cursor-pointer"
                                   >
-                                    <Send className={`w-3.5 h-3.5 ${isProcessing ? 'animate-spin' : ''}`} />
+                                    <Send className={`w-4 h-4 ${isProcessing ? 'animate-spin' : ''}`} />
                                     <span>Trimite în iiko</span>
                                   </button>
                                 )}
@@ -947,7 +1069,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
         </div>
       </div>
 
-      {/* ── Detail Modal for Selected Draft ── */}
+      {/* ── Detail Modal for Selected Draft (cu Logo Brand și Poze Produse) ── */}
       {selectedDraft && (
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-150"
@@ -959,9 +1081,16 @@ export default function PendingOrders({ backend, onGoToOrder }) {
           >
             {/* Modal Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-2.5">
-                <ShoppingBag className="w-5 h-5 text-amber-500" />
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">Detalii Comandă</h3>
+              <div className="flex items-center gap-3">
+                <BrandLogo brandId={selectedDraft.payload?.brand} size={32} />
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    Detalii Comandă #{selectedDraft.orderNumber || selectedDraft.order_id}
+                  </h3>
+                  <span style={{ color: BRAND_COLORS[selectedDraft.payload?.brand] || '#e11d48' }} className="text-xs font-bold capitalize">
+                    {BRAND_LABELS[selectedDraft.payload?.brand] || selectedDraft.payload?.brand} • {selectedDraft.payload?.locationName || selectedDraft.location_id}
+                  </span>
+                </div>
               </div>
               <button
                 onClick={() => setSelectedDraft(null)}
@@ -977,37 +1106,40 @@ export default function PendingOrders({ backend, onGoToOrder }) {
               <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 grid grid-cols-2 gap-3">
                 <div>
                   <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Locație & Brand</span>
-                  <div className="font-bold text-slate-800 dark:text-slate-100 mt-0.5 capitalize">
-                    {selectedDraft.payload?.brand} • {selectedDraft.payload?.locationName || selectedDraft.location_id}
+                  <div className="flex items-center gap-2 mt-1">
+                    <BrandLogo brandId={selectedDraft.payload?.brand} size={22} />
+                    <span className="font-bold text-slate-800 dark:text-slate-100">
+                      {BRAND_LABELS[selectedDraft.payload?.brand] || selectedDraft.payload?.brand} • {selectedDraft.payload?.locationName || selectedDraft.location_id}
+                    </span>
                   </div>
                 </div>
                 <div>
                   <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Tip Servire</span>
-                  <div className="font-bold text-slate-800 dark:text-slate-100 mt-0.5">
+                  <div className="font-bold text-slate-800 dark:text-slate-100 mt-1">
                     {selectedDraft.payload?.orderType === 'takeaway' ? 'La Pachet' : 'În Restaurant'}
                   </div>
                 </div>
                 <div>
                   <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">ID Tranzacție / Comandă</span>
-                  <div className="font-mono font-bold text-slate-700 dark:text-slate-300 mt-0.5">
+                  <div className="font-bold text-slate-700 dark:text-slate-300 mt-1">
                     {selectedDraft.orderNumber ? `#${selectedDraft.orderNumber}` : selectedDraft.order_id}
                   </div>
                 </div>
                 <div>
                   <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Stare Plată</span>
-                  <div className="font-bold mt-0.5">
+                  <div className="font-bold mt-1">
                     {selectedDraft.paid || selectedDraft.kind === 'finalized_success' ? (
-                      <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                      <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-bold">
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         <span>Finalizată cu Succes</span>
                       </span>
                     ) : selectedDraft.kind === 'cash_awaiting' ? (
-                      <span className="text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                      <span className="text-amber-600 dark:text-amber-400 flex items-center gap-1 font-bold">
                         <Banknote className="w-3.5 h-3.5" />
                         <span>Cash la Casierie (Neachitat)</span>
                       </span>
                     ) : (
-                      <span className="text-blue-600 dark:text-blue-400 flex items-center gap-1">
+                      <span className="text-blue-600 dark:text-blue-400 flex items-center gap-1 font-bold">
                         <Clock className="w-3.5 h-3.5" />
                         <span>În Curs POS</span>
                       </span>
@@ -1016,7 +1148,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                 </div>
               </div>
 
-              {/* Items List */}
+              {/* Items List cu POZE și MODIFICATORI */}
               <div>
                 <h4 className="font-bold text-slate-900 dark:text-white mb-2.5 flex items-center justify-between">
                   <span>Produse în Coș</span>
@@ -1025,41 +1157,67 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                   </span>
                 </h4>
 
-                <div className="space-y-2 border border-slate-100 dark:border-slate-800 rounded-2xl p-2 bg-slate-50/50 dark:bg-slate-900/50">
-                  {(selectedDraft.payload?.items || []).map((it, idx) => (
-                    <div key={idx} className="bg-white dark:bg-slate-800/80 p-3 rounded-xl border border-slate-200/60 dark:border-slate-700/60 flex items-start justify-between gap-3">
-                      <div>
-                        <div className="font-bold text-slate-900 dark:text-white">
-                          <span className="text-blue-600 dark:text-blue-400 mr-1.5">{it.quantity}x</span>
-                          <span>{it.name}</span>
-                        </div>
-                        {it.selectedModifiers && it.selectedModifiers.length > 0 && (
-                          <div className="mt-1 flex flex-wrap gap-1">
-                            {it.selectedModifiers.map((m, mIdx) => (
-                              <span key={mIdx} className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-[10px] text-slate-600 dark:text-slate-300">
-                                {m.optionName || m.name || m.modId}
+                <div className="space-y-2 border border-slate-100 dark:border-slate-800 rounded-2xl p-2 bg-slate-50/50 dark:bg-slate-900/50 max-h-72 overflow-y-auto">
+                  {(selectedDraft.payload?.items || []).map((it, idx) => {
+                    const img = resolveProductImage(it);
+                    return (
+                      <div key={idx} className="bg-white dark:bg-slate-800/80 p-3 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between gap-3 shadow-xs">
+                        <div className="flex items-center gap-3 min-w-0">
+                          {/* Poza Produsului */}
+                          <div className="w-14 h-14 rounded-xl bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 overflow-hidden shrink-0 flex items-center justify-center shadow-xs">
+                            {img ? (
+                              <img src={img} alt={it.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <Utensils className="w-6 h-6 text-slate-400" />
+                            )}
+                          </div>
+
+                          {/* Detalii Nume & Modificatori */}
+                          <div className="min-w-0">
+                            <div className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
+                              <span className="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded">
+                                {it.quantity}x
                               </span>
-                            ))}
+                              <span className="truncate">{it.name}</span>
+                            </div>
+                            {it.selectedModifiers && it.selectedModifiers.length > 0 && (
+                              <div className="mt-1 flex flex-wrap gap-1">
+                                {it.selectedModifiers.map((m, mIdx) => (
+                                  <span key={mIdx} className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-[10px] text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-600">
+                                    + {m.optionName || m.name || m.modId} {Number(m.price) > 0 ? `(${formatThousands(m.price)} lei)` : ''}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            {it.comment && (
+                              <div className="text-[10px] text-amber-600 dark:text-amber-400 mt-1 italic">
+                                Notă: {it.comment}
+                              </div>
+                            )}
                           </div>
-                        )}
-                        {it.comment && (
-                          <div className="text-[10px] text-amber-600 dark:text-amber-400 mt-1 italic">
-                            Instrucțiuni: {it.comment}
-                          </div>
-                        )}
+                        </div>
+
+                        {/* Preț Produs */}
+                        <div className="text-right shrink-0">
+                          <span className="font-black text-sm text-slate-900 dark:text-white block">
+                            {formatThousands(it.totalPrice || it.unitPrice || 0)} RON
+                          </span>
+                          {it.quantity > 1 && (
+                            <span className="text-[10px] text-slate-400 block">
+                              {formatThousands(it.unitPrice || 0)} / buc
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <span className="font-black text-slate-900 dark:text-white whitespace-nowrap">
-                        {formatThousands(it.totalPrice || it.unitPrice || 0)} RON
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
               {/* Total Row */}
               <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
-                <span className="font-bold text-slate-600 dark:text-slate-400">Total de Plată:</span>
-                <span className="text-base font-black text-slate-900 dark:text-white">
+                <span className="font-bold text-slate-600 dark:text-slate-400 text-sm">Total de Plată:</span>
+                <span className="text-xl font-black text-slate-900 dark:text-white">
                   {formatThousands(selectedDraft.payload?.totalAmount || selectedDraft.pos_amount || 0)} RON
                 </span>
               </div>
