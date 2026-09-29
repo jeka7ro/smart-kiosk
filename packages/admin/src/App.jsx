@@ -461,7 +461,7 @@ export default function AdminApp() {
   /* ─── Load initial orders + poll every 30s ──────── */
   useEffect(() => {
     const loadOrders = () => {
-      let url = `${BACKEND}/api/orders?limit=500`;
+      let url = `${BACKEND}/api/orders?limit=5000`;
       fetchWithAuth(url)
         .then(r => r.json())
         .then(d => {
@@ -915,18 +915,18 @@ export default function AdminApp() {
         {tab === 'dashboard' && (
           <div className="space-y-6 px-4 md:px-8 pb-10">
 
-            {/* Stat Cards Grid - Fixed 7 columns now placed at the top */}
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2.5">
+            {/* Stat Cards Grid - Responsive Grid with comfortable spacing */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-7 gap-3">
               <div className="w-full">
                 <StatCard 
                   label={
                     dashboardPeriod === 'today' ? 'Comenzi Azi' :
                     dashboardPeriod === 'yesterday' ? 'Comenzi Ieri' :
-                    dashboardPeriod === 'thisWeek' ? 'Comenzi Săpt. Curentă' :
-                    dashboardPeriod === 'lastWeek' ? 'Comenzi Săpt. Trecută' :
-                    dashboardPeriod === 'thisMonth' ? 'Comenzi Luna Curentă' :
-                    dashboardPeriod === 'lastMonth' ? 'Comenzi Luna Trecută' :
-                    dashboardPeriod === 'thisYear' ? 'Comenzi Anul Curent' :
+                    dashboardPeriod === 'thisWeek' ? 'Comenzi Săptămână' :
+                    dashboardPeriod === 'lastWeek' ? 'Comenzi Săpt. Prec.' :
+                    dashboardPeriod === 'thisMonth' ? 'Comenzi Lună' :
+                    dashboardPeriod === 'lastMonth' ? 'Comenzi Luna Prec.' :
+                    dashboardPeriod === 'thisYear' ? 'Comenzi An' :
                     'Comenzi'
                   } 
                   value={dashboardFilteredOrders.length} 
@@ -1661,7 +1661,7 @@ function StatCard({ label, value, color, large, brandId, icon: Icon, onClick, ac
           )}
         </div>
         {!brandId && (
-          <span className="text-[9.5px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis" title={label}>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-0.5 leading-snug line-clamp-1" title={label}>
             {label}
           </span>
         )}
