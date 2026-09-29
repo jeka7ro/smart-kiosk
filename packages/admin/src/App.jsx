@@ -1750,6 +1750,7 @@ function OrdersTable({ orders, full, onRowClick, selectedId, defaultRows = 10, m
             <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500"># Comandă</th>
             <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Brand</th>
             <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Locație</th>
+            <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Produse / Coș</th>
             <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Comandă / Plată</th>
             <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Total</th>
             <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Status</th>
@@ -1758,7 +1759,7 @@ function OrdersTable({ orders, full, onRowClick, selectedId, defaultRows = 10, m
         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
           {paginated.length === 0 ? (
             <tr>
-              <td colSpan={7} className="text-center py-10 text-slate-500 dark:text-slate-400 text-sm font-medium">
+              <td colSpan={8} className="text-center py-10 text-slate-500 dark:text-slate-400 text-sm font-medium">
                 Nicio comandă găsită în perioada selectată.
               </td>
             </tr>
@@ -1823,6 +1824,43 @@ function OrdersTable({ orders, full, onRowClick, selectedId, defaultRows = 10, m
                         </div>
                       )}
                     </div>
+                  </td>
+                  {/* Produse / Coș cu preview imagini mici */}
+                  <td className="px-5 py-3.5 max-w-[200px] lg:max-w-xs">
+                    {(() => {
+                      const items = o.items || [];
+                      if (!items.length) {
+                        return <span className="text-xs text-slate-400 italic">Fără detalii</span>;
+                      }
+                      return (
+                        <div className="flex items-center gap-2 min-w-0">
+                          {/* Mini imagini produse */}
+                          <div className="flex -space-x-1.5 shrink-0">
+                            {items.slice(0, 3).map((it, pIdx) => {
+                              const img = resolveProductImage(it);
+                              return (
+                                <div key={pIdx} className="w-6 h-6 rounded-full border border-white dark:border-slate-800 bg-slate-100 dark:bg-slate-700 overflow-hidden shrink-0 flex items-center justify-center shadow-2xs">
+                                  {img ? (
+                                    <img src={img} alt={it.name} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <Utensils className="w-3 h-3 text-slate-400" />
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate" title={items.map(i => `${i.quantity || 1}x ${i.name}`).join(', ')}>
+                              {items.map(i => `${i.quantity || 1}x ${i.name}`).join(', ')}
+                            </span>
+                            <span className="text-[10px] text-slate-400">
+                              {items.length} {items.length === 1 ? 'produs' : 'produse'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </td>
                   <td className="px-6 py-3.5 whitespace-nowrap">
                     <div className="flex flex-col gap-1">
