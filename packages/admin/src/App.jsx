@@ -16,6 +16,7 @@ import IikoLogs       from './screens/IikoLogs';
 import PrinterLogs    from './screens/PrinterLogs';
 import PortScans      from './screens/PortScans';
 import BrandLogo from './components/BrandLogo.jsx';
+import BankLogo from './components/BankLogo.jsx';
 import DashboardCharts3D, { detectCardBrand, detectCardBank, BANK_CONFIG } from './components/DashboardCharts3D.jsx';
 import OrderToastNotificationStack, { playNewOrderSound } from './components/OrderToastNotification.jsx';
 import OrdersNotificationBell from './components/OrdersNotificationBell.jsx';
@@ -1418,7 +1419,7 @@ export default function AdminApp() {
                               borderColor: `${bank.color}35`
                             }}
                           >
-                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: bank.color }} />
+                            <BankLogo bankId={bank.id} bank={bank} size={15} />
                             {bank.name}
                           </span>
                         ) : null;

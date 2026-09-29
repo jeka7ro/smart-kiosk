@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import BrandLogo from './BrandLogo';
+import BankLogo from './BankLogo';
 import { TrendingUp, PieChart, CreditCard, Clock, Banknote, Calendar, Flame, Trophy, Award, ShoppingBag, Utensils, ChevronDown, ChevronUp, Monitor, Sparkles, Layers } from 'lucide-react';
 import { formatThousands, formatLocationAndKiosk } from '../utils/formatters';
 import { detectCardBrand, detectCardBank, BANK_CONFIG } from '../utils/cardUtils';
@@ -1916,13 +1917,8 @@ export function PaymentMethodsChart3D({
                           }`}
                           title={`Click pentru a filtra tranzacțiile ${b.name}`}
                         >
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <div 
-                              className="w-6 h-6 rounded-md flex items-center justify-center font-black text-[9.5px] text-white shrink-0 shadow-xs"
-                              style={{ background: b.color }}
-                            >
-                              {b.logoText}
-                            </div>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <BankLogo bankId={b.id} bank={b} size={26} className="shadow-xs shrink-0" />
                             <div className="min-w-0">
                               <div className="flex items-center gap-1">
                                 <span className="text-[11px] font-bold text-slate-800 dark:text-slate-100 truncate">

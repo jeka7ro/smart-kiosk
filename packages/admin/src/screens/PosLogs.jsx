@@ -5,6 +5,7 @@ import { CreditCard, CheckCircle2, XCircle, AlertTriangle, RotateCcw, Receipt, C
 import { io } from 'socket.io-client';
 import * as XLSX from 'xlsx';
 import BrandLogo from '../components/BrandLogo.jsx';
+import BankLogo from '../components/BankLogo.jsx';
 import { formatThousands } from '../utils/formatters';
 import { detectCardBrand, detectCardBank, BANK_CONFIG } from '../utils/cardUtils';
 
@@ -103,7 +104,7 @@ export function CardBrandAvatar({ brand, cardNo, isNfc, cardBank }) {
             </span>
             {effBank && (
               <span 
-                className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-bold tracking-tight border shadow-xs"
+                className="inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded text-[9px] font-bold tracking-tight border shadow-xs"
                 style={{
                   backgroundColor: `${effBank.color}15`,
                   color: effBank.color,
@@ -111,7 +112,7 @@ export function CardBrandAvatar({ brand, cardNo, isNfc, cardBank }) {
                 }}
                 title={`Bancă emitentă: ${effBank.name}`}
               >
-                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: effBank.color }} />
+                <BankLogo bankId={effBank.id} bank={effBank} size={13} />
                 {effBank.shortName}
               </span>
             )}
@@ -122,7 +123,7 @@ export function CardBrandAvatar({ brand, cardNo, isNfc, cardBank }) {
           <span className="text-[11px] text-slate-400 font-semibold">{brandName}</span>
           {effBank && (
             <span 
-              className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-bold tracking-tight border"
+              className="inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded text-[9px] font-bold tracking-tight border shadow-xs"
               style={{
                 backgroundColor: `${effBank.color}15`,
                 color: effBank.color,
@@ -130,7 +131,7 @@ export function CardBrandAvatar({ brand, cardNo, isNfc, cardBank }) {
               }}
               title={`Bancă emitentă: ${effBank.name}`}
             >
-              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: effBank.color }} />
+              <BankLogo bankId={effBank.id} bank={effBank} size={13} />
               {effBank.shortName}
             </span>
           )}
@@ -384,14 +385,14 @@ Status:  ${log.paid ? 'APROBAT (0000)' : `RESPINS (${meta.respCode || log.error 
               <div className="flex items-center gap-1.5">
                 {meta.cardBank ? (
                   <span 
-                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold border"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold border shadow-xs"
                     style={{
                       backgroundColor: `${meta.cardBank.color}15`,
                       color: meta.cardBank.color,
                       borderColor: `${meta.cardBank.color}35`
                     }}
                   >
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: meta.cardBank.color }} />
+                    <BankLogo bankId={meta.cardBank.id} bank={meta.cardBank} size={18} />
                     {meta.cardBank.name}
                   </span>
                 ) : (
@@ -906,7 +907,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                   boxShadow: `0 2px 8px ${b.color}30`
                 } : {}}
               >
-                <span className="w-2.5 h-2.5 rounded-full shrink-0 shadow-xs" style={{ backgroundColor: b.color }} />
+                <BankLogo bankId={b.id} bank={b} size={22} className="shadow-xs shrink-0" />
                 <span>{b.shortName}</span>
                 <span className="text-[11px] font-extrabold px-1.5 py-0.2 rounded bg-black/5 dark:bg-white/10">
                   {b.count}
