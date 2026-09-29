@@ -631,7 +631,6 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                 const isCash = item.kind === 'cash_awaiting';
                 const itemKey = item.order_id || index;
                 const isExpanded = expandedId === itemKey;
-                const hasInitialAttempt = !!item.initialAttempt;
                 const isFinalized = item.kind === 'finalized_success' || item.paid || (item.kind === 'cash_awaiting' && item.orderNumber);
                 const locInfo = formatLocationAndKiosk(item);
                 const ageMs = item.created_at ? (Date.now() - new Date(item.created_at).getTime()) : 0;
@@ -663,17 +662,6 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                           {dt && (
                             <span className="text-[11px] text-slate-400">
                               {dt.toLocaleString('ro-RO')}
-                            </span>
-                          )}
-
-                          {/* Grouping Badge: Tentativă anterioară (Card ➔ Cash) */}
-                          {hasInitialAttempt && (
-                            <span 
-                              className="inline-flex items-center gap-1.5 mt-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 whitespace-nowrap shadow-2xs"
-                              title="Clientul a încercat plata cu cardul pe POS înainte de finalizarea comenzii"
-                            >
-                              <CreditCard size={12} className="text-blue-500" />
-                              <span>Card ➔ Cash</span>
                             </span>
                           )}
 
