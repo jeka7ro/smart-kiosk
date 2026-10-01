@@ -39,11 +39,12 @@ async function addPosLog(entry) {
     order_id:    entry.orderId || '',
     amount:      entry.amount || 0,
     gateway:     entry.gateway || 'raiffeisen',
-    status:      entry.paid ? 'approved' : (
-      (entry.error && (String(entry.error).toLowerCase().includes('anulat') || String(entry.error).toLowerCase().includes('cancel')))
-        ? 'cancelled'
-        : (entry.error === 'timeout' ? 'timeout' : 'declined')
-    ),
+    status:      entry.paid ? 'approved' : (() => {
+      const errStr = String(entry.error || '').toLowerCase();
+      if (errStr.includes('anulat') || errStr.includes('cancel')) return 'cancelled';
+      if (errStr.includes('timeout') || errStr.includes('nu răspunde') || errStr.includes('nu raspunde')) return 'timeout';
+      return 'declined';
+    })(),
     paid:        !!entry.paid,
     response_code: entry.responseCode || '',
     auth_code:   entry.authCode || '',
@@ -209,11 +210,22 @@ router.get('/stats', async (req, res) => {
     const { rows } = await pool.query(`
       SELECT 
         COUNT(*) as total_count,
-        COUNT(CASE WHEN status = 'approved' THEN 1 END) as total_approved,
-        COUNT(CASE WHEN status != 'approved' THEN 1 END) as total_declined,
-        SUM(CASE WHEN status = 'approved' THEN amount ELSE 0 END) as total_revenue,
+        COUNT(CASE WHEN status = 'approved' OR paid = true THEN 1 END) as total_approved,
+        COUNT(CASE WHEN (status = 'declined' OR (status != 'approved' AND paid = false)) 
+                    AND status != 'cancelled' 
+                    AND status != 'timeout' 
+                    AND (error IS NULL OR (
+                          LOWER(error) NOT LIKE '%anulat%' AND 
+                          LOWER(error) NOT LIKE '%cancel%' AND 
+                          LOWER(error) NOT LIKE '%timeout%' AND 
+                          LOWER(error) NOT LIKE '%nu răspunde%' AND 
+                          LOWER(error) NOT LIKE '%nu raspunde%'
+                    )) THEN 1 END) as total_declined,
+        COUNT(CASE WHEN status = 'cancelled' OR (error IS NOT NULL AND (LOWER(error) LIKE '%anulat%' OR LOWER(error) LIKE '%cancel%')) THEN 1 END) as total_cancelled,
+        COUNT(CASE WHEN status = 'timeout' OR (error IS NOT NULL AND (LOWER(error) LIKE '%timeout%' OR LOWER(error) LIKE '%nu răspunde%' OR LOWER(error) LIKE '%nu raspunde%')) THEN 1 END) as total_timeout,
+        SUM(CASE WHEN status = 'approved' OR paid = true THEN amount ELSE 0 END) as total_revenue,
         COUNT(CASE WHEN iiko_sent = true THEN 1 END) as total_iiko_sent,
-        COUNT(CASE WHEN status = 'approved' AND (iiko_sent = false OR iiko_sent IS NULL) THEN 1 END) as total_iiko_failed
+        COUNT(CASE WHEN (status = 'approved' OR paid = true) AND (iiko_sent = false OR iiko_sent IS NULL) THEN 1 END) as total_iiko_failed
       FROM pos_logs
     `);
     
@@ -223,6 +235,8 @@ router.get('/stats', async (req, res) => {
       total: parseInt(stats.total_count, 10) || 0,
       totalApproved: parseInt(stats.total_approved, 10) || 0,
       totalDeclined: parseInt(stats.total_declined, 10) || 0,
+      totalCancelled: parseInt(stats.total_cancelled, 10) || 0,
+      totalTimeout: parseInt(stats.total_timeout, 10) || 0,
       totalRevenue: parseFloat(stats.total_revenue) || 0,
       totalIikoSent: parseInt(stats.total_iiko_sent, 10) || 0,
       totalIikoFailed: parseInt(stats.total_iiko_failed, 10) || 0,

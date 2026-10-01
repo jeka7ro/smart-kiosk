@@ -19,7 +19,7 @@ const STATUS_CONFIG = {
   approved:    { label: 'Aprobat',          color: '#ffffff', bg: '#059669' },
   declined:    { label: 'Respins',          color: '#ffffff', bg: '#dc2626' },
   cancelled:   { label: 'Anulat de client', color: '#ffffff', bg: '#64748b' },
-  timeout:     { label: 'Timeout',          color: '#ffffff', bg: '#d97706' },
+  timeout:     { label: 'Timeout POS',      color: '#ffffff', bg: '#d97706' },
   refunded:    { label: 'Returnat',         color: '#ffffff', bg: '#2563eb' },
   unsolicited: { label: 'POS Info',         color: '#ffffff', bg: '#7c3aed' },
 };
@@ -32,6 +32,24 @@ const isLogCancelled = (l) => {
     return err.includes('anulat') || err.includes('kiosk timeout') || err.includes('cancel');
   }
   return false;
+};
+
+const isLogTimeout = (l) => {
+  if (!l) return false;
+  if (l.status === 'timeout') return true;
+  if (typeof l.error === 'string') {
+    const err = l.error.toLowerCase();
+    return err.includes('timeout') || err.includes('nu răspunde') || err.includes('nu raspunde');
+  }
+  return false;
+};
+
+const isLogDeclined = (l) => {
+  if (!l) return false;
+  if (l.status === 'approved' || l.paid === true) return false;
+  if (isLogCancelled(l)) return false;
+  if (isLogTimeout(l)) return false;
+  return true;
 };
 
 export function CardBrandAvatar({ brand, cardNo, isNfc, cardBank }) {
@@ -385,8 +403,16 @@ Status:  ${log.paid ? 'APROBAT (0000)' : `RESPINS (${meta.respCode || log.error 
               </span>
             </div>
             <div className="flex flex-col items-end">
-              <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${log.paid ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' : 'bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30'}`}>
-                {log.paid ? 'Aprobat' : 'Respins'}
+              <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                log.paid 
+                  ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' 
+                  : (isLogCancelled(log) 
+                      ? 'bg-slate-500/15 text-slate-600 dark:text-slate-400 border border-slate-500/30' 
+                      : (isLogTimeout(log)
+                          ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                          : 'bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30'))
+              }`}>
+                {log.paid ? 'Aprobat' : (isLogCancelled(log) ? 'Anulat de client' : (isLogTimeout(log) ? 'Timeout POS' : 'Respins'))}
               </span>
               {!log.paid && meta.respCode && meta.respCode !== '0000' && (
                 <span className="text-[11px] font-semibold text-red-500 mt-1">Eroare: {meta.respCode}</span>
@@ -728,8 +754,9 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
     return {
       total: periodFilteredLogs.length,
       approved: periodFilteredLogs.filter(l => l.status === 'approved' || l.paid === true).length,
-      declined: periodFilteredLogs.filter(l => (l.status === 'declined' || l.status === 'timeout' || (l.status !== 'approved' && l.paid === false)) && !isLogCancelled(l)).length,
+      declined: periodFilteredLogs.filter(l => isLogDeclined(l)).length,
       cancelled: periodFilteredLogs.filter(l => isLogCancelled(l)).length,
+      timeout: periodFilteredLogs.filter(l => isLogTimeout(l)).length,
       iikoFailed: periodFilteredLogs.filter(l => (l.status === 'approved' || l.paid === true) && !isLogIikoSuccess(l)).length
     };
   }, [periodFilteredLogs, isLogIikoSuccess]);
@@ -802,8 +829,8 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
       if (filter !== 'all') {
         if (filter === 'approved') return l.status === 'approved' || l.paid === true;
         if (filter === 'cancelled') return isLogCancelled(l);
-        if (filter === 'declined') return (l.status === 'declined' || (l.status !== 'approved' && l.paid === false)) && !isLogCancelled(l);
-        if (filter === 'timeout') return l.status === 'timeout';
+        if (filter === 'timeout') return isLogTimeout(l);
+        if (filter === 'declined') return isLogDeclined(l);
         if (filter === 'iikoFailed') return (l.status === 'approved' || l.paid === true) && !isLogIikoSuccess(l);
         if (l.status !== filter) return false;
       }
@@ -837,7 +864,13 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
         'Locatie': log.locationId || '',
         'TID': meta.tid || '',
         'Suma (RON)': Number((Number(log.amount) || 0).toFixed(2)),
-        'Status POS': isLogCancelled(log) ? 'Anulat de client' : (STATUS_CONFIG[log.status]?.label || log.status),
+        'Status POS': (log.status === 'approved' || log.paid === true)
+          ? 'Aprobat'
+          : (isLogCancelled(log)
+              ? 'Anulat de client'
+              : (isLogTimeout(log)
+                  ? 'Timeout POS'
+                  : (STATUS_CONFIG[log.status]?.label || log.status))),
         'Auth Code': log.authCode || '',
         'Tip Card': meta.cardBrand ? meta.cardBrand.toUpperCase() : 'CARD',
         'Bancă Emitentă': meta.cardBank?.name || '—',
@@ -1093,6 +1126,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                 { id: 'approved',  label: 'Aprobate' },
                 { id: 'declined',  label: 'Respinse' },
                 { id: 'cancelled', label: 'Anulate de client' },
+                { id: 'timeout',   label: 'Timeout POS' },
               ].map(f => (
                 <button
                   key={f.id}
@@ -1149,8 +1183,16 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                 </td>
               </tr>
             ) : paginated.map((log, idx) => {
+              const isApproved = log.status === 'approved' || log.paid === true;
               const isCancelled = isLogCancelled(log);
-              const sc = isCancelled ? STATUS_CONFIG.cancelled : (STATUS_CONFIG[log.status] || STATUS_CONFIG.declined);
+              const isTimeout = isLogTimeout(log);
+              const sc = isApproved 
+                ? STATUS_CONFIG.approved 
+                : (isCancelled 
+                    ? STATUS_CONFIG.cancelled 
+                    : (isTimeout 
+                        ? STATUS_CONFIG.timeout 
+                        : (STATUS_CONFIG[log.status] || STATUS_CONFIG.declined)));
               const dt = log.timestamp ? new Date(log.timestamp) : null;
               const order = getOrderForLog(log);
               const meta = extractPosMeta(log);
@@ -1316,18 +1358,30 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                           confirm(
                             <div className="flex flex-col gap-3 text-left mt-2">
                               <p className="text-slate-600 dark:text-slate-300">
-                                {isCancelled ? 'Detalii anulare comandă:' : 'Detaliu eroare POS:'}
+                                {isCancelled ? 'Detalii anulare comandă:' : (isTimeout ? 'Detalii timeout POS:' : 'Detaliu eroare POS:')}
                               </p>
-                              <div className={`${isCancelled ? 'bg-slate-100 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700' : 'bg-red-50 dark:bg-red-950/30 border-red-100 dark:border-red-900/50'} p-3 rounded-xl border`}>
-                                <span className={`font-semibold text-sm ${isCancelled ? 'text-slate-700 dark:text-slate-300' : 'text-red-600 dark:text-red-400'} break-all select-all whitespace-pre-wrap`}>
+                              <div className={`${
+                                isCancelled 
+                                  ? 'bg-slate-100 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700' 
+                                  : (isTimeout 
+                                      ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/50' 
+                                      : 'bg-red-50 dark:bg-red-950/30 border-red-100 dark:border-red-900/50')
+                              } p-3 rounded-xl border`}>
+                                <span className={`font-semibold text-sm ${
+                                  isCancelled 
+                                    ? 'text-slate-700 dark:text-slate-300' 
+                                    : (isTimeout 
+                                        ? 'text-amber-700 dark:text-amber-300' 
+                                        : 'text-red-600 dark:text-red-400')
+                                } break-all select-all whitespace-pre-wrap`}>
                                   {log.error}
                                 </span>
                               </div>
                             </div>,
                             { 
-                              title: isCancelled ? 'Comandă Anulată de Client' : 'Eroare POS', 
-                              type: isCancelled ? 'info' : 'error',
-                              danger: !isCancelled, 
+                              title: isCancelled ? 'Comandă Anulată de Client' : (isTimeout ? 'Timeout Răspuns POS' : 'Eroare POS / Card'), 
+                              type: isCancelled ? 'info' : (isTimeout ? 'warning' : 'error'),
+                              danger: !isCancelled && !isTimeout, 
                               hideCancel: true, 
                               okLabel: 'Închide' 
                             }
@@ -1336,7 +1390,9 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                         className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-transform active:scale-95 cursor-pointer shadow-sm ${
                           isCancelled 
                             ? 'bg-slate-500 hover:bg-slate-600 text-white' 
-                            : 'bg-red-600 hover:bg-red-700 text-white'
+                            : (isTimeout 
+                                ? 'bg-amber-500 hover:bg-amber-600 text-white' 
+                                : 'bg-red-600 hover:bg-red-700 text-white')
                         }`}
                       >
                         Detalii
