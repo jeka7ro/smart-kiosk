@@ -262,6 +262,15 @@ function ecrSend(frame, ns, label, timeoutMs = 3000) {
         const cb = onLoginFailure;
         onLoginFailure = null;
         cb('Timeout ENQ (POS nu răspunde)');
+      } else if (failedOp && failedOp !== 'LOGIN') {
+        // Dacă o operațiune (ex: SALE) a eșuat la 3 încercări ENQ, portul USB sau terminalul e în sleep/blocat.
+        // Re-ciclăm portul controlat (toggle DTR/RTS) pentru a trezi adaptorul serial și Verifone-ul
+        log('🔄 Inițiez autorecuperare port POS după eșec 3x ENQ...');
+        setTimeout(() => {
+          forceReopenPort('Autorecuperare după Timeout ENQ').then(() => {
+            ensurePosLogin().catch(e => log(`⚠️ Eroare re-login după timeout: ${e.message}`));
+          });
+        }, 500);
       }
     }
   }, timeoutMs);
