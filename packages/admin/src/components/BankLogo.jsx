@@ -116,6 +116,36 @@ export const BANK_ASSETS = {
     fallbackBg: 'linear-gradient(135deg, #0a2540 0%, #0284c7 100%)',
     fallbackColor: '#ffffff'
   },
+  alpha: {
+    src: '/banks/alpha.svg',
+    name: 'Alpha Bank',
+    short: 'ALF',
+    padding: 'p-0',
+    bgColor: 'bg-[#002f6c]',
+    borderColor: 'border-blue-700/80',
+    fallbackBg: 'linear-gradient(135deg, #002f6c 0%, #1e3a8a 100%)',
+    fallbackColor: '#ffffff'
+  },
+  otp: {
+    src: '/banks/otp.svg',
+    name: 'OTP Bank',
+    short: 'OTP',
+    padding: 'p-0',
+    bgColor: 'bg-[#16a34a]',
+    borderColor: 'border-green-600/80',
+    fallbackBg: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
+    fallbackColor: '#ffffff'
+  },
+  first: {
+    src: '/banks/first.svg',
+    name: 'First Bank',
+    short: '1st',
+    padding: 'p-0',
+    bgColor: 'bg-[#2563eb]',
+    borderColor: 'border-blue-600/80',
+    fallbackBg: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+    fallbackColor: '#ffffff'
+  },
   meal_vouchers: {
     src: '/banks/meal_vouchers.svg',
     name: 'Card Masă (Tichete)',
@@ -124,16 +154,6 @@ export const BANK_ASSETS = {
     bgColor: 'bg-orange-600',
     borderColor: 'border-orange-500/80',
     fallbackBg: 'linear-gradient(135deg, #ea580c 0%, #c2410c 100%)',
-    fallbackColor: '#ffffff'
-  },
-  international: {
-    src: '/banks/international.svg',
-    name: 'Card Internațional',
-    short: 'INT',
-    padding: 'p-0',
-    bgColor: 'bg-blue-600',
-    borderColor: 'border-blue-500/80',
-    fallbackBg: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
     fallbackColor: '#ffffff'
   }
 };
@@ -151,8 +171,10 @@ export function resolveBankKey(bankId, bank) {
   if (rawId.includes('patria') || rawId.includes('carpatica')) return 'patria';
   if (rawId.includes('salt')) return 'salt';
   if (rawId.includes('libra')) return 'libra';
+  if (rawId.includes('alpha')) return 'alpha';
+  if (rawId.includes('otp')) return 'otp';
+  if (rawId.includes('first')) return 'first';
   if (rawId.includes('meal') || rawId.includes('tichete') || rawId.includes('edenred') || rawId.includes('pluxee') || rawId.includes('sodexo') || rawId.includes('up')) return 'meal_vouchers';
-  if (rawId.includes('internat') || rawId.includes('global') || rawId.includes('foreign')) return 'international';
   return 'other';
 }
 

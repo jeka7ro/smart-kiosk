@@ -30,6 +30,11 @@ import { formatThousands } from './utils/formatters';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
 
+const BUILD_INFO = {
+  number: typeof __BUILD_NUMBER__ !== 'undefined' ? __BUILD_NUMBER__ : '883',
+  date: typeof __BUILD_DATE__ !== 'undefined' ? __BUILD_DATE__ : '',
+};
+
 // ─── Keep-alive: prevent Render.com free tier from sleeping ───────────────────
 function useKeepAlive() {
   useEffect(() => {
@@ -854,7 +859,7 @@ export default function AdminApp() {
             ))}
           </nav>
 
-          <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+          <div className="p-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
             <button
               type="button"
               onClick={() => { setTab('kiosks'); setIsSidebarOpen(false); }}
@@ -875,6 +880,18 @@ export default function AdminApp() {
                 </span>
               )}
             </button>
+
+            {/* Build Version & Date/Time */}
+            <div className="px-1 text-center text-xs leading-normal text-slate-400 dark:text-slate-500 select-none">
+              <div className="font-semibold text-slate-600 dark:text-slate-300">
+                Build #{BUILD_INFO.number}
+              </div>
+              {BUILD_INFO.date && (
+                <div className="text-[11px] text-slate-400 dark:text-slate-500">
+                  {BUILD_INFO.date}
+                </div>
+              )}
+            </div>
           </div>
         </aside>
 
@@ -957,12 +974,12 @@ export default function AdminApp() {
               ))}
             </div>
 
-            {/* Controls & Period Filter Bar - Below Stat Cards */}
-            <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3.5">
-              {/* Linia 1: Filtru Branduri + Locații + Plăți + Căutare */}
-              <div className="flex items-center justify-between gap-3 flex-wrap">
-                {/* Brand Filter Buttons - Compact Icons with Multi-select */}
-                <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide shrink-0">
+            {/* Controls & Period Filter Bar - Single row layout */}
+            <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between gap-2.5 flex-wrap">
+              {/* Grup Stânga: Branduri + Butoane Perioadă */}
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Brand Filter Buttons - Compact Icons */}
+                <div className="flex items-center gap-1.5 shrink-0">
                   {['all','smashme','crunch','rollmaster','lovesushi','pokiwoki'].map(b => {
                     const isSelected = b === 'all' ? dashboardBrands.length === 0 : dashboardBrands.includes(b);
                     return (
@@ -970,8 +987,8 @@ export default function AdminApp() {
                         key={b}
                         type="button"
                         title={b === 'all' ? 'Toate Brandurile' : b === 'smashme' ? 'SmashMe' : b === 'crunch' ? 'Crunch' : b === 'rollmaster' ? 'Roll Master' : b === 'lovesushi' ? 'Love Sushi' : 'Poki-Woki'}
-                        className={`shrink-0 h-10 rounded-full flex items-center justify-center border transition-all ${
-                          b === 'all' ? 'px-4 text-xs font-bold' : 'w-10'
+                        className={`shrink-0 h-9 rounded-full flex items-center justify-center border transition-all ${
+                          b === 'all' ? 'px-3 text-xs font-bold' : 'w-9'
                         } ${
                           isSelected
                             ? 'bg-blue-600 text-white border-blue-600 shadow-sm ring-2 ring-blue-500/20'
@@ -979,57 +996,17 @@ export default function AdminApp() {
                         }`}
                         onClick={() => toggleDashboardBrand(b)}
                       >
-                        {b === 'all' ? 'Toate' : <BrandLogo brandId={b} size={18} />}
+                        {b === 'all' ? 'Toate' : <BrandLogo brandId={b} size={16} />}
                       </button>
                     );
                   })}
                 </div>
 
-                {/* Filtre dreapta: Locație, Plată, Căutare */}
-                <div className="flex items-center gap-2.5 flex-wrap ml-auto">
-                  {/* Location Filter */}
-                  <select 
-                    className="shrink-0 px-4 h-10 rounded-full text-xs font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-                    value={dashboardLocation}
-                    onChange={(e) => setDashboardLocation(e.target.value)}
-                  >
-                    <option value="all">Toate locațiile</option>
-                    {uniqueLocations.map(loc => (
-                      <option key={loc} value={loc}>{loc}</option>
-                    ))}
-                  </select>
+                {/* Separator discret vertical */}
+                <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 shrink-0 hidden md:block" />
 
-                  {/* Payment Filter */}
-                  <select 
-                    className="shrink-0 px-4 h-10 rounded-full text-xs font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-                    value={dashboardPayment}
-                    onChange={(e) => setDashboardPayment(e.target.value)}
-                  >
-                    <option value="all">Toate plățile</option>
-                    <option value="card">Card POS (Toate)</option>
-                    <option value="visa">Card Visa</option>
-                    <option value="mastercard">Card Mastercard</option>
-                    <option value="cash">Numerar (Cash)</option>
-                  </select>
-
-                  {/* Search Bar */}
-                  <div className="relative min-w-[180px] max-w-[280px]">
-                    <input
-                      type="text"
-                      value={dashboardSearch}
-                      onChange={(e) => setDashboardSearch(e.target.value)}
-                      placeholder="Caută comandă, iiko..."
-                      className="h-10 pl-10 pr-4 rounded-full text-xs font-medium bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full transition-all"
-                    />
-                    <svg className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                  </div>
-                </div>
-              </div>
-
-              {/* Linia 2: Sub filtru de brand — Butoane Rapide Perioadă + Câmpuri Dată */}
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-3 flex-wrap">
                 {/* Butoane Rapide Perioadă */}
-                <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5">
+                <div className="flex items-center gap-1 shrink-0 flex-wrap">
                   {[
                     { id: 'today', label: 'Azi' },
                     { id: 'yesterday', label: 'Ieri' },
@@ -1046,7 +1023,7 @@ export default function AdminApp() {
                         key={p.id}
                         type="button"
                         onClick={() => handleSelectDashboardPeriod(p.id)}
-                        className={`shrink-0 px-3.5 h-9 rounded-full text-xs font-bold transition-all border ${
+                        className={`shrink-0 px-3 h-9 rounded-full text-xs font-bold transition-all border ${
                           isActive
                             ? 'bg-blue-600 text-white border-blue-600 shadow-sm ring-2 ring-blue-500/20'
                             : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
@@ -1058,16 +1035,16 @@ export default function AdminApp() {
                   })}
                 </div>
 
-                {/* Câmpuri Dată sincronizate direct cu selecția */}
-                <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/60 py-1 px-3 rounded-2xl border border-slate-200 dark:border-slate-700 shrink-0">
-                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">Interval:</span>
-                  <div className="flex items-center gap-1.5">
+                {/* Câmpuri Dată - afișate DOAR când este selectat Personalizat */}
+                {dashboardPeriod === 'custom' && (
+                  <div className="flex items-center gap-1.5 bg-blue-50/70 dark:bg-blue-950/40 py-1 px-2.5 rounded-full border border-blue-200 dark:border-blue-800 shrink-0 shadow-xs animate-in fade-in">
+                    <Calendar className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                    <span className="text-[11px] font-bold text-blue-700 dark:text-blue-300">Interval:</span>
                     <input
                       type="date"
                       value={dashboardCustomStart}
                       onChange={(e) => handleCustomDateChange('start', e.target.value)}
-                      className="px-2.5 h-8 rounded-lg text-xs font-sans font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500"
+                      className="px-2 h-7 rounded-md text-xs font-sans font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500"
                       title="Data de început"
                     />
                     <span className="text-slate-400 text-xs font-bold">—</span>
@@ -1075,10 +1052,50 @@ export default function AdminApp() {
                       type="date"
                       value={dashboardCustomEnd}
                       onChange={(e) => handleCustomDateChange('end', e.target.value)}
-                      className="px-2.5 h-8 rounded-lg text-xs font-sans font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500"
+                      className="px-2 h-7 rounded-md text-xs font-sans font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500"
                       title="Data de sfârșit"
                     />
                   </div>
+                )}
+              </div>
+
+              {/* Grup Dreapta: Locație, Plată, Căutare */}
+              <div className="flex items-center gap-2 shrink-0 flex-wrap ml-auto">
+                {/* Location Filter */}
+                <select 
+                  className="shrink-0 px-3 h-9 rounded-full text-xs font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                  value={dashboardLocation}
+                  onChange={(e) => setDashboardLocation(e.target.value)}
+                >
+                  <option value="all">Toate locațiile</option>
+                  {uniqueLocations.map(loc => (
+                    <option key={loc} value={loc}>{loc}</option>
+                  ))}
+                </select>
+
+                {/* Payment Filter */}
+                <select 
+                  className="shrink-0 px-3 h-9 rounded-full text-xs font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                  value={dashboardPayment}
+                  onChange={(e) => setDashboardPayment(e.target.value)}
+                >
+                  <option value="all">Toate plățile</option>
+                  <option value="card">Card POS (Toate)</option>
+                  <option value="visa">Card Visa</option>
+                  <option value="mastercard">Card Mastercard</option>
+                  <option value="cash">Numerar (Cash)</option>
+                </select>
+
+                {/* Search Bar */}
+                <div className="relative min-w-[150px] max-w-[220px]">
+                  <input
+                    type="text"
+                    value={dashboardSearch}
+                    onChange={(e) => setDashboardSearch(e.target.value)}
+                    placeholder="Caută comandă..."
+                    className="h-9 pl-9 pr-3 rounded-full text-xs font-medium bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full transition-all"
+                  />
+                  <svg className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                 </div>
               </div>
             </div>

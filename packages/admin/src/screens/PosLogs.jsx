@@ -186,7 +186,7 @@ export function CardBrandAvatar({ brand, cardNo, isNfc, cardBank }) {
           <div className="flex items-center gap-1.5 text-[11px] text-slate-400 dark:text-slate-500 font-medium tracking-tight mt-0.5">
             <span className="font-semibold text-slate-500 dark:text-slate-400">{brandName}</span>
             <span className="text-slate-300 dark:text-slate-600 font-sans">•</span>
-            <span className="font-mono font-bold text-slate-700 dark:text-slate-200 tracking-wider">
+            <span className="font-semibold text-slate-700 dark:text-slate-200">
               •••• {last4}
             </span>
           </div>
@@ -514,7 +514,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
   const [brandFilter, setBrandFilter] = useState('all');
   const [bankFilter, setBankFilter] = useState('all');
   const [isBankStatsOpen, setIsBankStatsOpen] = useState(false);
-  const [periodFilter, setPeriodFilter] = useState('all');
+  const [periodFilter, setPeriodFilter] = useState('today');
   const todayStr = new Date().toISOString().slice(0, 10);
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -800,8 +800,8 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
         if (!map[bankKey]) {
           map[bankKey] = {
             id: bankKey,
-            name: meta.cardBank?.name || 'Alte Bănci',
-            shortName: meta.cardBank?.shortName || 'Altele',
+            name: meta.cardBank?.name || 'Alte Carduri / Bănci',
+            shortName: meta.cardBank?.shortName || 'Alte Carduri',
             color: meta.cardBank?.color || '#64748b',
             count: 0,
             volume: 0,
@@ -931,84 +931,111 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
         </div>
       )}
 
-      {/* Top Header with Segmented Navigation Tab & Global Period/Location Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 p-2.5 sm:p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
-        {/* Segmented Tab Pill */}
-        <div className="inline-flex p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700/60 shadow-inner">
-          <button
-            type="button"
-            onClick={() => { setActiveTab('logs'); setCurrentPage(1); }}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-              activeTab === 'logs'
-                ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs scale-[1.02]'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <CreditCard size={15} />
-            <span>Jurnal Tranzacții POS</span>
-            <span className="text-[11px] px-1.5 py-0.2 rounded-md bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-black">
-              {derivedStats.total}
-            </span>
-          </button>
+      {/* Top Segmented Navigation Tabs on Full Row */}
+      <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-2 p-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-inner">
+        <button
+          type="button"
+          onClick={() => { setActiveTab('logs'); setCurrentPage(1); }}
+          className={`flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+            activeTab === 'logs'
+              ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs scale-[1.01]'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <CreditCard size={17} />
+          <span>Jurnal Tranzacții POS</span>
+        </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('bankStats')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-              activeTab === 'bankStats'
-                ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs scale-[1.02]'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <span className="text-sm">🏦</span>
-            <span>Statistici Bănci & Carduri</span>
-            <span className="text-[11px] px-1.5 py-0.2 rounded-md bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-black">
-              {bankStats.list.length} bănci • {formatThousands(bankStats.totalVol)} lei
-            </span>
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setActiveTab('bankStats')}
+          className={`flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+            activeTab === 'bankStats'
+              ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs scale-[1.01]'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <BarChart3 size={17} />
+          <span>Statistici Bănci & Carduri</span>
+        </button>
+      </div>
 
-        {/* Global Filter Bar (Period, Custom Date, Location, Brand, Export) */}
-        <div className="flex flex-wrap items-center gap-2 ml-auto">
-          {/* Period Filter */}
-          <select
-            value={periodFilter}
-            onChange={e => { setPeriodFilter(e.target.value); setCurrentPage(1); }}
-            className="h-8.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
-          >
-            <option value="all">Toată perioada</option>
-            <option value="today">Azi</option>
-            <option value="yesterday">Ieri</option>
-            <option value="this_week">Săptămâna curentă</option>
-            <option value="this_month">Luna curentă</option>
-            <option value="last_month">Luna trecută</option>
-            <option value="this_year">Anul curent</option>
-            <option value="custom">Personalizat</option>
-          </select>
+      {/* Global Filter Bar (Period Pills, Custom Date, Location, Brand, Export) - STRICTLY 1 ROW */}
+      <div className="flex items-center justify-between gap-2 bg-white dark:bg-slate-900 p-2.5 sm:p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-x-auto">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Standalone Rounded-Full Period Buttons */}
+          {[
+            { id: 'all', label: 'Toate' },
+            { id: 'today', label: 'Azi' },
+            { id: 'this_month', label: 'Luna curentă' },
+            { id: 'custom', label: 'Personalizat' }
+          ].map(p => {
+            const isActive = periodFilter === p.id;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => { setPeriodFilter(p.id); setCurrentPage(1); }}
+                className={`shrink-0 px-3 h-8.5 rounded-full text-xs font-bold border transition-colors cursor-pointer ${
+                  isActive
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                }`}
+              >
+                {p.label}
+              </button>
+            );
+          })}
 
           {periodFilter === 'custom' && (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5 bg-blue-50/70 dark:bg-blue-950/40 py-1 px-2.5 rounded-full border border-blue-200 dark:border-blue-800 shadow-2xs shrink-0">
               <input 
                 type="date" 
                 value={customStart} 
                 onChange={e => {setCustomStart(e.target.value); setCurrentPage(1);}} 
-                className="h-8.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500" 
+                className="h-6.5 px-2 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500" 
               />
               <span className="text-slate-400 font-bold">-</span>
               <input 
                 type="date" 
                 value={customEnd} 
                 onChange={e => {setCustomEnd(e.target.value); setCurrentPage(1);}} 
-                className="h-8.5 px-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500" 
+                className="h-6.5 px-2 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500" 
               />
             </div>
           )}
+
+          {/* Status Dropdown */}
+          <select
+            value={filter}
+            onChange={e => { setFilter(e.target.value); setCurrentPage(1); }}
+            className="shrink-0 h-8.5 px-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs cursor-pointer"
+          >
+            <option value="all">Toate statusurile</option>
+            <option value="approved">Aprobate</option>
+            <option value="declined">Respinse</option>
+            <option value="cancelled">Anulate de client</option>
+            <option value="timeout">Timeout POS</option>
+            <option value="iikoFailed">iiko Eșuat</option>
+          </select>
+
+          {/* Bank Dropdown */}
+          <select
+            value={bankFilter}
+            onChange={e => { setBankFilter(e.target.value); setCurrentPage(1); }}
+            className="shrink-0 h-8.5 px-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs cursor-pointer"
+          >
+            <option value="all">Toate băncile</option>
+            {Object.values(BANK_CONFIG).map(b => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
 
           {locations.length > 0 && (
             <select
               value={locFilter}
               onChange={e => { setLocFilter(e.target.value); setCurrentPage(1); }}
-              className="h-8.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
+              className="shrink-0 h-8.5 px-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs cursor-pointer"
             >
               <option value="all">Toate locațiile</option>
               {locations.map(l => <option key={l} value={l}>{l}</option>)}
@@ -1019,28 +1046,19 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
             <select
               value={brandFilter}
               onChange={e => { setBrandFilter(e.target.value); setCurrentPage(1); }}
-              className="h-8.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500 capitalize shadow-2xs"
+              className="shrink-0 h-8.5 px-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500 capitalize shadow-2xs cursor-pointer"
             >
               <option value="all">Toate brandurile</option>
               {brands.map(b => <option key={b} value={b}>{b}</option>)}
             </select>
           )}
+        </div>
 
-          {/* Settlement POS button */}
-          <button
-            onClick={handleTriggerSettlement}
-            disabled={settling}
-            className="px-3 h-8.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-            title="Trimite comanda de Închidere de Zi (Settlement) către POS"
-          >
-            <RotateCcw size={13} className={settling ? 'animate-spin text-blue-600' : ''} />
-            <span>Settlement POS</span>
-          </button>
-
+        <div className="flex items-center gap-2 shrink-0">
           {/* Export Excel */}
           <button
             onClick={handleExportExcel}
-            className="px-3 h-8.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
+            className="shrink-0 px-3.5 h-8.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
             title="Exportă tranzacțiile în Excel"
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -1118,46 +1136,6 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
             </div>
           )}
 
-          {/* Table Controls (Status pills + Bank selector) */}
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              {[
-                { id: 'all',       label: 'Toate' },
-                { id: 'approved',  label: 'Aprobate' },
-                { id: 'declined',  label: 'Respinse' },
-                { id: 'cancelled', label: 'Anulate de client' },
-                { id: 'timeout',   label: 'Timeout POS' },
-              ].map(f => (
-                <button
-                  key={f.id}
-                  onClick={() => { setFilter(f.id); setCurrentPage(1); }}
-                  className={`px-3.5 h-8.5 rounded-full text-xs font-bold border transition-colors cursor-pointer ${
-                    filter === f.id
-                      ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
-                      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  {f.label}
-                </button>
-              ))}
-
-              {/* Bank Filter Dropdown */}
-              <select
-                value={bankFilter}
-                onChange={e => { setBankFilter(e.target.value); setCurrentPage(1); }}
-                className="h-8.5 px-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
-              >
-                <option value="all">Toate băncile</option>
-                {Object.values(BANK_CONFIG).map(b => (
-                  <option key={b.id} value={b.id}>{b.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="text-xs font-bold text-slate-400">
-              {filtered.length} tranzacții afișate (pag. {currentPage} din {totalPages})
-            </div>
-          </div>
 
           {/* Table */}
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-x-auto">
@@ -1724,7 +1702,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                <span>🏦</span>
+                <Landmark size={18} className="text-blue-600 dark:text-blue-400" />
                 <span>Analiză Bănci Emitente ({bankStats.list.length})</span>
               </h3>
               <span className="text-xs text-slate-400 font-semibold">

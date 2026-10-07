@@ -17,10 +17,16 @@ export const BANK_CONFIG = {
     gradient: 'from-amber-500 to-yellow-600',
     logoText: 'BT',
     bins: [
-      '401047', '404169', '411550', '411580', '412345', '414049', '424453', '425301', 
-      '425302', '425303', '425603', '438829', '438877', '439479', '454793', '454799', 
-      '466286', '491212', '491517', '492026', '492027', '492125', '492750', '516805', 
-      '525287', '535451', '541234', '542154', '546805', '557887'
+      // Visa
+      '401047', '404169', '406325', '411550', '411580', '412345', '414049', '414050',
+      '416805', '424453', '425301', '425302', '425303', '425603', '427010', '438829',
+      '438830', '438877', '439479', '454793', '454799', '466286', '474453', '491212',
+      '491517', '492026', '492027', '492125', '492750',
+      // Mastercard
+      '516805', '516806', '516807', '516808', '516809', '516834', '522137', '522138',
+      '522139', '525287', '525288', '525289', '535451', '535452', '535453', '535454',
+      '535493', '535494', '541234', '542154', '542155', '542156', '545627', '545628',
+      '546805', '557887', '557888', '557889'
     ],
     keywords: ['banca transilvania', 'transilvania', 'bt24', 'btrl', 'bt']
   },
@@ -37,9 +43,14 @@ export const BANK_CONFIG = {
     gradient: 'from-blue-600 to-cyan-600',
     logoText: 'R',
     bins: [
-      '402360', '416598', '424578', '453982', '459654', '475127', '516793', '516794', 
-      '516886', '516999', '524276', '527347', '535178', '535179', '535456', '535558', 
-      '537249', '537426', '539123', '539587', '547127', '557376'
+      // Visa
+      '400109', '402360', '402361', '416597', '416598', '416599', '424578', '439364', 
+      '453982', '453983', '453984', '454313', '459654', '459655', '475127', '475128', '475129',
+      // Mastercard
+      '516793', '516794', '516886', '516999', '521873', '524276', '527347', '527348',
+      '528994', '528995', '535178', '535179', '535180', '535456', '535457', '535458',
+      '535558', '535559', '535560', '537249', '537426', '537427', '537428', '539123',
+      '539124', '539587', '539588', '547127', '547128', '547129', '557376', '557377', '557378'
     ],
     keywords: ['revolut', 'revo']
   },
@@ -56,8 +67,12 @@ export const BANK_CONFIG = {
     gradient: 'from-orange-500 to-amber-600',
     logoText: 'ING',
     bins: [
-      '404093', '404094', '405367', '416550', '425602', '460953', '470876', '485704', 
-      '486703', '486924', '516812', '525211', '535034', '540812', '546876'
+      // Visa
+      '404093', '404094', '404095', '405367', '405368', '416550', '416551', '425602',
+      '460953', '460954', '470876', '470877', '485704', '485705', '486703', '486704', '486924',
+      // Mastercard
+      '516812', '516813', '516814', '520042', '520043', '525211', '525212', '535034',
+      '535035', '535036', '540812', '540813', '546876', '546877', '546878', '557812'
     ],
     keywords: ['ing', 'ing bank']
   },
@@ -74,10 +89,15 @@ export const BANK_CONFIG = {
     gradient: 'from-sky-500 to-blue-600',
     logoText: 'BCR',
     bins: [
-      '409400', '425883', '439075', '477161', '477899', '511472', '516708', '516709', 
-      '525200', '532908', '535819', '545620', '550251'
+      // Visa
+      '405230', '406560', '409400', '409401', '414210', '425880', '425881', '425882',
+      '425883', '425884', '425885', '439075', '439076', '477161', '477162', '477899', '477900',
+      // Mastercard
+      '511472', '511473', '516700', '516701', '516708', '516709', '516710', '516711',
+      '522858', '525200', '525201', '528723', '532908', '532909', '535818', '535819',
+      '535820', '545619', '545620', '545621', '550251', '550252'
     ],
-    keywords: ['bcr', 'erste', 'banca comerciala']
+    keywords: ['bcr', 'erste', 'banca comerciala', 'george']
   },
   raiffeisen: {
     id: 'raiffeisen',
@@ -92,7 +112,12 @@ export const BANK_CONFIG = {
     gradient: 'from-yellow-500 to-amber-600',
     logoText: 'RB',
     bins: [
-      '403600', '425310', '438955', '439486', '516800', '525220', '535030', '541232'
+      // Visa
+      '403600', '403601', '425310', '425311', '438955', '438956', '439486', '439487',
+      '453903', '453904', '454728', '478144', '478145',
+      // Mastercard
+      '516800', '516801', '516802', '516803', '525220', '525221', '525222', '528701',
+      '535030', '535031', '541232', '541233', '546800', '557800'
     ],
     keywords: ['raiffeisen', 'rzb', 'raif']
   },
@@ -109,8 +134,11 @@ export const BANK_CONFIG = {
     gradient: 'from-red-600 to-rose-700',
     logoText: 'UCB',
     bins: [
-      '400086', '529912', '542577', '544331', '544396', '544584', '544691', '545387', 
-      '545593', '554593'
+      // Visa
+      '400086', '400087', '425340', '438960', '454730',
+      // Mastercard
+      '516840', '525240', '529912', '535040', '542577', '542578', '544331', '544332',
+      '544396', '544584', '544585', '544691', '545387', '545593', '554593'
     ],
     keywords: ['unicredit', 'ucb', 'tiriac', 'hvb']
   },
@@ -127,7 +155,12 @@ export const BANK_CONFIG = {
     gradient: 'from-red-600 to-rose-700',
     logoText: 'BRD',
     bins: [
-      '404170', '423400', '423463', '423464', '425320', '442845', '516900', '535032'
+      // Visa
+      '404170', '404171', '423400', '423401', '423463', '423464', '423465', '425320',
+      '425321', '442845', '442846', '462217', '492040',
+      // Mastercard
+      '516900', '516901', '516902', '516903', '525230', '525231', '535032', '535033',
+      '541240', '541615', '546900', '557900'
     ],
     keywords: ['brd', 'societe generale']
   },
@@ -144,7 +177,10 @@ export const BANK_CONFIG = {
     gradient: 'from-emerald-600 to-teal-700',
     logoText: 'CEC',
     bins: [
-      '425330', '516750', '535050', '541250'
+      // Visa
+      '425330', '425331', '438880', '439490', '478150',
+      // Mastercard
+      '516750', '516751', '525250', '535050', '535051', '541250', '541251', '546750', '557750'
     ],
     keywords: ['cec', 'cec bank']
   },
@@ -161,7 +197,7 @@ export const BANK_CONFIG = {
     gradient: 'from-indigo-600 to-blue-700',
     logoText: 'PAT',
     bins: [
-      '548508', '532619', '541818', '541615'
+      '425370', '438970', '525270', '532619', '532620', '541818', '548509'
     ],
     keywords: ['patria', 'patria bank', 'carpatica']
   },
@@ -178,9 +214,9 @@ export const BANK_CONFIG = {
     gradient: 'from-emerald-500 to-teal-600',
     logoText: 'SALT',
     bins: [
-      '515548', '534973'
+      '515548', '515549', '520092', '528751', '534973', '534974', '545648'
     ],
-    keywords: ['salt', 'salt bank']
+    keywords: ['salt', 'salt bank', 'idea bank']
   },
   libra: {
     id: 'libra',
@@ -195,9 +231,61 @@ export const BANK_CONFIG = {
     gradient: 'from-cyan-600 to-blue-700',
     logoText: 'LIB',
     bins: [
-      '460116', '460738', '465858', '467459', '491650'
+      '460116', '460117', '460738', '465858', '465859', '467459', '491650',
+      '516860', '525260', '535060', '541260'
     ],
     keywords: ['libra', 'libra bank']
+  },
+  alpha: {
+    id: 'alpha',
+    name: 'Alpha Bank',
+    shortName: 'Alpha',
+    color: '#002f6c',
+    textColor: '#1e3a8a',
+    badgeBg: 'bg-blue-500/15',
+    badgeText: 'text-blue-800 dark:text-blue-300',
+    border: 'border-blue-400',
+    ring: 'ring-blue-400/40',
+    gradient: 'from-blue-700 to-indigo-800',
+    logoText: 'ALPHA',
+    bins: [
+      '404180', '425350', '438980', '454740', '516850', '525255', '535055', '541255', '546850'
+    ],
+    keywords: ['alpha', 'alpha bank']
+  },
+  otp: {
+    id: 'otp',
+    name: 'OTP Bank',
+    shortName: 'OTP',
+    color: '#16a34a',
+    textColor: '#15803d',
+    badgeBg: 'bg-green-500/15',
+    badgeText: 'text-green-800 dark:text-green-300',
+    border: 'border-green-400',
+    ring: 'ring-green-400/40',
+    gradient: 'from-green-600 to-emerald-700',
+    logoText: 'OTP',
+    bins: [
+      '404190', '425360', '438990', '516870', '525265', '535065', '541265'
+    ],
+    keywords: ['otp', 'otp bank']
+  },
+  first: {
+    id: 'first',
+    name: 'First Bank',
+    shortName: 'First',
+    color: '#2563eb',
+    textColor: '#1d4ed8',
+    badgeBg: 'bg-blue-500/15',
+    badgeText: 'text-blue-800 dark:text-blue-300',
+    border: 'border-blue-400',
+    ring: 'ring-blue-400/40',
+    gradient: 'from-blue-600 to-cyan-600',
+    logoText: 'FIRST',
+    bins: [
+      '404150', '425380', '516880', '525275', '535075'
+    ],
+    keywords: ['first bank', 'piraeus']
   },
   meal_vouchers: {
     id: 'meal_vouchers',
@@ -213,32 +301,14 @@ export const BANK_CONFIG = {
     logoText: '🍽️',
     bins: [
       '516738', '530865', '535490', '535491', '535492', '535515', '535516', '535520', 
-      '535521', '539126', '542168', '546452', '548888', '552631'
+      '535521', '539126', '539127', '539128', '542168', '546452', '548888', '552631'
     ],
     keywords: ['edenred', 'sodexo', 'pluxee', 'cheque dejeuner', 'up romania', 'tichete', 'masa']
   },
-  international: {
-    id: 'international',
-    name: 'Card Internațional',
-    shortName: 'Internațional',
-    color: '#2563eb', // Royal Blue
-    textColor: '#1e40af',
-    badgeBg: 'bg-blue-500/15',
-    badgeText: 'text-blue-800 dark:text-blue-300',
-    border: 'border-blue-400',
-    ring: 'ring-blue-400/40',
-    gradient: 'from-blue-600 to-indigo-600',
-    logoText: '🌐',
-    bins: [
-      '401355', '404801', '412757', '413054', '427692', '430455', '432607', '432921', 
-      '435720', '435779', '435784', '447964', '453835', '461018', '472815'
-    ],
-    keywords: ['international', 'foreign', 'us bank', 'chase', 'wise', 'n26', 'abroad']
-  },
   other: {
     id: 'other',
-    name: 'Card Mascat / Neidentificat',
-    shortName: 'Neidentificat',
+    name: 'Alte Carduri (Mastercard / Visa)',
+    shortName: 'Alte Carduri',
     color: '#64748b', // Slate
     textColor: '#475569',
     badgeBg: 'bg-slate-500/15',
@@ -277,14 +347,16 @@ export function detectCardBrand(item) {
   if (rawStr.includes('visa') || rawStr.includes('cl visa')) return 'visa';
   if (rawStr.includes('maestro')) return 'maestro';
 
-  // 3. Verificare BIN (4 = Visa; 51-55 sau 22-27 = Mastercard; 50/56-58/6 = Maestro)
+  // 3. Verificare BIN curată de la începutul cardului
+  const noSpaces = cardNo.replace(/\s+/g, '');
+  if (noSpaces.startsWith('4')) return 'visa';
+  if (/^(5[1-5]|2[2-7])/.test(noSpaces)) return 'mastercard';
+  if (/^(50|5[6-8]|6)/.test(noSpaces)) return 'maestro';
+
   const cleanNum = cardNo.replace(/\D/g, '');
   if (cleanNum.startsWith('4')) return 'visa';
   if (/^(5[1-5]|2[2-7])/.test(cleanNum)) return 'mastercard';
   if (/^(50|5[6-8]|6)/.test(cleanNum)) return 'maestro';
-  if (cardNo.startsWith('4')) return 'visa';
-  if (/^(5[1-5]|2[2-7])/.test(cardNo)) return 'mastercard';
-  if (/^(50|5[6-8]|6)/.test(cardNo)) return 'maestro';
 
   return 'visa';
 }
@@ -292,9 +364,9 @@ export function detectCardBrand(item) {
 /**
  * Detectează banca emitentă a cardului (BT, Revolut, ING, BCR, Raiffeisen, UniCredit, etc.)
  * Se bazează pe:
- * 1. Numele explicit transmis de POS în metadate
- * 2. BIN-ul din primele 6 cifre comparat cu catalogul extins de bănci
- * 3. Fallback inteligent pentru carduri internaționale (Visa / Mastercard internațional)
+ * 1. Numele explicit sau cuvinte cheie transmise de POS în metadate
+ * 2. BIN-ul din primele 6 cifre de la începutul cardului comparat cu catalogul extins de bănci
+ * 3. Fallback pe Alte Carduri (Mastercard / Visa) dacă seria nu este mapată la o bancă din România
  */
 export function detectCardBank(item) {
   if (!item) return BANK_CONFIG.other;
@@ -317,27 +389,27 @@ export function detectCardBank(item) {
   if (combinedMeta.includes('patria') || combinedMeta.includes('carpatica')) return BANK_CONFIG.patria;
   if (combinedMeta.includes('salt bank') || combinedMeta.includes('salt')) return BANK_CONFIG.salt;
   if (combinedMeta.includes('libra') || combinedMeta.includes('libra bank')) return BANK_CONFIG.libra;
+  if (combinedMeta.includes('alpha bank') || combinedMeta.includes('alpha')) return BANK_CONFIG.alpha;
+  if (combinedMeta.includes('otp bank') || combinedMeta.includes('otp')) return BANK_CONFIG.otp;
+  if (combinedMeta.includes('first bank') || combinedMeta.includes('piraeus')) return BANK_CONFIG.first;
   if (combinedMeta.includes('edenred') || combinedMeta.includes('sodexo') || combinedMeta.includes('pluxee') || combinedMeta.includes('up dejeuner') || combinedMeta.includes('cheque dejeuner') || combinedMeta.includes('tichete')) return BANK_CONFIG.meal_vouchers;
 
-  // 2. Verificare BIN (primele 6 cifre) împotriva catalogului oficial extins
-  const cleanNum = cardNo.replace(/\D/g, '');
-  if (cleanNum.length >= 6) {
-    const bin6 = cleanNum.slice(0, 6);
+  // 2. Verificare BIN curată de la începutul cardului (primele 6 cifre)
+  // Exemplu cardNo: "516805******1234" sau "5168 05** **** 1234"
+  const noSpaces = cardNo.replace(/\s+/g, '');
+  const match6 = noSpaces.match(/^(\d{6})/);
+  if (match6) {
+    const bin6 = match6[1];
     const bankOrder = [
       'bt', 'revolut', 'ing', 'bcr', 'raiffeisen', 'unicredit', 
-      'brd', 'cec', 'patria', 'salt', 'libra', 'meal_vouchers', 'international'
+      'brd', 'cec', 'salt', 'libra', 'patria', 'alpha', 'otp', 'first',
+      'meal_vouchers'
     ];
     for (const key of bankOrder) {
       if (BANK_CONFIG[key]?.bins?.includes(bin6)) return BANK_CONFIG[key];
     }
-
-    // 3. Fallback inteligent: Dacă BIN-ul are 6 cifre și este Visa sau Mastercard valid,
-    // dar nu aparține băncilor din România de mai sus -> Card Internațional
-    if (cleanNum.startsWith('4') || /^(5[1-5]|2[2-7])/.test(cleanNum) || /^(50|5[6-8]|6)/.test(cleanNum)) {
-      return BANK_CONFIG.international;
-    }
   }
 
-  // 4. Doar dacă nu avem cifre suficiente pentru identificare
+  // 3. Toate celelalte carduri sunt grupate curat la Alte Carduri (fără duplicate de "Card Internațional")
   return BANK_CONFIG.other;
 }

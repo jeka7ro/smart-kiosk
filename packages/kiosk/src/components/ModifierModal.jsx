@@ -56,15 +56,11 @@ export default function ModifierModal({ product, onConfirm, onClose, activeBrand
     }).filter(gm => (gm.options || []).length > 0);
   }, [product, menuProducts, locationData, activeBrandId]);
 
-  // Initialize: auto-select first option for each required group
+  // Initialize: do not auto-select options so the customer must make an explicit choice
   const [selected, setSelected] = useState(() => {
     const init = {};
     modifierGroups.forEach(gm => {
-      if (gm.required && gm.options.length > 0) {
-        init[gm.id] = { [gm.options[0].id]: 1 };
-      } else {
-        init[gm.id] = {};
-      }
+      init[gm.id] = {};
     });
     return init;
   });
@@ -232,8 +228,8 @@ export default function ModifierModal({ product, onConfirm, onClose, activeBrand
                 <div className="mm-group-header">
                   <span className="mm-group-name">{gm.name ? gm.name.toUpperCase() : t('options', lang).toUpperCase()}</span>
                   {reqBadge && (
-                    <span className={`mm-group-badge ${isMulti && isGroupValid ? 'mm-group-badge--done' : ''}`}>
-                      {reqBadge}{isMulti ? ` (${groupTotal}/${max})` : ''}
+                    <span className={`mm-group-badge ${isGroupValid ? 'mm-group-badge--done' : ''}`}>
+                      {reqBadge}{isMulti ? ` (${groupTotal}/${max})` : (isGroupValid ? ' ✓' : '')}
                     </span>
                   )}
                 </div>
@@ -242,7 +238,8 @@ export default function ModifierModal({ product, onConfirm, onClose, activeBrand
                     const count = groupSel[opt.id] || 0;
                     const isSelected = count > 0;
                     const canAddMore = groupTotal < max;
-                    const isFree = !opt.price || opt.price === 0;
+                    const optPrice = (opt.price !== undefined ? opt.price : opt.priceDiff) || 0;
+                    const isFree = optPrice === 0;
                     return (
                       <button
                         key={opt.id}
@@ -259,7 +256,7 @@ export default function ModifierModal({ product, onConfirm, onClose, activeBrand
                         )}
                         <span className="mm-grid-opt-name">{opt.name}</span>
                         <span className={`mm-grid-opt-price ${isFree ? 'mm-grid-opt-price--free' : ''}`}>
-                          {isFree ? (t('included', lang) || 'Inclus') : `+${opt.price.toFixed(2)} ${t('currency', lang) || 'lei'}`}
+                          {isFree ? `0 ${t('currency', lang) || 'lei'}` : `+${optPrice.toFixed(2)} ${t('currency', lang) || 'lei'}`}
                         </span>
                         {isSelected && (
                           <span className="mm-grid-opt-check">
@@ -302,7 +299,11 @@ export default function ModifierModal({ product, onConfirm, onClose, activeBrand
             onClick={handleConfirm}
             disabled={!allRequiredSelected}
           >
-            <span>{t('add_to_cart', lang) || '+ Adaugă în coș'}</span>
+            <span>
+              {allRequiredSelected 
+                ? (t('add_to_cart', lang) || '+ Adaugă în coș')
+                : (lang === 'ro' ? 'Alege opțiunile obligatorii' : (t('add_to_cart', lang) || '+ Adaugă în coș'))}
+            </span>
             <span className="mm-confirm-price">{totalPrice.toFixed(2)} {t('currency', lang) || 'lei'}</span>
           </button>
         </div>

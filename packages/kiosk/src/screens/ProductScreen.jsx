@@ -339,12 +339,7 @@ export default function ProductScreen() {
   const [selected, setSelected] = useState(() => {
     const init = {};
     modifiers.forEach(mod => {
-      const opts = mod.options || mod.items || [];
-      if (mod.required && opts.length > 0) {
-        init[mod.id] = { [opts[0].id]: 1 };
-      } else {
-        init[mod.id] = {};
-      }
+      init[mod.id] = {};
     });
     return init;
   });
@@ -1032,8 +1027,8 @@ export default function ProductScreen() {
                 <div className="ps-mod-header">
                   <h3 className="ps-mod-title">{groupLabel}</h3>
                   {reqBadge && (
-                    <span className={`ps-req-badge ${isMulti && isGroupValid ? 'ps-req-badge--done' : ''}`}>
-                      {reqBadge}{isMulti ? ` (${groupTotal}/${max})` : ''}
+                    <span className={`ps-req-badge ${isGroupValid ? 'ps-req-badge--done' : ''}`}>
+                      {reqBadge}{isMulti ? ` (${groupTotal}/${max})` : (isGroupValid ? ' ✓' : '')}
                     </span>
                   )}
                 </div>
@@ -1356,7 +1351,11 @@ export default function ProductScreen() {
             disabled={!allRequiredSelected}
           >
             <IconBag />
-            <span>Adaugă în coș</span>
+            <span>
+              {allRequiredSelected 
+                ? 'Adaugă în coș' 
+                : (lang === 'ro' ? 'Alege opțiunile obligatorii' : (t('add_to_cart', lang) || 'Adaugă în coș'))}
+            </span>
           </button>
         </div>
 
