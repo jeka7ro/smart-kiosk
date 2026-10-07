@@ -751,12 +751,19 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
 
   // Derived stats strictly reflect the selected period, location and brand
   const derivedStats = useMemo(() => {
+    const approved = periodFilteredLogs.filter(l => l.status === 'approved' || l.paid === true).length;
+    const cancelled = periodFilteredLogs.filter(l => isLogCancelled(l)).length;
+    const timeout = periodFilteredLogs.filter(l => isLogTimeout(l)).length;
+    const declined = periodFilteredLogs.filter(l => isLogDeclined(l)).length;
+    const cancelledOrDeclined = periodFilteredLogs.filter(l => !(l.status === 'approved' || l.paid === true)).length;
+
     return {
       total: periodFilteredLogs.length,
-      approved: periodFilteredLogs.filter(l => l.status === 'approved' || l.paid === true).length,
-      declined: periodFilteredLogs.filter(l => isLogDeclined(l)).length,
-      cancelled: periodFilteredLogs.filter(l => isLogCancelled(l)).length,
-      timeout: periodFilteredLogs.filter(l => isLogTimeout(l)).length,
+      approved,
+      declined,
+      cancelled,
+      timeout,
+      cancelledOrDeclined,
       iikoFailed: periodFilteredLogs.filter(l => (l.status === 'approved' || l.paid === true) && !isLogIikoSuccess(l)).length
     };
   }, [periodFilteredLogs, isLogIikoSuccess]);
@@ -828,6 +835,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
     return periodFilteredLogs.filter(l => {
       if (filter !== 'all') {
         if (filter === 'approved') return l.status === 'approved' || l.paid === true;
+        if (filter === 'cancelled_or_declined') return !(l.status === 'approved' || l.paid === true);
         if (filter === 'cancelled') return isLogCancelled(l);
         if (filter === 'timeout') return isLogTimeout(l);
         if (filter === 'declined') return isLogDeclined(l);
@@ -1013,9 +1021,10 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
           >
             <option value="all">Toate statusurile</option>
             <option value="approved">Aprobate</option>
-            <option value="declined">Respinse</option>
+            <option value="cancelled_or_declined">Anulate Client / Respinse</option>
             <option value="cancelled">Anulate de client</option>
             <option value="timeout">Timeout POS</option>
+            <option value="declined">Respinse</option>
             <option value="iikoFailed">iiko Eșuat</option>
           </select>
 
@@ -1089,12 +1098,12 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
               active={filter === 'approved'}
             />
             <StatCard 
-              label="Respinse" 
-              value={derivedStats.declined} 
+              label="Anulate Client / Respinse" 
+              value={derivedStats.cancelledOrDeclined} 
               color="#ef4444" 
               icon={XCircle}
-              onClick={() => { setFilter(filter === 'declined' ? 'all' : 'declined'); setCurrentPage(1); }}
-              active={filter === 'declined'}
+              onClick={() => { setFilter(filter === 'cancelled_or_declined' ? 'all' : 'cancelled_or_declined'); setCurrentPage(1); }}
+              active={filter === 'cancelled_or_declined'}
             />
             <StatCard 
               label="iiko Eșuat" 
