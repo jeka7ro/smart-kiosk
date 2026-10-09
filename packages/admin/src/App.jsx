@@ -292,36 +292,32 @@ export default function AdminApp() {
   useKeepAlive(); // prevent Render backend from sleeping
 
   const liveKiosksCount = useMemo(() => {
-    if (!kiosksLiveStatus || typeof kiosksLiveStatus !== 'object') return 0;
-    const activeKiosks = new Set();
+    const activeLocations = new Set();
+    const locDefs = [
+      { id: 'cluj1', aliases: ['cluj1', 'cluj', 'cluj-centru', 'cluj-main', 'smashme-main', 'sm-cluj', 'smashme-cluj', '9c63cff6-1d66-442d-a98d-2302656e3943', '90296b11-9ba9-4279-a69b-1f84e193315e'] },
+      { id: 'cluj2', aliases: ['cluj2', 'cluj-2', 'cj2', 'smashme-cj2'] },
+      { id: 'sm-brasov', aliases: ['sm-brasov', 'brasov', 'brasov-centru', 'rollmaster', 'rollmaster-brasov', 'rm-brasov', 'adddb5a0-26e5-4d50-b472-1c74726c3f72'] },
+      { id: 'constanta1', aliases: ['constanta1', 'constanta', 'smashme-constanta', '8308e796-8780-4d18-ae66-4e430178c778'] }
+    ];
 
-    Object.entries(kiosksLiveStatus).forEach(([locKey, val]) => {
-      if (!val) return;
-      const isOnline = Boolean(
-        val.isLive || 
-        val.online || 
-        (typeof val.onlineCount === 'number' && val.onlineCount > 0)
+    locDefs.forEach(loc => {
+      const liveKiosk = loc.aliases.map(a => kiosksLiveStatus[a]).find(Boolean);
+      const isKioskConnected = Boolean(liveKiosk?.isLive || liveKiosk?.online || (liveKiosk?.onlineCount > 0));
+      const bridgeLoc = bridgeSummary?.locations?.[loc.id] || 
+                       (loc.aliases ? loc.aliases.map(a => bridgeSummary?.locations?.[a]).find(Boolean) : null);
+      const hasRecentConnection = Boolean(
+        bridgeLoc?.connectedAt && 
+        (Date.now() - bridgeLoc.connectedAt < 12 * 3600 * 1000) && 
+        bridgeLoc.port && 
+        bridgeLoc.port !== 'N/A'
       );
-
-      if (isOnline) {
-        let locId = (val.locationId || locKey || '').trim().toLowerCase().replace(/^kiosk-/, '');
-        if (!locId || locId === 'unknown' || locId === 'admin') return;
-
-        if (Array.isArray(val.devices) && val.devices.length > 0) {
-          val.devices.forEach(dev => {
-            if (dev && (dev.isLive || dev.online !== false)) {
-              const kId = (dev.kioskId || '1').trim().toLowerCase();
-              activeKiosks.add(`${locId}_${kId}`);
-            }
-          });
-        } else {
-          activeKiosks.add(`${locId}_1`);
-        }
+      if (bridgeLoc?.status === 'online' || isKioskConnected || hasRecentConnection) {
+        activeLocations.add(loc.id);
       }
     });
 
-    return activeKiosks.size;
-  }, [kiosksLiveStatus]);
+    return activeLocations.size;
+  }, [kiosksLiveStatus, bridgeSummary]);
 
   /* ─── Theme Sync ─────────────────────────────────── */
   useEffect(() => {
@@ -974,33 +970,57 @@ export default function AdminApp() {
 
               <div className="flex items-center gap-2.5 flex-wrap flex-1">
                 {[
-                  { id: 'cluj1', aliasKey: 'smashme-main', name: 'Cluj 1 (Centru)' },
-                  { id: 'cluj2', aliasKey: 'cluj2', name: 'Cluj 2' },
-                  { id: 'sm-brasov', aliasKey: 'sm-brasov', name: 'Brașov' },
-                  { id: 'constanta1', aliasKey: 'smashme-constanta', name: 'Constanța' },
+                  { 
+                    id: 'cluj1', 
+                    name: 'Cluj 1 (Centru)',
+                    aliases: ['cluj1', 'cluj', 'cluj-centru', 'cluj-main', 'smashme-main', 'sm-cluj', 'smashme-cluj', '9c63cff6-1d66-442d-a98d-2302656e3943', '90296b11-9ba9-4279-a69b-1f84e193315e']
+                  },
+                  { 
+                    id: 'cluj2', 
+                    name: 'Cluj 2',
+                    aliases: ['cluj2', 'cluj-2', 'cj2', 'smashme-cj2']
+                  },
+                  { 
+                    id: 'sm-brasov', 
+                    name: 'Brașov',
+                    aliases: ['sm-brasov', 'brasov', 'brasov-centru', 'rollmaster', 'rollmaster-brasov', 'rm-brasov', 'adddb5a0-26e5-4d50-b472-1c74726c3f72']
+                  },
+                  { 
+                    id: 'constanta1', 
+                    name: 'Constanța',
+                    aliases: ['constanta1', 'constanta', 'smashme-constanta', '8308e796-8780-4d18-ae66-4e430178c778']
+                  },
                 ].map(loc => {
-                  const liveData = kiosksLiveStatus[loc.id] || 
-                                   kiosksLiveStatus[loc.aliasKey] || 
-                                   (loc.id === 'constanta1' ? kiosksLiveStatus['smashme-constanta'] : null);
-                  const isKioskLive = Boolean(liveData?.isLive || liveData?.online || (liveData?.onlineCount > 0));
+                  const liveKiosk = loc.aliases.map(a => kiosksLiveStatus[a]).find(Boolean);
+                  const isKioskConnected = Boolean(liveKiosk?.isLive || liveKiosk?.online || (liveKiosk?.onlineCount > 0));
+                  
+                  const bridgeLoc = bridgeSummary?.locations?.[loc.id] || 
+                                   (loc.aliases ? loc.aliases.map(a => bridgeSummary?.locations?.[a]).find(Boolean) : null);
+                  const hasRecentConnection = Boolean(
+                    bridgeLoc?.connectedAt && 
+                    (Date.now() - bridgeLoc.connectedAt < 12 * 3600 * 1000) && 
+                    bridgeLoc.port && 
+                    bridgeLoc.port !== 'N/A'
+                  );
+                  const isOnline = bridgeLoc?.status === 'online' || isKioskConnected || hasRecentConnection;
 
                   return (
                     <div
                       key={loc.id}
                       className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all ${
-                        isKioskLive
+                        isOnline
                           ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60 text-emerald-900 dark:text-emerald-200'
                           : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400'
                       }`}
                     >
-                      <span className={`w-2 h-2 rounded-full ${isKioskLive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300 dark:bg-slate-600'}`} />
+                      <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300 dark:bg-slate-600'}`} />
                       <span className="font-bold">{loc.name}</span>
                       <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                        isKioskLive 
+                        isOnline 
                           ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300' 
                           : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
                       }`}>
-                        {isKioskLive ? 'Online' : 'Offline'}
+                        {isOnline ? 'Online' : 'Offline'}
                       </span>
                     </div>
                   );
