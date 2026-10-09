@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   Server, 
   Activity, 
@@ -16,7 +16,7 @@ import {
   Radio
 } from 'lucide-react';
 
-export default function BridgeMonitoring({ backend = '', socket = null }) {
+export default function BridgeMonitoring({ backend = '', socket = null, kiosksLiveStatus = {} }) {
   const [data, setData] = useState({
     locations: {},
     totalOnline: 0,
@@ -179,7 +179,41 @@ export default function BridgeMonitoring({ backend = '', socket = null }) {
     return `${mins}m`;
   };
 
-  const locationKeys = ['cluj1', 'cluj2', 'sm-brasov', 'constanta1'];
+  const locationKeys = useMemo(() => ['cluj1', 'cluj2', 'sm-brasov', 'constanta1'], []);
+
+  const computedLocations = useMemo(() => {
+    const result = {};
+    locationKeys.forEach(locKey => {
+      const loc = data.locations[locKey] || {
+        locationId: locKey,
+        displayName: locKey,
+        status: 'offline',
+        port: 'N/A',
+        gateway: 'raiffeisen',
+        printerName: 'N/A',
+        lastPingSecondsAgo: null,
+        offlineDurationMinutes: null,
+        uptimeSeconds: 0,
+      };
+
+      const liveKiosk = kiosksLiveStatus[locKey] || 
+                       (locKey === 'cluj1' ? kiosksLiveStatus['smashme-main'] : null) ||
+                       (locKey === 'constanta1' ? kiosksLiveStatus['smashme-constanta'] : null) ||
+                       (locKey === 'sm-brasov' ? kiosksLiveStatus['sm-brasov'] : null);
+      const isKioskConnected = Boolean(liveKiosk?.isLive || liveKiosk?.online || (liveKiosk?.onlineCount > 0));
+      
+      const isOnline = loc.status === 'online' || isKioskConnected;
+      result[locKey] = {
+        ...loc,
+        status: isOnline ? 'online' : 'offline',
+        isKioskConnected,
+      };
+    });
+    return result;
+  }, [data.locations, kiosksLiveStatus, locationKeys]);
+
+  const totalOnlineCount = Object.values(computedLocations).filter(l => l.status === 'online').length;
+  const totalOfflineCount = locationKeys.length - totalOnlineCount;
 
   if (loading) {
     return (
@@ -205,7 +239,7 @@ export default function BridgeMonitoring({ backend = '', socket = null }) {
               Stare Echipamente și Conexiuni Locale
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Urmărire proces start-windows.bat, porturi seriale POS și imprimante bonuri per locație
+              Urmărire proces start-windows.bat, porturi seriale și imprimante bonuri per locație
             </p>
           </div>
         </div>
@@ -213,10 +247,10 @@ export default function BridgeMonitoring({ backend = '', socket = null }) {
         <div className="flex items-center gap-3 shrink-0">
           <div className="flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300">
             <Radio className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
-            <span>Active: {data.totalOnline}</span>
+            <span>Active: {totalOnlineCount}</span>
             <span className="text-slate-400">|</span>
-            <span className={data.totalOffline > 0 ? 'text-amber-600 font-bold' : 'text-slate-400'}>
-              Deconectate: {data.totalOffline}
+            <span className={totalOfflineCount > 0 ? 'text-amber-600 font-bold' : 'text-slate-400'}>
+              Deconectate: {totalOfflineCount}
             </span>
           </div>
 
@@ -235,18 +269,7 @@ export default function BridgeMonitoring({ backend = '', socket = null }) {
       {/* Grid Status Locații */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {locationKeys.map(locKey => {
-          const loc = data.locations[locKey] || {
-            locationId: locKey,
-            displayName: locKey,
-            status: 'offline',
-            port: 'N/A',
-            gateway: 'raiffeisen',
-            printerName: 'N/A',
-            lastPingSecondsAgo: null,
-            offlineDurationMinutes: null,
-            uptimeSeconds: 0,
-          };
-
+          const loc = computedLocations[locKey];
           const isOnline = loc.status === 'online';
 
           return (

@@ -325,6 +325,27 @@ function isBridgeSocketConnected(locKey) {
   return false;
 }
 
+function isKioskSocketConnected(locKey) {
+  try {
+    const { getLiveKiosksSummary } = require('./socketService');
+    const summary = getLiveKiosksSummary();
+    if (!summary) return false;
+    const { getLocationAliases } = require('../utils/locations');
+    const aliases = getLocationAliases(locKey) || [];
+    const checkKeys = Array.from(new Set([locKey, ...aliases]));
+    for (const k of checkKeys) {
+      if (summary[k] && (summary[k].isLive || summary[k].online || summary[k].onlineCount > 0)) {
+        return true;
+      }
+    }
+  } catch (_) {}
+  return false;
+}
+
+function isLocationActive(locKey) {
+  return isBridgeSocketConnected(locKey) || isKioskSocketConnected(locKey);
+}
+
 /**
  * Periodic healthcheck loop (runs every 15s)
  * Catches bridges whose socket disconnected for longer than grace period
@@ -334,7 +355,7 @@ function runHealthCheck() {
   let hasChanges = false;
 
   for (const [locKey, b] of bridges.entries()) {
-    const isSocketAlive = isBridgeSocketConnected(locKey);
+    const isSocketAlive = isLocationActive(locKey);
     if (isSocketAlive) {
       b._missingSince = null;
       if (b.status !== 'online') {
@@ -385,7 +406,7 @@ function getStatusSummary() {
 
   targetLocations.forEach(locKey => {
     let b = bridges.get(locKey);
-    const isSocketAlive = isBridgeSocketConnected(locKey);
+    const isSocketAlive = isLocationActive(locKey);
     const defaults = DEFAULT_BRIDGE_CONFIGS[locKey] || {};
 
     if (isSocketAlive) {

@@ -1457,7 +1457,7 @@ export default function AdminApp() {
           {tab === 'iiko-logs' && <IikoLogs />}
           {tab === 'printer-logs' && <PrinterLogs />}
           {tab === 'port-scans' && <PortScans />}
-          {tab === 'bridge-monitoring' && <BridgeMonitoring backend={BACKEND} socket={socketRef.current} />}
+          {tab === 'bridge-monitoring' && <BridgeMonitoring backend={BACKEND} socket={socketRef.current} kiosksLiveStatus={kiosksLiveStatus} />}
           {tab === 'kiosk-logs' && <KioskLogs />}
           {tab === 'promotions' && <Promotions />}
           {tab === 'users' && <UsersManager />}
