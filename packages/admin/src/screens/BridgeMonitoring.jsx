@@ -296,7 +296,7 @@ export default function BridgeMonitoring({ backend = '', socket = null }) {
                     <Cpu className="w-3.5 h-3.5 text-slate-400" />
                     <span>Port Serial POS:</span>
                   </span>
-                  <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">
                     {loc.port || 'COM?'} ({loc.gateway || 'raiffeisen'})
                   </span>
                 </div>
@@ -345,7 +345,7 @@ export default function BridgeMonitoring({ backend = '', socket = null }) {
                 </div>
               ) : (
                 <div className="mt-3 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 text-[11px] text-amber-800 dark:text-amber-300 leading-tight">
-                  <span className="font-bold">Notă:</span> Bridge-ul nu este conectat pe socket. Dacă un client dorește să plătească cu cardul, verificați ca <code className="font-mono bg-amber-100 dark:bg-amber-900/60 px-1 py-0.5 rounded">start-windows.bat</code> să fie pornit pe PC.
+                  <span className="font-bold">Notă:</span> Bridge-ul nu este conectat pe socket. Dacă un client dorește să plătească cu cardul, verificați ca <span className="font-semibold bg-amber-100 dark:bg-amber-900/60 px-1.5 py-0.5 rounded">start-windows.bat</span> să fie pornit pe PC.
                 </div>
               )}
             </div>
@@ -413,10 +413,10 @@ export default function BridgeMonitoring({ backend = '', socket = null }) {
                 value={telegramForm.botToken}
                 onChange={(e) => setTelegramForm(prev => ({ ...prev, botToken: e.target.value }))}
                 placeholder={data.telegramConfig?.botTokenConfigured ? `Configurat: ${data.telegramConfig.botTokenMasked}` : 'Ex: 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ'}
-                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <p className="text-[11px] text-slate-400 mt-1">
-                Obținut gratuit din conversația cu <code>@BotFather</code> pe Telegram.
+                Obținut gratuit din conversația cu <span className="font-semibold">@BotFather</span> pe Telegram.
               </p>
             </div>
 
@@ -429,7 +429,7 @@ export default function BridgeMonitoring({ backend = '', socket = null }) {
                 value={telegramForm.chatId}
                 onChange={(e) => setTelegramForm(prev => ({ ...prev, chatId: e.target.value }))}
                 placeholder="Ex: -100123456789 sau ID utilizator"
-                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <p className="text-[11px] text-slate-400 mt-1">
                 ID-ul canalului sau grupului unde se livrează alertele.
@@ -448,7 +448,7 @@ export default function BridgeMonitoring({ backend = '', socket = null }) {
                 max="60"
                 value={telegramForm.alertCooldownMinutes}
                 onChange={(e) => setTelegramForm(prev => ({ ...prev, alertCooldownMinutes: e.target.value }))}
-                className="w-24 px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-24 px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -505,7 +505,7 @@ export default function BridgeMonitoring({ backend = '', socket = null }) {
                   const isErr = evt.type === 'DISCONNECT' || evt.type === 'TIMEOUT';
                   return (
                     <tr key={evt.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-700/30">
-                      <td className="py-2.5 px-3 font-mono text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                      <td className="py-2.5 px-3 font-normal text-slate-600 dark:text-slate-400 whitespace-nowrap">
                         {evt.dateTime}
                       </td>
                       <td className="py-2.5 px-3 font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">
@@ -520,7 +520,7 @@ export default function BridgeMonitoring({ backend = '', socket = null }) {
                           {evt.type}
                         </span>
                       </td>
-                      <td className="py-2.5 px-3 text-slate-700 dark:text-slate-300 font-mono">
+                      <td className="py-2.5 px-3 text-slate-700 dark:text-slate-300 font-normal">
                         {evt.details}
                       </td>
                     </tr>
