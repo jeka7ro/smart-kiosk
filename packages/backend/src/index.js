@@ -27,6 +27,7 @@ const posLogsRoutes     = require('./routes/posLogs');
 const printerLogsRoutes = require('./routes/printerLogs');
 const portScansRoutes   = require('./routes/portScans');
 const anafRoutes        = require('./routes/anaf');
+const kitchenWebhookRoutes = require('./routes/kitchenWebhook');
 
 const app = express();
 const server = http.createServer(app);
@@ -97,6 +98,7 @@ app.use('/api/iiko-logs',    require('./routes/iikoLogs.js'));
 app.use('/api/kiosk-logs',   require('./routes/kioskLogs.js'));
 app.use('/api/bridge-monitoring', require('./routes/bridgeMonitoring.js'));
 app.use('/api/anaf',         anafRoutes);
+app.use('/api/webhooks/kitchen', kitchenWebhookRoutes);
 
 // Serve uploaded brand logos
 const path = require('path');

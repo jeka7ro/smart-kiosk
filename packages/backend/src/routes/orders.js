@@ -12,6 +12,7 @@ const path = require('path');
 const { createOrder: syrveCreateOrder } = require('../services/iikoService');
 const { pool } = require('../db');
 const { addPosLog } = require('./posLogs');
+const { sendKitchenOrderWebhook } = require('../services/kitchenWebhookService');
 
 const { detectCity, getOrderPrefix, findLocation, getLocationAliases } = require('../utils/locations');
 
@@ -305,6 +306,15 @@ async function processOrderCreation(body, io) {
     }
     bridgeTarget.emit('print_ticket', { order });
   }
+
+  // ── Dispatch to Kitchen Monitoring Webhook (async) ──
+  setImmediate(async () => {
+    try {
+      await sendKitchenOrderWebhook(order, 'order.created');
+    } catch (whErr) {
+      console.warn('[Orders] Kitchen webhook dispatch error:', whErr.message);
+    }
+  });
 
   console.log(`[Order] ════ COMANDĂ NOUĂ ════`);
   console.log(`[Order]   #${orderNumber} | ${brandName} | ${resolvedLocationName || orgId || 'no-loc'}`);
@@ -638,6 +648,14 @@ router.patch('/:id/status', async (req, res) => {
     if (io) {
       io.emit('order_status_updated', { orderId: req.params.id, status });
     }
+
+    // ── Dispatch to Kitchen Monitoring Webhook (async) ──
+    setImmediate(async () => {
+      try {
+        await sendKitchenOrderWebhook(order, 'order.status_updated');
+      } catch (_) {}
+    });
+
     res.json({ success: true, id: req.params.id, status });
 
   } catch (err) {
