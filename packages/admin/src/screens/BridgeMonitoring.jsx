@@ -202,11 +202,15 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                        (locKey === 'sm-brasov' ? kiosksLiveStatus['sm-brasov'] : null);
       const isKioskConnected = Boolean(liveKiosk?.isLive || liveKiosk?.online || (liveKiosk?.onlineCount > 0));
       
-      const isOnline = loc.status === 'online' || isKioskConnected;
+      // Dacă bridge-ul a comunicat cu serverul astăzi și are port serial valid, este considerat activ
+      const hasRecentConnection = Boolean(loc.connectedAt && (Date.now() - loc.connectedAt < 12 * 3600 * 1000) && loc.port && loc.port !== 'N/A');
+      const isOnline = loc.status === 'online' || isKioskConnected || hasRecentConnection;
+
       result[locKey] = {
         ...loc,
         status: isOnline ? 'online' : 'offline',
         isKioskConnected,
+        hasRecentConnection,
       };
     });
     return result;
@@ -341,7 +345,10 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                   </span>
                   <span className="font-medium text-slate-700 dark:text-slate-300">
                     {isOnline
-                      ? (loc.lastPingSecondsAgo !== null ? `acum ${loc.lastPingSecondsAgo}s` : 'recent')
+                      ? (loc.lastPingSecondsAgo !== null && loc.lastPingSecondsAgo < 120 
+                          ? `acum ${loc.lastPingSecondsAgo}s` 
+                          : (loc.connectedAt ? `conectat la ${new Date(loc.connectedAt).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })}` : 'activ')
+                        )
                       : (loc.offlineDurationMinutes !== null
                           ? `inactiv de ${loc.offlineDurationMinutes}m`
                           : 'fără conexiune recentă'
