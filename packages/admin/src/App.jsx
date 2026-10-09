@@ -18,6 +18,7 @@ import PortScans      from './screens/PortScans';
 import BridgeMonitoring from './screens/BridgeMonitoring';
 import BrandLogo from './components/BrandLogo.jsx';
 import BankLogo from './components/BankLogo.jsx';
+import ThermalReceiptModal from './components/ThermalReceiptModal.jsx';
 import DashboardCharts3D, { detectCardBrand, detectCardBank, BANK_CONFIG } from './components/DashboardCharts3D.jsx';
 import OrderToastNotificationStack, { playNewOrderSound } from './components/OrderToastNotification.jsx';
 import OrdersNotificationBell from './components/OrdersNotificationBell.jsx';
@@ -276,6 +277,7 @@ export default function AdminApp() {
   }, []);
 
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [thermalReceiptOrder, setThermalReceiptOrder] = useState(null);
   const [modalProductsPage, setModalProductsPage] = useState(1);
   const [modalProductsPerPage, setModalProductsPerPage] = useState(10);
   const [menuImages, setMenuImages] = useState({});
@@ -1269,6 +1271,7 @@ export default function AdminApp() {
               <OrdersTable 
                 orders={dashboardFilteredOrders} 
                 onRowClick={setSelectedOrder} 
+                onOpenThermalReceipt={setThermalReceiptOrder}
                 selectedId={selectedOrder?._id}
                 defaultRows={10}
                 menuProducts={menuProducts}
@@ -1362,6 +1365,7 @@ export default function AdminApp() {
               orders={filteredOrders} 
               full 
               onRowClick={setSelectedOrder} 
+              onOpenThermalReceipt={setThermalReceiptOrder}
               selectedId={selectedOrder?._id} 
               menuProducts={menuProducts}
               menuImages={menuImages}
@@ -1478,8 +1482,14 @@ export default function AdminApp() {
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setSelectedOrder(null)}>
         <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
           <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800">
-            <h2 className="text-xl font-bold">Comandă #{selectedOrder.orderNumber}</h2>
-            <button onClick={() => setSelectedOrder(null)} className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">✕</button>
+            <h2 
+              className="text-xl font-bold cursor-pointer hover:text-blue-600 transition-colors"
+              onClick={() => setThermalReceiptOrder(selectedOrder)}
+              title="Apasă pentru a deschide bonul de casă"
+            >
+              Comandă #{selectedOrder.orderNumber}
+            </h2>
+            <button onClick={() => setSelectedOrder(null)} className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer">✕</button>
           </div>
 
           <div className="p-6 space-y-4 overflow-y-auto">
@@ -1489,11 +1499,18 @@ export default function AdminApp() {
               {(() => {
                 const sc = getOrderStatus(selectedOrder);
                 return (
-                  <span className="ml-auto px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap" style={{
-                    backgroundColor: `${sc.color}20`,
-                    color: sc.color,
-                    border: `1px solid ${sc.color}40`
-                  }}>● {sc.label}</span>
+                  <span 
+                    className="ml-auto px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap cursor-pointer hover:scale-105 active:scale-95 transition-transform" 
+                    style={{
+                      backgroundColor: `${sc.color}20`,
+                      color: sc.color,
+                      border: `1px solid ${sc.color}40`
+                    }}
+                    onClick={() => setThermalReceiptOrder(selectedOrder)}
+                    title="Apasă pentru a deschide bonul de casă"
+                  >
+                    ● {sc.label}
+                  </span>
                 );
               })()}
             </div>
@@ -1661,13 +1678,25 @@ export default function AdminApp() {
               );
             })()}
 
-            <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-800">
+            <div 
+              className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-800 cursor-pointer hover:opacity-85 transition-opacity"
+              onClick={() => setThermalReceiptOrder(selectedOrder)}
+              title="Apasă pentru a deschide bonul de casă"
+            >
               <span className="text-sm font-bold uppercase text-slate-400">Total</span>
-              <span className="text-2xl font-black">{formatThousands(selectedOrder.totalAmount || 0)} lei</span>
+              <span className="text-2xl font-black text-slate-900 dark:text-white hover:text-emerald-600 transition-colors">{formatThousands(selectedOrder.totalAmount || 0)} lei</span>
             </div>
           </div>
         </div>
       </div>
+    )}
+
+    {/* ── Thermal Receipt Modal (80mm Paper Slip) ── */}
+    {thermalReceiptOrder && (
+      <ThermalReceiptModal 
+        order={thermalReceiptOrder} 
+        onClose={() => setThermalReceiptOrder(null)} 
+      />
     )}
 
     {/* ── Product Detail Modal ── */}
@@ -1812,7 +1841,7 @@ function StatCard({ label, value, color, large, brandId, icon: Icon, onClick, ac
   );
 }
 
-function OrdersTable({ orders, full, onRowClick, selectedId, defaultRows = 10, menuProducts = {}, menuImages = {}, backend = '' }) {
+function OrdersTable({ orders, full, onRowClick, onOpenThermalReceipt, selectedId, defaultRows = 10, menuProducts = {}, menuImages = {}, backend = '' }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(defaultRows);
 
@@ -1873,9 +1902,17 @@ function OrdersTable({ orders, full, onRowClick, selectedId, defaultRows = 10, m
                   <td className="w-14 px-4 py-3.5 text-center text-xs font-bold text-slate-500 dark:text-slate-400">
                     {rowNumber}
                   </td>
-                  <td className="px-5 py-3.5 whitespace-nowrap">
+                  <td 
+                    className="px-5 py-3.5 whitespace-nowrap cursor-pointer hover:opacity-85 transition-opacity"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onOpenThermalReceipt) onOpenThermalReceipt(o);
+                      else if (onRowClick) onRowClick(o);
+                    }}
+                    title="Apasă pentru a deschide bonul de casă"
+                  >
                     <div className="flex flex-col gap-0.5">
-                      <span className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1">
+                      <span className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1 group-hover:text-blue-600 transition-colors">
                         #{o.orderNumber}
                         {o.fiscal && <span title={`CUI: ${o.fiscal.rawCui || o.fiscal.cui}`} className="inline-flex items-center text-indigo-600 dark:text-indigo-400"><Building2 size={13} /></span>}
                       </span>
@@ -1935,9 +1972,17 @@ function OrdersTable({ orders, full, onRowClick, selectedId, defaultRows = 10, m
                       );
                     })()}
                   </td>
-                  <td className="px-5 py-3.5 whitespace-nowrap">
+                  <td 
+                    className="px-5 py-3.5 whitespace-nowrap cursor-pointer hover:opacity-85 transition-opacity"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onOpenThermalReceipt) onOpenThermalReceipt(o);
+                      else if (onRowClick) onRowClick(o);
+                    }}
+                    title="Apasă pentru a deschide bonul de casă"
+                  >
                     <div className="flex flex-col gap-1 items-start">
-                      <span className="text-sm font-bold text-slate-900 dark:text-white">
+                      <span className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 transition-colors">
                         {formatThousands(o.totalAmount || 0)} lei
                       </span>
                       {o.paymentMethod === 'card' ? (() => {
@@ -1963,8 +2008,19 @@ function OrdersTable({ orders, full, onRowClick, selectedId, defaultRows = 10, m
                       )}
                     </div>
                   </td>
-                  <td className="px-5 py-3.5 whitespace-nowrap">
-                    <span className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap inline-block" style={{ backgroundColor: `${sc.color}20`, color: sc.color, border: `1px solid ${sc.color}40` }}>
+                  <td 
+                    className="px-5 py-3.5 whitespace-nowrap"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onOpenThermalReceipt) onOpenThermalReceipt(o);
+                      else if (onRowClick) onRowClick(o);
+                    }}
+                  >
+                    <span 
+                      className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap inline-block cursor-pointer hover:scale-105 active:scale-95 transition-transform" 
+                      style={{ backgroundColor: `${sc.color}20`, color: sc.color, border: `1px solid ${sc.color}40` }}
+                      title="Apasă pentru a deschide bonul de casă"
+                    >
                       ● {sc.label}
                     </span>
                   </td>

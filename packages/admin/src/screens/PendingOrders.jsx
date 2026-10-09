@@ -9,6 +9,7 @@ import BrandLogo from '../components/BrandLogo.jsx';
 import BankLogo from '../components/BankLogo.jsx';
 import { detectCardBank } from '../utils/cardUtils';
 import { formatThousands, formatLocationAndKiosk } from '../utils/formatters';
+import ThermalReceiptModal from '../components/ThermalReceiptModal.jsx';
 export { formatLocationAndKiosk };
 
 const BRAND_COLORS = {
@@ -152,6 +153,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
   const [loading, setLoading] = useState(true);
   const [pendingList, setPendingList] = useState([]);
   const [selectedDraft, setSelectedDraft] = useState(null);
+  const [thermalReceiptOrder, setThermalReceiptOrder] = useState(null);
   const [isProcessingId, setIsProcessingId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
 
@@ -570,9 +572,16 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                       </td>
 
                       {/* # Comandă */}
-                      <td className="px-2 py-2 whitespace-nowrap">
+                      <td 
+                        className="px-2 py-2 whitespace-nowrap cursor-pointer hover:opacity-85 transition-opacity"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setThermalReceiptOrder(item);
+                        }}
+                        title="Apasă pentru a deschide bonul de casă"
+                      >
                         <div className="flex flex-col items-start gap-0.5 max-w-[110px] lg:max-w-[135px]">
-                          <span className="text-xs font-bold text-slate-900 dark:text-white truncate w-full" title={item.orderNumber || item.order_id}>
+                          <span className="text-xs font-bold text-slate-900 dark:text-white truncate w-full hover:text-blue-600 transition-colors" title={item.orderNumber || item.order_id}>
                             #{item.orderNumber || item.order_id}
                           </span>
                           {dt && (
@@ -638,17 +647,31 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                       </td>
 
                       {/* Total */}
-                      <td className="px-2 py-2 whitespace-nowrap">
-                        <span className="text-xs font-black text-slate-900 dark:text-white">
+                      <td 
+                        className="px-2 py-2 whitespace-nowrap cursor-pointer hover:opacity-85 transition-opacity"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setThermalReceiptOrder(item);
+                        }}
+                        title="Apasă pentru a deschide bonul de casă"
+                      >
+                        <span className="text-xs font-black text-slate-900 dark:text-white hover:text-emerald-600 transition-colors">
                           {formatThousands(total)} <span className="text-[10px] font-normal text-slate-400">lei</span>
                         </span>
                       </td>
 
                       {/* Status - Standard Comenzi (App.jsx) */}
-                      <td className="px-2 py-2 whitespace-nowrap">
+                      <td 
+                        className="px-2 py-2 whitespace-nowrap"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setThermalReceiptOrder(item);
+                        }}
+                      >
                         <span 
-                          className="px-2 py-0.5 rounded-full text-[10.5px] font-bold whitespace-nowrap inline-block" 
+                          className="px-2 py-0.5 rounded-full text-[10.5px] font-bold whitespace-nowrap inline-block cursor-pointer hover:scale-105 active:scale-95 transition-transform" 
                           style={{ backgroundColor: `${sc.color}20`, color: sc.color, border: `1px solid ${sc.color}40` }}
+                          title="Apasă pentru a deschide bonul de casă"
                         >
                           ● {sc.label}
                         </span>
@@ -675,15 +698,25 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                             {/* Accordion Header */}
                             <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-200 dark:border-slate-700">
                               <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-                                <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate max-w-[200px]" title={item.orderNumber || item.order_id}>
+                                <span 
+                                  className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate max-w-[200px] cursor-pointer hover:text-blue-600 transition-colors" 
+                                  title="Apasă pentru a deschide bonul de casă"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setThermalReceiptOrder(item);
+                                  }}
+                                >
                                   Comandă #{item.orderNumber || item.order_id}
                                 </span>
                                 <button
                                   type="button"
-                                  onClick={() => setSelectedDraft(item)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setThermalReceiptOrder(item);
+                                  }}
                                   className="p-1 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors cursor-pointer"
-                                  title="Vezi bon / coș complet"
-                                  aria-label="Vezi bon / coș complet"
+                                  title="Vezi bon de casă"
+                                  aria-label="Vezi bon de casă"
                                 >
                                   <Eye size={14} />
                                 </button>
@@ -714,9 +747,16 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                                     <span>Trimite în iiko</span>
                                   </button>
                                 )}
-                                <div className="text-right">
+                                <div 
+                                  className="text-right cursor-pointer hover:opacity-85 transition-opacity"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setThermalReceiptOrder(item);
+                                  }}
+                                  title="Apasă pentru a deschide bonul de casă"
+                                >
                                   <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block leading-tight">Total</span>
-                                  <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white leading-tight">
+                                  <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white leading-tight hover:text-emerald-600 transition-colors">
                                     {formatThousands(total)} lei
                                   </span>
                                 </div>
@@ -1062,7 +1102,11 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                     <BrandLogo brandId={mBrand} size={32} />
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                        <h3 
+                          className="text-base font-bold text-slate-900 dark:text-white cursor-pointer hover:text-blue-600 transition-colors"
+                          onClick={() => setThermalReceiptOrder(selectedDraft)}
+                          title="Apasă pentru a deschide bonul de casă"
+                        >
                           Detalii Comandă #{selectedDraft.orderNumber || selectedDraft.order_id}
                         </h3>
                         <span 
@@ -1113,9 +1157,13 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                     {selectedDraft.payload?.orderType === 'takeaway' ? 'La Pachet' : 'În Restaurant'}
                   </div>
                 </div>
-                <div>
+                <div 
+                  className="cursor-pointer hover:opacity-85 transition-opacity"
+                  onClick={() => setThermalReceiptOrder(selectedDraft)}
+                  title="Apasă pentru a deschide bonul de casă"
+                >
                   <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">ID Tranzacție / Comandă</span>
-                  <div className="font-bold text-slate-700 dark:text-slate-300 mt-1">
+                  <div className="font-bold text-slate-700 dark:text-slate-300 mt-1 hover:text-blue-600 transition-colors">
                     {selectedDraft.orderNumber ? `#${selectedDraft.orderNumber}` : selectedDraft.order_id}
                   </div>
                 </div>
@@ -1144,7 +1192,12 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                       const mTimeout = mAge > 2.5 * 60 * 1000;
                       const mSc = getOrderStatus(selectedDraft, mTimeout);
                       return (
-                        <span className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap inline-block" style={{ backgroundColor: `${mSc.color}20`, color: mSc.color, border: `1px solid ${mSc.color}40` }}>
+                        <span 
+                          className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap inline-block cursor-pointer hover:scale-105 active:scale-95 transition-transform" 
+                          style={{ backgroundColor: `${mSc.color}20`, color: mSc.color, border: `1px solid ${mSc.color}40` }}
+                          onClick={() => setThermalReceiptOrder(selectedDraft)}
+                          title="Apasă pentru a deschide bonul de casă"
+                        >
                           ● {mSc.label}
                         </span>
                       );
@@ -1220,9 +1273,13 @@ export default function PendingOrders({ backend, onGoToOrder }) {
               </div>
 
               {/* Total Row */}
-              <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
+              <div 
+                className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 cursor-pointer hover:opacity-85 transition-opacity"
+                onClick={() => setThermalReceiptOrder(selectedDraft)}
+                title="Apasă pentru a deschide bonul de casă"
+              >
                 <span className="font-bold text-slate-600 dark:text-slate-400 text-sm">Total de Plată:</span>
-                <span className="text-xl font-black text-slate-900 dark:text-white">
+                <span className="text-xl font-black text-slate-900 dark:text-white hover:text-emerald-600 transition-colors">
                   {formatThousands(selectedDraft.payload?.totalAmount || selectedDraft.pos_amount || 0)} RON
                 </span>
               </div>
@@ -1250,6 +1307,14 @@ export default function PendingOrders({ backend, onGoToOrder }) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── Thermal Receipt Modal (80mm Paper Slip) ── */}
+      {thermalReceiptOrder && (
+        <ThermalReceiptModal 
+          order={thermalReceiptOrder} 
+          onClose={() => setThermalReceiptOrder(null)} 
+        />
       )}
     </div>
   );
