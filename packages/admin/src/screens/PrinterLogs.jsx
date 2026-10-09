@@ -96,14 +96,14 @@ function HardwareScanCard({ scan }) {
                   key={i}
                   className={`flex items-center justify-between text-xs px-2.5 py-1.5 rounded-lg transition-colors ${
                     isPos
-                      ? 'bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/30'
+                      ? 'bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30'
                       : 'bg-slate-50 dark:bg-slate-800/50'
                   }`}
                 >
                   <div className="flex items-center gap-1.5">
                     <span className="font-bold text-slate-800 dark:text-slate-200">{p.path}</span>
                     {isPos && (
-                      <span className="px-1.5 py-0.5 rounded-full bg-purple-600 text-white text-[9px] font-bold">
+                      <span className="px-1.5 py-0.5 rounded-full bg-blue-600 text-white text-[9px] font-bold">
                         POS
                       </span>
                     )}
