@@ -26,6 +26,149 @@ const getReceiptBrandLogo = (brand) => {
   return { mono: null, color: `/brands/${b}-logo.png` };
 };
 
+function HardwareScanCard({ scan }) {
+  const [showAllPorts, setShowAllPorts] = useState(false);
+  const [showAllPrinters, setShowAllPrinters] = useState(false);
+
+  // COM Ports
+  const allPorts = scan.comPorts || [];
+  const isPortPos = (p) => p.path && scan.posPort && p.path.toUpperCase() === scan.posPort.toUpperCase();
+  const activePorts = allPorts.filter(isPortPos);
+  const inactivePorts = allPorts.filter(p => !isPortPos(p));
+  const displayedPorts = (activePorts.length > 0 && !showAllPorts) ? activePorts : allPorts;
+
+  // Printers
+  const allPrinters = scan.printers || [];
+  const isPrinterActive = (p) => {
+    if (!scan.printerName || !p.name) return false;
+    const sName = scan.printerName.toLowerCase();
+    const pName = p.name.toLowerCase();
+    const matchTwo = scan.printerName.split(' ').slice(0, 2).join(' ').toLowerCase();
+    return pName.includes(sName) || sName.includes(pName) || pName.includes(matchTwo);
+  };
+  const activePrinters = allPrinters.filter(isPrinterActive);
+  const inactivePrinters = allPrinters.filter(p => !isPrinterActive(p));
+  const displayedPrinters = (activePrinters.length > 0 && !showAllPrinters) ? activePrinters : allPrinters;
+
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-4 font-sans">
+      <div className="flex items-center justify-between mb-3 gap-2">
+        <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2 flex-wrap">
+          <Monitor size={14} className="text-slate-500 shrink-0" />
+          <span className="uppercase">{scan.locationId}</span>
+          {scan.hostname && (
+            <span className="text-[10px] font-medium text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
+              {scan.hostname}
+            </span>
+          )}
+          {scan.os && (
+            <span className="text-[10px] text-slate-400">{scan.os}</span>
+          )}
+        </h4>
+        <span className="text-[10px] text-slate-400 whitespace-nowrap">
+          {scan.timestamp ? new Date(scan.timestamp).toLocaleString('ro-RO') : ''}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+        {/* COM Ports */}
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="text-[10px] font-bold uppercase text-slate-500">
+              Porturi COM ({allPorts.length})
+            </p>
+            {activePorts.length > 0 && inactivePorts.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowAllPorts(prev => !prev)}
+                className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+              >
+                {showAllPorts ? 'Restrânge' : `+ ${inactivePorts.length} inactive`}
+              </button>
+            )}
+          </div>
+
+          <div className="space-y-1">
+            {displayedPorts.map((p, i) => {
+              const isPos = isPortPos(p);
+              return (
+                <div
+                  key={i}
+                  className={`flex items-center justify-between text-xs px-2.5 py-1.5 rounded-lg transition-colors ${
+                    isPos
+                      ? 'bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/30'
+                      : 'bg-slate-50 dark:bg-slate-800/50'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-slate-800 dark:text-slate-200">{p.path}</span>
+                    {isPos && (
+                      <span className="px-1.5 py-0.5 rounded-full bg-purple-600 text-white text-[9px] font-bold">
+                        POS
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-slate-400 text-[10px] truncate max-w-[120px] text-right">
+                    {p.manufacturer || '—'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Printers */}
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="text-[10px] font-bold uppercase text-slate-500">
+              Imprimante ({allPrinters.length})
+            </p>
+            {activePrinters.length > 0 && inactivePrinters.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowAllPrinters(prev => !prev)}
+                className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+              >
+                {showAllPrinters ? 'Restrânge' : `+ ${inactivePrinters.length} inactive`}
+              </button>
+            )}
+          </div>
+
+          <div className="space-y-1">
+            {displayedPrinters.map((p, i) => {
+              const isAct = isPrinterActive(p);
+              return (
+                <div
+                  key={i}
+                  className={`text-xs px-2.5 py-1.5 rounded-lg transition-colors ${
+                    isAct
+                      ? 'bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30'
+                      : 'bg-slate-50 dark:bg-slate-800/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="font-bold text-slate-800 dark:text-slate-200 truncate">
+                      {p.name}
+                    </span>
+                    {isAct && (
+                      <span className="px-1.5 py-0.5 rounded-full bg-emerald-600 text-white text-[9px] font-bold shrink-0">
+                        ACTIV
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-slate-400 text-[10px] truncate">
+                    {p.driver} | {p.port}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function PrinterLogs() {
   const { fetchWithAuth } = useAuth();
   const confirm = useConfirm();
@@ -257,50 +400,7 @@ export default function PrinterLogs() {
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {Object.values(latestByLoc).map(scan => (
-              <div key={scan.locationId} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                    <Monitor size={14} className="text-slate-500" />
-                    <span>{scan.locationId}</span>
-                    <span className="text-[10px] font-medium text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">{scan.hostname}</span>
-                    <span className="text-[10px] text-slate-400">{scan.os}</span>
-                  </h4>
-                  <span className="text-[10px] text-slate-400">{scan.timestamp ? new Date(scan.timestamp).toLocaleString('ro-RO') : ''}</span>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  {/* COM Ports */}
-                  <div>
-                    <p className="text-[10px] font-bold uppercase text-slate-500 mb-1.5">Porturi COM ({(scan.comPorts||[]).length})</p>
-                    <div className="space-y-1">
-                      {(scan.comPorts||[]).map((p,i) => {
-                        const isPos = p.path && scan.posPort && p.path.toUpperCase() === scan.posPort.toUpperCase();
-                        return (
-                          <div key={i} className={`flex items-center justify-between text-xs px-2 py-1 rounded-lg ${isPos ? 'bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/30' : 'bg-slate-50 dark:bg-slate-800/50'}`}>
-                            <span className="font-bold text-slate-700 dark:text-slate-300">{p.path}</span>
-                            {isPos && <span className="px-1.5 py-0.5 rounded-full bg-purple-500 text-white text-[9px] font-bold">POS</span>}
-                            <span className="text-slate-400 text-[10px]">{p.manufacturer || '—'}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  {/* Printers */}
-                  <div>
-                    <p className="text-[10px] font-bold uppercase text-slate-500 mb-1.5">Imprimante ({(scan.printers||[]).length})</p>
-                    <div className="space-y-1">
-                      {(scan.printers||[]).map((p,i) => (
-                        <div key={i} className={`text-xs px-2 py-1 rounded-lg ${scan.printerName && p.name.includes(scan.printerName.split(' ').slice(0,2).join(' ')) ? 'bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30' : 'bg-slate-50 dark:bg-slate-800/50'}`}>
-                          <div className="flex items-center justify-between">
-                            <span className="font-bold text-slate-700 dark:text-slate-300">{p.name}</span>
-                            {scan.printerName && p.name.includes(scan.printerName.split(' ').slice(0,2).join(' ')) && <span className="px-1.5 py-0.5 rounded-full bg-emerald-500 text-white text-[9px] font-bold">ACTIV</span>}
-                          </div>
-                          <span className="text-slate-400 text-[10px]">{p.driver} | {p.port}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <HardwareScanCard key={scan.locationId} scan={scan} />
             ))}
           </div>
         );
