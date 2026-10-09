@@ -33,13 +33,13 @@ const BRAND_LABELS = {
 
 // ─── Standard Status Labels & Helper (Identic cu Gestionare Comenzi / App.jsx) ───
 const STATUS_LABELS = {
-  pending:          { label: 'Achitată cu succes',  color: '#059669' },
-  awaiting_payment: { label: 'Trimis la bucătărie', color: '#059669' },
-  confirmed:        { label: 'Trimis la bucătărie', color: '#059669' },
-  preparing:        { label: 'În preparare',        color: '#3b82f6' },
-  ready:            { label: 'Gata',                color: '#059669' },
-  delivered:        { label: 'Livrat',              color: '#8b5cf6' },
-  cancelled:        { label: 'Anulată',             color: '#ef4444' },
+  pending:          { label: 'Achitată',     color: '#059669' },
+  awaiting_payment: { label: 'iiko',         color: '#059669' },
+  confirmed:        { label: 'iiko',         color: '#059669' },
+  preparing:        { label: 'În preparare', color: '#3b82f6' },
+  ready:            { label: 'Gata',         color: '#059669' },
+  delivered:        { label: 'Livrat',       color: '#8b5cf6' },
+  cancelled:        { label: 'Anulată',      color: '#ef4444' },
 };
 
 function getOrderStatus(item, isTimeoutUnfinalized) {
@@ -53,21 +53,21 @@ function getOrderStatus(item, isTimeoutUnfinalized) {
   if (item.status === 'ready' || p.status === 'ready')         return { label: 'Gata', color: '#059669' };
   if (item.status === 'preparing' || p.status === 'preparing') return { label: 'În preparare', color: '#3b82f6' };
 
-  // Comenzi plătite cu cardul -> Achitată cu succes
+  // Comenzi plătite cu cardul -> Achitată
   if (item.paid || p.paymentMethod === 'card' || p.paymentRef?.authCode || item.auth_code || item.kind === 'finalized_success' || item.kind === 'pos_paid_pending_iiko') {
-    return { label: 'Achitată cu succes', color: '#059669' };
+    return { label: 'Achitată', color: '#059669' };
   }
 
   // Comenzi trimise la bucătărie (Syrve / iiko) sau cash
   if (item.iiko_order_id || p.syrveOrderId || p.status === 'awaiting_payment' || item.status === 'awaiting_payment' || p.paymentMethod === 'cash' || item.kind === 'cash_awaiting') {
-    return { label: 'Trimis la bucătărie', color: '#059669' };
+    return { label: 'iiko', color: '#059669' };
   }
 
   if (item.kind === 'pos_in_progress') {
     return { label: 'Comandă în curs', color: '#3b82f6' };
   }
 
-  return STATUS_LABELS[p.status || item.status] || { label: 'Achitată cu succes', color: '#059669' };
+  return STATUS_LABELS[p.status || item.status] || { label: 'Achitată', color: '#059669' };
 }
 
 function CopyIconButton({ text, title = "Copiază ID iiko" }) {
@@ -312,8 +312,8 @@ export default function PendingOrders({ backend, onGoToOrder }) {
       const isTimeout = !isFin && (item.kind === 'unfinalized_abandoned' || item.isUnfinalized || ageMs > 2.5 * 60 * 1000);
       const sc = getOrderStatus(item, isTimeout);
 
-      if (sc.label === 'Trimis la bucătărie') kitchen++;
-      else if (sc.label === 'Achitată cu succes') finalized++;
+      if (sc.label === 'iiko' || sc.label === 'Trimis la bucătărie') kitchen++;
+      else if (sc.label === 'Achitată' || sc.label === 'Achitată cu succes') finalized++;
       else if (sc.label === 'Comandă în curs') inProgress++;
       else if (sc.label === 'Anulată') unfinalized++;
     });
@@ -356,8 +356,8 @@ export default function PendingOrders({ backend, onGoToOrder }) {
         const isTimeout = !isFin && (item.kind === 'unfinalized_abandoned' || item.isUnfinalized || ageMs > 2.5 * 60 * 1000);
         const itemSc = getOrderStatus(item, isTimeout);
 
-        if (statusFilter === 'kitchen' && itemSc.label !== 'Trimis la bucătărie') return false;
-        if (statusFilter === 'success' && itemSc.label !== 'Achitată cu succes') return false;
+        if (statusFilter === 'kitchen' && itemSc.label !== 'iiko' && itemSc.label !== 'Trimis la bucătărie') return false;
+        if (statusFilter === 'success' && itemSc.label !== 'Achitată' && itemSc.label !== 'Achitată cu succes') return false;
         if (statusFilter === 'in_progress' && itemSc.label !== 'Comandă în curs') return false;
         if (statusFilter === 'cancelled' && itemSc.label !== 'Anulată') return false;
       }
@@ -494,8 +494,8 @@ export default function PendingOrders({ backend, onGoToOrder }) {
           onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
         >
           <option value="all">Toate statusurile</option>
-          <option value="kitchen">Trimis la bucătărie</option>
-          <option value="success">Achitată cu succes</option>
+          <option value="kitchen">iiko</option>
+          <option value="success">Achitată</option>
           <option value="in_progress">Comandă în curs</option>
           <option value="cancelled">Anulată</option>
         </select>

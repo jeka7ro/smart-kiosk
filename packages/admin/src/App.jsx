@@ -49,13 +49,13 @@ function useKeepAlive() {
 const BRAND_COLORS = { smashme: '#ef4444', crunch: '#eab308', rollmaster: '#e31e24', lovesushi: '#ec4899', pokiwoki: '#f97316' };
 
 const STATUS_LABELS = {
-  pending:          { label: 'Achitată cu succes',  color: '#059669' },
-  awaiting_payment: { label: 'Trimis la bucătărie', color: '#059669' },
-  confirmed:        { label: 'Trimis la bucătărie', color: '#059669' },
-  preparing:        { label: 'În preparare',        color: '#3b82f6' },
-  ready:            { label: 'Gata',                color: '#059669' },
-  delivered:        { label: 'Livrat',              color: '#8b5cf6' },
-  cancelled:        { label: 'Anulată',             color: '#ef4444' },
+  pending:          { label: 'Achitată',     color: '#059669' },
+  awaiting_payment: { label: 'iiko',         color: '#059669' },
+  confirmed:        { label: 'iiko',         color: '#059669' },
+  preparing:        { label: 'În preparare', color: '#3b82f6' },
+  ready:            { label: 'Gata',         color: '#059669' },
+  delivered:        { label: 'Livrat',       color: '#8b5cf6' },
+  cancelled:        { label: 'Anulată',      color: '#ef4444' },
 };
 
 const getOrderStatus = (o) => {
@@ -65,17 +65,17 @@ const getOrderStatus = (o) => {
   if (o.status === 'ready')     return { label: 'Gata', color: '#059669' };
   if (o.status === 'preparing') return { label: 'În preparare', color: '#3b82f6' };
 
-  // Comenzi plătite cu cardul -> Achitată cu succes
+  // Comenzi plătite cu cardul -> Achitată
   if (o.paymentMethod === 'card' || o.paymentRef?.authCode) {
-    return { label: 'Achitată cu succes', color: '#059669' };
+    return { label: 'Achitată', color: '#059669' };
   }
 
-  // Comenzi trimise la bucătărie (Syrve / iiko) sau cash
+  // Comenzi trimise la bucătărie (Syrve / iiko) sau cash -> iiko
   if (o.syrveOrderId || o.status === 'awaiting_payment' || o.paymentMethod === 'cash') {
-    return { label: 'Trimis la bucătărie', color: '#059669' };
+    return { label: 'iiko', color: '#059669' };
   }
 
-  return STATUS_LABELS[o.status] || { label: 'Achitată cu succes', color: '#059669' };
+  return STATUS_LABELS[o.status] || { label: 'Achitată', color: '#059669' };
 };
 
 export default function AdminApp() {
