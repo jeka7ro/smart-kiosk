@@ -271,7 +271,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
       </div>
 
       {/* Grid Status Locații */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         {locationKeys.map(locKey => {
           const loc = computedLocations[locKey];
           const isOnline = loc.status === 'online';
@@ -279,92 +279,90 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
           return (
             <div
               key={locKey}
-              className={`p-4 rounded-xl border transition-all ${
-                isOnline
-                  ? 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-xs'
-                  : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-xs'
-              }`}
+              className="p-3.5 rounded-xl border transition-all bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-xs flex flex-col justify-between"
             >
-              {/* Card Header */}
-              <div className="flex items-start justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-700/60">
-                <div>
-                  <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    {loc.locationId}
+              <div>
+                {/* Card Header */}
+                <div className="flex items-start justify-between gap-2 pb-2.5 border-b border-slate-100 dark:border-slate-700/60">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
+                      {loc.locationId}
+                    </div>
+                    <div className="text-sm font-bold text-slate-900 dark:text-white mt-0.5 truncate" title={loc.displayName}>
+                      {loc.displayName}
+                    </div>
                   </div>
-                  <div className="text-base font-bold text-slate-900 dark:text-white mt-0.5">
-                    {loc.displayName}
+
+                  <div className={`px-2 py-0.5 rounded-full text-[11px] font-bold flex items-center gap-1 shrink-0 ${
+                    isOnline
+                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                      : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                  }`}>
+                    <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                    <span>{isOnline ? 'ONLINE' : 'DECONECTAT'}</span>
                   </div>
                 </div>
 
-                <div className={`px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 ${
-                  isOnline
-                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
-                    : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
-                }`}>
-                  <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                  <span>{isOnline ? 'ONLINE' : 'DECONECTAT'}</span>
-                </div>
-              </div>
-
-              {/* Status Details */}
-              <div className="mt-3 space-y-2 text-xs">
-                <div className="flex items-center justify-between py-1 border-b border-slate-100/60 dark:border-slate-700/40">
-                  <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                    <Activity className="w-3.5 h-3.5 text-slate-400" />
-                    <span>POS Bridge (start.bat):</span>
-                  </span>
-                  <span className={`font-semibold ${isOnline ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400 font-bold'}`}>
-                    {isOnline ? 'Rulare activă' : 'Oprit / Deconectat'}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between py-1 border-b border-slate-100/60 dark:border-slate-700/40">
-                  <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                    <Cpu className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Port Serial POS:</span>
-                  </span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">
-                    {loc.port || 'COM?'} ({loc.gateway || 'raiffeisen'})
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between py-1 border-b border-slate-100/60 dark:border-slate-700/40">
-                  <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                    <Printer className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Imprimantă Bonuri:</span>
-                  </span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[180px]">
-                    {loc.printerName || 'Nedetectată'}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between py-1 border-b border-slate-100/60 dark:border-slate-700/40">
-                  <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Ultimul Semnal (Ping):</span>
-                  </span>
-                  <span className="font-medium text-slate-700 dark:text-slate-300">
-                    {isOnline
-                      ? (loc.lastPingSecondsAgo !== null && loc.lastPingSecondsAgo < 120 
-                          ? `acum ${loc.lastPingSecondsAgo}s` 
-                          : (loc.connectedAt ? `conectat la ${new Date(loc.connectedAt).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })}` : 'activ')
-                        )
-                      : (loc.offlineDurationMinutes !== null
-                          ? `inactiv de ${loc.offlineDurationMinutes}m`
-                          : 'fără conexiune recentă'
-                        )
-                    }
-                  </span>
-                </div>
-
-                {isOnline && loc.uptimeSeconds > 0 && (
-                  <div className="flex items-center justify-between py-1">
-                    <span className="text-slate-500 dark:text-slate-400">Timp de rulare continuu:</span>
-                    <span className="font-medium text-slate-700 dark:text-slate-300">
-                      {formatUptime(loc.uptimeSeconds)}
+                {/* Status Details */}
+                <div className="mt-2.5 space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between py-1 border-b border-slate-100/60 dark:border-slate-700/40 gap-2">
+                    <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5 shrink-0">
+                      <Activity className="w-3.5 h-3.5 text-slate-400" />
+                      <span>POS Bridge (start.bat):</span>
+                    </span>
+                    <span className={`font-semibold text-right ${isOnline ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400 font-bold'}`}>
+                      {isOnline ? 'Rulare activă' : 'Oprit / Deconectat'}
                     </span>
                   </div>
-                )}
+
+                  <div className="flex items-center justify-between py-1 border-b border-slate-100/60 dark:border-slate-700/40 gap-2">
+                    <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5 shrink-0">
+                      <Cpu className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Port Serial POS:</span>
+                    </span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 text-right">
+                      {loc.port || 'COM?'} ({loc.gateway || 'raiffeisen'})
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between py-1 border-b border-slate-100/60 dark:border-slate-700/40 gap-2">
+                    <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5 shrink-0">
+                      <Printer className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Imprimantă Bonuri:</span>
+                    </span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[130px] text-right" title={loc.printerName || 'Nedetectată'}>
+                      {loc.printerName || 'Nedetectată'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between py-1 border-b border-slate-100/60 dark:border-slate-700/40 gap-2">
+                    <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5 shrink-0">
+                      <Clock className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Ultimul Semnal:</span>
+                    </span>
+                    <span className="font-medium text-slate-700 dark:text-slate-300 text-right">
+                      {isOnline
+                        ? (loc.lastPingSecondsAgo !== null && loc.lastPingSecondsAgo < 120 
+                            ? `acum ${loc.lastPingSecondsAgo}s` 
+                            : (loc.connectedAt ? `conectat la ${new Date(loc.connectedAt).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })}` : 'activ')
+                          )
+                        : (loc.offlineDurationMinutes !== null
+                            ? `inactiv de ${loc.offlineDurationMinutes}m`
+                            : 'fără conexiune recentă'
+                          )
+                      }
+                    </span>
+                  </div>
+
+                  {isOnline && loc.uptimeSeconds > 0 && (
+                    <div className="flex items-center justify-between py-1 gap-2">
+                      <span className="text-slate-500 dark:text-slate-400 shrink-0">Timp de rulare:</span>
+                      <span className="font-medium text-slate-700 dark:text-slate-300 text-right">
+                        {formatUptime(loc.uptimeSeconds)}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Status footer message */}
@@ -374,8 +372,8 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                   <span>Procesul de plată POS și imprimanta sunt operaționale.</span>
                 </div>
               ) : (
-                <div className="mt-3 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 text-[11px] text-amber-800 dark:text-amber-300 leading-tight">
-                  <span className="font-bold">Notă:</span> Bridge-ul nu este conectat pe socket. Dacă un client dorește să plătească cu cardul, verificați ca <span className="font-semibold bg-amber-100 dark:bg-amber-900/60 px-1.5 py-0.5 rounded">start-windows.bat</span> să fie pornit pe PC.
+                <div className="mt-3 p-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 text-[11px] text-amber-800 dark:text-amber-300 leading-tight">
+                  <span className="font-bold">Notă:</span> Bridge deconectat. Verificați <span className="font-semibold bg-amber-100 dark:bg-amber-900/60 px-1 py-0.5 rounded">start-windows.bat</span> pe PC.
                 </div>
               )}
             </div>
