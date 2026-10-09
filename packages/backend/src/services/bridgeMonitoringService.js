@@ -299,26 +299,55 @@ function triggerDisconnectAlert(locKey, bridgeInfo) {
   sendTelegramMessage(msg).catch(e => console.error('[BridgeMonitor] Eroare telegram disconnect alert:', e.message));
 }
 
+const DEFAULT_BRIDGE_CONFIGS = {
+  cluj1: { port: 'COM4', gateway: 'raiffeisen', printerName: 'EPSON TM-T20' },
+  cluj2: { port: 'COM1', gateway: 'raiffeisen', printerName: 'EPSON TM-T20III' },
+  'sm-brasov': { port: 'COM3', gateway: 'raiffeisen', printerName: 'EPSON TM-T20' },
+  constanta1: { port: 'COM7', gateway: 'raiffeisen', printerName: 'XP-80' },
+};
+
+/**
+ * Check if any Socket.IO connection is actively registered in the bridge room
+ */
+function isBridgeSocketConnected(locKey) {
+  if (!_io || !_io.sockets || !_io.sockets.adapter || !_io.sockets.adapter.rooms) return false;
+  try {
+    const { getLocationAliases } = require('../utils/locations');
+    const aliases = getLocationAliases(locKey) || [];
+    const checkKeys = Array.from(new Set([locKey, ...aliases]));
+    for (const k of checkKeys) {
+      const room = _io.sockets.adapter.rooms.get(`pos-bridge-${k}`);
+      if (room && room.size > 0) {
+        return true;
+      }
+    }
+  } catch (_) {}
+  return false;
+}
+
 /**
  * Periodic healthcheck loop (runs every 15s)
- * Catches bridges that hung without clean socket disconnect
+ * Catches bridges whose socket disconnected
  */
 function runHealthCheck() {
   const now = Date.now();
-  const TIMEOUT_MS = 60000; // 60s without ping = offline
-
   let hasChanges = false;
+
   for (const [locKey, b] of bridges.entries()) {
-    if (b.status === 'online') {
-      const ageMs = now - (b.lastPing || 0);
-      if (ageMs > TIMEOUT_MS) {
-        b.status = 'offline';
-        b.disconnectTime = now;
+    const isSocketAlive = isBridgeSocketConnected(locKey);
+    if (isSocketAlive) {
+      if (b.status !== 'online') {
+        b.status = 'online';
+        b.lastPing = now;
         hasChanges = true;
-        recordEvent('TIMEOUT', locKey, `Lipsa semnal heartbeat timp de ${Math.round(ageMs / 1000)}s`);
-        console.warn(`[BridgeMonitor] POS Bridge TIMEOUT: ${locKey} (${b.displayName}) — ultimul ping acum ${Math.round(ageMs / 1000)}s`);
-        triggerDisconnectAlert(locKey, b);
       }
+    } else if (b.status === 'online') {
+      b.status = 'offline';
+      b.disconnectTime = now;
+      hasChanges = true;
+      recordEvent('DISCONNECT', locKey, `Conexiunea socket s-a întrerupt`);
+      console.warn(`[BridgeMonitor] POS Bridge DECONECTAT: ${locKey} (${b.displayName})`);
+      triggerDisconnectAlert(locKey, b);
     }
   }
 
@@ -344,27 +373,49 @@ function getStatusSummary() {
     recentEvents: eventLogs.slice(0, 30),
   };
 
-  // Known target locations
-  const targetLocations = ['cluj1', 'cluj2', 'sm-brasov', 'constanta1', 'constanta2'];
+  // Known target locations (active production kiosks)
+  const targetLocations = ['cluj1', 'cluj2', 'sm-brasov', 'constanta1'];
 
   targetLocations.forEach(locKey => {
-    const b = bridges.get(locKey);
-    const isOnline = b && b.status === 'online';
+    let b = bridges.get(locKey);
+    const isSocketAlive = isBridgeSocketConnected(locKey);
+    const defaults = DEFAULT_BRIDGE_CONFIGS[locKey] || {};
+
+    if (isSocketAlive) {
+      if (!b) {
+        b = {
+          locationId: locKey,
+          displayName: getLocationDisplayName(locKey),
+          status: 'online',
+          port: defaults.port || '?',
+          gateway: defaults.gateway || 'raiffeisen',
+          printerName: defaults.printerName || '',
+          lastPing: now,
+          connectedAt: now,
+        };
+        bridges.set(locKey, b);
+      } else {
+        b.status = 'online';
+        if (!b.lastPing) b.lastPing = now;
+      }
+    }
+
+    const isOnline = isSocketAlive || (b && b.status === 'online');
     if (isOnline) summary.totalOnline++;
     else summary.totalOffline++;
 
-    const lastPingAge = b?.lastPing ? Math.max(0, Math.round((now - b.lastPing) / 1000)) : null;
-    const offlineDurationMinutes = (b?.status === 'offline' && b.disconnectTime) ? Math.round((now - b.disconnectTime) / 60000) : null;
+    const lastPingAge = (b?.lastPing && !isOnline) ? Math.max(0, Math.round((now - b.lastPing) / 1000)) : null;
+    const offlineDurationMinutes = (!isOnline && b?.disconnectTime) ? Math.round((now - b.disconnectTime) / 60000) : null;
 
     summary.locations[locKey] = {
       locationId: locKey,
       displayName: getLocationDisplayName(locKey),
       status: isOnline ? 'online' : 'offline',
-      port: b?.port || 'N/A',
-      gateway: b?.gateway || 'raiffeisen',
-      printerName: b?.printerName || 'N/A',
+      port: b?.port || defaults.port || 'N/A',
+      gateway: b?.gateway || defaults.gateway || 'raiffeisen',
+      printerName: b?.printerName || defaults.printerName || 'N/A',
       lastPing: b?.lastPing || null,
-      lastPingSecondsAgo: lastPingAge,
+      lastPingSecondsAgo: isOnline ? 0 : lastPingAge,
       offlineDurationMinutes,
       connectedAt: b?.connectedAt || null,
       ip: b?.ip || '',
@@ -389,30 +440,28 @@ async function seedFromRecentScans() {
     const now = Date.now();
     rows.forEach(r => {
       const locKey = normalizeLocationKey(r.location_id);
-      if (!bridges.has(locKey)) {
-        const scanTime = new Date(r.created_at).getTime();
-        const isRecent = (now - scanTime) < 120000; // was seen in last 2 mins
+      const defaults = DEFAULT_BRIDGE_CONFIGS[locKey] || {};
+      const isSocketAlive = isBridgeSocketConnected(locKey);
 
-        bridges.set(locKey, {
-          locationId: locKey,
-          rawLocationId: r.location_id,
-          displayName: getLocationDisplayName(locKey),
-          port: r.pos_port || '?',
-          gateway: r.pos_gateway || 'raiffeisen',
-          printerName: r.printer_name || '',
-          status: isRecent ? 'online' : 'offline',
-          lastPing: scanTime,
-          connectedAt: scanTime,
-          disconnectTime: isRecent ? null : scanTime,
-          socketId: null,
-          ip: '',
-          uptimeSeconds: 0,
-        });
-      }
+      bridges.set(locKey, {
+        locationId: locKey,
+        rawLocationId: r.location_id,
+        displayName: getLocationDisplayName(locKey),
+        port: r.pos_port || defaults.port || '?',
+        gateway: r.pos_gateway || defaults.gateway || 'raiffeisen',
+        printerName: r.printer_name || defaults.printerName || '',
+        status: isSocketAlive ? 'online' : 'offline',
+        lastPing: now,
+        connectedAt: now,
+        disconnectTime: isSocketAlive ? null : now,
+        socketId: null,
+        ip: '',
+        uptimeSeconds: 0,
+      });
     });
-    console.log(`[BridgeMonitor] Initializat starea a ${bridges.size} bridge-uri din scanarile anterioare.`);
+    console.log(`[BridgeMonitor] Inițializat starea a ${bridges.size} bridge-uri din scanările anterioare.`);
   } catch (err) {
-    console.warn('[BridgeMonitor] Nu s-au putut pre-incarca port_scans:', err.message);
+    console.warn('[BridgeMonitor] Nu s-au putut pre-încărca port_scans:', err.message);
   }
 }
 

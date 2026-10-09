@@ -179,7 +179,7 @@ export default function BridgeMonitoring({ backend = '', socket = null }) {
     return `${mins}m`;
   };
 
-  const locationKeys = ['cluj1', 'cluj2', 'sm-brasov', 'constanta1', 'constanta2'];
+  const locationKeys = ['cluj1', 'cluj2', 'sm-brasov', 'constanta1'];
 
   if (loading) {
     return (
@@ -194,25 +194,29 @@ export default function BridgeMonitoring({ backend = '', socket = null }) {
 
   return (
     <div className="space-y-6 px-4 md:px-8 pb-12">
-      {/* Header Bar */}
+      {/* Control & Status Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-900/50 flex items-center justify-center shrink-0">
             <Server className="w-5 h-5 text-blue-600" />
-            <span>Monitorizare Hardware Kiosk & POS Bridge</span>
-          </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Urmărire în timp real a procesului start-windows.bat, porturilor seriale și alertare automată
-          </p>
+          </div>
+          <div>
+            <div className="text-sm font-bold text-slate-900 dark:text-white">
+              Stare Echipamente și Conexiuni Locale
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Urmărire proces start-windows.bat, porturi seriale POS și imprimante bonuri per locație
+            </p>
+          </div>
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
           <div className="flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300">
-            <Radio className="w-3.5 h-3.5 text-blue-600 animate-pulse" />
+            <Radio className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
             <span>Active: {data.totalOnline}</span>
             <span className="text-slate-400">|</span>
-            <span className={data.totalOffline > 0 ? 'text-rose-600 font-bold' : 'text-slate-400'}>
-              Oprite: {data.totalOffline}
+            <span className={data.totalOffline > 0 ? 'text-amber-600 font-bold' : 'text-slate-400'}>
+              Deconectate: {data.totalOffline}
             </span>
           </div>
 
@@ -220,7 +224,7 @@ export default function BridgeMonitoring({ backend = '', socket = null }) {
             type="button"
             onClick={handleRefresh}
             disabled={refreshing}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-50 cursor-pointer"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
             <span>Actualizează</span>
@@ -251,7 +255,7 @@ export default function BridgeMonitoring({ backend = '', socket = null }) {
               className={`p-4 rounded-xl border transition-all ${
                 isOnline
                   ? 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-xs'
-                  : 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-300 dark:border-rose-900 shadow-xs'
+                  : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-xs'
               }`}
             >
               {/* Card Header */}
@@ -268,10 +272,10 @@ export default function BridgeMonitoring({ backend = '', socket = null }) {
                 <div className={`px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 ${
                   isOnline
                     ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
-                    : 'bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-300'
+                    : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
                 }`}>
-                  <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-rose-500 animate-pulse'}`} />
-                  <span>{isOnline ? 'ONLINE' : 'OPRIT / OFFLINE'}</span>
+                  <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                  <span>{isOnline ? 'ONLINE' : 'DECONECTAT'}</span>
                 </div>
               </div>
 
@@ -282,7 +286,7 @@ export default function BridgeMonitoring({ backend = '', socket = null }) {
                     <Activity className="w-3.5 h-3.5 text-slate-400" />
                     <span>POS Bridge (start.bat):</span>
                   </span>
-                  <span className={`font-semibold ${isOnline ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400 font-bold'}`}>
+                  <span className={`font-semibold ${isOnline ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400 font-bold'}`}>
                     {isOnline ? 'Rulare activă' : 'Oprit / Deconectat'}
                   </span>
                 </div>
@@ -314,10 +318,11 @@ export default function BridgeMonitoring({ backend = '', socket = null }) {
                   </span>
                   <span className="font-medium text-slate-700 dark:text-slate-300">
                     {isOnline
-                      ? loc.lastPingSecondsAgo !== null ? `acum ${loc.lastPingSecondsAgo}s` : 'recent'
-                      : loc.offlineDurationMinutes !== null
-                        ? `inactiv de ${loc.offlineDurationMinutes}m`
-                        : 'fără conexiune recentă'
+                      ? (loc.lastPingSecondsAgo !== null ? `acum ${loc.lastPingSecondsAgo}s` : 'recent')
+                      : (loc.offlineDurationMinutes !== null
+                          ? `inactiv de ${loc.offlineDurationMinutes}m`
+                          : 'fără conexiune recentă'
+                        )
                     }
                   </span>
                 </div>
@@ -332,10 +337,15 @@ export default function BridgeMonitoring({ backend = '', socket = null }) {
                 )}
               </div>
 
-              {/* Warning box if offline */}
-              {!isOnline && (
-                <div className="mt-3 p-2.5 rounded-lg bg-rose-100/70 dark:bg-rose-900/40 border border-rose-200 dark:border-rose-800 text-[11px] text-rose-800 dark:text-rose-200 leading-tight">
-                  <span className="font-bold">Atenție:</span> Comenzile cu cardul sunt blocate la acest chioșc până când este repornit fișierul <code className="font-mono bg-rose-200/60 dark:bg-rose-950/80 px-1 py-0.5 rounded">start-windows.bat</code>.
+              {/* Status footer message */}
+              {isOnline ? (
+                <div className="mt-3 p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/40 text-[11px] text-emerald-800 dark:text-emerald-300 leading-tight flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>Procesul de plată POS și imprimanta sunt operaționale.</span>
+                </div>
+              ) : (
+                <div className="mt-3 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 text-[11px] text-amber-800 dark:text-amber-300 leading-tight">
+                  <span className="font-bold">Notă:</span> Bridge-ul nu este conectat pe socket. Dacă un client dorește să plătească cu cardul, verificați ca <code className="font-mono bg-amber-100 dark:bg-amber-900/60 px-1 py-0.5 rounded">start-windows.bat</code> să fie pornit pe PC.
                 </div>
               )}
             </div>
