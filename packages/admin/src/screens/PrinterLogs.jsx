@@ -15,6 +15,17 @@ const STATUS_CONFIG = {
   unknown: { label: 'Necunoscut', color: '#ffffff', bg: '#d97706', icon: '?' },
 };
 
+const getReceiptBrandLogo = (brand) => {
+  const b = String(brand || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (b.includes('smashme')) return { mono: '/brands/smashme-logo-mono.png', color: '/brands/smashme-logo.png' };
+  if (b.includes('rollmaster') || b.includes('sushimaster') || b.includes('ikura')) return { mono: '/brands/rollmaster-logo-mono.png', color: '/brands/rollmaster-logo.png' };
+  if (b.includes('crunch')) return { mono: null, color: '/brands/crunch-logo.png' };
+  if (b.includes('lovesushi')) return { mono: null, color: '/brands/lovesushi-logo.png' };
+  if (b.includes('welovesushi')) return { mono: null, color: '/brands/welovesushi-logo.png' };
+  if (b.includes('pokiwoki')) return { mono: null, color: '/brands/pokiwoki-logo.png' };
+  return { mono: null, color: `/brands/${b}-logo.png` };
+};
+
 export default function PrinterLogs() {
   const { fetchWithAuth } = useAuth();
   const confirm = useConfirm();
@@ -430,7 +441,7 @@ export default function PrinterLogs() {
                       isExpanded ? 'bg-blue-50/50 dark:bg-blue-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/30'
                     }`}
                   >
-                    <td className="px-4 py-3 text-center text-slate-400 text-xs font-mono">
+                    <td className="px-4 py-3 text-center text-slate-400 text-xs font-medium">
                       {(currentPage - 1) * itemsPerPage + idx + 1}
                     </td>
                     <td className="px-4 py-3 text-xs whitespace-nowrap">
@@ -469,10 +480,10 @@ export default function PrinterLogs() {
                         {sc.icon} {sc.label}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-xs font-mono text-slate-600 dark:text-slate-400">
+                    <td className="px-4 py-3 text-xs font-medium text-slate-700 dark:text-slate-300">
                       {log.printerName || '—'}
                     </td>
-                    <td className="px-4 py-3 text-xs font-mono">
+                    <td className="px-4 py-3 text-xs font-semibold">
                       <span className="px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-bold text-[11px]">
                         {getLogPort(log)}
                       </span>
@@ -506,7 +517,7 @@ export default function PrinterLogs() {
                               <div className="flex flex-col gap-3 text-left mt-2">
                                 <p className="text-slate-600 dark:text-slate-300">Eroare imprimantă:</p>
                                 <div className="bg-red-50 dark:bg-red-950/30 p-3 rounded-xl border border-red-100 dark:border-red-900/50">
-                                  <span className="font-mono text-sm text-red-600 dark:text-red-400 break-all select-all whitespace-pre-wrap">
+                                  <span className="text-xs text-red-600 dark:text-red-400 break-all select-all whitespace-pre-wrap">
                                     {log.error}
                                   </span>
                                 </div>
@@ -526,55 +537,123 @@ export default function PrinterLogs() {
                   </tr>
 
                   {/* Expanded row — receipt content */}
-                  {isExpanded && log.receiptContent && (
-                    <tr key={`${log._id}-expand`} className="bg-slate-50 dark:bg-slate-800/30">
-                      <td colSpan={13} className="px-6 py-4">
-                        <div className="max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-5 font-mono text-sm">
-                          {/* Receipt header */}
-                          <div className="text-center mb-3">
-                            {(log.receiptContent.brands || []).map((b, i) => (
-                              <div key={i} className="text-lg font-black uppercase text-slate-800 dark:text-slate-200">{b}</div>
-                            ))}
-                            <div className="text-base font-bold mt-1">Comanda #{log.receiptContent.orderNumber}</div>
-                            <div className="text-xs font-bold mt-1" style={{ color: log.receiptContent.paymentMethod === 'cash' ? '#f59e0b' : '#059669' }}>
-                              {log.receiptContent.paymentMethod === 'cash' ? 'NEACHITAT - ACHITAȚI LA CASĂ' : 'ACHITAT CARD POS'}
-                            </div>
-                            <div className="text-xs mt-1 text-slate-500 font-bold uppercase">
-                              {log.receiptContent.orderType === 'takeaway' ? 'LA PACHET' : 'LA MASĂ'}
-                            </div>
-                          </div>
+                  {isExpanded && log.receiptContent && (() => {
+                    const rawOrderNum = String(log.receiptContent.orderNumber || log.orderNumber || '');
+                    const kMatch = rawOrderNum.match(/^[a-zA-Z]+(\d+)-/);
+                    const kioskTag = kMatch && kMatch[1]
+                      ? `Kiosk ${kMatch[1]}`
+                      : (log.kioskId ? `Kiosk ${String(log.kioskId).replace(/[^0-9]/g, '') || '1'}` : null);
 
-                          <div className="border-t border-dashed border-slate-300 dark:border-slate-600 my-2" />
+                    const brandsList = (log.receiptContent.brands && log.receiptContent.brands.length > 0)
+                      ? log.receiptContent.brands
+                      : [log.brand || 'smashme'];
 
-                          {/* Items */}
-                          <div className="text-xs mb-1 font-bold text-slate-500">Produse:</div>
-                          <div className="border-t border-slate-200 dark:border-slate-700 my-1" />
-                          {(log.receiptContent.items || []).map((item, i) => (
-                            <div key={i} className="mb-1">
-                              <div className="flex justify-between">
-                                <span className="text-slate-700 dark:text-slate-300">{item.qty}x {item.name}</span>
-                                <span className="text-slate-600 dark:text-slate-400 font-bold">{formatThousands(Number(item.price))} RON</span>
+                    return (
+                      <tr key={`${log._id}-expand`} className="bg-slate-50 dark:bg-slate-800/30">
+                        <td colSpan={13} className="px-6 py-6">
+                          {/* Thermal Receipt Paper Slip */}
+                          <div className="w-full max-w-[320px] mx-auto bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg p-5 text-xs text-slate-800 dark:text-slate-200 font-sans transition-all">
+                            {/* Receipt header */}
+                            <div className="flex flex-col items-center text-center pb-3 border-b border-dashed border-slate-300 dark:border-slate-700">
+                              {brandsList.map((b, i) => {
+                                const logoInfo = getReceiptBrandLogo(b);
+                                const initialSrc = logoInfo.mono || logoInfo.color;
+                                return (
+                                  <div key={i} className="mb-2 flex flex-col items-center justify-center">
+                                    {initialSrc && (
+                                      <img
+                                        src={initialSrc}
+                                        alt={b}
+                                        className="h-11 max-w-[170px] object-contain dark:brightness-110 dark:invert transition-all"
+                                        onError={(e) => {
+                                          if (logoInfo.mono && e.target.src.includes('-mono.png')) {
+                                            e.target.src = logoInfo.color;
+                                          } else {
+                                            e.target.style.display = 'none';
+                                            if (e.target.nextSibling) e.target.nextSibling.style.display = 'block';
+                                          }
+                                        }}
+                                      />
+                                    )}
+                                    <div
+                                      className="text-base font-extrabold uppercase text-slate-900 dark:text-white tracking-wider"
+                                      style={{ display: initialSrc ? 'none' : 'block' }}
+                                    >
+                                      {b}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+
+                              {kioskTag && (
+                                <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-0.5">
+                                  {kioskTag}
+                                </div>
+                              )}
+
+                              <div className="text-base font-black text-slate-900 dark:text-white tracking-tight">
+                                Comanda #{rawOrderNum}
                               </div>
-                              {item.modifiers && item.modifiers.length > 0 && item.modifiers.map((m, j) => (
-                                <div key={j} className="text-slate-400 text-[11px] ml-4">+ {m}</div>
-                              ))}
+
+                              <div className="mt-1.5 flex flex-wrap items-center justify-center gap-1.5">
+                                <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                                  log.receiptContent.paymentMethod === 'cash'
+                                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                                    : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                                }`}>
+                                  {log.receiptContent.paymentMethod === 'cash' ? 'NEACHITAT – ACHITAȚI LA CASĂ' : 'ACHITAT CARD POS'}
+                                </span>
+
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 uppercase tracking-wider">
+                                  {log.receiptContent.orderType === 'takeaway' ? 'LA PACHET' : 'LA MASĂ'}
+                                </span>
+                              </div>
                             </div>
-                          ))}
-                          <div className="border-t border-slate-200 dark:border-slate-700 my-1" />
 
-                          {/* Total */}
-                          <div className="flex justify-end text-sm font-black text-slate-800 dark:text-slate-200 mt-1">
-                            TOTAL: {formatThousands(Number(log.receiptContent.total || 0))} RON
-                          </div>
+                            {/* Products Section */}
+                            <div className="py-2.5">
+                              <div className="text-[11px] font-bold uppercase text-slate-400 tracking-wider pb-1.5 border-b border-slate-200 dark:border-slate-700/60">
+                                Produse
+                              </div>
 
-                          {/* Date */}
-                          <div className="text-center text-[11px] text-slate-400 mt-3">
-                            {log.receiptContent.date}
+                              <div className="py-2 space-y-2 border-b border-dashed border-slate-300 dark:border-slate-700">
+                                {(log.receiptContent.items || []).map((item, i) => (
+                                  <div key={i} className="text-xs">
+                                    <div className="flex items-start justify-between gap-2">
+                                      <span className="font-semibold text-slate-800 dark:text-slate-200 leading-snug">
+                                        {item.qty}x {item.name}
+                                      </span>
+                                      <span className="font-bold text-slate-900 dark:text-white whitespace-nowrap">
+                                        {formatThousands(Number(item.price))} RON
+                                      </span>
+                                    </div>
+                                    {item.modifiers && item.modifiers.length > 0 && item.modifiers.map((m, j) => (
+                                      <div key={j} className="text-[11px] text-slate-500 dark:text-slate-400 pl-3 pt-0.5">
+                                        + {m}
+                                      </div>
+                                    ))}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Total Section */}
+                            <div className="flex items-center justify-between py-2 text-sm font-black text-slate-900 dark:text-white">
+                              <span>TOTAL:</span>
+                              <span className="text-base text-emerald-600 dark:text-emerald-400">
+                                {formatThousands(Number(log.receiptContent.total || 0))} RON
+                              </span>
+                            </div>
+
+                            {/* Date & Footer */}
+                            <div className="pt-2 text-center text-[11px] text-slate-400 border-t border-dashed border-slate-200 dark:border-slate-800">
+                              <div>{log.receiptContent.date}</div>
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
+                        </td>
+                      </tr>
+                    );
+                  })()}
                 </>
               );
             })}
