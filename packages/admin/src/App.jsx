@@ -962,56 +962,46 @@ export default function AdminApp() {
         {tab === 'dashboard' && (
           <div className="space-y-6 px-4 md:px-8 pb-10">
 
-            {/* Live Hardware & POS Bridge Status Strip */}
-            {/* Live Hardware & POS Bridge Status Strip */}
-            <div className="bg-white dark:bg-slate-800 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-xs flex items-center justify-between gap-3 flex-wrap">
+            {/* Live Kiosks Status Strip */}
+            <div className="bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-xs flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-2 shrink-0">
                 <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-700/60 text-slate-800 dark:text-slate-200 text-xs font-bold">
-                  <Server className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                  <span>Stare Kiosk & POS:</span>
+                  <MonitorSmartphone className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                  <span>Kiosk-uri Active:</span>
                 </div>
               </div>
 
               <div className="flex items-center gap-2.5 flex-wrap flex-1">
                 {[
-                  { id: 'cluj1', aliasKey: 'smashme-main', name: 'Cluj 1 (Centru)', port: 'COM4' },
-                  { id: 'cluj2', aliasKey: 'cluj2', name: 'Cluj 2', port: 'COM1' },
-                  { id: 'sm-brasov', aliasKey: 'sm-brasov', name: 'Brașov', port: 'COM3' },
-                  { id: 'constanta1', aliasKey: 'smashme-constanta', name: 'Constanța', port: 'COM7' },
+                  { id: 'cluj1', aliasKey: 'smashme-main', name: 'Cluj 1 (Centru)' },
+                  { id: 'cluj2', aliasKey: 'cluj2', name: 'Cluj 2' },
+                  { id: 'sm-brasov', aliasKey: 'sm-brasov', name: 'Brașov' },
+                  { id: 'constanta1', aliasKey: 'smashme-constanta', name: 'Constanța' },
                 ].map(loc => {
                   const liveData = kiosksLiveStatus[loc.id] || 
                                    kiosksLiveStatus[loc.aliasKey] || 
                                    (loc.id === 'constanta1' ? kiosksLiveStatus['smashme-constanta'] : null);
                   const isKioskLive = Boolean(liveData?.isLive || liveData?.online || (liveData?.onlineCount > 0));
 
-                  const bridgeLoc = bridgeSummary?.locations?.[loc.id];
-                  const isBridgeOnline = bridgeLoc ? bridgeLoc.status === 'online' : isKioskLive;
-                  const portUsed = bridgeLoc?.port || loc.port;
-
                   return (
-                    <button
+                    <div
                       key={loc.id}
-                      type="button"
-                      onClick={() => setTab('bridge-monitoring')}
-                      className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all cursor-pointer ${
-                        isKioskLive && isBridgeOnline
-                          ? 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-slate-300'
-                          : !isBridgeOnline
-                            ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-300 font-bold hover:bg-rose-100'
-                            : 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 font-medium'
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all ${
+                        isKioskLive
+                          ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60 text-emerald-900 dark:text-emerald-200'
+                          : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400'
                       }`}
-                      title={`Click pentru panoul de monitorizare hardware: ${loc.name}`}
                     >
-                      <span className={`w-2 h-2 rounded-full ${isKioskLive ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`} />
-                      <span className="font-bold">{loc.name}:</span>
-                      <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                        {isKioskLive ? (liveData?.screen || 'activ') : 'ecran offline'}
+                      <span className={`w-2 h-2 rounded-full ${isKioskLive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300 dark:bg-slate-600'}`} />
+                      <span className="font-bold">{loc.name}</span>
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                        isKioskLive 
+                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300' 
+                          : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                      }`}>
+                        {isKioskLive ? 'Online' : 'Offline'}
                       </span>
-                      <span className="text-slate-300 dark:text-slate-600">|</span>
-                      <span className={`font-mono text-[11px] font-semibold ${isBridgeOnline ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400 font-bold'}`}>
-                        {isBridgeOnline ? `POS ${portUsed}` : 'POS Oprit'}
-                      </span>
-                    </button>
+                    </div>
                   );
                 })}
               </div>
@@ -1021,7 +1011,7 @@ export default function AdminApp() {
                 onClick={() => setTab('bridge-monitoring')}
                 className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 shrink-0"
               >
-                <span>Detalii & Alerte Telegram</span>
+                <span>Monitorizare Hardware POS</span>
                 <ExternalLink className="w-3 h-3" />
               </button>
             </div>
