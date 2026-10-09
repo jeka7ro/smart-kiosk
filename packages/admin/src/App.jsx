@@ -15,6 +15,7 @@ import KioskLogs      from './screens/KioskLogs';
 import IikoLogs       from './screens/IikoLogs';
 import PrinterLogs    from './screens/PrinterLogs';
 import PortScans      from './screens/PortScans';
+import BridgeMonitoring from './screens/BridgeMonitoring';
 import BrandLogo from './components/BrandLogo.jsx';
 import BankLogo from './components/BankLogo.jsx';
 import DashboardCharts3D, { detectCardBrand, detectCardBank, BANK_CONFIG } from './components/DashboardCharts3D.jsx';
@@ -25,7 +26,7 @@ import FortuneWheelPreview from './components/FortuneWheelPreview';
 import MenuManager, { MenuProfileEditorModal } from './screens/MenuManager';
 import QrGenerator from './screens/QrGenerator';
 import { useConfirm } from './components/ConfirmModal';
-import { LayoutDashboard, Receipt, TrendingUp, MapPin, MonitorSmartphone, QrCode, Utensils, Languages, Image as ImageIcon, Tags, Users, Blocks, Gift, Store, Sun, Moon, LogOut, Menu, X, CreditCard, Download, Printer, Building2, Palette, Sparkles, Flame, Snowflake, Layers, Upload, Star, ChevronUp, ChevronDown, Check, Zap, Wifi, Sliders, Info, Trash2, AlertTriangle, Globe, Phone, Lock, Clock, ShieldCheck, ShieldAlert, Unlock, Eye, EyeOff, Activity, RotateCcw, Calendar, Copy } from 'lucide-react';
+import { LayoutDashboard, Receipt, TrendingUp, MapPin, MonitorSmartphone, QrCode, Utensils, Languages, Image as ImageIcon, Tags, Users, Blocks, Gift, Store, Sun, Moon, LogOut, Menu, X, CreditCard, Download, Printer, Building2, Palette, Sparkles, Flame, Snowflake, Layers, Upload, Star, ChevronUp, ChevronDown, Check, Zap, Wifi, Sliders, Info, Trash2, AlertTriangle, Globe, Phone, Lock, Clock, ShieldCheck, ShieldAlert, Unlock, Eye, EyeOff, Activity, RotateCcw, Calendar, Copy, Server, ExternalLink } from 'lucide-react';
 import { formatThousands } from './utils/formatters';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
@@ -83,7 +84,7 @@ export default function AdminApp() {
   
   const [tab, setTabState] = useState(() => {
     const hash = window.location.hash.replace('#', '');
-    const validTabs = ['dashboard', 'orders', 'pending-orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'modifiers', 'products', 'users', 'integrations', 'promotions', 'brands', 'translations', 'pos-logs', 'printer-logs', 'port-scans', 'iiko-logs', 'kiosk-logs'];
+    const validTabs = ['dashboard', 'orders', 'pending-orders', 'locations', 'kiosks', 'bridge-monitoring', 'qrcodes', 'menu', 'modifiers', 'products', 'users', 'integrations', 'promotions', 'brands', 'translations', 'pos-logs', 'printer-logs', 'port-scans', 'iiko-logs', 'kiosk-logs'];
     return validTabs.includes(hash) ? hash : 'orders';
   });
 
@@ -95,7 +96,7 @@ export default function AdminApp() {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '');
-      const validTabs = ['dashboard', 'orders', 'pending-orders', 'locations', 'kiosks', 'qrcodes', 'menu', 'modifiers', 'products', 'users', 'integrations', 'promotions', 'brands', 'translations', 'pos-logs', 'printer-logs', 'port-scans', 'iiko-logs', 'kiosk-logs'];
+      const validTabs = ['dashboard', 'orders', 'pending-orders', 'locations', 'kiosks', 'bridge-monitoring', 'qrcodes', 'menu', 'modifiers', 'products', 'users', 'integrations', 'promotions', 'brands', 'translations', 'pos-logs', 'printer-logs', 'port-scans', 'iiko-logs', 'kiosk-logs'];
       if (validTabs.includes(hash)) setTabState(hash);
     };
     window.addEventListener('hashchange', handleHashChange);
@@ -285,6 +286,7 @@ export default function AdminApp() {
   });
   const socketRef = useRef(null);
   const [kiosksLiveStatus, setKiosksLiveStatus] = useState({});
+  const [bridgeSummary, setBridgeSummary] = useState(null);
   useKeepAlive(); // prevent Render backend from sleeping
 
   const liveKiosksCount = useMemo(() => {
@@ -402,6 +404,10 @@ export default function AdminApp() {
       setKiosksLiveStatus(statusMap || {});
     });
 
+    socket.on('bridge_status_update', (summary) => {
+      if (summary) setBridgeSummary(summary);
+    });
+
     // Initial live status fetch + 15s poll fallback
     const fetchLiveKiosks = () => {
       fetchWithAuth(`${BACKEND}/api/locations/live-status`)
@@ -411,6 +417,18 @@ export default function AdminApp() {
     };
     fetchLiveKiosks();
     const livePoll = setInterval(fetchLiveKiosks, 15000);
+
+    // Initial bridge monitoring fetch + 15s poll
+    const fetchBridgeStatus = () => {
+      fetch(`${BACKEND}/api/bridge-monitoring/status`, {
+        headers: { 'x-api-key': 'sk-live-2024-secure' }
+      })
+        .then(r => r.json())
+        .then(d => { if (d && d.locations) setBridgeSummary(d); })
+        .catch(() => {});
+    };
+    fetchBridgeStatus();
+    const bridgePoll = setInterval(fetchBridgeStatus, 15000);
 
     // Also connect to localhost:4000 if running locally to catch local kiosk orders
     let localSocket = null;
@@ -833,6 +851,12 @@ export default function AdminApp() {
               { id: 'pending-orders', label: 'Comenzi În Așteptare', icon: <Clock className="w-5 h-5" /> },
               { id: 'locations', label: 'Locații', icon: <MapPin className="w-5 h-5" /> },
               { id: 'kiosks',    label: 'Kioskuri', icon: <MonitorSmartphone className="w-5 h-5" /> },
+              { 
+                id: 'bridge-monitoring', 
+                label: 'Monitorizare POS', 
+                icon: <Server className="w-5 h-5" />,
+                badge: bridgeSummary && bridgeSummary.totalOffline > 0 ? `${bridgeSummary.totalOffline} oprit` : null,
+              },
               { id: 'qrcodes',   label: 'QR Coduri', icon: <QrCode className="w-5 h-5" /> },
               { id: 'menu',      label: 'Meniu / Syrve', icon: <Utensils className="w-5 h-5" /> },
               { id: 'translations', label: 'Traduceri Automate', icon: <Languages className="w-5 h-5" /> },
@@ -854,7 +878,12 @@ export default function AdminApp() {
                 onClick={() => { setTab(item.id); setIsSidebarOpen(false); }}
               >
                 <span className={tab === item.id ? 'opacity-100' : 'opacity-75'}>{item.icon}</span>
-                <span>{item.label}</span>
+                <span className="flex-1 text-left">{item.label}</span>
+                {item.badge && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
+                    {item.badge}
+                  </span>
+                )}
               </button>
             ))}
           </nav>
@@ -904,6 +933,7 @@ export default function AdminApp() {
               {tab === 'pending-orders' && 'Comenzi În Așteptare'}
               {tab === 'locations' && 'Gestionare Locații'}
               {tab === 'kiosks' && 'Kiosk-uri & Screensavere'}
+              {tab === 'bridge-monitoring' && 'Monitorizare Hardware Kiosk & POS Bridge'}
               {tab === 'qrcodes' && 'Coduri QR & Portal Mobil'}
               {tab === 'menu' && 'Sincronizare Syrve & Profile'}
               {tab === 'translations' && 'Traduceri Automate Meniu'}
@@ -931,6 +961,70 @@ export default function AdminApp() {
         {/* ─── DASHBOARD ─── */}
         {tab === 'dashboard' && (
           <div className="space-y-6 px-4 md:px-8 pb-10">
+
+            {/* Live Hardware & POS Bridge Status Strip */}
+            {/* Live Hardware & POS Bridge Status Strip */}
+            <div className="bg-white dark:bg-slate-800 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-xs flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-700/60 text-slate-800 dark:text-slate-200 text-xs font-bold">
+                  <Server className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                  <span>Stare Kiosk & POS:</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 flex-wrap flex-1">
+                {[
+                  { id: 'cluj1', aliasKey: 'smashme-main', name: 'Cluj 1 (Centru)', port: 'COM4' },
+                  { id: 'cluj2', aliasKey: 'cluj2', name: 'Cluj 2', port: 'COM1' },
+                  { id: 'sm-brasov', aliasKey: 'sm-brasov', name: 'Brașov', port: 'COM3' },
+                  { id: 'constanta1', aliasKey: 'smashme-constanta', name: 'Constanța', port: 'COM7' },
+                ].map(loc => {
+                  const liveData = kiosksLiveStatus[loc.id] || 
+                                   kiosksLiveStatus[loc.aliasKey] || 
+                                   (loc.id === 'constanta1' ? kiosksLiveStatus['smashme-constanta'] : null);
+                  const isKioskLive = Boolean(liveData?.isLive || liveData?.online || (liveData?.onlineCount > 0));
+
+                  const bridgeLoc = bridgeSummary?.locations?.[loc.id];
+                  const isBridgeOnline = bridgeLoc ? bridgeLoc.status === 'online' : isKioskLive;
+                  const portUsed = bridgeLoc?.port || loc.port;
+
+                  return (
+                    <button
+                      key={loc.id}
+                      type="button"
+                      onClick={() => setTab('bridge-monitoring')}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all cursor-pointer ${
+                        isKioskLive && isBridgeOnline
+                          ? 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-slate-300'
+                          : !isBridgeOnline
+                            ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-300 font-bold hover:bg-rose-100'
+                            : 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 font-medium'
+                      }`}
+                      title={`Click pentru panoul de monitorizare hardware: ${loc.name}`}
+                    >
+                      <span className={`w-2 h-2 rounded-full ${isKioskLive ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`} />
+                      <span className="font-bold">{loc.name}:</span>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                        {isKioskLive ? (liveData?.screen || 'activ') : 'ecran offline'}
+                      </span>
+                      <span className="text-slate-300 dark:text-slate-600">|</span>
+                      <span className={`font-mono text-[11px] font-semibold ${isBridgeOnline ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400 font-bold'}`}>
+                        {isBridgeOnline ? `POS ${portUsed}` : 'POS Oprit'}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setTab('bridge-monitoring')}
+                className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 shrink-0"
+              >
+                <span>Detalii & Alerte Telegram</span>
+                <ExternalLink className="w-3 h-3" />
+              </button>
+            </div>
 
             {/* Stat Cards Grid - Responsive Grid with comfortable spacing */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-7 gap-3">
@@ -1374,6 +1468,7 @@ export default function AdminApp() {
           {tab === 'iiko-logs' && <IikoLogs />}
           {tab === 'printer-logs' && <PrinterLogs />}
           {tab === 'port-scans' && <PortScans />}
+          {tab === 'bridge-monitoring' && <BridgeMonitoring backend={BACKEND} socket={socketRef.current} />}
           {tab === 'kiosk-logs' && <KioskLogs />}
           {tab === 'promotions' && <Promotions />}
           {tab === 'users' && <UsersManager />}

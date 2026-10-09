@@ -18,32 +18,32 @@ router.get('/', requireApiKey, async (req, res) => {
   const includeHidden = req.query.includeHidden === 'true' || req.query.includeHidden === '1';
   let orgId = req.query.orgId;
   
-  // Resolve orgId from location if missing or string undefined
-  if (!orgId || orgId === 'undefined' || orgId === 'null') {
-    if (locId) {
-      try {
-        const { findLocation, getAllLocations } = require('../utils/locations');
-        const loc = findLocation(locId);
-        if (loc?.orgIds?.[brandId]) {
-          orgId = loc.orgIds[brandId];
-        } else {
-          const all = getAllLocations();
-          const cleanLoc = locId.toLowerCase().replace(/[^a-z0-9]/g, '');
-          const alt = all.find(l => (l.orgIds?.[brandId]) && (
-            (l.kioskUrl && l.kioskUrl.toLowerCase().includes(cleanLoc)) ||
-            (l.id && l.id.toLowerCase().includes(cleanLoc)) ||
-            (l.name && l.name.toLowerCase().includes(cleanLoc)) ||
-            (cleanLoc.includes('constanta') && (l.id?.includes('8308e796') || l.name?.toLowerCase().includes('constanta')))
-          ));
-          if (alt?.orgIds?.[brandId]) {
-            orgId = alt.orgIds[brandId];
-          }
+  // Always resolve location-specific orgId first if locId is provided
+  if (locId) {
+    try {
+      const { findLocation, getAllLocations } = require('../utils/locations');
+      const loc = findLocation(locId);
+      if (loc?.orgIds?.[brandId]) {
+        orgId = loc.orgIds[brandId];
+      } else {
+        const all = getAllLocations();
+        const cleanLoc = locId.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const alt = all.find(l => (l.orgIds?.[brandId]) && (
+          (l.kioskUrl && l.kioskUrl.toLowerCase().includes(cleanLoc)) ||
+          (l.id && l.id.toLowerCase().includes(cleanLoc)) ||
+          (l.name && l.name.toLowerCase().includes(cleanLoc)) ||
+          (cleanLoc.includes('constanta') && (l.id?.includes('8308e796') || l.name?.toLowerCase().includes('constanta')))
+        ));
+        if (alt?.orgIds?.[brandId]) {
+          orgId = alt.orgIds[brandId];
         }
-      } catch (_) {}
-    }
-    if (!orgId || orgId === 'undefined' || orgId === 'null') {
-      orgId = getOrgIdForBrand(brandId) || DEFAULT_ORG;
-    }
+      }
+    } catch (_) {}
+  }
+
+  // Resolve orgId fallback if still missing
+  if (!orgId || orgId === 'undefined' || orgId === 'null') {
+    orgId = getOrgIdForBrand(brandId) || DEFAULT_ORG;
   }
 
   // Look up cached menu specifically for this (orgId, brandId) pair

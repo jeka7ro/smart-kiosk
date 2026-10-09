@@ -666,6 +666,76 @@ const SYRVE_PAYMENT_TYPES_BY_BRAND = {
   },
 };
 
+/**
+ * Auto-translation map for Constanța:
+ * When orders are placed at Constanța (8308e796-8780-4d18-ae66-4e430178c778),
+ * maps any legacy/Cluj nomenclature item to the active Constanța (Valentin) nomenclature ID.
+ */
+const CONSTANTA_PRODUCT_ID_FIXES = {
+  // SPECIAL COMBO: Cluj ID -> Valentin Constanta Active ID (Code 10610)
+  'd9c0bf50-c376-444a-b9b3-35888534730c': 'e0c90062-cb86-48db-b622-3a9c6942363e',
+  // Smashed ME Meniu
+  'cc0c19b3-2452-46bb-8f6e-9f66517f54c1': '0fc1a318-bc48-425a-b254-b1115448f393',
+  // Classic Cheesburger Meniu
+  '7df4f353-6602-4106-9181-3c5e70d16f04': 'cbb201e8-9c52-4355-8ba8-dc645e57b0a4',
+  // Chicken Nuggets Menu 6 buc
+  'c8de66d8-b56a-4e8e-b865-8673a44a6430': '1f4ed94e-9124-4584-b625-bbf313b39761',
+  // Chicken Nuggets Menu 4 buc
+  'bc820104-16e7-4101-adab-423d0a424919': 'f11285c5-6176-4738-9412-0c83b670b9e7',
+  // Chicken Burger Menu
+  'b34946ed-62dc-4980-a024-9d38384aa6e4': 'be16b288-cdfd-488a-a946-837bf09a0883',
+  // Big Boss Menu
+  'e488b98e-ca7c-4a9e-bc8e-45b04c25cf84': '1be2329a-3ef0-41eb-872a-e67c6426b045',
+  // Oklahoma Crunch Meniu
+  '59c22b8b-0539-47d3-9db2-13ef37c8b16f': 'b3149770-e803-4087-85d0-ad104c1d45de',
+  // Farmer Legend Meniu
+  '532fd605-f492-4ba0-ad8b-e51b1522c165': 'a86cd82f-1121-49b8-9083-81b196e49adb',
+  // Smoky Pepper Meniu
+  '7fd01849-0bcb-4446-b241-5f61ffa9228b': '490a8d8c-b04b-445e-9cb1-8139cb63b5f7',
+  // Spicy Jalapeno Meniu
+  '493422bb-0a0d-413d-b0be-8ed014d7bdab': 'd08df61c-9d0f-4e98-bbc3-43921120263e',
+  // Hotti Burger Meniu
+  'fa42bef7-654f-4820-a4dc-c5c36af4f430': '8f03834b-b269-40c0-8909-8bea662f3ba3',
+  // Classic Smash Dublu Menu
+  'fc4fba39-184d-4b3d-a867-692e044fbb56': 'b58610f5-3e30-4f8b-8d0b-2a8dd5feee36',
+  // Sos de Iaurt cu Usturoi 50g
+  '80c02b27-949c-4f19-bcd9-ddc631868b25': 'c9e21a4d-fa6c-4bf7-bd2a-f1c8cccb19e3',
+  // Sos Garlic Mayo 50g
+  '44cadfe2-4dae-4447-b6d3-9f05d9b0e1dc': 'b09ef7c2-4e7d-4dde-a936-3b8f6d6b1226',
+  // Mustar 50g
+  '5b4418e7-669b-4232-9837-3f684890e5ec': 'aa282658-66dd-4a20-b07d-04e7313fb7d6',
+  // Maioneza 50g
+  '1f6d3f5f-f20b-4855-a8a3-86e5d3f5ebb2': 'fbd2c0ba-df08-411f-ab56-8a27852b67d2',
+  // Sos Classic 50g
+  '923bc8ba-5771-4b19-b74c-ec9f2f3ab3ff': 'e19abf0e-cc5d-4727-8ebf-5d2fa1149ed5',
+  // Sos Aioli cu Lamaie 50g
+  'e68da8a9-8a62-49fa-9dd9-5907979158ab': '78dc147c-8ae0-471d-a60d-f51f825bac14',
+  // Sos Delight 50g
+  '6f2f7d2c-2f0a-4786-88cf-6d8131fc23e4': '02a2fe40-19e9-4d29-9eaf-1a1b676d4172',
+  // Ketchup 50g
+  '23a52cb5-ce1e-4cc7-8670-718aaa16df04': 'dbb2ef28-4ff7-4fea-8ced-5d42b9b8e9b2',
+  // Sos Dip-in Cheesy 50g
+  '041eb5e9-25b8-4b3f-92b1-222f26d803ef': '779fb5a0-f2e6-4656-8405-8be10196eeb3',
+  // Sos Fresh Mayo 50g
+  'd6617584-ced5-4375-8840-98c447eae786': '37ccdc6d-29c4-4111-a501-f02f70250023',
+  // Sos Smoked Chili Mayo 50g
+  '031c9436-139b-497d-a903-4aa0a4f02f84': '1e76f178-851a-4b04-9590-c545c4af8c5c',
+  // Sos Big Tasty 50g
+  'ea748464-9ab3-45c5-a666-6cb2381e193e': 'f2838c92-f3be-467c-a56b-0bfd10707b0f',
+  // Sweet chilli 50g
+  'd2e16b25-cab0-4005-8298-ba62e2766433': 'e6460ad5-4aed-4044-8c17-bee0f761f3af',
+  // Fanta 0,33 Doza
+  'e3dd701d-5f32-4923-af21-d125c8885038': '97955089-ed8e-45d4-90af-c3e041c0ef1f',
+  // Coca Cola 0,33 Doza
+  'c7b9d43b-67c3-4e12-bec2-24d98e5df6b5': '0e602006-18d8-4688-a9aa-e1ad2e8b7eb5',
+  // Coca Cola Zero 0,33 Doza
+  '3ac15f0b-e48f-46e6-9a0c-b202b5595881': '65154bc0-7127-4d01-8a7d-8b5beb7ef526',
+  // Sprite 0,33 Doza
+  '2aba3ca3-312f-4de6-b304-58b734cb11f1': 'f04b67b0-0393-4f6b-a806-b91a28311fc6',
+  // Cartofi Prajiti Clasic 150 gr
+  'be24922d-dd2c-4fb2-953f-9912ae250bc6': 'ee47e8c3-5d6f-4a3c-b5bb-f6ac87c648f2',
+};
+
 function getPaymentConfigForBrand(brandId, paymentMethod) {
   const pMethod = (paymentMethod || 'card').toLowerCase();
   const brandTable = SYRVE_PAYMENT_TYPES_BY_BRAND[brandId] || SYRVE_PAYMENT_TYPES_BY_BRAND.smashme;
@@ -765,6 +835,10 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
     const paymentConfig = getPaymentConfigForBrand(brandId, pMethod);
 
     // Build items in correct Syrve format
+    const isConstanta = resolvedOrgId === '8308e796-8780-4d18-ae66-4e430178c778' ||
+                        String(order.locationId || '').includes('constanta') ||
+                        String(order.orderNumber || '').includes('CT');
+
     const syrveItems = order.items.map(item => {
       const itemComment = item.comment || 
         item.selectedModifiers?.find(m => m.modId === 'custom_comment' || m.id === 'custom_comment')?.optionName || 
@@ -784,8 +858,12 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
             const modPrice = Number(mod.price) || 0;
             const modAmount = Number(mod.amount) || 1;
             modifiersCostPerUnit += (modPrice * modAmount);
+            let modProdId = mod.productId || mod.id || mod.optionId;
+            if (isConstanta && CONSTANTA_PRODUCT_ID_FIXES[modProdId]) {
+              modProdId = CONSTANTA_PRODUCT_ID_FIXES[modProdId];
+            }
             return {
-              productId: mod.productId || mod.id || mod.optionId,
+              productId: modProdId,
               amount: modAmount,
               productGroupId: mod.groupId || mod.productGroupId || mod.modifierGroupId || mod.modId || null,
               price: modPrice,
@@ -808,8 +886,14 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
         productPrice = Math.max(0, Math.round((rawUnitPrice - modifiersCostPerUnit) * 100) / 100);
       }
 
+      let itemProdId = item.productId;
+      if (isConstanta && CONSTANTA_PRODUCT_ID_FIXES[itemProdId]) {
+        console.log(`[Syrve-Constanta] Auto-mapped product "${item.name || ''}" (${itemProdId} -> ${CONSTANTA_PRODUCT_ID_FIXES[itemProdId]})`);
+        itemProdId = CONSTANTA_PRODUCT_ID_FIXES[itemProdId];
+      }
+
       const syrveItem = {
-        productId: item.productId,
+        productId: itemProdId,
         amount: item.quantity || 1,
         price: productPrice,
         type: 'Product',
@@ -1075,4 +1159,5 @@ module.exports = {
   clearMenuCache,
   syrveGet,
   syrvePost,
+  CONSTANTA_PRODUCT_ID_FIXES,
 };

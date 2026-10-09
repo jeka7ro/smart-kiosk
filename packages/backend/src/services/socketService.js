@@ -315,18 +315,35 @@ function initSocket(io) {
       }
     });
 
-    // Salvăm locationId pe socket la register
-    socket.on('pos_bridge_register', (origHandler => ({ locationId, port }) => {
+    // Salvăm locationId pe socket la register și notificăm bridgeMonitoringService
+    socket.on('pos_bridge_register', (origHandler => ({ locationId, port, posGateway, printerName }) => {
       socket._posLocationId = locationId;
-      origHandler({ locationId, port });
-    })(({ locationId, port }) => {
+      origHandler({ locationId, port, posGateway, printerName });
+    })(({ locationId, port, posGateway, printerName }) => {
       const { getLocationAliases } = require('../utils/locations');
       const aliases = getLocationAliases(locationId);
       for (const a of aliases) {
         socket.join(`pos-bridge-${a}`);
       }
       console.log(`[Socket] 🔌 POS Bridge registered: location=${locationId} (${aliases.length} aliases) port=${port || '?'} sid=${socket.id}`);
+
+      try {
+        const bridgeMonitoringService = require('./bridgeMonitoringService');
+        bridgeMonitoringService.handleBridgeConnect(socket, { locationId, port, posGateway, printerName });
+      } catch (e) {
+        console.error('[BridgeMonitor] Register error:', e.message);
+      }
     }));
+
+    // POS Bridge heartbeat ping
+    socket.on('pos_bridge_heartbeat', (data) => {
+      try {
+        const bridgeMonitoringService = require('./bridgeMonitoringService');
+        bridgeMonitoringService.handleBridgeHeartbeat(socket, data);
+      } catch (e) {
+        console.error('[BridgeMonitor] Heartbeat error:', e.message);
+      }
+    });
 
     // ─── Printer Logs (from bridge) ────────────────────────────────────────────
     socket.on('printer_log', async (entry) => {
@@ -345,6 +362,15 @@ function initSocket(io) {
         const { addPortScan } = require('../routes/portScans');
         const scanEntry = await addPortScan(entry);
         io.to('admin').emit('port_scan_new', scanEntry);
+        
+        // Asigurăm că port scan actualizează și starea bridge monitor
+        const bridgeMonitoringService = require('./bridgeMonitoringService');
+        bridgeMonitoringService.handleBridgeHeartbeat(socket, {
+          locationId: entry.locationId,
+          port: entry.posPort || entry.pos_port,
+          posGateway: entry.posGateway || entry.pos_gateway,
+          printerName: entry.printerName || entry.printer_name,
+        });
       } catch (e) {
         console.error('[Port Scan] Error saving scan:', e.message);
       }
@@ -357,6 +383,13 @@ function initSocket(io) {
     });
 
     socket.on('disconnect', () => {
+      try {
+        const bridgeMonitoringService = require('./bridgeMonitoringService');
+        bridgeMonitoringService.handleBridgeDisconnect(socket.id);
+      } catch (e) {
+        console.error('[BridgeMonitor] Disconnect error:', e.message);
+      }
+
       if (connectedKiosks.has(socket.id)) {
         const k = connectedKiosks.get(socket.id);
         connectedKiosks.delete(socket.id);

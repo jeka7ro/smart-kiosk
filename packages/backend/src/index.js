@@ -95,6 +95,7 @@ app.use('/api/printer-logs', printerLogsRoutes);
 app.use('/api/port-scans',   portScansRoutes);
 app.use('/api/iiko-logs',    require('./routes/iikoLogs.js'));
 app.use('/api/kiosk-logs',   require('./routes/kioskLogs.js'));
+app.use('/api/bridge-monitoring', require('./routes/bridgeMonitoring.js'));
 app.use('/api/anaf',         anafRoutes);
 
 // Serve uploaded brand logos
@@ -165,6 +166,16 @@ async function start() {
     console.log('[REDIS] Connected');
   } catch (err) {
     console.warn('[REDIS] Not available — running without Redis:', err.message);
+  }
+
+  // Bridge Monitoring Service initialization
+  try {
+    const bridgeMonitoringService = require('./services/bridgeMonitoringService');
+    bridgeMonitoringService.setIo(io);
+    await bridgeMonitoringService.loadTelegramConfig();
+    await bridgeMonitoringService.seedFromRecentScans();
+  } catch (err) {
+    console.warn('[BridgeMonitor] Init warning:', err.message);
   }
 
   const PORT = process.env.PORT || 4000;

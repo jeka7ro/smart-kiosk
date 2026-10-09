@@ -661,12 +661,39 @@ router.post('/:id/retry', async (req, res) => {
     console.log(`[Syrve-Retry] Retrying order #${order.orderNumber || order._id}...`);
 
     // Determine orgId from order data or location
-    const loc = findLocation(locationId);
-    const orgId = order.orgId || loc?.orgId;
+    const loc = findLocation(locationId || order.locationId);
     const brandId = order.brand || order.brandId || 'smashme';
+    let orgId = loc?.orgIds?.[brandId] || order.orgId || loc?.orgId;
+    if (!orgId && (String(locationId).includes('constanta') || String(order.orderNumber).includes('CT'))) {
+      orgId = '8308e796-8780-4d18-ae66-4e430178c778';
+    }
 
     if (!orgId) {
       return res.status(400).json({ error: 'Cannot determine orgId for this order' });
+    }
+
+    // Auto-fix items in order if Constanța (replace legacy Cluj nomenclature IDs with Valentin IDs)
+    const isConstanta = orgId === '8308e796-8780-4d18-ae66-4e430178c778' ||
+                        String(locationId).includes('constanta') ||
+                        String(order.orderNumber).includes('CT');
+
+    if (isConstanta && Array.isArray(order.items)) {
+      const { CONSTANTA_PRODUCT_ID_FIXES } = require('../services/iikoService');
+      let changed = false;
+      order.items = order.items.map(it => {
+        if (CONSTANTA_PRODUCT_ID_FIXES && CONSTANTA_PRODUCT_ID_FIXES[it.productId]) {
+          changed = true;
+          return { ...it, productId: CONSTANTA_PRODUCT_ID_FIXES[it.productId] };
+        }
+        return it;
+      });
+      if (changed) {
+        order.orgId = orgId;
+        await pool.query(
+          `UPDATE orders SET data = $1 WHERE data->>'_id' = $2 OR data->>'orderNumber' = $2 OR id::text = $2`,
+          [JSON.stringify(order), req.params.id]
+        ).catch(() => {});
+      }
     }
 
     const syrveResult = await syrveCreateOrder({

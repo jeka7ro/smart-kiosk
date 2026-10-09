@@ -175,8 +175,11 @@ export default function MenuScreen() {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    // Prefer location's orgId, fallback to hardcoded map
-    const orgId = locationOrgIds[activeBrandId] || BRAND_ORG_MAP[activeBrandId];
+    // Prefer location's orgId, fallback to locationData or hardcoded map
+    const locIdParam = (new URLSearchParams(window.location.search).get('loc') || localStorage.getItem('kiosk_loc_id') || '').toLowerCase();
+    const isConstanta = locIdParam.includes('constanta') || locIdParam.includes('ct');
+    const defaultOrg = isConstanta ? '8308e796-8780-4d18-ae66-4e430178c778' : BRAND_ORG_MAP[activeBrandId];
+    const orgId = locationOrgIds[activeBrandId] || locationData?.orgIds?.[activeBrandId] || defaultOrg;
 
     const pickDefault = (cats, prods) => {
       // For SmashMe: prefer a category named 'New', 'Noi', 'Nou', 'Noutăți' etc.

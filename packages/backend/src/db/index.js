@@ -270,6 +270,15 @@ async function initDb() {
     CREATE INDEX IF NOT EXISTS pending_pos_orders_created_idx ON pending_pos_orders(created_at DESC);
   `);
 
+  // ─── App Settings (persistent system configuration like Telegram alerts) ──
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key         TEXT PRIMARY KEY,
+      value       JSONB NOT NULL DEFAULT '{}',
+      updated_at  TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+
   console.log('[DB] Tables initialized (Supabase/PostgreSQL)');
 }
 

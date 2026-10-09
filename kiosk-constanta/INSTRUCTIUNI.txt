@@ -1,0 +1,46 @@
+=====================================================================
+          GHID INSTALARE RAPIDA - SMART KIOSK CONSTANTA
+=====================================================================
+
+Hardware Configurat:
+ - POS Bancar Raiffeisen: Port COM7 (9600 baud)
+ - Imprimanta Termica: XP-80 (sau POS-80)
+ - Locatie Kiosk: Constanta 1 (constanta1)
+ - Server Cloud: https://smart-kiosk-ttut.onrender.com
+
+---------------------------------------------------------------------
+PASUL 1: Programe necesare pe PC
+---------------------------------------------------------------------
+1. Google Chrome instalat
+2. Node.js instalat (descarcati versiunea LTS de la https://nodejs.org)
+   * Important: lasati bifata optiunea "Add to PATH" la instalare!
+3. Driverul imprimantei termice XP-80 instalat in Windows
+   (asigurati-va ca apare in "Printers & Scanners" sub numele XP-80)
+4. Cablul USB-Serial al POS-ului conectat (sa apara pe portul COM7 in Device Manager)
+
+---------------------------------------------------------------------
+PASUL 2: Unde puneti acest folder
+---------------------------------------------------------------------
+Copiati intregul folder "kiosk-constanta" pe PC-ul din Constanta, de exemplu in:
+   C:\SmartKiosk
+   (sau pe Desktop)
+
+---------------------------------------------------------------------
+PASUL 3: Instalare si Pornire cu 1 Click
+---------------------------------------------------------------------
+Dati dublu-click pe:
+   INSTALEAZA-CONSTANTA.bat
+
+Ce face acest script automat:
+ - Instaleaza pachetele necesare
+ - Verifica daca COM7 si imprimanta XP-80 sunt conectate
+ - Configureaza pornirea automata la aprinderea PC-ului (Windows Autostart)
+ - Pune scurtaturi pe Desktop
+ - Porneste Kiosk-ul in Fullscreen si POS Bridge-ul
+
+---------------------------------------------------------------------
+Pornire manuala zilnica (daca e cazul):
+---------------------------------------------------------------------
+- POS Bridge: dublu-click pe "start-windows.bat"
+- Kiosk: dublu-click pe scurtatura de pe Desktop "Smart Kiosk Constanta"
+=====================================================================
