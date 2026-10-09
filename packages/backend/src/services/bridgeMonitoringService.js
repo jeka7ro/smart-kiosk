@@ -327,7 +327,7 @@ function isBridgeSocketConnected(locKey) {
 
 /**
  * Periodic healthcheck loop (runs every 15s)
- * Catches bridges whose socket disconnected
+ * Catches bridges whose socket disconnected for longer than grace period
  */
 function runHealthCheck() {
   const now = Date.now();
@@ -336,18 +336,25 @@ function runHealthCheck() {
   for (const [locKey, b] of bridges.entries()) {
     const isSocketAlive = isBridgeSocketConnected(locKey);
     if (isSocketAlive) {
+      b._missingSince = null;
       if (b.status !== 'online') {
         b.status = 'online';
         b.lastPing = now;
         hasChanges = true;
       }
     } else if (b.status === 'online') {
-      b.status = 'offline';
-      b.disconnectTime = now;
-      hasChanges = true;
-      recordEvent('DISCONNECT', locKey, `Conexiunea socket s-a întrerupt`);
-      console.warn(`[BridgeMonitor] POS Bridge DECONECTAT: ${locKey} (${b.displayName})`);
-      triggerDisconnectAlert(locKey, b);
+      // Grace period (90 seconds) to prevent false alarms on brief network reconnects
+      if (!b._missingSince) {
+        b._missingSince = now;
+      } else if (now - b._missingSince > 90000) {
+        b.status = 'offline';
+        b.disconnectTime = now;
+        b._missingSince = null;
+        hasChanges = true;
+        recordEvent('DISCONNECT', locKey, `Conexiunea socket s-a întrerupt`);
+        console.warn(`[BridgeMonitor] POS Bridge DECONECTAT: ${locKey} (${b.displayName})`);
+        triggerDisconnectAlert(locKey, b);
+      }
     }
   }
 
@@ -441,6 +448,8 @@ async function seedFromRecentScans() {
     rows.forEach(r => {
       const locKey = normalizeLocationKey(r.location_id);
       const defaults = DEFAULT_BRIDGE_CONFIGS[locKey] || {};
+      const scanTime = new Date(r.created_at).getTime();
+      const wasSeenToday = (now - scanTime) < (24 * 3600 * 1000);
       const isSocketAlive = isBridgeSocketConnected(locKey);
 
       bridges.set(locKey, {
@@ -450,10 +459,10 @@ async function seedFromRecentScans() {
         port: r.pos_port || defaults.port || '?',
         gateway: r.pos_gateway || defaults.gateway || 'raiffeisen',
         printerName: r.printer_name || defaults.printerName || '',
-        status: isSocketAlive ? 'online' : 'offline',
-        lastPing: now,
-        connectedAt: now,
-        disconnectTime: isSocketAlive ? null : now,
+        status: (isSocketAlive || wasSeenToday) ? 'online' : 'offline',
+        lastPing: scanTime,
+        connectedAt: scanTime,
+        disconnectTime: (isSocketAlive || wasSeenToday) ? null : scanTime,
         socketId: null,
         ip: '',
         uptimeSeconds: 0,

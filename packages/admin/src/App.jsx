@@ -853,9 +853,8 @@ export default function AdminApp() {
               { id: 'kiosks',    label: 'Kioskuri', icon: <MonitorSmartphone className="w-5 h-5" /> },
               { 
                 id: 'bridge-monitoring', 
-                label: 'Monitorizare POS', 
+                label: 'LIVE Status', 
                 icon: <Server className="w-5 h-5" />,
-                badge: bridgeSummary && bridgeSummary.totalOffline > 0 ? `${bridgeSummary.totalOffline} oprit` : null,
               },
               { id: 'qrcodes',   label: 'QR Coduri', icon: <QrCode className="w-5 h-5" /> },
               { id: 'menu',      label: 'Meniu / Syrve', icon: <Utensils className="w-5 h-5" /> },
@@ -933,7 +932,7 @@ export default function AdminApp() {
               {tab === 'pending-orders' && 'Comenzi În Așteptare'}
               {tab === 'locations' && 'Gestionare Locații'}
               {tab === 'kiosks' && 'Kiosk-uri & Screensavere'}
-              {tab === 'bridge-monitoring' && 'Monitorizare Hardware Kiosk & POS Bridge'}
+              {tab === 'bridge-monitoring' && 'LIVE Status'}
               {tab === 'qrcodes' && 'Coduri QR & Portal Mobil'}
               {tab === 'menu' && 'Sincronizare Syrve & Profile'}
               {tab === 'translations' && 'Traduceri Automate Meniu'}
@@ -1011,7 +1010,7 @@ export default function AdminApp() {
                 onClick={() => setTab('bridge-monitoring')}
                 className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 shrink-0"
               >
-                <span>Monitorizare Hardware POS</span>
+                <span>LIVE Status</span>
                 <ExternalLink className="w-3 h-3" />
               </button>
             </div>
