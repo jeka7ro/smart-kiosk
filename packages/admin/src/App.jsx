@@ -1028,13 +1028,23 @@ export default function AdminApp() {
                   
                   const bridgeLoc = bridgeSummary?.locations?.[loc.id] || 
                                    (loc.aliases ? loc.aliases.map(a => bridgeSummary?.locations?.[a]).find(Boolean) : null);
-                  const hasRecentConnection = Boolean(
-                    bridgeLoc?.connectedAt && 
-                    (Date.now() - bridgeLoc.connectedAt < 12 * 3600 * 1000) && 
-                    bridgeLoc.port && 
-                    bridgeLoc.port !== 'N/A'
-                  );
-                  const isOnline = bridgeLoc?.status === 'online' || isKioskConnected || hasRecentConnection;
+                  const isBridgeOnline = Boolean(bridgeLoc?.status === 'online' || bridgeLoc?.isBridgeOnline);
+                  
+                  let statusLabel = 'Offline';
+                  let statusTone = 'offline'; // 'online', 'warning', 'offline'
+                  if (isBridgeOnline && isKioskConnected) {
+                    statusLabel = 'Online';
+                    statusTone = 'online';
+                  } else if (isKioskConnected && !isBridgeOnline) {
+                    statusLabel = 'POS Deconectat';
+                    statusTone = 'warning';
+                  } else if (isBridgeOnline && !isKioskConnected) {
+                    statusLabel = 'Kiosk Inactiv';
+                    statusTone = 'warning';
+                  } else {
+                    statusLabel = 'Offline';
+                    statusTone = 'offline';
+                  }
 
                   const isOpen = activeLocationDropdown === loc.id;
 
@@ -1046,10 +1056,15 @@ export default function AdminApp() {
                         onClick={() => setActiveLocationDropdown(prev => prev === loc.id ? null : loc.id)}
                         title="Click pentru a deschide detaliile tehnice ale acestei locații"
                         className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all text-left cursor-pointer hover:shadow-xs ${
-                          isOnline
+                          statusTone === 'online'
                             ? (isOpen 
                                 ? 'bg-emerald-100/90 dark:bg-emerald-950/40 border-emerald-400 dark:border-emerald-700 text-emerald-950 dark:text-emerald-100 ring-2 ring-emerald-500/20 shadow-xs'
                                 : 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60 text-emerald-900 dark:text-emerald-200 hover:border-emerald-300'
+                              )
+                            : statusTone === 'warning'
+                            ? (isOpen
+                                ? 'bg-amber-100/90 dark:bg-amber-950/40 border-amber-400 dark:border-amber-700 text-amber-950 dark:text-amber-100 ring-2 ring-amber-500/20 shadow-xs'
+                                : 'bg-amber-50/60 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 hover:border-amber-300'
                               )
                             : (isOpen
                                 ? 'bg-slate-100 dark:bg-slate-800 border-slate-400 dark:border-slate-600 text-slate-800 dark:text-slate-200 ring-2 ring-slate-500/20 shadow-xs'
@@ -1057,14 +1072,22 @@ export default function AdminApp() {
                               )
                         }`}
                       >
-                        <span className={`w-2 h-2 rounded-full shrink-0 ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300 dark:bg-slate-600'}`} />
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${
+                          statusTone === 'online' 
+                            ? 'bg-emerald-500 animate-pulse' 
+                            : statusTone === 'warning'
+                            ? 'bg-amber-500 animate-pulse'
+                            : 'bg-slate-300 dark:bg-slate-600'
+                        }`} />
                         <span className="font-bold leading-tight">{loc.name}</span>
                         <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0 ${
-                          isOnline 
+                          statusTone === 'online' 
                             ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300' 
+                            : statusTone === 'warning'
+                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300'
                             : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
                         }`}>
-                          {isOnline ? 'Online' : 'Offline'}
+                          {statusLabel}
                         </span>
                       </button>
 
@@ -1084,11 +1107,13 @@ export default function AdminApp() {
                               </div>
                               <div className="flex items-center gap-2">
                                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                  isOnline 
+                                  statusTone === 'online' 
                                     ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' 
-                                    : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                                    : statusTone === 'warning'
+                                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                                    : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'
                                 }`}>
-                                  {isOnline ? 'ONLINE' : 'DECONECTAT'}
+                                  {statusLabel.toUpperCase()}
                                 </span>
                                 <button 
                                   type="button" 
@@ -1104,8 +1129,8 @@ export default function AdminApp() {
                             <div className="py-2.5 space-y-1.5 text-xs">
                               <div className="flex items-center justify-between py-0.5 border-b border-slate-100/60 dark:border-slate-700/40">
                                 <span className="text-slate-500 dark:text-slate-400">POS Bridge (start.bat):</span>
-                                <span className={`font-semibold ${isOnline ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'}`}>
-                                  {isOnline ? 'Rulare activă' : 'Oprit / Deconectat'}
+                                <span className={`font-semibold ${isBridgeOnline ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400 font-bold'}`}>
+                                  {isBridgeOnline ? 'Rulare activă' : 'Oprit / Deconectat'}
                                 </span>
                               </div>
                               <div className="flex items-center justify-between py-0.5 border-b border-slate-100/60 dark:border-slate-700/40">
@@ -1126,7 +1151,7 @@ export default function AdminApp() {
                                   {isKioskConnected ? 'Conectat în browser' : 'Inactiv'}
                                 </span>
                               </div>
-                              {isOnline && bridgeLoc?.uptimeSeconds > 0 && (
+                              {isBridgeOnline && bridgeLoc?.uptimeSeconds > 0 && (
                                 <div className="flex items-center justify-between py-0.5">
                                   <span className="text-slate-500 dark:text-slate-400">Timp de rulare:</span>
                                   <span className="font-medium text-slate-700 dark:text-slate-300">

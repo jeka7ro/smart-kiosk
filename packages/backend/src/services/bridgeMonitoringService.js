@@ -343,7 +343,7 @@ function isKioskSocketConnected(locKey) {
 }
 
 function isLocationActive(locKey) {
-  return isBridgeSocketConnected(locKey) || isKioskSocketConnected(locKey);
+  return isBridgeSocketConnected(locKey);
 }
 
 /**
@@ -355,7 +355,7 @@ function runHealthCheck() {
   let hasChanges = false;
 
   for (const [locKey, b] of bridges.entries()) {
-    const isSocketAlive = isLocationActive(locKey);
+    const isSocketAlive = isBridgeSocketConnected(locKey);
     if (isSocketAlive) {
       b._missingSince = null;
       if (b.status !== 'online') {
@@ -364,10 +364,10 @@ function runHealthCheck() {
         hasChanges = true;
       }
     } else if (b.status === 'online') {
-      // Grace period (90 seconds) to prevent false alarms on brief network reconnects
+      // Grace period (45 seconds) to prevent false alarms on brief network reconnects
       if (!b._missingSince) {
         b._missingSince = now;
-      } else if (now - b._missingSince > 90000) {
+      } else if (now - b._missingSince > 45000) {
         b.status = 'offline';
         b.disconnectTime = now;
         b._missingSince = null;
@@ -405,11 +405,11 @@ function getStatusSummary() {
   const targetLocations = ['cluj1', 'cluj2', 'sm-brasov', 'constanta1'];
 
   targetLocations.forEach(locKey => {
-    let b = bridges.get(locKey);
-    const isSocketAlive = isLocationActive(locKey);
+    const isBridgeAlive = isBridgeSocketConnected(locKey);
+    const isKioskAlive = isKioskSocketConnected(locKey);
     const defaults = DEFAULT_BRIDGE_CONFIGS[locKey] || {};
 
-    if (isSocketAlive) {
+    if (isBridgeAlive) {
       if (!b) {
         b = {
           locationId: locKey,
@@ -426,9 +426,12 @@ function getStatusSummary() {
         b.status = 'online';
         if (!b.lastPing) b.lastPing = now;
       }
+    } else if (b && b.status === 'online') {
+      b.status = 'offline';
+      if (!b.disconnectTime) b.disconnectTime = now;
     }
 
-    const isOnline = isSocketAlive || (b && b.status === 'online');
+    const isOnline = isBridgeAlive;
     if (isOnline) summary.totalOnline++;
     else summary.totalOffline++;
 
@@ -439,6 +442,8 @@ function getStatusSummary() {
       locationId: locKey,
       displayName: getLocationDisplayName(locKey),
       status: isOnline ? 'online' : 'offline',
+      isBridgeOnline: isBridgeAlive,
+      isKioskOnline: isKioskAlive,
       port: b?.port || defaults.port || 'N/A',
       gateway: b?.gateway || defaults.gateway || 'raiffeisen',
       printerName: b?.printerName || defaults.printerName || 'N/A',
