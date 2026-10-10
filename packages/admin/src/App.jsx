@@ -27,8 +27,9 @@ import FortuneWheelPreview from './components/FortuneWheelPreview';
 import MenuManager, { MenuProfileEditorModal } from './screens/MenuManager';
 import QrGenerator from './screens/QrGenerator';
 import { useConfirm } from './components/ConfirmModal';
-import { LayoutDashboard, Receipt, TrendingUp, MapPin, MonitorSmartphone, QrCode, Utensils, Languages, Image as ImageIcon, Tags, Users, Blocks, Gift, Store, Sun, Moon, LogOut, Menu, X, CreditCard, Download, Printer, Building2, Palette, Sparkles, Flame, Snowflake, Layers, Upload, Star, ChevronUp, ChevronDown, Check, Zap, Wifi, Sliders, Info, Trash2, AlertTriangle, Globe, Phone, Lock, Clock, ShieldCheck, ShieldAlert, Unlock, Eye, EyeOff, Activity, RotateCcw, Calendar, Copy, Server, ExternalLink } from 'lucide-react';
+import { LayoutDashboard, Receipt, TrendingUp, MapPin, MonitorSmartphone, QrCode, Utensils, Languages, Image as ImageIcon, Tags, Users, Blocks, Gift, Store, Sun, Moon, LogOut, Menu, X, CreditCard, Download, Printer, Building2, Palette, Sparkles, Flame, Snowflake, Layers, Upload, Star, ChevronUp, ChevronDown, Check, Zap, Wifi, Sliders, Info, Trash2, AlertTriangle, Globe, Phone, Lock, Clock, ShieldCheck, ShieldAlert, Unlock, Eye, EyeOff, Activity, RotateCcw, Calendar, Copy, Server, ExternalLink, RefreshCw } from 'lucide-react';
 import { formatThousands } from './utils/formatters';
+
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
 
@@ -289,7 +290,38 @@ export default function AdminApp() {
   const socketRef = useRef(null);
   const [kiosksLiveStatus, setKiosksLiveStatus] = useState({});
   const [bridgeSummary, setBridgeSummary] = useState(null);
+  const [activeLocationDropdown, setActiveLocationDropdown] = useState(null);
+  const [dropdownActionLoading, setDropdownActionLoading] = useState(null);
+  const [dropdownActionFeedback, setDropdownActionFeedback] = useState(null);
+
+  const handleDropdownAction = async (locationId, actionType) => {
+    const key = `${locationId}-${actionType}`;
+    setDropdownActionLoading(key);
+    setDropdownActionFeedback(null);
+    try {
+      const res = await fetch(`${BACKEND}/api/bridge-monitoring/${locationId}/${actionType}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': 'sk-live-2024-secure',
+        },
+      });
+      const json = await res.json();
+      if (res.ok) {
+        setDropdownActionFeedback({ locationId, type: 'success', text: json.message || 'Comandă trimisă cu succes.' });
+      } else {
+        setDropdownActionFeedback({ locationId, type: 'error', text: json.error || 'Eroare la transmiterea comenzii.' });
+      }
+    } catch (err) {
+      setDropdownActionFeedback({ locationId, type: 'error', text: err.message });
+    } finally {
+      setDropdownActionLoading(null);
+      setTimeout(() => setDropdownActionFeedback(null), 5000);
+    }
+  };
+
   useKeepAlive(); // prevent Render backend from sleeping
+
 
   const liveKiosksCount = useMemo(() => {
     const activeLocations = new Set();
@@ -1004,35 +1036,165 @@ export default function AdminApp() {
                   );
                   const isOnline = bridgeLoc?.status === 'online' || isKioskConnected || hasRecentConnection;
 
+                  const isOpen = activeLocationDropdown === loc.id;
+
                   return (
-                    <button
-                      key={loc.id}
-                      type="button"
-                      onClick={() => setTab('bridge-monitoring')}
-                      title="Click pentru detalii hardware și comenzi în LIVE Status"
-                      className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all text-left cursor-pointer hover:shadow-xs ${
-                        isOnline
-                          ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60 text-emerald-900 dark:text-emerald-200 hover:border-emerald-300'
-                          : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-slate-300'
-                      }`}
-                    >
-                      <span className={`w-2 h-2 rounded-full shrink-0 ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300 dark:bg-slate-600'}`} />
-                      <div className="flex flex-col">
+                    <div key={loc.id} className="relative">
+                      {/* Pastila curata: doar numele si statusul */}
+                      <button
+                        type="button"
+                        onClick={() => setActiveLocationDropdown(prev => prev === loc.id ? null : loc.id)}
+                        title="Click pentru a deschide detaliile tehnice ale acestei locații"
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all text-left cursor-pointer hover:shadow-xs ${
+                          isOnline
+                            ? (isOpen 
+                                ? 'bg-emerald-100/90 dark:bg-emerald-950/40 border-emerald-400 dark:border-emerald-700 text-emerald-950 dark:text-emerald-100 ring-2 ring-emerald-500/20 shadow-xs'
+                                : 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60 text-emerald-900 dark:text-emerald-200 hover:border-emerald-300'
+                              )
+                            : (isOpen
+                                ? 'bg-slate-100 dark:bg-slate-800 border-slate-400 dark:border-slate-600 text-slate-800 dark:text-slate-200 ring-2 ring-slate-500/20 shadow-xs'
+                                : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-slate-300'
+                              )
+                        }`}
+                      >
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300 dark:bg-slate-600'}`} />
                         <span className="font-bold leading-tight">{loc.name}</span>
-                        {bridgeLoc?.port && bridgeLoc.port !== 'N/A' && (
-                          <span className="text-[10px] text-slate-400 leading-tight">
-                            {bridgeLoc.port} · {bridgeLoc.printerName || 'Imprimantă'}
-                          </span>
-                        )}
-                      </div>
-                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0 ${
-                        isOnline 
-                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300' 
-                          : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-                      }`}>
-                        {isOnline ? 'Online' : 'Offline'}
-                      </span>
-                    </button>
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0 ${
+                          isOnline 
+                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300' 
+                            : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                        }`}>
+                          {isOnline ? 'Online' : 'Offline'}
+                        </span>
+                      </button>
+
+                      {/* Dropdown Popover cu toate detaliile tehnice la click */}
+                      {isOpen && (
+                        <>
+                          <div 
+                            className="fixed inset-0 z-40" 
+                            onClick={() => setActiveLocationDropdown(null)} 
+                          />
+                          <div className="absolute top-full left-0 mt-2 w-72 sm:w-80 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xl p-4 z-50 animate-in fade-in zoom-in-95 duration-150">
+                            {/* Header Popover */}
+                            <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-700/60">
+                              <div>
+                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{loc.id}</div>
+                                <div className="text-sm font-bold text-slate-900 dark:text-white">{loc.name}</div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                  isOnline 
+                                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' 
+                                    : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                                }`}>
+                                  {isOnline ? 'ONLINE' : 'DECONECTAT'}
+                                </span>
+                                <button 
+                                  type="button" 
+                                  onClick={() => setActiveLocationDropdown(null)}
+                                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Detalii Tehnice Hardware */}
+                            <div className="py-2.5 space-y-1.5 text-xs">
+                              <div className="flex items-center justify-between py-0.5 border-b border-slate-100/60 dark:border-slate-700/40">
+                                <span className="text-slate-500 dark:text-slate-400">POS Bridge (start.bat):</span>
+                                <span className={`font-semibold ${isOnline ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'}`}>
+                                  {isOnline ? 'Rulare activă' : 'Oprit / Deconectat'}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between py-0.5 border-b border-slate-100/60 dark:border-slate-700/40">
+                                <span className="text-slate-500 dark:text-slate-400">Port Serial POS:</span>
+                                <span className="font-semibold text-slate-800 dark:text-slate-200">
+                                  {bridgeLoc?.port && bridgeLoc.port !== 'N/A' ? `${bridgeLoc.port} (${bridgeLoc.gateway || 'raiffeisen'})` : 'COM? (Nedetectat)'}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between py-0.5 border-b border-slate-100/60 dark:border-slate-700/40">
+                                <span className="text-slate-500 dark:text-slate-400">Imprimantă Bonuri:</span>
+                                <span className="font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[140px]" title={bridgeLoc?.printerName || 'Nedetectată'}>
+                                  {bridgeLoc?.printerName || 'Nedetectată'}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between py-0.5 border-b border-slate-100/60 dark:border-slate-700/40">
+                                <span className="text-slate-500 dark:text-slate-400">Ecran Kiosk (Browser):</span>
+                                <span className={`font-semibold ${isKioskConnected ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500'}`}>
+                                  {isKioskConnected ? 'Conectat în browser' : 'Inactiv'}
+                                </span>
+                              </div>
+                              {isOnline && bridgeLoc?.uptimeSeconds > 0 && (
+                                <div className="flex items-center justify-between py-0.5">
+                                  <span className="text-slate-500 dark:text-slate-400">Timp de rulare:</span>
+                                  <span className="font-medium text-slate-700 dark:text-slate-300">
+                                    {Math.floor(bridgeLoc.uptimeSeconds / 60)} min
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Notificare acțiune */}
+                            {dropdownActionFeedback && dropdownActionFeedback.locationId === loc.id && (
+                              <div className={`mb-2 p-2 rounded-lg text-[11px] font-semibold border ${
+                                dropdownActionFeedback.type === 'success'
+                                  ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200'
+                                  : 'bg-rose-50 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200'
+                              }`}>
+                                {dropdownActionFeedback.text}
+                              </div>
+                            )}
+
+                            {/* Butoane Acțiuni Control */}
+                            <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 grid grid-cols-3 gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleDropdownAction(loc.id, 'test-print')}
+                                disabled={dropdownActionLoading === `${loc.id}-test-print`}
+                                title="Trimite probă de tipărire pe imprimantă"
+                                className="flex flex-col items-center justify-center gap-1 py-1.5 px-1 rounded-lg text-[10px] font-semibold bg-slate-50 dark:bg-slate-700/60 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 transition-colors disabled:opacity-50 cursor-pointer"
+                              >
+                                <Printer className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                                <span>Test Print</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDropdownAction(loc.id, 'restart-bridge')}
+                                disabled={dropdownActionLoading === `${loc.id}-restart-bridge`}
+                                title="Repornește procesul start-windows.bat pe PC"
+                                className="flex flex-col items-center justify-center gap-1 py-1.5 px-1 rounded-lg text-[10px] font-semibold bg-slate-50 dark:bg-slate-700/60 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 transition-colors disabled:opacity-50 cursor-pointer"
+                              >
+                                <RefreshCw className={`w-3.5 h-3.5 text-slate-500 dark:text-slate-400 ${dropdownActionLoading === `${loc.id}-restart-bridge` ? 'animate-spin' : ''}`} />
+                                <span>Restart Bridge</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDropdownAction(loc.id, 'reload-kiosk')}
+                                disabled={dropdownActionLoading === `${loc.id}-reload-kiosk`}
+                                title="Reîncarcă pagina de Kiosk din browser"
+                                className="flex flex-col items-center justify-center gap-1 py-1.5 px-1 rounded-lg text-[10px] font-semibold bg-slate-50 dark:bg-slate-700/60 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 transition-colors disabled:opacity-50 cursor-pointer"
+                              >
+                                <RotateCcw className={`w-3.5 h-3.5 text-slate-500 dark:text-slate-400 ${dropdownActionLoading === `${loc.id}-reload-kiosk` ? 'animate-spin' : ''}`} />
+                                <span>Reload Kiosk</span>
+                              </button>
+                            </div>
+
+                            <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700/60 text-center">
+                              <button
+                                type="button"
+                                onClick={() => { setActiveLocationDropdown(null); setTab('bridge-monitoring'); }}
+                                className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1"
+                              >
+                                <span>Deschide panoul LIVE Status</span>
+                                <ExternalLink className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   );
                 })}
               </div>
