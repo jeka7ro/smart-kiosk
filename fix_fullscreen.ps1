@@ -3,6 +3,10 @@
 #   Compatibil cu: Cluj 1, Cluj 2, Brasov, Constanta 1, Constanta 2
 # =====================================================================
 
+param(
+    [string]$Location = ""
+)
+
 $ErrorActionPreference = 'SilentlyContinue'
 
 Clear-Host
@@ -11,25 +15,31 @@ Write-Host "   SMART KIOSK — CONFIGURARE FULLSCREEN TOTAL & ELIMINARE TASKBAR"
 Write-Host "=====================================================================`n" -ForegroundColor Cyan
 
 # 1. Detectare Locatie Kiosk
-$Location = $env:KIOSK_LOC
+if ($env:KIOSK_LOC) { $Location = $env:KIOSK_LOC }
 if (-not $Location) {
-    # Cautare automata in fisierele .env existente pe disc
-    $envFiles = @(
+    # Cautare automata in toate locatiile uzuale de pe PC
+    $candidates = @(
         "$PWD\.env",
         "C:\Smart Kiosk\kiosk-constanta\.env",
         "C:\Smart Kiosk\packages\pos-bridge\.env",
+        "C:\SmartKiosk\packages\pos-bridge\.env",
         "C:\Smart Kiosk\.env",
         "C:\SmartKiosk\.env",
         "C:\kiosk-constanta\.env",
+        "C:\kiosk-cluj\.env",
+        "C:\kiosk-brasov\.env",
+        "C:\kiosk\.env",
         "C:\pos-bridge\.env",
         "$env:USERPROFILE\Desktop\kiosk-constanta\.env",
-        "$env:USERPROFILE\Desktop\Smart Kiosk\kiosk-constanta\.env"
+        "$env:USERPROFILE\Desktop\Smart Kiosk\kiosk-constanta\.env",
+        "$env:USERPROFILE\Desktop\pos-bridge\.env",
+        "$env:USERPROFILE\Desktop\SmartKiosk\.env"
     )
-    foreach ($f in $envFiles) {
+    foreach ($f in $candidates) {
         if (Test-Path $f) {
             $line = Get-Content $f | Where-Object { $_ -like "LOCATION_ID=*" } | Select-Object -First 1
             if ($line) {
-                $Location = ($line -split '=', 2)[1].Trim()
+                $Location = ($line -split '=', 2)[1].Trim().Trim('"').Trim("'")
                 break
             }
         }
