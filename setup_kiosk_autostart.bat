@@ -97,7 +97,7 @@ echo [INFO] Instalez scurtaturile in Autostart si pe Desktop...
 echo.
 
 :: 3. Creare scurtaturi prin PowerShell folosind folderele de sistem oficiale si ascundere Taskbar
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$p='HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3'; if(Test-Path $p){$v=(Get-ItemProperty $p).Settings; if($v -and $v.Length -gt 8){$v[8]=3; Set-ItemProperty $p Settings $v; Stop-Process -Name explorer -Force}}; $ws = New-Object -ComObject WScript.Shell; $target = '!CHROME_PATH!'; $args = '--kiosk \"\"!KIOSK_URL!\"\" --user-data-dir=\"\"C:\SmartKiosk_Data\"\" --start-fullscreen --start-maximized --window-position=0,0 --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble --disable-infobars --disable-pinch --overscroll-history-navigation=0 --check-for-update-interval=31536000'; $startup = [Environment]::GetFolderPath('Startup') + '\SmartKiosk.lnk'; $s1 = $ws.CreateShortcut($startup); $s1.TargetPath = $target; $s1.Arguments = $args; $s1.WindowStyle = 3; $s1.Save(); $desktop = [Environment]::GetFolderPath('Desktop') + '\Smart Kiosk (!LOC_NAME!).lnk'; $s2 = $ws.CreateShortcut($desktop); $s2.TargetPath = $target; $s2.Arguments = $args; $s2.WindowStyle = 3; $s2.Save();"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$p='HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3'; if(Test-Path $p){$v=(Get-ItemProperty $p).Settings; if($v -and $v.Length -gt 8){$v[8]=3; Set-ItemProperty $p Settings $v}}; Set-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Search' SearchboxTaskbarMode 0 -Force -ErrorAction SilentlyContinue; Set-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' ShowTaskViewButton 0 -Force -ErrorAction SilentlyContinue; $ws = New-Object -ComObject WScript.Shell; $target = '!CHROME_PATH!'; $args = '--kiosk \"\"!KIOSK_URL!\"\" --user-data-dir=\"\"C:\SmartKiosk_Data\"\" --start-fullscreen --start-maximized --window-position=0,0 --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble --disable-infobars --disable-pinch --overscroll-history-navigation=0 --check-for-update-interval=31536000'; $startup = [Environment]::GetFolderPath('Startup') + '\SmartKiosk.lnk'; $s1 = $ws.CreateShortcut($startup); $s1.TargetPath = $target; $s1.Arguments = $args; $s1.WindowStyle = 3; $s1.Save(); $desktop = [Environment]::GetFolderPath('Desktop') + '\Smart Kiosk (!LOC_NAME!).lnk'; $s2 = $ws.CreateShortcut($desktop); $s2.TargetPath = $target; $s2.Arguments = $args; $s2.WindowStyle = 3; $s2.Save();"
 
 echo =============================================================
 echo   [SUCCES] KIOSKUL A FOST CONFIGURAT CU SUCCES!
@@ -108,18 +108,16 @@ echo  - Bara de jos si taburile browserului sunt ascunse complet.
 echo  - Scurtatura este salvata si pe Desktop: Smart Kiosk (!LOC_NAME!).lnk
 echo.
 
-set "RUN_NOW=D"
-set /p "RUN_NOW=Pornesc ecranul acum in Fullscreen? (D/N, Enter = Da): "
-if /i "!RUN_NOW!"=="N" (
-    echo Gata! Poti inchide aceasta fereastra.
-    timeout /t 3 >nul
-    exit /b 0
-)
-
 echo.
 echo [INFO] Pornesc Kiosk-ul in Fullscreen...
+taskkill /F /IM chrome.exe >nul 2>&1
+taskkill /F /IM msedge.exe >nul 2>&1
+timeout /t 1 >nul
 start "" "!CHROME_PATH!" --kiosk "!KIOSK_URL!" --user-data-dir="C:\SmartKiosk_Data" --start-fullscreen --start-maximized --window-position=0,0 --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble --disable-infobars
+
 echo.
-echo [OK] Kiosk pornit! Fereastra se va inchide in 5 secunde...
-timeout /t 5 >nul
-exit /b 0
+echo [OK] Kiosk pornit cu succes!
+echo Aceasta fereastra NU se inchide automat.
+echo Apasa orice tasta cand doresti sa o inchizi...
+pause >nul
+
