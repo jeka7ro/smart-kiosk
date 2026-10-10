@@ -219,9 +219,12 @@ Start-Process -FilePath $chrome -ArgumentList $kioskArgs
 
 Write-Host "`n=====================================================================" -ForegroundColor Green
 Write-Host "   [SUCCES TOTAL] KIOSKUL A FOST TRECUT IN FULLSCREEN TOTAL!" -ForegroundColor Green
+Write-Host "   - Locatie activa: $Location ($kioskUrl)" -ForegroundColor Green
 Write-Host "   - Bara de jos Windows (Taskbar) este ascunsa complet." -ForegroundColor Green
 Write-Host "   - Nicio iconita Windows nu mai este vizibila peste aplicatie." -ForegroundColor Green
 Write-Host "   - Browserul ruleaza in mod hardware Kiosk dedicat si izolat." -ForegroundColor Green
 Write-Host "   - Daca AnyDesk se conecteaza, ecranul ramane 100% Fullscreen." -ForegroundColor Green
 Write-Host "   - La fiecare repornire a PC-ului, porneste automat Fullscreen." -ForegroundColor Green
 Write-Host "=====================================================================`n" -ForegroundColor Green
+
+Start-Sleep -Seconds 4
