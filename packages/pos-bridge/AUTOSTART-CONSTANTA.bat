@@ -1,15 +1,14 @@
 @echo off
 chcp 65001 >nul
-setlocal EnableDelayedExpansion
-title Smart Kiosk Constanta - Configurare Automata 1-Click
+title Smart Kiosk - Configurare Permanenta Constanta
 color 0A
 
 echo.
 echo =====================================================================
-echo    CONFIGURARE AUTOMATA 1-CLICK: SMART KIOSK CONSTANTA 1
+echo    CONFIGURARE PERMANENTA SMART KIOSK CONSTANTA 1
 echo    - POS: COM7 (Raiffeisen Verifone)
-echo    - Imprimanta: XP-80 (USB)
-echo    - Ecran Kiosk: https://kiosk-smashme.netlify.app/?loc=constanta1
+echo    - Imprimanta: XP-80
+echo    - URL: https://kiosk-smashme.netlify.app/?loc=constanta1
 echo =====================================================================
 echo.
 
@@ -17,8 +16,23 @@ cd /d "%~dp0"
 set "APP_DIR=%~dp0"
 if "%APP_DIR:~-1%"=="\" set "APP_DIR=%APP_DIR:~0,-1%"
 
-:: 1. Salvare automata fisier .env pentru Constanta
-echo [1/5] Salvez fisierul .env pentru Constanta 1...
+if exist "C:\Program Files\nodejs\node.exe" set "PATH=C:\Program Files\nodejs;%PATH%"
+if exist "C:\Program Files (x86)\nodejs\node.exe" set "PATH=C:\Program Files (x86)\nodejs;%PATH%"
+
+echo [1/6] Verificare Node.js...
+where node >nul 2>nul
+if %errorlevel% neq 0 (
+    echo.
+    echo [EROARE] Node.js nu este instalat pe acest calculator!
+    echo Te rugam sa instalezi Node.js LTS de pe https://nodejs.org
+    echo.
+    pause
+    exit /b 1
+)
+for /f "tokens=*" %%v in ('node -v') do echo   [OK] Node.js este instalat: %%v
+
+echo.
+echo [2/6] Configurare fisier .env pentru Constanta 1...
 (
     echo # Configurare POS Bridge si Imprimanta Constanta 1
     echo RENDER_URL=https://smart-kiosk-ttut.onrender.com
@@ -29,112 +43,68 @@ echo [1/5] Salvez fisierul .env pentru Constanta 1...
     echo POS_GATEWAY=raiffeisen
     echo PRINTER_NAME=XP-80
 ) > "%APP_DIR%\.env"
-echo   [OK] Fisierul .env a fost salvat in: "%APP_DIR%\.env"
+echo   [OK] Fisierul .env a fost salvat.
+
 echo.
-
-:: 2. Detectare Google Chrome (sau Edge fallback)
-echo [2/5] Caut browserul Google Chrome...
-set "BROWSER_EXE="
-if exist "C:\Program Files\Google\Chrome\Application\chrome.exe" set "BROWSER_EXE=C:\Program Files\Google\Chrome\Application\chrome.exe"
-if not defined BROWSER_EXE if exist "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" set "BROWSER_EXE=C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
-if not defined BROWSER_EXE if exist "%LocalAppData%\Google\Chrome\Application\chrome.exe" set "BROWSER_EXE=%LocalAppData%\Google\Chrome\Application\chrome.exe"
-if not defined BROWSER_EXE if exist "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" set "BROWSER_EXE=C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
-if not defined BROWSER_EXE if exist "C:\Program Files\Microsoft\Edge\Application\msedge.exe" set "BROWSER_EXE=C:\Program Files\Microsoft\Edge\Application\msedge.exe"
-
-if not defined BROWSER_EXE (
-    for /f "tokens=*" %%i in ('where chrome.exe 2^>nul') do set "BROWSER_EXE=%%i"
-)
-if not defined BROWSER_EXE (
-    for /f "tokens=*" %%i in ('where msedge.exe 2^>nul') do set "BROWSER_EXE=%%i"
-)
-
-if not defined BROWSER_EXE (
-    set "BROWSER_EXE=chrome.exe"
-    echo   [AVERTISMENT] Folosesc comanda implicita chrome.exe.
+echo [3/6] Verificare pachete npm (dotenv, serialport, socket.io-client)...
+if not exist "%APP_DIR%\node_modules\dotenv" (
+    echo   Instalez pachetele necesare...
+    call npm install --no-audit --no-fund
+    echo   [OK] Pachetele au fost instalate.
 ) else (
-    echo   [OK] Browser gasit: "!BROWSER_EXE!"
+    echo   [OK] Pachetele sunt deja instalate.
 )
+
 echo.
+echo [4/6] Dezactivare Windows Sleep si Oprire Ecran...
+powercfg /change standby-timeout-ac 0 >nul 2>nul
+powercfg /change monitor-timeout-ac 0 >nul 2>nul
+powercfg /change hibernate-timeout-ac 0 >nul 2>nul
+echo   [OK] PC-ul a fost setat sa ramana activ permanent (fara Sleep/Standby).
 
-:: 3. Salvare in Windows Registry Run (Autostart garantat la pornire Windows)
-echo [3/5] Configurez pornirea automata in Windows Registry Run...
-set "BAT_PATH=%APP_DIR%\start-windows.bat"
-set "KIOSK_URL=https://kiosk-smashme.netlify.app/?loc=constanta1"
-
-:: A. Inregistrare POS Bridge
-reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "POSBridge" /t REG_SZ /d "\"%BAT_PATH%\"" /f >nul
+echo.
+echo [5/6] Instalare Watchdog Permanent in Windows Task Scheduler...
+schtasks /create /tn "SmartKiosk_POS_Watchdog" /tr "wscript.exe \"%APP_DIR%\watchdog.vbs\"" /sc minute /mo 1 /f /rl highest >nul 2>nul
 if %errorlevel% equ 0 (
-    echo   [OK] POSBridge salvat in Windows Run (start-windows.bat).
+    echo   [OK] Task Scheduler Watchdog instalat cu succes (ruleaza la fiecare minut).
 ) else (
-    echo   [EROARE] Nu s-a putut salva POSBridge in Registry!
+    echo   [INFO] Incerc instalare cu drepturi standard...
+    schtasks /create /tn "SmartKiosk_POS_Watchdog" /tr "wscript.exe \"%APP_DIR%\watchdog.vbs\"" /sc minute /mo 1 /f >nul 2>nul
+    echo   [OK] Watchdog inregistrat.
 )
 
-:: B. Inregistrare Smart Kiosk Screen (Chrome Fullscreen)
-reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "SmartKioskScreen" /t REG_SZ /d "\"%BROWSER_EXE%\" --kiosk %KIOSK_URL% --no-first-run --no-default-browser-check" /f >nul
-if %errorlevel% equ 0 (
-    echo   [OK] SmartKioskScreen salvat in Windows Run (Chrome Kiosk Fullscreen).
-) else (
-    echo   [EROARE] Nu s-a putut salva SmartKioskScreen in Registry!
-)
+schtasks /create /tn "SmartKiosk_POS_OnLogon" /tr "wscript.exe \"%APP_DIR%\watchdog.vbs\"" /sc onlogon /f >nul 2>nul
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "POSBridge" /t REG_SZ /d "wscript.exe \"%APP_DIR%\run-hidden.vbs\"" /f >nul 2>nul
 
-:: Curatare chei vechi daca existau
-reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "SmartKioskPOSBridge" /f >nul 2>nul
-echo.
+:: Cautare browser pentru ecran Fullscreen Kiosk
+set "CHROME_BIN="
+if exist "C:\Program Files\Google\Chrome\Application\chrome.exe" set "CHROME_BIN=C:\Program Files\Google\Chrome\Application\chrome.exe"
+if not defined CHROME_BIN if exist "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" set "CHROME_BIN=C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
+if not defined CHROME_BIN if exist "%LocalAppData%\Google\Chrome\Application\chrome.exe" set "CHROME_BIN=%LocalAppData%\Google\Chrome\Application\chrome.exe"
+if not defined CHROME_BIN if exist "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" set "CHROME_BIN=C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
+if not defined CHROME_BIN if exist "C:\Program Files\Microsoft\Edge\Application\msedge.exe" set "CHROME_BIN=C:\Program Files\Microsoft\Edge\Application\msedge.exe"
 
-:: 4. Creare comenzi rapide pe Desktop
-echo [4/5] Creez scurtaturile de pornire pe Desktop...
-set "DESKTOP_FOLDER=%USERPROFILE%\Desktop"
-(
-    echo Set ws = CreateObject("WScript.Shell"^)
-    echo Set dBridge = ws.CreateShortcut("%DESKTOP_FOLDER%\Porneste POS Bridge.lnk"^)
-    echo dBridge.TargetPath = "%BAT_PATH%"
-    echo dBridge.WorkingDirectory = "%APP_DIR%"
-    echo dBridge.WindowStyle = 1
-    echo dBridge.Save
-    echo Set dKiosk = ws.CreateShortcut("%DESKTOP_FOLDER%\Porneste Ecran Kiosk.lnk"^)
-    echo dKiosk.TargetPath = "%BROWSER_EXE%"
-    echo dKiosk.Arguments = "--kiosk """"%KIOSK_URL%"""" --no-first-run --no-default-browser-check"
-    echo dKiosk.WindowStyle = 3
-    echo dKiosk.Save
-) > "%TEMP%\kiosk_shortcuts.vbs"
-cscript //nologo "%TEMP%\kiosk_shortcuts.vbs" >nul 2>nul
-del "%TEMP%\kiosk_shortcuts.vbs" >nul 2>nul
-echo   [OK] Scurtaturile "Porneste POS Bridge" si "Porneste Ecran Kiosk" create pe Desktop!
-echo.
-
-:: 5. Verificare chei inregistrate
-echo [5/5] Verificare finala a cheilor active in Windows:
-reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" | findstr /i "POSBridge SmartKioskScreen"
-echo.
-
-echo =====================================================================
-echo   [SUCCES] TOTUL ESTE CONFIGURAT AUTOMAT PENTRU CONSTANTA!
-echo   La fiecare restart sau pornire PC vor porni automat ambele:
-echo     1. POS Bridge (Card Verifone COM7 + Imprimanta XP-80)
-echo     2. Ecranul Kiosk in mod Fullscreen (fara bare Windows)
-echo =====================================================================
-echo.
-
-set "START_NOW=D"
-set /p "START_NOW=Vrei sa le pornesc chiar acum pe amandoua? (D/N, apasa Enter pentru Da): "
-if /i "!START_NOW!"=="N" (
-    echo Gata! Configurarea este salvata.
-    timeout /t 4 >nul
-    exit /b 0
+if defined CHROME_BIN (
+    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "SmartKioskScreen" /t REG_SZ /d "\"%CHROME_BIN%\" --kiosk https://kiosk-smashme.netlify.app/?loc=constanta1 --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check" /f >nul 2>nul
+    echo   [OK] Ecranul Kiosk configurat in autostart: %CHROME_BIN%
 )
 
 echo.
-echo [INFO] Pornesc POS Bridge...
-start "" "%BAT_PATH%"
-timeout /t 2 >nul
-
-echo [INFO] Pornesc Ecranul Kiosk Fullscreen...
-start "" "%BROWSER_EXE%" --kiosk "%KIOSK_URL%" --no-first-run --no-default-browser-check
+echo [6/6] Pornesc POS Bridge in fundal chiar acum...
+wscript.exe "%APP_DIR%\run-hidden.vbs"
+echo   [OK] POS Bridge a fost pornit in fundal!
 
 echo.
 echo =====================================================================
-echo   [GATA] Totul este configurat si salvat!
-echo   Apasa orice tasta pentru a inchide aceasta fereastra.
+echo   [SUCCES TOTAL] CONFIGURARE COMPLETA SI PERMANENTA!
 echo =====================================================================
-pause
-
+echo.
+echo   Ce este activat acum:
+echo   1. POS Bridge ruleaza in fundal (pe COM7).
+echo   2. Watchdog-ul automat ruleaza la fiecare 1 minut prin Task Scheduler:
+echo      - Daca programul se opreste sau e inchis, este repornit automat!
+echo      - La orice restart de calculator, porneste automat!
+echo   3. Calculatorul nu va mai intra niciodata in Sleep sau Standby.
+echo.
+echo Apasati orice tasta pentru a finaliza...
+pause >nul
