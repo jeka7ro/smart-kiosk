@@ -77,34 +77,34 @@ const LOCATION_SPECIFIC_ALIASES = {
     'cluj1', 'cluj-centru', 'cluj-main', 'smashme-main', 'sm-cluj',
     'smashme-cluj', 'cj', 'cluj', 'smashme centru', 'sm cluj',
     '9c63cff6-1d66-442d-a98d-2302656e3943', '90296b11-9ba9-4279-a69b-1f84e193315e',
-    'kiosk-1', 'kiosk1',
+    'cj-kiosk1', 'cluj-kiosk1',
   ],
   'cluj1': [
     'cluj1', 'cluj-centru', 'cluj-main', 'smashme-main', 'sm-cluj',
     'smashme-cluj', 'cj', 'cluj', 'smashme centru', 'sm cluj',
     '9c63cff6-1d66-442d-a98d-2302656e3943', '90296b11-9ba9-4279-a69b-1f84e193315e',
-    'kiosk-1', 'kiosk1',
+    'cj-kiosk1', 'cluj-kiosk1',
   ],
   // Cluj - Kiosk 2 (SmashMe CJ-2)
   'cluj2': [
     'cluj2', 'cluj-2', 'cj2', 'cj-2', 'smashme-cj2', 'smashme cj-2',
-    'kiosk-2', 'kiosk2',
+    'cj-kiosk2', 'cluj-kiosk2',
   ],
   // Constanța - Kiosk 1 (Smash Me Constanța)
   '8308e796-8780-4d18-ae66-4e430178c778': [
     'constanta1', 'constanta-1', 'smashme-constanta', 'smashme constanta',
     'constanta', 'ct', 'ct1', '8308e796-8780-4d18-ae66-4e430178c778',
-    'kiosk-1', 'kiosk1',
+    'ct-kiosk1', 'constanta-kiosk1',
   ],
   'constanta1': [
     'constanta1', 'constanta-1', 'smashme-constanta', 'smashme constanta',
     'constanta', 'ct', 'ct1', '8308e796-8780-4d18-ae66-4e430178c778',
-    'kiosk-1', 'kiosk1',
+    'ct-kiosk1', 'constanta-kiosk1',
   ],
   // Constanța - Kiosk 2
   'constanta2': [
     'constanta2', 'constanta-2', 'ct2', 'ct-2', 'smashme-ct2', 'smashme ct-2',
-    'kiosk-2', 'kiosk2',
+    'ct-kiosk2', 'constanta-kiosk2',
   ],
 };
 
