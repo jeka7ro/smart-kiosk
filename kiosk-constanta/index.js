@@ -10,6 +10,8 @@ try {
   execSync(`curl -s -L -H "Cache-Control: no-cache" -o VivaPosService.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/VivaPosService.js?t=${t}"`);
   execSync(`curl -s -L -H "Cache-Control: no-cache" -o scan_port_pc.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/scan_port_pc.js?t=${t}"`);
   execSync(`curl -s -L -H "Cache-Control: no-cache" -o setup_kiosk_autostart.bat "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/setup_kiosk_autostart.bat?t=${t}"`);
+  execSync(`curl -s -L -H "Cache-Control: no-cache" -o AUTOSTART-CONSTANTA.bat "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/kiosk-constanta/AUTOSTART-CONSTANTA.bat?t=${t}"`);
+  execSync(`curl -s -L -H "Cache-Control: no-cache" -o INSTALEAZA-CONSTANTA.bat "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/kiosk-constanta/INSTALEAZA-CONSTANTA.bat?t=${t}"`);
 } catch (e) {
   console.log('[WARN] Nu s-au putut sincroniza modulele:', e.message);
 }

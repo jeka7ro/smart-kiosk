@@ -1,65 +1,94 @@
 @echo off
+chcp 65001 >nul
 setlocal EnableDelayedExpansion
-title Smart Kiosk - Configurare Constanta (COM7 + XP-80)
+title Smart Kiosk - Configurare si Instalare Constanta
 color 0A
 
 echo.
-echo =====================================================================
-echo    INSTALARE AUTOMATA SMART KIOSK SI POS BRIDGE - CONSTANTA
-echo    Configuratie: POS pe COM7 ^| Imprimanta XP-80 ^| Locatie constanta1
-echo =====================================================================
+echo  =====================================================================
+echo        INSTALARE COMPLETA SMART KIOSK - LOCATIA CONSTANTA 1
+echo   POS: COM7 (Raiffeisen) ^| Imprimanta: XP-80 ^| URL: constanta1
+echo  =====================================================================
 echo.
 
 cd /d "%~dp0"
 
+:: 0. Generare / Salvare automata fisier .env pentru Constanta
+echo [0/6] Configurez fisierul .env pentru Constanta 1...
+(
+    echo # Configurare POS Bridge si Imprimanta Constanta 1
+    echo RENDER_URL=https://smart-kiosk-ttut.onrender.com
+    echo COM_PORT=COM7
+    echo BAUD_RATE=9600
+    echo LOCATION_ID=constanta1
+    echo BRIDGE_KEY=pos-bridge-2024
+    echo POS_GATEWAY=raiffeisen
+    echo PRINTER_NAME=XP-80
+) > "%~dp0\.env"
+echo   [OK] Fisierul .env a fost salvat!
+echo.
+
 :: 1. Verificare Node.js
+echo [1/6] Verific Node.js...
 where node >nul 2>nul
 if %errorlevel% neq 0 (
-    color 0C
-    echo [EROARE] Node.js NU este instalat!
-    echo Te rugam sa instalezi Node.js LTS de la: https://nodejs.org
-    echo Asigura-te ca bifezi "Add to PATH" in timpul instalarii.
+    if exist "C:\Program Files\nodejs\node.exe" (
+        set "PATH=C:\Program Files\nodejs;!PATH!"
+    )
+)
+
+where node >nul 2>nul
+if %errorlevel% neq 0 (
+    echo.
+    echo  ==============================================================
+    echo  [ATENTIE] Node.js NU este instalat pe acest PC!
+    echo  Node.js este obligatoriu pentru conexiunea cu POS-ul si imprimanta.
+    echo  ==============================================================
+    echo.
+    echo  [INFO] Descarc si pornesc instalatorul oficial Node.js LTS...
+    powershell -NoProfile -Command "$dest = '$env:TEMP\node-v20-x64.msi'; Write-Host '  Descarc Node.js LTS de la nodejs.org...'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; (New-Object System.Net.WebClient).DownloadFile('https://nodejs.org/dist/v20.18.0/node-v20.18.0-x64.msi', $dest); Write-Host '  Pornesc instalatorul Node.js... Va rugam asteptati.'; Start-Process msiexec.exe -ArgumentList '/i', $dest, '/qb' -Wait; Write-Host '  [OK] Node.js a fost instalat!' -ForegroundColor Green;"
+    set "PATH=C:\Program Files\nodejs;!PATH!"
+)
+
+where node >nul 2>nul
+if %errorlevel% neq 0 (
+    echo.
+    echo  [EROARE] Node.js nu a putut fi instalat automat.
+    echo  Va rugam descarcati si instalati manual Node.js de la:
+    echo  https://nodejs.org
+    echo  Dupa instalare, rulati din nou acest script.
+    echo.
     pause
     exit /b 1
 )
-echo [OK] Node.js detectat:
-node -v
+
+for /f "tokens=*" %%v in ('node -v') do set "NODE_VER=%%v"
+echo   [OK] Node.js este instalat: !NODE_VER!
 echo.
 
-:: 2. Generare fisier .env pentru Constanta
-echo [INFO] Creez configuratia .env pentru Constanta (COM7 + XP-80)...
-(
-echo RENDER_URL=https://smart-kiosk-ttut.onrender.com
-echo COM_PORT=COM7
-echo BAUD_RATE=9600
-echo LOCATION_ID=constanta1
-echo BRIDGE_KEY=pos-bridge-2024
-echo POS_GATEWAY=raiffeisen
-echo PRINTER_NAME=XP-80
-) > .env
-
-echo [OK] Fisierul .env a fost configurat cu succes!
+:: 2. Instalare dependente npm
+echo [2/6] Verific dependentele Node.js...
+if not exist "node_modules\dotenv" (
+    echo   [INFO] Instalez pachetele necesare (serialport, socket.io-client etc.)...
+    call npm install --no-audit --no-fund
+    echo   [OK] Pachete instalate cu succes!
+) else (
+    echo   [OK] Pachetele sunt deja instalate.
+)
 echo.
 
 :: 3. Verificare Port COM7
-echo [INFO] Verific daca portul COM7 este conectat in Windows...
-powershell -NoProfile -Command "$ports = [System.IO.Ports.SerialPort]::GetPortNames(); if ($ports -contains 'COM7') { Write-Host '  [OK] Portul COM7 a fost gasit in sistem!' -ForegroundColor Green } else { Write-Host '  [ATENTIE] COM7 NU apare inca in lista de porturi active (' ($ports -join ', ') ')! Verifica daca adaptorul USB-Serial al POS-ului este conectat.' -ForegroundColor Yellow }"
+echo [3/6] Verific conexiunea POS bancar pe COM7...
+powershell -NoProfile -Command "$ports = [System.IO.Ports.SerialPort]::GetPortNames(); if ($ports -contains 'COM7') { Write-Host '  [OK] Portul COM7 este conectat si recunoscut!' -ForegroundColor Green } else { Write-Host '  [AVERTISMENT] Portul COM7 NU apare inca in Windows!' -ForegroundColor Yellow; Write-Host '  Porturi detectate: ' ($ports -join ', ') -ForegroundColor Gray; Write-Host '  Daca POS-ul este conectat pe alt port, modificati COM_PORT in fisierul .env' -ForegroundColor Gray }"
 echo.
 
 :: 4. Verificare Imprimanta XP-80
-echo [INFO] Verific imprimanta XP-80 in Windows...
-powershell -NoProfile -Command "$printers = Get-Printer -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name; $found = $printers | Where-Object { $_ -like '*XP-80*' -or $_ -like '*POS-80*' -or $_ -like '*Xprinter*' }; if ($found) { Write-Host '  [OK] Imprimanta detectata:' ($found -join ', ') -ForegroundColor Green } else { Write-Host '  [ATENTIE] Nicio imprimanta cu numele XP-80 nu a fost gasita in Windows! Imprimante gasite: ' ($printers -join ', ') -ForegroundColor Yellow; Write-Host '  (Daca imprimanta are alt nume in Windows, modificati PRINTER_NAME in fisierul .env)' -ForegroundColor Yellow }"
+echo [4/6] Verific imprimanta XP-80 in Windows...
+powershell -NoProfile -Command "$printers = Get-Printer -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name; $found = $printers | Where-Object { $_ -like '*XP-80*' -or $_ -like '*POS-80*' -or $_ -like '*Xprinter*' }; if ($found) { Write-Host '  [OK] Imprimanta termica gasita:' ($found -join ', ') -ForegroundColor Green } else { Write-Host '  [AVERTISMENT] Nicio imprimanta cu numele XP-80 nu a fost gasita!' -ForegroundColor Yellow; Write-Host '  Imprimante disponibile: ' ($printers -join ', ') -ForegroundColor Gray; Write-Host '  Daca imprimanta are alt nume in Windows, modificati PRINTER_NAME in .env' -ForegroundColor Gray }"
 echo.
 
-:: 5. Instalare dependente npm daca lipsesc
-if not exist "node_modules\dotenv" (
-    echo [INFO] Instalez dependentele Node.js (serialport, dotenv, socket.io-client)...
-    call npm install --no-audit --no-fund
-    echo [OK] Dependente instalate!
-    echo.
-)
-
-:: 6. Cautare Chrome sau Edge pentru Kiosk Fullscreen
+:: 5. Detectare Google Chrome sau Microsoft Edge
+echo [5/6] Detectez browserul pentru Kiosk Fullscreen...
 set "CHROME_PATH="
 if exist "C:\Program Files\Google\Chrome\Application\chrome.exe" set "CHROME_PATH=C:\Program Files\Google\Chrome\Application\chrome.exe"
 if not defined CHROME_PATH if exist "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" set "CHROME_PATH=C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
@@ -67,6 +96,15 @@ if not defined CHROME_PATH if exist "%LocalAppData%\Google\Chrome\Application\ch
 if not defined CHROME_PATH if exist "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" set "CHROME_PATH=C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
 if not defined CHROME_PATH if exist "C:\Program Files\Microsoft\Edge\Application\msedge.exe" set "CHROME_PATH=C:\Program Files\Microsoft\Edge\Application\msedge.exe"
 
+if defined CHROME_PATH (
+    echo   [OK] Browser detectat: !CHROME_PATH!
+) else (
+    echo   [AVERTISMENT] Google Chrome nu a fost gasit! Va rugam instalati Google Chrome.
+)
+echo.
+
+:: 6. Configurare Autostart la pornirea Windows
+echo [6/6] Configurez pornirea automata la boot Windows (Startup)...
 set "CURRENT_FOLDER=%~dp0"
 if "%CURRENT_FOLDER:~-1%"=="\" set "CURRENT_FOLDER=%CURRENT_FOLDER:~0,-1%"
 set "STARTUP_FOLDER=%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup"
@@ -74,11 +112,15 @@ set "DESKTOP_FOLDER=%USERPROFILE%\Desktop"
 set "KIOSK_URL=https://kiosk-smashme.netlify.app/?loc=constanta1"
 set "BRIDGE_BAT=%CURRENT_FOLDER%\start-windows.bat"
 
-:: 7. Creare scurtaturi Autostart (Startup) si Desktop
-echo [INFO] Creez scurtaturile in Autostart (Startup) si pe Desktop...
-
 :: 1. Adaugare directa in Windows Registry Run (garantie la orice restart de Windows)
-reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "SmartKioskPOSBridge" /t REG_SZ /d "\"%BRIDGE_BAT%\"" /f >nul 2>nul
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "POSBridge" /t REG_SZ /d "\"%BRIDGE_BAT%\"" /f >nul
+if defined CHROME_PATH (
+    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "SmartKioskScreen" /t REG_SZ /d "\"%CHROME_PATH%\" --kiosk %KIOSK_URL% --no-first-run --no-default-browser-check" /f >nul
+) else (
+    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "SmartKioskScreen" /t REG_SZ /d "chrome.exe --kiosk %KIOSK_URL% --no-first-run --no-default-browser-check" /f >nul
+)
+reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "SmartKioskPOSBridge" /f >nul 2>nul
+
 
 :: 2. Creare scurtaturi prin VBScript nativ (fara erori de ghilimele PowerShell)
 (
@@ -112,35 +154,33 @@ echo   [OK] Autostart si comenzi rapide configurate cu succes!
 
 echo.
 echo =====================================================================
-echo   [SUCCES] KIOSKUL SI POS BRIDGE CONSTANTA SUNT CONFIGURATE!
+echo   [SUCCES] KIOSKUL CONSTANTA A FOST INSTALAT CU SUCCES!
 echo =====================================================================
 echo.
-echo  1. POS Bridge este setat pe COM7, Raiffeisen, imprimanta XP-80.
-echo  2. Scurtaturile au fost puse in Windows Startup (Autostart).
-echo     - La fiecare pornire sau restart de Windows, atat ecranul Kiosk
-echo       cat si POS Bridge vor porni automat!
-echo  3. Pe Desktop aveti scurtaturile:
-echo     - "Smart Kiosk Constanta"
-echo     - "Porneste POS Bridge"
+echo  Ce s-a configurat:
+echo   - La fiecare pornire Windows / restart, Kiosk-ul porneste Fullscreen.
+echo   - POS Bridge porneste automat in fundal conectat pe COM7.
+echo   - Pe Desktop aveti comenzile rapide de pornire manuala.
 echo.
 
 set "RUN_NOW=D"
-set /p "RUN_NOW=Doriti sa porniti POS Bridge si Kiosk acum? (D/N, Enter = Da): "
+set /p "RUN_NOW=Pornesc ecranul Kiosk si POS Bridge chiar acum? (D/N, Enter = Da): "
 if /i "!RUN_NOW!"=="N" (
     echo Gata! O zi buna.
     timeout /t 3 >nul
     exit /b 0
 )
 
-echo [INFO] Pornesc POS Bridge in fundal...
+echo.
+echo [INFO] Pornesc POS Bridge...
 start "" "!BRIDGE_BAT!"
 
 if defined CHROME_PATH (
-    echo [INFO] Pornesc Kiosk Fullscreen...
+    echo [INFO] Pornesc ecranul Kiosk Fullscreen...
     start "" "!CHROME_PATH!" --kiosk "!KIOSK_URL!" --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check
 )
 
 echo.
-echo [OK] Totul a fost pornit!
+echo [OK] Ambele aplicatii ruleaza! Fereastra se va inchide in 5 secunde...
 timeout /t 5 >nul
 exit /b 0
