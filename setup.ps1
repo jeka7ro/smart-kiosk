@@ -14,6 +14,8 @@ Write-Host "`n==================================================================
 Write-Host "       SMART KIOSK — INSTALARE SI CONFIGURARE AUTOMATA TOTALA" -ForegroundColor Cyan
 Write-Host "=====================================================================`n" -ForegroundColor Cyan
 
+if ($env:KIOSK_LOC) { $Location = $env:KIOSK_LOC }
+
 # Daca nu este specificata locatia prin parametru, afisam meniu simplu
 if (-not $Location) {
     Write-Host "Alege locatia pentru acest calculator:" -ForegroundColor Yellow
