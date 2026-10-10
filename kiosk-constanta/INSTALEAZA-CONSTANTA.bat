@@ -62,21 +62,11 @@ powercfg /change monitor-timeout-ac 0 >nul 2>nul
 powercfg /change hibernate-timeout-ac 0 >nul 2>nul
 echo   [OK] PC-ul a fost setat sa ramana activ permanent (fara Sleep/Standby).
 
-echo.
-echo [5/6] Instalare Watchdog Permanent in Windows Task Scheduler...
-schtasks /create /tn "SmartKiosk_POS_Watchdog" /tr "wscript.exe \"%APP_DIR%\watchdog.vbs\"" /sc minute /mo 1 /f /rl highest >nul 2>nul
-if %errorlevel% equ 0 (
-    echo   [OK] Task Scheduler Watchdog instalat cu succes (ruleaza la fiecare minut).
-) else (
-    echo   [INFO] Incerc instalare cu drepturi standard...
-    schtasks /create /tn "SmartKiosk_POS_Watchdog" /tr "wscript.exe \"%APP_DIR%\watchdog.vbs\"" /sc minute /mo 1 /f >nul 2>nul
-    echo   [OK] Watchdog inregistrat.
-)
-
+schtasks /create /tn "SmartKiosk_POS_Watchdog" /tr "wscript.exe \"%APP_DIR%\watchdog.vbs\"" /sc minute /mo 1 /f >nul 2>nul
 schtasks /create /tn "SmartKiosk_POS_OnLogon" /tr "wscript.exe \"%APP_DIR%\watchdog.vbs\"" /sc onlogon /f >nul 2>nul
 reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "POSBridge" /t REG_SZ /d "wscript.exe \"%APP_DIR%\run-hidden.vbs\"" /f >nul 2>nul
 
-:: Cautare browser pentru ecran Fullscreen Kiosk
+REM Cautare browser pentru ecran Fullscreen Kiosk
 set "CHROME_BIN="
 if exist "C:\Program Files\Google\Chrome\Application\chrome.exe" set "CHROME_BIN=C:\Program Files\Google\Chrome\Application\chrome.exe"
 if not defined CHROME_BIN if exist "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" set "CHROME_BIN=C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
