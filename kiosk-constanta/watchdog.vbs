@@ -2,7 +2,6 @@ Set ws = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 currentDir = fso.GetParentFolderName(WScript.ScriptFullName)
 
-' Check if node.exe running index.js is active
 Set objWMIService = GetObject("winmgmts:\\.\root\cimv2")
 Set colProcesses = objWMIService.ExecQuery("Select * from Win32_Process Where Name = 'node.exe'")
 
@@ -20,5 +19,5 @@ Next
 
 If Not nodeRunning Then
     ws.CurrentDirectory = currentDir
-    ws.Run "cmd.exe /c """ & currentDir & "\start-windows.bat""", 0, False
+    ws.Run """" & currentDir & "\start-windows.bat""", 0, False
 End If
