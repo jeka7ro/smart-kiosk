@@ -131,6 +131,10 @@ timeout /t 2 >nul
 echo [INFO] Pornesc Ecranul Kiosk Fullscreen...
 start "" "%BROWSER_EXE%" --kiosk "%KIOSK_URL%" --no-first-run --no-default-browser-check
 
-echo [OK] Ambele aplicatii ruleaza acum!
-timeout /t 4 >nul
-exit /b 0
+echo.
+echo =====================================================================
+echo   [GATA] Totul este configurat si salvat!
+echo   Apasa orice tasta pentru a inchide aceasta fereastra.
+echo =====================================================================
+pause
+
