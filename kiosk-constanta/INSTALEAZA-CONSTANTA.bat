@@ -56,11 +56,14 @@ if not exist "%APP_DIR%\node_modules\dotenv" (
 )
 
 echo.
-echo [4/6] Dezactivare Windows Sleep si Oprire Ecran...
+echo [4/6] Dezactivare Windows Sleep si Oprire USB...
 powercfg /change standby-timeout-ac 0 >nul 2>nul
 powercfg /change monitor-timeout-ac 0 >nul 2>nul
 powercfg /change hibernate-timeout-ac 0 >nul 2>nul
-echo   [OK] PC-ul a fost setat sa ramana activ permanent (fara Sleep/Standby).
+powercfg /setacvalueindex SCHEME_CURRENT 2a737441-1930-4402-8685-5b0887e3290d 48e6b7a6-50f5-4760-a579-e4c11dd81862 0 >nul 2>nul
+powercfg /setactive SCHEME_CURRENT >nul 2>nul
+powershell -NoProfile -Command "Get-CimInstance -ClassName MSPower_DeviceEnable -Namespace root\wmi -ErrorAction SilentlyContinue | ForEach-Object { $_.Enable = $false; Set-CimInstance -CimInstance $_ -ErrorAction SilentlyContinue }" >nul 2>nul
+echo   [OK] PC-ul si porturile USB au fost setate sa ramana active permanent.
 
 schtasks /create /tn "SmartKiosk_POS_Watchdog" /tr "wscript.exe \"%APP_DIR%\watchdog.vbs\"" /sc minute /mo 1 /f >nul 2>nul
 schtasks /create /tn "SmartKiosk_POS_OnLogon" /tr "wscript.exe \"%APP_DIR%\watchdog.vbs\"" /sc onlogon /f >nul 2>nul
