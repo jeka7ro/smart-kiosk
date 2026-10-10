@@ -13,7 +13,8 @@ import {
   Clock,
   ExternalLink,
   ShieldCheck,
-  Radio
+  Radio,
+  RotateCcw
 } from 'lucide-react';
 
 export default function BridgeMonitoring({ backend = '', socket = null, kiosksLiveStatus = {} }) {
@@ -34,6 +35,36 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState(null);
+
+  // Hardware action state
+  const [actionLoading, setActionLoading] = useState(null);
+  const [actionFeedback, setActionFeedback] = useState(null);
+
+  const handleAction = async (locationId, actionType) => {
+    const key = `${locationId}-${actionType}`;
+    setActionLoading(key);
+    setActionFeedback(null);
+    try {
+      const res = await fetch(`${backend}/api/bridge-monitoring/${locationId}/${actionType}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': 'sk-live-2024-secure',
+        },
+      });
+      const json = await res.json();
+      if (res.ok) {
+        setActionFeedback({ type: 'success', text: json.message || 'Comandă transmisă cu succes.' });
+      } else {
+        setActionFeedback({ type: 'error', text: json.error || 'Eroare la transmiterea comenzii.' });
+      }
+    } catch (err) {
+      setActionFeedback({ type: 'error', text: err.message });
+    } finally {
+      setActionLoading(null);
+      setTimeout(() => setActionFeedback(null), 5000);
+    }
+  };
 
   // Telegram form state
   const [telegramForm, setTelegramForm] = useState({
@@ -270,6 +301,17 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
         </div>
       </div>
 
+      {actionFeedback && (
+        <div className={`p-3 rounded-xl text-xs font-semibold flex items-center gap-2 border ${
+          actionFeedback.type === 'success'
+            ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+            : 'bg-rose-50 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+        }`}>
+          {actionFeedback.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" /> : <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />}
+          <span>{actionFeedback.text}</span>
+        </div>
+      )}
+
       {/* Grid Status Locații */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         {locationKeys.map(locKey => {
@@ -376,6 +418,40 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                   <span className="font-bold">Notă:</span> Bridge deconectat. Verificați <span className="font-semibold bg-amber-100 dark:bg-amber-900/60 px-1 py-0.5 rounded">start-windows.bat</span> pe PC.
                 </div>
               )}
+
+              {/* Remote Control Actions */}
+              <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-700/60 grid grid-cols-3 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleAction(locKey, 'test-print')}
+                  disabled={actionLoading === `${locKey}-test-print`}
+                  title="Trimite probă de tipărire pe imprimantă"
+                  className="flex flex-col items-center justify-center gap-1 py-1.5 px-1 rounded-lg text-[10px] font-semibold bg-slate-50 dark:bg-slate-700/60 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 transition-colors disabled:opacity-50 cursor-pointer text-center"
+                >
+                  <Printer className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                  <span className="truncate">Test Print</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleAction(locKey, 'restart-bridge')}
+                  disabled={actionLoading === `${locKey}-restart-bridge`}
+                  title="Repornește procesul start-windows.bat pe PC"
+                  className="flex flex-col items-center justify-center gap-1 py-1.5 px-1 rounded-lg text-[10px] font-semibold bg-slate-50 dark:bg-slate-700/60 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 transition-colors disabled:opacity-50 cursor-pointer text-center"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 text-slate-500 dark:text-slate-400 ${actionLoading === `${locKey}-restart-bridge` ? 'animate-spin' : ''}`} />
+                  <span className="truncate">Restart Bridge</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleAction(locKey, 'reload-kiosk')}
+                  disabled={actionLoading === `${locKey}-reload-kiosk`}
+                  title="Reîncarcă ecranul de Kiosk din browser"
+                  className="flex flex-col items-center justify-center gap-1 py-1.5 px-1 rounded-lg text-[10px] font-semibold bg-slate-50 dark:bg-slate-700/60 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 transition-colors disabled:opacity-50 cursor-pointer text-center"
+                >
+                  <RotateCcw className={`w-3.5 h-3.5 text-slate-500 dark:text-slate-400 ${actionLoading === `${locKey}-reload-kiosk` ? 'animate-spin' : ''}`} />
+                  <span className="truncate">Reload Kiosk</span>
+                </button>
+              </div>
             </div>
           );
         })}

@@ -1005,24 +1005,34 @@ export default function AdminApp() {
                   const isOnline = bridgeLoc?.status === 'online' || isKioskConnected || hasRecentConnection;
 
                   return (
-                    <div
+                    <button
                       key={loc.id}
-                      className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all ${
+                      type="button"
+                      onClick={() => setTab('bridge-monitoring')}
+                      title="Click pentru detalii hardware și comenzi în LIVE Status"
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all text-left cursor-pointer hover:shadow-xs ${
                         isOnline
-                          ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60 text-emerald-900 dark:text-emerald-200'
-                          : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400'
+                          ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60 text-emerald-900 dark:text-emerald-200 hover:border-emerald-300'
+                          : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-slate-300'
                       }`}
                     >
-                      <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300 dark:bg-slate-600'}`} />
-                      <span className="font-bold">{loc.name}</span>
-                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300 dark:bg-slate-600'}`} />
+                      <div className="flex flex-col">
+                        <span className="font-bold leading-tight">{loc.name}</span>
+                        {bridgeLoc?.port && bridgeLoc.port !== 'N/A' && (
+                          <span className="text-[10px] text-slate-400 leading-tight">
+                            {bridgeLoc.port} · {bridgeLoc.printerName || 'Imprimantă'}
+                          </span>
+                        )}
+                      </div>
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0 ${
                         isOnline 
                           ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300' 
                           : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
                       }`}>
                         {isOnline ? 'Online' : 'Offline'}
                       </span>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
