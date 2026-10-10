@@ -518,6 +518,39 @@ async function start() {
       }, 1000);
     });
 
+    globalPort.on('close', () => {
+      log(`⚠️ Portul serial POS ${portPath} s-a închis (cablu deconectat sau terminal oprit).`);
+      posLoggedIn = false;
+      state = 'IDLE';
+      let retryCount = 0;
+      const reconnectInterval = setInterval(() => {
+        retryCount++;
+        if (globalPort && !globalPort.isOpen) {
+          log(`🔄 Încercare reconectare port ${portPath} (#${retryCount})...`);
+          globalPort.open((openErr) => {
+            if (!openErr) {
+              clearInterval(reconnectInterval);
+              log(`✅ Port serial ${portPath} reconectat cu succes!`);
+              setTimeout(() => {
+                ensurePosLogin().catch(e => log(`⚠️ Eroare login POS după reconectare: ${e.message}`));
+              }, 1000);
+            } else {
+              log(`⚠️ Re-deschidere port eșuată: ${openErr.message}`);
+              if (retryCount >= 6) {
+                // Dacă portul nu mai revine timp de 30 secunde, repornim procesul
+                // pentru ca start-windows.bat să re-scaneze toate porturile USB
+                clearInterval(reconnectInterval);
+                log(`🔄 Portul nu revine. Repornesc procesul pentru re-scanare automată COM...`);
+                process.exit(1);
+              }
+            }
+          });
+        } else {
+          clearInterval(reconnectInterval);
+        }
+      }, 5000);
+    });
+
     globalPort.on('error', err => {
       log(`❌ Eroare port serial POS: ${err.message}`);
       if (err.message && (err.message.includes('Access denied') || err.message.includes('cannot open') || err.message.includes('File not found'))) {
@@ -1116,7 +1149,18 @@ async function start() {
   });
 }
 
+process.on('uncaughtException', (err) => {
+  log(`💥 EROARE NEPRINSĂ (uncaughtException): ${err.stack || err.message}`);
+  // Lăsăm 1 secundă pentru scrierea în fișierul de log, apoi ieșim pentru ca start-windows.bat să repornească curat
+  setTimeout(() => process.exit(1), 1000);
+});
+
+process.on('unhandledRejection', (reason) => {
+  log(`⚠️ PROMISE RESPINS NEPRINS (unhandledRejection): ${reason?.stack || reason}`);
+});
+
 start().catch(err => {
   log(`❌ EROARE FATALĂ: ${err.message}`);
   process.exit(1);
 });
+

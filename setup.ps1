@@ -62,7 +62,27 @@ Write-Host "  - Ecran Kiosk: $($cfg.Url)`n"
 # 1. Determinare folder tinta
 $targetDir = $PWD.Path
 if (-not (Test-Path "$targetDir\index.js")) {
-    $found = @('C:\Smart Kiosk\kiosk-constanta', 'C:\Smart Kiosk', 'C:\kiosk-constanta', 'C:\SmartKiosk', "$env:USERPROFILE\Desktop\kiosk-constanta", "$env:USERPROFILE\Downloads\kiosk-constanta") | Where-Object { Test-Path "$_\index.js" } | Select-Object -First 1
+    $candidates = @(
+        'C:\Smart Kiosk\kiosk-constanta',
+        'C:\Smart Kiosk\packages\pos-bridge',
+        'C:\SmartKiosk\packages\pos-bridge',
+        'C:\Smart Kiosk',
+        'C:\SmartKiosk',
+        'C:\pos-bridge',
+        'C:\kiosk-constanta',
+        'C:\kiosk-cluj',
+        'C:\kiosk-brasov',
+        'C:\kiosk',
+        "$env:USERPROFILE\Desktop\kiosk-constanta",
+        "$env:USERPROFILE\Desktop\Smart Kiosk\kiosk-constanta",
+        "$env:USERPROFILE\Desktop\pos-bridge",
+        "$env:USERPROFILE\Desktop\SmartKiosk",
+        "$env:USERPROFILE\Downloads\kiosk-constanta"
+    )
+    $found = $candidates | Where-Object { Test-Path "$_\index.js" } | Select-Object -First 1
+    if (-not $found) {
+        $found = (Get-ChildItem -Path @('C:\', "$env:USERPROFILE\Desktop") -Filter 'index.js' -Recurse -Depth 3 -ErrorAction SilentlyContinue | Where-Object { Test-Path "$($_.DirectoryName)\package.json" } | Select-Object -First 1).DirectoryName
+    }
     if ($found) { $targetDir = $found }
 }
 Set-Location $targetDir
@@ -100,6 +120,9 @@ Write-Host "[4/6] USB Selective Suspend si Power Saving la USB dezactivate." -Fo
 # 5. Descarcare fisiere VBS optimizate cu suport pentru spatii in cale
 curl.exe -s -O https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/kiosk-constanta/watchdog.vbs
 curl.exe -s -O https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/kiosk-constanta/run-hidden.vbs
+if (-not (Test-Path "$targetDir\start-windows.bat")) {
+    curl.exe -s -O https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/start-windows.bat
+}
 
 # Inregistrare Watchdog in Windows Task Scheduler (la fiecare 1 minut)
 schtasks /create /tn "SmartKiosk_POS_Watchdog" /tr "wscript.exe `"$targetDir\watchdog.vbs`"" /sc minute /mo 1 /f

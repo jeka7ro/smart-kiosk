@@ -18,6 +18,7 @@ const { detectCity, getOrderPrefix, findLocation, getLocationAliases } = require
 
 // Module-level fallback sequence memory (for offline / dev fallback)
 let memoryCj1Max = 648;
+let memoryCj1AMax = 0;
 let memoryCj2Max = 0;
 
 // ── Core order creation logic (callable via HTTP or directly on POS socket confirmation) ──
@@ -62,11 +63,13 @@ async function processOrderCreation(body, io) {
   // Get max orderNumber from Postgres
   let maxOrderNumber = 358;
   let cj1Max = Math.max(648, memoryCj1Max || 648);
+  let cj1AMax = Math.max(0, memoryCj1AMax || 0);
   let cj2Max = Math.max(0, memoryCj2Max || 0);
   let brasovMax = 0;
   const maxByPrefix = {};
   const usedSeqsByPrefix = {
     CJ1: new Set(),
+    CJ1A: new Set(),
     CJ2: new Set(),
   };
 
@@ -117,6 +120,30 @@ async function processOrderCreation(body, io) {
     for (const row of rows) {
       const str = String(row.num || '').trim();
       if (!str) continue;
+
+      // Căutăm prefix cu format [LITERE][CIFRĂ]?-A-[NUMĂR] (ex: CJ1-A-001, CJ2-A-304, BV-A-670, CT-A-001)
+      const aSeriesMatch = str.match(/^([a-zA-Z]+)(\d*)-A-(\d+)$/i);
+      if (aSeriesMatch) {
+        const letterPrefix = aSeriesMatch[1].toUpperCase(); // ex: 'CJ', 'BV', 'CT'
+        const kioskDigit = aSeriesMatch[2] || '';
+        const fullPrefix = `${letterPrefix}${kioskDigit}`; // ex: 'CJ1', 'CJ2', 'BV'
+        const seqNum = parseInt(aSeriesMatch[3], 10);
+        if (!isNaN(seqNum)) {
+          if (fullPrefix === 'CJ1') {
+            cj1AMax = Math.max(cj1AMax, seqNum);
+            usedSeqsByPrefix.CJ1A.add(seqNum);
+          } else if (fullPrefix === 'CJ2') {
+            cj2Max = Math.max(cj2Max, seqNum);
+            usedSeqsByPrefix.CJ2.add(seqNum);
+          } else if (letterPrefix === 'BV') {
+            brasovMax = Math.max(brasovMax, seqNum);
+          } else {
+            maxByPrefix[fullPrefix] = Math.max(maxByPrefix[fullPrefix] || 0, seqNum);
+            maxByPrefix[letterPrefix] = Math.max(maxByPrefix[letterPrefix] || 0, seqNum);
+          }
+        }
+        continue;
+      }
 
       // Căutăm prefix cu format [LITERE][CIFRĂ]?-[NUMĂR] (ex: CJ1-093, CJ2-001, CJ2-1002, BV-561, CT-045, OR-1002)
       const prefixMatch = str.match(/^([a-zA-Z]+)(\d*)-(\d+)$/);
@@ -199,28 +226,28 @@ async function processOrderCreation(body, io) {
       while (usedSeqsByPrefix.CJ2.has(nextSeq)) {
         nextSeq++;
       }
-      orderNumber = `CJ2-${formatOrderSeq(nextSeq)}`;
+      orderNumber = `CJ2-A-${formatOrderSeq(nextSeq)}`;
       memoryCj2Max = Math.max(memoryCj2Max, nextSeq);
     } else {
-      // Kiosk 1 (sau implicit)
-      let nextSeq = cj1Max + 1;
-      while (usedSeqsByPrefix.CJ1.has(nextSeq)) {
+      // Kiosk 1 (sau implicit) -> pornește curat de la 001
+      let nextSeq = cj1AMax + 1;
+      while (usedSeqsByPrefix.CJ1A.has(nextSeq)) {
         nextSeq++;
       }
-      orderNumber = `CJ1-${formatOrderSeq(nextSeq)}`;
-      memoryCj1Max = Math.max(memoryCj1Max, nextSeq);
+      orderNumber = `CJ1-A-${formatOrderSeq(nextSeq)}`;
+      memoryCj1AMax = Math.max(memoryCj1AMax, nextSeq);
     }
   } else if (city === 'brasov') {
     const nextSeq = Math.max(brasovMax, maxOrderNumber) + 1;
-    orderNumber = `BV-${formatOrderSeq(nextSeq)}`;
+    orderNumber = `BV-A-${formatOrderSeq(nextSeq)}`;
   } else {
     const prefix = getOrderPrefix(locId, resolvedLocationName);
     if (prefix) {
       const nextSeq = (maxByPrefix[prefix] !== undefined ? maxByPrefix[prefix] : 0) + 1;
-      orderNumber = `${prefix}-${formatOrderSeq(nextSeq)}`;
+      orderNumber = `${prefix}-A-${formatOrderSeq(nextSeq)}`;
     } else {
       const nextSeq = maxOrderNumber + 1;
-      orderNumber = formatOrderSeq(nextSeq);
+      orderNumber = `A-${formatOrderSeq(nextSeq)}`;
     }
   }
 

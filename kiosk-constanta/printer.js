@@ -183,9 +183,11 @@ async function printTicket(order) {
     printer.println(kioskLabel);
     
     printer.newLine();
+    printer.setTextNormal();
     printer.bold(true);
+    printer.println("COMANDA");
     printer.setTextSize(1, 1);
-    printer.println(`Comanda #${order.orderNumber || '?'}`);
+    printer.println(`#${order.orderNumber || '?'}`);
     printer.bold(false);
     printer.setTextNormal();
     printer.newLine();
