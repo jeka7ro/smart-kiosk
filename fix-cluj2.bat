@@ -22,8 +22,8 @@ powercfg /setacvalueindex SCHEME_CURRENT 2a737441-1930-4402-8685-5b0887e3290d 48
 powercfg /setactive SCHEME_CURRENT >nul 2>&1
 
 :: 3. Ascundere Taskbar Windows (Auto-Hide) prin PowerShell
-echo [3/5] Ascundere Taskbar Windows (Auto-Hide)...
-powershell -NoProfile -Command "$p='HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3'; if(Test-Path $p){$v=(Get-ItemProperty $p).Settings; if($v -and $v.Length -gt 8){$v[8]=3; Set-ItemProperty $p Settings $v}}; Set-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Search' SearchboxTaskbarMode 0 -Force -ErrorAction SilentlyContinue; Set-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' ShowTaskViewButton 0 -Force -ErrorAction SilentlyContinue; Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue"
+echo [3/5] Configurare Taskbar Windows (Auto-Hide)...
+powershell -NoProfile -Command "$p='HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3'; if(Test-Path $p){$v=(Get-ItemProperty $p).Settings; if($v -and $v.Length -gt 8){$v[8]=3; Set-ItemProperty $p Settings $v}}; Set-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Search' SearchboxTaskbarMode 0 -Force -ErrorAction SilentlyContinue; Set-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' ShowTaskViewButton 0 -Force -ErrorAction SilentlyContinue" >nul 2>&1
 
 :: 4. Gasire Google Chrome sau Edge
 echo [4/5] Cautare browser Chrome/Edge...
@@ -81,4 +81,6 @@ echo   - Scurtatura si 'Porneste Kiosk Cluj 2.bat' create pe Desktop.
 echo   - La restart de PC porneste automat.
 echo =============================================================
 echo.
-timeout /t 5
+echo Aceasta fereastra NU se inchide automat pentru a putea verifica statusul.
+echo Apasa orice tasta cand doresti sa o inchizi...
+pause >nul

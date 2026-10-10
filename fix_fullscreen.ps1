@@ -139,10 +139,8 @@ Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer
 Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "TaskbarMn" -Value 0 -Force
 Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "TaskbarDa" -Value 0 -Force
 
-# Repornire Windows Explorer pentru a aplica imediat ascunderea barei
-Stop-Process -Name explorer -Force
-Start-Sleep -Seconds 1
-Write-Host "[OK] Taskbar Windows ascuns complet." -ForegroundColor Green
+# Configurare Taskbar fara oprirea fortata a procesului explorer (care poate inchide consola)
+Write-Host "[OK] Taskbar Windows configurat (Auto-Hide)." -ForegroundColor Green
 
 # 4. Cautare automata browser Google Chrome sau Microsoft Edge
 Write-Host "[3/5] Detectare browser..." -ForegroundColor Yellow
@@ -238,4 +236,6 @@ Write-Host "   - Daca AnyDesk se conecteaza, ecranul ramane 100% Fullscreen." -F
 Write-Host "   - La fiecare repornire a PC-ului, porneste automat Fullscreen." -ForegroundColor Green
 Write-Host "=====================================================================`n" -ForegroundColor Green
 
-Start-Sleep -Seconds 4
+Write-Host "Aceasta fereastra NU se inchide automat pentru a putea verifica statusul." -ForegroundColor Cyan
+Write-Host "Apasa tasta ENTER cand doresti sa inchizi..." -ForegroundColor Yellow
+Read-Host | Out-Null
