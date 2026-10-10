@@ -67,9 +67,9 @@ powercfg /change standby-timeout-ac 0 >nul 2>&1
 powercfg /change monitor-timeout-ac 0 >nul 2>&1
 powercfg /change hibernate-timeout-ac 0 >nul 2>&1
 
-:: 3. Ascundere automata Taskbar Windows
-echo [3/5] Configurare bara Windows (Auto-Hide)...
-powershell -NoProfile -Command "$p='HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3'; if(Test-Path $p){$v=(Get-ItemProperty $p).Settings; if($v -and $v.Length -gt 8){$v[8]=3; Set-ItemProperty $p Settings $v}}" >nul 2>&1
+:: 3. Ascundere completa Taskbar Windows prin Win32 API (fara restart explorer)
+echo [3/5] Ascundere Taskbar Windows...
+powershell -NoProfile -Command "$c='[DllImport(\"user32.dll\")] public static extern IntPtr FindWindow(string c, string n); [DllImport(\"user32.dll\")] public static extern bool ShowWindow(IntPtr h, int m);'; Add-Type -MemberDefinition $c -Name U -Namespace W -ErrorAction SilentlyContinue; [W.U]::ShowWindow([W.U]::FindWindow('Shell_TrayWnd',$null), 0); [W.U]::ShowWindow([W.U]::FindWindow('Shell_SecondaryTrayWnd',$null), 0); $p='HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3'; if(Test-Path $p){$v=(Get-ItemProperty $p).Settings; if($v -and $v.Length -gt 8){$v[8]=3; Set-ItemProperty $p Settings $v}}" >nul 2>&1
 
 :: 4. Gasire Google Chrome sau Microsoft Edge
 echo [4/5] Cautare browser Chrome / Edge...
