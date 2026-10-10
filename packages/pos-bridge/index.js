@@ -820,7 +820,21 @@ async function start() {
               raw: payload.toString('hex'),
             };
             state = 'WAIT_POS_EOT';
-            currentTransactionTimer = setTimeout(() => fail('Timeout EOT după rezultat final'), 3000);
+            // Terminalul Verifone tipărește fizic chitanța pe hârtie (4-8s) înainte de a trimite EOT.
+            // Timeout-ul este mărit la 15s, iar dacă expiră, tranzacția aprobată este păstrată cu succes!
+            currentTransactionTimer = setTimeout(() => {
+              log(`⚠️ EOT nu a sosit în 15s după rezultat final de la POS, dar cadrul a fost deja primit (approved=${approved}). Finalizez tranzacția.`);
+              state = 'IDLE';
+              const res = pendingPosResult;
+              pendingPosResult = null;
+              if (res && res.success && succeed) {
+                succeed(res);
+              } else if (res && succeed) {
+                succeed(res);
+              } else {
+                fail('Timeout EOT după rezultat final');
+              }
+            }, 15000);
             break;
           }
 
@@ -842,7 +856,17 @@ async function start() {
               reason: explicitReason
             };
             state = 'WAIT_POS_EOT';
-            currentTransactionTimer = setTimeout(() => fail('Timeout EOT după refuz POS'), 3000);
+            currentTransactionTimer = setTimeout(() => {
+              log(`⚠️ EOT nu a sosit în 10s după refuz POS. Eliberez starea.`);
+              state = 'IDLE';
+              const res = pendingPosResult;
+              pendingPosResult = null;
+              if (res && succeed) {
+                succeed(res);
+              } else {
+                fail('Timeout EOT după refuz POS');
+              }
+            }, 10000);
             break;
           }
 

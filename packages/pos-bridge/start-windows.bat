@@ -1,10 +1,11 @@
 @echo off
-title Smart Kiosk — POS Bridge Raiffeisen
+chcp 65001 >nul
+title Smart Kiosk - POS Bridge Raiffeisen
 color 0A
 echo.
-echo  ╔══════════════════════════════════════════╗
-echo  ║   SMART KIOSK — POS Bridge Raiffeisen   ║
-echo  ╚══════════════════════════════════════════╝
+echo ============================================
+echo   SMART KIOSK - POS Bridge Raiffeisen
+echo ============================================
 echo.
 
 cd /d "%~dp0"

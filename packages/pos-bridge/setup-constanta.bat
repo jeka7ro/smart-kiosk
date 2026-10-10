@@ -67,12 +67,48 @@ if not defined CHROME_PATH if exist "%LocalAppData%\Google\Chrome\Application\ch
 if not defined CHROME_PATH if exist "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" set "CHROME_PATH=C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
 if not defined CHROME_PATH if exist "C:\Program Files\Microsoft\Edge\Application\msedge.exe" set "CHROME_PATH=C:\Program Files\Microsoft\Edge\Application\msedge.exe"
 
+set "CURRENT_FOLDER=%~dp0"
+if "%CURRENT_FOLDER:~-1%"=="\" set "CURRENT_FOLDER=%CURRENT_FOLDER:~0,-1%"
+set "STARTUP_FOLDER=%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup"
+set "DESKTOP_FOLDER=%USERPROFILE%\Desktop"
 set "KIOSK_URL=https://kiosk-smashme.netlify.app/?loc=constanta1"
-set "BRIDGE_BAT=%~dp0start-windows.bat"
+set "BRIDGE_BAT=%CURRENT_FOLDER%\start-windows.bat"
 
 :: 7. Creare scurtaturi Autostart (Startup) si Desktop
 echo [INFO] Creez scurtaturile in Autostart (Startup) si pe Desktop...
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$ws = New-Object -ComObject WScript.Shell; $startup = [Environment]::GetFolderPath('Startup'); $desktop = [Environment]::GetFolderPath('Desktop'); if ('!CHROME_PATH!' -ne '') { $sKiosk = $ws.CreateShortcut($startup + '\SmartKiosk.lnk'); $sKiosk.TargetPath = '!CHROME_PATH!'; $sKiosk.Arguments = '--kiosk \"\"!KIOSK_URL!\"\" --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check'; $sKiosk.WindowStyle = 3; $sKiosk.Save(); $dKiosk = $ws.CreateShortcut($desktop + '\Smart Kiosk Constanta.lnk'); $dKiosk.TargetPath = '!CHROME_PATH!'; $dKiosk.Arguments = '--kiosk \"\"!KIOSK_URL!\"\" --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check'; $dKiosk.WindowStyle = 3; $dKiosk.Save(); Write-Host '  [OK] Scurtatura Kiosk Chrome creata!' -ForegroundColor Green }; $sBridge = $ws.CreateShortcut($startup + '\POS-Bridge.lnk'); $sBridge.TargetPath = '!BRIDGE_BAT!'; $sBridge.WorkingDirectory = '%~dp0'; $sBridge.WindowStyle = 7; $sBridge.Save(); $dBridge = $ws.CreateShortcut($desktop + '\Porneste POS Bridge.lnk'); $dBridge.TargetPath = '!BRIDGE_BAT!'; $dBridge.WorkingDirectory = '%~dp0'; $dBridge.WindowStyle = 1; $dBridge.Save(); Write-Host '  [OK] Scurtatura POS Bridge creata!' -ForegroundColor Green;"
+
+:: 1. Adaugare directa in Windows Registry Run (garantie la orice restart de Windows)
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "SmartKioskPOSBridge" /t REG_SZ /d "\"%BRIDGE_BAT%\"" /f >nul 2>nul
+
+:: 2. Creare scurtaturi prin VBScript nativ (fara erori de ghilimele PowerShell)
+(
+echo Set ws = CreateObject("WScript.Shell"^)
+echo Set sBridge = ws.CreateShortcut("%STARTUP_FOLDER%\POS-Bridge.lnk"^)
+echo sBridge.TargetPath = "%BRIDGE_BAT%"
+echo sBridge.WorkingDirectory = "%CURRENT_FOLDER%"
+echo sBridge.WindowStyle = 1
+echo sBridge.Save
+echo Set dBridge = ws.CreateShortcut("%DESKTOP_FOLDER%\Porneste POS Bridge.lnk"^)
+echo dBridge.TargetPath = "%BRIDGE_BAT%"
+echo dBridge.WorkingDirectory = "%CURRENT_FOLDER%"
+echo dBridge.WindowStyle = 1
+echo dBridge.Save
+if defined CHROME_PATH (
+  echo Set sKiosk = ws.CreateShortcut("%STARTUP_FOLDER%\SmartKiosk.lnk"^)
+  echo sKiosk.TargetPath = "%CHROME_PATH%"
+  echo sKiosk.Arguments = "--kiosk """"%KIOSK_URL%"""" --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check"
+  echo sKiosk.WindowStyle = 3
+  echo sKiosk.Save
+  echo Set dKiosk = ws.CreateShortcut("%DESKTOP_FOLDER%\Smart Kiosk Constanta.lnk"^)
+  echo dKiosk.TargetPath = "%CHROME_PATH%"
+  echo dKiosk.Arguments = "--kiosk """"%KIOSK_URL%"""" --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check"
+  echo dKiosk.WindowStyle = 3
+  echo dKiosk.Save
+)
+) > "%TEMP%\create_kiosk_shortcuts.vbs"
+cscript //nologo "%TEMP%\create_kiosk_shortcuts.vbs" >nul 2>nul
+del "%TEMP%\create_kiosk_shortcuts.vbs" >nul 2>nul
+echo   [OK] Autostart si comenzi rapide configurate cu succes!
 
 echo.
 echo =====================================================================
