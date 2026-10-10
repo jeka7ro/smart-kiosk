@@ -54,19 +54,45 @@ $urlMap = @{
     'constanta2' = 'https://kiosk-smashme.netlify.app/?loc=constanta2'
 }
 
-if (-not $Location -or -not $urlMap.ContainsKey($Location)) {
+$locationNames = @{
+    'cluj1' = 'Cluj 1 (Centru)';
+    'cluj2' = 'Cluj 2';
+    'sm-brasov' = 'Brasov (RollMaster)';
+    'constanta1' = 'Constanta 1';
+    'constanta2' = 'Constanta 2';
+}
+
+$detectedLoc = $Location
+
+# Daca nu este specificat prin variabila de mediu KIOSK_LOC, afisam meniul clar
+if (-not $env:KIOSK_LOC) {
     Write-Host "Alege locatia pentru acest kiosk:" -ForegroundColor Yellow
-    Write-Host "  1. Cluj 1      (Centru)"
+    Write-Host "  1. Cluj 1       (Centru)"
     Write-Host "  2. Cluj 2"
-    Write-Host "  3. Brasov      (RollMaster)"
+    Write-Host "  3. Brasov       (RollMaster)"
     Write-Host "  4. Constanta 1"
     Write-Host "  5. Constanta 2"
+    if ($detectedLoc -and $locationNames.ContainsKey($detectedLoc)) {
+        Write-Host "  [Enter] Confirmare automata: $($locationNames[$detectedLoc])" -ForegroundColor Cyan
+    }
     Write-Host ""
-    $opt = Read-Host "Selecteaza numarul locatiei (1-5, implicit 1)"
-    if ($opt -eq '2') { $Location = 'cluj2' }
+
+    $opt = ""
+    try {
+        Write-Host -NoNewline "Apasa cifra (1-5) sau Enter: "
+        $k = [Console]::ReadKey($true)
+        $opt = [string]$k.KeyChar
+        Write-Host $opt
+    } catch {
+        $opt = Read-Host "Introdu cifra (1-5)"
+    }
+
+    if ($opt -eq '1') { $Location = 'cluj1' }
+    elseif ($opt -eq '2') { $Location = 'cluj2' }
     elseif ($opt -eq '3') { $Location = 'sm-brasov' }
     elseif ($opt -eq '4') { $Location = 'constanta1' }
     elseif ($opt -eq '5') { $Location = 'constanta2' }
+    elseif ($detectedLoc -and $urlMap.ContainsKey($detectedLoc)) { $Location = $detectedLoc }
     else { $Location = 'cluj1' }
 }
 
