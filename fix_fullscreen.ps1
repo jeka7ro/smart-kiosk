@@ -64,8 +64,12 @@ $locationNames = @{
 
 $detectedLoc = $Location
 
-# Daca nu este specificat prin variabila de mediu KIOSK_LOC, afisam meniul clar
-if (-not $env:KIOSK_LOC) {
+# Daca locatia este deja transmisa prin parametru sau KIOSK_LOC, o folosim direct fara meniu
+if ($Location -and $urlMap.ContainsKey($Location)) {
+    # Foloseste parametrul Location
+} elseif ($env:KIOSK_LOC -and $urlMap.ContainsKey($env:KIOSK_LOC)) {
+    $Location = $env:KIOSK_LOC
+} else {
     Write-Host "Alege locatia pentru acest kiosk:" -ForegroundColor Yellow
     Write-Host "  1. Cluj 1       (Centru)"
     Write-Host "  2. Cluj 2"
@@ -79,12 +83,9 @@ if (-not $env:KIOSK_LOC) {
 
     $opt = ""
     try {
-        Write-Host -NoNewline "Apasa cifra (1-5) sau Enter: "
-        $k = [Console]::ReadKey($true)
-        $opt = [string]$k.KeyChar
-        Write-Host $opt
+        $opt = (Read-Host "Introdu cifra (1-5)").Trim()
     } catch {
-        $opt = Read-Host "Introdu cifra (1-5)"
+        $opt = ""
     }
 
     if ($opt -eq '1') { $Location = 'cluj1' }
