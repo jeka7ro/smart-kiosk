@@ -155,7 +155,17 @@ $chrome = @(
 ) | Where-Object { Test-Path $_ } | Select-Object -First 1
 
 if (-not $chrome) {
-    Write-Host "[EROARE] Nu am gasit Google Chrome sau Edge instalat!" -ForegroundColor Red
+    $where = where.exe chrome.exe 2>$null
+    if ($where) { $chrome = $where | Select-Object -First 1 }
+}
+if (-not $chrome) {
+    $whereEdge = where.exe msedge.exe 2>$null
+    if ($whereEdge) { $chrome = $whereEdge | Select-Object -First 1 }
+}
+
+if (-not $chrome) {
+    Write-Host "[EROARE] Nu am gasit Google Chrome sau Edge instalat pe acest PC!" -ForegroundColor Red
+    Start-Sleep -Seconds 10
     return
 }
 Write-Host "[OK] Browser detectat: $chrome" -ForegroundColor Green
