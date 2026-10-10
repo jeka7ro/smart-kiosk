@@ -83,7 +83,7 @@ export default function ThermalReceiptModal({ order, onClose }) {
   if (!rc) return null;
 
   const rawOrderNum = String(rc.orderNumber || '');
-  const kMatch = rawOrderNum.match(/^[a-zA-Z]+(\d+)-/);
+  const kMatch = rawOrderNum.match(/^[a-zA-Z]+(\d+)/);
   const kioskTag = kMatch && kMatch[1]
     ? `Kiosk ${kMatch[1]}`
     : (rc.kioskId ? `Kiosk ${String(rc.kioskId).replace(/[^0-9]/g, '') || '1'}` : null);
@@ -148,8 +148,11 @@ export default function ThermalReceiptModal({ order, onClose }) {
             </div>
           )}
 
-          <div className="text-base font-black text-slate-900 dark:text-white tracking-tight">
-            Comanda #{rawOrderNum}
+          <div className="text-base font-black text-slate-900 dark:text-white uppercase tracking-wider mt-1">
+            COMANDA
+          </div>
+          <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+            #{rawOrderNum}
           </div>
 
           <div className="mt-1.5 flex flex-wrap items-center justify-center gap-1.5">

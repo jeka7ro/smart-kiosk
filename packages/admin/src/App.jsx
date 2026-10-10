@@ -1699,13 +1699,14 @@ export default function AdminApp() {
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setSelectedOrder(null)}>
         <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
           <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800">
-            <h2 
-              className="text-xl font-bold cursor-pointer hover:text-blue-600 transition-colors"
+            <div 
+              className="cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => setThermalReceiptOrder(selectedOrder)}
               title="Apasă pentru a deschide bonul de casă"
             >
-              Comandă #{selectedOrder.orderNumber}
-            </h2>
+              <div className="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500 tracking-wider">COMANDA</div>
+              <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">#{selectedOrder.orderNumber}</h2>
+            </div>
             <button onClick={() => setSelectedOrder(null)} className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer">✕</button>
           </div>
 

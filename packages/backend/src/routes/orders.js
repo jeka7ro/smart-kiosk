@@ -121,8 +121,8 @@ async function processOrderCreation(body, io) {
       const str = String(row.num || '').trim();
       if (!str) continue;
 
-      // Căutăm prefix cu format [LITERE][CIFRĂ]?-A-[NUMĂR] (ex: CJ1-A-001, CJ2-A-304, BV-A-670, CT-A-001)
-      const aSeriesMatch = str.match(/^([a-zA-Z]+)(\d*)-A-(\d+)$/i);
+      // Căutăm prefix cu format [LITERE][CIFRĂ]?-?A-?[NUMĂR] (ex: CJ1A-001, CJ1-A-001, CJ1-A001, CJ2A-304, BVA-670, CTA-001)
+      const aSeriesMatch = str.match(/^([a-zA-Z]+)(\d*)-?A-?(\d+)$/i);
       if (aSeriesMatch) {
         const letterPrefix = aSeriesMatch[1].toUpperCase(); // ex: 'CJ', 'BV', 'CT'
         const kioskDigit = aSeriesMatch[2] || '';
@@ -226,7 +226,7 @@ async function processOrderCreation(body, io) {
       while (usedSeqsByPrefix.CJ2.has(nextSeq)) {
         nextSeq++;
       }
-      orderNumber = `CJ2-A-${formatOrderSeq(nextSeq)}`;
+      orderNumber = `CJ2A-${formatOrderSeq(nextSeq)}`;
       memoryCj2Max = Math.max(memoryCj2Max, nextSeq);
     } else {
       // Kiosk 1 (sau implicit) -> pornește curat de la 001
@@ -234,7 +234,7 @@ async function processOrderCreation(body, io) {
       while (usedSeqsByPrefix.CJ1A.has(nextSeq)) {
         nextSeq++;
       }
-      orderNumber = `CJ1-A-${formatOrderSeq(nextSeq)}`;
+      orderNumber = `CJ1A-${formatOrderSeq(nextSeq)}`;
       memoryCj1AMax = Math.max(memoryCj1AMax, nextSeq);
     }
   } else if (city === 'brasov') {

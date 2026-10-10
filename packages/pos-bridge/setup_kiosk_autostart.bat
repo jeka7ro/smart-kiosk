@@ -96,8 +96,8 @@ echo [INFO] URL configurat: !KIOSK_URL!
 echo [INFO] Instalez scurtaturile in Autostart si pe Desktop...
 echo.
 
-:: 3. Creare scurtaturi prin PowerShell folosind folderele de sistem oficiale
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$ws = New-Object -ComObject WScript.Shell; $target = '!CHROME_PATH!'; $args = '--kiosk \"\"!KIOSK_URL!\"\" --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check'; $startup = [Environment]::GetFolderPath('Startup') + '\SmartKiosk.lnk'; $s1 = $ws.CreateShortcut($startup); $s1.TargetPath = $target; $s1.Arguments = $args; $s1.WindowStyle = 3; $s1.Save(); $desktop = [Environment]::GetFolderPath('Desktop') + '\Smart Kiosk (!LOC_NAME!).lnk'; $s2 = $ws.CreateShortcut($desktop); $s2.TargetPath = $target; $s2.Arguments = $args; $s2.WindowStyle = 3; $s2.Save();"
+:: 3. Creare scurtaturi prin PowerShell folosind folderele de sistem oficiale si ascundere Taskbar
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$p='HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3'; if(Test-Path $p){$v=(Get-ItemProperty $p).Settings; if($v -and $v.Length -gt 8){$v[8]=3; Set-ItemProperty $p Settings $v; Stop-Process -Name explorer -Force}}; $ws = New-Object -ComObject WScript.Shell; $target = '!CHROME_PATH!'; $args = '--kiosk \"\"!KIOSK_URL!\"\" --user-data-dir=\"\"C:\SmartKiosk_Data\"\" --start-fullscreen --start-maximized --window-position=0,0 --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble --disable-infobars --disable-pinch --overscroll-history-navigation=0 --check-for-update-interval=31536000'; $startup = [Environment]::GetFolderPath('Startup') + '\SmartKiosk.lnk'; $s1 = $ws.CreateShortcut($startup); $s1.TargetPath = $target; $s1.Arguments = $args; $s1.WindowStyle = 3; $s1.Save(); $desktop = [Environment]::GetFolderPath('Desktop') + '\Smart Kiosk (!LOC_NAME!).lnk'; $s2 = $ws.CreateShortcut($desktop); $s2.TargetPath = $target; $s2.Arguments = $args; $s2.WindowStyle = 3; $s2.Save();"
 
 echo =============================================================
 echo   [SUCCES] KIOSKUL A FOST CONFIGURAT CU SUCCES!
@@ -118,7 +118,7 @@ if /i "!RUN_NOW!"=="N" (
 
 echo.
 echo [INFO] Pornesc Kiosk-ul in Fullscreen...
-start "" "!CHROME_PATH!" --kiosk "!KIOSK_URL!" --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check
+start "" "!CHROME_PATH!" --kiosk "!KIOSK_URL!" --user-data-dir="C:\SmartKiosk_Data" --start-fullscreen --start-maximized --window-position=0,0 --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble --disable-infobars
 echo.
 echo [OK] Kiosk pornit! Fereastra se va inchide in 5 secunde...
 timeout /t 5 >nul

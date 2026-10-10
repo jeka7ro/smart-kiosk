@@ -129,7 +129,30 @@ schtasks /create /tn "SmartKiosk_POS_Watchdog" /tr "wscript.exe `"$targetDir\wat
 schtasks /create /tn "SmartKiosk_POS_OnLogon" /tr "wscript.exe `"$targetDir\watchdog.vbs`"" /sc onlogon /f
 Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -Name 'POSBridge' -Value "wscript.exe `"$targetDir\run-hidden.vbs`""
 
-# Configurare Chrome Kiosk in Autostart
+# 5. Configurare Windows Taskbar Auto-Hide (elimina definitiv bara cu iconite Windows)
+$p3 = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3"
+if (Test-Path $p3) {
+    $v3 = (Get-ItemProperty -Path $p3).Settings
+    if ($v3 -and $v3.Length -gt 8) {
+        $v3[8] = 3
+        Set-ItemProperty -Path $p3 -Name "Settings" -Value $v3
+    }
+}
+$p2 = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StuckRects2"
+if (Test-Path $p2) {
+    $v2 = (Get-ItemProperty -Path $p2).Settings
+    if ($v2 -and $v2.Length -gt 8) {
+        $v2[8] = 3
+        Set-ItemProperty -Path $p2 -Name "Settings" -Value $v2
+    }
+}
+Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Search" -Name "SearchboxTaskbarMode" -Value 0 -Force
+Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "ShowTaskViewButton" -Value 0 -Force
+Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "TaskbarMn" -Value 0 -Force
+Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "TaskbarDa" -Value 0 -Force
+Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
+
+# Configurare Chrome Kiosk in Autostart si Desktop cu profil izolat dedicat
 $chrome = @(
     'C:\Program Files\Google\Chrome\Application\chrome.exe',
     'C:\Program Files (x86)\Google\Chrome\Application\chrome.exe',
@@ -139,8 +162,33 @@ $chrome = @(
 ) | Where-Object { Test-Path $_ } | Select-Object -First 1
 
 if ($chrome) {
-    Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -Name 'SmartKioskScreen' -Value "`"$chrome`" --kiosk $($cfg.Url) --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check"
-    Write-Host "[5/6] Task Scheduler (1 minut) si Chrome Kiosk Fullscreen configurate." -ForegroundColor Green
+    $profileDir = "C:\SmartKiosk_Data"
+    if (-not (Test-Path $profileDir)) { New-Item -ItemType Directory -Path $profileDir -Force | Out-Null }
+    $kioskArgs = "--kiosk `"$($cfg.Url)`" --user-data-dir=`"$profileDir`" --start-fullscreen --start-maximized --window-position=0,0 --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble --disable-infobars --disable-pinch --overscroll-history-navigation=0 --disable-features=Translate,OptimizationHints,MediaRouter --check-for-update-interval=31536000 --disable-component-update"
+    
+    Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -Name 'SmartKioskScreen' -Value "`"$chrome`" $kioskArgs"
+    
+    $wsh = New-Object -ComObject WScript.Shell
+    $desktop = [Environment]::GetFolderPath('Desktop')
+    $sc = $wsh.CreateShortcut("$desktop\Smart Kiosk Fullscreen.lnk")
+    $sc.TargetPath = $chrome
+    $sc.Arguments = $kioskArgs
+    $sc.WindowStyle = 3
+    $sc.Save()
+
+    $batContent = @"
+@echo off
+title Pornire Kiosk Fullscreen
+taskkill /F /IM chrome.exe >nul 2>&1
+taskkill /F /IM msedge.exe >nul 2>&1
+timeout /t 1 >nul
+start "" "$chrome" $kioskArgs
+exit
+"@
+    Set-Content -Path "$desktop\Porneste Kiosk Fullscreen.bat" -Value $batContent -Force
+    Set-Content -Path "$targetDir\reporneste_fullscreen.bat" -Value $batContent -Force
+
+    Write-Host "[5/6] Taskbar Auto-Hide, Task Scheduler si Chrome Kiosk Fullscreen configurate." -ForegroundColor Green
 } else {
     Write-Host "[5/6] Task Scheduler configurat." -ForegroundColor Green
 }

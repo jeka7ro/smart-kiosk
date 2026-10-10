@@ -382,11 +382,8 @@ export function SalesTrendChart3D({
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                Evoluție Vânzări 3D
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                  Zoom 3D Flow
-                </span>
+              <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                Evoluție Vânzări & Încasări
               </h4>
 
               {/* Badge comparativ dinamic */}
@@ -1217,11 +1214,8 @@ export function BrandDonutChart3D({
             <PieChart className="w-4.5 h-4.5" />
           </div>
           <div>
-            <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5 flex-wrap">
-              Vânzări pe Branduri 3D
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
-                Donut 3D Ring
-              </span>
+            <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+              Vânzări pe Branduri
             </h4>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
               {selectedHour !== null 
@@ -1238,7 +1232,7 @@ export function BrandDonutChart3D({
           <button
             type="button"
             onClick={() => setViewMode('kiosks')}
-            title="Secționează inelul 3D pe locații și kioskuri"
+            title="Distribuție pe locații și kioskuri"
             className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${
               viewMode === 'kiosks'
                 ? 'bg-white dark:bg-slate-700 text-rose-600 dark:text-rose-400 shadow-xs ring-1 ring-black/5 dark:ring-white/10'
@@ -1250,7 +1244,7 @@ export function BrandDonutChart3D({
           <button
             type="button"
             onClick={() => setViewMode('brands')}
-            title="Afișează inelul 3D agregat per brand"
+            title="Distribuție agregată per brand"
             className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${
               viewMode === 'brands'
                 ? 'bg-white dark:bg-slate-700 text-rose-600 dark:text-rose-400 shadow-xs ring-1 ring-black/5 dark:ring-white/10'
