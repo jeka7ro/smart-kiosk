@@ -405,6 +405,7 @@ function getStatusSummary() {
   const targetLocations = ['cluj1', 'cluj2', 'sm-brasov', 'constanta1'];
 
   targetLocations.forEach(locKey => {
+    let b = bridges.get(locKey);
     const isBridgeAlive = isBridgeSocketConnected(locKey);
     const isKioskAlive = isKioskSocketConnected(locKey);
     const defaults = DEFAULT_BRIDGE_CONFIGS[locKey] || {};
