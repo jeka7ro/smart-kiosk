@@ -96,6 +96,17 @@ if exist "C:\Program Files (x86)\nodejs\node.exe" set "PATH=C:\Program Files (x8
 if exist "%LocalAppData%\Programs\nodejs\node.exe" set "PATH=%LocalAppData%\Programs\nodejs;%PATH%"
 if exist "%AppData%\npm" set "PATH=%AppData%\npm;%PATH%"
 
+where node >nul 2>nul
+if %errorlevel% neq 0 (
+    echo [INFO] Node.js nu este instalat. Se instaleaza automat Node.js LTS...
+    where winget >nul 2>nul
+    if %errorlevel% equ 0 (
+        winget install OpenJS.NodeJS.LTS --silent --accept-package-agreements --accept-source-agreements >nul 2>&1
+    )
+    if exist "C:\Program Files\nodejs\node.exe" set "PATH=C:\Program Files\nodejs;%PATH%"
+    if exist "C:\Program Files (x86)\nodejs\node.exe" set "PATH=C:\Program Files (x86)\nodejs;%PATH%"
+)
+
 :: Salvare / actualizare automata .env pentru POS Bridge
 echo [INFO] Salvez configuratia hardware in %APP_DIR%\.env...
 (
@@ -174,7 +185,7 @@ echo [INFO] Actualizare fisiere POS Bridge in %APP_DIR%...
 curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\start-windows.bat" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/start-windows.bat"
 curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\run-hidden.vbs" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/run-hidden.vbs"
 curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\watchdog.vbs" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/watchdog.vbs"
-if not exist "%APP_DIR%\package.json" curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\package.json" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/package.json"
+curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\package.json" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/package.json"
 curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\index.js" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/index.js"
 curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\printer.js" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/printer.js"
 curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\rawprint.ps1" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/rawprint.ps1"
