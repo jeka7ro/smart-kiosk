@@ -79,14 +79,21 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
   const [savingTelegram, setSavingTelegram] = useState(false);
   const [telegramStatusMsg, setTelegramStatusMsg] = useState(null);
   const [testingTelegram, setTestingTelegram] = useState(false);
+  const [internalKiosksLive, setInternalKiosksLive] = useState({});
 
   const fetchStatus = useCallback(async () => {
     try {
-      const res = await fetch(`${backend}/api/bridge-monitoring/status`, {
-        headers: { 'x-api-key': 'sk-live-2024-secure' }
-      });
-      if (res.ok) {
-        const json = await res.json();
+      const [resBridge, resKiosks] = await Promise.all([
+        fetch(`${backend}/api/bridge-monitoring/status`, {
+          headers: { 'x-api-key': 'sk-live-2024-secure' }
+        }),
+        fetch(`${backend}/api/locations/live-status`, {
+          headers: { 'x-api-key': 'sk-live-2024-secure' }
+        }).catch(() => null)
+      ]);
+
+      if (resBridge && resBridge.ok) {
+        const json = await resBridge.json();
         setData(json);
         if (json.telegramConfig) {
           setTelegramForm(prev => ({
@@ -97,6 +104,13 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
           }));
         }
         setLastRefreshed(new Date());
+      }
+
+      if (resKiosks && resKiosks.ok) {
+        const kJson = await resKiosks.json();
+        if (kJson?.liveStatus) {
+          setInternalKiosksLive(kJson.liveStatus);
+        }
       }
     } catch (err) {
       console.error('[BridgeMonitoring] Fetch error:', err.message);
@@ -112,19 +126,30 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
 
     // Real-time Socket.IO listener
     if (socket) {
-      socket.on('bridge_status_update', (updatedSummary) => {
+      const onBridgeUpdate = (updatedSummary) => {
         if (updatedSummary) {
           setData(updatedSummary);
           setLastRefreshed(new Date());
         }
-      });
+      };
+      const onKiosksLive = (statusMap) => {
+        if (statusMap) {
+          setInternalKiosksLive(statusMap);
+        }
+      };
+
+      socket.on('bridge_status_update', onBridgeUpdate);
+      socket.on('kiosks_live_status', onKiosksLive);
+
+      return () => {
+        clearInterval(interval);
+        socket.off('bridge_status_update', onBridgeUpdate);
+        socket.off('kiosks_live_status', onKiosksLive);
+      };
     }
 
     return () => {
       clearInterval(interval);
-      if (socket) {
-        socket.off('bridge_status_update');
-      }
     };
   }, [fetchStatus, socket]);
 
@@ -237,12 +262,13 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
         uptimeSeconds: 0,
       };
 
-      const liveKiosk = kiosksLiveStatus[locKey] || 
-                       (locKey === 'cluj1' ? (kiosksLiveStatus['smashme-main'] || kiosksLiveStatus['cluj-centru'] || kiosksLiveStatus['cluj']) : null) ||
-                       (locKey === 'cluj2' ? (kiosksLiveStatus['cluj-2'] || kiosksLiveStatus['cj2']) : null) ||
-                       (locKey === 'constanta1' ? (kiosksLiveStatus['smashme-constanta'] || kiosksLiveStatus['constanta']) : null) ||
-                       (locKey === 'sm-brasov' ? (kiosksLiveStatus['rollmaster'] || kiosksLiveStatus['brasov']) : null);
-      const isKioskConnected = Boolean(liveKiosk?.isLive || liveKiosk?.online || (liveKiosk?.onlineCount > 0));
+      const allLive = { ...internalKiosksLive, ...kiosksLiveStatus };
+      const liveKiosk = allLive[locKey] || 
+                       (locKey === 'cluj1' ? (allLive['smashme-main'] || allLive['cluj-centru'] || allLive['cluj']) : null) ||
+                       (locKey === 'cluj2' ? (allLive['cluj-2'] || allLive['cj2']) : null) ||
+                       (locKey === 'constanta1' ? (allLive['smashme-constanta'] || allLive['constanta']) : null) ||
+                       (locKey === 'sm-brasov' ? (allLive['rollmaster'] || allLive['brasov'] || allLive['sm-brasov']) : null);
+      const isKioskConnected = Boolean(liveKiosk?.isLive || liveKiosk?.online || (liveKiosk?.onlineCount > 0) || loc.isKioskOnline);
       const isUniversalConfig = Boolean(liveKiosk?.isUniversal);
       const kioskScriptVer = liveKiosk?.scriptVersion || null;
       const latestScriptVer = liveKiosk?.latestScriptVersion || '2.4.0';
@@ -267,7 +293,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
       };
     });
     return result;
-  }, [data.locations, kiosksLiveStatus, locationKeys]);
+  }, [data.locations, kiosksLiveStatus, internalKiosksLive, locationKeys]);
 
   const totalOnlineCount = Object.values(computedLocations).filter(l => l.status === 'online').length;
   const totalOfflineCount = locationKeys.length - totalOnlineCount;
@@ -292,18 +318,9 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
             <Server className="w-6 h-6 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
-            <div className="flex items-center gap-2.5">
-              <h1 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
-                Stare Echipamente și Conexiuni Locale
-              </h1>
-              <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/50 dark:border-blue-800/50">
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                Live OTA
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Monitorizare în timp real, telemetrie script universal și actualizări de la distanță (OTA)
-            </p>
+            <h1 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+              Stare Echipamente și Conexiuni Locale
+            </h1>
           </div>
         </div>
 
@@ -322,21 +339,21 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
             type="button"
             onClick={() => handleAction('all', 'reload-kiosk')}
             disabled={actionLoading === 'all-reload-kiosk'}
-            title="Trimite semnalul de reload și update OTA pe toate cele 5 Kiosk-uri"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-700 hover:via-indigo-700 hover:to-violet-700 shadow-md shadow-blue-500/20 active:scale-95 transition-all duration-200 cursor-pointer disabled:opacity-50"
+            title="Trimite semnalul de reload și actualizare pe toate Kiosk-urile"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-700 hover:via-indigo-700 hover:to-violet-700 shadow-md shadow-blue-500/20 active:scale-95 transition-all duration-200 cursor-pointer disabled:opacity-50 whitespace-nowrap shrink-0"
           >
-            <RotateCcw className={`w-3.5 h-3.5 ${actionLoading === 'all-reload-kiosk' ? 'animate-spin' : ''}`} />
-            <span>Actualizează Toate Kiosk-urile (OTA)</span>
+            <RotateCcw className={`w-3.5 h-3.5 ${actionLoading === 'all-reload-kiosk' ? 'animate-spin' : ''} shrink-0`} />
+            <span className="whitespace-nowrap">Actualizează Toate Kiosk-urile</span>
           </button>
 
           <button
             type="button"
             onClick={handleRefresh}
             disabled={refreshing}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 shadow-xs transition-colors disabled:opacity-50 cursor-pointer whitespace-nowrap shrink-0"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-            <span>Actualizează</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''} shrink-0`} />
+            <span className="whitespace-nowrap">Actualizează</span>
           </button>
         </div>
       </div>
@@ -415,7 +432,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
 
                   <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
                     <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Versiune Script:</span>
-                    <div className="flex items-center gap-1.5 text-right whitespace-nowrap">
+                    <div className="flex items-center gap-1.5 whitespace-nowrap">
                       {isKioskConnected ? (
                         <>
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
@@ -438,9 +455,6 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                           {kioskScriptVer ? `v${kioskScriptVer}` : '— (offline)'}
                         </span>
                       )}
-                      <span className="text-[10px] text-slate-400 dark:text-slate-500 whitespace-nowrap">
-                        (ultim: v{latestScriptVer})
-                      </span>
                     </div>
                   </div>
                 </div>
@@ -475,20 +489,16 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
-                    <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Ultimul Semnal:</span>
-                    <span className="font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap text-right">
-                      {isBridgeOnline
-                        ? (loc.lastPingSecondsAgo !== null && loc.lastPingSecondsAgo < 120 
-                            ? `acum ${loc.lastPingSecondsAgo}s` 
-                            : (loc.connectedAt ? `la ${new Date(loc.connectedAt).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })}` : 'activ')
-                          )
-                        : (loc.offlineDurationMinutes !== null
-                            ? `inactiv ${loc.offlineDurationMinutes}m`
-                            : 'fără semnal'
-                          )}
-                    </span>
-                  </div>
+                  {isBridgeOnline && (
+                    <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
+                      <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Ultimul Semnal:</span>
+                      <span className="font-medium text-emerald-600 dark:text-emerald-400 whitespace-nowrap text-right">
+                        {loc.lastPingSecondsAgo !== null && loc.lastPingSecondsAgo < 120 
+                          ? `acum ${loc.lastPingSecondsAgo}s` 
+                          : 'activ'}
+                      </span>
+                    </div>
+                  )}
 
                   {isOnline && loc.uptimeSeconds > 0 && (
                     <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
@@ -519,31 +529,31 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                   type="button"
                   onClick={() => handleAction(locKey, 'test-print')}
                   disabled={actionLoading === `${locKey}-test-print`}
-                  title="Trimite probă de tipărire pe imprimantă"
+                  title="Scoate un bon de probă pe imprimanta termică din locație"
                   className="flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-2xl text-[10px] font-bold bg-slate-50 dark:bg-slate-700/50 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-700 dark:hover:bg-emerald-950/40 dark:hover:border-emerald-800 text-slate-700 dark:text-slate-200 border border-slate-200/70 dark:border-slate-600/70 transition-all duration-200 disabled:opacity-50 cursor-pointer text-center"
                 >
                   <Printer className="w-3.5 h-3.5 text-slate-500 group-hover:text-emerald-600 shrink-0" />
-                  <span className="truncate whitespace-nowrap">Test Print</span>
+                  <span className="truncate whitespace-nowrap">Test Bon</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleAction(locKey, 'restart-bridge')}
                   disabled={actionLoading === `${locKey}-restart-bridge`}
-                  title="Repornește procesul serial POS Bridge pe calculatorul locației"
+                  title="Repornește programul Windows din fundal (Bridge-ul de pe PC, nu POS-ul fizic)"
                   className="flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-2xl text-[10px] font-bold bg-slate-50 dark:bg-slate-700/50 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 dark:hover:bg-blue-950/40 dark:hover:border-blue-800 text-slate-700 dark:text-slate-200 border border-slate-200/70 dark:border-slate-600/70 transition-all duration-200 disabled:opacity-50 cursor-pointer text-center"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${actionLoading === `${locKey}-restart-bridge` ? 'animate-spin' : ''} shrink-0`} />
-                  <span className="truncate whitespace-nowrap">Restart POS</span>
+                  <span className="truncate whitespace-nowrap">Restart Bridge</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleAction(locKey, 'reload-kiosk')}
                   disabled={actionLoading === `${locKey}-reload-kiosk`}
-                  title="Reîncarcă și actualizează ecranul Kiosk din browser"
+                  title="Reîncarcă (F5 / Refresh) ecranul Kiosk din browser"
                   className="flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-2xl text-[10px] font-bold bg-slate-50 dark:bg-slate-700/50 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700 dark:hover:bg-indigo-950/40 dark:hover:border-indigo-800 text-slate-700 dark:text-slate-200 border border-slate-200/70 dark:border-slate-600/70 transition-all duration-200 disabled:opacity-50 cursor-pointer text-center"
                 >
                   <RotateCcw className={`w-3.5 h-3.5 text-slate-500 ${actionLoading === `${locKey}-reload-kiosk` ? 'animate-spin' : ''} shrink-0`} />
-                  <span className="truncate whitespace-nowrap">Reload Ecran</span>
+                  <span className="truncate whitespace-nowrap">Refresh Ecran</span>
                 </button>
               </div>
             </div>
@@ -559,9 +569,6 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
               <Sliders className="w-4 h-4 text-blue-600" />
               <span>Configurare Alerte Telegram</span>
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Trimite automat notificări tehnice pe canalul sau grupul tău de Telegram când un POS Bridge cade sau revine online
-            </p>
           </div>
 
           <div className="flex items-center gap-2">
@@ -675,13 +682,10 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
 
       {/* Istoric Evenimente Recente */}
       <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl p-6 rounded-3xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs">
-        <h2 className="text-base font-bold text-slate-900 dark:text-white mb-1 flex items-center gap-2">
+        <h2 className="text-base font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
           <Clock className="w-4 h-4 text-blue-600" />
           <span>Jurnal Evenimente Hardware Recente</span>
         </h2>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-          Istoric al conexiunilor, deconectărilor și incidentelor detectate
-        </p>
 
         {(!data.recentEvents || data.recentEvents.length === 0) ? (
           <div className="py-8 text-center text-xs text-slate-400">

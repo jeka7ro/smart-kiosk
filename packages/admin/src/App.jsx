@@ -388,58 +388,19 @@ export default function AdminApp() {
                        (loc.aliases ? loc.aliases.map(a => bridgeSummary?.locations?.[a]).find(Boolean) : null);
       const isBridgeOnline = Boolean(bridgeLoc?.status === 'online' || bridgeLoc?.isBridgeOnline);
 
-      let statusTone = 'offline';
-      let statusLabel = 'Offline';
-      let message = 'Kiosk și POS deconectate';
+      const hasRecentConnection = Boolean(bridgeLoc?.connectedAt && (Date.now() - bridgeLoc.connectedAt < 12 * 3600 * 1000) && bridgeLoc.port && bridgeLoc.port !== 'N/A');
+      const isOnline = isKioskConnected || isBridgeOnline || hasRecentConnection;
 
-      if (isBridgeOnline && isKioskConnected) {
-        statusTone = 'online';
-        statusLabel = 'Online';
-        message = 'Kiosk și POS funcționale';
-      } else if (isKioskConnected && !isBridgeOnline) {
-        statusTone = 'warning';
-        statusLabel = 'POS Deconectat';
-        message = 'Aplicația Kiosk merge, dar POS Bridge este offline!';
-      } else if (isBridgeOnline && !isKioskConnected) {
-        statusTone = 'warning';
-        statusLabel = 'Kiosk Inactiv';
-        message = 'POS Bridge este online, dar ecranul Kiosk nu este deschis!';
-      } else {
-        statusTone = 'offline';
-        statusLabel = 'Offline';
-        message = 'Kiosk oprit / fără conexiune internet!';
-      }
+      let statusTone = isOnline ? 'online' : 'offline';
+      let statusLabel = isOnline ? 'Online' : 'Offline';
+      let message = isOnline ? 'Kiosk conectat și sincronizat' : 'Kiosk oprit / fără conexiune internet!';
 
       currentStatuses[loc.id] = { statusTone, statusLabel, message };
 
       const prev = lastKnownDeviceStatusRef.current[loc.id];
 
-      // Dacă este prima verificare (la încărcarea paginii): trimite alertă pentru dispozitive offline sau avertizări
-      if (!deviceAlertsInitializedRef.current) {
-        if (statusTone === 'offline') {
-          newAlerts.push({
-            id: `dev-alert-${loc.id}-${Date.now()}`,
-            locationId: loc.id,
-            locationName: loc.name,
-            statusTone,
-            statusLabel,
-            message,
-            type: 'disconnected',
-            timestamp: Date.now()
-          });
-        } else if (statusTone === 'warning') {
-          newAlerts.push({
-            id: `dev-alert-${loc.id}-${Date.now()}`,
-            locationId: loc.id,
-            locationName: loc.name,
-            statusTone,
-            statusLabel,
-            message,
-            type: 'warning',
-            timestamp: Date.now()
-          });
-        }
-      } else if (prev) {
+      // Do not spam intrusive red popups on initial page load; only trigger alerts on live status changes
+      if (deviceAlertsInitializedRef.current && prev) {
         // Tranziții ulterioare de stare:
         if (prev.statusTone !== statusTone) {
           if (statusTone === 'online' && prev.statusTone !== 'online') {
@@ -1171,21 +1132,11 @@ export default function AdminApp() {
                                    (loc.aliases ? loc.aliases.map(a => bridgeSummary?.locations?.[a]).find(Boolean) : null);
                   const isBridgeOnline = Boolean(bridgeLoc?.status === 'online' || bridgeLoc?.isBridgeOnline);
                   
-                  let statusLabel = 'Offline';
-                  let statusTone = 'offline'; // 'online', 'warning', 'offline'
-                  if (isBridgeOnline && isKioskConnected) {
-                    statusLabel = 'Online';
-                    statusTone = 'online';
-                  } else if (isKioskConnected && !isBridgeOnline) {
-                    statusLabel = 'POS Deconectat';
-                    statusTone = 'warning';
-                  } else if (isBridgeOnline && !isKioskConnected) {
-                    statusLabel = 'Kiosk Inactiv';
-                    statusTone = 'warning';
-                  } else {
-                    statusLabel = 'Offline';
-                    statusTone = 'offline';
-                  }
+                  const hasRecentConnection = Boolean(bridgeLoc?.connectedAt && (Date.now() - bridgeLoc.connectedAt < 12 * 3600 * 1000) && bridgeLoc.port && bridgeLoc.port !== 'N/A');
+                  const isOnline = isKioskConnected || isBridgeOnline || hasRecentConnection;
+                  
+                  const statusLabel = isOnline ? 'Online' : 'Offline';
+                  const statusTone = isOnline ? 'online' : 'offline';
 
                   const isOpen = activeLocationDropdown === loc.id;
 
@@ -1360,31 +1311,31 @@ export default function AdminApp() {
                                 type="button"
                                 onClick={() => handleDropdownAction(loc.id, 'test-print')}
                                 disabled={dropdownActionLoading === `${loc.id}-test-print`}
-                                title="Trimite probă de tipărire pe imprimantă"
+                                title="Scoate un bon de probă pe imprimantă"
                                 className="flex flex-col items-center justify-center gap-1 py-1.5 px-1 rounded-lg text-[10px] font-semibold bg-slate-50 dark:bg-slate-700/60 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 transition-colors disabled:opacity-50 cursor-pointer"
                               >
                                 <Printer className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-                                <span>Test Print</span>
+                                <span className="whitespace-nowrap">Test Bon</span>
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleDropdownAction(loc.id, 'restart-bridge')}
                                 disabled={dropdownActionLoading === `${loc.id}-restart-bridge`}
-                                title="Repornește procesul start-windows.bat pe PC"
+                                title="Repornește programul Bridge de pe Windows PC"
                                 className="flex flex-col items-center justify-center gap-1 py-1.5 px-1 rounded-lg text-[10px] font-semibold bg-slate-50 dark:bg-slate-700/60 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 transition-colors disabled:opacity-50 cursor-pointer"
                               >
                                 <RefreshCw className={`w-3.5 h-3.5 text-slate-500 dark:text-slate-400 ${dropdownActionLoading === `${loc.id}-restart-bridge` ? 'animate-spin' : ''}`} />
-                                <span>Restart Bridge</span>
+                                <span className="whitespace-nowrap">Restart Bridge</span>
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleDropdownAction(loc.id, 'reload-kiosk')}
                                 disabled={dropdownActionLoading === `${loc.id}-reload-kiosk`}
-                                title="Reîncarcă pagina de Kiosk din browser"
+                                title="Reîncarcă ecranul Kiosk din browser"
                                 className="flex flex-col items-center justify-center gap-1 py-1.5 px-1 rounded-lg text-[10px] font-semibold bg-slate-50 dark:bg-slate-700/60 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 transition-colors disabled:opacity-50 cursor-pointer"
                               >
                                 <RotateCcw className={`w-3.5 h-3.5 text-slate-500 dark:text-slate-400 ${dropdownActionLoading === `${loc.id}-reload-kiosk` ? 'animate-spin' : ''}`} />
-                                <span>Reload Kiosk</span>
+                                <span className="whitespace-nowrap">Refresh Ecran</span>
                               </button>
                             </div>
 
