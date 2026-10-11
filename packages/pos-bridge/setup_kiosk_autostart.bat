@@ -168,26 +168,26 @@ if not exist "%APP_DIR%\scan_port_pc.js" curl -s -L -H "Cache-Control: no-cache"
 if not exist "%APP_DIR%\brandLogos.js" curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\brandLogos.js" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/brandLogos.js"
 
 where node >nul 2>nul
-if %errorlevel% equ 0 (
-    if not exist "%APP_DIR%\node_modules\dotenv" (
-        echo [INFO] Instalez dependentele npm pentru POS si imprimanta...
-        cd /d "%APP_DIR%"
-        call npm install --no-audit --no-fund >nul 2>&1
-    )
-)
+if %errorlevel% neq 0 goto :skip_npm
+if exist "%APP_DIR%\node_modules\dotenv" goto :skip_npm
 
-if exist "%APP_DIR%\run-hidden.vbs" (
-    powershell -NoProfile -Command "$w=New-Object -Com WScript.Shell; $u=[Environment]::GetFolderPath('Startup'); $s=$w.CreateShortcut(\"$u\POSBridge.lnk\"); $s.TargetPath='wscript.exe'; $s.Arguments='\"%APP_DIR%\run-hidden.vbs\"'; $s.WorkingDirectory='%APP_DIR%'; $s.WindowStyle=0; $s.Save()" >nul 2>&1
-    echo [INFO] Pornesc POS Bridge in fundal (run-hidden.vbs)...
-    start "" wscript.exe "%APP_DIR%\run-hidden.vbs"
-    goto :bridge_started
-)
+echo [INFO] Instalez dependentele npm pentru POS si imprimanta...
+cd /d "%APP_DIR%"
+call npm install --no-audit --no-fund >nul 2>&1
 
-if exist "%APP_DIR%\start-windows.bat" (
-    powershell -NoProfile -Command "$w=New-Object -Com WScript.Shell; $u=[Environment]::GetFolderPath('Startup'); $s=$w.CreateShortcut(\"$u\POSBridge.lnk\"); $s.TargetPath='%APP_DIR%\start-windows.bat'; $s.WorkingDirectory='%APP_DIR%'; $s.WindowStyle=7; $s.Save()" >nul 2>&1
-    echo [INFO] Pornesc start-windows.bat...
-    start "" /min "%APP_DIR%\start-windows.bat"
-)
+:skip_npm
+
+if not exist "%APP_DIR%\run-hidden.vbs" goto :try_bat
+powershell -NoProfile -Command "$w=New-Object -Com WScript.Shell; $u=[Environment]::GetFolderPath('Startup'); $s=$w.CreateShortcut(\"$u\POSBridge.lnk\"); $s.TargetPath='wscript.exe'; $s.Arguments='\"%APP_DIR%\run-hidden.vbs\"'; $s.WorkingDirectory='%APP_DIR%'; $s.WindowStyle=0; $s.Save()" >nul 2>&1
+echo [INFO] Pornesc POS Bridge in fundal (run-hidden.vbs)...
+start "" wscript.exe "%APP_DIR%\run-hidden.vbs"
+goto :bridge_started
+
+:try_bat
+if not exist "%APP_DIR%\start-windows.bat" goto :bridge_started
+powershell -NoProfile -Command "$w=New-Object -Com WScript.Shell; $u=[Environment]::GetFolderPath('Startup'); $s=$w.CreateShortcut(\"$u\POSBridge.lnk\"); $s.TargetPath='%APP_DIR%\start-windows.bat'; $s.WorkingDirectory='%APP_DIR%'; $s.WindowStyle=7; $s.Save()" >nul 2>&1
+echo [INFO] Pornesc start-windows.bat...
+start "" /min "%APP_DIR%\start-windows.bat"
 
 :bridge_started
 
