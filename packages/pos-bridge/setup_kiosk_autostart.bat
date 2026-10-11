@@ -152,6 +152,27 @@ echo [6/7] Configurare Autostart la pornirea Windows si creare scurtaturi...
 powershell -NoProfile -Command "$w=New-Object -Com WScript.Shell; $d=[Environment]::GetFolderPath('Desktop'); $s=$w.CreateShortcut(\"$d\Smart Kiosk (%LOC_NAME%).lnk\"); $s.TargetPath='%BROWSER%'; $s.Arguments='--kiosk %URL% --user-data-dir=C:\SmartKiosk_Data --start-fullscreen --start-maximized --window-position=0,0 --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble --disable-infobars --disable-pinch --overscroll-history-navigation=0 --check-for-update-interval=31536000'; $s.WindowStyle=3; $s.Save(); $u=[Environment]::GetFolderPath('Startup'); $s2=$w.CreateShortcut(\"$u\SmartKiosk.lnk\"); $s2.TargetPath='%BROWSER%'; $s2.Arguments='--kiosk %URL% --user-data-dir=C:\SmartKiosk_Data --start-fullscreen --start-maximized --window-position=0,0 --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble --disable-infobars --disable-pinch --overscroll-history-navigation=0 --check-for-update-interval=31536000'; $s2.WindowStyle=3; $s2.Save()" >nul 2>&1
 
 :: Autostart si pornire POS Bridge in fundal
+echo [INFO] Asigur existenta fisierelor POS Bridge...
+if not exist "%APP_DIR%\start-windows.bat" curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\start-windows.bat" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/start-windows.bat"
+if not exist "%APP_DIR%\run-hidden.vbs" curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\run-hidden.vbs" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/run-hidden.vbs"
+if not exist "%APP_DIR%\watchdog.vbs" curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\watchdog.vbs" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/watchdog.vbs"
+if not exist "%APP_DIR%\package.json" curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\package.json" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/package.json"
+if not exist "%APP_DIR%\index.js" curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\index.js" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/index.js"
+if not exist "%APP_DIR%\printer.js" curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\printer.js" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/printer.js"
+if not exist "%APP_DIR%\rawprint.ps1" curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\rawprint.ps1" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/rawprint.ps1"
+if not exist "%APP_DIR%\scan_port_pc.js" curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\scan_port_pc.js" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/scan_port_pc.js"
+if not exist "%APP_DIR%\brandLogos.js" curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\brandLogos.js" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/brandLogos.js"
+
+where node >nul 2>nul
+if %errorlevel% equ 0 (
+    if not exist "%APP_DIR%\node_modules\dotenv" (
+        echo [INFO] Instalez dependentele npm pentru POS si imprimanta...
+        pushd "%APP_DIR%"
+        call npm install --no-audit --no-fund >nul 2>&1
+        popd
+    )
+)
+
 if exist "%APP_DIR%\run-hidden.vbs" (
     powershell -NoProfile -Command "$w=New-Object -Com WScript.Shell; $u=[Environment]::GetFolderPath('Startup'); $s=$w.CreateShortcut(\"$u\POSBridge.lnk\"); $s.TargetPath='wscript.exe'; $s.Arguments='\"%APP_DIR%\run-hidden.vbs\"'; $s.WorkingDirectory='%APP_DIR%'; $s.WindowStyle=0; $s.Save()" >nul 2>&1
     echo [INFO] Pornesc POS Bridge in fundal (run-hidden.vbs)...
