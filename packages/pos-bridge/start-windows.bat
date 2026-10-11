@@ -56,24 +56,15 @@ if not exist "node_modules\dotenv" (
     echo.
 )
 
+:: Inchide orice instanta anterioara blocata de node.exe pentru a elibera portul COM
+taskkill /F /IM node.exe >nul 2>&1
+timeout /t 1 >nul
+
 echo  [INFO] Pornesc POS Bridge din folderul curent: %~dp0
 echo  [INFO] Apasa Ctrl+C pentru a opri
 echo.
 
 :loop
-echo  [INFO] Verific actualizari din Cloud...
-curl -s -L -H "Cache-Control: no-cache" -o server_config.json "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/server_config.json"
-curl -s -L -H "Cache-Control: no-cache" -o index.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/index.js"
-curl -s -L -H "Cache-Control: no-cache" -o printer.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/printer.js"
-curl -s -L -H "Cache-Control: no-cache" -o rawprint.ps1 "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/rawprint.ps1"
-curl -s -L -H "Cache-Control: no-cache" -o scan_port_pc.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/scan_port_pc.js"
-curl -s -L -H "Cache-Control: no-cache" -o watchdog.vbs "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/watchdog.vbs"
-curl -s -L -H "Cache-Control: no-cache" -o PrinterServiceDatecsFP950.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/PrinterServiceDatecsFP950.js"
-curl -s -L -H "Cache-Control: no-cache" -o VivaPosService.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/VivaPosService.js"
-curl -s -L -H "Cache-Control: no-cache" -o setup_kiosk_autostart.bat "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/setup_kiosk_autostart.bat"
-
-if not exist "package.json" curl -s -L -H "Cache-Control: no-cache" -o package.json "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/package.json"
-if not exist "node_modules\dotenv" call npm install --no-audit --no-fund
 node index.js
 if %errorlevel% equ 42 (
     echo.
