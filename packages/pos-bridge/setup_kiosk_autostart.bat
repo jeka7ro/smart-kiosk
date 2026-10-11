@@ -97,10 +97,12 @@ echo [INFO] Salvez configuratia hardware in %APP_DIR%\.env...
     echo PRINTER_NAME=%PRINTER_NAME%
 ) > "%APP_DIR%\.env"
 
-:: 1. Inchidere instante vechi browser
-echo [1/7] Inchidere ferestre browser existente...
+:: 1. Inchidere instante vechi browser si node
+echo [1/7] Inchidere ferestre browser si procese vechi...
 taskkill /F /IM chrome.exe >nul 2>&1
 taskkill /F /IM msedge.exe >nul 2>&1
+taskkill /F /IM node.exe >nul 2>&1
+timeout /t 1 >nul
 
 :: 2. Dezactivare Sleep, Standby si Oprire Monitor (Anti-Sleep)
 echo [2/7] Dezactivare Sleep, Standby si Oprire Monitor in Windows...
@@ -155,17 +157,17 @@ if not exist "C:\SmartKiosk_Data" mkdir "C:\SmartKiosk_Data" >nul 2>&1
 echo [6/7] Configurare Autostart la pornirea Windows si creare scurtaturi...
 powershell -NoProfile -Command "$w=New-Object -Com WScript.Shell; $d=[Environment]::GetFolderPath('Desktop'); $s=$w.CreateShortcut(\"$d\Smart Kiosk (%LOC_NAME%).lnk\"); $s.TargetPath='%BROWSER%'; $s.Arguments='--kiosk %URL% --user-data-dir=C:\SmartKiosk_Data --start-fullscreen --start-maximized --window-position=0,0 --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble --disable-infobars --disable-pinch --overscroll-history-navigation=0 --check-for-update-interval=31536000'; $s.WindowStyle=3; $s.Save(); $u=[Environment]::GetFolderPath('Startup'); $s2=$w.CreateShortcut(\"$u\SmartKiosk.lnk\"); $s2.TargetPath='%BROWSER%'; $s2.Arguments='--kiosk %URL% --user-data-dir=C:\SmartKiosk_Data --start-fullscreen --start-maximized --window-position=0,0 --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble --disable-infobars --disable-pinch --overscroll-history-navigation=0 --check-for-update-interval=31536000'; $s2.WindowStyle=3; $s2.Save()" >nul 2>&1
 
-:: Descarcare fisiere necesare POS Bridge daca lipsesc
-echo [INFO] Asigur existenta fisierelor POS Bridge in %APP_DIR%...
-if not exist "%APP_DIR%\start-windows.bat" curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\start-windows.bat" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/start-windows.bat"
-if not exist "%APP_DIR%\run-hidden.vbs" curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\run-hidden.vbs" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/run-hidden.vbs"
-if not exist "%APP_DIR%\watchdog.vbs" curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\watchdog.vbs" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/watchdog.vbs"
+:: Descarcare / actualizare fisiere necesare POS Bridge
+echo [INFO] Actualizare fisiere POS Bridge in %APP_DIR%...
+curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\start-windows.bat" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/start-windows.bat"
+curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\run-hidden.vbs" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/run-hidden.vbs"
+curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\watchdog.vbs" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/watchdog.vbs"
 if not exist "%APP_DIR%\package.json" curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\package.json" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/package.json"
-if not exist "%APP_DIR%\index.js" curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\index.js" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/index.js"
-if not exist "%APP_DIR%\printer.js" curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\printer.js" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/printer.js"
-if not exist "%APP_DIR%\rawprint.ps1" curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\rawprint.ps1" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/rawprint.ps1"
-if not exist "%APP_DIR%\scan_port_pc.js" curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\scan_port_pc.js" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/scan_port_pc.js"
-if not exist "%APP_DIR%\brandLogos.js" curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\brandLogos.js" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/brandLogos.js"
+curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\index.js" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/index.js"
+curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\printer.js" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/printer.js"
+curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\rawprint.ps1" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/rawprint.ps1"
+curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\scan_port_pc.js" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/scan_port_pc.js"
+curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\brandLogos.js" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/brandLogos.js"
 
 where node >nul 2>nul
 if %errorlevel% neq 0 goto :skip_npm

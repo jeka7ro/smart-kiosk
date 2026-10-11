@@ -48,15 +48,30 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
       const endpoint = locationId === 'all' && actionType === 'reload-kiosk'
         ? `${backend}/api/bridge-monitoring/reload-all-kiosks`
         : `${backend}/api/bridge-monitoring/${locationId}/${actionType}`;
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': 'sk-live-2024-secure',
-        },
-      });
-      const json = await res.json();
-      if (res.ok) {
+      const ttEndpoint = locationId === 'all' && actionType === 'reload-kiosk'
+        ? 'https://smart-kiosk-ttut.onrender.com/api/bridge-monitoring/reload-all-kiosks'
+        : `https://smart-kiosk-ttut.onrender.com/api/bridge-monitoring/${locationId}/${actionType}`;
+
+      const [resPrimary, resTt] = await Promise.all([
+        fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': 'sk-live-2024-secure',
+          },
+        }).catch(() => null),
+        fetch(ttEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': 'sk-live-2024-secure',
+          },
+        }).catch(() => null),
+      ]);
+
+      const res = resPrimary && resPrimary.ok ? resPrimary : (resTt || resPrimary);
+      const json = res ? await res.json().catch(() => ({})) : {};
+      if (res && res.ok) {
         setActionFeedback({ type: 'success', text: json.message || 'Comandă transmisă cu succes.' });
       } else {
         setActionFeedback({ type: 'error', text: json.error || 'Eroare la transmiterea comenzii.' });
@@ -83,10 +98,13 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
 
   const fetchStatus = useCallback(async () => {
     try {
-      const [resBridge, resKiosks] = await Promise.all([
+      const [resBridge, resTtBridge, resKiosks] = await Promise.all([
         fetch(`${backend}/api/bridge-monitoring/status`, {
           headers: { 'x-api-key': 'sk-live-2024-secure' }
         }),
+        fetch('https://smart-kiosk-ttut.onrender.com/api/bridge-monitoring/status', {
+          headers: { 'x-api-key': 'sk-live-2024-secure' }
+        }).catch(() => null),
         fetch(`${backend}/api/locations/live-status`, {
           headers: { 'x-api-key': 'sk-live-2024-secure' }
         }).catch(() => null)
@@ -94,6 +112,18 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
 
       if (resBridge && resBridge.ok) {
         const json = await resBridge.json();
+        if (resTtBridge && resTtBridge.ok) {
+          try {
+            const ttJson = await resTtBridge.json();
+            if (ttJson?.locations) {
+              for (const [k, loc] of Object.entries(ttJson.locations)) {
+                if (loc.isBridgeOnline && (!json.locations[k] || !json.locations[k].isBridgeOnline)) {
+                  json.locations[k] = { ...json.locations[k], ...loc, isBridgeOnline: true, status: 'online' };
+                }
+              }
+            }
+          } catch (_) {}
+        }
         setData(json);
         if (json.telegramConfig) {
           setTelegramForm(prev => ({
@@ -128,7 +158,17 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
     if (socket) {
       const onBridgeUpdate = (updatedSummary) => {
         if (updatedSummary) {
-          setData(updatedSummary);
+          setData(prev => {
+            const merged = { ...updatedSummary, locations: { ...(updatedSummary.locations || {}) } };
+            if (prev?.locations) {
+              for (const [k, loc] of Object.entries(prev.locations)) {
+                if (loc.isBridgeOnline && (!merged.locations[k] || !merged.locations[k].isBridgeOnline)) {
+                  merged.locations[k] = { ...merged.locations[k], ...loc, isBridgeOnline: true, status: 'online' };
+                }
+              }
+            }
+            return merged;
+          });
           setLastRefreshed(new Date());
         }
       };

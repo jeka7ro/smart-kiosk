@@ -552,12 +552,25 @@ export default function AdminApp() {
 
     // Initial bridge monitoring fetch + 15s poll
     const fetchBridgeStatus = () => {
-      fetch(`${BACKEND}/api/bridge-monitoring/status`, {
-        headers: { 'x-api-key': 'sk-live-2024-secure' }
-      })
-        .then(r => r.json())
-        .then(d => { if (d && d.locations) setBridgeSummary(d); })
-        .catch(() => {});
+      Promise.all([
+        fetch(`${BACKEND}/api/bridge-monitoring/status`, {
+          headers: { 'x-api-key': 'sk-live-2024-secure' }
+        }).then(r => r.json()).catch(() => null),
+        fetch('https://smart-kiosk-ttut.onrender.com/api/bridge-monitoring/status', {
+          headers: { 'x-api-key': 'sk-live-2024-secure' }
+        }).then(r => r.json()).catch(() => null)
+      ]).then(([d, tt]) => {
+        if (!d && !tt) return;
+        const merged = d || { locations: {} };
+        if (tt?.locations) {
+          for (const [k, loc] of Object.entries(tt.locations)) {
+            if (loc.isBridgeOnline && (!merged.locations[k] || !merged.locations[k].isBridgeOnline)) {
+              merged.locations[k] = { ...merged.locations[k], ...loc, isBridgeOnline: true, status: 'online' };
+            }
+          }
+        }
+        if (merged?.locations) setBridgeSummary(merged);
+      }).catch(() => {});
     };
     fetchBridgeStatus();
     const bridgePoll = setInterval(fetchBridgeStatus, 15000);
