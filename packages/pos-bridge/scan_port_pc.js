@@ -42,7 +42,7 @@ async function scanPortsPc() {
   // ─── PRINTERS (Windows PowerShell) ────────────────
   try {
     const psCmd = `Get-Printer | Select-Object Name, DriverName, PortName, PrinterStatus, Shared | ConvertTo-Json -Compress`;
-    const raw = execSync(`powershell -NoProfile -ExecutionPolicy Bypass -Command "${psCmd}"`, { timeout: 10000 }).toString().trim();
+    const raw = execSync(`powershell -NoProfile -ExecutionPolicy Bypass -Command "${psCmd}"`, { timeout: 4000, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
     
     let parsed = [];
     try {
@@ -51,7 +51,7 @@ async function scanPortsPc() {
     } catch (_) {
       // fallback: try wmic
       try {
-        const wmicRaw = execSync('wmic printer get Name,PortName,DriverName /format:csv', { timeout: 10000 }).toString().trim();
+        const wmicRaw = execSync('wmic printer get Name,PortName,DriverName /format:csv', { timeout: 4000, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
         const lines = wmicRaw.split('\n').filter(l => l.trim() && !l.startsWith('Node'));
         parsed = lines.map(line => {
           const parts = line.split(',');

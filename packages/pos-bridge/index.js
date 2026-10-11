@@ -51,6 +51,22 @@ if (RENDER_URL.includes('smart-kiosk-v7ws.onrender.com')) {
     log(`⚠️ Eroare salvare .env migrat: ${err.message}`);
   }
 }
+// ─── Single-Instance Protection ──────────────────────────────────────────────
+const net = require('net');
+const LOCK_PORT = 40199;
+const lockServer = net.createServer();
+lockServer.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    log('⚠️ [LOCK] O altă instanță de POS Bridge rulează deja activă pe acest PC. Această instanță se oprește.');
+    process.exit(0);
+  }
+});
+try {
+  lockServer.listen(LOCK_PORT, '127.0.0.1', () => {
+    log(`🔒 Single-instance lock activat pe portul intern ${LOCK_PORT}`);
+  });
+} catch (_) {}
+
 const COM_PORT    = process.env.COM_PORT    || 'auto';
 const BAUD_RATE   = parseInt(process.env.BAUD_RATE || '9600');
 const LOCATION_ID = process.env.LOCATION_ID || 'sm-brasov';
