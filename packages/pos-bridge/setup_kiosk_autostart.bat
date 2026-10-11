@@ -69,8 +69,15 @@ powercfg /change hibernate-timeout-ac 0 >nul 2>&1
 powercfg /setacvalueindex SCHEME_CURRENT 2a737441-1930-4402-8685-5b0887e3290d 48e6b7a6-50f5-4760-a579-e4c11dd81862 0 >nul 2>&1
 powercfg /setactive SCHEME_CURRENT >nul 2>&1
 
-:: 3. Activare permanenta Auto-Hide Taskbar in Windows Settings si reincarcare Explorer
-echo [3/6] Activare automata 'Auto-Hide Taskbar' in setarile Windows...
+:: 3. Dezactivare alerte si popup-uri Windows Firewall (Allow Access) si autorizare trafic Kiosk
+echo [3/7] Dezactivare popup-uri Windows Defender Firewall...
+netsh advfirewall set allprofiles settings inboundusernotification disable >nul 2>&1
+for /f "tokens=*" %%i in ('where node.exe 2^>nul') do (
+    netsh advfirewall firewall add rule name="Smart Kiosk Node" dir=in action=allow program="%%i" enable=yes >nul 2>&1
+)
+
+:: 4. Activare permanenta Auto-Hide Taskbar in Windows Settings si reincarcare Explorer
+echo [4/7] Activare automata 'Auto-Hide Taskbar' in setarile Windows...
 powershell -NoProfile -Command "$keys = @('HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3', 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StuckRects2', 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\MMStuckRects3'); foreach($k in $keys){ if(Test-Path $k){ $v=(Get-ItemProperty $k).Settings; if($v -and $v.Length -gt 8){ $v[8]=3; Set-ItemProperty $k Settings $v } } }; Set-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Search' SearchboxTaskbarMode 0 -Force -ErrorAction SilentlyContinue; Set-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' ShowTaskViewButton 0 -Force -ErrorAction SilentlyContinue; Set-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' TaskbarDa 0 -Force -ErrorAction SilentlyContinue; Set-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' TaskbarMn 0 -Force -ErrorAction SilentlyContinue; taskkill /f /im explorer.exe; start explorer.exe" >nul 2>&1
 
 :: 4. Gasire Google Chrome sau Microsoft Edge
@@ -98,8 +105,9 @@ if not exist "%BROWSER%" (
 )
 
 echo [OK] Browser gasit: %BROWSER%
+netsh advfirewall firewall add rule name="Smart Kiosk Browser" dir=in action=allow program="%BROWSER%" enable=yes >nul 2>&1
 
-:: 5. Creare folder profil Kiosk izolat
+:: 6. Creare folder profil Kiosk izolat
 if not exist "C:\SmartKiosk_Data" mkdir "C:\SmartKiosk_Data" >nul 2>&1
 
 :: 6. Salvare Autostart si Scurtaturi Desktop
