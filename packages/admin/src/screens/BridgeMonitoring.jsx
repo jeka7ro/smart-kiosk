@@ -384,54 +384,6 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
         </div>
       </div>
 
-      {/* Universal Command Box with 1-Click Copy */}
-      <div className="bg-slate-900 dark:bg-slate-950 border border-slate-700/80 rounded-2xl p-4 md:p-5 shadow-sm text-slate-100">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-500/20 border border-blue-400/30 flex items-center justify-center shrink-0">
-              <Terminal className="w-4 h-4 text-blue-400" />
-            </div>
-            <div>
-              <div className="text-xs font-bold text-white tracking-wide flex items-center gap-2">
-                <span>Comandă Universală Configurare / Pornire Bridge Kiosk (Windows)</span>
-              </div>
-              <p className="text-[11px] text-slate-400">
-                Rulează în Command Prompt (CMD) sau PowerShell ca Administrator pe orice Kiosk (Brașov, Cluj, Constanța)
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleCopyCommand}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer shadow-xs shrink-0 ${
-              copiedCommand
-                ? 'bg-emerald-600 text-white'
-                : 'bg-blue-600 hover:bg-blue-500 text-white active:scale-95'
-            }`}
-            title="Copiază comanda universală în clipboard"
-          >
-            {copiedCommand ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-white" />
-                <span>Copiat în Clipboard!</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-3.5 h-3.5 text-white" />
-                <span>Copiază Comanda</span>
-              </>
-            )}
-          </button>
-        </div>
-
-        <div className="bg-slate-950/90 dark:bg-black/60 border border-slate-800 rounded-xl p-3 font-mono text-[11px] md:text-xs text-blue-200 flex items-center justify-between gap-3 overflow-x-auto select-all">
-          <code className="whitespace-pre break-all">
-            {UNIVERSAL_COMMAND}
-          </code>
-        </div>
-      </div>
-
       {actionFeedback && (
         <div className={`p-3.5 rounded-2xl text-xs font-semibold flex items-center gap-2.5 border shadow-xs ${
           actionFeedback.type === 'success'
@@ -633,6 +585,54 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
             </div>
           );
         })}
+      </div>
+
+      {/* Universal Command Box with 1-Click Copy - Positioned directly below kiosk cards */}
+      <div className="bg-slate-900 dark:bg-slate-950 border border-slate-700/80 rounded-2xl p-4 md:p-5 shadow-sm text-slate-100">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-blue-500/20 border border-blue-400/30 flex items-center justify-center shrink-0">
+              <Terminal className="w-4 h-4 text-blue-400" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-white tracking-wide flex items-center gap-2">
+                <span>Comandă Universală Configurare / Pornire Bridge Kiosk (Windows)</span>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                Rulează în Command Prompt (CMD) sau PowerShell ca Administrator pe orice Kiosk (Brașov, Cluj, Constanța)
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleCopyCommand}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer shadow-xs shrink-0 ${
+              copiedCommand
+                ? 'bg-emerald-600 text-white'
+                : 'bg-blue-600 hover:bg-blue-500 text-white active:scale-95'
+            }`}
+            title="Copiază comanda universală în clipboard"
+          >
+            {copiedCommand ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-white" />
+                <span>Copiat în Clipboard!</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-3.5 h-3.5 text-white" />
+                <span>Copiază Comanda</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        <div className="bg-slate-950/90 dark:bg-black/60 border border-slate-800 rounded-xl p-3 font-mono text-[11px] md:text-xs text-blue-200 flex items-center justify-between gap-3 overflow-x-auto select-all">
+          <code className="whitespace-pre break-all">
+            {UNIVERSAL_COMMAND}
+          </code>
+        </div>
       </div>
 
       {/* Telegram Alert Settings Panel */}
