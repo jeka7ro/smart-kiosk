@@ -428,34 +428,35 @@ const FLAG_GRADIENTS = {
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '8px',
-            padding: '7px 14px',
+            gap: '6px',
+            padding: '5px 10px',
             borderRadius: '9999px',
-            background: bridgeStatus?.isOnline ? 'rgba(6, 78, 59, 0.55)' : 'rgba(159, 18, 57, 0.55)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            border: `1px solid ${bridgeStatus?.isOnline ? 'rgba(52, 211, 153, 0.4)' : 'rgba(244, 63, 94, 0.4)'}`,
-            color: bridgeStatus?.isOnline ? '#a7f3d0' : '#fecdd3',
-            fontSize: '11px',
+            background: bridgeStatus?.isOnline ? 'rgba(6, 78, 59, 0.45)' : 'rgba(30, 41, 59, 0.35)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            border: `1px solid ${bridgeStatus?.isOnline ? 'rgba(52, 211, 153, 0.35)' : 'rgba(148, 163, 184, 0.2)'}`,
+            color: bridgeStatus?.isOnline ? '#a7f3d0' : '#94a3b8',
+            fontSize: '10px',
             fontWeight: 600,
             cursor: 'pointer',
-            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.35)',
+            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.25)',
             transition: 'all 0.25s ease',
-            userSelect: 'none'
+            userSelect: 'none',
+            opacity: bridgeStatus?.isOnline ? 0.9 : 0.45
           }}
-          title="Stare conexiune POS Bridge (start.bat) - click pentru detalii"
+          title="Stare conexiune echipamente locale - click pentru detalii"
         >
           <span 
             style={{
-              width: '8px',
-              height: '8px',
+              width: '7px',
+              height: '7px',
               borderRadius: '50%',
-              backgroundColor: bridgeStatus?.isOnline ? '#10b981' : '#ef4444',
-              boxShadow: bridgeStatus?.isOnline ? '0 0 10px #10b981' : '0 0 10px #ef4444',
+              backgroundColor: bridgeStatus?.isOnline ? '#10b981' : '#94a3b8',
+              boxShadow: bridgeStatus?.isOnline ? '0 0 8px #10b981' : 'none',
               display: 'inline-block'
             }} 
           />
-          <span>{bridgeStatus?.isOnline ? 'POS Activ' : 'POS Oprit'}</span>
+          <span>{bridgeStatus?.isOnline ? 'Activ' : 'Standby'}</span>
         </button>
       </div>
 

@@ -51,7 +51,7 @@ if "%CHOICE%"=="3" (
     set "LOC_NAME=Brasov"
     set "URL=https://kiosk-smashme.netlify.app/?loc=sm-brasov&universal=true&v=%SCRIPT_VERSION%"
     set "PRINTER_NAME=EPSON TM-T20"
-    set "COM_PORT=auto"
+    set "COM_PORT=COM3"
     set "POS_GATEWAY=raiffeisen"
 )
 if "%CHOICE%"=="4" (
@@ -83,6 +83,8 @@ cd /d "%APP_DIR%"
 
 if exist "C:\Program Files\nodejs\node.exe" set "PATH=C:\Program Files\nodejs;%PATH%"
 if exist "C:\Program Files (x86)\nodejs\node.exe" set "PATH=C:\Program Files (x86)\nodejs;%PATH%"
+if exist "%LocalAppData%\Programs\nodejs\node.exe" set "PATH=%LocalAppData%\Programs\nodejs;%PATH%"
+if exist "%AppData%\npm" set "PATH=%AppData%\npm;%PATH%"
 
 :: Salvare / actualizare automata .env pentru POS Bridge
 echo [INFO] Salvez configuratia hardware in %APP_DIR%\.env...
@@ -179,17 +181,11 @@ call npm install --no-audit --no-fund >nul 2>&1
 
 :skip_npm
 
-if not exist "%APP_DIR%\run-hidden.vbs" goto :try_bat
-powershell -NoProfile -Command "$w=New-Object -Com WScript.Shell; $u=[Environment]::GetFolderPath('Startup'); $s=$w.CreateShortcut(\"$u\POSBridge.lnk\"); $s.TargetPath='wscript.exe'; $s.Arguments='\"%APP_DIR%\run-hidden.vbs\"'; $s.WorkingDirectory='%APP_DIR%'; $s.WindowStyle=0; $s.Save()" >nul 2>&1
-echo [INFO] Pornesc POS Bridge in fundal (run-hidden.vbs)...
-start "" wscript.exe "%APP_DIR%\run-hidden.vbs"
-goto :bridge_started
-
-:try_bat
-if not exist "%APP_DIR%\start-windows.bat" goto :bridge_started
-powershell -NoProfile -Command "$w=New-Object -Com WScript.Shell; $u=[Environment]::GetFolderPath('Startup'); $s=$w.CreateShortcut(\"$u\POSBridge.lnk\"); $s.TargetPath='%APP_DIR%\start-windows.bat'; $s.WorkingDirectory='%APP_DIR%'; $s.WindowStyle=7; $s.Save()" >nul 2>&1
-echo [INFO] Pornesc start-windows.bat...
-start "" /min "%APP_DIR%\start-windows.bat"
+if exist "%APP_DIR%\run-hidden.vbs" (
+    powershell -NoProfile -Command "$w=New-Object -Com WScript.Shell; $u=[Environment]::GetFolderPath('Startup'); $s=$w.CreateShortcut(\"$u\POSBridge.lnk\"); $s.TargetPath='wscript.exe'; $s.Arguments='\"%APP_DIR%\run-hidden.vbs\"'; $s.WorkingDirectory='%APP_DIR%'; $s.WindowStyle=0; $s.Save()" >nul 2>&1
+)
+echo [INFO] Pornesc POS Bridge in fundal...
+start "" /min cmd /c "%APP_DIR%\start-windows.bat"
 
 :bridge_started
 

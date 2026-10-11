@@ -10,14 +10,17 @@ echo.
 
 cd /d "%~dp0"
 
+:: Configurare automata PATH pentru Node.js daca e instalat in locatii standard
+if exist "C:\Program Files\nodejs\node.exe" set "PATH=C:\Program Files\nodejs;%PATH%"
+if exist "C:\Program Files (x86)\nodejs\node.exe" set "PATH=C:\Program Files (x86)\nodejs;%PATH%"
+if exist "%LocalAppData%\Programs\nodejs\node.exe" set "PATH=%LocalAppData%\Programs\nodejs;%PATH%"
+if exist "%AppData%\npm" set "PATH=%AppData%\npm;%PATH%"
+
 :: Verifica daca Node.js e instalat
 where node >nul 2>nul
 if %errorlevel% neq 0 (
-    color 0C
-    echo  [EROARE] Node.js nu este instalat!
-    echo  Descarca de la: https://nodejs.org/en/download
-    echo.
-    pause
+    echo [EROARE] Node.js nu este gasit in PATH!
+    echo Se verifica locatiile standard C:\Program Files\nodejs...
     exit /b 1
 )
 
@@ -31,14 +34,18 @@ curl -s -L -H "Cache-Control: no-cache" -o VivaPosService.js "https://raw.github
 curl -s -L -H "Cache-Control: no-cache" -o setup_kiosk_autostart.bat "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/setup_kiosk_autostart.bat"
 echo  [INFO] Fisiere actualizate cu succes!
 
-:: Verifica daca exista .env
+:: Verifica daca exista .env (creeaza automat daca lipseste)
 if not exist ".env" (
-    color 0E
-    echo  [ATENTIE] Fisierul .env nu exista!
-    echo  Copiaza .env.example ca .env si configureaza-l.
-    echo.
-    pause
-    exit /b 1
+    echo  [INFO] Fisierul .env lipseste, il creez automat...
+    (
+        echo RENDER_URL=https://smart-kiosk-ttut.onrender.com
+        echo COM_PORT=COM3
+        echo BAUD_RATE=9600
+        echo LOCATION_ID=sm-brasov
+        echo BRIDGE_KEY=pos-bridge-2024
+        echo POS_GATEWAY=raiffeisen
+        echo PRINTER_NAME=EPSON TM-T20
+    ) > ".env"
 )
 
 :: Instaleaza dependentele daca lipsesc
