@@ -104,63 +104,27 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
 
   const fetchStatus = useCallback(async () => {
     try {
-      const primaryUrl = 'https://smart-kiosk-ttut.onrender.com';
-      const secondaryUrl = 'https://smart-kiosk-v7ws.onrender.com';
+      const serverUrl = 'https://smart-kiosk-ttut.onrender.com';
 
-      const [resTtBridge, resV7Bridge, resTtKiosks, resV7Kiosks] = await Promise.all([
-        fetch(`${primaryUrl}/api/bridge-monitoring/status`, {
+      const [resBridge, resKiosks] = await Promise.all([
+        fetch(`${serverUrl}/api/bridge-monitoring/status`, {
           headers: { 'x-api-key': 'sk-live-2024-secure' }
         }).catch(() => null),
-        fetch(`${secondaryUrl}/api/bridge-monitoring/status`, {
-          headers: { 'x-api-key': 'sk-live-2024-secure' }
-        }).catch(() => null),
-        fetch(`${primaryUrl}/api/locations/live-status`, {
-          headers: { 'x-api-key': 'sk-live-2024-secure' }
-        }).catch(() => null),
-        fetch(`${secondaryUrl}/api/locations/live-status`, {
+        fetch(`${serverUrl}/api/locations/live-status`, {
           headers: { 'x-api-key': 'sk-live-2024-secure' }
         }).catch(() => null),
       ]);
 
-      let ttJson = null;
-      if (resTtBridge && resTtBridge.ok) {
-        try { ttJson = await resTtBridge.json(); } catch (_) {}
-      }
-      let v7Json = null;
-      if (resV7Bridge && resV7Bridge.ok) {
-        try { v7Json = await resV7Bridge.json(); } catch (_) {}
+      let json = null;
+      if (resBridge && resBridge.ok) {
+        try { json = await resBridge.json(); } catch (_) {}
       }
 
-      // Merge both backends into a unified source of truth, prioritizing TTUT
-      const merged = ttJson ? JSON.parse(JSON.stringify(ttJson)) : (v7Json ? JSON.parse(JSON.stringify(v7Json)) : { locations: {} });
+      const merged = json ? JSON.parse(JSON.stringify(json)) : { locations: {} };
       if (!merged.locations) merged.locations = {};
 
-      if (ttJson?.locations) {
-        for (const [k, loc] of Object.entries(ttJson.locations)) {
-          merged.locations[k] = { ...loc, serverHost: 'smart-kiosk-ttut.onrender.com' };
-        }
-      }
-
-      if (v7Json?.locations) {
-        for (const [k, loc] of Object.entries(v7Json.locations)) {
-          const cur = merged.locations[k];
-          if (!cur) {
-            merged.locations[k] = { ...loc, serverHost: 'smart-kiosk-v7ws.onrender.com' };
-          } else {
-            if (!cur.isBridgeOnline && loc.isBridgeOnline) {
-              merged.locations[k].isBridgeOnline = true;
-              merged.locations[k].status = 'online';
-              merged.locations[k].port = loc.port || cur.port;
-              merged.locations[k].printerName = loc.printerName || cur.printerName;
-              merged.locations[k].lastPing = loc.lastPing || cur.lastPing;
-              merged.locations[k].lastPingSecondsAgo = loc.lastPingSecondsAgo ?? cur.lastPingSecondsAgo;
-              merged.locations[k].serverHost = 'smart-kiosk-v7ws.onrender.com';
-            }
-            if (!cur.isKioskOnline && loc.isKioskOnline) {
-              merged.locations[k].isKioskOnline = true;
-            }
-          }
-        }
+      for (const [k, loc] of Object.entries(merged.locations)) {
+        merged.locations[k] = { ...loc, serverHost: 'smart-kiosk-ttut.onrender.com' };
       }
 
       // Recompute totals
@@ -184,24 +148,12 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
       }
       setLastRefreshed(new Date());
 
-      // Merge kiosks live status (websockets)
+      // Kiosks live status (websockets)
       const kLive = {};
       if (resKiosks && resKiosks.ok) {
         try {
           const kj = await resKiosks.json();
           if (kj?.liveStatus) Object.assign(kLive, kj.liveStatus);
-        } catch (_) {}
-      }
-      if (resTtKiosks && resTtKiosks.ok) {
-        try {
-          const ttKj = await resTtKiosks.json();
-          if (ttKj?.liveStatus) {
-            for (const [k, v] of Object.entries(ttKj.liveStatus)) {
-              if (v.isLive || v.online || !kLive[k]) {
-                kLive[k] = v;
-              }
-            }
-          }
         } catch (_) {}
       }
       setInternalKiosksLive(kLive);
