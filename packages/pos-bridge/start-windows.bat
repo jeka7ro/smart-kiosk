@@ -75,6 +75,13 @@ curl -s -L -H "Cache-Control: no-cache" -o setup_kiosk_autostart.bat "https://ra
 if not exist "package.json" curl -s -L -H "Cache-Control: no-cache" -o package.json "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/package.json"
 if not exist "node_modules\dotenv" call npm install --no-audit --no-fund
 node index.js
+if %errorlevel% equ 42 (
+    echo.
+    echo  [INFO] O alta instanta a POS Bridge ruleaza deja activ pe acest sistem.
+    echo  [INFO] Aceasta fereastra duplicat se inchide automat.
+    timeout /t 2 >nul
+    exit /b 0
+)
 echo.
 echo  [WARN] Procesul s-a oprit - repornesc automat in 3 secunde...
 ping 127.0.0.1 -n 4 >nul

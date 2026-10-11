@@ -1,3 +1,18 @@
+// ── SINGLETON LOCK: Ensure only ONE instance of POS Bridge runs per PC ────────
+const net = require('net');
+const SINGLETON_PORT = 40499;
+const singletonServer = net.createServer();
+singletonServer.once('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`[SINGLETON] ⚠️ O altă instanță a POS Bridge rulează deja pe acest sistem (portul ${SINGLETON_PORT} este activ).`);
+    console.error(`[SINGLETON] Această instanță duplicat se închide imediat (cod 42) pentru a evita coliziuni COM și Socket.`);
+    process.exit(42);
+  }
+});
+singletonServer.listen(SINGLETON_PORT, '127.0.0.1', () => {
+  // Lock acquired exclusively for this PC instance
+});
+
 const { execSync } = require('child_process');
 try {
   console.log('[INFO] Auto-sincronizare module POS Bridge (printer, etc.)...');
@@ -98,24 +113,7 @@ function checkCanonicalServer(onComplete) {
 
 checkCanonicalServer();
 setInterval(checkCanonicalServer, 5 * 60 * 1000);
-// ─── Single-Instance Protection ──────────────────────────────────────────────
-const net = require('net');
-const LOCK_PORT = 40199;
-const lockServer = net.createServer();
-lockServer.on('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    log('✅ [LOCK] POS Bridge rulează deja activ și conectat în fundal pe acest PC.');
-    log('ℹ️ Această fereastră este doar un duplicat și poate fi închisă oricând (click pe [X]).');
-    // Menținem procesul silențios în așteptare pentru a nu bucla scriptul batch
-    setInterval(() => {}, 60000);
-    return;
-  }
-});
-try {
-  lockServer.listen(LOCK_PORT, '127.0.0.1', () => {
-    log(`🔒 Single-instance lock activat pe portul intern ${LOCK_PORT}`);
-  });
-} catch (_) {}
+// Single-instance protection is active at top of file (port 40499)
 
 const COM_PORT    = process.env.COM_PORT    || 'auto';
 const BAUD_RATE   = parseInt(process.env.BAUD_RATE || '9600');

@@ -7,16 +7,9 @@ Set objWMIService = GetObject("winmgmts:\\.\root\cimv2")
 ' ─── 1. Monitorizare & Repornire Automată POS Bridge ────────────────────────
 Set colProcesses = objWMIService.ExecQuery("Select * from Win32_Process Where Name = 'node.exe'")
 nodeRunning = False
-For Each proc in colProcesses
-    cmdLine = ""
-    On Error Resume Next
-    cmdLine = proc.CommandLine
-    On Error GoTo 0
-    If InStr(1, cmdLine, "index.js", 1) > 0 Then
-        nodeRunning = True
-        Exit For
-    End If
-Next
+If colProcesses.Count > 0 Then
+    nodeRunning = True
+End If
 
 If Not nodeRunning Then
     ws.CurrentDirectory = currentDir

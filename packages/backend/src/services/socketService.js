@@ -331,10 +331,24 @@ function initSocket(io) {
     });
 
     // Salvăm locationId pe socket la register și notificăm bridgeMonitoringService
-    socket.on('pos_bridge_register', (origHandler => ({ locationId, port, posGateway, printerName }) => {
+    socket.on('pos_bridge_register', async ({ locationId, port, posGateway, printerName }) => {
       socket._posLocationId = locationId;
-      origHandler({ locationId, port, posGateway, printerName });
-    })(({ locationId, port, posGateway, printerName }) => {
+
+      // Deconectează orice socket POS Bridge anterior / duplicat pentru aceeași locație
+      if (locationId) {
+        try {
+          const roomSockets = await io.in(`pos-bridge-${locationId}`).fetchSockets();
+          for (const s of roomSockets) {
+            if (s.id !== socket.id) {
+              console.log(`[Socket] ⚠️ Deconectez socket POS Bridge anterior duplicat pentru ${locationId} (sid: ${s.id})`);
+              s.disconnect(true);
+            }
+          }
+        } catch (e) {
+          console.warn('[Socket] Eroare curățare socket duplicat:', e.message);
+        }
+      }
+
       const { getLocationAliases } = require('../utils/locations');
       const aliases = getLocationAliases(locationId);
       for (const a of aliases) {
@@ -348,7 +362,7 @@ function initSocket(io) {
       } catch (e) {
         console.error('[BridgeMonitor] Register error:', e.message);
       }
-    }));
+    });
 
     // POS Bridge heartbeat ping
     socket.on('pos_bridge_heartbeat', (data) => {
