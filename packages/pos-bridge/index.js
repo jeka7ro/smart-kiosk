@@ -57,8 +57,11 @@ const LOCK_PORT = 40199;
 const lockServer = net.createServer();
 lockServer.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
-    log('⚠️ [LOCK] O altă instanță de POS Bridge rulează deja activă pe acest PC. Această instanță se oprește.');
-    process.exit(0);
+    log('✅ [LOCK] POS Bridge rulează deja activ și conectat în fundal pe acest PC.');
+    log('ℹ️ Această fereastră este doar un duplicat și poate fi închisă oricând (click pe [X]).');
+    // Menținem procesul silențios în așteptare pentru a nu bucla scriptul batch
+    setInterval(() => {}, 60000);
+    return;
   }
 });
 try {

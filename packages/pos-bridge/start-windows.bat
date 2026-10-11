@@ -73,6 +73,12 @@ curl -s -L -H "Cache-Control: no-cache" -o setup_kiosk_autostart.bat "https://ra
 if not exist "package.json" curl -s -L -H "Cache-Control: no-cache" -o package.json "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/package.json"
 if not exist "node_modules\dotenv" call npm install --no-audit --no-fund
 node index.js
+set NODE_EXIT=%errorlevel%
+if %NODE_EXIT% equ 0 (
+    echo.
+    echo  [OK] POS Bridge s-a oprit normal.
+    exit /b 0
+)
 echo.
 echo  [WARN] Bridge oprit - repornesc in 5 secunde...
 ping 127.0.0.1 -n 6 >nul
