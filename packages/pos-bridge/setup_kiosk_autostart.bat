@@ -100,7 +100,7 @@ if exist "%AppData%\npm" set "PATH=%AppData%\npm;%PATH%"
 echo [INFO] Salvez configuratia hardware in %APP_DIR%\.env...
 (
     echo # Configurare automata Smart Kiosk - %LOC_NAME%
-    echo RENDER_URL=https://smart-kiosk-ttut.onrender.com
+    echo RENDER_URL=https://smart-kiosk-v7ws.onrender.com
     echo COM_PORT=%COM_PORT%
     echo BAUD_RATE=9600
     echo LOCATION_ID=%LOC_ID%

@@ -51,7 +51,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
   };
 
   const serverHost = useMemo(() => {
-    if (!backend) return 'smart-kiosk-ttut.onrender.com';
+    if (!backend) return 'smart-kiosk-v7ws.onrender.com';
     return backend.replace(/^https?:\/\//, '').replace(/\/$/, '');
   }, [backend]);
 
@@ -104,35 +104,109 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
 
   const fetchStatus = useCallback(async () => {
     try {
-      const [resBridge, resKiosks] = await Promise.all([
-        fetch(`${backend}/api/bridge-monitoring/status`, {
+      const primaryUrl = 'https://smart-kiosk-v7ws.onrender.com';
+      const secondaryUrl = 'https://smart-kiosk-ttut.onrender.com';
+
+      const [resBridge, resTtBridge, resKiosks, resTtKiosks] = await Promise.all([
+        fetch(`${primaryUrl}/api/bridge-monitoring/status`, {
           headers: { 'x-api-key': 'sk-live-2024-secure' }
         }).catch(() => null),
-        fetch(`${backend}/api/locations/live-status`, {
+        fetch(`${secondaryUrl}/api/bridge-monitoring/status`, {
           headers: { 'x-api-key': 'sk-live-2024-secure' }
-        }).catch(() => null)
+        }).catch(() => null),
+        fetch(`${primaryUrl}/api/locations/live-status`, {
+          headers: { 'x-api-key': 'sk-live-2024-secure' }
+        }).catch(() => null),
+        fetch(`${secondaryUrl}/api/locations/live-status`, {
+          headers: { 'x-api-key': 'sk-live-2024-secure' }
+        }).catch(() => null),
       ]);
 
+      let json = null;
       if (resBridge && resBridge.ok) {
-        const json = await resBridge.json();
-        setData(json);
-        if (json.telegramConfig) {
-          setTelegramForm(prev => ({
-            ...prev,
-            enabled: !!json.telegramConfig.enabled,
-            chatId: json.telegramConfig.chatId || '',
-            alertCooldownMinutes: json.telegramConfig.alertCooldownMinutes || 10,
-          }));
-        }
-        setLastRefreshed(new Date());
+        try { json = await resBridge.json(); } catch (_) {}
+      }
+      let ttJson = null;
+      if (resTtBridge && resTtBridge.ok) {
+        try { ttJson = await resTtBridge.json(); } catch (_) {}
       }
 
-      if (resKiosks && resKiosks.ok) {
-        const kJson = await resKiosks.json();
-        if (kJson?.liveStatus) {
-          setInternalKiosksLive(kJson.liveStatus);
+      // Merge both backends into a unified source of truth
+      const merged = json ? JSON.parse(JSON.stringify(json)) : (ttJson ? JSON.parse(JSON.stringify(ttJson)) : { locations: {} });
+      if (!merged.locations) merged.locations = {};
+
+      if (json?.locations) {
+        for (const [k, loc] of Object.entries(json.locations)) {
+          if (!merged.locations[k]) {
+            merged.locations[k] = { ...loc, serverHost: 'smart-kiosk-v7ws.onrender.com' };
+          } else {
+            merged.locations[k] = { ...merged.locations[k], ...loc, serverHost: 'smart-kiosk-v7ws.onrender.com' };
+          }
         }
       }
+
+      if (ttJson?.locations) {
+        for (const [k, loc] of Object.entries(ttJson.locations)) {
+          const cur = merged.locations[k];
+          if (!cur) {
+            merged.locations[k] = { ...loc, serverHost: 'smart-kiosk-ttut.onrender.com' };
+          } else {
+            if (loc.isBridgeOnline && !cur.isBridgeOnline) {
+              merged.locations[k].isBridgeOnline = true;
+              merged.locations[k].status = 'online';
+              merged.locations[k].port = loc.port || cur.port;
+              merged.locations[k].printerName = loc.printerName || cur.printerName;
+              merged.locations[k].serverHost = 'smart-kiosk-ttut.onrender.com';
+            }
+            if (loc.isKioskOnline && !cur.isKioskOnline) {
+              merged.locations[k].isKioskOnline = true;
+            }
+          }
+        }
+      }
+
+      // Recompute totals
+      let totalOn = 0;
+      let totalOff = 0;
+      for (const loc of Object.values(merged.locations)) {
+        if (loc.isBridgeOnline) totalOn++;
+        else totalOff++;
+      }
+      merged.totalOnline = totalOn;
+      merged.totalOffline = totalOff;
+
+      setData(merged);
+      if (merged.telegramConfig) {
+        setTelegramForm(prev => ({
+          ...prev,
+          enabled: !!merged.telegramConfig.enabled,
+          chatId: merged.telegramConfig.chatId || '',
+          alertCooldownMinutes: merged.telegramConfig.alertCooldownMinutes || 10,
+        }));
+      }
+      setLastRefreshed(new Date());
+
+      // Merge kiosks live status (websockets)
+      const kLive = {};
+      if (resKiosks && resKiosks.ok) {
+        try {
+          const kj = await resKiosks.json();
+          if (kj?.liveStatus) Object.assign(kLive, kj.liveStatus);
+        } catch (_) {}
+      }
+      if (resTtKiosks && resTtKiosks.ok) {
+        try {
+          const ttKj = await resTtKiosks.json();
+          if (ttKj?.liveStatus) {
+            for (const [k, v] of Object.entries(ttKj.liveStatus)) {
+              if (v.isLive || v.online || !kLive[k]) {
+                kLive[k] = v;
+              }
+            }
+          }
+        } catch (_) {}
+      }
+      setInternalKiosksLive(kLive);
     } catch (err) {
       console.error('[BridgeMonitoring] Fetch error:', err.message);
     } finally {
@@ -499,8 +573,8 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className={`w-2 h-2 rounded-full shrink-0 ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
                     <span className="text-[10px] font-sans font-bold text-slate-400 uppercase tracking-wider shrink-0">Server:</span>
-                    <span className="text-blue-600 dark:text-blue-400 font-bold truncate select-all" title={serverHost}>
-                      {serverHost}
+                    <span className="text-blue-600 dark:text-blue-400 font-bold truncate select-all" title={loc.serverHost || serverHost}>
+                      {loc.serverHost || serverHost}
                     </span>
                   </div>
                 </div>

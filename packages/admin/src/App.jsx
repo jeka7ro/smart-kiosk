@@ -32,7 +32,7 @@ import { LayoutDashboard, Receipt, TrendingUp, MapPin, MonitorSmartphone, QrCode
 import { formatThousands } from './utils/formatters';
 
 
-const rawBackend = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
+const rawBackend = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
 const BACKEND = rawBackend;
 
 const BUILD_INFO = {
