@@ -658,8 +658,23 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                         <span className="truncate">Sistem operațional și sincronizat.</span>
                       </div>
                     ) : (
-                      <div className="p-2.5 rounded-2xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-900/40 text-[11px] text-amber-800 dark:text-amber-300 leading-tight">
-                        <span className="font-bold">Notă:</span> Bridge deconectat pe acest PC.
+                      <div className="p-2.5 rounded-2xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-900/40 text-[11px] text-amber-800 dark:text-amber-300 leading-tight flex items-center justify-between gap-2">
+                        <div>
+                          <span className="font-bold">Notă:</span> Bridge deconectat.
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const num = { cluj1: '1', cluj2: '2', 'sm-brasov': '3', constanta1: '4', constanta2: '5' }[locKey] || '3';
+                            const cmd = `cmd /c "mkdir C:\\SmartKiosk 2>nul & cd /d C:\\SmartKiosk & curl -s -L -o setup.bat https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/setup_kiosk_autostart.bat & setup.bat ${num}"`;
+                            navigator.clipboard.writeText(cmd);
+                            setActionFeedback({ type: 'success', message: `Comanda de pornire pentru ${loc.displayName} a fost copiată!` });
+                            setTimeout(() => setActionFeedback(null), 3000);
+                          }}
+                          className="px-2.5 py-1 rounded-xl text-[10px] font-bold bg-amber-600 hover:bg-amber-700 text-white shrink-0 cursor-pointer shadow-xs transition-colors"
+                        >
+                          Copiază Comandă Pornire
+                        </button>
                       </div>
                     )}
 
