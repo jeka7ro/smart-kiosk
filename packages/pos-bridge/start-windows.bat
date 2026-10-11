@@ -66,5 +66,5 @@ powershell -NoProfile -Command "Get-Printer -ErrorAction SilentlyContinue | ForE
 node index.js
 echo.
 echo  [WARN] Bridge oprit - repornesc in 5 secunde...
-timeout /t 5 /nobreak >nul
+ping 127.0.0.1 -n 6 >nul
 goto loop
