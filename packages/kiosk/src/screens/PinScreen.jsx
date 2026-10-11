@@ -18,7 +18,7 @@ export default function PinScreen({ loc, brandId, onUnlock, isScheduleLock = fal
   const brandLogo = loc?.logoUrl || brandConfig?.logoImg || `/brands/${effectiveBrandId}-logo.png`;
   const brandName = brandConfig?.name || loc?.name || 'Smart Kiosk';
 
-  const effectiveBackend = backendUrl || import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
+  const effectiveBackend = backendUrl || import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
 
   const sendLog = async (eventType, role) => {
     try {

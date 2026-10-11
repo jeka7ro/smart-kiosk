@@ -36,8 +36,21 @@ function log(msg) {
 // Curata fisierul de log la pornire
 try { fs.writeFileSync(LOG_FILE, ''); } catch (_) {}
 
-const rawRenderUrl = process.env.RENDER_URL || 'https://smart-kiosk-v7ws.onrender.com';
-const RENDER_URL   = rawRenderUrl.includes('smart-kiosk-ttut') ? 'https://smart-kiosk-v7ws.onrender.com' : rawRenderUrl;
+let RENDER_URL = process.env.RENDER_URL || 'https://smart-kiosk-ttut.onrender.com';
+if (RENDER_URL.includes('smart-kiosk-v7ws.onrender.com')) {
+  RENDER_URL = 'https://smart-kiosk-ttut.onrender.com';
+  try {
+    const envPath = pathMod.join(__dirname, '.env');
+    if (fs.existsSync(envPath)) {
+      let content = fs.readFileSync(envPath, 'utf8');
+      content = content.replace(/https:\/\/smart-kiosk-v7ws\.onrender\.com/g, 'https://smart-kiosk-ttut.onrender.com');
+      fs.writeFileSync(envPath, content, 'utf8');
+      log('🔄 [AUTO-MIGRARE] .env actualizat definitiv către smart-kiosk-ttut.onrender.com');
+    }
+  } catch (err) {
+    log(`⚠️ Eroare salvare .env migrat: ${err.message}`);
+  }
+}
 const COM_PORT    = process.env.COM_PORT    || 'auto';
 const BAUD_RATE   = parseInt(process.env.BAUD_RATE || '9600');
 const LOCATION_ID = process.env.LOCATION_ID || 'sm-brasov';
@@ -1147,6 +1160,22 @@ async function start() {
   socket.on(`remote_restart_${LOCATION_ID}`, () => {
     log('🔄 Comandă remote_restart directă primită. Repornesc bridge-ul...');
     setTimeout(() => process.exit(0), 500);
+  });
+
+  socket.on('set_server_url', (data) => {
+    const targetUrl = data?.url || 'https://smart-kiosk-ttut.onrender.com';
+    try {
+      const envPath = pathMod.join(__dirname, '.env');
+      if (fs.existsSync(envPath)) {
+        let content = fs.readFileSync(envPath, 'utf8');
+        content = content.replace(/RENDER_URL=.*/g, `RENDER_URL=${targetUrl}`);
+        fs.writeFileSync(envPath, content, 'utf8');
+      }
+      log(`🔄 Comandă set_server_url primită: ${targetUrl}. Repornesc bridge-ul...`);
+      setTimeout(() => process.exit(0), 500);
+    } catch (e) {
+      log(`⚠️ Eroare set_server_url: ${e.message}`);
+    }
   });
 }
 

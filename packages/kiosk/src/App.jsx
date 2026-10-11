@@ -22,8 +22,7 @@ import FullscreenExitPinModal from './components/FullscreenExitPinModal.jsx';
 import FortuneWheel        from './components/FortuneWheel';
 import { proxySyrveImage } from './utils/imageUtils.js';
 
-const rawKioskBackend = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
-const BACKEND = rawKioskBackend.includes('smart-kiosk-ttut') ? 'https://smart-kiosk-v7ws.onrender.com' : rawKioskBackend;
+const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
 
 function isWithinLockSchedule(loc, now = new Date()) {
   if (!loc || !loc.lockScheduleActive) return false;

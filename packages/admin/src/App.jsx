@@ -32,8 +32,8 @@ import { LayoutDashboard, Receipt, TrendingUp, MapPin, MonitorSmartphone, QrCode
 import { formatThousands } from './utils/formatters';
 
 
-const rawBackend = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
-const BACKEND = (!rawBackend || rawBackend.includes('smart-kiosk-ttut')) ? 'https://smart-kiosk-v7ws.onrender.com' : rawBackend;
+const rawBackend = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
+const BACKEND = rawBackend;
 
 const BUILD_INFO = {
   number: typeof __BUILD_NUMBER__ !== 'undefined' ? __BUILD_NUMBER__ : '883',

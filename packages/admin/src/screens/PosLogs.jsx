@@ -13,7 +13,7 @@ import BankLogo from '../components/BankLogo.jsx';
 import { formatThousands } from '../utils/formatters';
 import { detectCardBrand, detectCardBank, BANK_CONFIG } from '../utils/cardUtils';
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
+const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
 
 const STATUS_CONFIG = {
   approved:    { label: 'Aprobat',          color: '#ffffff', bg: '#059669' },

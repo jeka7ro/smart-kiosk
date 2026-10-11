@@ -33,7 +33,7 @@ function formatCurrency(val) {
   return num.toFixed(2);
 }
 
-const CLOUD_BACKEND = 'https://smart-kiosk-v7ws.onrender.com';
+const CLOUD_BACKEND = 'https://smart-kiosk-ttut.onrender.com';
 
 export default function ManagerPortalModal({ locationData, onClose, isStandalone = false }) {
   const localBackend = import.meta.env.VITE_BACKEND_URL || CLOUD_BACKEND;

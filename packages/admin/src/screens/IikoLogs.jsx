@@ -6,7 +6,7 @@ import * as XLSX from 'xlsx';
 import BrandLogo from '../components/BrandLogo.jsx';
 import { formatThousands } from '../utils/formatters';
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
+const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
 
 const BRAND_LABELS = {
   smashme: 'SmashMe',

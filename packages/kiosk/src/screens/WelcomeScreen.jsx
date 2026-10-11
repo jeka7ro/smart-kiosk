@@ -6,8 +6,7 @@ import { t, LANGUAGES, LANGUAGE_NAMES, LANGUAGE_FLAGS } from '../i18n/translatio
 import { io } from 'socket.io-client';
 import './WelcomeScreen.css';
 
-const rawBackend = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
-const BACKEND = rawBackend.includes('smart-kiosk-ttut') ? 'https://smart-kiosk-v7ws.onrender.com' : rawBackend;
+const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
 
 export default function WelcomeScreen() {
   const goTo    = useKioskStore((s) => s.goTo);
@@ -84,6 +83,60 @@ export default function WelcomeScreen() {
     setPosterVisible(false);
     goAfterWelcome();
   };
+
+  // ─── Live POS Bridge (start.bat) status indicator ────────────────────────
+  const [bridgeStatus, setBridgeStatus] = useState(null);
+  const [showBridgeModal, setShowBridgeModal] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    const urlLoc = new URLSearchParams(window.location.search).get('loc');
+    const locKey = locationData?.kioskUrl || locationData?.id || urlLoc || 'sm-brasov';
+
+    const checkBridge = async () => {
+      try {
+        const res = await fetch(`${BACKEND}/api/bridge-monitoring/status`, { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!isMounted) return;
+
+        const locs = data?.locations || {};
+        let matched = locs[locKey];
+        if (!matched) {
+          for (const [k, v] of Object.entries(locs)) {
+            if (
+              (locKey.includes('brasov') && k.includes('brasov')) ||
+              (locKey.includes('cluj1') && k === 'cluj1') ||
+              (locKey.includes('cluj2') && k === 'cluj2') ||
+              (locKey.includes('constanta') && k.includes('constanta'))
+            ) {
+              matched = v;
+              break;
+            }
+          }
+        }
+
+        if (matched) {
+          setBridgeStatus({
+            isOnline: Boolean(matched.status === 'online' || matched.isBridgeOnline),
+            port: matched.port || 'N/A',
+            printerName: matched.printerName || 'N/A',
+            gateway: matched.gateway || 'raiffeisen',
+            lastPingSecondsAgo: matched.lastPingSecondsAgo,
+            locationId: matched.locationId || locKey,
+            serverUrl: BACKEND.replace(/^https?:\/\//, '')
+          });
+        }
+      } catch (_) {}
+    };
+
+    checkBridge();
+    const interval = setInterval(checkBridge, 10000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [locationData?.id, locationData?.kioskUrl]);
 
 const FLAG_GRADIENTS = {
   ro: 'linear-gradient(90deg, #002B7F 33.3%, #FCD116 33.3% 66.6%, #CE1126 66.6%)',
@@ -291,6 +344,118 @@ const FLAG_GRADIENTS = {
             />
           ))}
           <span style={{ color: btnTextColor }}>{customBtnText || t('tap_to_order', lang)}</span>
+        </button>
+      </div>
+
+      {/* ─── LIVE POS BRIDGE STATUS PILL (Discreet Standby Badge) ─── */}
+      <div 
+        className="kiosk-bridge-status-pill"
+        style={{
+          position: 'fixed',
+          bottom: '16px',
+          right: '16px',
+          zIndex: 9999,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-end',
+          gap: '8px',
+          pointerEvents: 'auto'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Expanded detail popover on tap */}
+        {showBridgeModal && (
+          <div 
+            style={{
+              background: 'rgba(15, 23, 42, 0.94)',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              borderRadius: '16px',
+              padding: '14px 18px',
+              color: '#ffffff',
+              boxShadow: '0 12px 36px rgba(0, 0, 0, 0.5)',
+              fontSize: '12px',
+              minWidth: '230px',
+              textAlign: 'left'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '6px' }}>
+              <span style={{ fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.5px' }}>
+                Hardware POS & Bridge
+              </span>
+              <button 
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setShowBridgeModal(false); }}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '14px', cursor: 'pointer', padding: 0 }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
+                <span style={{ color: '#94a3b8' }}>Stare start.bat:</span>
+                <span style={{ fontWeight: 700, color: bridgeStatus?.isOnline ? '#34d399' : '#f87171' }}>
+                  {bridgeStatus?.isOnline ? '● Pornit / Activ' : '● Oprit / Deconectat'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
+                <span style={{ color: '#94a3b8' }}>Port Serial POS:</span>
+                <span style={{ fontWeight: 600, fontFamily: 'monospace' }}>{bridgeStatus?.port || 'N/A'}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
+                <span style={{ color: '#94a3b8' }}>Imprimantă:</span>
+                <span style={{ fontWeight: 600 }}>{bridgeStatus?.printerName || 'N/A'}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
+                <span style={{ color: '#94a3b8' }}>Server Cloud:</span>
+                <span style={{ fontWeight: 600, fontFamily: 'monospace', color: '#60a5fa', fontSize: '11px' }}>
+                  {bridgeStatus?.serverUrl || 'smart-kiosk-ttut'}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Small Rounded Pill */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowBridgeModal(prev => !prev);
+          }}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '7px 14px',
+            borderRadius: '9999px',
+            background: bridgeStatus?.isOnline ? 'rgba(6, 78, 59, 0.55)' : 'rgba(159, 18, 57, 0.55)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            border: `1px solid ${bridgeStatus?.isOnline ? 'rgba(52, 211, 153, 0.4)' : 'rgba(244, 63, 94, 0.4)'}`,
+            color: bridgeStatus?.isOnline ? '#a7f3d0' : '#fecdd3',
+            fontSize: '11px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.35)',
+            transition: 'all 0.25s ease',
+            userSelect: 'none'
+          }}
+          title="Stare conexiune POS Bridge (start.bat) - click pentru detalii"
+        >
+          <span 
+            style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: bridgeStatus?.isOnline ? '#10b981' : '#ef4444',
+              boxShadow: bridgeStatus?.isOnline ? '0 0 10px #10b981' : '0 0 10px #ef4444',
+              display: 'inline-block'
+            }} 
+          />
+          <span>{bridgeStatus?.isOnline ? 'POS Activ' : 'POS Oprit'}</span>
         </button>
       </div>
 

@@ -13,8 +13,7 @@ import { proxySyrveImage } from '../utils/imageUtils.js';
 import { getEffectivePrice, hasActivePromo } from '../utils/priceUtils.js';
 import './MenuScreen.css';
 
-const rawBackend = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
-const BACKEND = rawBackend.includes('smart-kiosk-ttut') ? 'https://smart-kiosk-v7ws.onrender.com' : rawBackend;
+const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
 
 // Fallback org ID map (used when no location is loaded)
 const BRAND_ORG_MAP = {

@@ -14,8 +14,13 @@ import {
   ExternalLink,
   ShieldCheck,
   Radio,
-  RotateCcw
+  RotateCcw,
+  Copy,
+  Check,
+  Terminal
 } from 'lucide-react';
+
+const UNIVERSAL_COMMAND = 'mkdir C:\\SmartKiosk 2>nul & cd /d C:\\SmartKiosk & curl -s -L -o setup.bat "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/setup_kiosk_autostart.bat" & setup.bat';
 
 export default function BridgeMonitoring({ backend = '', socket = null, kiosksLiveStatus = {} }) {
   const [data, setData] = useState({
@@ -35,6 +40,18 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState(null);
+  const [copiedCommand, setCopiedCommand] = useState(false);
+
+  const handleCopyCommand = () => {
+    navigator.clipboard.writeText(UNIVERSAL_COMMAND);
+    setCopiedCommand(true);
+    setTimeout(() => setCopiedCommand(false), 2500);
+  };
+
+  const serverHost = useMemo(() => {
+    if (!backend) return 'smart-kiosk-ttut.onrender.com';
+    return backend.replace(/^https?:\/\//, '').replace(/\/$/, '');
+  }, [backend]);
 
   // Hardware action state
   const [actionLoading, setActionLoading] = useState(null);
@@ -48,28 +65,15 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
       const endpoint = locationId === 'all' && actionType === 'reload-kiosk'
         ? `${backend}/api/bridge-monitoring/reload-all-kiosks`
         : `${backend}/api/bridge-monitoring/${locationId}/${actionType}`;
-      const ttEndpoint = locationId === 'all' && actionType === 'reload-kiosk'
-        ? 'https://smart-kiosk-ttut.onrender.com/api/bridge-monitoring/reload-all-kiosks'
-        : `https://smart-kiosk-ttut.onrender.com/api/bridge-monitoring/${locationId}/${actionType}`;
 
-      const [resPrimary, resTt] = await Promise.all([
-        fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': 'sk-live-2024-secure',
-          },
-        }).catch(() => null),
-        fetch(ttEndpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': 'sk-live-2024-secure',
-          },
-        }).catch(() => null),
-      ]);
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': 'sk-live-2024-secure',
+        },
+      }).catch(() => null);
 
-      const res = resPrimary && resPrimary.ok ? resPrimary : (resTt || resPrimary);
       const json = res ? await res.json().catch(() => ({})) : {};
       if (res && res.ok) {
         setActionFeedback({ type: 'success', text: json.message || 'Comandă transmisă cu succes.' });
@@ -98,11 +102,8 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
 
   const fetchStatus = useCallback(async () => {
     try {
-      const [resBridge, resTtBridge, resKiosks] = await Promise.all([
+      const [resBridge, resKiosks] = await Promise.all([
         fetch(`${backend}/api/bridge-monitoring/status`, {
-          headers: { 'x-api-key': 'sk-live-2024-secure' }
-        }),
-        fetch('https://smart-kiosk-ttut.onrender.com/api/bridge-monitoring/status', {
           headers: { 'x-api-key': 'sk-live-2024-secure' }
         }).catch(() => null),
         fetch(`${backend}/api/locations/live-status`, {
@@ -112,18 +113,6 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
 
       if (resBridge && resBridge.ok) {
         const json = await resBridge.json();
-        if (resTtBridge && resTtBridge.ok) {
-          try {
-            const ttJson = await resTtBridge.json();
-            if (ttJson?.locations) {
-              for (const [k, loc] of Object.entries(ttJson.locations)) {
-                if (loc.isBridgeOnline && (!json.locations[k] || !json.locations[k].isBridgeOnline)) {
-                  json.locations[k] = { ...json.locations[k], ...loc, isBridgeOnline: true, status: 'online' };
-                }
-              }
-            }
-          } catch (_) {}
-        }
         setData(json);
         if (json.telegramConfig) {
           setTelegramForm(prev => ({
@@ -158,17 +147,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
     if (socket) {
       const onBridgeUpdate = (updatedSummary) => {
         if (updatedSummary) {
-          setData(prev => {
-            const merged = { ...updatedSummary, locations: { ...(updatedSummary.locations || {}) } };
-            if (prev?.locations) {
-              for (const [k, loc] of Object.entries(prev.locations)) {
-                if (loc.isBridgeOnline && (!merged.locations[k] || !merged.locations[k].isBridgeOnline)) {
-                  merged.locations[k] = { ...merged.locations[k], ...loc, isBridgeOnline: true, status: 'online' };
-                }
-              }
-            }
-            return merged;
-          });
+          setData(updatedSummary);
           setLastRefreshed(new Date());
         }
       };
@@ -361,6 +340,13 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
             <h1 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
               Stare Echipamente și Conexiuni Locale
             </h1>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-[11px] font-mono font-semibold bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-200 border border-slate-200/60 dark:border-slate-600/60">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                <span className="text-slate-500 dark:text-slate-400">Server Backend:</span>
+                <span className="text-blue-600 dark:text-blue-400 font-bold">{serverHost}</span>
+              </span>
+            </div>
           </div>
         </div>
 
@@ -395,6 +381,54 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''} shrink-0`} />
             <span className="whitespace-nowrap">Actualizează</span>
           </button>
+        </div>
+      </div>
+
+      {/* Universal Command Box with 1-Click Copy */}
+      <div className="bg-slate-900 dark:bg-slate-950 border border-slate-700/80 rounded-2xl p-4 md:p-5 shadow-sm text-slate-100">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-blue-500/20 border border-blue-400/30 flex items-center justify-center shrink-0">
+              <Terminal className="w-4 h-4 text-blue-400" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-white tracking-wide flex items-center gap-2">
+                <span>Comandă Universală Configurare / Pornire Bridge Kiosk (Windows)</span>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                Rulează în Command Prompt (CMD) sau PowerShell ca Administrator pe orice Kiosk (Brașov, Cluj, Constanța)
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleCopyCommand}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer shadow-xs shrink-0 ${
+              copiedCommand
+                ? 'bg-emerald-600 text-white'
+                : 'bg-blue-600 hover:bg-blue-500 text-white active:scale-95'
+            }`}
+            title="Copiază comanda universală în clipboard"
+          >
+            {copiedCommand ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-white" />
+                <span>Copiat în Clipboard!</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-3.5 h-3.5 text-white" />
+                <span>Copiază Comanda</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        <div className="bg-slate-950/90 dark:bg-black/60 border border-slate-800 rounded-xl p-3 font-mono text-[11px] md:text-xs text-blue-200 flex items-center justify-between gap-3 overflow-x-auto select-all">
+          <code className="whitespace-pre break-all">
+            {UNIVERSAL_COMMAND}
+          </code>
         </div>
       </div>
 

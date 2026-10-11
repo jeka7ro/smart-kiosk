@@ -5,7 +5,7 @@ import { io } from 'socket.io-client';
 import * as XLSX from 'xlsx';
 import BrandLogo from '../components/BrandLogo.jsx';
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
+const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
 
 const BRAND_COLORS = {
   smashme: '#ef4444',
