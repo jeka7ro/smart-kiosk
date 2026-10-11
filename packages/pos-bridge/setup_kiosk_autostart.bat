@@ -72,16 +72,20 @@ if "%CHOICE%"=="5" (
 )
 
 echo.
-echo [INFO] Ai selectat: %LOC_NAME% (%URL%)
+echo [INFO] Ai selectat: %LOC_NAME%
+echo [INFO] URL: "%URL%"
 echo [INFO] POS Bridge: %POS_GATEWAY% pe port %COM_PORT% ^| Imprimanta: %PRINTER_NAME%
 echo.
 
-cd /d "%~dp0"
-set "APP_DIR=%~dp0"
-if "%APP_DIR:~-1%"=="\" set "APP_DIR=%APP_DIR:~0,-1%"
+set "APP_DIR=C:\SmartKiosk"
+if not exist "%APP_DIR%" mkdir "%APP_DIR%" >nul 2>&1
+cd /d "%APP_DIR%"
+
+if exist "C:\Program Files\nodejs\node.exe" set "PATH=C:\Program Files\nodejs;%PATH%"
+if exist "C:\Program Files (x86)\nodejs\node.exe" set "PATH=C:\Program Files (x86)\nodejs;%PATH%"
 
 :: Salvare / actualizare automata .env pentru POS Bridge
-echo [INFO] Salvez configuratia hardware in .env...
+echo [INFO] Salvez configuratia hardware in %APP_DIR%\.env...
 (
     echo # Configurare automata Smart Kiosk - %LOC_NAME%
     echo RENDER_URL=https://smart-kiosk-v7ws.onrender.com
@@ -151,8 +155,8 @@ if not exist "C:\SmartKiosk_Data" mkdir "C:\SmartKiosk_Data" >nul 2>&1
 echo [6/7] Configurare Autostart la pornirea Windows si creare scurtaturi...
 powershell -NoProfile -Command "$w=New-Object -Com WScript.Shell; $d=[Environment]::GetFolderPath('Desktop'); $s=$w.CreateShortcut(\"$d\Smart Kiosk (%LOC_NAME%).lnk\"); $s.TargetPath='%BROWSER%'; $s.Arguments='--kiosk %URL% --user-data-dir=C:\SmartKiosk_Data --start-fullscreen --start-maximized --window-position=0,0 --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble --disable-infobars --disable-pinch --overscroll-history-navigation=0 --check-for-update-interval=31536000'; $s.WindowStyle=3; $s.Save(); $u=[Environment]::GetFolderPath('Startup'); $s2=$w.CreateShortcut(\"$u\SmartKiosk.lnk\"); $s2.TargetPath='%BROWSER%'; $s2.Arguments='--kiosk %URL% --user-data-dir=C:\SmartKiosk_Data --start-fullscreen --start-maximized --window-position=0,0 --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble --disable-infobars --disable-pinch --overscroll-history-navigation=0 --check-for-update-interval=31536000'; $s2.WindowStyle=3; $s2.Save()" >nul 2>&1
 
-:: Autostart si pornire POS Bridge in fundal
-echo [INFO] Asigur existenta fisierelor POS Bridge...
+:: Descarcare fisiere necesare POS Bridge daca lipsesc
+echo [INFO] Asigur existenta fisierelor POS Bridge in %APP_DIR%...
 if not exist "%APP_DIR%\start-windows.bat" curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\start-windows.bat" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/start-windows.bat"
 if not exist "%APP_DIR%\run-hidden.vbs" curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\run-hidden.vbs" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/run-hidden.vbs"
 if not exist "%APP_DIR%\watchdog.vbs" curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\watchdog.vbs" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/watchdog.vbs"
@@ -167,21 +171,25 @@ where node >nul 2>nul
 if %errorlevel% equ 0 (
     if not exist "%APP_DIR%\node_modules\dotenv" (
         echo [INFO] Instalez dependentele npm pentru POS si imprimanta...
-        pushd "%APP_DIR%"
+        cd /d "%APP_DIR%"
         call npm install --no-audit --no-fund >nul 2>&1
-        popd
     )
 )
 
 if exist "%APP_DIR%\run-hidden.vbs" (
     powershell -NoProfile -Command "$w=New-Object -Com WScript.Shell; $u=[Environment]::GetFolderPath('Startup'); $s=$w.CreateShortcut(\"$u\POSBridge.lnk\"); $s.TargetPath='wscript.exe'; $s.Arguments='\"%APP_DIR%\run-hidden.vbs\"'; $s.WorkingDirectory='%APP_DIR%'; $s.WindowStyle=0; $s.Save()" >nul 2>&1
     echo [INFO] Pornesc POS Bridge in fundal (run-hidden.vbs)...
-    wscript.exe "%APP_DIR%\run-hidden.vbs"
-) else if exist "%APP_DIR%\start-windows.bat" (
+    start "" wscript.exe "%APP_DIR%\run-hidden.vbs"
+    goto :bridge_started
+)
+
+if exist "%APP_DIR%\start-windows.bat" (
     powershell -NoProfile -Command "$w=New-Object -Com WScript.Shell; $u=[Environment]::GetFolderPath('Startup'); $s=$w.CreateShortcut(\"$u\POSBridge.lnk\"); $s.TargetPath='%APP_DIR%\start-windows.bat'; $s.WorkingDirectory='%APP_DIR%'; $s.WindowStyle=7; $s.Save()" >nul 2>&1
     echo [INFO] Pornesc start-windows.bat...
     start "" /min "%APP_DIR%\start-windows.bat"
 )
+
+:bridge_started
 
 :: 7. Lansare Kiosk Fullscreen
 echo [7/7] Pornire ecran Kiosk in Fullscreen Total...
@@ -192,7 +200,9 @@ echo.
 echo =============================================================
 echo   [SUCCES TOTAL] KIOSKUL SI POS BRIDGE AU FOST PORNITE!
 echo =============================================================
-echo   - Locatie activa: %LOC_NAME% (%URL%)
+echo   - Locatie activa: %LOC_NAME%
+echo   - URL Kiosk: "%URL%"
+echo   - Folder instalare: %APP_DIR%
 echo   - POS Bridge: lansat in fundal (port: %COM_PORT%, imprimanta: %PRINTER_NAME%)
 echo   - Auto-Hide Taskbar activat definitiv in Windows.
 echo   - Sleep si Standby dezactivate (ecranul ramane mereu aprins).
