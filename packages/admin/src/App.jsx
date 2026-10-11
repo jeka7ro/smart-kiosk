@@ -21,6 +21,7 @@ import BankLogo from './components/BankLogo.jsx';
 import ThermalReceiptModal from './components/ThermalReceiptModal.jsx';
 import DashboardCharts3D, { detectCardBrand, detectCardBank, BANK_CONFIG } from './components/DashboardCharts3D.jsx';
 import OrderToastNotificationStack, { playNewOrderSound } from './components/OrderToastNotification.jsx';
+import DeviceAlertToastStack from './components/DeviceAlertToast.jsx';
 import OrdersNotificationBell from './components/OrdersNotificationBell.jsx';
 import Promotions     from './screens/Promotions';
 import FortuneWheelPreview from './components/FortuneWheelPreview';
@@ -31,7 +32,7 @@ import { LayoutDashboard, Receipt, TrendingUp, MapPin, MonitorSmartphone, QrCode
 import { formatThousands } from './utils/formatters';
 
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
+const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
 
 const BUILD_INFO = {
   number: typeof __BUILD_NUMBER__ !== 'undefined' ? __BUILD_NUMBER__ : '883',
@@ -277,6 +278,19 @@ export default function AdminApp() {
     setOrderToasts(prev => prev.filter(t => t.id !== toastId));
   }, []);
 
+  const [deviceAlerts, setDeviceAlerts] = useState([]);
+  const lastKnownDeviceStatusRef = useRef({});
+  const deviceAlertsInitializedRef = useRef(false);
+
+  const handleDismissDeviceAlert = useCallback((id) => {
+    setDeviceAlerts(prev => prev.filter(a => a.id !== id));
+  }, []);
+
+  const handleOpenDeviceLocation = useCallback((locationId) => {
+    setActiveLocationDropdown(locationId);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [thermalReceiptOrder, setThermalReceiptOrder] = useState(null);
   const [modalProductsPage, setModalProductsPage] = useState(1);
@@ -349,6 +363,132 @@ export default function AdminApp() {
     });
 
     return activeLocations.size;
+  }, [kiosksLiveStatus, bridgeSummary]);
+
+  /* ─── Device Disconnect & Reconnect Alert Watcher ─── */
+  useEffect(() => {
+    if (!bridgeSummary || !bridgeSummary.locations) return;
+
+    const locDefs = [
+      { id: 'cluj1', name: 'Cluj 1', aliases: ['cluj1', 'cluj', 'cluj-centru', 'cluj-main', 'smashme-main', 'sm-cluj', 'smashme-cluj', '9c63cff6-1d66-442d-a98d-2302656e3943', '90296b11-9ba9-4279-a69b-1f84e193315e'] },
+      { id: 'cluj2', name: 'Cluj 2', aliases: ['cluj2', 'cluj-2', 'cj2', 'smashme-cj2'] },
+      { id: 'sm-brasov', name: 'Brașov', aliases: ['sm-brasov', 'brasov', 'brasov-centru', 'rollmaster', 'rollmaster-brasov', 'rm-brasov', 'adddb5a0-26e5-4d50-b472-1c74726c3f72'] },
+      { id: 'constanta1', name: 'Constanța', aliases: ['constanta1', 'constanta', 'smashme-constanta', '8308e796-8780-4d18-ae66-4e430178c778'] }
+    ];
+
+    const currentStatuses = {};
+    const newAlerts = [];
+
+    locDefs.forEach(loc => {
+      const liveKiosk = loc.aliases.map(a => kiosksLiveStatus[a]).find(Boolean);
+      const isKioskConnected = Boolean(liveKiosk?.isLive || liveKiosk?.online || (liveKiosk?.onlineCount > 0));
+      
+      const bridgeLoc = bridgeSummary?.locations?.[loc.id] || 
+                       (loc.aliases ? loc.aliases.map(a => bridgeSummary?.locations?.[a]).find(Boolean) : null);
+      const isBridgeOnline = Boolean(bridgeLoc?.status === 'online' || bridgeLoc?.isBridgeOnline);
+
+      let statusTone = 'offline';
+      let statusLabel = 'Offline';
+      let message = 'Kiosk și POS deconectate';
+
+      if (isBridgeOnline && isKioskConnected) {
+        statusTone = 'online';
+        statusLabel = 'Online';
+        message = 'Kiosk și POS funcționale';
+      } else if (isKioskConnected && !isBridgeOnline) {
+        statusTone = 'warning';
+        statusLabel = 'POS Deconectat';
+        message = 'Aplicația Kiosk merge, dar POS Bridge este offline!';
+      } else if (isBridgeOnline && !isKioskConnected) {
+        statusTone = 'warning';
+        statusLabel = 'Kiosk Inactiv';
+        message = 'POS Bridge este online, dar ecranul Kiosk nu este deschis!';
+      } else {
+        statusTone = 'offline';
+        statusLabel = 'Offline';
+        message = 'Kiosk oprit / fără conexiune internet!';
+      }
+
+      currentStatuses[loc.id] = { statusTone, statusLabel, message };
+
+      const prev = lastKnownDeviceStatusRef.current[loc.id];
+
+      // Dacă este prima verificare (la încărcarea paginii): trimite alertă pentru dispozitive offline sau avertizări
+      if (!deviceAlertsInitializedRef.current) {
+        if (statusTone === 'offline') {
+          newAlerts.push({
+            id: `dev-alert-${loc.id}-${Date.now()}`,
+            locationId: loc.id,
+            locationName: loc.name,
+            statusTone,
+            statusLabel,
+            message,
+            type: 'disconnected',
+            timestamp: Date.now()
+          });
+        } else if (statusTone === 'warning') {
+          newAlerts.push({
+            id: `dev-alert-${loc.id}-${Date.now()}`,
+            locationId: loc.id,
+            locationName: loc.name,
+            statusTone,
+            statusLabel,
+            message,
+            type: 'warning',
+            timestamp: Date.now()
+          });
+        }
+      } else if (prev) {
+        // Tranziții ulterioare de stare:
+        if (prev.statusTone !== statusTone) {
+          if (statusTone === 'online' && prev.statusTone !== 'online') {
+            newAlerts.push({
+              id: `dev-alert-${loc.id}-${Date.now()}`,
+              locationId: loc.id,
+              locationName: loc.name,
+              statusTone: 'online',
+              statusLabel: 'Online',
+              message: 'Conexiunea a fost restabilită cu succes!',
+              type: 'reconnected',
+              timestamp: Date.now()
+            });
+          } else if (statusTone === 'offline' && prev.statusTone !== 'offline') {
+            newAlerts.push({
+              id: `dev-alert-${loc.id}-${Date.now()}`,
+              locationId: loc.id,
+              locationName: loc.name,
+              statusTone: 'offline',
+              statusLabel,
+              message,
+              type: 'disconnected',
+              timestamp: Date.now()
+            });
+          } else if (statusTone === 'warning' && prev.statusTone === 'online') {
+            newAlerts.push({
+              id: `dev-alert-${loc.id}-${Date.now()}`,
+              locationId: loc.id,
+              locationName: loc.name,
+              statusTone: 'warning',
+              statusLabel,
+              message,
+              type: 'warning',
+              timestamp: Date.now()
+            });
+          }
+        }
+      }
+    });
+
+    lastKnownDeviceStatusRef.current = currentStatuses;
+    deviceAlertsInitializedRef.current = true;
+
+    if (newAlerts.length > 0) {
+      setDeviceAlerts(prev => {
+        const incomingLocIds = new Set(newAlerts.map(a => a.locationId));
+        const filtered = prev.filter(p => !incomingLocIds.has(p.locationId));
+        return [...newAlerts, ...filtered].slice(0, 3);
+      });
+    }
   }, [kiosksLiveStatus, bridgeSummary]);
 
   /* ─── Theme Sync ─────────────────────────────────── */
@@ -1692,6 +1832,13 @@ export default function AdminApp() {
       orderToasts={orderToasts}
       onDismiss={handleDismissOrderToast}
       onOpenOrder={(order) => setSelectedOrder(order)}
+    />
+
+    {/* Real-time Device Disconnect & Reconnect Alert Toast (Top Center) */}
+    <DeviceAlertToastStack 
+      deviceAlerts={deviceAlerts}
+      onDismiss={handleDismissDeviceAlert}
+      onOpenLocation={handleOpenDeviceLocation}
     />
 
     {/* ── Order Detail Modal (centered) ── */}
