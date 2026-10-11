@@ -736,6 +736,75 @@ const CONSTANTA_PRODUCT_ID_FIXES = {
   'be24922d-dd2c-4fb2-953f-9912ae250bc6': 'ee47e8c3-5d6f-4a3c-b5bb-f6ac87c648f2',
 };
 
+// ── SGR (Sistemul Garanție-Returnare) Constants & Helper ───────────────────────
+// In Romania, Syrve strictly enforces minAmount: 1 for modifier group Sgr (0.50 RON per container)
+// on all packaged/canned beverages. Auto-attached if not present in kiosk cart.
+const SGR_GROUP_ID = 'c15d3fdd-6b8e-487a-b75f-bf2628b5abc5';
+const SGR_MODIFIER_PRODUCT_ID = 'e4b48e28-f52c-49c0-a029-c5cae198de7e'; // *SGR
+const SGR_PRICE = 0.50;
+
+const KNOWN_SGR_PRODUCT_IDS = new Set([
+  '4f354a1c-6210-46bd-8713-10b5abd056dd',
+  'a89cd764-4731-49da-bb09-df1135a5d9f0',
+  '694adcf8-a671-423a-8d67-1b3409e32548',
+  '18e5df5d-7a58-407b-975c-70e3c79bb193',
+  'bcfd04e3-2138-408b-9a4a-f4d426379a0b',
+  '0615d672-bb57-4662-9e2b-8d606786d10d',
+  'acff588c-0c22-4422-8b71-5551747dc504',
+  'e4746ed0-335f-439a-88ae-f91e8edafbb6',
+  '1dc6a1ff-714f-4fe1-80b7-1478f9edd855',
+  '97955089-ed8e-45d4-90af-c3e041c0ef1f',
+  '8e655e9d-13c6-47fe-bea0-074ee881a497',
+  'a8392abf-5d63-4688-a90f-0f900829e908',
+  '70d9aaf4-db9c-40bc-9196-d106b9c7ec5a',
+  '0b7408d0-8c5a-4554-ad80-dc7dfca57b2d',
+  '31a309a1-8af2-4489-86a4-56d6986d8c18',
+  'f6b862ba-a230-4a6e-aa63-a6d8b10a6e4c',
+  'f04b67b0-0393-4f6b-a806-b91a28311fc6',
+  '7dec6247-58c0-4575-b2c7-f82d525a15b2',
+  'cf633ade-a536-4418-b3af-ac73230ce8d0',
+  'bf0996fc-2f19-443a-b8b3-9d02951e015c',
+  'b352a2c9-3bcd-49e0-8e40-16ba82587783',
+  '38ff651b-9cbc-44fc-96cc-fe8ab4ced184',
+  '12224284-4889-434d-b95c-84017da88eaf',
+  '2dc710e4-90f9-4948-aed8-e9c868fd2a4e',
+  '25dc2834-d16a-47f0-bbd4-7777dca737f0',
+  'af05defc-0750-44d7-abeb-e81f2e18c597',
+  '9b14df94-8dd2-414e-a959-a8c7526c8294',
+  '19c0682e-e104-419f-8de9-795b8a066e7f',
+  '1222d3a4-ccb0-423f-bea1-f3f31f961044',
+  '207df6d2-5e34-45b1-87d3-823afa1832f5',
+  'ec761752-0c6e-48f4-8ee2-76e237ecfa0c',
+  '2db6bf3f-5aa6-4551-a704-ce0eddbec901',
+  'b72ff0f8-9d61-43fd-b29a-6fa976994c3e',
+  '615f2b4c-24ec-4dc2-bb5a-56804691f03c',
+  '4f21ec7a-4b60-4d44-bd05-2e948af3c343',
+  'f6b67f71-bfc4-4249-95f5-996a81ae6d62',
+  '137baffd-2355-4cac-af8f-9236b3259104'
+]);
+
+function isSgrProduct(item, targetProdId) {
+  if (KNOWN_SGR_PRODUCT_IDS.has(targetProdId) || KNOWN_SGR_PRODUCT_IDS.has(item?.productId)) {
+    return true;
+  }
+  // Check cached menus for SGR modifier group
+  for (const cacheKey of Object.keys(_menuCache)) {
+    const cachedMenu = _menuCache[cacheKey]?.menu;
+    if (cachedMenu?.products) {
+      const p = cachedMenu.products.find(prod => prod.id === targetProdId || prod.id === item?.productId);
+      if (p?.modifierGroups?.some(mg => mg.id === SGR_GROUP_ID || mg.options?.some(opt => opt.id === SGR_MODIFIER_PRODUCT_ID))) {
+        return true;
+      }
+    }
+  }
+  // Fallback heuristic by name for packaged drinks
+  const name = String(item?.name || '').toLowerCase();
+  if (name.includes('sgr') || name.includes('doza') || name.includes('500 ml st') || name.includes('cappy pulpy')) {
+    return true;
+  }
+  return false;
+}
+
 function getPaymentConfigForBrand(brandId, paymentMethod) {
   const pMethod = (paymentMethod || 'card').toLowerCase();
   const brandTable = SYRVE_PAYMENT_TYPES_BY_BRAND[brandId] || SYRVE_PAYMENT_TYPES_BY_BRAND.smashme;
@@ -840,6 +909,12 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
                         String(order.orderNumber || '').includes('CT');
 
     const syrveItems = order.items.map(item => {
+      let itemProdId = item.productId;
+      if (isConstanta && CONSTANTA_PRODUCT_ID_FIXES[itemProdId]) {
+        console.log(`[Syrve-Constanta] Auto-mapped product "${item.name || ''}" (${itemProdId} -> ${CONSTANTA_PRODUCT_ID_FIXES[itemProdId]})`);
+        itemProdId = CONSTANTA_PRODUCT_ID_FIXES[itemProdId];
+      }
+
       const itemComment = item.comment || 
         item.selectedModifiers?.find(m => m.modId === 'custom_comment' || m.id === 'custom_comment')?.optionName || 
         null;
@@ -874,22 +949,33 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
         }
       }
 
+      // Auto-attach Romanian mandatory SGR bottle/can deposit modifier (*SGR 0.50 lei)
+      // for packaged beverages where Syrve strictly requires minAmount: 1, maxAmount: 1
+      if (isSgrProduct(item, itemProdId)) {
+        const hasSgr = syrveModifiers.some(m => m.productId === SGR_MODIFIER_PRODUCT_ID || m.productGroupId === SGR_GROUP_ID);
+        if (!hasSgr) {
+          console.log(`[Syrve-SGR] Auto-attaching mandatory SGR modifier (*SGR 0.50 lei) for product "${item.name || ''}" (${itemProdId})`);
+          syrveModifiers.push({
+            productId: SGR_MODIFIER_PRODUCT_ID,
+            amount: 1,
+            productGroupId: SGR_GROUP_ID,
+            price: SGR_PRICE,
+            positionId: null,
+          });
+          modifiersCostPerUnit += SGR_PRICE;
+        }
+      }
+
       // Calculate base product price for Syrve:
       // In iiko: line total = (product.price * amount) + sum(mod.price * mod.amount)
       // Because kiosk item.unitPrice includes modifiers (basePrice + modifiersCost),
       // we must send the base price to Syrve so options are not double-calculated.
       const rawUnitPrice = Number(item.unitPrice !== undefined ? item.unitPrice : (item.price || 0));
       let productPrice = rawUnitPrice;
-      if (item.basePrice !== undefined && item.basePrice !== null && !isNaN(Number(item.basePrice)) && Number(item.basePrice) > 0) {
-        productPrice = Number(item.basePrice);
-      } else if (modifiersCostPerUnit > 0) {
+      if (modifiersCostPerUnit > 0) {
         productPrice = Math.max(0, Math.round((rawUnitPrice - modifiersCostPerUnit) * 100) / 100);
-      }
-
-      let itemProdId = item.productId;
-      if (isConstanta && CONSTANTA_PRODUCT_ID_FIXES[itemProdId]) {
-        console.log(`[Syrve-Constanta] Auto-mapped product "${item.name || ''}" (${itemProdId} -> ${CONSTANTA_PRODUCT_ID_FIXES[itemProdId]})`);
-        itemProdId = CONSTANTA_PRODUCT_ID_FIXES[itemProdId];
+      } else if (item.basePrice !== undefined && item.basePrice !== null && !isNaN(Number(item.basePrice)) && Number(item.basePrice) > 0) {
+        productPrice = Number(item.basePrice);
       }
 
       const syrveItem = {
@@ -1160,4 +1246,8 @@ module.exports = {
   syrveGet,
   syrvePost,
   CONSTANTA_PRODUCT_ID_FIXES,
+  SGR_GROUP_ID,
+  SGR_MODIFIER_PRODUCT_ID,
+  KNOWN_SGR_PRODUCT_IDS,
+  isSgrProduct,
 };
