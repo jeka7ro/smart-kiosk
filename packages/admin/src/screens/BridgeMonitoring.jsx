@@ -17,7 +17,9 @@ import {
   RotateCcw,
   Copy,
   Check,
-  Terminal
+  Terminal,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 
 const UNIVERSAL_COMMAND = 'mkdir C:\\SmartKiosk 2>nul & cd /d C:\\SmartKiosk & curl -s -L -o setup.bat "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/setup_kiosk_autostart.bat" & setup.bat';
@@ -259,6 +261,28 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
 
   const locationKeys = useMemo(() => ['cluj1', 'cluj2', 'sm-brasov', 'constanta1'], []);
 
+  const [expandedCards, setExpandedCards] = useState({});
+
+  const toggleCard = (locKey) => {
+    setExpandedCards(prev => ({
+      ...prev,
+      [locKey]: !prev[locKey]
+    }));
+  };
+
+  const allExpanded = useMemo(() => {
+    return locationKeys.length > 0 && locationKeys.every(k => !!expandedCards[k]);
+  }, [locationKeys, expandedCards]);
+
+  const toggleAllCards = () => {
+    const nextState = !allExpanded;
+    const newState = {};
+    locationKeys.forEach(k => {
+      newState[k] = nextState;
+    });
+    setExpandedCards(newState);
+  };
+
   const computedLocations = useMemo(() => {
     const friendlyNames = {
       cluj1: 'Cluj 1 (Centru)',
@@ -381,6 +405,26 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''} shrink-0`} />
             <span className="whitespace-nowrap">Actualizează</span>
           </button>
+
+          {/* Toggle Extinde / Restrânge Toate Cardurile */}
+          <button
+            type="button"
+            onClick={toggleAllCards}
+            title={allExpanded ? "Restrânge toate detaliile cardurilor" : "Extinde toate detaliile cardurilor"}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 shadow-xs transition-colors cursor-pointer whitespace-nowrap shrink-0"
+          >
+            {allExpanded ? (
+              <>
+                <ChevronUp className="w-3.5 h-3.5 text-slate-500" />
+                <span className="whitespace-nowrap">Restrânge Toate</span>
+              </>
+            ) : (
+              <>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
+                <span className="whitespace-nowrap">Extinde Toate</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 
@@ -396,10 +440,11 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
       )}
 
       {/* Grid Status Locații */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4.5 items-start">
         {locationKeys.map(locKey => {
           const loc = computedLocations[locKey];
           const isOnline = loc.status === 'online';
+          const isExpanded = !!expandedCards[locKey];
           const { isKioskConnected, isUniversalConfig, kioskScriptVer, latestScriptVer, isScriptUpToDate, isBridgeOnline } = loc;
 
           return (
@@ -429,158 +474,220 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                   </div>
                 </div>
 
-                {/* Sub-container 1: Ecran Kiosk & OTA Status */}
-                <div className="p-3 rounded-2xl bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 space-y-2 text-xs">
-                  <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center justify-between">
-                    <span className="flex items-center gap-1.5">
-                      <Monitor className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                      <span className="whitespace-nowrap">Ecran Kiosk</span>
-                    </span>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
-                      isKioskConnected 
-                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300' 
-                        : 'bg-slate-200/60 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
-                    }`}>
-                      {isKioskConnected ? 'Conectat' : 'Inactiv'}
+                {/* Server Conectat pe fiecare Kiosk */}
+                <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800 text-[11px] font-mono">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                    <span className="text-[10px] font-sans font-bold text-slate-400 uppercase tracking-wider shrink-0">Server:</span>
+                    <span className="text-blue-600 dark:text-blue-400 font-bold truncate select-all" title={serverHost}>
+                      {serverHost}
                     </span>
                   </div>
+                </div>
 
-                  <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
-                    <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Configurație:</span>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
-                      isUniversalConfig 
-                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' 
-                        : 'bg-slate-200/70 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
-                    }`}>
-                      {isUniversalConfig ? 'Universală' : 'Manuală'}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
-                    <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Versiune Script:</span>
-                    <div className="flex items-center gap-1.5 whitespace-nowrap">
-                      {isKioskConnected ? (
-                        <>
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
-                            kioskScriptVer 
-                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' 
-                              : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                          }`}>
-                            {kioskScriptVer ? `v${kioskScriptVer}` : 'Deschis manual'}
-                          </span>
-                          <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold whitespace-nowrap ${
-                            isScriptUpToDate
-                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
-                              : 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300'
-                          }`}>
-                            {isScriptUpToDate ? 'La zi' : 'Update'}
-                          </span>
-                        </>
-                      ) : (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-500 dark:bg-slate-700/60 dark:text-slate-400 whitespace-nowrap">
-                          {kioskScriptVer ? `v${kioskScriptVer}` : '— (offline)'}
+                {/* Mod Compact (Restrâns) - Nu ocupă spațiu pe ecran */}
+                {!isExpanded && (
+                  <div className="space-y-2.5 pt-0.5">
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="p-2.5 rounded-xl bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 flex flex-col gap-0.5">
+                        <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                          <Monitor className="w-3 h-3 text-blue-500 shrink-0" />
+                          <span>Ecran</span>
+                        </div>
+                        <span className={`text-[11px] font-bold truncate ${isKioskConnected ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-400'}`}>
+                          {isKioskConnected ? 'Conectat' : 'Inactiv'}
                         </span>
-                      )}
+                      </div>
+
+                      <div className="p-2.5 rounded-xl bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 flex flex-col gap-0.5">
+                        <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                          <Cpu className="w-3 h-3 text-indigo-500 shrink-0" />
+                          <span>POS</span>
+                        </div>
+                        <span className={`text-[11px] font-bold truncate ${isBridgeOnline ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`} title={isBridgeOnline ? `${loc.port || 'Activ'} (${loc.gateway || 'raiffeisen'})` : 'Oprit'}>
+                          {isBridgeOnline ? (loc.port ? `${loc.port}` : 'Activ') : 'Oprit'}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                </div>
 
-                {/* Sub-container 2: Hardware POS & Imprimanta */}
-                <div className="p-3 rounded-2xl bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 space-y-2 text-xs">
-                  <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center justify-between">
-                    <span className="flex items-center gap-1.5">
-                      <Cpu className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                      <span className="whitespace-nowrap">POS & Imprimantă</span>
-                    </span>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
-                      isBridgeOnline 
-                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300' 
-                        : 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300'
-                    }`}>
-                      {isBridgeOnline ? 'Bridge activ' : 'Oprit'}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
-                    <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Port Serial:</span>
-                    <span className="font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">
-                      {loc.port || 'COM?'} ({loc.gateway || 'raiffeisen'})
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
-                    <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Imprimantă:</span>
-                    <span className="font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[130px] whitespace-nowrap text-right" title={loc.printerName || 'Nedetectată'}>
-                      {loc.printerName || 'Nedetectată'}
-                    </span>
-                  </div>
-
-                  {isBridgeOnline && (
-                    <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
-                      <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Ultimul Semnal:</span>
-                      <span className="font-medium text-emerald-600 dark:text-emerald-400 whitespace-nowrap text-right">
-                        {loc.lastPingSecondsAgo !== null && loc.lastPingSecondsAgo < 120 
-                          ? `acum ${loc.lastPingSecondsAgo}s` 
-                          : 'activ'}
-                      </span>
-                    </div>
-                  )}
-
-                  {isOnline && loc.uptimeSeconds > 0 && (
-                    <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
-                      <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Timp rulare:</span>
-                      <span className="font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
-                        {formatUptime(loc.uptimeSeconds)}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Status Note Indicator */}
-                {isOnline ? (
-                  <div className="p-2.5 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/70 dark:border-emerald-900/40 text-[11px] text-emerald-800 dark:text-emerald-300 leading-tight flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span className="truncate">Sistem operațional și sincronizat.</span>
-                  </div>
-                ) : (
-                  <div className="p-2.5 rounded-2xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-900/40 text-[11px] text-amber-800 dark:text-amber-300 leading-tight">
-                    <span className="font-bold">Notă:</span> Bridge deconectat pe acest PC.
+                    <button
+                      type="button"
+                      onClick={() => toggleCard(locKey)}
+                      className="w-full py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 dark:bg-slate-700/60 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all cursor-pointer border border-slate-200/70 dark:border-slate-600/70 shadow-xs"
+                    >
+                      <span>Extinde Detalii & Acțiuni</span>
+                      <ChevronDown className="w-4 h-4 text-slate-500" />
+                    </button>
                   </div>
                 )}
-              </div>
 
-              {/* Action Buttons: 3 Rounded Squircles */}
-              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/60 grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleAction(locKey, 'test-print')}
-                  disabled={actionLoading === `${locKey}-test-print`}
-                  title="Scoate un bon de probă pe imprimanta termică din locație"
-                  className="flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-2xl text-[10px] font-bold bg-slate-50 dark:bg-slate-700/50 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-700 dark:hover:bg-emerald-950/40 dark:hover:border-emerald-800 text-slate-700 dark:text-slate-200 border border-slate-200/70 dark:border-slate-600/70 transition-all duration-200 disabled:opacity-50 cursor-pointer text-center"
-                >
-                  <Printer className="w-3.5 h-3.5 text-slate-500 group-hover:text-emerald-600 shrink-0" />
-                  <span className="truncate whitespace-nowrap">Test Bon</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleAction(locKey, 'restart-bridge')}
-                  disabled={actionLoading === `${locKey}-restart-bridge`}
-                  title="Repornește programul Windows din fundal (Bridge-ul de pe PC, nu POS-ul fizic)"
-                  className="flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-2xl text-[10px] font-bold bg-slate-50 dark:bg-slate-700/50 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 dark:hover:bg-blue-950/40 dark:hover:border-blue-800 text-slate-700 dark:text-slate-200 border border-slate-200/70 dark:border-slate-600/70 transition-all duration-200 disabled:opacity-50 cursor-pointer text-center"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${actionLoading === `${locKey}-restart-bridge` ? 'animate-spin' : ''} shrink-0`} />
-                  <span className="truncate whitespace-nowrap">Restart Bridge</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleAction(locKey, 'reload-kiosk')}
-                  disabled={actionLoading === `${locKey}-reload-kiosk`}
-                  title="Reîncarcă (F5 / Refresh) ecranul Kiosk din browser"
-                  className="flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-2xl text-[10px] font-bold bg-slate-50 dark:bg-slate-700/50 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700 dark:hover:bg-indigo-950/40 dark:hover:border-indigo-800 text-slate-700 dark:text-slate-200 border border-slate-200/70 dark:border-slate-600/70 transition-all duration-200 disabled:opacity-50 cursor-pointer text-center"
-                >
-                  <RotateCcw className={`w-3.5 h-3.5 text-slate-500 ${actionLoading === `${locKey}-reload-kiosk` ? 'animate-spin' : ''} shrink-0`} />
-                  <span className="truncate whitespace-nowrap">Refresh Ecran</span>
-                </button>
+                {/* Mod Extins - Detalii complete hardware și butoane comenzi */}
+                {isExpanded && (
+                  <div className="space-y-3 pt-1 animate-in fade-in duration-200">
+                    {/* Sub-container 1: Ecran Kiosk & OTA Status */}
+                    <div className="p-3 rounded-2xl bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 space-y-2 text-xs">
+                      <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center justify-between">
+                        <span className="flex items-center gap-1.5">
+                          <Monitor className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                          <span className="whitespace-nowrap">Ecran Kiosk</span>
+                        </span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
+                          isKioskConnected 
+                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300' 
+                            : 'bg-slate-200/60 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
+                        }`}>
+                          {isKioskConnected ? 'Conectat' : 'Inactiv'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
+                        <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Configurație:</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
+                          isUniversalConfig 
+                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' 
+                            : 'bg-slate-200/70 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
+                        }`}>
+                          {isUniversalConfig ? 'Universală' : 'Manuală'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
+                        <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Versiune Script:</span>
+                        <div className="flex items-center gap-1.5 whitespace-nowrap">
+                          {isKioskConnected ? (
+                            <>
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
+                                kioskScriptVer 
+                                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' 
+                                  : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                              }`}>
+                                {kioskScriptVer ? `v${kioskScriptVer}` : 'Deschis manual'}
+                              </span>
+                              <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold whitespace-nowrap ${
+                                isScriptUpToDate
+                                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
+                                  : 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300'
+                              }`}>
+                                {isScriptUpToDate ? 'La zi' : 'Update'}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-500 dark:bg-slate-700/60 dark:text-slate-400 whitespace-nowrap">
+                              {kioskScriptVer ? `v${kioskScriptVer}` : '— (offline)'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Sub-container 2: Hardware POS & Imprimanta */}
+                    <div className="p-3 rounded-2xl bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 space-y-2 text-xs">
+                      <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center justify-between">
+                        <span className="flex items-center gap-1.5">
+                          <Cpu className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                          <span className="whitespace-nowrap">POS & Imprimantă</span>
+                        </span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
+                          isBridgeOnline 
+                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300' 
+                            : 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300'
+                        }`}>
+                          {isBridgeOnline ? 'Bridge activ' : 'Oprit'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
+                        <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Port Serial:</span>
+                        <span className="font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                          {loc.port || 'COM?'} ({loc.gateway || 'raiffeisen'})
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
+                        <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Imprimantă:</span>
+                        <span className="font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[130px] whitespace-nowrap text-right" title={loc.printerName || 'Nedetectată'}>
+                          {loc.printerName || 'Nedetectată'}
+                        </span>
+                      </div>
+
+                      {isBridgeOnline && (
+                        <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
+                          <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Ultimul Semnal:</span>
+                          <span className="font-medium text-emerald-600 dark:text-emerald-400 whitespace-nowrap text-right">
+                            {loc.lastPingSecondsAgo !== null && loc.lastPingSecondsAgo < 120 
+                              ? `acum ${loc.lastPingSecondsAgo}s` 
+                              : 'activ'}
+                          </span>
+                        </div>
+                      )}
+
+                      {isOnline && loc.uptimeSeconds > 0 && (
+                        <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
+                          <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Timp rulare:</span>
+                          <span className="font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                            {formatUptime(loc.uptimeSeconds)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Status Note Indicator */}
+                    {isOnline ? (
+                      <div className="p-2.5 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/70 dark:border-emerald-900/40 text-[11px] text-emerald-800 dark:text-emerald-300 leading-tight flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <span className="truncate">Sistem operațional și sincronizat.</span>
+                      </div>
+                    ) : (
+                      <div className="p-2.5 rounded-2xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-900/40 text-[11px] text-amber-800 dark:text-amber-300 leading-tight">
+                        <span className="font-bold">Notă:</span> Bridge deconectat pe acest PC.
+                      </div>
+                    )}
+
+                    {/* Action Buttons: 3 Rounded Squircles */}
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 grid grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleAction(locKey, 'test-print')}
+                        disabled={actionLoading === `${locKey}-test-print`}
+                        title="Scoate un bon de probă pe imprimanta termică din locație"
+                        className="flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-2xl text-[10px] font-bold bg-slate-50 dark:bg-slate-700/50 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-700 dark:hover:bg-emerald-950/40 dark:hover:border-emerald-800 text-slate-700 dark:text-slate-200 border border-slate-200/70 dark:border-slate-600/70 transition-all duration-200 disabled:opacity-50 cursor-pointer text-center"
+                      >
+                        <Printer className="w-3.5 h-3.5 text-slate-500 group-hover:text-emerald-600 shrink-0" />
+                        <span className="truncate whitespace-nowrap">Test Bon</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAction(locKey, 'restart-bridge')}
+                        disabled={actionLoading === `${locKey}-restart-bridge`}
+                        title="Repornește programul Windows din fundal (Bridge-ul de pe PC, nu POS-ul fizic)"
+                        className="flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-2xl text-[10px] font-bold bg-slate-50 dark:bg-slate-700/50 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 dark:hover:bg-blue-950/40 dark:hover:border-blue-800 text-slate-700 dark:text-slate-200 border border-slate-200/70 dark:border-slate-600/70 transition-all duration-200 disabled:opacity-50 cursor-pointer text-center"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${actionLoading === `${locKey}-restart-bridge` ? 'animate-spin' : ''} shrink-0`} />
+                        <span className="truncate whitespace-nowrap">Restart Bridge</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAction(locKey, 'reload-kiosk')}
+                        disabled={actionLoading === `${locKey}-reload-kiosk`}
+                        title="Reîncarcă (F5 / Refresh) ecranul Kiosk din browser"
+                        className="flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-2xl text-[10px] font-bold bg-slate-50 dark:bg-slate-700/50 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700 dark:hover:bg-indigo-950/40 dark:hover:border-indigo-800 text-slate-700 dark:text-slate-200 border border-slate-200/70 dark:border-slate-600/70 transition-all duration-200 disabled:opacity-50 cursor-pointer text-center"
+                      >
+                        <RotateCcw className={`w-3.5 h-3.5 text-slate-500 ${actionLoading === `${locKey}-reload-kiosk` ? 'animate-spin' : ''} shrink-0`} />
+                        <span className="truncate whitespace-nowrap">Refresh Ecran</span>
+                      </button>
+                    </div>
+
+                    {/* Buton Restrânge */}
+                    <button
+                      type="button"
+                      onClick={() => toggleCard(locKey)}
+                      className="w-full mt-2 py-1.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/60 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer border border-slate-200/60 dark:border-slate-600/60 shadow-xs"
+                    >
+                      <span>Restrânge Detalii</span>
+                      <ChevronUp className="w-4 h-4 text-slate-500" />
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           );
