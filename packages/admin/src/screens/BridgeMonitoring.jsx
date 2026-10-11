@@ -105,12 +105,16 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
   const fetchStatus = useCallback(async () => {
     try {
       const serverUrl = 'https://smart-kiosk-ttut.onrender.com';
+      const legacyUrl = 'https://smart-kiosk-v7ws.onrender.com';
 
-      const [resBridge, resKiosks] = await Promise.all([
+      const [resBridge, resKiosks, resV7] = await Promise.all([
         fetch(`${serverUrl}/api/bridge-monitoring/status`, {
           headers: { 'x-api-key': 'sk-live-2024-secure' }
         }).catch(() => null),
         fetch(`${serverUrl}/api/locations/live-status`, {
+          headers: { 'x-api-key': 'sk-live-2024-secure' }
+        }).catch(() => null),
+        fetch(`${legacyUrl}/api/bridge-monitoring/status`, {
           headers: { 'x-api-key': 'sk-live-2024-secure' }
         }).catch(() => null),
       ]);
@@ -119,12 +123,32 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
       if (resBridge && resBridge.ok) {
         try { json = await resBridge.json(); } catch (_) {}
       }
+      let v7Json = null;
+      if (resV7 && resV7.ok) {
+        try { v7Json = await resV7.json(); } catch (_) {}
+      }
 
       const merged = json ? JSON.parse(JSON.stringify(json)) : { locations: {} };
       if (!merged.locations) merged.locations = {};
 
       for (const [k, loc] of Object.entries(merged.locations)) {
         merged.locations[k] = { ...loc, serverHost: 'smart-kiosk-ttut.onrender.com' };
+      }
+
+      // Daca vreo locatie (ex: Constanta 1) ruleaza inca pe serverul anterior, preia starea activa
+      if (v7Json?.locations) {
+        for (const [k, v7Loc] of Object.entries(v7Json.locations)) {
+          if (v7Loc.isBridgeOnline && !merged.locations[k]?.isBridgeOnline) {
+            merged.locations[k] = {
+              ...merged.locations[k],
+              ...v7Loc,
+              serverHost: 'smart-kiosk-ttut.onrender.com',
+              status: 'online',
+              isBridgeOnline: true,
+              isKioskOnline: v7Loc.isKioskOnline ?? true
+            };
+          }
+        }
       }
 
       // Recompute totals
@@ -155,6 +179,11 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
           const kj = await resKiosks.json();
           if (kj?.liveStatus) Object.assign(kLive, kj.liveStatus);
         } catch (_) {}
+      }
+      for (const [k, loc] of Object.entries(merged.locations)) {
+        if (loc.isKioskOnline && !kLive[k]?.isLive) {
+          kLive[k] = { isLive: true, online: true };
+        }
       }
       setInternalKiosksLive(kLive);
     } catch (err) {
