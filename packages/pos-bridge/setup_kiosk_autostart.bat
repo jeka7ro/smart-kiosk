@@ -195,7 +195,11 @@ if exist "%APP_DIR%\run-hidden.vbs" (
     powershell -NoProfile -Command "$w=New-Object -Com WScript.Shell; $u=[Environment]::GetFolderPath('Startup'); $s=$w.CreateShortcut(\"$u\POSBridge.lnk\"); $s.TargetPath='wscript.exe'; $s.Arguments='\"%APP_DIR%\run-hidden.vbs\"'; $s.WorkingDirectory='%APP_DIR%'; $s.WindowStyle=0; $s.Save()" >nul 2>&1
 )
 echo [INFO] Pornesc POS Bridge in fundal...
-start "" /min cmd /c "%APP_DIR%\start-windows.bat"
+if exist "%APP_DIR%\run-hidden.vbs" (
+    start "" wscript.exe "%APP_DIR%\run-hidden.vbs"
+) else (
+    start "" /min cmd /k "%APP_DIR%\start-windows.bat"
+)
 
 :bridge_started
 
