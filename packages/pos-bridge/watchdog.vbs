@@ -19,5 +19,5 @@ Next
 
 If Not nodeRunning Then
     ws.CurrentDirectory = currentDir
-    ws.Run """" & currentDir & "\start-windows.bat""", 0, False
+    ws.Run "cmd.exe /c """ & currentDir & "\start-windows.bat""", 0, False
 End If
