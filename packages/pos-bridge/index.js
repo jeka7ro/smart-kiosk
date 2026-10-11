@@ -36,7 +36,8 @@ function log(msg) {
 // Curata fisierul de log la pornire
 try { fs.writeFileSync(LOG_FILE, ''); } catch (_) {}
 
-const RENDER_URL  = process.env.RENDER_URL  || 'https://smart-kiosk-ttut.onrender.com';
+const rawRenderUrl = process.env.RENDER_URL || 'https://smart-kiosk-v7ws.onrender.com';
+const RENDER_URL   = rawRenderUrl.includes('smart-kiosk-ttut') ? 'https://smart-kiosk-v7ws.onrender.com' : rawRenderUrl;
 const COM_PORT    = process.env.COM_PORT    || 'auto';
 const BAUD_RATE   = parseInt(process.env.BAUD_RATE || '9600');
 const LOCATION_ID = process.env.LOCATION_ID || 'sm-brasov';

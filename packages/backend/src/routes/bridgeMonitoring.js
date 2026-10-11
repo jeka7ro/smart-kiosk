@@ -158,6 +158,26 @@ router.post('/:locationId/test-print', (req, res) => {
 });
 
 /**
+ * POST /api/bridge-monitoring/reload-all-kiosks
+ * Remotely triggers reload and update of ALL connected kiosk screens
+ */
+router.post('/reload-all-kiosks', (req, res) => {
+  try {
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('remote_restart', { locationId: 'all' });
+      console.log('[BridgeMonitor] Comandă globală reload trimisă către TOATE ecranele Kiosk!');
+      res.json({ success: true, message: 'Comanda de actualizare și reîncărcare a fost trimisă către TOATE Kiosk-urile!' });
+    } else {
+      res.status(500).json({ error: 'Socket.io nu este inițializat pe server' });
+    }
+  } catch (err) {
+    console.error('[BridgeMonitor] Eroare reload all kiosks:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
  * POST /api/bridge-monitoring/:locationId/reload-kiosk
  * Remotely triggers reload of the Chrome kiosk browser on that location
  */
@@ -165,6 +185,17 @@ router.post('/:locationId/reload-kiosk', (req, res) => {
   try {
     const io = req.app.get('io');
     const { locationId } = req.params;
+
+    if (locationId === 'all') {
+      if (io) {
+        io.emit('remote_restart', { locationId: 'all' });
+        console.log('[BridgeMonitor] Comandă globală reload trimisă către TOATE ecranele Kiosk!');
+        return res.json({ success: true, message: 'Comanda de actualizare și reîncărcare a fost trimisă către TOATE Kiosk-urile!' });
+      } else {
+        return res.status(500).json({ error: 'Socket.io nu este inițializat pe server' });
+      }
+    }
+
     const { getLocationAliases } = require('../utils/locations');
     const aliases = getLocationAliases ? getLocationAliases(locationId) : [locationId];
     const targets = new Set([locationId, ...aliases].filter(Boolean));

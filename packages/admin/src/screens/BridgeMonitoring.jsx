@@ -45,7 +45,10 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
     setActionLoading(key);
     setActionFeedback(null);
     try {
-      const res = await fetch(`${backend}/api/bridge-monitoring/${locationId}/${actionType}`, {
+      const endpoint = locationId === 'all' && actionType === 'reload-kiosk'
+        ? `${backend}/api/bridge-monitoring/reload-all-kiosks`
+        : `${backend}/api/bridge-monitoring/${locationId}/${actionType}`;
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -213,11 +216,18 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
   const locationKeys = useMemo(() => ['cluj1', 'cluj2', 'sm-brasov', 'constanta1'], []);
 
   const computedLocations = useMemo(() => {
+    const friendlyNames = {
+      cluj1: 'Cluj 1 (Centru)',
+      cluj2: 'Cluj 2',
+      'sm-brasov': 'Brașov (RollMaster)',
+      constanta1: 'Constanța 1',
+    };
+
     const result = {};
     locationKeys.forEach(locKey => {
       const loc = data.locations[locKey] || {
         locationId: locKey,
-        displayName: locKey,
+        displayName: friendlyNames[locKey] || locKey,
         status: 'offline',
         port: 'N/A',
         gateway: 'raiffeisen',
@@ -228,19 +238,31 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
       };
 
       const liveKiosk = kiosksLiveStatus[locKey] || 
-                       (locKey === 'cluj1' ? kiosksLiveStatus['smashme-main'] : null) ||
-                       (locKey === 'constanta1' ? kiosksLiveStatus['smashme-constanta'] : null) ||
-                       (locKey === 'sm-brasov' ? kiosksLiveStatus['sm-brasov'] : null);
+                       (locKey === 'cluj1' ? (kiosksLiveStatus['smashme-main'] || kiosksLiveStatus['cluj-centru'] || kiosksLiveStatus['cluj']) : null) ||
+                       (locKey === 'cluj2' ? (kiosksLiveStatus['cluj-2'] || kiosksLiveStatus['cj2']) : null) ||
+                       (locKey === 'constanta1' ? (kiosksLiveStatus['smashme-constanta'] || kiosksLiveStatus['constanta']) : null) ||
+                       (locKey === 'sm-brasov' ? (kiosksLiveStatus['rollmaster'] || kiosksLiveStatus['brasov']) : null);
       const isKioskConnected = Boolean(liveKiosk?.isLive || liveKiosk?.online || (liveKiosk?.onlineCount > 0));
-      
-      // Dacă bridge-ul a comunicat cu serverul astăzi și are port serial valid, este considerat activ
+      const isUniversalConfig = Boolean(liveKiosk?.isUniversal);
+      const kioskScriptVer = liveKiosk?.scriptVersion || null;
+      const latestScriptVer = liveKiosk?.latestScriptVersion || '2.4.0';
+      const isScriptUpToDate = Boolean(kioskScriptVer && kioskScriptVer === latestScriptVer);
+
+      const displayName = loc.displayName && loc.displayName !== locKey ? loc.displayName : (friendlyNames[locKey] || locKey);
+      const isBridgeOnline = Boolean(loc.status === 'online' || loc.isBridgeOnline);
       const hasRecentConnection = Boolean(loc.connectedAt && (Date.now() - loc.connectedAt < 12 * 3600 * 1000) && loc.port && loc.port !== 'N/A');
-      const isOnline = loc.status === 'online' || isKioskConnected || hasRecentConnection;
+      const isOnline = isBridgeOnline || isKioskConnected || hasRecentConnection;
 
       result[locKey] = {
         ...loc,
+        displayName,
         status: isOnline ? 'online' : 'offline',
+        isBridgeOnline,
         isKioskConnected,
+        isUniversalConfig,
+        kioskScriptVer,
+        latestScriptVer,
+        isScriptUpToDate,
         hasRecentConnection,
       };
     });
@@ -263,37 +285,55 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
 
   return (
     <div className="space-y-6 px-4 md:px-8 pb-12">
-      {/* Control & Status Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-900/50 flex items-center justify-center shrink-0">
-            <Server className="w-5 h-5 text-blue-600" />
+      {/* Control & Status Bar - Premium Design with OTA Actions */}
+      <div className="relative overflow-hidden bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl p-5 md:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-5">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500/10 to-indigo-500/20 border border-blue-200/60 dark:border-blue-700/50 flex items-center justify-center shrink-0 shadow-inner">
+            <Server className="w-6 h-6 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
-            <div className="text-sm font-bold text-slate-900 dark:text-white">
-              Stare Echipamente și Conexiuni Locale
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+                Stare Echipamente și Conexiuni Locale
+              </h1>
+              <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/50 dark:border-blue-800/50">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                Live OTA
+              </span>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Urmărire proces start-windows.bat, porturi seriale și imprimante bonuri per locație
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Monitorizare în timp real, telemetrie script universal și actualizări de la distanță (OTA)
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300">
-            <Radio className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
-            <span>Active: {totalOnlineCount}</span>
-            <span className="text-slate-400">|</span>
-            <span className={totalOfflineCount > 0 ? 'text-amber-600 font-bold' : 'text-slate-400'}>
-              Deconectate: {totalOfflineCount}
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          <div className="flex items-center gap-2 text-xs font-semibold px-3.5 py-2 rounded-xl bg-slate-100/80 dark:bg-slate-700/60 text-slate-700 dark:text-slate-200 border border-slate-200/50 dark:border-slate-600/50 shadow-inner">
+            <Radio className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
+            <span>Active: <strong className="text-emerald-700 dark:text-emerald-400 font-bold">{totalOnlineCount}</strong></span>
+            <span className="text-slate-300 dark:text-slate-600">|</span>
+            <span className={totalOfflineCount > 0 ? 'text-amber-600 dark:text-amber-400 font-bold' : 'text-slate-400'}>
+              Deconectate: <strong>{totalOfflineCount}</strong>
             </span>
           </div>
+
+          {/* Buton Global Actualizează Toate Kiosk-urile */}
+          <button
+            type="button"
+            onClick={() => handleAction('all', 'reload-kiosk')}
+            disabled={actionLoading === 'all-reload-kiosk'}
+            title="Trimite semnalul de reload și update OTA pe toate cele 5 Kiosk-uri"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-700 hover:via-indigo-700 hover:to-violet-700 shadow-md shadow-blue-500/20 active:scale-95 transition-all duration-200 cursor-pointer disabled:opacity-50"
+          >
+            <RotateCcw className={`w-3.5 h-3.5 ${actionLoading === 'all-reload-kiosk' ? 'animate-spin' : ''}`} />
+            <span>Actualizează Toate Kiosk-urile (OTA)</span>
+          </button>
 
           <button
             type="button"
             onClick={handleRefresh}
             disabled={refreshing}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-50 cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
             <span>Actualizează</span>
@@ -302,7 +342,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
       </div>
 
       {actionFeedback && (
-        <div className={`p-3 rounded-xl text-xs font-semibold flex items-center gap-2 border ${
+        <div className={`p-3.5 rounded-2xl text-xs font-semibold flex items-center gap-2.5 border shadow-xs ${
           actionFeedback.type === 'success'
             ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
             : 'bg-rose-50 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200 dark:border-rose-800'
@@ -313,201 +353,191 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
       )}
 
       {/* Grid Status Locații */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4.5">
         {locationKeys.map(locKey => {
           const loc = computedLocations[locKey];
           const isOnline = loc.status === 'online';
+          const { isKioskConnected, isUniversalConfig, kioskScriptVer, latestScriptVer, isScriptUpToDate, isBridgeOnline } = loc;
 
           return (
             <div
               key={locKey}
-              className="p-3.5 rounded-xl border transition-all bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-xs flex flex-col justify-between"
+              className="group p-4 md:p-5 rounded-3xl border transition-all duration-300 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border-slate-200/80 dark:border-slate-700/80 hover:border-blue-400 dark:hover:border-blue-500 shadow-xs hover:shadow-lg flex flex-col justify-between"
             >
-              <div>
-                {/* Card Header */}
-                <div className="flex items-start justify-between gap-2 pb-2.5 border-b border-slate-100 dark:border-slate-700/60">
+              <div className="space-y-3">
+                {/* Card Header with Location Pill & Online State */}
+                <div className="flex items-start justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-700/60">
                   <div className="min-w-0 flex-1">
-                    <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
+                    <span className="inline-block px-2.5 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300 mb-1">
                       {loc.locationId}
-                    </div>
-                    <div className="text-sm font-bold text-slate-900 dark:text-white mt-0.5 truncate" title={loc.displayName}>
+                    </span>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white truncate tracking-tight" title={loc.displayName}>
                       {loc.displayName}
-                    </div>
+                    </h3>
                   </div>
 
-                  <div className={`px-2 py-0.5 rounded-full text-[11px] font-bold flex items-center gap-1 shrink-0 ${
+                  <div className={`px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 shrink-0 shadow-xs whitespace-nowrap ${
                     isOnline
-                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
-                      : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                      : 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
                   }`}>
-                    <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                    <span>{isOnline ? 'ONLINE' : 'DECONECTAT'}</span>
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+                    <span className="whitespace-nowrap">{isOnline ? 'ONLINE' : 'DECONECTAT'}</span>
                   </div>
                 </div>
 
-                {/* Status Details */}
-                <div className="mt-2.5 space-y-1.5 text-xs">
-                  <div className="flex items-center justify-between py-1 border-b border-slate-100/60 dark:border-slate-700/40 gap-2">
-                    <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5 shrink-0">
-                      <Activity className="w-3.5 h-3.5 text-slate-400" />
-                      <span>POS Bridge (start.bat):</span>
+                {/* Sub-container 1: Ecran Kiosk & OTA Status */}
+                <div className="p-3 rounded-2xl bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 space-y-2 text-xs">
+                  <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <Monitor className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                      <span className="whitespace-nowrap">Ecran Kiosk</span>
                     </span>
-                    <span className={`font-semibold text-right ${isOnline ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400 font-bold'}`}>
-                      {isOnline ? 'Rulare activă' : 'Oprit / Deconectat'}
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
+                      isKioskConnected 
+                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300' 
+                        : 'bg-slate-200/60 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
+                    }`}>
+                      {isKioskConnected ? 'Conectat' : 'Inactiv'}
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between py-1 border-b border-slate-100/60 dark:border-slate-700/40 gap-2">
-                    <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5 shrink-0">
-                      <Cpu className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Port Serial POS:</span>
+                  <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
+                    <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Configurație:</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
+                      isUniversalConfig 
+                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' 
+                        : 'bg-slate-200/70 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
+                    }`}>
+                      {isUniversalConfig ? 'Universală' : 'Manuală'}
                     </span>
-                    <span className="font-semibold text-slate-800 dark:text-slate-200 text-right">
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
+                    <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Versiune Script:</span>
+                    <div className="flex items-center gap-1 text-right whitespace-nowrap">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
+                        kioskScriptVer 
+                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' 
+                          : 'bg-slate-200/70 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
+                      }`}>
+                        {kioskScriptVer ? `v${kioskScriptVer}` : 'Fără script'}
+                      </span>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 whitespace-nowrap">
+                        (v{latestScriptVer})
+                      </span>
+                      {isKioskConnected && (
+                        <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold whitespace-nowrap ${
+                          isScriptUpToDate
+                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
+                            : 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300'
+                        }`}>
+                          {isScriptUpToDate ? 'La zi' : 'Update'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sub-container 2: Hardware POS & Imprimanta */}
+                <div className="p-3 rounded-2xl bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 space-y-2 text-xs">
+                  <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <Cpu className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                      <span className="whitespace-nowrap">POS & Imprimantă</span>
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
+                      isBridgeOnline 
+                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300' 
+                        : 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300'
+                    }`}>
+                      {isBridgeOnline ? 'Bridge activ' : 'Oprit'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
+                    <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Port Serial:</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">
                       {loc.port || 'COM?'} ({loc.gateway || 'raiffeisen'})
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between py-1 border-b border-slate-100/60 dark:border-slate-700/40 gap-2">
-                    <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5 shrink-0">
-                      <Printer className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Imprimantă Bonuri:</span>
-                    </span>
-                    <span className="font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[130px] text-right" title={loc.printerName || 'Nedetectată'}>
+                  <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
+                    <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Imprimantă:</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[130px] whitespace-nowrap text-right" title={loc.printerName || 'Nedetectată'}>
                       {loc.printerName || 'Nedetectată'}
                     </span>
                   </div>
 
-                  {(() => {
-                    const aliasesMap = {
-                      'cluj1': ['cluj1', 'cluj', 'cluj-centru', 'cluj-main', 'smashme-main', 'sm-cluj', 'smashme-cluj'],
-                      'cluj2': ['cluj2', 'cluj-2', 'cj2', 'smashme-cj2'],
-                      'sm-brasov': ['sm-brasov', 'brasov', 'brasov-centru', 'rollmaster', 'rollmaster-brasov', 'rm-brasov'],
-                      'constanta1': ['constanta1', 'constanta', 'smashme-constanta']
-                    };
-                    const locAliases = aliasesMap[locKey] || [locKey];
-                    const liveKiosk = locAliases.map(a => kiosksLiveStatus[a]).find(Boolean);
-                    const isKioskConnected = Boolean(liveKiosk?.isLive || liveKiosk?.online || (liveKiosk?.onlineCount > 0));
-                    const isUniversalConfig = Boolean(liveKiosk?.isUniversal);
-                    const kioskScriptVer = liveKiosk?.scriptVersion || (isUniversalConfig ? '2.4.0' : null);
-                    const latestScriptVer = liveKiosk?.latestScriptVersion || '2.4.0';
-                    const isScriptUpToDate = Boolean(kioskScriptVer && kioskScriptVer === latestScriptVer);
-
-                    return (
-                      <>
-                        <div className="flex items-center justify-between py-1 border-b border-slate-100/60 dark:border-slate-700/40 gap-2">
-                          <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5 shrink-0">
-                            <Monitor className="w-3.5 h-3.5 text-slate-400" />
-                            <span>Config. Universală:</span>
-                          </span>
-                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                            isUniversalConfig 
-                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' 
-                              : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
-                          }`}>
-                            {isUniversalConfig ? 'ACTIVAT' : 'DEZACTIVAT'}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center justify-between py-1 border-b border-slate-100/60 dark:border-slate-700/40 gap-2">
-                          <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5 shrink-0">
-                            <Sliders className="w-3.5 h-3.5 text-slate-400" />
-                            <span>Versiune Script:</span>
-                          </span>
-                          <div className="flex items-center gap-1 text-right">
-                            <span className="font-semibold text-slate-800 dark:text-slate-200">
-                              {kioskScriptVer ? `v${kioskScriptVer}` : 'Fără script'}
-                            </span>
-                            <span className="text-[10px] text-slate-400 dark:text-slate-500">
-                              (ultim: v{latestScriptVer})
-                            </span>
-                            {isKioskConnected && (
-                              <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
-                                isScriptUpToDate
-                                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
-                                  : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
-                              }`}>
-                                {isScriptUpToDate ? 'La zi' : 'Actualizare'}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </>
-                    );
-                  })()}
-
-                  <div className="flex items-center justify-between py-1 border-b border-slate-100/60 dark:border-slate-700/40 gap-2">
-                    <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5 shrink-0">
-                      <Clock className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Ultimul Semnal:</span>
-                    </span>
-                    <span className="font-medium text-slate-700 dark:text-slate-300 text-right">
-                      {isOnline
+                  <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
+                    <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Ultimul Semnal:</span>
+                    <span className="font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap text-right">
+                      {isBridgeOnline
                         ? (loc.lastPingSecondsAgo !== null && loc.lastPingSecondsAgo < 120 
                             ? `acum ${loc.lastPingSecondsAgo}s` 
-                            : (loc.connectedAt ? `conectat la ${new Date(loc.connectedAt).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })}` : 'activ')
+                            : (loc.connectedAt ? `la ${new Date(loc.connectedAt).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })}` : 'activ')
                           )
                         : (loc.offlineDurationMinutes !== null
-                            ? `inactiv de ${loc.offlineDurationMinutes}m`
-                            : 'fără conexiune recentă'
-                          )
-                      }
+                            ? `inactiv ${loc.offlineDurationMinutes}m`
+                            : 'fără semnal'
+                          )}
                     </span>
                   </div>
 
                   {isOnline && loc.uptimeSeconds > 0 && (
-                    <div className="flex items-center justify-between py-1 gap-2">
-                      <span className="text-slate-500 dark:text-slate-400 shrink-0">Timp de rulare:</span>
-                      <span className="font-medium text-slate-700 dark:text-slate-300 text-right">
+                    <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
+                      <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Timp rulare:</span>
+                      <span className="font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
                         {formatUptime(loc.uptimeSeconds)}
                       </span>
                     </div>
                   )}
                 </div>
+
+                {/* Status Note Indicator */}
+                {isOnline ? (
+                  <div className="p-2.5 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/70 dark:border-emerald-900/40 text-[11px] text-emerald-800 dark:text-emerald-300 leading-tight flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span className="truncate">Sistem operațional și sincronizat.</span>
+                  </div>
+                ) : (
+                  <div className="p-2.5 rounded-2xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-900/40 text-[11px] text-amber-800 dark:text-amber-300 leading-tight">
+                    <span className="font-bold">Notă:</span> Bridge deconectat pe acest PC.
+                  </div>
+                )}
               </div>
 
-              {/* Status footer message */}
-              {isOnline ? (
-                <div className="mt-3 p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/40 text-[11px] text-emerald-800 dark:text-emerald-300 leading-tight flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span>Procesul de plată POS și imprimanta sunt operaționale.</span>
-                </div>
-              ) : (
-                <div className="mt-3 p-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 text-[11px] text-amber-800 dark:text-amber-300 leading-tight">
-                  <span className="font-bold">Notă:</span> Bridge deconectat. Verificați <span className="font-semibold bg-amber-100 dark:bg-amber-900/60 px-1 py-0.5 rounded">start-windows.bat</span> pe PC.
-                </div>
-              )}
-
-              {/* Remote Control Actions */}
-              <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-700/60 grid grid-cols-3 gap-1.5">
+              {/* Action Buttons: 3 Rounded Squircles */}
+              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/60 grid grid-cols-3 gap-2">
                 <button
                   type="button"
                   onClick={() => handleAction(locKey, 'test-print')}
                   disabled={actionLoading === `${locKey}-test-print`}
                   title="Trimite probă de tipărire pe imprimantă"
-                  className="flex flex-col items-center justify-center gap-1 py-1.5 px-1 rounded-lg text-[10px] font-semibold bg-slate-50 dark:bg-slate-700/60 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 transition-colors disabled:opacity-50 cursor-pointer text-center"
+                  className="flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-2xl text-[10px] font-bold bg-slate-50 dark:bg-slate-700/50 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-700 dark:hover:bg-emerald-950/40 dark:hover:border-emerald-800 text-slate-700 dark:text-slate-200 border border-slate-200/70 dark:border-slate-600/70 transition-all duration-200 disabled:opacity-50 cursor-pointer text-center"
                 >
-                  <Printer className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-                  <span className="truncate">Test Print</span>
+                  <Printer className="w-3.5 h-3.5 text-slate-500 group-hover:text-emerald-600 shrink-0" />
+                  <span className="truncate whitespace-nowrap">Test Print</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleAction(locKey, 'restart-bridge')}
                   disabled={actionLoading === `${locKey}-restart-bridge`}
                   title="Repornește procesul start-windows.bat pe PC"
-                  className="flex flex-col items-center justify-center gap-1 py-1.5 px-1 rounded-lg text-[10px] font-semibold bg-slate-50 dark:bg-slate-700/60 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 transition-colors disabled:opacity-50 cursor-pointer text-center"
+                  className="flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-2xl text-[10px] font-bold bg-slate-50 dark:bg-slate-700/50 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 dark:hover:bg-blue-950/40 dark:hover:border-blue-800 text-slate-700 dark:text-slate-200 border border-slate-200/70 dark:border-slate-600/70 transition-all duration-200 disabled:opacity-50 cursor-pointer text-center"
                 >
-                  <RefreshCw className={`w-3.5 h-3.5 text-slate-500 dark:text-slate-400 ${actionLoading === `${locKey}-restart-bridge` ? 'animate-spin' : ''}`} />
-                  <span className="truncate">Restart Bridge</span>
+                  <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${actionLoading === `${locKey}-restart-bridge` ? 'animate-spin' : ''} shrink-0`} />
+                  <span className="truncate whitespace-nowrap">Restart</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleAction(locKey, 'reload-kiosk')}
                   disabled={actionLoading === `${locKey}-reload-kiosk`}
-                  title="Reîncarcă ecranul de Kiosk din browser"
-                  className="flex flex-col items-center justify-center gap-1 py-1.5 px-1 rounded-lg text-[10px] font-semibold bg-slate-50 dark:bg-slate-700/60 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 transition-colors disabled:opacity-50 cursor-pointer text-center"
+                  title="Reîncarcă și actualizează ecranul de Kiosk"
+                  className="flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-2xl text-[10px] font-bold bg-slate-50 dark:bg-slate-700/50 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700 dark:hover:bg-indigo-950/40 dark:hover:border-indigo-800 text-slate-700 dark:text-slate-200 border border-slate-200/70 dark:border-slate-600/70 transition-all duration-200 disabled:opacity-50 cursor-pointer text-center"
                 >
-                  <RotateCcw className={`w-3.5 h-3.5 text-slate-500 dark:text-slate-400 ${actionLoading === `${locKey}-reload-kiosk` ? 'animate-spin' : ''}`} />
-                  <span className="truncate">Reload Kiosk</span>
+                  <RotateCcw className={`w-3.5 h-3.5 text-slate-500 ${actionLoading === `${locKey}-reload-kiosk` ? 'animate-spin' : ''} shrink-0`} />
+                  <span className="truncate whitespace-nowrap">Reload</span>
                 </button>
               </div>
             </div>
@@ -516,8 +546,8 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
       </div>
 
       {/* Telegram Alert Settings Panel */}
-      <div className="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs">
-        <div className="flex items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-700">
+      <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl p-6 rounded-3xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs">
+        <div className="flex items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-700/60">
           <div>
             <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <Sliders className="w-4 h-4 text-blue-600" />
@@ -529,7 +559,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
           </div>
 
           <div className="flex items-center gap-2">
-            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
               data.telegramConfig?.enabled && data.telegramConfig?.botTokenConfigured
                 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
                 : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
@@ -541,18 +571,18 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
         </div>
 
         {telegramStatusMsg && (
-          <div className={`mt-4 p-3 rounded-lg text-xs font-medium flex items-center gap-2 ${
+          <div className={`mt-4 p-3.5 rounded-2xl text-xs font-semibold flex items-center gap-2.5 ${
             telegramStatusMsg.type === 'success'
               ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
               : 'bg-rose-50 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
           }`}>
-            {telegramStatusMsg.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+            {telegramStatusMsg.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" /> : <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />}
             <span>{telegramStatusMsg.text}</span>
           </div>
         )}
 
-        <form onSubmit={handleSaveTelegram} className="mt-4 space-y-4">
-          <div className="flex items-center gap-3 py-2">
+        <form onSubmit={handleSaveTelegram} className="mt-5 space-y-4">
+          <div className="flex items-center gap-3 py-1">
             <input
               type="checkbox"
               id="telegram_enabled"
@@ -575,7 +605,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                 value={telegramForm.botToken}
                 onChange={(e) => setTelegramForm(prev => ({ ...prev, botToken: e.target.value }))}
                 placeholder={data.telegramConfig?.botTokenConfigured ? `Configurat: ${data.telegramConfig.botTokenMasked}` : 'Ex: 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ'}
-                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <p className="text-[11px] text-slate-400 mt-1">
                 Obținut gratuit din conversația cu <span className="font-semibold">@BotFather</span> pe Telegram.
@@ -591,7 +621,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                 value={telegramForm.chatId}
                 onChange={(e) => setTelegramForm(prev => ({ ...prev, chatId: e.target.value }))}
                 placeholder="Ex: -100123456789 sau ID utilizator"
-                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <p className="text-[11px] text-slate-400 mt-1">
                 ID-ul canalului sau grupului unde se livrează alertele.
@@ -599,7 +629,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
             </div>
           </div>
 
-          <div className="flex items-center gap-4 pt-2">
+          <div className="flex items-center gap-4 pt-1">
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Perioadă antiflood alerte (minute):
@@ -610,7 +640,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                 max="60"
                 value={telegramForm.alertCooldownMinutes}
                 onChange={(e) => setTelegramForm(prev => ({ ...prev, alertCooldownMinutes: e.target.value }))}
-                className="w-24 px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-24 px-3.5 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -619,7 +649,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
             <button
               type="submit"
               disabled={savingTelegram}
-              className="px-4 py-2 rounded-lg text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors disabled:opacity-50"
+              className="px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors disabled:opacity-50 shadow-sm"
             >
               {savingTelegram ? 'Se salvează...' : 'Salvează Setările'}
             </button>
@@ -628,7 +658,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
               type="button"
               onClick={handleTestTelegram}
               disabled={testingTelegram}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors disabled:opacity-50"
             >
               <Send className={`w-3.5 h-3.5 ${testingTelegram ? 'animate-pulse' : ''}`} />
               <span>{testingTelegram ? 'Trimit mesaj...' : 'Trimite Test pe Telegram'}</span>
@@ -638,12 +668,12 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
       </div>
 
       {/* Istoric Evenimente Recente */}
-      <div className="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs">
+      <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl p-6 rounded-3xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs">
         <h2 className="text-base font-bold text-slate-900 dark:text-white mb-1 flex items-center gap-2">
           <Clock className="w-4 h-4 text-blue-600" />
           <span>Jurnal Evenimente Hardware Recente</span>
         </h2>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+        <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
           Istoric al conexiunilor, deconectărilor și incidentelor detectate
         </p>
 

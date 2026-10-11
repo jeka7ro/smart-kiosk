@@ -22,7 +22,8 @@ import FullscreenExitPinModal from './components/FullscreenExitPinModal.jsx';
 import FortuneWheel        from './components/FortuneWheel';
 import { proxySyrveImage } from './utils/imageUtils.js';
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
+const rawKioskBackend = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
+const BACKEND = rawKioskBackend.includes('smart-kiosk-ttut') ? 'https://smart-kiosk-v7ws.onrender.com' : rawKioskBackend;
 
 function isWithinLockSchedule(loc, now = new Date()) {
   if (!loc || !loc.lockScheduleActive) return false;
@@ -345,26 +346,48 @@ export default function App() {
     });
 
     // Hard reload that also cleans Service Worker cache to avoid PWA stale cache
-    const hardReload = () => {
+    const hardReload = (force = false) => {
+      const currentScreen = useKioskStore.getState().screen;
+      if (!force && currentScreen && currentScreen !== 'welcome') {
+        console.log(`[Kiosk] Client activ pe ecranul ${currentScreen}. Programare update când ecranul revine pe Welcome...`);
+        window._pendingKioskReload = true;
+        return;
+      }
+
       console.log('[Kiosk] Remote restart signal received! Unregistering SW & reloading...');
-      // Unregister service worker so the next load fetches fresh code
+      const targetUrl = new URL(window.location.href);
+      if (!targetUrl.searchParams.get('universal')) targetUrl.searchParams.set('universal', 'true');
+      if (!targetUrl.searchParams.get('v')) targetUrl.searchParams.set('v', '2.4.0');
+
+      const doReload = () => {
+        if (window.location.href !== targetUrl.toString()) {
+          window.location.href = targetUrl.toString();
+        } else {
+          window.location.reload(true);
+        }
+      };
+
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(regs => {
           regs.forEach(r => r.unregister());
         }).finally(() => {
-          // Clear caches and reload
           if ('caches' in window) {
             caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).finally(() => {
-              window.location.reload(true);
+              doReload();
             });
           } else {
-            window.location.reload(true);
+            doReload();
           }
         });
       } else {
-        window.location.reload(true);
+        doReload();
       }
     };
+
+    if (screen === 'welcome' && window._pendingKioskReload) {
+      window._pendingKioskReload = false;
+      hardReload(true);
+    }
 
     const kioskDeviceId = locationData?.kioskId || localStorage.getItem('kiosk_device_id') || 'kiosk-main';
     const activeScreen = isLocked ? 'pin' : screen;

@@ -56,7 +56,8 @@ export default function FiscalModal({ isOpen, onClose, onConfirm, initialCui = '
     if (isManual) setErrorMsg('');
 
     try {
-      const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
+      const rawBackend = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
+      const BACKEND = rawBackend.includes('smart-kiosk-ttut') ? 'https://smart-kiosk-v7ws.onrender.com' : rawBackend;
       const response = await fetch(`${BACKEND}/api/anaf/lookup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
+const rawBackend = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-v7ws.onrender.com';
+const BACKEND = rawBackend.includes('smart-kiosk-ttut') ? 'https://smart-kiosk-v7ws.onrender.com' : rawBackend;
 
 const proxySyrveImage = (url) => {
   if (!url) return null;
