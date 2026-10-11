@@ -347,14 +347,14 @@ const FLAG_GRADIENTS = {
         </button>
       </div>
 
-      {/* ─── LIVE POS BRIDGE STATUS PILL (Discreet Standby Badge) ─── */}
+      {/* ─── LIVE POS BRIDGE STATUS PILL (Top-Right, away from AnyDesk) ─── */}
       <div 
         className="kiosk-bridge-status-pill"
         style={{
           position: 'fixed',
-          bottom: '16px',
-          right: '16px',
-          zIndex: 9999,
+          top: '20px',
+          right: '20px',
+          zIndex: 99999,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'flex-end',
@@ -363,20 +363,60 @@ const FLAG_GRADIENTS = {
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Rounded Pill */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowBridgeModal(prev => !prev);
+          }}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '7px 14px',
+            borderRadius: '9999px',
+            background: bridgeStatus?.isOnline ? 'rgba(6, 78, 59, 0.92)' : 'rgba(15, 23, 42, 0.92)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            border: `1px solid ${bridgeStatus?.isOnline ? '#10b981' : 'rgba(239, 68, 68, 0.5)'}`,
+            color: '#ffffff',
+            fontSize: '12px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.4)',
+            transition: 'all 0.2s ease',
+            userSelect: 'none'
+          }}
+          title="Stare conexiune echipamente locale - click pentru detalii"
+        >
+          <span 
+            style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: bridgeStatus?.isOnline ? '#34d399' : '#ef4444',
+              boxShadow: bridgeStatus?.isOnline ? '0 0 10px #34d399' : '0 0 8px #ef4444',
+              display: 'inline-block'
+            }} 
+          />
+          <span>{bridgeStatus?.isOnline ? 'Bridge Activ' : 'Bridge Oprit'}</span>
+        </button>
+
         {/* Expanded detail popover on tap */}
         {showBridgeModal && (
           <div 
             style={{
-              background: 'rgba(15, 23, 42, 0.94)',
+              background: 'rgba(15, 23, 42, 0.96)',
               backdropFilter: 'blur(16px)',
               WebkitBackdropFilter: 'blur(16px)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
               borderRadius: '16px',
               padding: '14px 18px',
               color: '#ffffff',
-              boxShadow: '0 12px 36px rgba(0, 0, 0, 0.5)',
+              boxShadow: '0 12px 36px rgba(0, 0, 0, 0.6)',
               fontSize: '12px',
-              minWidth: '230px',
+              minWidth: '240px',
               textAlign: 'left'
             }}
           >
@@ -417,47 +457,6 @@ const FLAG_GRADIENTS = {
             </div>
           </div>
         )}
-
-        {/* Small Rounded Pill */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowBridgeModal(prev => !prev);
-          }}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '5px 10px',
-            borderRadius: '9999px',
-            background: bridgeStatus?.isOnline ? 'rgba(6, 78, 59, 0.45)' : 'rgba(30, 41, 59, 0.35)',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
-            border: `1px solid ${bridgeStatus?.isOnline ? 'rgba(52, 211, 153, 0.35)' : 'rgba(148, 163, 184, 0.2)'}`,
-            color: bridgeStatus?.isOnline ? '#a7f3d0' : '#94a3b8',
-            fontSize: '10px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.25)',
-            transition: 'all 0.25s ease',
-            userSelect: 'none',
-            opacity: bridgeStatus?.isOnline ? 0.9 : 0.45
-          }}
-          title="Stare conexiune echipamente locale - click pentru detalii"
-        >
-          <span 
-            style={{
-              width: '7px',
-              height: '7px',
-              borderRadius: '50%',
-              backgroundColor: bridgeStatus?.isOnline ? '#10b981' : '#94a3b8',
-              boxShadow: bridgeStatus?.isOnline ? '0 0 8px #10b981' : 'none',
-              display: 'inline-block'
-            }} 
-          />
-          <span>{bridgeStatus?.isOnline ? 'Activ' : 'Standby'}</span>
-        </button>
       </div>
 
     </div>
