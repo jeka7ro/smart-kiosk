@@ -364,13 +364,9 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
             <h1 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
               Stare Echipamente și Conexiuni Locale
             </h1>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-[11px] font-mono font-semibold bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-200 border border-slate-200/60 dark:border-slate-600/60">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                <span className="text-slate-500 dark:text-slate-400">Server Backend:</span>
-                <span className="text-blue-600 dark:text-blue-400 font-bold">{serverHost}</span>
-              </span>
-            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Monitorizare în timp real a terminalelor POS și ecranelor Kiosk
+            </p>
           </div>
         </div>
 

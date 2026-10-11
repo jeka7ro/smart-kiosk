@@ -1077,16 +1077,7 @@ export default function AdminApp() {
               {tab === 'pending-orders' && 'Comenzi În Așteptare'}
               {tab === 'locations' && 'Gestionare Locații'}
               {tab === 'kiosks' && 'Kiosk-uri & Screensavere'}
-              {tab === 'bridge-monitoring' && (
-                <span className="inline-flex items-center gap-3">
-                  <span>LIVE Status</span>
-                  <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shadow-xs">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                    <span className="text-slate-500 dark:text-slate-400 font-sans font-medium">Server:</span>
-                    <span className="text-blue-600 dark:text-blue-400 font-bold">{BACKEND.replace(/^https?:\/\//, '')}</span>
-                  </span>
-                </span>
-              )}
+              {tab === 'bridge-monitoring' && 'LIVE Status'}
               {tab === 'qrcodes' && 'Coduri QR & Portal Mobil'}
               {tab === 'menu' && 'Sincronizare Syrve & Profile'}
               {tab === 'translations' && 'Traduceri Automate Meniu'}
