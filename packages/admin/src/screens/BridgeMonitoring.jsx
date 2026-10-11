@@ -22,7 +22,7 @@ import {
   ChevronUp
 } from 'lucide-react';
 
-const UNIVERSAL_COMMAND = 'mkdir C:\\SmartKiosk 2>nul & cd /d C:\\SmartKiosk & curl -s -L -o setup.bat "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/setup_kiosk_autostart.bat" & setup.bat';
+const UNIVERSAL_COMMAND = 'cmd /c "mkdir C:\\SmartKiosk 2>nul & cd /d C:\\SmartKiosk & curl -s -L -o setup.bat https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/setup_kiosk_autostart.bat & setup.bat"';
 
 export default function BridgeMonitoring({ backend = '', socket = null, kiosksLiveStatus = {} }) {
   const [data, setData] = useState({
