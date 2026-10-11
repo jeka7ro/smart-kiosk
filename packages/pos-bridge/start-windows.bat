@@ -62,10 +62,12 @@ echo.
 
 :loop
 echo  [INFO] Verific actualizari din Cloud...
+curl -s -L -H "Cache-Control: no-cache" -o server_config.json "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/server_config.json"
 curl -s -L -H "Cache-Control: no-cache" -o index.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/index.js"
 curl -s -L -H "Cache-Control: no-cache" -o printer.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/printer.js"
 curl -s -L -H "Cache-Control: no-cache" -o rawprint.ps1 "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/rawprint.ps1"
 curl -s -L -H "Cache-Control: no-cache" -o scan_port_pc.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/scan_port_pc.js"
+curl -s -L -H "Cache-Control: no-cache" -o watchdog.vbs "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/watchdog.vbs"
 curl -s -L -H "Cache-Control: no-cache" -o PrinterServiceDatecsFP950.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/PrinterServiceDatecsFP950.js"
 curl -s -L -H "Cache-Control: no-cache" -o VivaPosService.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/VivaPosService.js"
 curl -s -L -H "Cache-Control: no-cache" -o setup_kiosk_autostart.bat "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/setup_kiosk_autostart.bat"
@@ -73,13 +75,7 @@ curl -s -L -H "Cache-Control: no-cache" -o setup_kiosk_autostart.bat "https://ra
 if not exist "package.json" curl -s -L -H "Cache-Control: no-cache" -o package.json "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/package.json"
 if not exist "node_modules\dotenv" call npm install --no-audit --no-fund
 node index.js
-set NODE_EXIT=%errorlevel%
-if %NODE_EXIT% equ 0 (
-    echo.
-    echo  [OK] POS Bridge s-a oprit normal.
-    exit /b 0
-)
 echo.
-echo  [WARN] Bridge oprit - repornesc in 5 secunde...
-ping 127.0.0.1 -n 6 >nul
+echo  [WARN] Procesul s-a oprit - repornesc automat in 3 secunde...
+ping 127.0.0.1 -n 4 >nul
 goto loop

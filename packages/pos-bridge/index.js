@@ -51,6 +51,53 @@ if (RENDER_URL.includes('smart-kiosk-v7ws.onrender.com')) {
     log(`⚠️ Eroare salvare .env migrat: ${err.message}`);
   }
 }
+
+// ─── Cloud Server Auto-Discovery & Auto-Migration Watcher ────────────────────
+const CANONICAL_CONFIG_URL = 'https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/server_config.json';
+const httpsMod = require('https');
+
+function checkCanonicalServer(onComplete) {
+  try {
+    const req = httpsMod.get(CANONICAL_CONFIG_URL, { timeout: 6000 }, (res) => {
+      if (res.statusCode === 200) {
+        let raw = '';
+        res.on('data', chunk => raw += chunk);
+        res.on('end', () => {
+          try {
+            const config = JSON.parse(raw);
+            const targetUrl = config.serverUrl || config.canonicalUrl;
+            if (targetUrl && targetUrl.startsWith('http') && targetUrl !== RENDER_URL) {
+              log(`🔄 [CLOUD CONFIG] Server nou detectat în Cloud: ${targetUrl} (actual: ${RENDER_URL})`);
+              const envPath = pathMod.join(__dirname, '.env');
+              if (fs.existsSync(envPath)) {
+                let content = fs.readFileSync(envPath, 'utf8');
+                if (content.includes('RENDER_URL=')) {
+                  content = content.replace(/RENDER_URL=.*/g, `RENDER_URL=${targetUrl}`);
+                } else {
+                  content += `\nRENDER_URL=${targetUrl}\n`;
+                }
+                fs.writeFileSync(envPath, content, 'utf8');
+                log(`💾 .env actualizat către ${targetUrl}. Repornesc automat procesul...`);
+                setTimeout(() => process.exit(0), 1500);
+                return;
+              }
+            }
+          } catch (_) {}
+          if (typeof onComplete === 'function') onComplete();
+        });
+      } else {
+        if (typeof onComplete === 'function') onComplete();
+      }
+    });
+    req.on('error', () => { if (typeof onComplete === 'function') onComplete(); });
+    req.on('timeout', () => { req.destroy(); if (typeof onComplete === 'function') onComplete(); });
+  } catch (_) {
+    if (typeof onComplete === 'function') onComplete();
+  }
+}
+
+checkCanonicalServer();
+setInterval(checkCanonicalServer, 5 * 60 * 1000);
 // ─── Single-Instance Protection ──────────────────────────────────────────────
 const net = require('net');
 const LOCK_PORT = 40199;
@@ -533,8 +580,19 @@ async function start() {
     }
   });
 
+  let connectErrorCount = 0;
+  socket.on('connect_error', (err) => {
+    connectErrorCount++;
+    if (connectErrorCount % 5 === 0) {
+      log(`⚠️ [RECONECTARE] Eroare conectare la server: ${err.message}. Verific adresa Cloud...`);
+      checkCanonicalServer();
+    }
+  });
+
   socket.on('disconnect', (reason) => {
-    log(`⚠ Deconectat: ${reason}`);
+    log(`⚠️ Deconectat de la server: ${reason}`);
+    posLoggedIn = false;
+    checkCanonicalServer();
   });
 
   if (POS_GATEWAY === 'raiffeisen') {

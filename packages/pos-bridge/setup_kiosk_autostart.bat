@@ -205,6 +205,13 @@ call npm install --no-audit --no-fund >nul 2>&1
 if exist "%APP_DIR%\run-hidden.vbs" (
     powershell -NoProfile -Command "$w=New-Object -Com WScript.Shell; $u=[Environment]::GetFolderPath('Startup'); $s=$w.CreateShortcut(\"$u\POSBridge.lnk\"); $s.TargetPath='wscript.exe'; $s.Arguments='\"%APP_DIR%\run-hidden.vbs\"'; $s.WorkingDirectory='%APP_DIR%'; $s.WindowStyle=0; $s.Save()" >nul 2>&1
 )
+
+if exist "%APP_DIR%\watchdog.vbs" (
+    echo [INFO] Inregistrez Watchdog in Windows Task Scheduler (la pornire si la fiecare 2 minute)...
+    schtasks /create /tn "SmartKiosk_Watchdog" /tr "wscript.exe \"%APP_DIR%\watchdog.vbs\"" /sc MINUTE /mo 2 /f /rl HIGHEST >nul 2>&1
+    schtasks /create /tn "SmartKiosk_Boot" /tr "wscript.exe \"%APP_DIR%\watchdog.vbs\"" /sc ONLOGON /f /rl HIGHEST >nul 2>&1
+)
+
 echo [INFO] Pornesc POS Bridge in fundal...
 if exist "%APP_DIR%\run-hidden.vbs" (
     start "" wscript.exe "%APP_DIR%\run-hidden.vbs"
