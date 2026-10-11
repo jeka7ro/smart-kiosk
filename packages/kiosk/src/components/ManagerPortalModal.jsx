@@ -138,6 +138,37 @@ export default function ManagerPortalModal({ locationData, onClose, isStandalone
     }
   };
 
+  // Fullscreen Protection Toggle State (salvat local și pe server)
+  const [fullscreenProtectionActive, setFullscreenProtectionActive] = useState(() => {
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('kiosk_fullscreen_protection') : null;
+    if (saved !== null) return saved !== 'false';
+    return locationData?.fullscreenProtection !== false;
+  });
+
+  const handleToggleFullscreenProtection = async () => {
+    const newVal = !fullscreenProtectionActive;
+    setFullscreenProtectionActive(newVal);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('kiosk_fullscreen_protection', String(newVal));
+    }
+    showToast(newVal ? 'Protecție Fullscreen activată (Ieșire blocată cu PIN)!' : 'Protecție Fullscreen dezactivată.');
+
+    if (locationData?.id) {
+      try {
+        await fetch(`${localBackend}/api/locations/${locationData.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': import.meta.env.VITE_API_KEY || 'sk-live-2024-secure'
+          },
+          body: JSON.stringify({ fullscreenProtection: newVal })
+        });
+      } catch (err) {
+        console.warn('Eroare sincronizare protecție fullscreen:', err);
+      }
+    }
+  };
+
   // Nu mai forțăm ieșirea din fullscreen la deschiderea portalului manager (păstrează modul Kiosk activ)
 
   const sendLog = async (eventType, role) => {
@@ -1749,6 +1780,47 @@ const KIOSK_EVENT_META = {
                       {locationData?.vendorPin ? 'Configurat (Activ)' : 'Nu este configurat'}
                     </span>
                   </div>
+                </div>
+              </div>
+
+              {/* Card Protecție Fullscreen & Ieșire cu PIN */}
+              <div className="mgr-status-card">
+                <h3 className="mgr-status-card-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  </svg>
+                  Protecție Ecran Complet (Ieșire cu PIN)
+                </h3>
+                <div className="mgr-status-rows">
+                  <div className="mgr-status-row">
+                    <span className="mgr-status-label">Stare Protecție Fullscreen:</span>
+                    <span className={`mgr-status-val ${fullscreenProtectionActive ? 'mgr-val-green' : 'mgr-val-dark'}`}>
+                      {fullscreenProtectionActive ? 'ACTIVAT (Blocat cu PIN)' : 'DEZACTIVAT (Liber)'}
+                    </span>
+                  </div>
+                  <div className="mgr-status-row" style={{ marginTop: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={handleToggleFullscreenProtection}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: '12px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        background: fullscreenProtectionActive ? '#ef4444' : '#10b981',
+                        color: '#ffffff',
+                        border: 'none',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                      }}
+                    >
+                      {fullscreenProtectionActive ? 'Dezactivează Protecția PIN' : 'Activează Protecția PIN'}
+                    </button>
+                  </div>
+                  <p style={{ fontSize: '11px', color: '#64748b', margin: '8px 0 0 0', lineHeight: 1.4 }}>
+                    Când este activată, părăsirea modului Fullscreen sau minimizarea Kiosk-ului este blocată automat. Revenirea la Windows sau oprirea Kiosk-ului necesită codul PIN de Manager.
+                  </p>
                 </div>
               </div>
 

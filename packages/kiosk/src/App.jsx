@@ -18,6 +18,7 @@ import PaymentScreen       from './screens/PaymentScreen';
 import ConfirmationScreen  from './screens/ConfirmationScreen';
 import PinScreen           from './screens/PinScreen';
 import ManagerPortalModal  from './components/ManagerPortalModal.jsx';
+import FullscreenExitPinModal from './components/FullscreenExitPinModal.jsx';
 import FortuneWheel        from './components/FortuneWheel';
 import { proxySyrveImage } from './utils/imageUtils.js';
 
@@ -98,6 +99,11 @@ export default function App() {
   const [isScheduleLocked, setIsScheduleLocked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showManagerPortal, setShowManagerPortal] = useState(isManagerMode);
+  const [showFullscreenExitPin, setShowFullscreenExitPin] = useState(false);
+  const [fullscreenUnlockedByPin, setFullscreenUnlockedByPin] = useState(false);
+
+  const isFullscreenProtectionActive = locationData?.fullscreenProtection !== false && 
+    (typeof window !== 'undefined' ? localStorage.getItem('kiosk_fullscreen_protection') !== 'false' : true);
 
   // Promoții Roată Noroc
   const [promoData, setPromoData] = useState(null);
@@ -514,6 +520,7 @@ export default function App() {
     }
 
     const requestFS = () => {
+      if (showManagerPortal || fullscreenUnlockedByPin || showFullscreenExitPin) return;
       const el = document.documentElement;
       const rfs = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
       if (rfs && !document.fullscreenElement && !document.webkitFullscreenElement) {
@@ -526,8 +533,25 @@ export default function App() {
       }
     };
 
-    // Reintră în fullscreen la orice interacțiune pe ecran (touch, pointer, click, tastă)
-    const onInteraction = () => requestFS();
+    // Detectare ieșire din fullscreen pentru activarea protecției cu PIN
+    const onFullscreenChange = () => {
+      const isFs = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+      if (!isFs) {
+        if (isFullscreenProtectionActive && !showManagerPortal && !fullscreenUnlockedByPin) {
+          setShowFullscreenExitPin(true);
+        }
+      }
+    };
+
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+
+    // Reintră în fullscreen la orice interacțiune pe ecran (touch, pointer, click, tastă) dacă nu este activ modalul PIN
+    const onInteraction = () => {
+      if (showFullscreenExitPin || showManagerPortal || fullscreenUnlockedByPin) return;
+      requestFS();
+    };
+
     window.addEventListener('pointerdown', onInteraction, { passive: true });
     window.addEventListener('touchstart', onInteraction, { passive: true });
     window.addEventListener('touchend', onInteraction, { passive: true });
@@ -538,13 +562,15 @@ export default function App() {
     requestFS();
 
     return () => {
+      document.removeEventListener('fullscreenchange', onFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', onFullscreenChange);
       window.removeEventListener('pointerdown', onInteraction);
       window.removeEventListener('touchstart', onInteraction);
       window.removeEventListener('touchend', onInteraction);
       window.removeEventListener('click', onInteraction);
       window.removeEventListener('keydown', onInteraction);
     };
-  }, [isManagerMode, screen, showManagerPortal]);
+  }, [isManagerMode, screen, showManagerPortal, showFullscreenExitPin, fullscreenUnlockedByPin, isFullscreenProtectionActive]);
 
   if (loading) {
     return (
@@ -1001,7 +1027,28 @@ export default function App() {
           <ManagerPortalModal
             locationData={locationData}
             isStandalone={true}
-            onClose={() => setShowManagerPortal(false)}
+            onClose={() => {
+              setShowManagerPortal(false);
+              setFullscreenUnlockedByPin(false);
+            }}
+          />
+        )}
+
+        {/* ─── Protecție Fullscreen: Modal Blocare cu PIN la Ieșire ─── */}
+        {showFullscreenExitPin && locationData && (
+          <FullscreenExitPinModal
+            locationData={locationData}
+            onSuccess={() => {
+              setShowFullscreenExitPin(false);
+              setFullscreenUnlockedByPin(true);
+              setShowManagerPortal(true);
+            }}
+            onCancel={() => {
+              setShowFullscreenExitPin(false);
+              const el = document.documentElement;
+              const rfs = el.requestFullscreen || el.webkitRequestFullscreen;
+              if (rfs) rfs.call(el).catch(() => {});
+            }}
           />
         )}
         
