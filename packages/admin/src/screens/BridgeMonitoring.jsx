@@ -51,7 +51,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
   };
 
   const serverHost = useMemo(() => {
-    if (!backend) return 'smart-kiosk-v7ws.onrender.com';
+    if (!backend) return 'smart-kiosk-ttut.onrender.com';
     return backend.replace(/^https?:\/\//, '').replace(/\/$/, '');
   }, [backend]);
 
@@ -104,10 +104,10 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
 
   const fetchStatus = useCallback(async () => {
     try {
-      const primaryUrl = 'https://smart-kiosk-v7ws.onrender.com';
-      const secondaryUrl = 'https://smart-kiosk-ttut.onrender.com';
+      const primaryUrl = 'https://smart-kiosk-ttut.onrender.com';
+      const secondaryUrl = 'https://smart-kiosk-v7ws.onrender.com';
 
-      const [resBridge, resTtBridge, resKiosks, resTtKiosks] = await Promise.all([
+      const [resTtBridge, resV7Bridge, resTtKiosks, resV7Kiosks] = await Promise.all([
         fetch(`${primaryUrl}/api/bridge-monitoring/status`, {
           headers: { 'x-api-key': 'sk-live-2024-secure' }
         }).catch(() => null),
@@ -122,43 +122,41 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
         }).catch(() => null),
       ]);
 
-      let json = null;
-      if (resBridge && resBridge.ok) {
-        try { json = await resBridge.json(); } catch (_) {}
-      }
       let ttJson = null;
       if (resTtBridge && resTtBridge.ok) {
         try { ttJson = await resTtBridge.json(); } catch (_) {}
       }
-
-      // Merge both backends into a unified source of truth
-      const merged = json ? JSON.parse(JSON.stringify(json)) : (ttJson ? JSON.parse(JSON.stringify(ttJson)) : { locations: {} });
-      if (!merged.locations) merged.locations = {};
-
-      if (json?.locations) {
-        for (const [k, loc] of Object.entries(json.locations)) {
-          if (!merged.locations[k]) {
-            merged.locations[k] = { ...loc, serverHost: 'smart-kiosk-v7ws.onrender.com' };
-          } else {
-            merged.locations[k] = { ...merged.locations[k], ...loc, serverHost: 'smart-kiosk-v7ws.onrender.com' };
-          }
-        }
+      let v7Json = null;
+      if (resV7Bridge && resV7Bridge.ok) {
+        try { v7Json = await resV7Bridge.json(); } catch (_) {}
       }
+
+      // Merge both backends into a unified source of truth, prioritizing TTUT
+      const merged = ttJson ? JSON.parse(JSON.stringify(ttJson)) : (v7Json ? JSON.parse(JSON.stringify(v7Json)) : { locations: {} });
+      if (!merged.locations) merged.locations = {};
 
       if (ttJson?.locations) {
         for (const [k, loc] of Object.entries(ttJson.locations)) {
+          merged.locations[k] = { ...loc, serverHost: 'smart-kiosk-ttut.onrender.com' };
+        }
+      }
+
+      if (v7Json?.locations) {
+        for (const [k, loc] of Object.entries(v7Json.locations)) {
           const cur = merged.locations[k];
           if (!cur) {
-            merged.locations[k] = { ...loc, serverHost: 'smart-kiosk-ttut.onrender.com' };
+            merged.locations[k] = { ...loc, serverHost: 'smart-kiosk-v7ws.onrender.com' };
           } else {
-            if (loc.isBridgeOnline && !cur.isBridgeOnline) {
+            if (!cur.isBridgeOnline && loc.isBridgeOnline) {
               merged.locations[k].isBridgeOnline = true;
               merged.locations[k].status = 'online';
               merged.locations[k].port = loc.port || cur.port;
               merged.locations[k].printerName = loc.printerName || cur.printerName;
-              merged.locations[k].serverHost = 'smart-kiosk-ttut.onrender.com';
+              merged.locations[k].lastPing = loc.lastPing || cur.lastPing;
+              merged.locations[k].lastPingSecondsAgo = loc.lastPingSecondsAgo ?? cur.lastPingSecondsAgo;
+              merged.locations[k].serverHost = 'smart-kiosk-v7ws.onrender.com';
             }
-            if (loc.isKioskOnline && !cur.isKioskOnline) {
+            if (!cur.isKioskOnline && loc.isKioskOnline) {
               merged.locations[k].isKioskOnline = true;
             }
           }

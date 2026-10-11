@@ -39,7 +39,7 @@ echo  [INFO] Fisiere actualizate cu succes!
 if not exist ".env" (
     echo  [INFO] Fisierul .env lipseste, il creez automat...
     (
-        echo RENDER_URL=https://smart-kiosk-v7ws.onrender.com
+        echo RENDER_URL=https://smart-kiosk-ttut.onrender.com
         echo COM_PORT=COM3
         echo BAUD_RATE=9600
         echo LOCATION_ID=sm-brasov
