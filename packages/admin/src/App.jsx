@@ -533,37 +533,65 @@ export default function AdminApp() {
       }));
     });
     socket.on('kiosks_live_status', (statusMap) => {
-      setKiosksLiveStatus(statusMap || {});
+      if (statusMap) {
+        setKiosksLiveStatus(prev => ({ ...prev, ...statusMap }));
+      }
     });
 
     socket.on('bridge_status_update', (summary) => {
-      if (summary) setBridgeSummary(summary);
+      if (summary?.locations) {
+        setBridgeSummary(prev => {
+          const merged = { ...prev, ...summary, locations: { ...(prev?.locations || {}), ...(summary.locations || {}) } };
+          if (prev?.locations) {
+            for (const [k, prevLoc] of Object.entries(prev.locations)) {
+              if (prevLoc.isBridgeOnline && !merged.locations[k]?.isBridgeOnline) {
+                merged.locations[k] = prevLoc;
+              }
+            }
+          }
+          return merged;
+        });
+      }
     });
 
-    // Initial live status fetch + 15s poll fallback
+    // Initial live status fetch + 15s poll fallback (combina ttut + legacy v7ws)
     const fetchLiveKiosks = () => {
-      fetchWithAuth(`${BACKEND}/api/locations/live-status`)
-        .then(r => r.json())
-        .then(d => { if (d.liveStatus) setKiosksLiveStatus(d.liveStatus); })
-        .catch(() => {});
+      Promise.all([
+        fetchWithAuth(`${BACKEND}/api/locations/live-status`).then(r => r.json()).catch(() => null),
+        fetch('https://smart-kiosk-v7ws.onrender.com/api/locations/live-status', {
+          headers: { 'x-api-key': 'sk-live-2024-secure' }
+        }).then(r => r.json()).catch(() => null),
+        fetch('https://smart-kiosk-ttut.onrender.com/api/locations/live-status', {
+          headers: { 'x-api-key': 'sk-live-2024-secure' }
+        }).then(r => r.json()).catch(() => null)
+      ]).then(([d1, d2, d3]) => {
+        const mergedLive = {
+          ...(d1?.liveStatus || {}),
+          ...(d2?.liveStatus || {}),
+          ...(d3?.liveStatus || {})
+        };
+        if (Object.keys(mergedLive).length > 0) {
+          setKiosksLiveStatus(prev => ({ ...prev, ...mergedLive }));
+        }
+      }).catch(() => {});
     };
     fetchLiveKiosks();
     const livePoll = setInterval(fetchLiveKiosks, 15000);
 
-    // Initial bridge monitoring fetch + 15s poll
+    // Initial bridge monitoring fetch + 15s poll (combina ttut + legacy v7ws)
     const fetchBridgeStatus = () => {
       Promise.all([
-        fetch(`${BACKEND}/api/bridge-monitoring/status`, {
-          headers: { 'x-api-key': 'sk-live-2024-secure' }
-        }).then(r => r.json()).catch(() => null),
         fetch('https://smart-kiosk-ttut.onrender.com/api/bridge-monitoring/status', {
           headers: { 'x-api-key': 'sk-live-2024-secure' }
+        }).then(r => r.json()).catch(() => null),
+        fetch('https://smart-kiosk-v7ws.onrender.com/api/bridge-monitoring/status', {
+          headers: { 'x-api-key': 'sk-live-2024-secure' }
         }).then(r => r.json()).catch(() => null)
-      ]).then(([d, tt]) => {
-        if (!d && !tt) return;
-        const merged = d || { locations: {} };
-        if (tt?.locations) {
-          for (const [k, loc] of Object.entries(tt.locations)) {
+      ]).then(([tt, legacy]) => {
+        if (!tt && !legacy) return;
+        const merged = tt ? { ...tt, locations: { ...(tt.locations || {}) } } : { locations: {} };
+        if (legacy?.locations) {
+          for (const [k, loc] of Object.entries(legacy.locations)) {
             if (loc.isBridgeOnline && (!merged.locations[k] || !merged.locations[k].isBridgeOnline)) {
               merged.locations[k] = { ...merged.locations[k], ...loc, isBridgeOnline: true, status: 'online' };
             }
