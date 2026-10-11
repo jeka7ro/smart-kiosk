@@ -210,6 +210,6 @@ echo   - Modul Fullscreen Kiosk a fost pornit.
 echo   - Autostart activat atat pentru Ecran cat si pentru POS Bridge!
 echo =============================================================
 echo.
-echo [OK] Kiosk si POS lansate cu succes! Inchidere automata consola in 2 secunde...
-timeout /t 2 >nul
-exit /b 0
+echo [OK] Kiosk si POS lansate cu succes! Inchidere automata consola...
+timeout /t 1 >nul
+exit
