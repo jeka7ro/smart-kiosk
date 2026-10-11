@@ -130,6 +130,6 @@ echo   - Modul Fullscreen Kiosk a fost pornit.
 echo   - Scurtatura creata pe Desktop si in Autostart.
 echo =============================================================
 echo.
-echo Aceasta fereastra NU se inchide automat pentru a putea citi mesajul.
-echo Apasa orice tasta cand doresti sa o inchizi...
-pause
+echo [OK] Kiosk lansat cu succes! Inchidere automata consola in 2 secunde...
+timeout /t 2 >nul
+exit /b 0
