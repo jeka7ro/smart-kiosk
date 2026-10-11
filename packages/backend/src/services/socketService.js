@@ -102,7 +102,8 @@ function initSocket(io) {
     console.log(`[Socket] Client connected: ${socket.id}`);
 
     // Kitchen Display joins — both legacy 'join' and new 'join_room' events
-    socket.on('join', ({ role, locationId, kioskId, screen }) => {
+    socket.on('join', (data = {}) => {
+      const { role, locationId, kioskId, screen } = data;
       if (role === 'kitchen') {
         socket.join(`kitchen-${locationId}`);
         console.log(`[Socket] Kitchen joined: kitchen-${locationId}`);

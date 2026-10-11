@@ -529,21 +529,21 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                   type="button"
                   onClick={() => handleAction(locKey, 'restart-bridge')}
                   disabled={actionLoading === `${locKey}-restart-bridge`}
-                  title="Repornește procesul start-windows.bat pe PC"
+                  title="Repornește procesul serial POS Bridge pe calculatorul locației"
                   className="flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-2xl text-[10px] font-bold bg-slate-50 dark:bg-slate-700/50 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 dark:hover:bg-blue-950/40 dark:hover:border-blue-800 text-slate-700 dark:text-slate-200 border border-slate-200/70 dark:border-slate-600/70 transition-all duration-200 disabled:opacity-50 cursor-pointer text-center"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${actionLoading === `${locKey}-restart-bridge` ? 'animate-spin' : ''} shrink-0`} />
-                  <span className="truncate whitespace-nowrap">Restart</span>
+                  <span className="truncate whitespace-nowrap">Restart POS</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleAction(locKey, 'reload-kiosk')}
                   disabled={actionLoading === `${locKey}-reload-kiosk`}
-                  title="Reîncarcă și actualizează ecranul de Kiosk"
+                  title="Reîncarcă și actualizează ecranul Kiosk din browser"
                   className="flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-2xl text-[10px] font-bold bg-slate-50 dark:bg-slate-700/50 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700 dark:hover:bg-indigo-950/40 dark:hover:border-indigo-800 text-slate-700 dark:text-slate-200 border border-slate-200/70 dark:border-slate-600/70 transition-all duration-200 disabled:opacity-50 cursor-pointer text-center"
                 >
                   <RotateCcw className={`w-3.5 h-3.5 text-slate-500 ${actionLoading === `${locKey}-reload-kiosk` ? 'animate-spin' : ''} shrink-0`} />
-                  <span className="truncate whitespace-nowrap">Reload</span>
+                  <span className="truncate whitespace-nowrap">Reload Ecran</span>
                 </button>
               </div>
             </div>
