@@ -20,7 +20,17 @@ echo =============================================================
 echo.
 
 set "CHOICE="
-set /p "CHOICE=Introdu cifra locatiei (1-5) si apasa ENTER: "
+if not "%~1"=="" set "CHOICE=%~1"
+if "%~1"=="brasov" set "CHOICE=3"
+if "%~1"=="sm-brasov" set "CHOICE=3"
+if "%~1"=="cluj1" set "CHOICE=1"
+if "%~1"=="cluj2" set "CHOICE=2"
+if "%~1"=="constanta1" set "CHOICE=4"
+if "%~1"=="constanta2" set "CHOICE=5"
+
+if "%CHOICE%"=="" (
+    set /p "CHOICE=Introdu cifra locatiei (1-5) si apasa ENTER: "
+)
 
 set "SCRIPT_VERSION=2.4.0"
 set "LOC_ID=cluj2"
