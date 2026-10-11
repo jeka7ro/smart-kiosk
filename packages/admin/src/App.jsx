@@ -1291,6 +1291,47 @@ export default function AdminApp() {
                                   {isKioskConnected ? 'Conectat în browser' : 'Inactiv'}
                                 </span>
                               </div>
+                              {(() => {
+                                const isUniversalConfig = Boolean(liveKiosk?.isUniversal);
+                                const kioskScriptVer = liveKiosk?.scriptVersion || (isUniversalConfig ? '2.4.0' : null);
+                                const latestScriptVer = liveKiosk?.latestScriptVersion || '2.4.0';
+                                const isScriptUpToDate = Boolean(kioskScriptVer && kioskScriptVer === latestScriptVer);
+
+                                return (
+                                  <>
+                                    <div className="flex items-center justify-between py-0.5 border-b border-slate-100/60 dark:border-slate-700/40">
+                                      <span className="text-slate-500 dark:text-slate-400">Configurare Universală:</span>
+                                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                        isUniversalConfig 
+                                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' 
+                                          : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                                      }`}>
+                                        {isUniversalConfig ? 'ACTIVAT' : 'DEZACTIVAT'}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center justify-between py-0.5 border-b border-slate-100/60 dark:border-slate-700/40">
+                                      <span className="text-slate-500 dark:text-slate-400">Versiune Script:</span>
+                                      <div className="flex items-center gap-1.5 text-right">
+                                        <span className="font-semibold text-slate-800 dark:text-slate-200">
+                                          {kioskScriptVer ? `v${kioskScriptVer}` : 'Fără script'}
+                                        </span>
+                                        <span className="text-[10px] text-slate-400 dark:text-slate-500">
+                                          (ultim: v{latestScriptVer})
+                                        </span>
+                                        {isKioskConnected && (
+                                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                                            isScriptUpToDate
+                                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                                              : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                                          }`}>
+                                            {isScriptUpToDate ? 'La zi' : 'Actualizare'}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </>
+                                );
+                              })()}
                               {isBridgeOnline && bridgeLoc?.uptimeSeconds > 0 && (
                                 <div className="flex items-center justify-between py-0.5">
                                   <span className="text-slate-500 dark:text-slate-400">Timp de rulare:</span>

@@ -32,7 +32,11 @@ function getLiveKiosksSummary() {
       s.online = true;
       s.onlineCount += 1;
       if (k.screen) s.screen = k.screen;
+      if (k.isUniversal) s.isUniversal = true;
+      if (k.scriptVersion) s.scriptVersion = k.scriptVersion;
+      if (typeof k.isFullscreen !== 'undefined') s.isFullscreen = k.isFullscreen;
     }
+    s.latestScriptVersion = '2.4.0';
     const pingTime = k.lastPing || k.connectedAt || 0;
     if (!s.lastSeen || pingTime > s.lastSeen) {
       s.lastSeen = pingTime;
@@ -45,7 +49,11 @@ function getLiveKiosksSummary() {
       isLive,
       connectedAt: k.connectedAt,
       lastPing: k.lastPing,
-      ip: k.ip
+      ip: k.ip,
+      isUniversal: Boolean(k.isUniversal),
+      scriptVersion: k.scriptVersion || null,
+      isFullscreen: Boolean(k.isFullscreen),
+      latestScriptVersion: '2.4.0'
     });
   }
   return summary;
@@ -107,7 +115,10 @@ function initSocket(io) {
           screen: screen || 'welcome',
           ip: socket.handshake.headers['x-forwarded-for'] || socket.handshake.address,
           connectedAt: Date.now(),
-          lastPing: Date.now()
+          lastPing: Date.now(),
+          isUniversal: typeof data?.isUniversal !== 'undefined' ? Boolean(data.isUniversal) : false,
+          scriptVersion: data?.scriptVersion ? String(data.scriptVersion) : null,
+          isFullscreen: typeof data?.isFullscreen !== 'undefined' ? Boolean(data.isFullscreen) : false
         };
         connectedKiosks.set(socket.id, info);
         socket._kioskInfo = info;
@@ -133,6 +144,9 @@ function initSocket(io) {
       if (data.locationId) k.locationId = String(data.locationId);
       if (data.kioskId) k.kioskId = String(data.kioskId);
       if (data.screen) k.screen = String(data.screen);
+      if (typeof data.isUniversal !== 'undefined') k.isUniversal = Boolean(data.isUniversal);
+      if (data.scriptVersion) k.scriptVersion = String(data.scriptVersion);
+      if (typeof data.isFullscreen !== 'undefined') k.isFullscreen = Boolean(data.isFullscreen);
       connectedKiosks.set(socket.id, k);
       socket._kioskInfo = k;
       broadcastLiveKiosks();

@@ -22,34 +22,35 @@ echo.
 set "CHOICE="
 set /p "CHOICE=Introdu cifra locatiei (1-5) si apasa ENTER: "
 
+set "SCRIPT_VERSION=2.4.0"
 set "LOC_ID=cluj2"
 set "LOC_NAME=Cluj 2"
-set "URL=https://kiosk-smashme.netlify.app/?loc=cluj2"
+set "URL=https://kiosk-smashme.netlify.app/?loc=cluj2&universal=true&v=%SCRIPT_VERSION%"
 
 if "%CHOICE%"=="1" (
     set "LOC_ID=cluj1"
     set "LOC_NAME=Cluj 1"
-    set "URL=https://kiosk-smashme.netlify.app/?loc=cluj1"
+    set "URL=https://kiosk-smashme.netlify.app/?loc=cluj1&universal=true&v=%SCRIPT_VERSION%"
 )
 if "%CHOICE%"=="2" (
     set "LOC_ID=cluj2"
     set "LOC_NAME=Cluj 2"
-    set "URL=https://kiosk-smashme.netlify.app/?loc=cluj2"
+    set "URL=https://kiosk-smashme.netlify.app/?loc=cluj2&universal=true&v=%SCRIPT_VERSION%"
 )
 if "%CHOICE%"=="3" (
     set "LOC_ID=sm-brasov"
     set "LOC_NAME=Brasov"
-    set "URL=https://kiosk-smashme.netlify.app/?loc=sm-brasov"
+    set "URL=https://kiosk-smashme.netlify.app/?loc=sm-brasov&universal=true&v=%SCRIPT_VERSION%"
 )
 if "%CHOICE%"=="4" (
     set "LOC_ID=constanta1"
     set "LOC_NAME=Constanta 1"
-    set "URL=https://kiosk-smashme.netlify.app/?loc=constanta1"
+    set "URL=https://kiosk-smashme.netlify.app/?loc=constanta1&universal=true&v=%SCRIPT_VERSION%"
 )
 if "%CHOICE%"=="5" (
     set "LOC_ID=constanta2"
     set "LOC_NAME=Constanta 2"
-    set "URL=https://kiosk-smashme.netlify.app/?loc=constanta2"
+    set "URL=https://kiosk-smashme.netlify.app/?loc=constanta2&universal=true&v=%SCRIPT_VERSION%"
 )
 
 echo.

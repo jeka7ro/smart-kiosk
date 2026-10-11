@@ -364,38 +364,62 @@ export default function App() {
     const activeScreen = isLocked ? 'pin' : screen;
     const urlLoc = new URLSearchParams(window.location.search).get('loc') || localStorage.getItem('kiosk_loc_id');
 
+    const getKioskTelemetry = () => {
+      const isFullscreen = Boolean(
+        document.fullscreenElement || 
+        document.webkitFullscreenElement || 
+        window.innerHeight === window.screen.height || 
+        window.fullScreen
+      );
+      const isUniversalFromUrl = urlParams.get('universal') === 'true' || urlParams.get('universal') === '1';
+      const scriptVersionFromUrl = urlParams.get('v') || urlParams.get('script_version');
+      const isUniversal = Boolean(isUniversalFromUrl || isFullscreen);
+      const scriptVersion = scriptVersionFromUrl || (isUniversal ? '2.4.0' : null);
+
+      return {
+        isUniversal,
+        scriptVersion,
+        isFullscreen
+      };
+    };
+
     socket.on('connect', () => {
       console.log(`[Kiosk] Socket connected (${socket.id}), joining room kiosk-${locId}`);
+      const tele = getKioskTelemetry();
       socket.emit('join', {
         role: 'kiosk',
         locationId: locId,
         kioskId: kioskDeviceId,
-        screen: activeScreen
+        screen: activeScreen,
+        ...tele
       });
       if (urlLoc && urlLoc !== locId) {
         socket.emit('join', {
           role: 'kiosk',
           locationId: urlLoc,
           kioskId: kioskDeviceId,
-          screen: activeScreen
+          screen: activeScreen,
+          ...tele
         });
       }
     });
 
     socket.on('reconnect', () => {
-      // Re-join room after reconnect
+      const tele = getKioskTelemetry();
       socket.emit('join', {
         role: 'kiosk',
         locationId: locId,
         kioskId: kioskDeviceId,
-        screen: activeScreen
+        screen: activeScreen,
+        ...tele
       });
       if (urlLoc && urlLoc !== locId) {
         socket.emit('join', {
           role: 'kiosk',
           locationId: urlLoc,
           kioskId: kioskDeviceId,
-          screen: activeScreen
+          screen: activeScreen,
+          ...tele
         });
       }
     });
@@ -403,11 +427,13 @@ export default function App() {
     // Handle live ping from admin panel
     const handlePing = (data) => {
       console.log('[Kiosk] 🏓 Ping signal received from Admin, responding with pong...');
+      const tele = getKioskTelemetry();
       socket.emit('kiosk_pong', {
         pingId: data?.pingId,
         locationId: locId,
         kioskId: kioskDeviceId,
-        screen: isLocked ? 'pin' : screen
+        screen: isLocked ? 'pin' : screen,
+        ...tele
       });
     };
     socket.on('kiosk_ping', handlePing);
@@ -419,10 +445,12 @@ export default function App() {
     // Heartbeat every 10s to keep admin live status real
     const hbInterval = setInterval(() => {
       if (socket.connected) {
+        const tele = getKioskTelemetry();
         socket.emit('kiosk_heartbeat', {
           locationId: locId,
           kioskId: kioskDeviceId,
-          screen: isLocked ? 'pin' : screen
+          screen: isLocked ? 'pin' : screen,
+          ...tele
         });
       }
     }, 10000);

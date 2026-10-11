@@ -377,6 +377,64 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                     </span>
                   </div>
 
+                  {(() => {
+                    const aliasesMap = {
+                      'cluj1': ['cluj1', 'cluj', 'cluj-centru', 'cluj-main', 'smashme-main', 'sm-cluj', 'smashme-cluj'],
+                      'cluj2': ['cluj2', 'cluj-2', 'cj2', 'smashme-cj2'],
+                      'sm-brasov': ['sm-brasov', 'brasov', 'brasov-centru', 'rollmaster', 'rollmaster-brasov', 'rm-brasov'],
+                      'constanta1': ['constanta1', 'constanta', 'smashme-constanta']
+                    };
+                    const locAliases = aliasesMap[locKey] || [locKey];
+                    const liveKiosk = locAliases.map(a => kiosksLiveStatus[a]).find(Boolean);
+                    const isKioskConnected = Boolean(liveKiosk?.isLive || liveKiosk?.online || (liveKiosk?.onlineCount > 0));
+                    const isUniversalConfig = Boolean(liveKiosk?.isUniversal);
+                    const kioskScriptVer = liveKiosk?.scriptVersion || (isUniversalConfig ? '2.4.0' : null);
+                    const latestScriptVer = liveKiosk?.latestScriptVersion || '2.4.0';
+                    const isScriptUpToDate = Boolean(kioskScriptVer && kioskScriptVer === latestScriptVer);
+
+                    return (
+                      <>
+                        <div className="flex items-center justify-between py-1 border-b border-slate-100/60 dark:border-slate-700/40 gap-2">
+                          <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5 shrink-0">
+                            <Monitor className="w-3.5 h-3.5 text-slate-400" />
+                            <span>Config. Universală:</span>
+                          </span>
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                            isUniversalConfig 
+                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' 
+                              : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
+                          }`}>
+                            {isUniversalConfig ? 'ACTIVAT' : 'DEZACTIVAT'}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between py-1 border-b border-slate-100/60 dark:border-slate-700/40 gap-2">
+                          <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5 shrink-0">
+                            <Sliders className="w-3.5 h-3.5 text-slate-400" />
+                            <span>Versiune Script:</span>
+                          </span>
+                          <div className="flex items-center gap-1 text-right">
+                            <span className="font-semibold text-slate-800 dark:text-slate-200">
+                              {kioskScriptVer ? `v${kioskScriptVer}` : 'Fără script'}
+                            </span>
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500">
+                              (ultim: v{latestScriptVer})
+                            </span>
+                            {isKioskConnected && (
+                              <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                                isScriptUpToDate
+                                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                                  : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                              }`}>
+                                {isScriptUpToDate ? 'La zi' : 'Actualizare'}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
+
                   <div className="flex items-center justify-between py-1 border-b border-slate-100/60 dark:border-slate-700/40 gap-2">
                     <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5 shrink-0">
                       <Clock className="w-3.5 h-3.5 text-slate-400" />
