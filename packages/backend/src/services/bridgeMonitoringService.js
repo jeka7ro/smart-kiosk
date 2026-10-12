@@ -683,39 +683,31 @@ function formatStatusSummaryForTelegram() {
 
   for (const [k, loc] of Object.entries(summary.locations)) {
     let dot = '🟢';
-    let statusText = 'Complet Activ';
-    const gw = loc.gateway ? (loc.gateway.charAt(0).toUpperCase() + loc.gateway.slice(1)) : 'Raiffeisen';
-    let posStatus = `Conectat (${loc.port} • ${gw})`;
-    let printerStatus = (loc.printerName && loc.printerName !== 'N/A') ? loc.printerName : 'Nedetectată';
-    let kioskStatus = 'Activ în browser';
+    let posText = loc.port && loc.port !== 'N/A' ? loc.port : 'OK';
+    let printerText = (loc.printerName && loc.printerName !== 'N/A') ? 'OK' : 'Nedetectată';
+    let kioskText = 'OK';
 
     if (!loc.isBridgeOnline && !loc.isKioskOnline) {
       dot = '🔴';
-      statusText = 'Deconectat';
-      posStatus = 'Deconectat / Oprit';
-      printerStatus = 'Indisponibilă';
-      kioskStatus = 'Deconectat';
+      posText = 'Offline';
+      printerText = 'Offline';
+      kioskText = 'Offline';
     } else if (!loc.isBridgeOnline && loc.isKioskOnline) {
       dot = '🟡';
-      statusText = 'Atenție POS';
-      posStatus = 'Oprit / Cablu scos';
-      printerStatus = 'Nedetectată';
-      kioskStatus = 'Activ în browser';
+      posText = 'Oprit';
+      printerText = 'Offline';
+      kioskText = 'OK';
     } else if (loc.isBridgeOnline && !loc.isKioskOnline) {
       dot = '🟡';
-      statusText = 'Ecran Inactiv';
-      posStatus = `Conectat (${loc.port} • ${gw})`;
-      kioskStatus = 'Browser închis / Standby';
+      kioskText = 'Offline';
     }
 
-    lines.push(`${dot} <b>${loc.displayName}</b> — ${statusText}`);
-    lines.push(`   ├ 💳 POS: <b>${posStatus}</b>`);
-    lines.push(`   ├ 🖨️ Imprimantă: ${printerStatus}`);
-    lines.push(`   └ 🖥️ Ecran Kiosk: ${kioskStatus}`);
-    lines.push(``);
+    lines.push(`${dot} <b>${loc.displayName}</b>`);
+    lines.push(`   └ POS: ${posText} | Imprimantă: ${printerText} | Kiosk: ${kioskText}`);
   }
 
-  lines.push(`Total: ${summary.totalOnline} Kiosk-uri active / ${summary.totalOffline} offline`);
+  lines.push(``);
+  lines.push(`Total: ${summary.totalOnline} active / ${summary.totalOffline} offline`);
   return lines.join('\n');
 }
 
