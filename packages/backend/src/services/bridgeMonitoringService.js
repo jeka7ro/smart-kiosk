@@ -683,25 +683,39 @@ function formatStatusSummaryForTelegram() {
 
   for (const [k, loc] of Object.entries(summary.locations)) {
     let dot = '🟢';
-    let statusText = 'Online';
+    let statusText = 'Complet Activ';
+    const gw = loc.gateway ? (loc.gateway.charAt(0).toUpperCase() + loc.gateway.slice(1)) : 'Raiffeisen';
+    let posStatus = `Conectat (${loc.port} • ${gw})`;
+    let printerStatus = (loc.printerName && loc.printerName !== 'N/A') ? loc.printerName : 'Nedetectată';
+    let kioskStatus = 'Activ în browser';
 
     if (!loc.isBridgeOnline && !loc.isKioskOnline) {
       dot = '🔴';
-      statusText = 'Offline';
+      statusText = 'Deconectat';
+      posStatus = 'Deconectat / Oprit';
+      printerStatus = 'Indisponibilă';
+      kioskStatus = 'Deconectat';
     } else if (!loc.isBridgeOnline && loc.isKioskOnline) {
       dot = '🟡';
-      statusText = 'POS Oprit (Ecran activ)';
+      statusText = 'Atenție POS';
+      posStatus = 'Oprit / Cablu scos';
+      printerStatus = 'Nedetectată';
+      kioskStatus = 'Activ în browser';
     } else if (loc.isBridgeOnline && !loc.isKioskOnline) {
       dot = '🟡';
-      statusText = 'Ecran Inactiv (POS activ)';
+      statusText = 'Ecran Inactiv';
+      posStatus = `Conectat (${loc.port} • ${gw})`;
+      kioskStatus = 'Browser închis / Standby';
     }
 
-    lines.push(`${dot} <b>${loc.displayName}</b>: ${statusText}`);
-    lines.push(`   └ Port: ${loc.port} | Imprimanta: ${loc.printerName || 'Nespecificata'}`);
+    lines.push(`${dot} <b>${loc.displayName}</b> — ${statusText}`);
+    lines.push(`   ├ 💳 POS Bancar: <b>${posStatus}</b>`);
+    lines.push(`   ├ 🖨️ Imprimantă Bonuri: ${printerStatus}`);
+    lines.push(`   └ 🖥️ Ecran Kiosk: ${kioskStatus}`);
+    lines.push(``);
   }
 
-  lines.push(``);
-  lines.push(`Total: ${summary.totalOnline} POS active / ${summary.totalOffline} offline`);
+  lines.push(`Total: ${summary.totalOnline} Kiosk-uri active / ${summary.totalOffline} offline`);
   return lines.join('\n');
 }
 
