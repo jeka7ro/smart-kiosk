@@ -709,8 +709,8 @@ function formatStatusSummaryForTelegram() {
     }
 
     lines.push(`${dot} <b>${loc.displayName}</b> — ${statusText}`);
-    lines.push(`   ├ 💳 POS Bancar: <b>${posStatus}</b>`);
-    lines.push(`   ├ 🖨️ Imprimantă Bonuri: ${printerStatus}`);
+    lines.push(`   ├ 💳 POS: <b>${posStatus}</b>`);
+    lines.push(`   ├ 🖨️ Imprimantă: ${printerStatus}`);
     lines.push(`   └ 🖥️ Ecran Kiosk: ${kioskStatus}`);
     lines.push(``);
   }
