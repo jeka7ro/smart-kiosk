@@ -20,6 +20,7 @@ const { io: ioClient } = require('socket.io-client');
 const { SerialPort }   = require('serialport');
 const fs               = require('fs');
 const pathMod          = require('path');
+const { exec }         = require('child_process');
 
 const LOG_FILE = pathMod.join(__dirname, 'pos-bridge.log');
 function log(msg) {
@@ -32,6 +33,20 @@ function log(msg) {
 
 // Curata fisierul de log la pornire
 try { fs.writeFileSync(LOG_FILE, ''); } catch (_) {}
+
+function enforceKioskTaskbar() {
+  if (process.platform !== 'win32') return;
+  try {
+    const psCmd = `powershell -NoProfile -Command "$keys = @('HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StuckRects3', 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\MMStuckRects3'); foreach($k in $keys){ if(Test-Path $k){ $v=(Get-ItemProperty -Path $k).Settings; if($v -and $v.Length -gt 8){ $v[8]=3; Set-ItemProperty -Path $k -Name Settings -Value $v -Force -ErrorAction SilentlyContinue } } }; Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue; Start-Sleep -Milliseconds 800; if(-not (Get-Process explorer -ErrorAction SilentlyContinue)){ Start-Process explorer.exe -ErrorAction SilentlyContinue }"`;
+    exec(psCmd, (err) => {
+      if (!err) {
+        log('🖥️ [SYSTEM] Auto-Hide Taskbar aplicat cu succes în Windows.');
+      }
+    });
+  } catch (err) {
+    log(`⚠️ [SYSTEM] Eroare la aplicarea Auto-Hide Taskbar: ${err.message}`);
+  }
+}
 
 let RENDER_URL = process.env.RENDER_URL || 'https://smart-kiosk-ttut.onrender.com';
 if (RENDER_URL.includes('smart-kiosk-v7ws.onrender.com')) {
@@ -558,6 +573,9 @@ async function start() {
         }
       }, 20000);
     }
+
+    // Aplică automat Auto-Hide Taskbar în fundal pe Windows pentru Kiosk
+    setTimeout(enforceKioskTaskbar, 3000);
   });
 
   let connectErrorCount = 0;
@@ -1209,14 +1227,16 @@ async function start() {
 
   socket.on('remote_restart', (data) => {
     if (!data || isMyLocation(data.locationId)) {
-      log('🔄 Comandă remote_restart primită. Repornesc bridge-ul...');
-      setTimeout(() => process.exit(0), 500);
+      log('🔄 Comandă remote_restart primită. Aplic setări taskbar și repornesc bridge-ul...');
+      enforceKioskTaskbar();
+      setTimeout(() => process.exit(0), 1000);
     }
   });
 
   socket.on(`remote_restart_${LOCATION_ID}`, () => {
-    log('🔄 Comandă remote_restart directă primită. Repornesc bridge-ul...');
-    setTimeout(() => process.exit(0), 500);
+    log('🔄 Comandă remote_restart directă primită. Aplic setări taskbar și repornesc bridge-ul...');
+    enforceKioskTaskbar();
+    setTimeout(() => process.exit(0), 1000);
   });
 
   socket.on('set_server_url', (data) => {

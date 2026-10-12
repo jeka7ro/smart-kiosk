@@ -65,6 +65,9 @@ echo  [INFO] Apasa Ctrl+C pentru a opri
 echo.
 
 :loop
+curl -s -L -H "Cache-Control: no-cache" -o index.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/index.js"
+curl -s -L -H "Cache-Control: no-cache" -o printer.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/printer.js"
+curl -s -L -H "Cache-Control: no-cache" -o rawprint.ps1 "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/rawprint.ps1"
 node index.js
 if %errorlevel% equ 42 (
     echo.
