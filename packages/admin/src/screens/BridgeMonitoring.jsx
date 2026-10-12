@@ -21,6 +21,7 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
+import BrandLogo from '../components/BrandLogo.jsx';
 
 const UNIVERSAL_COMMAND = 'cmd /c "mkdir C:\\SmartKiosk 2>nul & cd /d C:\\SmartKiosk & curl -s -L -o setup.bat https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/setup_kiosk_autostart.bat & setup.bat"';
 
@@ -338,10 +339,17 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
 
   const computedLocations = useMemo(() => {
     const friendlyNames = {
-      cluj1: 'Cluj 1 (Centru)',
+      cluj1: 'Cluj 1',
       cluj2: 'Cluj 2',
-      'sm-brasov': 'Brașov (RollMaster)',
+      'sm-brasov': 'Brașov',
       constanta1: 'Constanța 1',
+    };
+
+    const brandMap = {
+      cluj1: 'smashme',
+      cluj2: 'smashme',
+      'sm-brasov': 'rollmaster',
+      constanta1: 'smashme',
     };
 
     const result = {};
@@ -370,14 +378,17 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
       const latestScriptVer = liveKiosk?.latestScriptVersion || '2.4.0';
       const isScriptUpToDate = Boolean(kioskScriptVer && kioskScriptVer === latestScriptVer);
 
-      const displayName = loc.displayName && loc.displayName !== locKey ? loc.displayName : (friendlyNames[locKey] || locKey);
+      const cleanKioskName = friendlyNames[locKey] || (loc.displayName ? loc.displayName.replace(/\s*\([^)]*\)/g, '').trim() : locKey);
+      const brandId = loc.brand || loc.brandId || brandMap[locKey] || (locKey.includes('brasov') ? 'rollmaster' : 'smashme');
+
       const isBridgeOnline = Boolean(loc.status === 'online' || loc.isBridgeOnline);
       const hasRecentConnection = Boolean(loc.connectedAt && (Date.now() - loc.connectedAt < 12 * 3600 * 1000) && loc.port && loc.port !== 'N/A');
       const isOnline = isBridgeOnline || isKioskConnected || hasRecentConnection;
 
       result[locKey] = {
         ...loc,
-        displayName,
+        displayName: cleanKioskName,
+        brandId,
         status: isOnline ? 'online' : 'offline',
         isBridgeOnline,
         isKioskConnected,
@@ -499,13 +510,15 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
               className="group p-4 md:p-5 rounded-3xl border transition-all duration-300 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border-slate-200/80 dark:border-slate-700/80 hover:border-blue-400 dark:hover:border-blue-500 shadow-xs hover:shadow-lg flex flex-col justify-between"
             >
               <div className="space-y-3">
-                {/* Card Header with Location Pill & Online State */}
-                <div className="flex items-start justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-700/60">
-                  <div className="min-w-0 flex-1">
-                    <span className="inline-block px-2.5 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300 mb-1">
-                      {loc.locationId}
-                    </span>
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white truncate tracking-tight" title={loc.displayName}>
+                {/* Card Header with Brand Logo Avatar, Clean Kiosk Name & Online State */}
+                <div className="flex items-center justify-between gap-2.5 pb-3 border-b border-slate-100 dark:border-slate-700/60">
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <BrandLogo 
+                      brandId={loc.brandId} 
+                      size={32} 
+                      className="shrink-0 shadow-xs" 
+                    />
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white truncate tracking-tight" title={loc.displayName}>
                       {loc.displayName}
                     </h3>
                   </div>
