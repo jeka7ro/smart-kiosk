@@ -3521,6 +3521,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
     menuOverrides: loc.menuOverrides || {},
     paymentGateway: loc.paymentGateway || 'none',
     paymentMode: loc.paymentMode || (loc.cashOnly ? 'cash_only' : 'both'),
+    posWakeStandby: loc.posWakeStandby ?? false,
     kioskUiSize: loc.kioskUiSize || 'S',
     visualEffects: loc.visualEffects || { parallax: true, steam: true, snow: false },
     categoryHeroActive: loc.categoryHeroActive ?? false,
@@ -5505,6 +5506,46 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                     </button>
                   );
                 })}
+              </div>
+            </div>
+
+            {/* Standby Keep-Alive / Trezire periodică POS la 30 min */}
+            <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="max-w-xl">
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                      Trezire automată POS din Standby (la fiecare 30 min)
+                    </h4>
+                    {formData.posWakeStandby ? (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400">
+                        Activ la 30 min
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500">
+                        Inactiv
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                    Dacă chioșcul este inactiv de 30 de minute (în screensaver), trimite un impuls discret către terminalul bancar pentru a preveni adormirea portului USB în locații cu flux redus.
+                    <span className="block mt-0.5 text-slate-400 dark:text-slate-500 italic">Recomandat: <strong>Activ</strong> pentru Brașov, <strong>Inactiv</strong> pentru locații aglomerate (Cluj / Constanța).</span>
+                  </p>
+                </div>
+                
+                <button
+                  type="button"
+                  onClick={() => handleChange('posWakeStandby', !formData.posWakeStandby)}
+                  className={`shrink-0 relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                    formData.posWakeStandby ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      formData.posWakeStandby ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
               </div>
             </div>
           </div>

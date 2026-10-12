@@ -252,6 +252,36 @@ function forceReopenPort(reason = 'Force Reset') {
   });
 }
 
+// ─── Standby POS Keep-Alive / Wake (la 30 min inactivitate) ───────────────────
+let posWakeStandbyEnabled = process.env.POS_WAKE_STANDBY === 'true';
+let lastActivityTime = Date.now();
+
+function noteActivity(source = 'general') {
+  lastActivityTime = Date.now();
+}
+
+function wakePosKeepAlive() {
+  if (!posWakeStandbyEnabled) return;
+  if (!globalPort || !globalPort.isOpen || state !== 'IDLE' || currentTransactionResolve) {
+    log(`[POS Wake] ⏭️ Omit impuls trezire (port ocupat sau tranzacție activă, stare=${state})`);
+    return;
+  }
+  log('⚡ [POS Wake] Inactivitate de 30 minute detectată. Trimit ENQ discret pentru trezire/prevenire sleep USB...');
+  state = 'WAIT_ENQ_ACK__WAKE';
+  currentOperation = 'WAKE';
+  currentLabel = 'WAKE_STANDBY';
+
+  clearTimeout(currentTransactionTimer);
+  currentTransactionTimer = setTimeout(() => {
+    log('⚠️ [POS Wake] POS nu a răspuns la impulsul de trezire în 3000ms. Readuc linia în IDLE.');
+    try { globalPort.write(Buffer.from([EOT])); } catch (_) {}
+    state = 'IDLE';
+    currentOperation = null;
+  }, 3000);
+
+  globalPort.write(Buffer.from([ENQ]));
+}
+
 function calcLRC(cmdBytes) {
   let b = 0;
   for (const byte of cmdBytes) b ^= byte;
@@ -573,6 +603,10 @@ async function start() {
             }
             LOCATION_ALIASES = [...aliases];
             log(`📍 Locație rezolvată: aliases=[${LOCATION_ALIASES.join(', ')}]`);
+            if (locData.posWakeStandby !== undefined) {
+              posWakeStandbyEnabled = !!locData.posWakeStandby;
+              log(`⚙️ [POS Wake] Configurație încărcată de la server: ${posWakeStandbyEnabled ? 'ACTIVATĂ (la 30 min)' : 'DEZACTIVATĂ'}`);
+            }
           } catch (e) {
             log(`⚠ Nu am putut parsa răspuns locație: ${e.message} | body: ${body.substring(0, 100)}`);
           }
@@ -598,6 +632,19 @@ async function start() {
           });
         }
       }, 20000);
+    }
+
+    // Verificare inactivitate la fiecare 1 minut pentru trezire periodică POS
+    if (!global._posWakeInterval) {
+      global._posWakeInterval = setInterval(() => {
+        if (!posWakeStandbyEnabled) return;
+        const idleMs = Date.now() - lastActivityTime;
+        const IDLE_LIMIT = 30 * 60 * 1000; // 30 minute
+        if (idleMs >= IDLE_LIMIT) {
+          lastActivityTime = Date.now(); // resetăm pentru a evita declanșări repetate la timeout
+          wakePosKeepAlive();
+        }
+      }, 60000);
     }
 
     // Aplică automat Auto-Hide Taskbar în fundal pe Windows pentru Kiosk
@@ -720,6 +767,14 @@ async function start() {
           clearTimeout(currentTransactionTimer);
           enqRetries = 0;
           
+          if (state === 'WAIT_ENQ_ACK__WAKE') {
+            log('✅ [POS Wake] ACK primit de la POS! Trimit EOT pentru a lăsa magistrala liberă.');
+            try { globalPort.write(Buffer.from([EOT])); } catch (_) {}
+            state = 'IDLE';
+            currentOperation = null;
+            break;
+          }
+
           log(`✅ ACK ← POS la ENQ (${currentLabel}). Trimit frame...`);
           globalPort.write(pendingFrame);
           state = `WAIT_FRAME_ACK__${nextState}`;
@@ -1051,6 +1106,7 @@ async function start() {
     }
 
     paymentInProgress = true;
+    noteActivity('pos_payment_request');
     log(`💳 ==== CERERE PLATĂ ==== orderId: ${orderId} | amount: ${amount} RON | gateway: ${POS_GATEWAY}`);
     
     socket.emit('pos_bridge_status', { orderId, message: 'Inițiez plata...' });
@@ -1098,6 +1154,7 @@ async function start() {
     const { locationId: lid, kioskId } = data || {};
     if (!isMyLocation(lid, kioskId)) return;
     
+    noteActivity('cancel_pos_payment');
     log('🛑 CANCEL payment solicitat din Kiosk (timeout / anulare client)!');
     if (paymentInProgress) {
       // 1. Notificăm imediat Kiosk-ul ca interfața să redevină liberă instant
@@ -1295,6 +1352,21 @@ async function start() {
         setTimeout(() => process.exit(0), 500);
       } catch (e) {
         log(`⚠️ Eroare set_location_id: ${e.message}`);
+      }
+    }
+  });
+
+  socket.on('kiosk_activity', (data) => {
+    if (isMyLocation(data?.locationId, data?.kioskId)) {
+      noteActivity('kiosk_activity');
+    }
+  });
+
+  socket.on('location_updated', (updatedLoc) => {
+    if (updatedLoc && (updatedLoc.id === LOCATION_ID || LOCATION_ALIASES.includes(updatedLoc.id))) {
+      if (updatedLoc.posWakeStandby !== undefined) {
+        posWakeStandbyEnabled = !!updatedLoc.posWakeStandby;
+        log(`⚙️ [POS Wake] Setare actualizată din Admin: ${posWakeStandbyEnabled ? 'ACTIVATĂ (la 30 min)' : 'DEZACTIVATĂ'}`);
       }
     }
   });
