@@ -516,8 +516,8 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
         </div>
       )}
 
-      {/* Grid Status Locații */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4.5 items-start">
+      {/* Grid Status Locații - 2 Coloane Late Orizontale (Landscape 2x2) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
         {sortedLocationKeys.map(locKey => {
           const loc = computedLocations[locKey];
           const isOnline = loc.status === 'online';
@@ -527,26 +527,35 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
           return (
             <div
               key={locKey}
-              className="group p-4 md:p-5 rounded-3xl border transition-all duration-300 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border-slate-200/80 dark:border-slate-700/80 hover:border-blue-400 dark:hover:border-blue-500 shadow-xs hover:shadow-lg flex flex-col justify-between"
+              className="group p-5 md:p-6 rounded-3xl border transition-all duration-300 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border-slate-200/80 dark:border-slate-700/80 hover:border-blue-400 dark:hover:border-blue-500 shadow-xs hover:shadow-lg flex flex-col justify-between"
             >
-              <div className="space-y-3">
-                {/* Card Header with Brand Logo Avatar, Clean Kiosk Name & Online State */}
-                <div className="flex items-center justify-between gap-2.5 pb-3 border-b border-slate-100 dark:border-slate-700/60">
-                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+              <div className="space-y-4">
+                {/* Card Header with Brand Logo Avatar, Clean Kiosk Name, Server & Online State */}
+                <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-700/60">
+                  <div className="flex items-center gap-3 min-w-0">
                     <BrandLogo 
                       brandId={loc.brandId} 
-                      size={32} 
+                      size={36} 
                       className="shrink-0 shadow-xs" 
                     />
-                    <h3 className="text-base font-bold text-slate-900 dark:text-white truncate tracking-tight" title={loc.displayName}>
-                      {loc.displayName}
-                    </h3>
+                    <div className="min-w-0">
+                      <h3 className="text-base font-bold text-slate-900 dark:text-white truncate tracking-tight" title={loc.displayName}>
+                        {loc.displayName}
+                      </h3>
+                      <div className="flex items-center gap-1.5 text-[11px] font-mono text-slate-500 dark:text-slate-400">
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                        <span className="text-[10px] font-sans font-semibold text-slate-400 uppercase">Server:</span>
+                        <span className="text-blue-600 dark:text-blue-400 font-semibold truncate select-all" title={loc.serverHost || serverHost}>
+                          {loc.serverHost || serverHost}
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
                   {(() => {
                     if (isBridgeOnline && isKioskConnected) {
                       return (
-                        <div className="px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 shrink-0 shadow-xs whitespace-nowrap bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                        <div className="px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-xs whitespace-nowrap bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                           <span className="w-2 h-2 rounded-full shrink-0 bg-emerald-500 animate-pulse" />
                           <span>ONLINE</span>
                         </div>
@@ -554,7 +563,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                     }
                     if (!isBridgeOnline && isKioskConnected) {
                       return (
-                        <div className="px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 shrink-0 shadow-xs whitespace-nowrap bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                        <div className="px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-xs whitespace-nowrap bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                           <span className="w-2 h-2 rounded-full shrink-0 bg-amber-500" />
                           <span>POS OPRIT</span>
                         </div>
@@ -562,14 +571,14 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                     }
                     if (isBridgeOnline && !isKioskConnected) {
                       return (
-                        <div className="px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 shrink-0 shadow-xs whitespace-nowrap bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                        <div className="px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-xs whitespace-nowrap bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                           <span className="w-2 h-2 rounded-full shrink-0 bg-amber-500" />
                           <span>ECRAN INACTIV</span>
                         </div>
                       );
                     }
                     return (
-                      <div className="px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 shrink-0 shadow-xs whitespace-nowrap bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400 border border-slate-200 dark:border-slate-600">
+                      <div className="px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-xs whitespace-nowrap bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400 border border-slate-200 dark:border-slate-600">
                         <span className="w-2 h-2 rounded-full shrink-0 bg-slate-400" />
                         <span>DECONECTAT</span>
                       </div>
@@ -577,24 +586,13 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                   })()}
                 </div>
 
-                {/* Server Conectat pe fiecare Kiosk */}
-                <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800 text-[11px] font-mono">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
-                    <span className="text-[10px] font-sans font-bold text-slate-400 uppercase tracking-wider shrink-0">Server:</span>
-                    <span className="text-blue-600 dark:text-blue-400 font-bold truncate select-all" title={loc.serverHost || serverHost}>
-                      {loc.serverHost || serverHost}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Mod Compact (Restrâns) - Nu ocupă spațiu pe ecran */}
+                {/* Mod Compact (Restrâns) */}
                 {!isExpanded && (
-                  <div className="space-y-2.5 pt-0.5">
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="p-2.5 rounded-xl bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 flex flex-col gap-0.5">
-                        <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                          <Monitor className="w-3 h-3 text-blue-500 shrink-0" />
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
+                    <div className="grid grid-cols-2 gap-3 text-xs flex-1">
+                      <div className="p-2.5 rounded-xl bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                          <Monitor className="w-3.5 h-3.5 text-blue-500 shrink-0" />
                           <span>Ecran</span>
                         </div>
                         <span className={`text-[11px] font-bold truncate ${isKioskConnected ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-400'}`}>
@@ -602,9 +600,9 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                         </span>
                       </div>
 
-                      <div className="p-2.5 rounded-xl bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 flex flex-col gap-0.5">
-                        <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                          <Cpu className="w-3 h-3 text-indigo-500 shrink-0" />
+                      <div className="p-2.5 rounded-xl bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                          <Cpu className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
                           <span>POS</span>
                         </div>
                         <span className={`text-[11px] font-bold truncate ${isBridgeOnline ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`} title={isBridgeOnline ? `${loc.port || 'Activ'} (${loc.gateway || 'raiffeisen'})` : 'Oprit'}>
@@ -616,122 +614,116 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                     <button
                       type="button"
                       onClick={() => toggleCard(locKey)}
-                      className="w-full py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 dark:bg-slate-700/60 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all cursor-pointer border border-slate-200/70 dark:border-slate-600/70 shadow-xs"
+                      className="py-2.5 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 dark:bg-slate-700/60 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all cursor-pointer border border-slate-200/70 dark:border-slate-600/70 shadow-xs shrink-0"
                     >
-                      <span>Extinde Detalii & Acțiuni</span>
+                      <span>Detalii & Acțiuni</span>
                       <ChevronDown className="w-4 h-4 text-slate-500" />
                     </button>
                   </div>
                 )}
 
-                {/* Mod Extins - Detalii complete hardware și butoane comenzi */}
+                {/* Mod Extins - Detalii complete hardware și butoane comenzi pe orizontală */}
                 {isExpanded && (
-                  <div className="space-y-3 pt-1 animate-in fade-in duration-200">
-                    {/* Sub-container 1: Ecran Kiosk & OTA Status */}
-                    <div className="p-3 rounded-2xl bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 space-y-2 text-xs">
-                      <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center justify-between">
-                        <span className="flex items-center gap-1.5">
-                          <Monitor className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                          <span className="whitespace-nowrap">Ecran Kiosk</span>
-                        </span>
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
-                          isKioskConnected 
-                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300' 
-                            : 'bg-slate-200/60 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
-                        }`}>
-                          {isKioskConnected ? 'Conectat' : 'Inactiv'}
-                        </span>
+                  <div className="space-y-3.5 pt-1 animate-in fade-in duration-200">
+                    {/* Landscape 2-column details grid: Stânga = Ecran Kiosk, Dreapta = POS & Print */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {/* Sub-container 1: Ecran Kiosk & OTA Status */}
+                      <div className="p-3.5 rounded-2xl bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 space-y-2 text-xs flex flex-col justify-between">
+                        <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center justify-between">
+                          <span className="flex items-center gap-1.5">
+                            <Monitor className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                            <span className="whitespace-nowrap">Ecran Kiosk</span>
+                          </span>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
+                            isKioskConnected 
+                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300' 
+                              : 'bg-slate-200/60 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
+                          }`}>
+                            {isKioskConnected ? 'Conectat' : 'Inactiv'}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
+                          <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Configurație:</span>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
+                            isUniversalConfig 
+                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' 
+                              : 'bg-slate-200/70 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
+                          }`}>
+                            {isUniversalConfig ? 'Universală' : 'Manuală'}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
+                          <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Versiune Script:</span>
+                          <div className="flex items-center gap-1.5 whitespace-nowrap">
+                            {isKioskConnected ? (
+                              <>
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
+                                  kioskScriptVer 
+                                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' 
+                                    : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                                }`}>
+                                  {kioskScriptVer ? `v${kioskScriptVer}` : 'Deschis manual'}
+                                </span>
+                                <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold whitespace-nowrap ${
+                                  isScriptUpToDate
+                                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
+                                    : 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300'
+                                }`}>
+                                  {isScriptUpToDate ? 'La zi' : 'Update'}
+                                </span>
+                              </>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-500 dark:bg-slate-700/60 dark:text-slate-400 whitespace-nowrap">
+                                {kioskScriptVer ? `v${kioskScriptVer}` : '— (offline)'}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
 
-                      <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
-                        <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Configurație:</span>
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
-                          isUniversalConfig 
-                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' 
-                            : 'bg-slate-200/70 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
-                        }`}>
-                          {isUniversalConfig ? 'Universală' : 'Manuală'}
-                        </span>
-                      </div>
+                      {/* Sub-container 2: Hardware POS & Imprimanta */}
+                      <div className="p-3.5 rounded-2xl bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 space-y-2 text-xs flex flex-col justify-between">
+                        <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center justify-between">
+                          <span className="flex items-center gap-1.5">
+                            <Cpu className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                            <span className="whitespace-nowrap">POS & Print</span>
+                          </span>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
+                            isBridgeOnline 
+                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300' 
+                              : 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300'
+                          }`}>
+                            {isBridgeOnline ? 'Activ' : 'Oprit'}
+                          </span>
+                        </div>
 
-                      <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
-                        <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Versiune Script:</span>
-                        <div className="flex items-center gap-1.5 whitespace-nowrap">
-                          {isKioskConnected ? (
-                            <>
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
-                                kioskScriptVer 
-                                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' 
-                                  : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                              }`}>
-                                {kioskScriptVer ? `v${kioskScriptVer}` : 'Deschis manual'}
-                              </span>
-                              <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold whitespace-nowrap ${
-                                isScriptUpToDate
-                                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
-                                  : 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300'
-                              }`}>
-                                {isScriptUpToDate ? 'La zi' : 'Update'}
-                              </span>
-                            </>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-500 dark:bg-slate-700/60 dark:text-slate-400 whitespace-nowrap">
-                              {kioskScriptVer ? `v${kioskScriptVer}` : '— (offline)'}
+                        <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
+                          <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Port Serial:</span>
+                          <span className="font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                            {loc.port || 'COM?'} ({loc.gateway || 'raiffeisen'})
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
+                          <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Imprimantă:</span>
+                          <span className="font-semibold text-slate-800 dark:text-slate-200 truncate flex-1 text-right ml-2" title={loc.printerName || 'Nedetectată'}>
+                            {loc.printerName || 'Nedetectată'}
+                          </span>
+                        </div>
+
+                        {isBridgeOnline && (
+                          <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
+                            <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Semnal & Rulare:</span>
+                            <span className="font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap text-right">
+                              {loc.lastPingSecondsAgo !== null && loc.lastPingSecondsAgo < 120 
+                                ? `acum ${loc.lastPingSecondsAgo}s` 
+                                : 'activ'}{loc.uptimeSeconds > 0 ? ` • ${formatUptime(loc.uptimeSeconds)}` : ''}
                             </span>
-                          )}
-                        </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-
-                    {/* Sub-container 2: Hardware POS & Imprimanta */}
-                    <div className="p-3 rounded-2xl bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 space-y-2 text-xs">
-                      <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center justify-between">
-                        <span className="flex items-center gap-1.5">
-                          <Cpu className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                          <span className="whitespace-nowrap">POS & Print</span>
-                        </span>
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
-                          isBridgeOnline 
-                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300' 
-                            : 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300'
-                        }`}>
-                          {isBridgeOnline ? 'Activ' : 'Oprit'}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
-                        <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Port Serial:</span>
-                        <span className="font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">
-                          {loc.port || 'COM?'} ({loc.gateway || 'raiffeisen'})
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
-                        <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Imprimantă:</span>
-                        <span className="font-semibold text-slate-800 dark:text-slate-200 truncate flex-1 text-right ml-2" title={loc.printerName || 'Nedetectată'}>
-                          {loc.printerName || 'Nedetectată'}
-                        </span>
-                      </div>
-
-                      {isBridgeOnline && (
-                        <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
-                          <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Ultimul Semnal:</span>
-                          <span className="font-medium text-emerald-600 dark:text-emerald-400 whitespace-nowrap text-right">
-                            {loc.lastPingSecondsAgo !== null && loc.lastPingSecondsAgo < 120 
-                              ? `acum ${loc.lastPingSecondsAgo}s` 
-                              : 'activ'}
-                          </span>
-                        </div>
-                      )}
-
-                      {isOnline && loc.uptimeSeconds > 0 && (
-                        <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
-                          <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Timp rulare:</span>
-                          <span className="font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
-                            {formatUptime(loc.uptimeSeconds)}
-                          </span>
-                        </div>
-                      )}
                     </div>
 
                     {/* Status Note Indicator */}
@@ -751,7 +743,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                             const num = { cluj1: '1', cluj2: '2', 'sm-brasov': '3', constanta1: '4', constanta2: '5' }[locKey] || '3';
                             const cmd = `cmd /c "mkdir C:\\SmartKiosk 2>nul & cd /d C:\\SmartKiosk & curl -s -L -o setup.bat https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/setup_kiosk_autostart.bat & setup.bat ${num}"`;
                             navigator.clipboard.writeText(cmd);
-                            setActionFeedback({ type: 'success', message: `Comanda de pornire pentru ${loc.displayName} a fost copiată!` });
+                            setActionFeedback({ type: 'success', text: `Comanda de pornire pentru ${loc.displayName} a fost copiată!` });
                             setTimeout(() => setActionFeedback(null), 3000);
                           }}
                           className="px-2.5 py-1 rounded-xl text-[10px] font-bold bg-amber-600 hover:bg-amber-700 text-white shrink-0 cursor-pointer shadow-xs transition-colors"
@@ -761,9 +753,9 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                       </div>
                     )}
 
-                    {/* Action Buttons: 2-col (Bridge & Ecran) + full-width Test Bon */}
-                    <div className="pt-2.5 border-t border-slate-100 dark:border-slate-700/60 space-y-2">
-                      <div className="grid grid-cols-2 gap-2">
+                    {/* Action Buttons: 3-column row on wide landscape card */}
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60">
+                      <div className="grid grid-cols-3 gap-2">
                         <button
                           type="button"
                           onClick={() => handleAction(locKey, 'restart-bridge')}
@@ -784,24 +776,24 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                           <RotateCcw className={`w-3.5 h-3.5 shrink-0 ${actionLoading === `${locKey}-reload-kiosk` ? 'animate-spin' : ''}`} />
                           <span>Ecran</span>
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => handleAction(locKey, 'test-print')}
+                          disabled={actionLoading === `${locKey}-test-print`}
+                          title="Scoate un bon de probă pe imprimanta termică din locație"
+                          className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-700/50 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700 dark:hover:bg-emerald-950/40 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-600/80 transition-colors disabled:opacity-50 cursor-pointer shadow-xs whitespace-nowrap"
+                        >
+                          <Printer className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                          <span>Test Bon</span>
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleAction(locKey, 'test-print')}
-                        disabled={actionLoading === `${locKey}-test-print`}
-                        title="Scoate un bon de probă pe imprimanta termică din locație"
-                        className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-700/50 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700 dark:hover:bg-emerald-950/40 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-600/80 transition-colors disabled:opacity-50 cursor-pointer shadow-xs"
-                      >
-                        <Printer className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                        <span>Test Bon</span>
-                      </button>
                     </div>
 
                     {/* Buton Restrânge */}
                     <button
                       type="button"
                       onClick={() => toggleCard(locKey)}
-                      className="w-full mt-2 py-1.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/60 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer border border-slate-200/60 dark:border-slate-600/60 shadow-xs"
+                      className="w-full py-1.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/60 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer border border-slate-200/60 dark:border-slate-600/60 shadow-xs"
                     >
                       <span>Restrânge Detalii</span>
                       <ChevronUp className="w-4 h-4 text-slate-500" />
