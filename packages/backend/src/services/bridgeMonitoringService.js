@@ -209,27 +209,16 @@ function getPosReasonText(reason, code) {
  */
 async function sendPosAlert(data) {
   if (!telegramConfig.enabled) return;
-  const targetChat = telegramConfig.posChatId || telegramConfig.chatId;
-  if (!targetChat) return;
 
   const { paid, amount, locationName, orderId, cardNo, authCode, receiptNo, error, responseCode, code } = data;
   const amtStr = Number(amount || 0).toFixed(2);
   const timeStr = formatDateTime();
   const loc = locationName || 'Kiosk';
 
-  let msg = '';
-  if (paid) {
-    msg = [
-      `🟢 <b>[PLATĂ APROBATĂ - POS]</b>`,
-      `Locație: <b>${loc}</b>`,
-      `Sumă: <b>${amtStr} RON</b>`,
-      `Bon: ${receiptNo || '-'} | Comandă: #${orderId || '-'}`,
-      `Card: ${cardNo || 'Card'} | Auth: ${authCode || '-'}`,
-      `Timp: ${timeStr}`
-    ].join('\n');
-  } else {
+  if (!paid) {
+    // 🔴 În grupul de alerte și status (chatId) trimitem DOAR plățile respinse cu explicații detaliate
     const reasonText = getPosReasonText(error, responseCode || code);
-    msg = [
+    const rejectMsg = [
       `🔴 <b>[PLATĂ RESPINSĂ - POS]</b>`,
       `Locație: <b>${loc}</b>`,
       `Sumă: <b>${amtStr} RON</b>`,
@@ -237,11 +226,36 @@ async function sendPosAlert(data) {
       `Motiv exact: <b>${reasonText}</b>`,
       `Timp: ${timeStr}`
     ].join('\n');
-  }
 
-  return sendTelegramMessage(msg, null, targetChat).catch(e => {
-    console.error('[Telegram] Eroare trimitere alertă POS:', e.message);
-  });
+    // Livrare în Grupul de Alerte & Status (chatId)
+    const alertsChat = telegramConfig.chatId;
+    if (alertsChat) {
+      await sendTelegramMessage(rejectMsg, null, alertsChat).catch(e => {
+        console.error('[Telegram] Eroare trimitere alertă POS respinsă în grupul de alerte:', e.message);
+      });
+    }
+
+    // Livrare și în Grupul de POS dacă este diferit
+    if (telegramConfig.posChatId && telegramConfig.posChatId !== alertsChat) {
+      await sendTelegramMessage(rejectMsg, null, telegramConfig.posChatId).catch(() => {});
+    }
+  } else {
+    // 🟢 Plățile aprobate se trimit EXCLUSIV în grupul dedicat POS (NU poluează grupul de alerte)
+    if (telegramConfig.posChatId && telegramConfig.posChatId !== telegramConfig.chatId) {
+      const approvedMsg = [
+        `🟢 <b>[PLATĂ APROBATĂ - POS]</b>`,
+        `Locație: <b>${loc}</b>`,
+        `Sumă: <b>${amtStr} RON</b>`,
+        `Bon: ${receiptNo || '-'} | Comandă: #${orderId || '-'}`,
+        `Card: ${cardNo || 'Card'} | Auth: ${authCode || '-'}`,
+        `Timp: ${timeStr}`
+      ].join('\n');
+
+      await sendTelegramMessage(approvedMsg, null, telegramConfig.posChatId).catch(e => {
+        console.error('[Telegram] Eroare trimitere plată aprobată POS:', e.message);
+      });
+    }
+  }
 }
 
 /**
