@@ -365,11 +365,11 @@ function normalizeLocationKey(locId) {
 
 function getLocationDisplayName(locKey) {
   switch (locKey) {
-    case 'cluj1': return 'Cluj 1 (Centru)';
-    case 'cluj2': return 'Cluj 2';
-    case 'sm-brasov': return 'Brasov (RollMaster)';
-    case 'constanta1': return 'Constanta 1';
-    case 'constanta2': return 'Constanta 2';
+    case 'cluj1': return 'Cluj 1 (SmashMe 🍔)';
+    case 'cluj2': return 'Cluj 2 (SmashMe 🍔)';
+    case 'sm-brasov': return 'Brașov (RollMaster 🍣)';
+    case 'constanta1': return 'Constanța 1 (SmashMe 🍔)';
+    case 'constanta2': return 'Constanța 2 (SmashMe 🍔)';
     default: return locKey;
   }
 }
