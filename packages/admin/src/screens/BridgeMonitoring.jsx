@@ -728,39 +728,37 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                       </div>
                     )}
 
-                    {/* Action Buttons: Spacious 2-col + full-width row */}
-                    <div className="pt-2.5 border-t border-slate-100 dark:border-slate-700/60 space-y-2">
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleAction(locKey, 'restart-bridge')}
-                          disabled={actionLoading === `${locKey}-restart-bridge`}
-                          title="Repornește programul Windows din fundal (Bridge-ul de pe PC)"
-                          className="flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/80 transition-colors disabled:opacity-50 cursor-pointer shadow-xs"
-                        >
-                          <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${actionLoading === `${locKey}-restart-bridge` ? 'animate-spin' : ''}`} />
-                          <span className="whitespace-nowrap">Restart Bridge</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleAction(locKey, 'reload-kiosk')}
-                          disabled={actionLoading === `${locKey}-reload-kiosk`}
-                          title="Reîncarcă (F5 / Refresh) ecranul Kiosk din browser"
-                          className="flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/80 transition-colors disabled:opacity-50 cursor-pointer shadow-xs"
-                        >
-                          <RotateCcw className={`w-3.5 h-3.5 shrink-0 ${actionLoading === `${locKey}-reload-kiosk` ? 'animate-spin' : ''}`} />
-                          <span className="whitespace-nowrap">Refresh Ecran</span>
-                        </button>
-                      </div>
+                    {/* Action Buttons: Test Bon (flex-1) + Icon-only Restart Bridge & Refresh Ecran */}
+                    <div className="pt-2.5 border-t border-slate-100 dark:border-slate-700/60 flex items-center gap-2">
                       <button
                         type="button"
                         onClick={() => handleAction(locKey, 'test-print')}
                         disabled={actionLoading === `${locKey}-test-print`}
                         title="Scoate un bon de probă pe imprimanta termică din locație"
-                        className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-700/50 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700 dark:hover:bg-emerald-950/40 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-600/80 transition-colors disabled:opacity-50 cursor-pointer shadow-xs"
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold bg-slate-50 dark:bg-slate-700/50 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700 dark:hover:bg-emerald-950/40 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-600/80 transition-colors disabled:opacity-50 cursor-pointer shadow-xs whitespace-nowrap min-w-0"
                       >
                         <Printer className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                        <span>Test Bon Imprimantă</span>
+                        <span className="truncate">Test Bon</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAction(locKey, 'restart-bridge')}
+                        disabled={actionLoading === `${locKey}-restart-bridge`}
+                        title="Restart Bridge (repornește conexiunea POS & imprimantă)"
+                        aria-label="Restart Bridge"
+                        className="w-9 h-9 flex items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/80 transition-colors disabled:opacity-50 cursor-pointer shadow-xs shrink-0"
+                      >
+                        <RefreshCw className={`w-4 h-4 shrink-0 ${actionLoading === `${locKey}-restart-bridge` ? 'animate-spin' : ''}`} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAction(locKey, 'reload-kiosk')}
+                        disabled={actionLoading === `${locKey}-reload-kiosk`}
+                        title="Refresh Ecran (reîncarcă ecranul Kiosk din browser)"
+                        aria-label="Refresh Ecran"
+                        className="w-9 h-9 flex items-center justify-center rounded-xl bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/80 transition-colors disabled:opacity-50 cursor-pointer shadow-xs shrink-0"
+                      >
+                        <RotateCcw className={`w-4 h-4 shrink-0 ${actionLoading === `${locKey}-reload-kiosk` ? 'animate-spin' : ''}`} />
                       </button>
                     </div>
 
