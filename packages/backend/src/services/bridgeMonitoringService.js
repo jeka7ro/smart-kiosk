@@ -193,21 +193,21 @@ async function sendPosAlert(data) {
   if (paid) {
     msg = [
       `🟢 <b>[PLATĂ APROBATĂ - POS]</b>`,
-      `🏢 Locație: <b>${loc}</b>`,
-      `💰 Sumă: <b>${amtStr} RON</b>`,
-      `🧾 Bon: <code>${receiptNo || '-'}</code> | Comandă: <code>${orderId || '-'}</code>`,
-      `💳 Card: <code>${cardNo || 'Card'}</code> | Auth: <code>${authCode || '-'}</code>`,
-      `🕒 Timp: ${timeStr}`
+      `Locație: <b>${loc}</b>`,
+      `Sumă: <b>${amtStr} RON</b>`,
+      `Bon: ${receiptNo || '-'} | Comandă: #${orderId || '-'}`,
+      `Card: ${cardNo || 'Card'} | Auth: ${authCode || '-'}`,
+      `Timp: ${timeStr}`
     ].join('\n');
   } else {
     const reasonText = getPosReasonText(error, responseCode || code);
     msg = [
       `🔴 <b>[PLATĂ RESPINSĂ - POS]</b>`,
-      `🏢 Locație: <b>${loc}</b>`,
-      `💰 Sumă: <b>${amtStr} RON</b>`,
-      `🧾 Comandă: <code>${orderId || '-'}</code>`,
-      `⚠️ Motiv exact: <b>${reasonText}</b>`,
-      `🕒 Timp: ${timeStr}`
+      `Locație: <b>${loc}</b>`,
+      `Sumă: <b>${amtStr} RON</b>`,
+      `Comandă: #${orderId || '-'}`,
+      `Motiv exact: <b>${reasonText}</b>`,
+      `Timp: ${timeStr}`
     ].join('\n');
   }
 
