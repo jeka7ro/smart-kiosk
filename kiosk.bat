@@ -25,42 +25,73 @@ set /p "CHOICE=Introdu cifra locatiei (1-5) si apasa ENTER: "
 set "SCRIPT_VERSION=2.4.0"
 set "LOC_ID=cluj2"
 set "LOC_NAME=Cluj 2"
+set "COM_PORT=COM1"
+set "PRINTER_NAME=EPSON TM-T20III Receipt"
 set "URL=https://kiosk-smashme.netlify.app/?loc=cluj2&universal=true&v=%SCRIPT_VERSION%"
 
 if "%CHOICE%"=="1" (
     set "LOC_ID=cluj1"
     set "LOC_NAME=Cluj 1"
     set "URL=https://kiosk-smashme.netlify.app/?loc=cluj1&universal=true&v=%SCRIPT_VERSION%"
+    set "COM_PORT=COM4"
+    set "PRINTER_NAME=EPSON TM-T20"
 )
 if "%CHOICE%"=="2" (
     set "LOC_ID=cluj2"
     set "LOC_NAME=Cluj 2"
     set "URL=https://kiosk-smashme.netlify.app/?loc=cluj2&universal=true&v=%SCRIPT_VERSION%"
+    set "COM_PORT=COM1"
+    set "PRINTER_NAME=EPSON TM-T20III Receipt"
 )
 if "%CHOICE%"=="3" (
     set "LOC_ID=sm-brasov"
     set "LOC_NAME=Brasov"
     set "URL=https://kiosk-smashme.netlify.app/?loc=sm-brasov&universal=true&v=%SCRIPT_VERSION%"
+    set "COM_PORT=COM3"
+    set "PRINTER_NAME=EPSON TM-T20"
 )
 if "%CHOICE%"=="4" (
     set "LOC_ID=constanta1"
     set "LOC_NAME=Constanta 1"
     set "URL=https://kiosk-smashme.netlify.app/?loc=constanta1&universal=true&v=%SCRIPT_VERSION%"
+    set "COM_PORT=COM7"
+    set "PRINTER_NAME=XP-80"
 )
 if "%CHOICE%"=="5" (
     set "LOC_ID=constanta2"
     set "LOC_NAME=Constanta 2"
     set "URL=https://kiosk-smashme.netlify.app/?loc=constanta2&universal=true&v=%SCRIPT_VERSION%"
+    set "COM_PORT=COM7"
+    set "PRINTER_NAME=XP-80"
 )
 
 echo.
 echo [INFO] Ai selectat: %LOC_NAME% (%URL%)
+echo [INFO] Hardware: %COM_PORT% ^| %PRINTER_NAME%
 echo.
+
+:: Salvare automata .env pentru POS Bridge in toate locatiile uzuale
+for %%d in ("C:\Smart Kiosk\packages\pos-bridge" "C:\SmartKiosk\packages\pos-bridge" "C:\packages\pos-bridge" "C:\pos-bridge") do (
+    if exist "%%~d" (
+        echo [INFO] Salvez configuratia in %%~d\.env...
+        (
+            echo RENDER_URL=https://smart-kiosk-ttut.onrender.com
+            echo COM_PORT=%COM_PORT%
+            echo BAUD_RATE=9600
+            echo LOCATION_ID=%LOC_ID%
+            echo BRIDGE_KEY=pos-bridge-2024
+            echo POS_GATEWAY=raiffeisen
+            echo PRINTER_NAME=%PRINTER_NAME%
+        ) > "%%~d\.env"
+    )
+)
+
 
 :: 1. Inchidere instante vechi browser
 echo [1/6] Inchidere ferestre browser existente...
 taskkill /F /IM chrome.exe >nul 2>&1
 taskkill /F /IM msedge.exe >nul 2>&1
+taskkill /F /IM node.exe >nul 2>&1
 
 :: 2. Dezactivare Sleep, Standby si Oprire Monitor (Anti-Sleep)
 echo [2/6] Dezactivare Sleep, Standby si Oprire Monitor in Windows...
