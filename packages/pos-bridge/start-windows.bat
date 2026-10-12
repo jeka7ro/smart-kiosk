@@ -10,6 +10,14 @@ echo.
 
 cd /d "%~dp0"
 
+:: ── Verificare instanta unica (prevenire ferestre multiple / concurente) ─────
+powershell -NoProfile -Command "$myPid = $PID; $others = Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'cmd.exe' -and $_.ProcessId -ne $myPid -and $_.CommandLine -like '*start-windows.bat*' }; if ($others) { exit 99 }" >nul 2>&1
+if %errorlevel% equ 99 (
+    echo  [INFO] O instanta a start-windows.bat ruleaza deja activ in fundal.
+    echo  [INFO] Aceasta fereastra duplicat se inchide imediat.
+    exit /b 0
+)
+
 :: Configurare automata PATH pentru Node.js daca e instalat in locatii standard
 if exist "C:\Program Files\nodejs\node.exe" set "PATH=C:\Program Files\nodejs;%PATH%"
 if exist "C:\Program Files (x86)\nodejs\node.exe" set "PATH=C:\Program Files (x86)\nodejs;%PATH%"
