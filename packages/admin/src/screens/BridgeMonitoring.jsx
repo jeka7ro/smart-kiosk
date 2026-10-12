@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { io as ioClient } from 'socket.io-client';
 import { 
   Server, 
   Activity, 
@@ -18,8 +19,10 @@ import {
   Copy,
   Check,
   Terminal,
-  ChevronDown,
-  ChevronUp
+  X,
+  History,
+  BarChart2,
+  Zap
 } from 'lucide-react';
 import BrandLogo from '../components/BrandLogo.jsx';
 
@@ -64,6 +67,21 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
     const key = `${locationId}-${actionType}`;
     setActionLoading(key);
     setActionFeedback(null);
+
+    // Optimistic UI for POS Signal test
+    if (actionType === 'test-pos-signal') {
+      setData(prev => {
+        const locs = { ...(prev?.locations || {}) };
+        if (locs[locationId]) {
+          locs[locationId] = {
+            ...locs[locationId],
+            posSignal: { testing: true, message: 'Se testează semnalul UART...' }
+          };
+        }
+        return { ...prev, locations: locs };
+      });
+    }
+
     try {
       const endpoint = locationId === 'all' && actionType === 'reload-kiosk'
         ? `${backend}/api/bridge-monitoring/reload-all-kiosks`
@@ -83,6 +101,17 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
       } else {
         setActionFeedback({ type: 'error', text: json.error || 'Eroare la transmiterea comenzii.' });
       }
+
+      // Schedule aggressive status re-fetches for instant badge update
+      if (actionType === 'test-pos-signal' || actionType === 'restart-bridge') {
+        setTimeout(fetchStatus, 1000);
+        setTimeout(fetchStatus, 2500);
+        setTimeout(fetchStatus, 4500);
+        if (signalModalLoc && signalModalLoc.locKey === locationId) {
+          setTimeout(() => fetchSignalLogs(locationId), 1500);
+          setTimeout(() => fetchSignalLogs(locationId), 3000);
+        }
+      }
     } catch (err) {
       setActionFeedback({ type: 'error', text: err.message });
     } finally {
@@ -90,6 +119,63 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
       setTimeout(() => setActionFeedback(null), 5000);
     }
   };
+
+  // POS Signal History Modal state
+  const [signalModalLoc, setSignalModalLoc] = useState(null);
+  const [signalLogs, setSignalLogs] = useState([]);
+  const [loadingSignalLogs, setLoadingSignalLogs] = useState(false);
+
+  const fetchSignalLogs = useCallback(async (locKey) => {
+    if (!locKey) return;
+    setLoadingSignalLogs(true);
+    try {
+      const serverUrl = backend || 'https://smart-kiosk-ttut.onrender.com';
+      const res = await fetch(`${serverUrl}/api/bridge-monitoring/${locKey}/signal-logs?limit=40`, {
+        headers: { 'x-api-key': 'sk-live-2024-secure' }
+      }).catch(() => null);
+      if (res && res.ok) {
+        const json = await res.json();
+        setSignalLogs(json.logs || []);
+      } else {
+        setSignalLogs([]);
+      }
+    } catch (_) {
+      setSignalLogs([]);
+    } finally {
+      setLoadingSignalLogs(false);
+    }
+  }, [backend]);
+
+  const openSignalHistory = (locKey, displayName, brandId) => {
+    setSignalModalLoc({ locKey, displayName, brandId });
+    fetchSignalLogs(locKey);
+  };
+
+  const signalStats = useMemo(() => {
+    if (!signalLogs || signalLogs.length === 0) {
+      return { total: 0, avgLatency: null, successRate: null, lastLatency: null };
+    }
+    const total = signalLogs.length;
+    const successes = signalLogs.filter(l => l.success);
+    const successRate = Math.round((successes.length / total) * 100);
+    const latencies = successes.map(l => l.latency_ms).filter(n => typeof n === 'number' && !isNaN(n));
+    const avgLatency = latencies.length > 0 ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length) : null;
+    const lastLatency = signalLogs[0]?.latency_ms ?? null;
+    return { total, avgLatency, successRate, lastLatency };
+  }, [signalLogs]);
+
+  useEffect(() => {
+    if (!socket) return;
+    const handleSignalResult = (evt) => {
+      if (signalModalLoc && evt && (evt.locationId === signalModalLoc.locKey)) {
+        fetchSignalLogs(signalModalLoc.locKey);
+      }
+    };
+    socket.on('pos_signal_result', handleSignalResult);
+    return () => {
+      socket.off('pos_signal_result', handleSignalResult);
+    };
+  }, [socket, signalModalLoc, fetchSignalLogs]);
 
   // Telegram form state
   const [telegramForm, setTelegramForm] = useState({
@@ -104,13 +190,22 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
   const [telegramStatusMsg, setTelegramStatusMsg] = useState(null);
   const [testingTelegram, setTestingTelegram] = useState(false);
   const [internalKiosksLive, setInternalKiosksLive] = useState({});
+  const [currentTime, setCurrentTime] = useState(Date.now());
+  const [dataReceivedAt, setDataReceivedAt] = useState(Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const fetchStatus = useCallback(async () => {
     try {
       const serverUrl = 'https://smart-kiosk-ttut.onrender.com';
       const legacyUrl = 'https://smart-kiosk-v7ws.onrender.com';
 
-      const [resBridge, resKiosks, resV7] = await Promise.all([
+      const [resBridge, resKiosks, resV7, resLocations] = await Promise.all([
         fetch(`${serverUrl}/api/bridge-monitoring/status`, {
           headers: { 'x-api-key': 'sk-live-2024-secure' }
         }).catch(() => null),
@@ -118,6 +213,9 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
           headers: { 'x-api-key': 'sk-live-2024-secure' }
         }).catch(() => null),
         fetch(`${legacyUrl}/api/bridge-monitoring/status`, {
+          headers: { 'x-api-key': 'sk-live-2024-secure' }
+        }).catch(() => null),
+        fetch(`${serverUrl}/api/locations`, {
           headers: { 'x-api-key': 'sk-live-2024-secure' }
         }).catch(() => null),
       ]);
@@ -130,12 +228,42 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
       if (resV7 && resV7.ok) {
         try { v7Json = await resV7.json(); } catch (_) {}
       }
+      let dbLocationsList = [];
+      if (resLocations && resLocations.ok) {
+        try {
+          const lData = await resLocations.json();
+          dbLocationsList = Array.isArray(lData) ? lData : (lData?.locations || []);
+        } catch (_) {}
+      }
 
       const merged = json ? JSON.parse(JSON.stringify(json)) : { locations: {} };
       if (!merged.locations) merged.locations = {};
 
       for (const [k, loc] of Object.entries(merged.locations)) {
         merged.locations[k] = { ...loc, serverHost: 'smart-kiosk-ttut.onrender.com' };
+      }
+
+      // Sincronizează setările din baza de date a fiecărei locații (inclusiv Trezire Standby salvată în DB)
+      if (dbLocationsList.length > 0) {
+        for (const locKey of ['cluj1', 'cluj2', 'sm-brasov', 'constanta1']) {
+          const dbLoc = dbLocationsList.find(l => 
+            l.id === locKey || 
+            l.kioskUrl === locKey || 
+            (Array.isArray(l.aliases) && l.aliases.includes(locKey)) ||
+            (locKey === 'sm-brasov' && (l.id === 'rollmaster' || l.name?.toLowerCase().includes('brasov'))) ||
+            (locKey === 'constanta1' && (l.id === 'smashme-constanta' || l.name?.toLowerCase().includes('constanta'))) ||
+            (locKey === 'cluj1' && (l.id === 'smashme-main' || l.name?.toLowerCase().includes('centru'))) ||
+            (locKey === 'cluj2' && (l.id === 'cluj2' || l.name?.toLowerCase().includes('cj-2')))
+          );
+          if (dbLoc) {
+            if (!merged.locations[locKey]) {
+              merged.locations[locKey] = { locationId: locKey };
+            }
+            if (dbLoc.posWakeStandby !== undefined) {
+              merged.locations[locKey].posWakeStandby = Boolean(dbLoc.posWakeStandby);
+            }
+          }
+        }
       }
 
       // Daca vreo locatie (ex: Constanta 1) ruleaza inca pe serverul anterior, preia starea activa
@@ -165,6 +293,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
       merged.totalOffline = totalOff;
 
       setData(merged);
+      setDataReceivedAt(Date.now());
       if (merged.telegramConfig) {
         setTelegramForm(prev => ({
           ...prev,
@@ -199,12 +328,30 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
     }
   }, [backend]);
 
+  const [internalSocket, setInternalSocket] = useState(socket);
+
+  useEffect(() => {
+    if (socket) {
+      setInternalSocket(socket);
+      return;
+    }
+    const targetUrl = backend || 'https://smart-kiosk-ttut.onrender.com';
+    try {
+      const s = ioClient(targetUrl, { transports: ['websocket', 'polling'] });
+      setInternalSocket(s);
+      return () => {
+        try { s.disconnect(); } catch (_) {}
+      };
+    } catch (_) {}
+  }, [socket, backend]);
+
   useEffect(() => {
     fetchStatus();
     const interval = setInterval(fetchStatus, 15000); // Auto-refresh every 15s
 
     // Real-time Socket.IO listener
-    if (socket) {
+    const activeSocket = internalSocket || socket;
+    if (activeSocket) {
       const onBridgeUpdate = (updatedSummary) => {
         if (updatedSummary) {
           setData(updatedSummary);
@@ -243,22 +390,22 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
         }
       };
 
-      socket.on('bridge_status_update', onBridgeUpdate);
-      socket.on('kiosks_live_status', onKiosksLive);
-      socket.on('pos_signal_result', onPosSignalResult);
+      activeSocket.on('bridge_status_update', onBridgeUpdate);
+      activeSocket.on('kiosks_live_status', onKiosksLive);
+      activeSocket.on('pos_signal_result', onPosSignalResult);
 
       return () => {
         clearInterval(interval);
-        socket.off('bridge_status_update', onBridgeUpdate);
-        socket.off('kiosks_live_status', onKiosksLive);
-        socket.off('pos_signal_result', onPosSignalResult);
+        activeSocket.off('bridge_status_update', onBridgeUpdate);
+        activeSocket.off('kiosks_live_status', onKiosksLive);
+        activeSocket.off('pos_signal_result', onPosSignalResult);
       };
     }
 
     return () => {
       clearInterval(interval);
     };
-  }, [fetchStatus, socket]);
+  }, [fetchStatus, socket, internalSocket]);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -339,37 +486,37 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
     }
   };
 
-  const formatUptime = (seconds) => {
-    if (!seconds || seconds <= 0) return 'Sub 1 minut';
-    const hrs = Math.floor(seconds / 3600);
+  const renderDigitalTimer = (seconds) => {
+    if (!seconds || seconds <= 0) return <span className="text-[12px] font-semibold text-slate-400">00:00:00</span>;
+    const totalHrs = Math.floor(seconds / 3600);
+    const days = Math.floor(totalHrs / 24);
+    const hrs = days > 0 ? totalHrs % 24 : totalHrs;
     const mins = Math.floor((seconds % 3600) / 60);
-    if (hrs > 0) return `${hrs}h ${mins}m`;
-    return `${mins}m`;
+    const secs = Math.floor(seconds % 60);
+    const pad = (n) => String(n).padStart(2, '0');
+    return (
+      <span className="inline-flex items-center text-[12px] font-semibold text-slate-800 dark:text-slate-100">
+        {days > 0 && <span className="mr-1 text-[11px] font-medium text-slate-500">{days}z</span>}
+        <span>{pad(hrs)}</span>
+        <span className="animate-blink-colon text-blue-600 dark:text-blue-400 font-bold mx-[1px] select-none">:</span>
+        <span>{pad(mins)}</span>
+        <span className="animate-blink-colon text-blue-600 dark:text-blue-400 font-bold mx-[1px] select-none">:</span>
+        <span>{pad(secs)}</span>
+      </span>
+    );
   };
+
+  const currentClock = useMemo(() => {
+    const d = new Date(currentTime);
+    const pad = (n) => String(n).padStart(2, '0');
+    return {
+      hrs: pad(d.getHours()),
+      mins: pad(d.getMinutes()),
+      secs: pad(d.getSeconds()),
+    };
+  }, [currentTime]);
 
   const locationKeys = useMemo(() => ['cluj1', 'cluj2', 'sm-brasov', 'constanta1'], []);
-
-  const [expandedCards, setExpandedCards] = useState({});
-
-  const toggleCard = (locKey) => {
-    setExpandedCards(prev => ({
-      ...prev,
-      [locKey]: !prev[locKey]
-    }));
-  };
-
-  const allExpanded = useMemo(() => {
-    return locationKeys.length > 0 && locationKeys.every(k => !!expandedCards[k]);
-  }, [locationKeys, expandedCards]);
-
-  const toggleAllCards = () => {
-    const nextState = !allExpanded;
-    const newState = {};
-    locationKeys.forEach(k => {
-      newState[k] = nextState;
-    });
-    setExpandedCards(newState);
-  };
 
   const computedLocations = useMemo(() => {
     const friendlyNames = {
@@ -419,6 +566,14 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
       const hasRecentConnection = Boolean(loc.connectedAt && (Date.now() - loc.connectedAt < 12 * 3600 * 1000) && loc.port && loc.port !== 'N/A');
       const isOnline = isBridgeOnline || isKioskConnected || hasRecentConnection;
 
+      const elapsedSinceFetch = Math.max(0, Math.floor((currentTime - dataReceivedAt) / 1000));
+      const effectiveUptime = isBridgeOnline && loc.uptimeSeconds > 0 
+        ? (loc.uptimeSeconds + elapsedSinceFetch) 
+        : (loc.uptimeSeconds || 0);
+      const effectiveLastPing = loc.lastPingSecondsAgo !== null && isBridgeOnline
+        ? (loc.lastPingSecondsAgo + elapsedSinceFetch)
+        : loc.lastPingSecondsAgo;
+
       result[locKey] = {
         ...loc,
         displayName: cleanKioskName,
@@ -431,10 +586,12 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
         latestScriptVer,
         isScriptUpToDate,
         hasRecentConnection,
+        uptimeSeconds: effectiveUptime,
+        lastPingSecondsAgo: effectiveLastPing,
       };
     });
     return result;
-  }, [data.locations, kiosksLiveStatus, internalKiosksLive, locationKeys]);
+  }, [data.locations, kiosksLiveStatus, internalKiosksLive, locationKeys, currentTime, dataReceivedAt]);
 
   const sortedLocationKeys = useMemo(() => {
     const brandOrder = ['smashme', 'crunch', 'rollmaster', 'lovesushi', 'pokiwoki'];
@@ -486,6 +643,17 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          <div className="flex items-center gap-2 text-xs font-semibold px-3 py-2 rounded-xl bg-slate-100/80 dark:bg-slate-700/60 text-slate-700 dark:text-slate-200 border border-slate-200/50 dark:border-slate-600/50 shadow-inner">
+            <Clock className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+            <span className="text-slate-800 dark:text-slate-100 font-bold inline-flex items-center text-[12px]">
+              <span>{currentClock.hrs}</span>
+              <span className="animate-blink-colon text-blue-600 dark:text-blue-400 font-bold mx-[1px] select-none">:</span>
+              <span>{currentClock.mins}</span>
+              <span className="animate-blink-colon text-blue-600 dark:text-blue-400 font-bold mx-[1px] select-none">:</span>
+              <span>{currentClock.secs}</span>
+            </span>
+          </div>
+
           <div className="flex items-center gap-2 text-xs font-semibold px-3.5 py-2 rounded-xl bg-slate-100/80 dark:bg-slate-700/60 text-slate-700 dark:text-slate-200 border border-slate-200/50 dark:border-slate-600/50 shadow-inner">
             <Radio className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
             <span>Active: <strong className="text-emerald-700 dark:text-emerald-400 font-bold">{totalOnlineCount}</strong></span>
@@ -516,26 +684,6 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''} shrink-0`} />
             <span className="whitespace-nowrap">Actualizează</span>
           </button>
-
-          {/* Toggle Extinde / Restrânge Toate Cardurile */}
-          <button
-            type="button"
-            onClick={toggleAllCards}
-            title={allExpanded ? "Restrânge toate detaliile cardurilor" : "Extinde toate detaliile cardurilor"}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 shadow-xs transition-colors cursor-pointer whitespace-nowrap shrink-0"
-          >
-            {allExpanded ? (
-              <>
-                <ChevronUp className="w-3.5 h-3.5 text-slate-500" />
-                <span className="whitespace-nowrap">Restrânge Toate</span>
-              </>
-            ) : (
-              <>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
-                <span className="whitespace-nowrap">Extinde Toate</span>
-              </>
-            )}
-          </button>
         </div>
       </div>
 
@@ -550,20 +698,19 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
         </div>
       )}
 
-      {/* Grid Status Locații - 2 Coloane Late Orizontale (Landscape 2x2) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+      {/* Listă Carduri Locații - Fiecare locație pe un rând complet (1 per row) */}
+      <div className="flex flex-col gap-4">
         {sortedLocationKeys.map(locKey => {
           const loc = computedLocations[locKey];
           const isOnline = loc.status === 'online';
-          const isExpanded = !!expandedCards[locKey];
           const { isKioskConnected, isUniversalConfig, kioskScriptVer, latestScriptVer, isScriptUpToDate, isBridgeOnline } = loc;
 
           return (
             <div
               key={locKey}
-              className="group p-5 md:p-6 rounded-3xl border transition-all duration-300 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border-slate-200/80 dark:border-slate-700/80 hover:border-blue-400 dark:hover:border-blue-500 shadow-xs hover:shadow-lg flex flex-col justify-between"
+              className="group p-4 sm:p-5 rounded-2xl border transition-all duration-200 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border-slate-200/80 dark:border-slate-700/80 hover:border-blue-400/80 dark:hover:border-blue-500/80 shadow-xs hover:shadow-md flex flex-col justify-between"
             >
-              <div className="space-y-4">
+              <div className="space-y-3.5">
                 {/* Card Header with Brand Logo Avatar, Clean Kiosk Name, Server & Online State */}
                 <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-700/60">
                   <div className="flex items-center gap-3 min-w-0">
@@ -576,9 +723,9 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                       <h3 className="text-base font-bold text-slate-900 dark:text-white truncate tracking-tight" title={loc.displayName}>
                         {loc.displayName}
                       </h3>
-                      <div className="flex items-center gap-1.5 text-[11px] font-mono text-slate-500 dark:text-slate-400">
+                      <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
                         <span className={`w-2 h-2 rounded-full shrink-0 ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
-                        <span className="text-[10px] font-sans font-semibold text-slate-400 uppercase">Server:</span>
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase">Server:</span>
                         <span className="text-blue-600 dark:text-blue-400 font-semibold truncate select-all" title={loc.serverHost || serverHost}>
                           {loc.serverHost || serverHost}
                         </span>
@@ -620,262 +767,248 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                   })()}
                 </div>
 
-                {/* Mod Compact (Restrâns) */}
-                {!isExpanded && (
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
-                    <div className="grid grid-cols-2 gap-3 text-xs flex-1">
-                      <div className="p-2.5 rounded-xl bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                          <Monitor className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                          <span>Ecran</span>
-                        </div>
-                        <span className={`text-[11px] font-bold truncate ${isKioskConnected ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-400'}`}>
-                          {isKioskConnected ? 'Conectat' : 'Inactiv'}
-                        </span>
-                      </div>
-
-                      <div className="p-2.5 rounded-xl bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                          <Cpu className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                          <span>POS</span>
-                        </div>
-                        <span className={`text-[11px] font-bold truncate ${isBridgeOnline ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`} title={isBridgeOnline ? `${loc.port || 'Activ'} (${loc.gateway || 'raiffeisen'})` : 'Oprit'}>
-                          {isBridgeOnline ? (loc.port ? `${loc.port}` : 'Activ') : 'Oprit'}
-                        </span>
-                      </div>
+                {/* 3-Column Balanced Hardware Grid (Egalizate, zero spațiu irosit) */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {/* Coloana 1: Ecran Kiosk & OTA */}
+                  <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 space-y-2 text-xs flex flex-col justify-between">
+                    <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <Monitor className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                        <span className="whitespace-nowrap">Ecran Kiosk</span>
+                      </span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
+                        isKioskConnected 
+                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300' 
+                          : 'bg-slate-200/60 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
+                      }`}>
+                        {isKioskConnected ? 'Conectat' : 'Inactiv'}
+                      </span>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => toggleCard(locKey)}
-                      className="py-2.5 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 dark:bg-slate-700/60 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all cursor-pointer border border-slate-200/70 dark:border-slate-600/70 shadow-xs shrink-0"
-                    >
-                      <span>Detalii & Acțiuni</span>
-                      <ChevronDown className="w-4 h-4 text-slate-500" />
-                    </button>
-                  </div>
-                )}
+                    <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
+                      <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Configurație:</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
+                        isUniversalConfig 
+                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' 
+                          : 'bg-slate-200/70 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
+                      }`}>
+                        {isUniversalConfig ? 'Universală' : 'Manuală'}
+                      </span>
+                    </div>
 
-                {/* Mod Extins - Detalii complete hardware și butoane comenzi pe orizontală */}
-                {isExpanded && (
-                  <div className="space-y-3.5 pt-1 animate-in fade-in duration-200">
-                    {/* Landscape 2-column details grid: Stânga = Ecran Kiosk, Dreapta = POS & Print */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {/* Sub-container 1: Ecran Kiosk & OTA Status */}
-                      <div className="p-3.5 rounded-2xl bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 space-y-2 text-xs flex flex-col justify-between">
-                        <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center justify-between">
-                          <span className="flex items-center gap-1.5">
-                            <Monitor className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                            <span className="whitespace-nowrap">Ecran Kiosk</span>
-                          </span>
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
-                            isKioskConnected 
-                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300' 
-                              : 'bg-slate-200/60 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
-                          }`}>
-                            {isKioskConnected ? 'Conectat' : 'Inactiv'}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
-                          <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Configurație:</span>
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
-                            isUniversalConfig 
-                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' 
-                              : 'bg-slate-200/70 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
-                          }`}>
-                            {isUniversalConfig ? 'Universală' : 'Manuală'}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
-                          <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Versiune Script:</span>
-                          <div className="flex items-center gap-1.5 whitespace-nowrap">
-                            {isKioskConnected ? (
-                              <>
-                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
-                                  kioskScriptVer 
-                                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' 
-                                    : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                                }`}>
-                                  {kioskScriptVer ? `v${kioskScriptVer}` : 'Deschis manual'}
-                                </span>
-                                <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold whitespace-nowrap ${
-                                  isScriptUpToDate
-                                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
-                                    : 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300'
-                                }`}>
-                                  {isScriptUpToDate ? 'La zi' : 'Update'}
-                                </span>
-                              </>
-                            ) : (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-500 dark:bg-slate-700/60 dark:text-slate-400 whitespace-nowrap">
-                                {kioskScriptVer ? `v${kioskScriptVer}` : '— (offline)'}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Sub-container 2: Hardware POS & Imprimanta */}
-                      <div className="p-3.5 rounded-2xl bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 space-y-2 text-xs flex flex-col justify-between">
-                        <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center justify-between">
-                          <span className="flex items-center gap-1.5">
-                            <Cpu className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                            <span className="whitespace-nowrap">POS & Print</span>
-                          </span>
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
-                            isBridgeOnline 
-                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300' 
-                              : 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300'
-                          }`}>
-                            {isBridgeOnline ? 'Activ' : 'Oprit'}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
-                          <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Port Serial:</span>
-                          <span className="font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">
-                            {loc.port || 'COM?'} ({loc.gateway || 'raiffeisen'})
-                          </span>
-                        </div>
-
-                        <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
-                          <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Imprimantă:</span>
-                          <span className="font-semibold text-slate-800 dark:text-slate-200 truncate flex-1 text-right ml-2" title={loc.printerName || 'Nedetectată'}>
-                            {loc.printerName || 'Nedetectată'}
-                          </span>
-                        </div>
-
-                        {isBridgeOnline && (
-                          <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
-                            <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Semnal & Rulare:</span>
-                            <span className="font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap text-right">
-                              {loc.lastPingSecondsAgo !== null && loc.lastPingSecondsAgo < 120 
-                                ? `acum ${loc.lastPingSecondsAgo}s` 
-                                : 'activ'}{loc.uptimeSeconds > 0 ? ` • ${formatUptime(loc.uptimeSeconds)}` : ''}
-                            </span>
-                          </div>
-                        )}
-
-                        {/* Trezire Standby la 30 min */}
-                        <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
-                          <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Trezire Standby:</span>
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
-                            loc.posWakeStandby
-                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
-                              : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
-                          }`}>
-                            {loc.posWakeStandby ? 'Activă (la 30 min)' : 'Inactivă'}
-                          </span>
-                        </div>
-
-                        {/* Semnal & Latență POS */}
-                        <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
-                          <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Semnal POS:</span>
-                          {loc.posSignal ? (
+                    <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
+                      <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Versiune Script:</span>
+                      <div className="flex items-center gap-1.5 whitespace-nowrap">
+                        {isKioskConnected ? (
+                          <>
                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
-                              loc.posSignal.success
-                                ? (loc.posSignal.latencyMs < 100 
-                                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
-                                    : 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300')
-                                : 'bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300'
+                              kioskScriptVer 
+                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' 
+                                : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
                             }`}>
-                              {loc.posSignal.success ? `🟢 ${loc.posSignal.latencyMs}ms (activ)` : `🔴 ${loc.posSignal.message || 'Eroare'}`}
+                              {kioskScriptVer ? `v${kioskScriptVer}` : 'Deschis manual'}
                             </span>
-                          ) : (
-                            <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 italic">
-                              Netestat
+                            <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold whitespace-nowrap ${
+                              isScriptUpToDate
+                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
+                                : 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300'
+                            }`}>
+                              {isScriptUpToDate ? 'La zi' : 'Update'}
                             </span>
-                          )}
-                        </div>
+                          </>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-500 dark:bg-slate-700/60 dark:text-slate-400 whitespace-nowrap">
+                            {kioskScriptVer ? `v${kioskScriptVer}` : '— (offline)'}
+                          </span>
+                        )}
                       </div>
                     </div>
+                  </div>
 
-                    {/* Status Note Indicator */}
-                    {isOnline ? (
-                      <div className="p-2.5 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/70 dark:border-emerald-900/40 text-[11px] text-emerald-800 dark:text-emerald-300 leading-tight flex items-center gap-1.5">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                        <span className="font-medium">Sistem operațional & sincronizat</span>
-                      </div>
-                    ) : (
-                      <div className="p-2.5 rounded-2xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-900/40 text-[11px] text-amber-800 dark:text-amber-300 leading-tight flex items-center justify-between gap-2">
-                        <div>
-                          <span className="font-bold">Notă:</span> Bridge deconectat.
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const num = { cluj1: '1', cluj2: '2', 'sm-brasov': '3', constanta1: '4', constanta2: '5' }[locKey] || '3';
-                            const cmd = `cmd /c "mkdir C:\\SmartKiosk 2>nul & cd /d C:\\SmartKiosk & curl -s -L -o setup.bat https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/setup_kiosk_autostart.bat & setup.bat ${num}"`;
-                            navigator.clipboard.writeText(cmd);
-                            setActionFeedback({ type: 'success', text: `Comanda de pornire pentru ${loc.displayName} a fost copiată!` });
-                            setTimeout(() => setActionFeedback(null), 3000);
-                          }}
-                          className="px-2.5 py-1 rounded-xl text-[10px] font-bold bg-amber-600 hover:bg-amber-700 text-white shrink-0 cursor-pointer shadow-xs transition-colors"
-                        >
-                          Copiază Comandă Pornire
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Action Buttons: 4-column responsive grid */}
-                    <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60">
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleAction(locKey, 'restart-bridge')}
-                          disabled={actionLoading === `${locKey}-restart-bridge`}
-                          title="Restart POS Bridge (repornește conexiunea POS & imprimantă)"
-                          className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/80 transition-colors disabled:opacity-50 cursor-pointer shadow-xs whitespace-nowrap"
-                        >
-                          <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${actionLoading === `${locKey}-restart-bridge` ? 'animate-spin' : ''}`} />
-                          <span>Bridge</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleAction(locKey, 'reload-kiosk')}
-                          disabled={actionLoading === `${locKey}-reload-kiosk`}
-                          title="Refresh Ecran Kiosk (reîncarcă pagina Kiosk din browser)"
-                          className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/80 transition-colors disabled:opacity-50 cursor-pointer shadow-xs whitespace-nowrap"
-                        >
-                          <RotateCcw className={`w-3.5 h-3.5 shrink-0 ${actionLoading === `${locKey}-reload-kiosk` ? 'animate-spin' : ''}`} />
-                          <span>Ecran</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleAction(locKey, 'test-pos-signal')}
-                          disabled={actionLoading === `${locKey}-test-pos-signal`}
-                          title="Testează semnalul și latența magistralei seriale cu POS-ul"
-                          className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/80 transition-colors disabled:opacity-50 cursor-pointer shadow-xs whitespace-nowrap"
-                        >
-                          <Radio className={`w-3.5 h-3.5 shrink-0 ${actionLoading === `${locKey}-test-pos-signal` ? 'animate-pulse text-emerald-600' : 'text-emerald-600 dark:text-emerald-400'}`} />
-                          <span>Semnal POS</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleAction(locKey, 'test-print')}
-                          disabled={actionLoading === `${locKey}-test-print`}
-                          title="Scoate un bon de probă pe imprimanta termică din locație"
-                          className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-700/50 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700 dark:hover:bg-emerald-950/40 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-600/80 transition-colors disabled:opacity-50 cursor-pointer shadow-xs whitespace-nowrap"
-                        >
-                          <Printer className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                          <span>Test Bon</span>
-                        </button>
-                      </div>
+                  {/* Coloana 2: Terminal POS */}
+                  <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 space-y-2 text-xs flex flex-col justify-between">
+                    <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <Cpu className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                        <span className="whitespace-nowrap">Terminal POS</span>
+                      </span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
+                        isBridgeOnline 
+                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300' 
+                          : 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300'
+                      }`}>
+                        {isBridgeOnline ? (loc.port ? `${loc.port} (${loc.gateway || 'raiffeisen'})` : 'Activ') : 'Oprit'}
+                      </span>
                     </div>
 
-                    {/* Buton Restrânge */}
+                    <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
+                      <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Semnal POS:</span>
+                      {loc.posSignal?.testing ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 animate-pulse border border-amber-300 dark:border-amber-700">
+                          🟡 Se testează...
+                        </span>
+                      ) : loc.posSignal ? (
+                        <button
+                          type="button"
+                          onClick={() => openSignalHistory(locKey, loc.displayName, loc.brandId)}
+                          title="Apasă pentru istoricul detaliat al semnalului POS"
+                          className={`group/sig px-2.5 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap cursor-pointer transition-all duration-150 hover:shadow-xs hover:scale-105 active:scale-95 inline-flex items-center gap-1 ${
+                            loc.posSignal.success
+                              ? (loc.posSignal.latencyMs < 100 
+                                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900'
+                                  : 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900')
+                              : 'bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 hover:bg-rose-200 dark:hover:bg-rose-900'
+                          }`}
+                        >
+                          <span>{loc.posSignal.success ? `🟢 ${loc.posSignal.latencyMs}ms (activ)` : `🔴 ${loc.posSignal.message || 'Eroare'}`}</span>
+                          <span className="text-[9px] opacity-70 underline decoration-dotted font-semibold">istoric</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => openSignalHistory(locKey, loc.displayName, loc.brandId)}
+                          title="Apasă pentru a vedea istoricul sau a efectua un test"
+                          className="text-[10px] font-semibold text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 cursor-pointer transition-colors inline-flex items-center gap-1"
+                        >
+                          <span>Netestat</span>
+                          <span className="underline decoration-dotted text-[9px] font-medium">(vezi istoric)</span>
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
+                      <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Trezire Standby:</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
+                        loc.posWakeStandby
+                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
+                          : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+                      }`}>
+                        {loc.posWakeStandby ? 'Activă (10:00 - 22:00)' : 'Inactivă'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Coloana 3: Imprimantă & Uptime */}
+                  <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 space-y-2 text-xs flex flex-col justify-between">
+                    <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <Printer className="w-3.5 h-3.5 text-purple-500 shrink-0" />
+                        <span className="whitespace-nowrap">Imprimantă & Uptime</span>
+                      </span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
+                        loc.printerName && loc.printerName !== 'Nedetectată'
+                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
+                          : 'bg-slate-200/60 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
+                      }`}>
+                        {loc.printerName && loc.printerName !== 'Nedetectată' ? 'Pregătită' : 'Nedetectată'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
+                      <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Model:</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-200 truncate ml-2 text-right" title={loc.printerName || 'Nedetectată'}>
+                        {loc.printerName || 'Nedetectată'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
+                      <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Ultimul Semnal:</span>
+                      <span className="font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap text-right">
+                        {isBridgeOnline ? (
+                          loc.lastPingSecondsAgo !== null && loc.lastPingSecondsAgo < 120 
+                            ? `acum ${loc.lastPingSecondsAgo}s` 
+                            : 'activ'
+                        ) : (
+                          <span className="text-slate-400 italic">offline</span>
+                        )}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
+                      <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Uptime (Pornit de):</span>
+                      <div className="flex items-center justify-end text-right">
+                        {isBridgeOnline && loc.uptimeSeconds > 0 ? (
+                          renderDigitalTimer(loc.uptimeSeconds)
+                        ) : (
+                          <span className="text-slate-400 italic text-[11px]">—</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Status Note Indicator */}
+                {isOnline ? (
+                  <div className="p-2.5 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/70 dark:border-emerald-900/40 text-[11px] text-emerald-800 dark:text-emerald-300 leading-tight flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span className="font-medium">Sistem operațional & sincronizat</span>
+                  </div>
+                ) : (
+                  <div className="p-2.5 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-900/40 text-[11px] text-amber-800 dark:text-amber-300 leading-tight flex items-center justify-between gap-2">
+                    <div>
+                      <span className="font-bold">Notă:</span> Bridge deconectat.
+                    </div>
                     <button
                       type="button"
-                      onClick={() => toggleCard(locKey)}
-                      className="w-full py-1.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/60 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer border border-slate-200/60 dark:border-slate-600/60 shadow-xs"
+                      onClick={() => {
+                        const num = { cluj1: '1', cluj2: '2', 'sm-brasov': '3', constanta1: '4', constanta2: '5' }[locKey] || '3';
+                        const cmd = `cmd /c "mkdir C:\\SmartKiosk 2>nul & cd /d C:\\SmartKiosk & curl -s -L -o setup.bat https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/setup_kiosk_autostart.bat & setup.bat ${num}"`;
+                        navigator.clipboard.writeText(cmd);
+                        setActionFeedback({ type: 'success', text: `Comanda de pornire pentru ${loc.displayName} a fost copiată!` });
+                        setTimeout(() => setActionFeedback(null), 3000);
+                      }}
+                      className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-600 hover:bg-amber-700 text-white shrink-0 cursor-pointer shadow-xs transition-colors"
                     >
-                      <span>Restrânge Detalii</span>
-                      <ChevronUp className="w-4 h-4 text-slate-500" />
+                      Copiază Comandă Pornire
                     </button>
                   </div>
                 )}
+
+                {/* Action Buttons: 4-column responsive grid */}
+                <div className="pt-1 border-t border-slate-100 dark:border-slate-700/60">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleAction(locKey, 'restart-bridge')}
+                      disabled={actionLoading === `${locKey}-restart-bridge`}
+                      title="Restart POS Bridge (repornește conexiunea POS & imprimantă)"
+                      className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/80 transition-colors disabled:opacity-50 cursor-pointer shadow-xs whitespace-nowrap"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${actionLoading === `${locKey}-restart-bridge` ? 'animate-spin' : ''}`} />
+                      <span>Bridge</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAction(locKey, 'reload-kiosk')}
+                      disabled={actionLoading === `${locKey}-reload-kiosk`}
+                      title="Refresh Ecran Kiosk (reîncarcă pagina Kiosk din browser)"
+                      className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/80 transition-colors disabled:opacity-50 cursor-pointer shadow-xs whitespace-nowrap"
+                    >
+                      <RotateCcw className={`w-3.5 h-3.5 shrink-0 ${actionLoading === `${locKey}-reload-kiosk` ? 'animate-spin' : ''}`} />
+                      <span>Ecran</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAction(locKey, 'test-pos-signal')}
+                      disabled={actionLoading === `${locKey}-test-pos-signal`}
+                      title="Testează semnalul și latența magistralei seriale cu POS-ul"
+                      className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/80 transition-colors disabled:opacity-50 cursor-pointer shadow-xs whitespace-nowrap"
+                    >
+                      <Radio className={`w-3.5 h-3.5 shrink-0 ${actionLoading === `${locKey}-test-pos-signal` ? 'animate-pulse text-emerald-600' : 'text-emerald-600 dark:text-emerald-400'}`} />
+                      <span>Semnal POS</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAction(locKey, 'test-print')}
+                      disabled={actionLoading === `${locKey}-test-print`}
+                      title="Scoate un bon de probă pe imprimanta termică din locație"
+                      className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-700/50 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700 dark:hover:bg-emerald-950/40 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-600/80 transition-colors disabled:opacity-50 cursor-pointer shadow-xs whitespace-nowrap"
+                    >
+                      <Printer className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                      <span>Test Bon</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           );
@@ -1129,6 +1262,204 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
           </div>
         )}
       </div>
+
+      {/* Modal Interactiv Istoric Semnal POS & Latenta UART */}
+      {signalModalLoc && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-200/80 dark:border-slate-700/80 max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="p-5 border-b border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <BrandLogo brandId={signalModalLoc.brandId} size={36} className="shrink-0 shadow-xs" />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white truncate">
+                      Istoric Semnal POS & Latență UART
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 shrink-0">
+                      LIVE
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                    Locație: <strong className="text-slate-800 dark:text-slate-200">{signalModalLoc.displayName}</strong>
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSignalModalLoc(null)}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer transition-colors shrink-0"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Quick Stats Cards */}
+            <div className="p-5 bg-slate-50/50 dark:bg-slate-900/30 border-b border-slate-100 dark:border-slate-700/60 grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 shadow-2xs">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Ultimul Semnal</span>
+                <span className="text-base font-bold text-slate-900 dark:text-white mt-1 block">
+                  {signalStats.lastLatency !== null ? `${signalStats.lastLatency}ms` : '—'}
+                </span>
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                  {signalStats.lastLatency !== null && signalStats.lastLatency < 100 ? 'Excelent' : (signalStats.lastLatency !== null ? 'Normal' : 'Netestat')}
+                </span>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 shadow-2xs">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Latență Medie</span>
+                <span className="text-base font-bold text-slate-900 dark:text-white mt-1 block">
+                  {signalStats.avgLatency !== null ? `${signalStats.avgLatency}ms` : '—'}
+                </span>
+                <span className="text-[10px] text-slate-400 font-medium">timp răspuns POS</span>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 shadow-2xs">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Rată Succes</span>
+                <span className="text-base font-bold text-emerald-600 dark:text-emerald-400 mt-1 block">
+                  {signalStats.successRate !== null ? `${signalStats.successRate}%` : '—'}
+                </span>
+                <span className="text-[10px] text-slate-400 font-medium">fără pachete pierdute</span>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 shadow-2xs">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Măsurători</span>
+                <span className="text-base font-bold text-blue-600 dark:text-blue-400 mt-1 block">
+                  {signalStats.total}
+                </span>
+                <span className="text-[10px] text-slate-400 font-medium">înregistrate în DB</span>
+              </div>
+            </div>
+
+            {/* Modal Actions Bar */}
+            <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-3 bg-white dark:bg-slate-800">
+              <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                Ultimele măsurători înregistrate
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleAction(signalModalLoc.locKey, 'test-pos-signal')}
+                  disabled={actionLoading === `${signalModalLoc.locKey}-test-pos-signal`}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 cursor-pointer shadow-xs disabled:opacity-50 transition-all active:scale-95"
+                >
+                  <Zap className={`w-3.5 h-3.5 ${actionLoading === `${signalModalLoc.locKey}-test-pos-signal` ? 'animate-spin' : ''}`} />
+                  <span>{actionLoading === `${signalModalLoc.locKey}-test-pos-signal` ? 'Se testează...' : 'Testează Acum'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fetchSignalLogs(signalModalLoc.locKey)}
+                  disabled={loadingSignalLogs}
+                  className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer disabled:opacity-50 transition-colors"
+                  title="Reîmprospătează lista"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loadingSignalLogs ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Logs Table / List */}
+            <div className="flex-1 overflow-y-auto p-5">
+              {loadingSignalLogs && signalLogs.length === 0 ? (
+                <div className="py-12 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+                  <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
+                  <span>Se descarcă istoricul din baza de date...</span>
+                </div>
+              ) : signalLogs.length === 0 ? (
+                <div className="py-12 text-center space-y-3">
+                  <Radio className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto" />
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Nu s-au înregistrat încă teste de semnal pentru această locație.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => handleAction(signalModalLoc.locKey, 'test-pos-signal')}
+                    className="px-3.5 py-2 rounded-xl text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 cursor-pointer transition-colors"
+                  >
+                    Efectuează primul test de semnal
+                  </button>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 font-semibold">
+                        <th className="py-2 px-3">Data / Ora</th>
+                        <th className="py-2 px-3">Port</th>
+                        <th className="py-2 px-3">Latență Răspuns</th>
+                        <th className="py-2 px-3">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                      {signalLogs.map(log => {
+                        const dateFormatted = log.tested_at ? formatDateTime(log.tested_at) : '—';
+                        const isFast = log.latency_ms !== null && log.latency_ms < 60;
+                        const isNormal = log.latency_ms !== null && log.latency_ms >= 60 && log.latency_ms <= 150;
+                        const isSlow = log.latency_ms !== null && log.latency_ms > 150;
+
+                        return (
+                          <tr key={log.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-700/30">
+                            <td className="py-2.5 px-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                              {dateFormatted}
+                            </td>
+                            <td className="py-2.5 px-3 font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap">
+                              {log.port || 'COM'}
+                            </td>
+                            <td className="py-2.5 px-3 whitespace-nowrap">
+                              {log.latency_ms !== null ? (
+                                <div className="flex items-center gap-2">
+                                  <span className={`font-bold ${
+                                    isFast ? 'text-emerald-600 dark:text-emerald-400' : (isNormal ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400')
+                                  }`}>
+                                    {log.latency_ms} ms
+                                  </span>
+                                  <div className="w-16 h-1.5 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
+                                    <div 
+                                      className={`h-full rounded-full ${
+                                        isFast ? 'bg-emerald-500' : (isNormal ? 'bg-amber-500' : 'bg-rose-500')
+                                      }`}
+                                      style={{ width: `${Math.min(100, Math.max(10, Math.round((log.latency_ms / 300) * 100)))}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="text-slate-400 italic">—</span>
+                              )}
+                            </td>
+                            <td className="py-2.5 px-3">
+                              <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                log.success
+                                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                                  : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+                              }`}>
+                                {log.success ? 'Activ / OK' : (log.message || 'Eșuat')}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 bg-slate-50 dark:bg-slate-900/40 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between">
+              <span className="text-[11px] text-slate-400">
+                Pachetele utilizează comanda standard ENQ (0x05) pe protocol serial Printec ECR v3.9.3.
+              </span>
+              <button
+                type="button"
+                onClick={() => setSignalModalLoc(null)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600 cursor-pointer shadow-xs transition-colors"
+              >
+                Închide
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

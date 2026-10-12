@@ -252,12 +252,19 @@ function forceReopenPort(reason = 'Force Reset') {
   });
 }
 
-// ─── Standby POS Keep-Alive / Wake (la 30 min inactivitate) & Test Semnal ─────
+// ─── Standby POS Keep-Alive / Wake (la 30 min inactivitate, strict 10:00 - 22:00) ─────
 let globalSocket = null;
 let posWakeStandbyEnabled = process.env.POS_WAKE_STANDBY === 'true';
 let lastActivityTime = Date.now();
 let wakeStartTime = 0;
 let posSignalTestStartTime = 0;
+
+function isWithinWorkingHours() {
+  const now = new Date();
+  const currentHour = now.getHours(); // 0 - 23
+  // Programul de funcționare al restaurantului este 10:00 - 22:00 (10 <= hour < 22)
+  return currentHour >= 10 && currentHour < 22;
+}
 
 function noteActivity(source = 'general') {
   lastActivityTime = Date.now();
@@ -265,11 +272,15 @@ function noteActivity(source = 'general') {
 
 function wakePosKeepAlive() {
   if (!posWakeStandbyEnabled) return;
+  if (!isWithinWorkingHours()) {
+    log('[POS Wake] 🌙 În afara programului de lucru (10:00 - 22:00, restaurant închis). Omit impulsul de trezire.');
+    return;
+  }
   if (!globalPort || !globalPort.isOpen || state !== 'IDLE' || currentTransactionResolve) {
     log(`[POS Wake] ⏭️ Omit impuls trezire (port ocupat sau tranzacție activă, stare=${state})`);
     return;
   }
-  log('⚡ [POS Wake] Inactivitate de 30 minute detectată. Trimit ENQ discret pentru trezire/prevenire sleep USB...');
+  log('⚡ [POS Wake] Inactivitate de 30 minute în timpul programului (10:00 - 22:00). Trimit ENQ discret pentru trezire/prevenire sleep USB...');
   wakeStartTime = Date.now();
   state = 'WAIT_ENQ_ACK__WAKE';
   currentOperation = 'WAKE';
@@ -719,7 +730,18 @@ async function start() {
             log(`📍 Locație rezolvată: aliases=[${LOCATION_ALIASES.join(', ')}]`);
             if (locData.posWakeStandby !== undefined) {
               posWakeStandbyEnabled = !!locData.posWakeStandby;
-              log(`⚙️ [POS Wake] Configurație încărcată de la server: ${posWakeStandbyEnabled ? 'ACTIVATĂ (la 30 min)' : 'DEZACTIVATĂ'}`);
+              log(`⚙️ [POS Wake] Configurație încărcată de la server: ${posWakeStandbyEnabled ? 'ACTIVATĂ (la 30 min, 10:00-22:00)' : 'DEZACTIVATĂ'}`);
+              if (socket && socket.connected) {
+                const printer = typeof getActualPrinterName === 'function' ? getActualPrinterName() : (process.env.PRINTER_NAME || '');
+                socket.emit('pos_bridge_heartbeat', {
+                  locationId: LOCATION_ID,
+                  port: portPath || `VIVA_${VIVA_POS_IP}`,
+                  printerName: printer,
+                  posGateway: POS_GATEWAY,
+                  uptime: Math.round(process.uptime()),
+                  posWakeStandby: posWakeStandbyEnabled,
+                });
+              }
             }
           } catch (e) {
             log(`⚠ Nu am putut parsa răspuns locație: ${e.message} | body: ${body.substring(0, 100)}`);
@@ -749,10 +771,11 @@ async function start() {
       }, 20000);
     }
 
-    // Verificare inactivitate la fiecare 1 minut pentru trezire periodică POS
+    // Verificare inactivitate la fiecare 1 minut pentru trezire periodică POS (strict în intervalul 10:00 - 22:00)
     if (!global._posWakeInterval) {
       global._posWakeInterval = setInterval(() => {
         if (!posWakeStandbyEnabled) return;
+        if (!isWithinWorkingHours()) return;
         const idleMs = Date.now() - lastActivityTime;
         const IDLE_LIMIT = 30 * 60 * 1000; // 30 minute
         if (idleMs >= IDLE_LIMIT) {
@@ -1449,18 +1472,47 @@ async function start() {
 
   socket.on('pos_settlement', (data) => triggerSettlement(data?.locationId));
 
+  async function downloadUpdateAndRestart() {
+    log('🔄 Comandă remote_restart primită. Descarc actualizările din Cloud...');
+    try {
+      const https = require('https');
+      const fetchFile = (filename) => new Promise((resolve) => {
+        const url = `https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/${filename}?ts=${Date.now()}_${Math.floor(Math.random() * 100000)}`;
+        https.get(url, (res) => {
+          if (res.statusCode !== 200) return resolve(false);
+          let data = '';
+          res.on('data', chunk => data += chunk);
+          res.on('end', () => {
+            if (data && data.length > 50) {
+              fs.writeFileSync(pathMod.join(__dirname, filename), data, 'utf8');
+              log(`✅ Actualizat cu succes: ${filename} (${data.length} bytes)`);
+              resolve(true);
+            } else {
+              resolve(false);
+            }
+          });
+        }).on('error', () => resolve(false));
+      });
+
+      await fetchFile('index.js');
+      await fetchFile('printer.js');
+      await fetchFile('rawprint.ps1');
+      await fetchFile('start-windows.bat');
+    } catch (e) {
+      log(`⚠️ Eroare descărcare update: ${e.message}`);
+    }
+    enforceKioskTaskbar();
+    setTimeout(() => process.exit(0), 1000);
+  }
+
   socket.on('remote_restart', (data) => {
-    if (!data || isMyLocation(data.locationId)) {
-      log('🔄 Comandă remote_restart primită. Aplic setări taskbar și repornesc bridge-ul...');
-      enforceKioskTaskbar();
-      setTimeout(() => process.exit(0), 1000);
+    if (!data || !data.locationId || data.locationId === LOCATION_ID || isMyLocation(data.locationId)) {
+      downloadUpdateAndRestart();
     }
   });
 
   socket.on(`remote_restart_${LOCATION_ID}`, () => {
-    log('🔄 Comandă remote_restart directă primită. Aplic setări taskbar și repornesc bridge-ul...');
-    enforceKioskTaskbar();
-    setTimeout(() => process.exit(0), 1000);
+    downloadUpdateAndRestart();
   });
 
   socket.on('set_server_url', (data) => {
@@ -1504,16 +1556,27 @@ async function start() {
   });
 
   socket.on('location_updated', (updatedLoc) => {
-    if (updatedLoc && (updatedLoc.id === LOCATION_ID || LOCATION_ALIASES.includes(updatedLoc.id))) {
+    if (updatedLoc && (updatedLoc.id === LOCATION_ID || LOCATION_ALIASES.includes(updatedLoc.id) || isMyLocation(updatedLoc.id, updatedLoc.kioskUrl))) {
       if (updatedLoc.posWakeStandby !== undefined) {
         posWakeStandbyEnabled = !!updatedLoc.posWakeStandby;
-        log(`⚙️ [POS Wake] Setare actualizată din Admin: ${posWakeStandbyEnabled ? 'ACTIVATĂ (la 30 min)' : 'DEZACTIVATĂ'}`);
+        log(`⚙️ [POS Wake] Setare actualizată din Admin: ${posWakeStandbyEnabled ? 'ACTIVATĂ (la 30 min, 10:00-22:00)' : 'DEZACTIVATĂ'}`);
+        if (socket && socket.connected) {
+          const printer = typeof getActualPrinterName === 'function' ? getActualPrinterName() : (process.env.PRINTER_NAME || '');
+          socket.emit('pos_bridge_heartbeat', {
+            locationId: LOCATION_ID,
+            port: portPath || `VIVA_${VIVA_POS_IP}`,
+            printerName: printer,
+            posGateway: POS_GATEWAY,
+            uptime: Math.round(process.uptime()),
+            posWakeStandby: posWakeStandbyEnabled,
+          });
+        }
       }
     }
   });
 
   socket.on('test_pos_signal', (data) => {
-    if (!data?.locationId || isMyLocation(data.locationId)) {
+    if (!data?.locationId || data.locationId === LOCATION_ID || isMyLocation(data.locationId)) {
       log('📡 [POS Signal] Primită solicitare test semnal POS de la server/Admin.');
       testPosSignal();
     }

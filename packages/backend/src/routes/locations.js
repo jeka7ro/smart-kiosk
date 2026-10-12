@@ -169,7 +169,14 @@ router.put('/:id', requireApiKey, async (req, res) => {
       ].filter(Boolean));
       for (const lid of locationIdsToNotify) {
         io.to(`kiosk-${lid}`).emit('location_updated', updatedLoc);
+        io.to(`pos-bridge-${lid}`).emit('location_updated', updatedLoc);
       }
+      try {
+        const bridgeMonitoringService = require('../services/bridgeMonitoringService');
+        if (typeof bridgeMonitoringService.updateLocationConfig === 'function') {
+          bridgeMonitoringService.updateLocationConfig(current.id, updatedLoc);
+        }
+      } catch (_) {}
     }
     return res.json(updatedLoc);
   } catch (e) {

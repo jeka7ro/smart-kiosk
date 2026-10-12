@@ -103,13 +103,17 @@ router.post('/telegram-webhook', async (req, res) => {
     const chatId = message.chat?.id;
 
     if (text.startsWith('/status') || text === 'status' || text.startsWith('/stare')) {
-      const statusText = bridgeMonitoringService.formatStatusSummaryForTelegram();
+      const statusText = await bridgeMonitoringService.formatStatusSummaryForTelegram();
       await bridgeMonitoringService.sendTelegramMessage(statusText, null, chatId);
+    } else if (text.startsWith('/pin') || text === 'pin' || text.startsWith('/cod') || text === 'cod' || text.startsWith('/program') || text === 'program') {
+      const pinText = await bridgeMonitoringService.formatPinSummaryForTelegram();
+      await bridgeMonitoringService.sendTelegramMessage(pinText, null, chatId);
     } else if (text.startsWith('/ajutor') || text.startsWith('/help') || text.startsWith('/start')) {
       const helpText = [
         `🤖 <b>[SMART KIOSK BOT]</b>`,
         `Comenzi disponibile:`,
-        `• <b>/status</b> — Afișează starea curentă a tuturor celor 4 kiosk-uri, porturi seriale și imprimante.`,
+        `• <b>/status</b> — Afișează starea curentă a kiosk-urilor, POS, imprimante, PIN-uri și program.`,
+        `• <b>/pin</b> — Afișează codurile PIN de deblocare și orarul programat de blocare.`,
       ].join('\n');
       await bridgeMonitoringService.sendTelegramMessage(helpText, null, chatId);
     }
@@ -175,6 +179,22 @@ router.post('/:locationId/test-pos-signal', (req, res) => {
   } catch (err) {
     console.error('[BridgeMonitor] Eroare test-pos-signal:', err.message);
     res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /api/bridge-monitoring/:locationId/signal-logs
+ * Retrieves historical POS signal and latency tests for a location
+ */
+router.get('/:locationId/signal-logs', async (req, res) => {
+  try {
+    const { locationId } = req.params;
+    const limit = Math.min(Number(req.query.limit) || 50, 200);
+    const logs = await bridgeMonitoringService.getPosSignalLogs(locationId, limit);
+    res.json({ success: true, locationId, logs });
+  } catch (err) {
+    console.error('[BridgeMonitoringRoute] Error getting signal logs:', err.message);
+    res.status(500).json({ error: 'Eroare la citirea istoricului semnalului POS' });
   }
 });
 

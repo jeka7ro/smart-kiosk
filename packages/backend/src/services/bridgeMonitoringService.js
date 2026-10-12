@@ -176,6 +176,53 @@ async function sendTelegramMessage(text, overrideConfig = null, targetChatId = n
 }
 
 /**
+ * Send Telegram photo with caption using native fetch
+ */
+async function sendTelegramPhoto(photoUrl, caption, targetChatId = null) {
+  const cfg = telegramConfig;
+  const destinationChatId = targetChatId || cfg.ordersChatId || cfg.chatId;
+  if (!cfg.botToken || !destinationChatId || !photoUrl) {
+    return { ok: false, error: 'Telegram Bot Token, Chat ID sau photoUrl lipseste' };
+  }
+
+  // Ensure absolute URL if relative
+  let fullPhotoUrl = String(photoUrl).trim();
+  if (fullPhotoUrl.startsWith('/')) {
+    const baseUrl = process.env.BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
+    fullPhotoUrl = `${baseUrl.replace(/\/$/, '')}${fullPhotoUrl}`;
+  }
+
+  // Telegram caption limit is 1024 characters
+  let safeCaption = caption;
+  if (safeCaption && safeCaption.length > 1000) {
+    safeCaption = safeCaption.substring(0, 995) + '...';
+  }
+
+  const url = `https://api.telegram.org/bot${cfg.botToken.trim()}/sendPhoto`;
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: String(destinationChatId).trim(),
+        photo: fullPhotoUrl,
+        caption: safeCaption,
+        parse_mode: 'HTML',
+      }),
+    });
+    const data = await res.json();
+    if (!data.ok) {
+      console.warn('[BridgeMonitor] Telegram sendPhoto eroare:', data.description);
+      return { ok: false, error: data.description };
+    }
+    return { ok: true, messageId: data.result?.message_id };
+  } catch (err) {
+    console.error('[BridgeMonitor] Eroare la trimiterea pozei Telegram:', err.message);
+    return { ok: false, error: err.message };
+  }
+}
+
+/**
  * Translate bank error codes to clear Romanian descriptions
  */
 function getPosReasonText(reason, code) {
@@ -297,6 +344,20 @@ async function sendOrderAlert(order) {
     ...itemsLines,
     `🕒 Timp: ${timeStr}`,
   ].join('\n');
+
+  // Ataseaza poza primului produs daca este disponibila
+  const photoItem = (order.items || []).find(it => it.imageUrl || it.image);
+  const photoUrl = photoItem ? (photoItem.imageUrl || photoItem.image) : null;
+
+  if (photoUrl && typeof photoUrl === 'string' && (photoUrl.startsWith('http') || photoUrl.startsWith('/'))) {
+    const photoRes = await sendTelegramPhoto(photoUrl, msg, targetChat).catch(e => {
+      console.warn('[Telegram] sendPhoto failed, fallback to sendMessage:', e.message);
+      return { ok: false };
+    });
+    if (photoRes && photoRes.ok) {
+      return photoRes;
+    }
+  }
 
   return sendTelegramMessage(msg, null, targetChat).catch(e => {
     console.error('[Telegram] Eroare trimitere alertă comandă:', e.message);
@@ -457,6 +518,21 @@ function handleBridgeHeartbeat(socket, data) {
 }
 
 /**
+ * Updates location-specific config when admin saves changes
+ */
+function updateLocationConfig(locId, locData) {
+  if (!locId && !locData) return;
+  const locKey = normalizeLocationKey(locId || locData?.kioskUrl || locData?.id);
+  const entry = bridges.get(locKey);
+  if (entry && locData?.posWakeStandby !== undefined) {
+    entry.posWakeStandby = Boolean(locData.posWakeStandby);
+  }
+  if (_io) {
+    _io.to('admin').emit('bridge_status_update', getStatusSummary());
+  }
+}
+
+/**
  * Record real-time POS signal and latency test result
  */
 function recordPosSignalResult(data) {
@@ -483,6 +559,18 @@ function recordPosSignalResult(data) {
   }
   recordEvent('INFO', locKey, `Test semnal POS: ${signalInfo.success ? `Activ (${signalInfo.latencyMs}ms)` : (signalInfo.message || 'Eșuat')}`);
   console.log(`[BridgeMonitor] 📡 POS Signal rezultat pt ${locKey}:`, signalInfo);
+
+  // Salvare in PostgreSQL pos_signal_logs pentru istoric si statistici
+  const logId = `SIG-${now}-${Math.random().toString(36).substring(2, 7)}`;
+  const port = data.port || entry.port || 'COM';
+  pool.query(
+    `INSERT INTO pos_signal_logs (id, location_id, port, latency_ms, success, message, tested_at)
+     VALUES ($1, $2, $3, $4, $5, $6, TO_TIMESTAMP($7 / 1000.0))`,
+    [logId, locKey, port, signalInfo.latencyMs, signalInfo.success, signalInfo.message || (signalInfo.success ? 'Activ' : 'Eșuat'), now]
+  ).catch(err => {
+    console.warn('[BridgeMonitor] Eroare la salvarea în pos_signal_logs:', err.message);
+  });
+
   if (_io) {
     _io.to('admin').emit('bridge_status_update', getStatusSummary());
     _io.to('admin').emit('pos_signal_result', { locationId: locKey, ...signalInfo });
@@ -698,7 +786,22 @@ function getStatusSummary() {
         connectedAt: b?.connectedAt || null,
         ip: b?.ip || '',
         uptimeSeconds: b?.uptimeSeconds || 0,
-        posWakeStandby: b?.posWakeStandby !== undefined ? b.posWakeStandby : (locKey === 'sm-brasov'),
+        posWakeStandby: (() => {
+          try {
+            const allLocs = typeof getAllLocations === 'function' ? getAllLocations() : [];
+            const match = allLocs.find(l => 
+              l.id === locKey || 
+              l.kioskUrl === locKey || 
+              (Array.isArray(l.aliases) && l.aliases.includes(locKey)) ||
+              (locKey === 'constanta1' && (l.id === 'smashme-constanta' || l.name?.toLowerCase().includes('constanta'))) ||
+              (locKey === 'sm-brasov' && (l.id === 'rollmaster' || l.name?.toLowerCase().includes('brasov')))
+            );
+            if (match && match.posWakeStandby !== undefined) {
+              return Boolean(match.posWakeStandby);
+            }
+          } catch (_) {}
+          return b?.posWakeStandby !== undefined ? b.posWakeStandby : (locKey === 'sm-brasov');
+        })(),
         posSignal: b?.posSignal || null,
       };
     });
@@ -707,11 +810,28 @@ function getStatusSummary() {
 }
 
 /**
- * Format clean summary for /status command reply in Telegram
+ * Helper to fetch freshest location configurations from database or locations.json
  */
-function formatStatusSummaryForTelegram() {
+async function getDbLocationsList() {
+  try {
+    const { rows } = await pool.query('SELECT id, data FROM locations');
+    if (rows && rows.length > 0) {
+      return rows.map(r => ({ id: r.id, ...(r.data || {}) }));
+    }
+  } catch (_) {}
+  if (typeof getAllLocations === 'function') {
+    return getAllLocations();
+  }
+  return [];
+}
+
+/**
+ * Format clean summary for /status command reply in Telegram (including POS, PINs, and Lock Schedule)
+ */
+async function formatStatusSummaryForTelegram() {
   const summary = getStatusSummary();
   const timeStr = formatDateTime();
+  const dbLocs = await getDbLocationsList();
 
   const lines = [
     `📊 <b>[STATUS SISTEM SMART KIOSK]</b>`,
@@ -721,31 +841,132 @@ function formatStatusSummaryForTelegram() {
 
   for (const [k, loc] of Object.entries(summary.locations)) {
     let dot = '🟢';
-    let posText = loc.port && loc.port !== 'N/A' ? loc.port : 'OK';
-    let printerText = (loc.printerName && loc.printerName !== 'N/A') ? 'OK' : 'Nedetectată';
-    let kioskText = 'OK';
-
     if (!loc.isBridgeOnline && !loc.isKioskOnline) {
       dot = '🔴';
-      posText = 'Offline';
-      printerText = 'Offline';
-      kioskText = 'Offline';
-    } else if (!loc.isBridgeOnline && loc.isKioskOnline) {
+    } else if (!loc.isBridgeOnline || !loc.isKioskOnline) {
       dot = '🟡';
-      posText = 'Oprit';
-      printerText = 'Offline';
-      kioskText = 'OK';
-    } else if (loc.isBridgeOnline && !loc.isKioskOnline) {
-      dot = '🟡';
-      kioskText = 'Offline';
+    }
+
+    const cfg = dbLocs.find(l => 
+      l.id === k || 
+      l.kioskUrl === k || 
+      (Array.isArray(l.aliases) && l.aliases.includes(k)) ||
+      (k === 'constanta1' && (l.id === 'smashme-constanta' || l.name?.toLowerCase().includes('constanta'))) ||
+      (k === 'sm-brasov' && (l.id === 'rollmaster' || l.name?.toLowerCase().includes('brasov'))) ||
+      (k === 'cluj1' && (l.id === 'smashme-main' || l.name?.toLowerCase().includes('centru'))) ||
+      (k === 'cluj2' && (l.id === 'cluj2' || l.name?.toLowerCase().includes('cj-2')))
+    );
+
+    // POS details: Port, Gateway, Semnal / Latență
+    let posDetail = '';
+    if (loc.isBridgeOnline) {
+      const portName = loc.port && loc.port !== 'N/A' ? loc.port : 'COM';
+      const gatewayName = loc.gateway ? loc.gateway.toUpperCase() : 'RAIFFEISEN';
+      let signalStr = 'Conectat';
+      if (loc.posSignal) {
+        if (loc.posSignal.success) {
+          signalStr = loc.posSignal.latencyMs !== null ? `${loc.posSignal.latencyMs}ms (activ)` : 'activ';
+        } else {
+          signalStr = `⚠️ Eșuat (${loc.posSignal.message || 'Timeout'})`;
+        }
+      }
+      posDetail = `${portName} (${gatewayName}) • Semnal: ${signalStr}`;
+    } else {
+      posDetail = 'Deconectat / Oprit';
+    }
+
+    // Standby wake status
+    const wakeActive = (cfg?.posWakeStandby !== undefined) ? Boolean(cfg.posWakeStandby) : Boolean(loc.posWakeStandby);
+    const wakeStr = wakeActive ? 'Activă (10:00 - 22:00)' : 'Inactivă';
+
+    // PIN Manager & Casier
+    let pinStr = cfg?.kioskPin ? `<code>${cfg.kioskPin}</code>` : 'Fără PIN';
+    if (cfg?.vendorPin) {
+      pinStr += ` (Casier: <code>${cfg.vendorPin}</code>)`;
+    }
+
+    // Blocare Program Kiosk
+    let lockStr = 'Inactivă';
+    if (cfg?.lockScheduleActive) {
+      const s = cfg.lockStartTime || '22:00';
+      const e = cfg.lockEndTime || '09:00';
+      lockStr = `Activă (${s} - ${e})`;
+    }
+
+    // Imprimantă
+    const printerStr = (loc.printerName && loc.printerName !== 'N/A' && loc.printerName !== 'Nedetectată')
+      ? loc.printerName
+      : (loc.isBridgeOnline ? 'Nedetectată' : 'Offline');
+
+    // Kiosk & Uptime
+    const kioskStr = loc.isKioskOnline ? 'Conectat' : 'Offline';
+    let uptimeStr = '';
+    if (loc.isBridgeOnline && loc.uptimeSeconds > 0) {
+      const hrs = Math.floor(loc.uptimeSeconds / 3600);
+      const mins = Math.floor((loc.uptimeSeconds % 3600) / 60);
+      uptimeStr = hrs > 0 ? ` • Uptime: ${hrs}h ${mins}m` : ` • Uptime: ${mins}m`;
     }
 
     lines.push(`${dot} <b>${loc.displayName}</b>`);
-    lines.push(`   └ POS: ${posText} | Printer: ${printerText} | Kiosk: ${kioskText}`);
+    lines.push(`   ├ 💳 <b>POS:</b> ${posDetail}`);
+    lines.push(`   ├ ⚡ <b>Trezire Standby:</b> ${wakeStr}`);
+    lines.push(`   ├ 🔐 <b>PIN Manager:</b> ${pinStr}`);
+    lines.push(`   ├ 🕒 <b>Blocare Program:</b> ${lockStr}`);
+    lines.push(`   ├ 🖨️ <b>Imprimantă:</b> ${printerStr}`);
+    lines.push(`   └ 🖥️ <b>Kiosk:</b> ${kioskStr}${uptimeStr}`);
+    lines.push(``);
   }
 
-  lines.push(``);
-  lines.push(`Total: ${summary.totalOnline} active / ${summary.totalOffline} offline`);
+  lines.push(`Total: <b>${summary.totalOnline}</b> active / <b>${summary.totalOffline}</b> offline`);
+  return lines.join('\n');
+}
+
+/**
+ * Format dedicated /pin command summary for quick PIN copy & schedule review
+ */
+async function formatPinSummaryForTelegram() {
+  const dbLocs = await getDbLocationsList();
+  const locationKeys = ['cluj1', 'cluj2', 'sm-brasov', 'constanta1'];
+  const friendlyNames = {
+    cluj1: 'SmashMe Centru (Cluj 1)',
+    cluj2: 'SmashMe CJ-2 (Cluj 2)',
+    'sm-brasov': 'RollMaster Brașov',
+    constanta1: 'SmashMe Constanța 1',
+  };
+
+  const lines = [
+    `🔐 <b>[CODURI PIN & PROGRAM BLOCARE KIOSK]</b>`,
+    ``
+  ];
+
+  for (const locKey of locationKeys) {
+    const cfg = dbLocs.find(l => 
+      l.id === locKey || 
+      l.kioskUrl === locKey || 
+      (Array.isArray(l.aliases) && l.aliases.includes(locKey)) ||
+      (locKey === 'constanta1' && (l.id === 'smashme-constanta' || l.name?.toLowerCase().includes('constanta'))) ||
+      (locKey === 'sm-brasov' && (l.id === 'rollmaster' || l.name?.toLowerCase().includes('brasov'))) ||
+      (locKey === 'cluj1' && (l.id === 'smashme-main' || l.name?.toLowerCase().includes('centru'))) ||
+      (locKey === 'cluj2' && (l.id === 'cluj2' || l.name?.toLowerCase().includes('cj-2')))
+    );
+
+    const name = friendlyNames[locKey] || locKey;
+    const pin = cfg?.kioskPin ? `<code>${cfg.kioskPin}</code>` : '<i>Fără PIN (Liber)</i>';
+    const vendorPin = cfg?.vendorPin ? ` • Casier: <code>${cfg.vendorPin}</code>` : '';
+    let lockStr = 'Inactivă';
+    if (cfg?.lockScheduleActive) {
+      const s = cfg.lockStartTime || '22:00';
+      const e = cfg.lockEndTime || '09:00';
+      lockStr = `Activă (${s} - ${e})`;
+    }
+
+    lines.push(`📍 <b>${name}</b>`);
+    lines.push(`   • PIN: ${pin}${vendorPin}`);
+    lines.push(`   • Blocare Program: ${lockStr}`);
+    lines.push(``);
+  }
+
+  lines.push(`<i>💡 Apasă pe codul PIN pentru a-l copia direct.</i>`);
   return lines.join('\n');
 }
 
@@ -790,12 +1011,38 @@ async function seedFromRecentScans() {
   }
 }
 
+/**
+ * Retrieve recent POS signal latency logs for a location
+ */
+async function getPosSignalLogs(locationId, limit = 50) {
+  try {
+    const locKey = normalizeLocationKey(locationId);
+    const { getLocationAliases } = require('../utils/locations');
+    const aliases = getLocationAliases(locKey) || [];
+    const targetKeys = Array.from(new Set([locKey, ...aliases]));
+
+    const { rows } = await pool.query(
+      `SELECT id, location_id, port, latency_ms, success, message, tested_at, created_at
+       FROM pos_signal_logs
+       WHERE location_id = ANY($1)
+       ORDER BY tested_at DESC
+       LIMIT $2`,
+      [targetKeys, limit]
+    );
+    return rows;
+  } catch (err) {
+    console.error('[BridgeMonitor] Eroare la citirea pos_signal_logs:', err.message);
+    return [];
+  }
+}
+
 module.exports = {
   setIo,
   loadTelegramConfig,
   saveTelegramConfig,
   getPublicTelegramConfig,
   sendTelegramMessage,
+  sendTelegramPhoto,
   sendPosAlert,
   sendOrderAlert,
   sendIikoAlert,
@@ -805,9 +1052,13 @@ module.exports = {
   handleBridgeDisconnect,
   getStatusSummary,
   recordPosSignalResult,
+  getPosSignalLogs,
   seedFromRecentScans,
   formatDateTime,
   formatStatusSummaryForTelegram,
+  formatPinSummaryForTelegram,
   registerTelegramWebhook,
+  updateLocationConfig,
 };
+
 

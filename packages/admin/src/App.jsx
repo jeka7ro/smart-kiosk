@@ -5515,11 +5515,11 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                 <div className="max-w-xl">
                   <div className="flex items-center gap-2">
                     <h4 className="text-sm font-bold text-slate-900 dark:text-white">
-                      Trezire automată POS din Standby (la fiecare 30 min)
+                      Trezire automată POS din Standby (10:00 - 22:00, la 30 min)
                     </h4>
                     {formData.posWakeStandby ? (
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400">
-                        Activ la 30 min
+                        Activ (10:00 - 22:00)
                       </span>
                     ) : (
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500">
@@ -5528,8 +5528,8 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                     )}
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                    Dacă chioșcul este inactiv de 30 de minute (în screensaver), trimite un impuls discret către terminalul bancar pentru a preveni adormirea portului USB în locații cu flux redus.
-                    <span className="block mt-0.5 text-slate-400 dark:text-slate-500 italic">Recomandat: <strong>Activ</strong> pentru Brașov, <strong>Inactiv</strong> pentru locații aglomerate (Cluj / Constanța).</span>
+                    În intervalul programului de lucru (10:00 - 22:00), dacă chioșcul este inactiv de 30 de minute (în screensaver), trimite un impuls discret către terminalul bancar pentru a preveni adormirea portului USB în locații cu flux redus. Noaptea (după ora 22:00 și înainte de 10:00), impulsurile sunt oprite automat când restaurantul este închis.
+                    <span className="block mt-0.5 text-slate-400 dark:text-slate-500 italic">Recomandat: <strong>Activ</strong> pentru locații unde POS-ul intră în sleep.</span>
                   </p>
                 </div>
                 

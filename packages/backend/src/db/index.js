@@ -270,6 +270,21 @@ async function initDb() {
     CREATE INDEX IF NOT EXISTS pending_pos_orders_created_idx ON pending_pos_orders(created_at DESC);
   `);
 
+  // ─── POS Signal & Latency Logs (telemetrie semnal POS) ─────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS pos_signal_logs (
+      id              TEXT PRIMARY KEY,
+      location_id     TEXT NOT NULL,
+      port            TEXT,
+      latency_ms      INTEGER,
+      success         BOOLEAN NOT NULL DEFAULT true,
+      message         TEXT,
+      tested_at       TIMESTAMPTZ DEFAULT NOW(),
+      created_at      TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS pos_signal_logs_loc_idx ON pos_signal_logs(location_id, tested_at DESC);
+  `);
+
   // ─── App Settings (persistent system configuration like Telegram alerts) ──
   await pool.query(`
     CREATE TABLE IF NOT EXISTS app_settings (

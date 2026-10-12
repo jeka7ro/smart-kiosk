@@ -56,10 +56,19 @@ echo.
 echo [INFO] Ai selectat: %LOC_NAME% (%URL%)
 echo.
 
-:: 1. Inchidere instante vechi browser
-echo [1/6] Inchidere ferestre browser existente...
+:: 1. Inchidere instante vechi browser si curatare fisiere legacy
+echo [1/6] Inchidere ferestre browser existente si curatare fisiere legacy...
 taskkill /F /IM chrome.exe >nul 2>&1
 taskkill /F /IM msedge.exe >nul 2>&1
+
+:: Curatare foldere legacy duplicate (ex: C:\SmartKiosk_Data)
+if exist "C:\SmartKiosk_Data" (
+    echo [INFO] Curatare folder legacy C:\SmartKiosk_Data...
+    rmdir /s /q "C:\SmartKiosk_Data" >nul 2>&1
+)
+
+:: Curatare scurtaturi legacy orfane din Startup
+powershell -NoProfile -Command "$u=[Environment]::GetFolderPath('Startup'); @('start-pos.bat.lnk', 'Kiosk.lnk', 'start-windows.lnk', 'bridge.lnk', 'start-pos.lnk') | ForEach-Object { $p = Join-Path $u $_; if (Test-Path $p) { Remove-Item $p -Force -ErrorAction SilentlyContinue } }" >nul 2>&1
 
 :: 2. Dezactivare Sleep, Standby si Oprire Monitor (Anti-Sleep)
 echo [2/6] Dezactivare Sleep, Standby si Oprire Monitor in Windows...
