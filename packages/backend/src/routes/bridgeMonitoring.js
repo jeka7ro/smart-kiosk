@@ -35,12 +35,14 @@ router.get('/telegram-config', (req, res) => {
  */
 router.post('/telegram-config', async (req, res) => {
   try {
-    const { botToken, chatId, enabled, alertCooldownMinutes } = req.body || {};
+    const { botToken, chatId, posChatId, ordersChatId, enabled, alertCooldownMinutes } = req.body || {};
     const updates = {};
 
     if (typeof enabled === 'boolean') updates.enabled = enabled;
     if (typeof botToken === 'string' && botToken.trim()) updates.botToken = botToken.trim();
     if (typeof chatId === 'string') updates.chatId = chatId.trim();
+    if (typeof posChatId === 'string') updates.posChatId = posChatId.trim();
+    if (typeof ordersChatId === 'string') updates.ordersChatId = ordersChatId.trim();
     if (typeof alertCooldownMinutes === 'number' && alertCooldownMinutes > 0) {
       updates.alertCooldownMinutes = alertCooldownMinutes;
     }

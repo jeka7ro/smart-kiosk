@@ -251,6 +251,25 @@ function initSocket(io) {
         if (logEntry && logEntry._id) {
           io.to('admin').emit('pos_log_new', logEntry);
         }
+
+        // Notificare automată Telegram pentru tranzacții POS (Grup 2: Kiosk POS)
+        try {
+          const { sendPosAlert } = require('./bridgeMonitoringService');
+          sendPosAlert({
+            paid,
+            amount: amount || logEntry?.amount || 0,
+            locationName: logEntry?.location_name || locationId || '',
+            orderId,
+            cardNo,
+            authCode,
+            receiptNo,
+            error,
+            responseCode: responseCode || code,
+            code,
+          });
+        } catch (tgErr) {
+          console.error('[Telegram] Error dispatching POS alert:', tgErr.message);
+        }
       } catch (e) {
         console.error('[POS Logs] Error saving:', e.message);
       }

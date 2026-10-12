@@ -96,6 +96,8 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
     enabled: false,
     botToken: '',
     chatId: '',
+    posChatId: '',
+    ordersChatId: '',
     alertCooldownMinutes: 10,
   });
   const [savingTelegram, setSavingTelegram] = useState(false);
@@ -168,6 +170,8 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
           ...prev,
           enabled: !!merged.telegramConfig.enabled,
           chatId: merged.telegramConfig.chatId || '',
+          posChatId: merged.telegramConfig.posChatId || '',
+          ordersChatId: merged.telegramConfig.ordersChatId || '',
           alertCooldownMinutes: merged.telegramConfig.alertCooldownMinutes || 10,
         }));
       }
@@ -241,6 +245,8 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
       const payload = {
         enabled: telegramForm.enabled,
         chatId: telegramForm.chatId,
+        posChatId: telegramForm.posChatId,
+        ordersChatId: telegramForm.ordersChatId,
         alertCooldownMinutes: Number(telegramForm.alertCooldownMinutes) || 10,
       };
       if (telegramForm.botToken && telegramForm.botToken.trim()) {
@@ -915,17 +921,49 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Telegram Chat ID (sau ID Grup):
+                Grup 1: Status & Hardware (ID Chat / Grup):
               </label>
               <input
                 type="text"
                 value={telegramForm.chatId}
                 onChange={(e) => setTelegramForm(prev => ({ ...prev, chatId: e.target.value }))}
-                placeholder="Ex: -100123456789 sau ID utilizator"
+                placeholder="Ex: -5489923676"
                 className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <p className="text-[11px] text-slate-400 mt-1">
-                ID-ul canalului sau grupului unde se livrează alertele.
+                Alerte Hardware (Online/Offline/Reconectat), erori iiko și imprimantă.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Grup 2: Tranzacții POS (ID Chat / Grup):
+              </label>
+              <input
+                type="text"
+                value={telegramForm.posChatId}
+                onChange={(e) => setTelegramForm(prev => ({ ...prev, posChatId: e.target.value }))}
+                placeholder="Ex: -5554201057"
+                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-[11px] text-slate-400 mt-1">
+                Plăți POS live (🟢 Aprobate vs 🔴 Respinse cu motiv detaliat în română).
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Grup 3: Comenzi Live (ID Chat / Grup):
+              </label>
+              <input
+                type="text"
+                value={telegramForm.ordersChatId}
+                onChange={(e) => setTelegramForm(prev => ({ ...prev, ordersChatId: e.target.value }))}
+                placeholder="Ex: -5209173668"
+                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-[11px] text-slate-400 mt-1">
+                Toate comenzile plasate pe kiosk (număr comandă, produse, opțiuni, total).
               </p>
             </div>
           </div>

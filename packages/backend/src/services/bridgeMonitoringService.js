@@ -17,8 +17,10 @@ const eventLogs = [];
 // Telegram settings cache
 let telegramConfig = {
   enabled: false,
-  botToken: process.env.TELEGRAM_BOT_TOKEN || '',
-  chatId: process.env.TELEGRAM_CHAT_ID || '',
+  botToken: process.env.TELEGRAM_BOT_TOKEN || '8809773703:AAG3m6otWfFa0cO_bU6cy_oqqe1EWsLgOOk',
+  chatId: process.env.TELEGRAM_CHAT_ID || '-5489923676', // Grup 1: Kiosk Alerts (hardware, status, iiko)
+  posChatId: process.env.TELEGRAM_POS_CHAT_ID || '-5554201057', // Grup 2: Kiosk POS
+  ordersChatId: process.env.TELEGRAM_ORDERS_CHAT_ID || '-5209173668', // Grup 3: Kiosk Comenzi
   alertCooldownMinutes: 10,
 };
 
@@ -44,8 +46,10 @@ async function loadTelegramConfig() {
       telegramConfig = {
         ...telegramConfig,
         ...rows[0].value,
+        posChatId: rows[0].value.posChatId || telegramConfig.posChatId || '-5554201057',
+        ordersChatId: rows[0].value.ordersChatId || telegramConfig.ordersChatId || '-5209173668',
       };
-      console.log('[BridgeMonitor] Telegram config încărcat din DB (enabled:', telegramConfig.enabled, ')');
+      console.log('[BridgeMonitor] Telegram config încărcat din DB (enabled:', telegramConfig.enabled, ', pos:', !!telegramConfig.posChatId, ', orders:', !!telegramConfig.ordersChatId, ')');
     }
   } catch (err) {
     console.warn('[BridgeMonitor] Nu s-a putut citi telegram_alerts din DB:', err.message);
@@ -81,25 +85,41 @@ function getPublicTelegramConfig() {
     botTokenConfigured: !!(telegramConfig.botToken && telegramConfig.botToken.length > 10),
     botTokenMasked: telegramConfig.botToken ? `${telegramConfig.botToken.substring(0, 7)}...${telegramConfig.botToken.slice(-4)}` : '',
     chatId: telegramConfig.chatId || '',
+    posChatId: telegramConfig.posChatId || '',
+    ordersChatId: telegramConfig.ordersChatId || '',
     alertCooldownMinutes: telegramConfig.alertCooldownMinutes || 10,
   };
 }
 
 /**
- * Format clean date-time string without emojis
+ * Format clean date-time string in Romania timezone (Europe/Bucharest)
  */
 function formatDateTime(date = new Date()) {
-  const d = new Date(date);
-  const pad = n => String(n).padStart(2, '0');
-  return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  try {
+    return new Intl.DateTimeFormat('ro-RO', {
+      timeZone: 'Europe/Bucharest',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    }).format(new Date(date)).replace(',', '');
+  } catch (_) {
+    const d = new Date(date);
+    const pad = n => String(n).padStart(2, '0');
+    return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }
 }
 
 /**
  * Send Telegram message using native fetch
  */
-async function sendTelegramMessage(text, overrideConfig = null) {
+async function sendTelegramMessage(text, overrideConfig = null, targetChatId = null) {
   const cfg = overrideConfig || telegramConfig;
-  if (!cfg.botToken || !cfg.chatId) {
+  const destinationChatId = targetChatId || cfg.chatId;
+  if (!cfg.botToken || !destinationChatId) {
     return { ok: false, error: 'Telegram Bot Token sau Chat ID lipseste' };
   }
 
@@ -109,7 +129,7 @@ async function sendTelegramMessage(text, overrideConfig = null) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        chat_id: cfg.chatId.trim(),
+        chat_id: String(destinationChatId).trim(),
         text: text,
         parse_mode: 'HTML',
         disable_web_page_preview: true,
@@ -120,11 +140,154 @@ async function sendTelegramMessage(text, overrideConfig = null) {
       console.warn('[BridgeMonitor] Telegram API a returnat eroare:', data.description);
       return { ok: false, error: data.description };
     }
-    return { ok: true };
+    return { ok: true, messageId: data.result?.message_id };
   } catch (err) {
     console.error('[BridgeMonitor] Eroare la trimiterea mesajului Telegram:', err.message);
     return { ok: false, error: err.message };
   }
+}
+
+/**
+ * Translate bank error codes to clear Romanian descriptions
+ */
+function getPosReasonText(reason, code) {
+  const rawStr = String(reason || '').trim();
+  const c = String(code || '').trim().replace(/^0+/, '');
+
+  if (c === '51') return 'Fonduri insuficiente';
+  if (c === '55') return 'PIN incorect';
+  if (c === '54') return 'Card expirat';
+  if (c === '41') return 'Card pierdut';
+  if (c === '43') return 'Card furat';
+  if (c === '5')  return 'Refuz bancă (Contactați banca emitentă)';
+  if (c === '61') return 'Depășire limită retragere/plată';
+  if (c === '14') return 'Număr card invalid';
+  if (c === '91') return 'Banca emitentă nu răspunde';
+  if (c === '96') return 'Eroare sistem bancar';
+  if (c.toUpperCase() === 'A0' || rawStr.includes('0xA0') || rawStr.toLowerCase().includes('tasta') || rawStr.toLowerCase().includes('anulat')) {
+    return 'Anulat de client (Tasta roșie X)';
+  }
+  if (rawStr.toLowerCase().includes('timeout') || rawStr.toLowerCase().includes('nu răspunde')) {
+    return 'Timp expirat citire card';
+  }
+  if (rawStr.toLowerCase().includes('nu este deschis') || rawStr.toLowerCase().includes('port')) {
+    return 'Port POS nedeschis (Cablu USB scos / POS oprit)';
+  }
+  return rawStr || 'Tranzacție respinsă de bancă';
+}
+
+/**
+ * Send alert to Grup 2: Kiosk POS
+ */
+async function sendPosAlert(data) {
+  if (!telegramConfig.enabled) return;
+  const targetChat = telegramConfig.posChatId || telegramConfig.chatId;
+  if (!targetChat) return;
+
+  const { paid, amount, locationName, orderId, cardNo, authCode, receiptNo, error, responseCode, code } = data;
+  const amtStr = Number(amount || 0).toFixed(2);
+  const timeStr = formatDateTime();
+  const loc = locationName || 'Kiosk';
+
+  let msg = '';
+  if (paid) {
+    msg = [
+      `🟢 <b>[PLATĂ APROBATĂ - POS]</b>`,
+      `🏢 Locație: <b>${loc}</b>`,
+      `💰 Sumă: <b>${amtStr} RON</b>`,
+      `🧾 Bon: <code>${receiptNo || '-'}</code> | Comandă: <code>${orderId || '-'}</code>`,
+      `💳 Card: <code>${cardNo || 'Card'}</code> | Auth: <code>${authCode || '-'}</code>`,
+      `🕒 Timp: ${timeStr}`
+    ].join('\n');
+  } else {
+    const reasonText = getPosReasonText(error, responseCode || code);
+    msg = [
+      `🔴 <b>[PLATĂ RESPINSĂ - POS]</b>`,
+      `🏢 Locație: <b>${loc}</b>`,
+      `💰 Sumă: <b>${amtStr} RON</b>`,
+      `🧾 Comandă: <code>${orderId || '-'}</code>`,
+      `⚠️ Motiv exact: <b>${reasonText}</b>`,
+      `🕒 Timp: ${timeStr}`
+    ].join('\n');
+  }
+
+  return sendTelegramMessage(msg, null, targetChat).catch(e => {
+    console.error('[Telegram] Eroare trimitere alertă POS:', e.message);
+  });
+}
+
+/**
+ * Send alert to Grup 3: Kiosk Comenzi
+ */
+async function sendOrderAlert(order) {
+  if (!telegramConfig.enabled) return;
+  const targetChat = telegramConfig.ordersChatId || telegramConfig.chatId;
+  if (!targetChat) return;
+
+  const loc = order.locationName || order.locationId || 'Kiosk';
+  const brand = (order.brand || '').toUpperCase();
+  const orderNum = order.orderNumber || order._id || '-';
+  const orderTypeStr = order.orderType === 'dine_in' ? '🍽️ Aici (La masă)' : '🥡 La pachet';
+  const totalStr = Number(order.totalAmount || 0).toFixed(2);
+  const timeStr = formatDateTime(order.createdAt || new Date());
+
+  const itemsLines = (order.items || []).slice(0, 15).map(it => {
+    const q = it.quantity || 1;
+    const price = Number(it.totalPrice || it.unitPrice || 0).toFixed(2);
+    let str = `• ${q}x <b>${it.name || 'Produs'}</b> (${price} RON)`;
+    if (it.selectedModifiers && it.selectedModifiers.length > 0) {
+      const mods = it.selectedModifiers
+        .filter(m => m.modId !== 'custom_comment')
+        .map(m => m.name || m.modName)
+        .filter(Boolean)
+        .join(', ');
+      if (mods) str += `\n   └ <i>${mods}</i>`;
+    }
+    return str;
+  });
+
+  const msg = [
+    `🍔 <b>COMANDĂ NOUĂ #${orderNum}</b>`,
+    `🏢 <b>${brand ? `${brand} — ` : ''}${loc}</b>`,
+    `📦 Tip: <b>${orderTypeStr}</b> | Plată: <b>${order.paymentMethod === 'card' ? 'Card POS' : 'Numerar'}</b>`,
+    `💰 Total: <b>${totalStr} RON</b>`,
+    `🛒 <b>Produse (${order.items?.length || 0}):</b>`,
+    ...itemsLines,
+    `🕒 Timp: ${timeStr}`,
+  ].join('\n');
+
+  return sendTelegramMessage(msg, null, targetChat).catch(e => {
+    console.error('[Telegram] Eroare trimitere alertă comandă:', e.message);
+  });
+}
+
+/**
+ * Send alert to Grup 1: Kiosk Alerts (iiko error)
+ */
+async function sendIikoAlert(order, errorMsg) {
+  if (!telegramConfig.enabled) return;
+  const targetChat = telegramConfig.chatId; // Grupul 1: Kiosk Alerts
+  if (!targetChat) return;
+
+  const loc = order.locationName || order.locationId || 'Kiosk';
+  const orderNum = order.orderNumber || order._id || '-';
+  const totalStr = Number(order.totalAmount || 0).toFixed(2);
+  const timeStr = formatDateTime();
+
+  const msg = [
+    `⚠️ <b>[URGENT - EROARE SINCRONIZARE IIKO]</b>`,
+    `🏢 Locație: <b>${loc}</b>`,
+    `🧾 Comandă: <b>#${orderNum}</b> (${totalStr} RON)`,
+    `💳 Status plată: <b>Card încasat cu succes</b>`,
+    `❌ Problemă: Comanda <b>NU a putut fi transmisă în iiko</b>!`,
+    `💡 Detalii: <i>${errorMsg || 'iiko order push failed'}</i>`,
+    `🚨 <b>Acțiune necesară:</b> Introduceți comanda manual la bucătărie!`,
+    `🕒 Timp: ${timeStr}`,
+  ].join('\n');
+
+  return sendTelegramMessage(msg, null, targetChat).catch(e => {
+    console.error('[Telegram] Eroare trimitere alertă iiko:', e.message);
+  });
 }
 
 /**
@@ -510,6 +673,10 @@ module.exports = {
   saveTelegramConfig,
   getPublicTelegramConfig,
   sendTelegramMessage,
+  sendPosAlert,
+  sendOrderAlert,
+  sendIikoAlert,
+  getPosReasonText,
   handleBridgeConnect,
   handleBridgeHeartbeat,
   handleBridgeDisconnect,
@@ -517,3 +684,4 @@ module.exports = {
   seedFromRecentScans,
   formatDateTime,
 };
+

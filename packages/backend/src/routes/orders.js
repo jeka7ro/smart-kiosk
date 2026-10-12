@@ -343,6 +343,16 @@ async function processOrderCreation(body, io) {
     }
   });
 
+  // ── Dispatch to Telegram Orders Group (async) ──
+  setImmediate(async () => {
+    try {
+      const { sendOrderAlert } = require('../services/bridgeMonitoringService');
+      await sendOrderAlert(order);
+    } catch (tgErr) {
+      console.warn('[Orders] Telegram order dispatch error:', tgErr.message);
+    }
+  });
+
   console.log(`[Order] ════ COMANDĂ NOUĂ ════`);
   console.log(`[Order]   #${orderNumber} | ${brandName} | ${resolvedLocationName || orgId || 'no-loc'}`);
   console.log(`[Order]   channel: ${channel} | orderType: ${orderType} | total: ${subtotal} RON`);
@@ -440,9 +450,19 @@ async function processOrderCreation(body, io) {
             );
           }
         }
+        try {
+          const { sendIikoAlert } = require('../services/bridgeMonitoringService');
+          sendIikoAlert(order, 'Comanda nu a putut fi preluată de iiko/Syrve');
+        } catch (tgErr) {
+          console.warn('[Orders] Telegram iiko alert error:', tgErr.message);
+        }
       }
     } catch (err) {
       console.error(`[Syrve] Grouping logic failed for order #${orderNumber}:`, err.message);
+      try {
+        const { sendIikoAlert } = require('../services/bridgeMonitoringService');
+        sendIikoAlert(order, err.message);
+      } catch (tgErr) {}
     }
   });
 
