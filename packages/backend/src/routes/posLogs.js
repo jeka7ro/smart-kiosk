@@ -51,7 +51,14 @@ async function addPosLog(entry) {
     ref_num:     entry.refNum || '',
     card_no:     entry.cardNo || '',
     tx_date:     entry.txDate || '',
-    error:       entry.error || null,
+    error:       entry.paid ? null : (() => {
+      try {
+        const { getPosReasonText } = require('../services/bridgeMonitoringService');
+        return getPosReasonText(entry.error, entry.responseCode || entry.code) || entry.error || null;
+      } catch (_) {
+        return entry.error || null;
+      }
+    })(),
     iiko_sent:   entry.iikoSent || false,
     iiko_order_id: entry.iikoOrderId || null,
     iiko_error:  entry.iikoError || null,

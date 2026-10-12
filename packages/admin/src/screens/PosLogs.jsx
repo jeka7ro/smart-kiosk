@@ -52,6 +52,32 @@ const isLogDeclined = (l) => {
   return true;
 };
 
+export function formatPosError(reason, code) {
+  const rawStr = String(reason || '').trim();
+  const c = String(code || '').trim().replace(/^0+/, '');
+
+  if (c === '51' || rawStr === '51') return 'Fonduri insuficiente';
+  if (c === '55' || rawStr === '55') return 'PIN incorect';
+  if (c === '54' || rawStr === '54') return 'Card expirat';
+  if (c === '41' || rawStr === '41') return 'Card pierdut';
+  if (c === '43' || rawStr === '43') return 'Card furat';
+  if (c === '5' || c === '05')        return 'Refuz bancă (Contactați banca emitentă)';
+  if (c === '61' || rawStr === '61') return 'Depășire limită retragere/plată';
+  if (c === '14' || rawStr === '14') return 'Număr card invalid';
+  if (c === '91' || rawStr === '91') return 'Banca emitentă nu răspunde';
+  if (c === '96' || rawStr === '96') return 'Eroare sistem bancar';
+  if (c.toUpperCase() === 'A0' || rawStr.includes('0xA0') || rawStr.toLowerCase().includes('tasta') || rawStr.toLowerCase().includes('anulat')) {
+    return 'Anulat de client (Tasta roșie X)';
+  }
+  if (rawStr.toLowerCase().includes('timeout') || rawStr.toLowerCase().includes('nu răspunde')) {
+    return 'Timp expirat citire card';
+  }
+  if (rawStr.toLowerCase().includes('nu este deschis') || rawStr.toLowerCase().includes('port')) {
+    return 'Port POS nedeschis (Cablu USB scos / POS oprit)';
+  }
+  return rawStr || 'Tranzacție respinsă de bancă';
+}
+
 export function CardBrandAvatar({ brand, cardNo, isNfc, cardBank }) {
   const isMc = brand === 'mastercard';
   const isVisa = brand === 'visa';
@@ -1361,7 +1387,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                                         ? 'text-amber-700 dark:text-amber-300' 
                                         : 'text-red-600 dark:text-red-400')
                                 } break-all select-all whitespace-pre-wrap`}>
-                                  {log.error}
+                                  {formatPosError(log.error, log.response_code)}
                                 </span>
                               </div>
                             </div>,
