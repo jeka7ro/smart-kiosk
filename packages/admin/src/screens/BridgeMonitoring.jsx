@@ -217,13 +217,41 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
         }
       };
 
+      const onPosSignalResult = (res) => {
+        if (res && res.locationId) {
+          const lKey = res.locationId;
+          const isOk = !!res.success;
+          setActionFeedback({
+            type: isOk ? 'success' : 'error',
+            text: `[${lKey}] ${res.message || (isOk ? `Semnal POS OK (${res.latencyMs}ms)` : 'Eroare semnal POS')}`
+          });
+          setData(prev => {
+            const locs = { ...(prev.locations || {}) };
+            if (locs[lKey]) {
+              locs[lKey] = {
+                ...locs[lKey],
+                posSignal: {
+                  success: isOk,
+                  latencyMs: res.latencyMs,
+                  message: res.message,
+                  testedAt: Date.now()
+                }
+              };
+            }
+            return { ...prev, locations: locs };
+          });
+        }
+      };
+
       socket.on('bridge_status_update', onBridgeUpdate);
       socket.on('kiosks_live_status', onKiosksLive);
+      socket.on('pos_signal_result', onPosSignalResult);
 
       return () => {
         clearInterval(interval);
         socket.off('bridge_status_update', onBridgeUpdate);
         socket.off('kiosks_live_status', onKiosksLive);
+        socket.off('pos_signal_result', onPosSignalResult);
       };
     }
 
@@ -729,6 +757,38 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                             </span>
                           </div>
                         )}
+
+                        {/* Trezire Standby la 30 min */}
+                        <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
+                          <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Trezire Standby:</span>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
+                            loc.posWakeStandby
+                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
+                              : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+                          }`}>
+                            {loc.posWakeStandby ? 'Activă (la 30 min)' : 'Inactivă'}
+                          </span>
+                        </div>
+
+                        {/* Semnal & Latență POS */}
+                        <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
+                          <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Semnal POS:</span>
+                          {loc.posSignal ? (
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
+                              loc.posSignal.success
+                                ? (loc.posSignal.latencyMs < 100 
+                                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
+                                    : 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300')
+                                : 'bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300'
+                            }`}>
+                              {loc.posSignal.success ? `🟢 ${loc.posSignal.latencyMs}ms (activ)` : `🔴 ${loc.posSignal.message || 'Eroare'}`}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 italic">
+                              Netestat
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -759,9 +819,9 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                       </div>
                     )}
 
-                    {/* Action Buttons: 3-column row on wide landscape card */}
+                    {/* Action Buttons: 4-column responsive grid */}
                     <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60">
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                         <button
                           type="button"
                           onClick={() => handleAction(locKey, 'restart-bridge')}
@@ -781,6 +841,16 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                         >
                           <RotateCcw className={`w-3.5 h-3.5 shrink-0 ${actionLoading === `${locKey}-reload-kiosk` ? 'animate-spin' : ''}`} />
                           <span>Ecran</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleAction(locKey, 'test-pos-signal')}
+                          disabled={actionLoading === `${locKey}-test-pos-signal`}
+                          title="Testează semnalul și latența magistralei seriale cu POS-ul"
+                          className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/80 transition-colors disabled:opacity-50 cursor-pointer shadow-xs whitespace-nowrap"
+                        >
+                          <Radio className={`w-3.5 h-3.5 shrink-0 ${actionLoading === `${locKey}-test-pos-signal` ? 'animate-pulse text-emerald-600' : 'text-emerald-600 dark:text-emerald-400'}`} />
+                          <span>Semnal POS</span>
                         </button>
                         <button
                           type="button"

@@ -252,9 +252,12 @@ function forceReopenPort(reason = 'Force Reset') {
   });
 }
 
-// ─── Standby POS Keep-Alive / Wake (la 30 min inactivitate) ───────────────────
+// ─── Standby POS Keep-Alive / Wake (la 30 min inactivitate) & Test Semnal ─────
+let globalSocket = null;
 let posWakeStandbyEnabled = process.env.POS_WAKE_STANDBY === 'true';
 let lastActivityTime = Date.now();
+let wakeStartTime = 0;
+let posSignalTestStartTime = 0;
 
 function noteActivity(source = 'general') {
   lastActivityTime = Date.now();
@@ -267,6 +270,7 @@ function wakePosKeepAlive() {
     return;
   }
   log('⚡ [POS Wake] Inactivitate de 30 minute detectată. Trimit ENQ discret pentru trezire/prevenire sleep USB...');
+  wakeStartTime = Date.now();
   state = 'WAIT_ENQ_ACK__WAKE';
   currentOperation = 'WAKE';
   currentLabel = 'WAKE_STANDBY';
@@ -277,6 +281,110 @@ function wakePosKeepAlive() {
     try { globalPort.write(Buffer.from([EOT])); } catch (_) {}
     state = 'IDLE';
     currentOperation = null;
+    if (globalSocket) {
+      globalSocket.emit('pos_signal_result', {
+        locationId: LOCATION_ID,
+        success: false,
+        latencyMs: 3000,
+        message: 'Auto-wake timeout (>3000ms)'
+      });
+    }
+  }, 3000);
+
+  globalPort.write(Buffer.from([ENQ]));
+}
+
+function testPosSignal() {
+  if (POS_GATEWAY === 'viva_pos') {
+    const net = require('net');
+    const startT = Date.now();
+    const client = net.createConnection({ host: VIVA_POS_IP, port: VIVA_POS_PORT, timeout: 2500 }, () => {
+      const latencyMs = Math.max(1, Date.now() - startT);
+      client.destroy();
+      log(`📡 [POS Signal] Viva IP OK (${latencyMs}ms)`);
+      if (globalSocket) {
+        globalSocket.emit('pos_signal_result', {
+          locationId: LOCATION_ID,
+          success: true,
+          latencyMs,
+          message: `Viva IP activ (${latencyMs}ms)`
+        });
+      }
+    });
+    client.on('error', (err) => {
+      log(`📡 [POS Signal] ❌ Viva IP eroare: ${err.message}`);
+      if (globalSocket) {
+        globalSocket.emit('pos_signal_result', {
+          locationId: LOCATION_ID,
+          success: false,
+          latencyMs: null,
+          message: `Viva IP inaccesibil: ${err.message}`
+        });
+      }
+    });
+    client.on('timeout', () => {
+      client.destroy();
+      log(`📡 [POS Signal] ⚠️ Viva IP timeout (>2500ms)`);
+      if (globalSocket) {
+        globalSocket.emit('pos_signal_result', {
+          locationId: LOCATION_ID,
+          success: false,
+          latencyMs: 2500,
+          message: `Viva IP timeout (>2500ms)`
+        });
+      }
+    });
+    return;
+  }
+
+  if (!globalPort || !globalPort.isOpen) {
+    const msg = 'Port serial POS închis sau nedetectat';
+    log(`📡 [POS Signal] ❌ ${msg}`);
+    if (globalSocket) {
+      globalSocket.emit('pos_signal_result', {
+        locationId: LOCATION_ID,
+        success: false,
+        latencyMs: null,
+        message: msg
+      });
+    }
+    return;
+  }
+
+  if (state !== 'IDLE' || currentTransactionResolve) {
+    const msg = `POS ocupat în starea ${state}`;
+    log(`📡 [POS Signal] ⚠️ ${msg}`);
+    if (globalSocket) {
+      globalSocket.emit('pos_signal_result', {
+        locationId: LOCATION_ID,
+        success: false,
+        latencyMs: null,
+        message: msg
+      });
+    }
+    return;
+  }
+
+  log('📡 [POS Signal] Se testează semnalul și latența liniei seriale cu POS...');
+  posSignalTestStartTime = Date.now();
+  state = 'WAIT_ENQ_ACK__TEST_SIGNAL';
+  currentOperation = 'TEST_SIGNAL';
+  currentLabel = 'TEST_SIGNAL';
+
+  clearTimeout(currentTransactionTimer);
+  currentTransactionTimer = setTimeout(() => {
+    log('⚠️ [POS Signal] Timeout la testul de semnal (fără ACK în 3000ms). Readuc linia în IDLE.');
+    try { globalPort.write(Buffer.from([EOT])); } catch (_) {}
+    state = 'IDLE';
+    currentOperation = null;
+    if (globalSocket) {
+      globalSocket.emit('pos_signal_result', {
+        locationId: LOCATION_ID,
+        success: false,
+        latencyMs: 3000,
+        message: 'Timeout răspuns POS (>3000ms)'
+      });
+    }
   }, 3000);
 
   globalPort.write(Buffer.from([ENQ]));
@@ -530,6 +638,7 @@ async function start() {
   }
 
   const socket = ioClient(RENDER_URL, { auth: { bridgeKey: BRIDGE_KEY, locationId: LOCATION_ID } });
+  globalSocket = socket;
 
   log('════════════════════════════════════════════');
   log(`Bridge v7.8 (${POS_GATEWAY === 'viva_pos' ? 'Viva Wallet PAX A80 — IP' : 'Raiffeisen Printec ECR — Serial'})`);
@@ -546,7 +655,12 @@ async function start() {
 
   socket.on('connect', async () => {
     log(`✅ Conectat la Render (${socket.id})`);
-    socket.emit('pos_bridge_register', { locationId: LOCATION_ID, port: portPath || `VIVA_${VIVA_POS_IP}` });
+    socket.emit('pos_bridge_register', { 
+      locationId: LOCATION_ID, 
+      port: portPath || `VIVA_${VIVA_POS_IP}`,
+      posGateway: POS_GATEWAY,
+      posWakeStandby: posWakeStandbyEnabled
+    });
 
     // ─── Port/Printer Scan ───────────────────────────────────────────────────
     try {
@@ -629,6 +743,7 @@ async function start() {
             printerName: printer,
             posGateway: POS_GATEWAY,
             uptime: Math.round(process.uptime()),
+            posWakeStandby: posWakeStandbyEnabled,
           });
         }
       }, 20000);
@@ -768,10 +883,36 @@ async function start() {
           enqRetries = 0;
           
           if (state === 'WAIT_ENQ_ACK__WAKE') {
-            log('✅ [POS Wake] ACK primit de la POS! Trimit EOT pentru a lăsa magistrala liberă.');
+            const latencyMs = Math.max(1, Date.now() - (wakeStartTime || Date.now()));
+            log(`✅ [POS Wake] ACK primit de la POS (${latencyMs}ms)! Trimit EOT pentru a lăsa magistrala liberă.`);
             try { globalPort.write(Buffer.from([EOT])); } catch (_) {}
             state = 'IDLE';
             currentOperation = null;
+            if (globalSocket) {
+              globalSocket.emit('pos_signal_result', {
+                locationId: LOCATION_ID,
+                success: true,
+                latencyMs,
+                message: `Auto-wake: ${latencyMs}ms`
+              });
+            }
+            break;
+          }
+
+          if (state === 'WAIT_ENQ_ACK__TEST_SIGNAL') {
+            const latencyMs = Math.max(1, Date.now() - (posSignalTestStartTime || Date.now()));
+            log(`✅ [POS Signal] Răspuns primit în ${latencyMs}ms! Trimit EOT.`);
+            try { globalPort.write(Buffer.from([EOT])); } catch (_) {}
+            state = 'IDLE';
+            currentOperation = null;
+            if (globalSocket) {
+              globalSocket.emit('pos_signal_result', {
+                locationId: LOCATION_ID,
+                success: true,
+                latencyMs,
+                message: `Semnal excelent (${latencyMs}ms)`
+              });
+            }
             break;
           }
 
@@ -1369,6 +1510,18 @@ async function start() {
         log(`⚙️ [POS Wake] Setare actualizată din Admin: ${posWakeStandbyEnabled ? 'ACTIVATĂ (la 30 min)' : 'DEZACTIVATĂ'}`);
       }
     }
+  });
+
+  socket.on('test_pos_signal', (data) => {
+    if (!data?.locationId || isMyLocation(data.locationId)) {
+      log('📡 [POS Signal] Primită solicitare test semnal POS de la server/Admin.');
+      testPosSignal();
+    }
+  });
+
+  socket.on(`test_pos_signal_${LOCATION_ID}`, () => {
+    log('📡 [POS Signal] Primită solicitare directă test semnal POS.');
+    testPosSignal();
   });
 }
 

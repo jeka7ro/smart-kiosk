@@ -150,6 +150,35 @@ router.post('/:locationId/restart-bridge', (req, res) => {
 });
 
 /**
+ * POST /api/bridge-monitoring/:locationId/test-pos-signal
+ * Sends a real-time signal and latency test command to POS Bridge
+ */
+router.post('/:locationId/test-pos-signal', (req, res) => {
+  try {
+    const io = req.app.get('io');
+    const { locationId } = req.params;
+    const { getLocationAliases } = require('../utils/locations');
+    const aliases = getLocationAliases ? getLocationAliases(locationId) : [locationId];
+    const targets = new Set([locationId, ...aliases].filter(Boolean));
+
+    if (io) {
+      for (const tid of targets) {
+        io.to(`pos-bridge-${tid}`).emit('test_pos_signal', { locationId: tid });
+        io.emit(`test_pos_signal_${tid}`, { locationId: tid });
+      }
+      io.emit('test_pos_signal', { locationId });
+      console.log(`[BridgeMonitor] Comandă test_pos_signal trimisă către: ${[...targets].join(', ')}`);
+      res.json({ success: true, message: `Test semnal POS transmis către ${locationId}...` });
+    } else {
+      res.status(500).json({ error: 'Socket.io nu este inițializat pe server' });
+    }
+  } catch (err) {
+    console.error('[BridgeMonitor] Eroare test-pos-signal:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
  * POST /api/bridge-monitoring/:locationId/test-print
  * Sends a diagnostic 1-line test print ticket to the thermal printer
  */

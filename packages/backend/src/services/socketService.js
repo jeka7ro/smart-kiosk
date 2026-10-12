@@ -436,6 +436,18 @@ function initSocket(io) {
       io.to('admin').emit('pos_settlement_result', data);
     });
 
+    // ─── POS Signal Test Result (from bridge) ─────────────────────────────
+    socket.on('pos_signal_result', (data) => {
+      console.log(`[Socket] 📡 POS Signal result received:`, data);
+      try {
+        const bridgeMonitoringService = require('./bridgeMonitoringService');
+        bridgeMonitoringService.recordPosSignalResult(data);
+      } catch (e) {
+        console.error('[Socket] Eroare recordPosSignalResult:', e.message);
+      }
+      io.to('admin').emit('pos_signal_result', data);
+    });
+
     socket.on('disconnect', () => {
       try {
         const bridgeMonitoringService = require('./bridgeMonitoringService');

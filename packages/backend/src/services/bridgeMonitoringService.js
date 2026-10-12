@@ -377,7 +377,7 @@ function getLocationDisplayName(locKey) {
 /**
  * Called when a POS Bridge connects and registers
  */
-function handleBridgeConnect(socket, { locationId, port, posGateway, printerName }) {
+function handleBridgeConnect(socket, { locationId, port, posGateway, printerName, posWakeStandby }) {
   if ((locationId === 'sm-brasov' || !locationId) && (port === 'COM1' || String(printerName).includes('TM-T20III'))) {
     locationId = 'cluj2';
   }
@@ -400,6 +400,8 @@ function handleBridgeConnect(socket, { locationId, port, posGateway, printerName
     socketId: socket.id,
     ip: socket.handshake?.address || socket.conn?.remoteAddress || '',
     uptimeSeconds: 0,
+    posWakeStandby: posWakeStandby !== undefined ? !!posWakeStandby : (prev?.posWakeStandby ?? (locKey === 'sm-brasov')),
+    posSignal: prev?.posSignal || null,
   };
 
   bridges.set(locKey, entry);
@@ -446,10 +448,44 @@ function handleBridgeHeartbeat(socket, data) {
     if (data?.printerName) entry.printerName = data.printerName;
     if (data?.posGateway) entry.gateway = data.posGateway;
     if (typeof data?.uptime === 'number') entry.uptimeSeconds = data.uptime;
+    if (data?.posWakeStandby !== undefined) entry.posWakeStandby = !!data.posWakeStandby;
     entry.socketId = socket.id;
   } else {
     // Auto-register if missed
     handleBridgeConnect(socket, data || { locationId: locKey });
+  }
+}
+
+/**
+ * Record real-time POS signal and latency test result
+ */
+function recordPosSignalResult(data) {
+  if (!data || !data.locationId) return;
+  const locKey = normalizeLocationKey(data.locationId);
+  const now = Date.now();
+  let entry = bridges.get(locKey);
+  const signalInfo = {
+    success: !!data.success,
+    latencyMs: data.latencyMs ?? null,
+    message: data.message || '',
+    testedAt: now,
+  };
+  if (entry) {
+    entry.posSignal = signalInfo;
+  } else {
+    entry = {
+      locationId: locKey,
+      displayName: getLocationDisplayName(locKey),
+      status: 'online',
+      posSignal: signalInfo,
+    };
+    bridges.set(locKey, entry);
+  }
+  recordEvent('INFO', locKey, `Test semnal POS: ${signalInfo.success ? `Activ (${signalInfo.latencyMs}ms)` : (signalInfo.message || 'Eșuat')}`);
+  console.log(`[BridgeMonitor] 📡 POS Signal rezultat pt ${locKey}:`, signalInfo);
+  if (_io) {
+    _io.to('admin').emit('bridge_status_update', getStatusSummary());
+    _io.to('admin').emit('pos_signal_result', { locationId: locKey, ...signalInfo });
   }
 }
 
@@ -647,25 +683,27 @@ function getStatusSummary() {
     const lastPingAge = (b?.lastPing && !isOnline) ? Math.max(0, Math.round((now - b.lastPing) / 1000)) : null;
     const offlineDurationMinutes = (!isOnline && b?.disconnectTime) ? Math.round((now - b.disconnectTime) / 60000) : null;
 
-    summary.locations[locKey] = {
-      locationId: locKey,
-      displayName: getLocationDisplayName(locKey),
-      status: isOnline ? 'online' : 'offline',
-      isBridgeOnline: isBridgeAlive,
-      isKioskOnline: isKioskAlive,
-      port: b?.port || defaults.port || 'N/A',
-      gateway: b?.gateway || defaults.gateway || 'raiffeisen',
-      printerName: b?.printerName || defaults.printerName || 'N/A',
-      lastPing: b?.lastPing || null,
-      lastPingSecondsAgo: isOnline ? 0 : lastPingAge,
-      offlineDurationMinutes,
-      connectedAt: b?.connectedAt || null,
-      ip: b?.ip || '',
-      uptimeSeconds: b?.uptimeSeconds || 0,
-    };
-  });
+      summary.locations[locKey] = {
+        locationId: locKey,
+        displayName: getLocationDisplayName(locKey),
+        status: isOnline ? 'online' : 'offline',
+        isBridgeOnline: isBridgeAlive,
+        isKioskOnline: isKioskAlive,
+        port: b?.port || defaults.port || 'N/A',
+        gateway: b?.gateway || defaults.gateway || 'raiffeisen',
+        printerName: b?.printerName || defaults.printerName || 'N/A',
+        lastPing: b?.lastPing || null,
+        lastPingSecondsAgo: isOnline ? 0 : lastPingAge,
+        offlineDurationMinutes,
+        connectedAt: b?.connectedAt || null,
+        ip: b?.ip || '',
+        uptimeSeconds: b?.uptimeSeconds || 0,
+        posWakeStandby: b?.posWakeStandby !== undefined ? b.posWakeStandby : (locKey === 'sm-brasov'),
+        posSignal: b?.posSignal || null,
+      };
+    });
 
-  return summary;
+    return summary;
 }
 
 /**
@@ -766,6 +804,7 @@ module.exports = {
   handleBridgeHeartbeat,
   handleBridgeDisconnect,
   getStatusSummary,
+  recordPosSignalResult,
   seedFromRecentScans,
   formatDateTime,
   formatStatusSummaryForTelegram,
