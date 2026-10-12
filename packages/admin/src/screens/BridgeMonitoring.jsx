@@ -655,14 +655,14 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                       <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center justify-between">
                         <span className="flex items-center gap-1.5">
                           <Cpu className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                          <span className="whitespace-nowrap">POS & Imprimantă</span>
+                          <span className="whitespace-nowrap">POS & Print</span>
                         </span>
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
                           isBridgeOnline 
                             ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300' 
                             : 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300'
                         }`}>
-                          {isBridgeOnline ? 'Bridge activ' : 'Oprit'}
+                          {isBridgeOnline ? 'Activ' : 'Oprit'}
                         </span>
                       </div>
 
