@@ -168,25 +168,8 @@ if (-not $chrome) {
 }
 Write-Host "[OK] Browser detectat: $chrome" -ForegroundColor Green
 
-# 5. Creare profil izolat dedicat Kiosk-ului
-$profileDir = "C:\SmartKiosk_Data"
-if (-not (Test-Path $profileDir)) {
-    New-Item -ItemType Directory -Path $profileDir -Force | Out-Null
-}
-
-# Resetare flag de crash pentru a preveni 'Restore pages'
-$prefFile = "$profileDir\Default\Preferences"
-if (Test-Path $prefFile) {
-    try {
-        $content = Get-Content $prefFile -Raw
-        $content = $content -replace '"exit_type":\s*"[^"]*"', '"exit_type":"Normal"'
-        $content = $content -replace '"exited_cleanly":\s*false', '"exited_cleanly":true'
-        Set-Content $prefFile -Value $content -Force
-    } catch {}
-}
-
-# Argumente profesionale Kiosk Fullscreen
-$kioskArgs = "--kiosk `"$kioskUrl`" --user-data-dir=`"$profileDir`" --start-fullscreen --start-maximized --window-position=0,0 --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble --disable-infobars --disable-pinch --overscroll-history-navigation=0 --disable-features=Translate,OptimizationHints,MediaRouter --check-for-update-interval=31536000 --disable-component-update"
+# 5. Argumente profesionale Kiosk Fullscreen
+$kioskArgs = "--kiosk `"$kioskUrl`" --start-fullscreen --start-maximized --window-position=0,0 --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble --disable-infobars --disable-pinch --overscroll-history-navigation=0 --disable-features=Translate,OptimizationHints,MediaRouter --check-for-update-interval=31536000 --disable-component-update"
 
 # 6. Salvare in Autostart Windows si Creare Scurtaturi
 Write-Host "[4/5] Configurare pornire automata si scurtaturi..." -ForegroundColor Yellow

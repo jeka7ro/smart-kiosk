@@ -50,11 +50,8 @@ if not defined BROWSER (
 )
 echo [OK] Browser detectat: %BROWSER%
 
-:: 5. Creare folder profil Kiosk izolat
-if not exist "C:\SmartKiosk_Data" mkdir "C:\SmartKiosk_Data" >nul 2>&1
-
 set "URL=https://kiosk-smashme.netlify.app/?loc=cluj2"
-set "ARGS=--kiosk "%URL%" --user-data-dir="C:\SmartKiosk_Data" --start-fullscreen --start-maximized --window-position=0,0 --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble --disable-infobars --disable-pinch --overscroll-history-navigation=0 --check-for-update-interval=31536000"
+set "ARGS=--kiosk "%URL%" --start-fullscreen --start-maximized --window-position=0,0 --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble --disable-infobars --disable-pinch --overscroll-history-navigation=0 --check-for-update-interval=31536000"
 
 :: 6. Salvare Autostart si creare scurtatura Desktop
 powershell -NoProfile -Command "$ws = New-Object -ComObject WScript.Shell; $sc = $ws.CreateShortcut([Environment]::GetFolderPath('Desktop') + '\Smart Kiosk (Cluj 2).lnk'); $sc.TargetPath = '%BROWSER%'; $sc.Arguments = '%ARGS%'; $sc.WindowStyle = 3; $sc.Save(); Set-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' 'SmartKioskScreen' '\"%BROWSER%\" %ARGS%'"

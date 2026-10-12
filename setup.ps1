@@ -162,9 +162,7 @@ $chrome = @(
 ) | Where-Object { Test-Path $_ } | Select-Object -First 1
 
 if ($chrome) {
-    $profileDir = "C:\SmartKiosk_Data"
-    if (-not (Test-Path $profileDir)) { New-Item -ItemType Directory -Path $profileDir -Force | Out-Null }
-    $kioskArgs = "--kiosk `"$($cfg.Url)`" --user-data-dir=`"$profileDir`" --start-fullscreen --start-maximized --window-position=0,0 --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble --disable-infobars --disable-pinch --overscroll-history-navigation=0 --disable-features=Translate,OptimizationHints,MediaRouter --check-for-update-interval=31536000 --disable-component-update"
+    $kioskArgs = "--kiosk `"$($cfg.Url)`" --start-fullscreen --start-maximized --window-position=0,0 --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble --disable-infobars --disable-pinch --overscroll-history-navigation=0 --disable-features=Translate,OptimizationHints,MediaRouter --check-for-update-interval=31536000 --disable-component-update"
     
     Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -Name 'SmartKioskScreen' -Value "`"$chrome`" $kioskArgs"
     
