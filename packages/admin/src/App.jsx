@@ -338,6 +338,29 @@ export default function AdminApp() {
 
   useKeepAlive(); // prevent Render backend from sleeping
 
+  const handleManualRefresh = async () => {
+    setIsManualRefreshing(true);
+    try {
+      await Promise.all([
+        fetchWithAuth(`${BACKEND}/api/locations/live-status`)
+          .then(r => r.json())
+          .then(d => { if (d?.liveStatus) setKiosksLiveStatus(prev => ({ ...prev, ...d.liveStatus })); })
+          .catch(() => null),
+        fetch('https://smart-kiosk-ttut.onrender.com/api/bridge-monitoring/status', {
+          headers: { 'x-api-key': 'sk-live-2024-secure' }
+        })
+          .then(r => r.json())
+          .then(summary => { if (summary?.locations) setBridgeSummary(summary); })
+          .catch(() => null),
+        fetchWithAuth(`${BACKEND}/api/orders?limit=5000`)
+          .then(r => r.json())
+          .then(d => { if (d?.orders) setOrders(d.orders); })
+          .catch(() => null),
+      ]);
+    } finally {
+      setTimeout(() => setIsManualRefreshing(false), 500);
+    }
+  };
 
   const liveKiosksCount = useMemo(() => {
     const activeLocations = new Set();
@@ -945,27 +968,27 @@ export default function AdminApp() {
   if (!token) return <LoginScreen />;
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white transition-colors duration-300">
+    <div className="flex flex-col h-screen h-[100dvh] overflow-hidden min-w-0 max-w-full w-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white transition-colors duration-300">
       
       {/* ─── GLOBAL TOP HEADER ─── */}
-      <header className="h-20 shrink-0 px-8 flex items-center justify-between bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 z-20 shadow-sm transition-colors duration-300">
+      <header className="h-16 md:h-20 shrink-0 px-3 md:px-8 flex items-center justify-between bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 z-20 shadow-sm transition-colors duration-300 w-full max-w-full">
         
         {/* Left: Logo & Mobile Toggle */}
-        <div className="flex items-center gap-6 h-full">
+        <div className="flex items-center gap-3 md:gap-6 h-full min-w-0">
           <div className="flex items-center h-full">
             <img 
               src={theme === 'dark' ? "/getapp_smart_kiosk_white.png" : "/getapp_smart_kiosk_logo.png"} 
               alt="GetApp Smart Kiosk" 
-              className="max-h-12 object-contain" 
+              className="max-h-9 md:max-h-12 object-contain" 
             />
           </div>
-          <button className="md:hidden p-2 text-slate-500 hover:text-slate-900 dark:hover:text-white" onClick={() => setIsSidebarOpen(true)}>
+          <button className="md:hidden p-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-white cursor-pointer" onClick={() => setIsSidebarOpen(true)}>
             <Menu className="w-6 h-6" />
           </button>
         </div>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 md:gap-3 shrink-0">
           {/* Notifications Bell with Recent Orders Dropdown */}
           <OrdersNotificationBell 
             orders={orders}
@@ -998,23 +1021,23 @@ export default function AdminApp() {
           <button 
             title={theme === 'dark' ? 'Mod Luminos' : 'Mod Întunecat'}
             onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
-            className="w-10 h-10 rounded-full flex items-center justify-center border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors"
+            className="w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors cursor-pointer"
           >
-            {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            {theme === 'dark' ? <Sun className="w-4 h-4 md:w-5 md:h-5" /> : <Moon className="w-4 h-4 md:w-5 md:h-5" />}
           </button>
           
           <button 
             title="Deconectare"
             onClick={logout} 
-            className="w-10 h-10 rounded-full flex items-center justify-center bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 transition-colors"
+            className="w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 transition-colors cursor-pointer"
           >
-            <LogOut className="w-5 h-5" />
+            <LogOut className="w-4 h-4 md:w-5 md:h-5" />
           </button>
         </div>
       </header>
 
       {/* ─── BODY (Sidebar + Main) ─── */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden min-w-0 max-w-full w-full">
         
         {/* ─── Sidebar ─── */}
         {isSidebarOpen && (
@@ -1103,9 +1126,9 @@ export default function AdminApp() {
         </aside>
 
         {/* ─── Main ─── */}
-        <main className="flex-1 flex flex-col overflow-y-auto bg-slate-50 dark:bg-slate-900 relative">
-        <div className="shrink-0 px-4 md:px-8 pt-6 pb-2">
-           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+        <main className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden min-w-0 max-w-full w-full bg-slate-50 dark:bg-slate-900 relative">
+        <div className="shrink-0 px-3 md:px-8 pt-4 md:pt-6 pb-2">
+           <h2 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-white">
               {tab === 'dashboard' && 'Dashboard Overview'}
               {tab === 'orders' && 'Gestionare Comenzi'}
               {tab === 'pending-orders' && 'Comenzi În Așteptare'}
@@ -1138,18 +1161,42 @@ export default function AdminApp() {
 
         {/* ─── DASHBOARD ─── */}
         {tab === 'dashboard' && (
-          <div className="space-y-6 px-4 md:px-8 pb-10">
+          <div className="space-y-4 md:space-y-6 px-3 md:px-8 pb-10 min-w-0 max-w-full w-full">
 
             {/* Live Kiosks Status Strip */}
-            <div className="bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-xs flex items-center justify-between gap-3 flex-wrap">
-              <div className="flex items-center gap-2 shrink-0">
+            <div className="bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-2.5 w-full max-w-full min-w-0">
+              {/* Header on mobile / Left on desktop */}
+              <div className="flex items-center justify-between gap-2 w-full md:w-auto shrink-0">
                 <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-700/60 text-slate-800 dark:text-slate-200 text-xs font-bold">
                   <MonitorSmartphone className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                   <span>Kiosk-uri Active:</span>
                 </div>
+
+                {/* Mobile actions: right next to title */}
+                <div className="flex items-center gap-2 md:hidden">
+                  <button
+                    type="button"
+                    onClick={handleManualRefresh}
+                    disabled={isManualRefreshing}
+                    title="Actualizează instantaneu"
+                    className="p-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 text-slate-500 dark:text-slate-400 ${isManualRefreshing ? 'animate-spin text-blue-600 dark:text-blue-400' : ''}`} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setTab('bridge-monitoring')}
+                    className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 px-1.5 py-1"
+                  >
+                    <span>LIVE</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </button>
+                </div>
               </div>
 
-              <div className="flex items-center gap-2.5 flex-wrap flex-1">
+              {/* 2x2 Grid on Mobile, Flex Row on Desktop */}
+              <div className="grid grid-cols-2 md:flex md:items-center gap-2 w-full md:w-auto md:flex-1 md:justify-center">
                 {[
                   { 
                     id: 'cluj1', 
@@ -1205,7 +1252,7 @@ export default function AdminApp() {
                         type="button"
                         onClick={() => setActiveLocationDropdown(prev => prev === loc.id ? null : loc.id)}
                         title="Click pentru a deschide detaliile tehnice ale acestei locații"
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all text-left cursor-pointer hover:shadow-xs ${
+                        className={`w-full flex items-center justify-between gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-medium transition-all text-left cursor-pointer hover:shadow-xs ${
                           statusTone === 'online'
                             ? (isOpen 
                                 ? 'bg-emerald-100/90 dark:bg-emerald-950/40 border-emerald-400 dark:border-emerald-700 text-emerald-950 dark:text-emerald-100 ring-2 ring-emerald-500/20 shadow-xs'
@@ -1222,15 +1269,17 @@ export default function AdminApp() {
                               )
                         }`}
                       >
-                        <span className={`w-2 h-2 rounded-full shrink-0 ${
-                          statusTone === 'online' 
-                            ? 'bg-emerald-500 animate-pulse' 
-                            : statusTone === 'warning'
-                            ? 'bg-amber-500 animate-pulse'
-                            : 'bg-slate-300 dark:bg-slate-600'
-                        }`} />
-                        <span className="font-bold leading-tight">{loc.name}</span>
-                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0 ${
+                        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                          <span className={`w-2 h-2 rounded-full shrink-0 ${
+                            statusTone === 'online' 
+                              ? 'bg-emerald-500 animate-pulse' 
+                              : statusTone === 'warning'
+                              ? 'bg-amber-500 animate-pulse'
+                              : 'bg-slate-300 dark:bg-slate-600'
+                          }`} />
+                          <span className="font-bold text-[11px] sm:text-xs truncate">{loc.name}</span>
+                        </div>
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold shrink-0 ${
                           statusTone === 'online' 
                             ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300' 
                             : statusTone === 'warning'
@@ -1245,10 +1294,10 @@ export default function AdminApp() {
                       {isOpen && (
                         <>
                           <div 
-                            className="fixed inset-0 z-40" 
+                            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-xs" 
                             onClick={() => setActiveLocationDropdown(null)} 
                           />
-                          <div className="absolute top-full left-0 mt-2 w-72 sm:w-80 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xl p-4 z-50 animate-in fade-in zoom-in-95 duration-150">
+                          <div className="fixed inset-x-4 top-20 max-w-sm mx-auto sm:absolute sm:inset-auto sm:top-full sm:left-0 sm:mt-2 sm:w-80 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xl p-4 z-50 animate-in fade-in zoom-in-95 duration-150">
                             {/* Header Popover */}
                             <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-700/60">
                               <div>
@@ -1268,7 +1317,7 @@ export default function AdminApp() {
                                 <button 
                                   type="button" 
                                   onClick={() => setActiveLocationDropdown(null)}
-                                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+                                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 cursor-pointer"
                                 >
                                   <X className="w-3.5 h-3.5" />
                                 </button>
@@ -1401,7 +1450,7 @@ export default function AdminApp() {
                               <button
                                 type="button"
                                 onClick={() => { setActiveLocationDropdown(null); setTab('bridge-monitoring'); }}
-                                className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1"
+                                className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
                               >
                                 <span>Deschide panoul LIVE Status</span>
                                 <ExternalLink className="w-3 h-3" />
@@ -1415,32 +1464,11 @@ export default function AdminApp() {
                 })}
               </div>
 
-              <div className="flex items-center gap-3 shrink-0">
+              {/* Desktop actions: right aligned */}
+              <div className="hidden md:flex items-center gap-3 shrink-0">
                 <button
                   type="button"
-                  onClick={async () => {
-                    setIsManualRefreshing(true);
-                    try {
-                      await Promise.all([
-                        fetchWithAuth(`${BACKEND}/api/locations/live-status`)
-                          .then(r => r.json())
-                          .then(d => { if (d?.liveStatus) setKiosksLiveStatus(prev => ({ ...prev, ...d.liveStatus })); })
-                          .catch(() => null),
-                        fetch('https://smart-kiosk-ttut.onrender.com/api/bridge-monitoring/status', {
-                          headers: { 'x-api-key': 'sk-live-2024-secure' }
-                        })
-                          .then(r => r.json())
-                          .then(summary => { if (summary?.locations) setBridgeSummary(summary); })
-                          .catch(() => null),
-                        fetchWithAuth(`${BACKEND}/api/orders?limit=5000`)
-                          .then(r => r.json())
-                          .then(d => { if (d?.orders) setOrders(d.orders); })
-                          .catch(() => null),
-                      ]);
-                    } finally {
-                      setTimeout(() => setIsManualRefreshing(false), 500);
-                    }
-                  }}
+                  onClick={handleManualRefresh}
                   disabled={isManualRefreshing}
                   title="Actualizează instantaneu starea kiosk-urilor și a comenzilor"
                   className="px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-700/60 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-xs"
@@ -1452,7 +1480,7 @@ export default function AdminApp() {
                 <button
                   type="button"
                   onClick={() => setTab('bridge-monitoring')}
-                  className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 shrink-0"
+                  className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 shrink-0 cursor-pointer"
                 >
                   <span>LIVE Status</span>
                   <ExternalLink className="w-3 h-3" />
@@ -1502,12 +1530,12 @@ export default function AdminApp() {
               ))}
             </div>
 
-            {/* Controls & Period Filter Bar - Single row layout */}
-            <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between gap-2.5 flex-wrap">
+            {/* Controls & Period Filter Bar - Responsive layout */}
+            <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3 w-full max-w-full min-w-0">
               {/* Grup Stânga: Branduri + Butoane Perioadă */}
-              <div className="flex items-center gap-2 flex-wrap">
-                {/* Brand Filter Buttons - Compact Icons */}
-                <div className="flex items-center gap-1.5 shrink-0">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 w-full md:w-auto min-w-0">
+                {/* Brand Filter Buttons - Compact Icons with swipe on mobile */}
+                <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5 -mx-1 px-1 shrink-0">
                   {['all','smashme','crunch','rollmaster','lovesushi','pokiwoki'].map(b => {
                     const isSelected = b === 'all' ? dashboardBrands.length === 0 : dashboardBrands.includes(b);
                     return (
@@ -1515,7 +1543,7 @@ export default function AdminApp() {
                         key={b}
                         type="button"
                         title={b === 'all' ? 'Toate Brandurile' : b === 'smashme' ? 'SmashMe' : b === 'crunch' ? 'Crunch' : b === 'rollmaster' ? 'Roll Master' : b === 'lovesushi' ? 'Love Sushi' : 'Poki-Woki'}
-                        className={`shrink-0 h-9 rounded-full flex items-center justify-center border transition-all ${
+                        className={`shrink-0 h-9 rounded-full flex items-center justify-center border transition-all cursor-pointer ${
                           b === 'all' ? 'px-3 text-xs font-bold' : 'w-9'
                         } ${
                           isSelected
@@ -1531,10 +1559,10 @@ export default function AdminApp() {
                 </div>
 
                 {/* Separator discret vertical */}
-                <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 shrink-0 hidden md:block" />
+                <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 shrink-0 hidden sm:block" />
 
-                {/* Butoane Rapide Perioadă */}
-                <div className="flex items-center gap-1 shrink-0 flex-wrap">
+                {/* Butoane Rapide Perioadă - Swipeable Row on Mobile, No Page Blowout! */}
+                <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5 -mx-1 px-1 w-full sm:w-auto min-w-0">
                   {[
                     { id: 'today', label: 'Azi' },
                     { id: 'yesterday', label: 'Ieri' },
@@ -1551,7 +1579,7 @@ export default function AdminApp() {
                         key={p.id}
                         type="button"
                         onClick={() => handleSelectDashboardPeriod(p.id)}
-                        className={`shrink-0 px-3 h-9 rounded-full text-xs font-bold transition-all border ${
+                        className={`shrink-0 px-3 h-8 sm:h-9 rounded-full text-xs font-bold transition-all border cursor-pointer ${
                           isActive
                             ? 'bg-blue-600 text-white border-blue-600 shadow-sm ring-2 ring-blue-500/20'
                             : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
@@ -1588,10 +1616,10 @@ export default function AdminApp() {
               </div>
 
               {/* Grup Dreapta: Locație, Plată, Căutare */}
-              <div className="flex items-center gap-2 shrink-0 flex-wrap ml-auto">
+              <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full md:w-auto md:ml-auto min-w-0">
                 {/* Location Filter */}
                 <select 
-                  className="shrink-0 px-3 h-9 rounded-full text-xs font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                  className="w-full sm:w-auto px-3 h-9 rounded-full text-xs font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                   value={dashboardLocation}
                   onChange={(e) => setDashboardLocation(e.target.value)}
                 >
@@ -1603,7 +1631,7 @@ export default function AdminApp() {
 
                 {/* Payment Filter */}
                 <select 
-                  className="shrink-0 px-3 h-9 rounded-full text-xs font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                  className="w-full sm:w-auto px-3 h-9 rounded-full text-xs font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                   value={dashboardPayment}
                   onChange={(e) => setDashboardPayment(e.target.value)}
                 >
@@ -1615,7 +1643,7 @@ export default function AdminApp() {
                 </select>
 
                 {/* Search Bar */}
-                <div className="relative min-w-[150px] max-w-[220px]">
+                <div className="col-span-2 sm:col-span-1 relative w-full sm:w-44 md:w-52">
                   <input
                     type="text"
                     value={dashboardSearch}
@@ -2223,7 +2251,7 @@ function StatCard({ label, value, color, large, brandId, icon: Icon, onClick, ac
   return (
     <div 
       onClick={onClick}
-      className={`bg-white dark:bg-slate-900 rounded-2xl shadow-sm border px-3 py-2.5 flex items-center justify-between min-w-[120px] flex-1 relative overflow-hidden transition-all duration-200 group select-none ${
+      className={`bg-white dark:bg-slate-900 rounded-2xl shadow-sm border px-3 py-2.5 flex items-center justify-between min-w-0 flex-1 relative overflow-hidden transition-all duration-200 group select-none ${
         active 
           ? 'ring-2 ring-blue-500 border-blue-500 shadow-md scale-[1.02]' 
           : 'border-slate-200 dark:border-slate-800'
