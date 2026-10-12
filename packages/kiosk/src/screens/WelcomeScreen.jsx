@@ -400,7 +400,7 @@ const FLAG_GRADIENTS = {
               display: 'inline-block'
             }} 
           />
-          <span>{bridgeStatus?.isOnline ? 'Bridge Activ' : 'Bridge Oprit'}</span>
+          <span>{bridgeStatus?.isOnline ? 'Online' : 'Offline'}</span>
         </button>
 
         {/* Expanded detail popover on tap */}
