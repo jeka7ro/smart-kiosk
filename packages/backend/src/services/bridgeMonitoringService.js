@@ -703,7 +703,7 @@ function formatStatusSummaryForTelegram() {
     }
 
     lines.push(`${dot} <b>${loc.displayName}</b>`);
-    lines.push(`   └ POS: ${posText} | Imprimantă: ${printerText} | Kiosk: ${kioskText}`);
+    lines.push(`   └ POS: ${posText} | Printer: ${printerText} | Kiosk: ${kioskText}`);
   }
 
   lines.push(``);
