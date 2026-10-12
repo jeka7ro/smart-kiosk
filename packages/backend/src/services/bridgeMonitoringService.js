@@ -374,7 +374,7 @@ function handleBridgeConnect(socket, { locationId, port, posGateway, printerName
   if (wasOffline && telegramConfig.enabled && prev?.disconnectTime) {
     const downMinutes = Math.round((now - prev.disconnectTime) / 60000);
     const msg = [
-      `<b>[INFO SMART KIOSK]</b>`,
+      `🟢 <b>[INFO SMART KIOSK]</b>`,
       `Locatie: ${entry.displayName}`,
       `Dispozitiv: POS Bridge (start-windows.bat)`,
       `Stare: RECONECTAT`,
@@ -452,7 +452,7 @@ function triggerDisconnectAlert(locKey, bridgeInfo) {
   lastAlertSent.set(locKey, now);
 
   const msg = [
-    `<b>[ALERTA SMART KIOSK]</b>`,
+    `🔴 <b>[ALERTA SMART KIOSK]</b>`,
     `Locatie: ${bridgeInfo.displayName || locKey}`,
     `Dispozitiv: POS Bridge (start-windows.bat)`,
     `Stare: DECONECTAT / OPRIT`,
