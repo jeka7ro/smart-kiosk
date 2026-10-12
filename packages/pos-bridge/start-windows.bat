@@ -71,10 +71,9 @@ curl -s -L -H "Cache-Control: no-cache" -o rawprint.ps1 "https://raw.githubuserc
 node index.js
 if %errorlevel% equ 42 (
     echo.
-    echo  [INFO] O alta instanta a POS Bridge ruleaza deja activ pe acest sistem.
-    echo  [INFO] Aceasta fereastra duplicat se inchide automat.
-    timeout /t 2 >nul
-    exit /b 0
+    echo  [WARN] Port ocupat sau instanta concurenta. Reincerc in 5 secunde...
+    ping 127.0.0.1 -n 6 >nul
+    goto loop
 )
 echo.
 echo  [WARN] Procesul s-a oprit - repornesc automat in 3 secunde...

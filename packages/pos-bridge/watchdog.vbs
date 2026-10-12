@@ -37,3 +37,10 @@ If Not browserRunning Then
         ws.Run """" & kioskLnk & """", 1, False
     End If
 End If
+
+' ─── 3. Menținere Taskbar Ascuns (SW_HIDE) ──────────────────────────────────
+On Error Resume Next
+hideCmd = "powershell -NoProfile -WindowStyle Hidden -Command ""Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class KioskWin { [DllImport(\""user32.dll\"")] public static extern IntPtr FindWindow(string c, string n); [DllImport(\""user32.dll\"")] public static extern bool ShowWindow(IntPtr h, int s); }'; $t=[KioskWin]::FindWindow('Shell_TrayWnd',$null); if($t -ne [IntPtr]::Zero){ [KioskWin]::ShowWindow($t,0) }"""
+ws.Run hideCmd, 0, False
+On Error GoTo 0
+

@@ -1,17 +1,28 @@
 // ── SINGLETON LOCK: Ensure only ONE instance of POS Bridge runs per PC ────────
 const net = require('net');
 const SINGLETON_PORT = 40499;
-const singletonServer = net.createServer();
-singletonServer.once('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    console.error(`[SINGLETON] ⚠️ O altă instanță a POS Bridge rulează deja pe acest sistem (portul ${SINGLETON_PORT} este activ).`);
-    console.error(`[SINGLETON] Această instanță duplicat se închide imediat (cod 42) pentru a evita coliziuni COM și Socket.`);
-    process.exit(42);
-  }
-});
-singletonServer.listen(SINGLETON_PORT, '127.0.0.1', () => {
-  // Lock acquired exclusively for this PC instance
-});
+let singletonRetries = 0;
+
+function acquireSingletonLock() {
+  const singletonServer = net.createServer();
+  singletonServer.once('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      singletonRetries++;
+      if (singletonRetries <= 6) {
+        console.warn(`[SINGLETON] Portul ${SINGLETON_PORT} este temporar ocupat (TIME_WAIT după restart). Reîncerc în 2s (${singletonRetries}/6)...`);
+        setTimeout(acquireSingletonLock, 2000);
+        return;
+      }
+      console.error(`[SINGLETON] ⚠️ O altă instanță a POS Bridge rulează deja pe acest sistem (portul ${SINGLETON_PORT} este activ).`);
+      console.error(`[SINGLETON] Această instanță duplicat se închide (cod 42).`);
+      process.exit(42);
+    }
+  });
+  singletonServer.listen(SINGLETON_PORT, '127.0.0.1', () => {
+    console.log(`[SINGLETON] Lock exclusiv obținut pe portul ${SINGLETON_PORT}.`);
+  });
+}
+acquireSingletonLock();
 
 require('dotenv').config();
 const { printTicket, getActualPrinterName } = require('./printer');
@@ -37,16 +48,31 @@ try { fs.writeFileSync(LOG_FILE, ''); } catch (_) {}
 function enforceKioskTaskbar() {
   if (process.platform !== 'win32') return;
   try {
-    const psCmd = `powershell -NoProfile -Command "$keys = @('HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StuckRects3', 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\MMStuckRects3'); foreach($k in $keys){ if(Test-Path $k){ $v=(Get-ItemProperty -Path $k).Settings; if($v -and $v.Length -gt 8){ $v[8]=3; Set-ItemProperty -Path $k -Name Settings -Value $v -Force -ErrorAction SilentlyContinue } } }; Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue; Start-Sleep -Milliseconds 800; if(-not (Get-Process explorer -ErrorAction SilentlyContinue)){ Start-Process explorer.exe -ErrorAction SilentlyContinue }"`;
+    const psCmd = `powershell -NoProfile -WindowStyle Hidden -Command "$c=@'
+using System;
+using System.Runtime.InteropServices;
+public class KioskWin {
+    [DllImport(\\"user32.dll\\")]
+    public static extern IntPtr FindWindow(string c, string n);
+    [DllImport(\\"user32.dll\\")]
+    public static extern bool ShowWindow(IntPtr h, int s);
+    [DllImport(\\"user32.dll\\")]
+    public static extern bool SetForegroundWindow(IntPtr h);
+}
+'@; Add-Type -TypeDefinition $c -ErrorAction SilentlyContinue; $t=[KioskWin]::FindWindow('Shell_TrayWnd',$null); if($t -ne [IntPtr]::Zero){ [KioskWin]::ShowWindow($t,0) }; $s=[KioskWin]::FindWindow('Shell_SecondaryTrayWnd',$null); if($s -ne [IntPtr]::Zero){ [KioskWin]::ShowWindow($s,0) }; $w=[KioskWin]::FindWindow('Chrome_WidgetWin_1',$null); if($w -ne [IntPtr]::Zero){ [KioskWin]::SetForegroundWindow($w) }; $p='HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StuckRects3'; if(Test-Path $p){ $v=(Get-ItemProperty $p).Settings; if($v -and $v.Length -gt 8 -and $v[8] -ne 3){ $v[8]=3; Set-ItemProperty $p Settings $v -Force -ErrorAction SilentlyContinue } }"`;
     exec(psCmd, (err) => {
       if (!err) {
-        log('🖥️ [SYSTEM] Auto-Hide Taskbar aplicat cu succes în Windows.');
+        log('🖥️ [SYSTEM] Taskbar ascuns complet (SW_HIDE) & Kiosk adus în prim-plan.');
       }
     });
   } catch (err) {
-    log(`⚠️ [SYSTEM] Eroare la aplicarea Auto-Hide Taskbar: ${err.message}`);
+    log(`⚠️ [SYSTEM] Eroare la aplicarea Taskbar Kiosk: ${err.message}`);
   }
 }
+
+// Menține taskbar-ul ascuns garantat la pornire și periodic
+setTimeout(enforceKioskTaskbar, 1500);
+setInterval(enforceKioskTaskbar, 30000);
 
 let RENDER_URL = process.env.RENDER_URL || 'https://smart-kiosk-ttut.onrender.com';
 if (RENDER_URL.includes('smart-kiosk-v7ws.onrender.com')) {

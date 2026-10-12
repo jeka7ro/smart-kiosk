@@ -225,6 +225,19 @@ if exist "%APP_DIR%\run-hidden.vbs" (
 echo [7/7] Pornire ecran Kiosk in Fullscreen Total...
 timeout /t 2 >nul
 start "" "%BROWSER%" --kiosk "%URL%" --user-data-dir="C:\SmartKiosk_Data" --start-fullscreen --start-maximized --window-position=0,0 --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble --disable-infobars --disable-pinch --overscroll-history-navigation=0 --check-for-update-interval=31536000
+timeout /t 2 >nul
+powershell -NoProfile -WindowStyle Hidden -Command "$c=@'
+using System;
+using System.Runtime.InteropServices;
+public class KioskWin {
+    [DllImport(\"user32.dll\")]
+    public static extern IntPtr FindWindow(string c, string n);
+    [DllImport(\\"user32.dll\")]
+    public static extern bool ShowWindow(IntPtr h, int s);
+    [DllImport(\\"user32.dll\")]
+    public static extern bool SetForegroundWindow(IntPtr h);
+}
+'@; Add-Type -TypeDefinition $c -ErrorAction SilentlyContinue; $t=[KioskWin]::FindWindow('Shell_TrayWnd',$null); if($t -ne [IntPtr]::Zero){ [KioskWin]::ShowWindow($t,0) }; $s=[KioskWin]::FindWindow('Shell_SecondaryTrayWnd',$null); if($s -ne [IntPtr]::Zero){ [KioskWin]::ShowWindow($s,0) }; $w=[KioskWin]::FindWindow('Chrome_WidgetWin_1',$null); if($w -ne [IntPtr]::Zero){ [KioskWin]::SetForegroundWindow($w) }" >nul 2>&1
 
 echo.
 echo =============================================================
