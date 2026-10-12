@@ -173,6 +173,9 @@ function getLocationDisplayName(locKey) {
  * Called when a POS Bridge connects and registers
  */
 function handleBridgeConnect(socket, { locationId, port, posGateway, printerName }) {
+  if ((locationId === 'sm-brasov' || !locationId) && (port === 'COM1' || String(printerName).includes('TM-T20III'))) {
+    locationId = 'cluj2';
+  }
   const locKey = normalizeLocationKey(locationId);
   const now = Date.now();
   const prev = bridges.get(locKey);

@@ -1280,6 +1280,24 @@ async function start() {
       log(`⚠️ Eroare set_server_url: ${e.message}`);
     }
   });
+
+  socket.on('set_location_id', (data) => {
+    const newLoc = data?.locationId;
+    if (newLoc) {
+      try {
+        const envPath = pathMod.join(__dirname, '.env');
+        if (fs.existsSync(envPath)) {
+          let content = fs.readFileSync(envPath, 'utf8');
+          content = content.replace(/LOCATION_ID=.*/g, `LOCATION_ID=${newLoc}`);
+          fs.writeFileSync(envPath, content, 'utf8');
+        }
+        log(`💾 LOCATION_ID actualizat la ${newLoc}. Repornesc bridge-ul...`);
+        setTimeout(() => process.exit(0), 500);
+      } catch (e) {
+        log(`⚠️ Eroare set_location_id: ${e.message}`);
+      }
+    }
+  });
 }
 
 process.on('uncaughtException', (err) => {
