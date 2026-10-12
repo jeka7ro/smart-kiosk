@@ -406,7 +406,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
   }
 
   return (
-    <div className="space-y-6 px-4 md:px-8 pb-12">
+    <div className="space-y-6 pb-12 w-full text-left">
       {/* Control & Status Bar - Premium Design with OTA Actions */}
       <div className="relative overflow-hidden bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl p-5 md:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-5">
         <div className="flex items-center gap-4">
@@ -417,9 +417,6 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
             <h1 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
               Stare Echipamente și Conexiuni Locale
             </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Monitorizare în timp real a terminalelor POS și ecranelor Kiosk
-            </p>
           </div>
         </div>
 
@@ -793,9 +790,6 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
               <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
                 Comandă Universală Configurare Kiosk (Brașov, Cluj, Constanța)
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Rulează o singură dată în CMD ca Administrator. Configurează și pornește automat totul (Ecran + POS + Autostart).
-              </p>
             </div>
           </div>
 
