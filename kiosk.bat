@@ -121,13 +121,17 @@ timeout /t 2 >nul
 start "" "%BROWSER%" --kiosk "%URL%" --user-data-dir="C:\SmartKiosk_Data" --start-fullscreen --start-maximized --window-position=0,0 --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble --disable-infobars --disable-pinch --overscroll-history-navigation=0 --check-for-update-interval=31536000
 
 :: Pornire automata POS Bridge daca exista pe acest PC
-if exist "C:\packages\pos-bridge\start-windows.bat" (
+if exist "C:\Smart Kiosk\packages\pos-bridge\start-windows.bat" (
+    echo [INFO] Pornesc POS Bridge in fundal...
+    start "" /min cmd /c "cd /d \"C:\Smart Kiosk\packages\pos-bridge\" && start-windows.bat"
+) else if exist "C:\packages\pos-bridge\start-windows.bat" (
     echo [INFO] Pornesc POS Bridge in fundal...
     start "" /min cmd /c "cd /d C:\packages\pos-bridge && start-windows.bat"
 ) else if exist "C:\pos-bridge\start-windows.bat" (
     echo [INFO] Pornesc POS Bridge in fundal...
     start "" /min cmd /c "cd /d C:\pos-bridge && start-windows.bat"
 )
+
 
 
 echo.
