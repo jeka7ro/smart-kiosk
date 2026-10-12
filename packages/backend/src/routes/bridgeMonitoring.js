@@ -88,6 +88,40 @@ router.post('/telegram-test', async (req, res) => {
 });
 
 /**
+ * POST /api/bridge-monitoring/telegram-webhook
+ * Receives incoming bot commands from Telegram groups (e.g. /status)
+ */
+router.post('/telegram-webhook', async (req, res) => {
+  try {
+    const update = req.body || {};
+    const message = update.message;
+    if (!message || !message.text) {
+      return res.sendStatus(200);
+    }
+
+    const text = String(message.text || '').trim().toLowerCase();
+    const chatId = message.chat?.id;
+
+    if (text.startsWith('/status') || text === 'status' || text.startsWith('/stare')) {
+      const statusText = bridgeMonitoringService.formatStatusSummaryForTelegram();
+      await bridgeMonitoringService.sendTelegramMessage(statusText, null, chatId);
+    } else if (text.startsWith('/ajutor') || text.startsWith('/help') || text.startsWith('/start')) {
+      const helpText = [
+        `🤖 <b>[SMART KIOSK BOT]</b>`,
+        `Comenzi disponibile:`,
+        `• <b>/status</b> — Afișează starea curentă a tuturor celor 4 kiosk-uri, porturi seriale și imprimante.`,
+      ].join('\n');
+      await bridgeMonitoringService.sendTelegramMessage(helpText, null, chatId);
+    }
+
+    return res.sendStatus(200);
+  } catch (err) {
+    console.error('[TelegramWebhook] Eroare procesare update Telegram:', err.message);
+    return res.sendStatus(200);
+  }
+});
+
+/**
  * POST /api/bridge-monitoring/:locationId/restart-bridge
  * Remotely restarts the POS bridge process on the location PC
  */

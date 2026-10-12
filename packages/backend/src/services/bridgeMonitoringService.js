@@ -51,8 +51,36 @@ async function loadTelegramConfig() {
       };
       console.log('[BridgeMonitor] Telegram config încărcat din DB (enabled:', telegramConfig.enabled, ', pos:', !!telegramConfig.posChatId, ', orders:', !!telegramConfig.ordersChatId, ')');
     }
+    // Auto-register Telegram webhook for incoming /status commands
+    if (telegramConfig.botToken) {
+      registerTelegramWebhook().catch(() => {});
+    }
   } catch (err) {
     console.warn('[BridgeMonitor] Nu s-a putut citi telegram_alerts din DB:', err.message);
+  }
+}
+
+/**
+ * Register incoming webhook with Telegram API
+ */
+async function registerTelegramWebhook(serverBaseUrl = 'https://smart-kiosk-ttut.onrender.com') {
+  if (!telegramConfig.botToken) return;
+  const webhookUrl = `${serverBaseUrl}/api/bridge-monitoring/telegram-webhook`;
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${telegramConfig.botToken}/setWebhook`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url: webhookUrl,
+        drop_pending_updates: true,
+        allowed_updates: ['message']
+      })
+    });
+    const data = await res.json();
+    console.log('[BridgeMonitor] Telegram Webhook registration:', data.ok, data.description || '');
+    return data;
+  } catch (err) {
+    console.warn('[BridgeMonitor] Eroare înregistrare webhook Telegram:', err.message);
   }
 }
 
@@ -627,6 +655,43 @@ function getStatusSummary() {
 }
 
 /**
+ * Format clean summary for /status command reply in Telegram
+ */
+function formatStatusSummaryForTelegram() {
+  const summary = getStatusSummary();
+  const timeStr = formatDateTime();
+
+  const lines = [
+    `📊 <b>[STATUS SISTEM SMART KIOSK]</b>`,
+    `Timp: ${timeStr}`,
+    ``
+  ];
+
+  for (const [k, loc] of Object.entries(summary.locations)) {
+    let dot = '🟢';
+    let statusText = 'Online';
+
+    if (!loc.isBridgeOnline && !loc.isKioskOnline) {
+      dot = '🔴';
+      statusText = 'Offline';
+    } else if (!loc.isBridgeOnline && loc.isKioskOnline) {
+      dot = '🟡';
+      statusText = 'POS Oprit (Ecran activ)';
+    } else if (loc.isBridgeOnline && !loc.isKioskOnline) {
+      dot = '🟡';
+      statusText = 'Ecran Inactiv (POS activ)';
+    }
+
+    lines.push(`${dot} <b>${loc.displayName}</b>: ${statusText}`);
+    lines.push(`   └ Port: ${loc.port} | Imprimanta: ${loc.printerName || 'Nespecificata'}`);
+  }
+
+  lines.push(``);
+  lines.push(`Total: ${summary.totalOnline} POS active / ${summary.totalOffline} offline`);
+  return lines.join('\n');
+}
+
+/**
  * Seed initial state from recent port_scans table so restarted backend doesn't show blank
  */
 async function seedFromRecentScans() {
@@ -683,5 +748,7 @@ module.exports = {
   getStatusSummary,
   seedFromRecentScans,
   formatDateTime,
+  formatStatusSummaryForTelegram,
+  registerTelegramWebhook,
 };
 
