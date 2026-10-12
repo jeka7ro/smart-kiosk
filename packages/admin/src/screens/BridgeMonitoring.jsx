@@ -402,6 +402,26 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
     return result;
   }, [data.locations, kiosksLiveStatus, internalKiosksLive, locationKeys]);
 
+  const sortedLocationKeys = useMemo(() => {
+    const brandOrder = ['smashme', 'crunch', 'rollmaster', 'lovesushi', 'pokiwoki'];
+    return [...locationKeys].sort((a, b) => {
+      const locA = computedLocations[a];
+      const locB = computedLocations[b];
+      const brandA = locA?.brandId || '';
+      const brandB = locB?.brandId || '';
+
+      const idxA = brandOrder.indexOf(brandA);
+      const idxB = brandOrder.indexOf(brandB);
+      const rankA = idxA !== -1 ? idxA : 999;
+      const rankB = idxB !== -1 ? idxB : 999;
+
+      if (rankA !== rankB) {
+        return rankA - rankB;
+      }
+      return (locA?.displayName || a).localeCompare(locB?.displayName || b, 'ro', { numeric: true });
+    });
+  }, [locationKeys, computedLocations]);
+
   const totalOnlineCount = Object.values(computedLocations).filter(l => l.status === 'online').length;
   const totalOfflineCount = locationKeys.length - totalOnlineCount;
 
@@ -498,7 +518,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
 
       {/* Grid Status Locații */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4.5 items-start">
-        {locationKeys.map(locKey => {
+        {sortedLocationKeys.map(locKey => {
           const loc = computedLocations[locKey];
           const isOnline = loc.status === 'online';
           const isExpanded = !!expandedCards[locKey];
