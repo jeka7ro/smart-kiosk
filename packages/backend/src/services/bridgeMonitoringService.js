@@ -27,6 +27,9 @@ let telegramConfig = {
 // Cooldown tracking to prevent Telegram alert spam: locationKey -> lastAlertTimestamp
 const lastAlertSent = new Map();
 
+// Pending disconnect alert timers (grație de 60s pentru a preveni alerte false la fluctuații de rețea)
+const pendingDisconnectTimers = new Map();
+
 // Reference to Socket.IO instance
 let _io = null;
 
@@ -475,22 +478,34 @@ function handleBridgeConnect(socket, { locationId, port, posGateway, printerName
     _io.to('admin').emit('bridge_status_update', getStatusSummary());
   }
 
-  // If it was offline and recovery alerts are enabled, send info to Telegram
-  if (wasOffline && telegramConfig.enabled && prev?.disconnectTime) {
-    const downMinutes = Math.round((now - prev.disconnectTime) / 60000);
-    const msg = [
-      `🟢 <b>[INFO SMART KIOSK]</b>`,
-      `Locatie: ${entry.displayName}`,
-      `Dispozitiv: POS Bridge (start-windows.bat)`,
-      `Stare: RECONECTAT`,
-      `Port: ${entry.port}`,
-      `Gateway: ${entry.gateway}`,
-      `Imprimanta: ${entry.printerName || 'Nespecificata'}`,
-      `Perioada inactivitate: ${downMinutes > 0 ? `${downMinutes} minute` : 'sub 1 minut'}`,
-      `Timp: ${formatDateTime(now)}`,
-    ].join('\n');
+  // Anulează timerul de deconectare dacă bridge-ul s-a reconectat rapid în perioada de grație de 60s
+  if (pendingDisconnectTimers.has(locKey)) {
+    clearTimeout(pendingDisconnectTimers.get(locKey));
+    pendingDisconnectTimers.delete(locKey);
+    console.log(`[BridgeMonitor] Reconectare rapidă în perioada de grație pentru ${locKey}. Alerta de deconectare a fost anulată.`);
+  }
 
-    sendTelegramMessage(msg).catch(e => console.error('[BridgeMonitor] Eroare telegram reconnect:', e.message));
+  // Notificare reconectare doar dacă a fost offline PESTE 1 MINUT (previne mesaje spam la fluctuații rapide)
+  if (wasOffline && telegramConfig.enabled && prev?.disconnectTime) {
+    const downSeconds = Math.round((now - prev.disconnectTime) / 1000);
+    if (downSeconds >= 60) {
+      const downMinutes = Math.round(downSeconds / 60);
+      const msg = [
+        `🟢 <b>[INFO SMART KIOSK]</b>`,
+        `Locatie: ${entry.displayName}`,
+        `Dispozitiv: POS Bridge (start-windows.bat)`,
+        `Stare: RECONECTAT`,
+        `Port: ${entry.port}`,
+        `Gateway: ${entry.gateway}`,
+        `Imprimanta: ${entry.printerName || 'Nespecificata'}`,
+        `Perioada inactivitate: ${downMinutes} minute`,
+        `Timp: ${formatDateTime(now)}`,
+      ].join('\n');
+
+      sendTelegramMessage(msg).catch(e => console.error('[BridgeMonitor] Eroare telegram reconnect:', e.message));
+    } else {
+      console.log(`[BridgeMonitor] Reconectare rapidă (${downSeconds}s) pentru ${locKey}. Omit notificare Telegram (sub 1 minut).`);
+    }
   }
 }
 
@@ -584,17 +599,30 @@ function handleBridgeDisconnect(socketId) {
   const now = Date.now();
   for (const [locKey, b] of bridges.entries()) {
     if (b.socketId === socketId && b.status === 'online') {
-      b.status = 'offline';
       b.disconnectTime = now;
-      recordEvent('DISCONNECT', locKey, `Conexiunea socket s-a intrerupt (sid: ${socketId})`);
-      console.warn(`[BridgeMonitor] POS Bridge DECONECTAT: ${locKey} (${b.displayName})`);
+      recordEvent('DISCONNECT', locKey, `Conexiunea socket s-a întrerupt (sid: ${socketId})`);
+      console.warn(`[BridgeMonitor] Socket deconectat pentru: ${locKey} (${b.displayName}). Aștept 60s grație înainte de alertă...`);
 
-      if (_io) {
-        _io.to('admin').emit('bridge_status_update', getStatusSummary());
+      // Anulează orice timer anterior pe această locație
+      if (pendingDisconnectTimers.has(locKey)) {
+        clearTimeout(pendingDisconnectTimers.get(locKey));
       }
 
-      // Check if Telegram alert should be dispatched
-      triggerDisconnectAlert(locKey, b);
+      // Setează perioada de grație de 60 secunde (previne alertele false la reconectări automate de rețea)
+      const timer = setTimeout(() => {
+        pendingDisconnectTimers.delete(locKey);
+        if (!isBridgeSocketConnected(locKey)) {
+          b.status = 'offline';
+          if (_io) {
+            _io.to('admin').emit('bridge_status_update', getStatusSummary());
+          }
+          triggerDisconnectAlert(locKey, b);
+        } else {
+          console.log(`[BridgeMonitor] ${locKey} este activ prin alt socket. Alerta de deconectare anulată.`);
+        }
+      }, 60000);
+
+      pendingDisconnectTimers.set(locKey, timer);
       break;
     }
   }
@@ -799,6 +827,7 @@ async function runMorningPreflightCheck(targetChatId = null, isManual = false) {
 
   let readyCount = 0;
   const issues = [];
+  const failedLocationKeys = [];
 
   for (const locKey of targetLocations) {
     const loc = summary.locations[locKey] || {};
@@ -811,7 +840,11 @@ async function runMorningPreflightCheck(targetChatId = null, isManual = false) {
 
     const hasDuplicate = bridgeCount > 1 || kioskCount > 1;
     const is100Ready = isBridgeAlive && isKioskAlive && !hasDuplicate;
-    if (is100Ready) readyCount++;
+    if (is100Ready) {
+      readyCount++;
+    } else {
+      failedLocationKeys.push(locKey);
+    }
 
     const dot = is100Ready ? '🟢' : ((isBridgeAlive || isKioskAlive) ? '🟡' : '🔴');
     lines.push(`${dot} <b>${loc.displayName || getLocationDisplayName(locKey)}</b>`);
@@ -879,13 +912,92 @@ async function runMorningPreflightCheck(targetChatId = null, isManual = false) {
     lines.push(``);
     lines.push(`🚨 <b>ACȚIUNI NECESARE ÎNAINTE DE ORA 10:00:</b>`);
     issues.forEach(iss => lines.push(iss));
+    if (!isManual && failedLocationKeys.length > 0) {
+      lines.push(``);
+      lines.push(`🔁 <i>Sistemul va repeta verificarea automat peste 10 minute (la 10:05) pentru locațiile neconectate.</i>`);
+    }
   } else {
     lines.push(`🎉 <b>Toate sistemele sunt funcționale pentru deschiderea de la 10:00!</b>`);
   }
 
   const reportText = lines.join('\n');
   await sendTelegramMessage(reportText, null, destinationChat);
-  return { ok: true, report: reportText };
+
+  // Repetă automat după 10 minute pentru locațiile care nu au fost online
+  if (failedLocationKeys.length > 0 && !isManual) {
+    console.log(`[MorningCheck] ⏳ ${failedLocationKeys.length} locații offline (${failedLocationKeys.join(', ')}). Programez re-verificare automată peste 10 minute...`);
+    setTimeout(() => {
+      runMorningRetryCheck(failedLocationKeys, destinationChat).catch(e => {
+        console.error('[MorningCheckRetry] Eroare la re-verificare:', e.message);
+      });
+    }, 10 * 60 * 1000); // 10 minute
+  }
+
+  return { ok: true, report: reportText, failedLocations: failedLocationKeys };
+}
+
+/**
+ * Retry check at 10:05 (10 minutes after 09:55) strictly for locations that were offline
+ */
+async function runMorningRetryCheck(failedKeys, destinationChat) {
+  if (!failedKeys || failedKeys.length === 0) return;
+  const { dateStr, hour, minute } = getBucharestTime();
+  const timeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+  console.log(`[MorningCheck] 🔁 Rulare re-verificare pentru: ${failedKeys.join(', ')} la ${timeStr}...`);
+
+  // Trimitere impuls de test semnal
+  if (_io) {
+    for (const locKey of failedKeys) {
+      _io.to(`pos-bridge-${locKey}`).emit('test_pos_signal', { locationId: locKey });
+      _io.emit('test_pos_signal', { locationId: locKey });
+    }
+  }
+
+  await new Promise(r => setTimeout(r, 2500));
+
+  const summary = getStatusSummary();
+
+  const lines = [
+    `⏰ <b>[RE-VERIFICARE MATINALĂ — ${timeStr}]</b>`,
+    `<i>Verificare automată la 10 minute după deschidere pentru locațiile restante</i>`,
+    ``
+  ];
+
+  let stillFailedCount = 0;
+
+  for (const locKey of failedKeys) {
+    const loc = summary.locations[locKey] || {};
+    const isBridgeAlive = isBridgeSocketConnected(locKey);
+    const isKioskAlive = isKioskSocketConnected(locKey);
+    const bridgeCount = getBridgeSocketCount(locKey);
+    const kioskCount = getKioskSocketCount(locKey);
+
+    const is100Ready = isBridgeAlive && isKioskAlive && bridgeCount === 1 && kioskCount <= 1;
+
+    if (is100Ready) {
+      lines.push(`🟢 <b>${loc.displayName || getLocationDisplayName(locKey)}</b>: S-a conectat cu succes!`);
+      lines.push(`   └ 💳 POS: Activ pe ${loc.port || 'COM'} • 🖥️ Ecran Kiosk: Activ`);
+    } else {
+      stillFailedCount++;
+      lines.push(`🔴 <b>${loc.displayName || getLocationDisplayName(locKey)}</b>: În continuare DECONECTAT!`);
+      if (!isBridgeAlive && !isKioskAlive) {
+        lines.push(`   └ ⚠️ PC-ul este oprit complet sau nu are internet.`);
+      } else if (!isBridgeAlive) {
+        lines.push(`   └ ⚠️ POS Bridge este oprit (start-windows.bat).`);
+      } else if (!isKioskAlive) {
+        lines.push(`   └ ⚠️ Ecranul Kiosk este închis.`);
+      }
+    }
+    lines.push(``);
+  }
+
+  if (stillFailedCount > 0) {
+    lines.push(`🚨 <b>Atenție:</b> ${stillFailedCount} locație(i) nu au pornit chioșcul. Contactați personalul din restaurant!`);
+  } else {
+    lines.push(`🎉 <b>Excelent! Toate locațiile sunt acum 100% active și funcționale!</b>`);
+  }
+
+  await sendTelegramMessage(lines.join('\n'), null, destinationChat);
 }
 
 // Verificare automata orar zilnic la 09:55 Europe/Bucharest

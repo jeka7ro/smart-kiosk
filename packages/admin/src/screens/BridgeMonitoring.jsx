@@ -663,40 +663,6 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
             </span>
           </div>
 
-          {/* Buton Verificare Matinală (09:55) */}
-          <button
-            type="button"
-            onClick={async () => {
-              setActionLoading('morning-check');
-              try {
-                const res = await fetch(`${backend}/api/bridge-monitoring/trigger-morning-check`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': 'sk-live-2024-secure',
-                  },
-                });
-                const j = await res.json();
-                if (res.ok && j.ok) {
-                  setActionFeedback({ type: 'success', text: 'Raportul matinal de verificare a fost generat și trimis pe grupul de alerte Telegram!' });
-                } else {
-                  setActionFeedback({ type: 'error', text: j.error || 'Eroare la generarea raportului' });
-                }
-              } catch (err) {
-                setActionFeedback({ type: 'error', text: err.message });
-              } finally {
-                setActionLoading(null);
-                setTimeout(() => setActionFeedback(null), 5000);
-              }
-            }}
-            disabled={actionLoading === 'morning-check'}
-            title="Generează și trimite pe Telegram verificarea completă de deschidere (semnal POS, ecran, duplicate)"
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-100 bg-amber-100/80 hover:bg-amber-200/80 dark:bg-amber-950/60 dark:hover:bg-amber-900/60 border border-amber-300/80 dark:border-amber-700/80 shadow-xs active:scale-95 transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap shrink-0"
-          >
-            <ShieldCheck className={`w-3.5 h-3.5 text-amber-600 dark:text-amber-400 ${actionLoading === 'morning-check' ? 'animate-pulse' : ''} shrink-0`} />
-            <span className="whitespace-nowrap">Verificare Matinală (09:55)</span>
-          </button>
-
           {/* Buton Global Actualizează Toate Kiosk-urile */}
           <button
             type="button"
