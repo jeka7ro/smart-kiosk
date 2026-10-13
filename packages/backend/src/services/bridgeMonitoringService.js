@@ -794,12 +794,16 @@ function getBridgeSocketCount(locKey) {
     const { getLocationAliases } = require('../utils/locations');
     const aliases = getLocationAliases(locKey) || [];
     const checkKeys = Array.from(new Set([locKey, ...aliases]));
-    let count = 0;
+    const uniqueSockets = new Set();
     for (const k of checkKeys) {
       const room = _io.sockets.adapter.rooms.get(`pos-bridge-${k}`);
-      if (room) count += room.size;
+      if (room) {
+        for (const sid of room) {
+          uniqueSockets.add(sid);
+        }
+      }
     }
-    return count;
+    return uniqueSockets.size;
   } catch (_) {
     return 0;
   }
@@ -813,13 +817,15 @@ function getKioskSocketCount(locKey) {
     const { getLocationAliases } = require('../utils/locations');
     const aliases = getLocationAliases(locKey) || [];
     const checkKeys = Array.from(new Set([locKey, ...aliases]));
-    let count = 0;
+    const uniqueDevices = new Set();
     for (const k of checkKeys) {
-      if (summary[k] && summary[k].onlineCount) {
-        count += summary[k].onlineCount;
+      if (summary[k] && Array.isArray(summary[k].devices)) {
+        for (const dev of summary[k].devices) {
+          if (dev.socketId) uniqueDevices.add(dev.socketId);
+        }
       }
     }
-    return count;
+    return uniqueDevices.size;
   } catch (_) {
     return 0;
   }
@@ -844,16 +850,10 @@ async function runMorningPreflightCheck(targetChatId = null, isManual = false) {
 
   const targetLocations = ['cluj1', 'cluj2', 'sm-brasov', 'constanta1'];
 
-  // 1. Declanșăm testul semnalului POS pe toate bridge-urile conectate
+  // 1. Declanșăm testul semnalului POS pe toate bridge-urile conectate (o singură dată per locație)
   if (_io) {
     for (const locKey of targetLocations) {
-      const { getLocationAliases } = require('../utils/locations');
-      const aliases = getLocationAliases(locKey) || [];
-      const targets = Array.from(new Set([locKey, ...aliases]));
-      for (const tid of targets) {
-        _io.to(`pos-bridge-${tid}`).emit('test_pos_signal', { locationId: tid });
-      }
-      _io.emit('test_pos_signal', { locationId: locKey });
+      _io.to(`pos-bridge-${locKey}`).emit('test_pos_signal', { locationId: locKey });
     }
   }
 
@@ -1019,11 +1019,10 @@ async function runMorningRetryCheck(failedKeys, destinationChat) {
   const timeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
   console.log(`[MorningCheck] 🔁 Rulare re-verificare pentru: ${failedKeys.join(', ')} la ${timeStr}...`);
 
-  // Trimitere impuls de test semnal
+  // Trimitere impuls de test semnal (o singură dată per locație)
   if (_io) {
     for (const locKey of failedKeys) {
       _io.to(`pos-bridge-${locKey}`).emit('test_pos_signal', { locationId: locKey });
-      _io.emit('test_pos_signal', { locationId: locKey });
     }
   }
 

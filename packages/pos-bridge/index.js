@@ -362,6 +362,11 @@ function testPosSignal() {
     return;
   }
 
+  if (state === 'WAIT_ENQ_ACK__TEST_SIGNAL' || (posSignalTestStartTime && Date.now() - posSignalTestStartTime < 2000)) {
+    log('📡 [POS Signal] Test semnal deja în curs sau executat recent. Ignor apelul duplicat.');
+    return;
+  }
+
   if (state !== 'IDLE' || currentTransactionResolve) {
     const msg = `POS ocupat în starea ${state}`;
     log(`📡 [POS Signal] ⚠️ ${msg}`);
