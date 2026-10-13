@@ -28,6 +28,24 @@ import BrandLogo from '../components/BrandLogo.jsx';
 
 const UNIVERSAL_COMMAND = 'cmd /c "mkdir C:\\SmartKiosk 2>nul & cd /d C:\\SmartKiosk & curl -s -L -o setup.bat https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/setup_kiosk_autostart.bat & setup.bat"';
 
+function formatDateTime(val) {
+  if (!val) return '—';
+  try {
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return String(val);
+    return d.toLocaleString('ro-RO', {
+      timeZone: 'Europe/Bucharest',
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+  } catch (_) {
+    return String(val);
+  }
+}
+
 export default function BridgeMonitoring({ backend = '', socket = null, kiosksLiveStatus = {} }) {
   const [data, setData] = useState({
     locations: {},
