@@ -508,6 +508,24 @@ function handleBridgeConnect(socket, { locationId, port, posGateway, printerName
       console.log(`[BridgeMonitor] Reconectare rapidă (${downSeconds}s) pentru ${locKey}. Omit notificare Telegram (sub 1 minut).`);
     }
   }
+
+  // Auto-verificare live a semnalului POS pe bune la conectarea bridge-ului (dacă locația are POS activat)
+  if (isPosEnabled(locKey) && _io) {
+    const lastTested = entry.posSignal?.testedAt || 0;
+    if (now - lastTested > 3 * 60 * 1000) {
+      setTimeout(() => {
+        try {
+          const { getLocationAliases } = require('../utils/locations');
+          const aliases = getLocationAliases ? getLocationAliases(locKey) : [locKey];
+          const targets = new Set([locKey, ...aliases].filter(Boolean));
+          for (const tid of targets) {
+            _io.to(`pos-bridge-${tid}`).emit('test_pos_signal', { locationId: tid });
+          }
+          console.log(`[BridgeMonitor] 📡 Auto-test live semnal POS inițiat la conectare pentru ${locKey}`);
+        } catch (_) {}
+      }, 3000);
+    }
+  }
 }
 
 /**
@@ -1303,6 +1321,8 @@ function getStatusSummary() {
         hostname: b?.hostname || '',
         expectedHardware: EXPECTED_PHYSICAL_HARDWARE[locKey] || null,
         posSignal: b?.posSignal || null,
+        isPosEnabled: isPosEnabled(locKey),
+        isCashOnly: !isPosEnabled(locKey),
       };
     });
 
@@ -1518,6 +1538,39 @@ async function seedFromRecentScans() {
       });
     });
     console.log(`[BridgeMonitor] Inițializat starea a ${bridges.size} bridge-uri din scanările anterioare.`);
+
+    // Pre-încărcare din pos_signal_logs pentru a nu afișa niciodată „Netestat” după restartul backend-ului
+    try {
+      const { rows: sigRows } = await pool.query(
+        `SELECT DISTINCT ON (location_id) location_id, latency_ms, success, message, tested_at
+         FROM pos_signal_logs
+         ORDER BY location_id, tested_at DESC`
+      );
+      sigRows.forEach(s => {
+        const locKey = normalizeLocationKey(s.location_id);
+        const sigObj = {
+          success: !!s.success,
+          latencyMs: s.latency_ms,
+          message: s.message || (s.success ? 'Activ' : 'Eșuat'),
+          testedAt: new Date(s.tested_at).getTime(),
+        };
+        let b = bridges.get(locKey);
+        if (b) {
+          b.posSignal = sigObj;
+        } else {
+          b = {
+            locationId: locKey,
+            displayName: getLocationDisplayName(locKey),
+            status: isBridgeSocketConnected(locKey) ? 'online' : 'offline',
+            posSignal: sigObj,
+          };
+          bridges.set(locKey, b);
+        }
+      });
+      console.log(`[BridgeMonitor] Pre-încărcat istoricul semnalului POS pentru ${sigRows.length} locații.`);
+    } catch (sigErr) {
+      console.warn('[BridgeMonitor] Nu s-au putut pre-încărca pos_signal_logs:', sigErr.message);
+    }
   } catch (err) {
     console.warn('[BridgeMonitor] Nu s-au putut pre-încărca port_scans:', err.message);
   }

@@ -847,6 +847,10 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 animate-pulse border border-amber-300 dark:border-amber-700">
                           🟡 Se testează...
                         </span>
+                      ) : (loc.isCashOnly || loc.isPosEnabled === false) ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/60">
+                          Inactiv (Doar Cash 💵)
+                        </span>
                       ) : loc.posSignal ? (
                         <button
                           type="button"

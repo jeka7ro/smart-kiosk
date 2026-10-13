@@ -359,14 +359,19 @@ function initSocket(io) {
 
       socket._posLocationId = locationId;
 
-      // Deconectează orice socket POS Bridge anterior / duplicat pentru aceeași locație
+      // Elimină din camere orice socket POS Bridge anterior / duplicat pentru aceeași locație fără a rupe agresiv conexiunea (previne bucla infinită de reconectare)
       if (locationId) {
         try {
           const roomSockets = await io.in(`pos-bridge-${locationId}`).fetchSockets();
+          const { getLocationAliases } = require('../utils/locations');
+          const aliases = getLocationAliases(locationId) || [];
           for (const s of roomSockets) {
             if (s.id !== socket.id) {
-              console.log(`[Socket] ⚠️ Deconectez socket POS Bridge anterior duplicat pentru ${locationId} (sid: ${s.id})`);
-              s.disconnect(true);
+              console.log(`[Socket] ⚠️ Elimin socket POS Bridge anterior din camera ${locationId} (sid: ${s.id})`);
+              s.leave(`pos-bridge-${locationId}`);
+              for (const a of aliases) {
+                s.leave(`pos-bridge-${a}`);
+              }
             }
           }
         } catch (e) {
