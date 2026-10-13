@@ -842,20 +842,15 @@ async function start() {
                 ensurePosLogin().catch(e => log(`⚠️ Eroare login POS după reconectare: ${e.message}`));
               }, 1000);
             } else {
-              log(`⚠️ Re-deschidere port eșuată: ${openErr.message}`);
-              if (retryCount >= 6) {
-                // Dacă portul nu mai revine timp de 30 secunde, repornim procesul
-                // pentru ca start-windows.bat să re-scaneze toate porturile USB
-                clearInterval(reconnectInterval);
-                log(`🔄 Portul nu revine. Repornesc procesul pentru re-scanare automată COM...`);
-                process.exit(1);
+              if (retryCount % 6 === 0) {
+                log(`⚠️ Portul serial ${portPath} rămâne indisponibil (${openErr.message}). Continui reîncercările în fundal fără oprirea bridge-ului.`);
               }
             }
           });
         } else {
           clearInterval(reconnectInterval);
         }
-      }, 5000);
+      }, 10000);
     });
 
     globalPort.on('error', err => {
