@@ -1,14 +1,29 @@
 /**
  * scan_port_pc.js — Scaneaza porturile COM si imprimantele instalate pe PC
  * Returneaza un obiect cu toate informatiile hardware gasite.
+ * COMPLET ASINCRON: Nu blocheaza niciodata firul Node.js / ping-ul Socket.IO.
  */
-const { execSync } = require('child_process');
+const { exec } = require('child_process');
 const { SerialPort } = require('serialport');
+
+function execAsync(cmd, timeoutMs = 3000) {
+  return new Promise((resolve) => {
+    try {
+      exec(cmd, { timeout: timeoutMs, windowsHide: true }, (err, stdout) => {
+        if (err) return resolve('');
+        resolve(String(stdout || '').trim());
+      });
+    } catch (_) {
+      resolve('');
+    }
+  });
+}
 
 async function scanPortsPc() {
   const result = {
     comPorts: [],
     printers: [],
+    printJobs: [],
     hostname: '',
     os: '',
     scanDate: new Date().toISOString(),
@@ -39,28 +54,34 @@ async function scanPortsPc() {
     console.error(`[Scan] Eroare la scanare porturi COM:`, e.message);
   }
 
-  // ─── PRINTERS (Windows PowerShell) ────────────────
+  // ─── PRINTERS (Windows PowerShell Asincron) ───────
   try {
     const psCmd = `Get-Printer | Select-Object Name, DriverName, PortName, PrinterStatus, Shared | ConvertTo-Json -Compress`;
-    const raw = execSync(`powershell -NoProfile -ExecutionPolicy Bypass -Command "${psCmd}"`, { timeout: 4000, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
-    
+    let raw = await execAsync(`powershell -NoProfile -ExecutionPolicy Bypass -Command "${psCmd}"`, 3000);
+
     let parsed = [];
-    try {
-      parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) parsed = [parsed]; // single printer = object
-    } catch (_) {
-      // fallback: try wmic
+    if (raw) {
       try {
-        const wmicRaw = execSync('wmic printer get Name,PortName,DriverName /format:csv', { timeout: 4000, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
-        const lines = wmicRaw.split('\n').filter(l => l.trim() && !l.startsWith('Node'));
-        parsed = lines.map(line => {
-          const parts = line.split(',');
-          return { DriverName: parts[1] || '', Name: parts[2] || '', PortName: parts[3] || '' };
-        });
+        parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) parsed = [parsed];
+      } catch (_) {}
+    }
+
+    if (!parsed || parsed.length === 0) {
+      // fallback: try wmic asincron
+      try {
+        const wmicRaw = await execAsync('wmic printer get Name,PortName,DriverName /format:csv', 2000);
+        if (wmicRaw) {
+          const lines = wmicRaw.split('\n').filter(l => l.trim() && !l.startsWith('Node'));
+          parsed = lines.map(line => {
+            const parts = line.split(',');
+            return { DriverName: parts[1] || '', Name: parts[2] || '', PortName: parts[3] || '' };
+          });
+        }
       } catch (__) {}
     }
 
-    result.printers = parsed.map(p => ({
+    result.printers = (parsed || []).map(p => ({
       name: p.Name || '',
       driver: p.DriverName || '',
       port: p.PortName || '',
@@ -76,17 +97,21 @@ async function scanPortsPc() {
     console.error(`[Scan] Eroare la scanare imprimante:`, e.message);
   }
 
-  // ─── PRINT QUEUE & PAUSED STATUS ──────────────────
+  // ─── PRINT QUEUE & PAUSED STATUS (Asincron) ───────
   try {
     const qCmd = `Get-Printer -ErrorAction SilentlyContinue | ForEach-Object { Get-PrintJob -PrinterName $_.Name -ErrorAction SilentlyContinue } | Select-Object Id, PrinterName, JobStatus, DocumentName | ConvertTo-Json -Compress`;
-    const qRaw = execSync(`powershell -NoProfile -Command "${qCmd}"`, { timeout: 6000 }).toString().trim();
+    const qRaw = await execAsync(`powershell -NoProfile -Command "${qCmd}"`, 2500);
     if (qRaw) {
-      const qParsed = JSON.parse(qRaw);
-      result.printJobs = Array.isArray(qParsed) ? qParsed : [qParsed];
-      console.log(`[Scan] ⚠️ Joburi blocate în coada Windows: ${result.printJobs.length}`);
-      result.printJobs.forEach(j => {
-        console.log(`   → Job #${j.Id} pe "${j.PrinterName}": status="${j.JobStatus}", doc="${j.DocumentName}"`);
-      });
+      try {
+        const qParsed = JSON.parse(qRaw);
+        result.printJobs = Array.isArray(qParsed) ? qParsed : [qParsed];
+        console.log(`[Scan] ⚠️ Joburi blocate în coada Windows: ${result.printJobs.length}`);
+        result.printJobs.forEach(j => {
+          console.log(`   → Job #${j.Id} pe "${j.PrinterName}": status="${j.JobStatus}", doc="${j.DocumentName}"`);
+        });
+      } catch (_) {
+        result.printJobs = [];
+      }
     } else {
       result.printJobs = [];
       console.log('[Scan] ✅ Coada Windows este liberă (0 joburi blocate).');

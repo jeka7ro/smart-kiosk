@@ -669,6 +669,8 @@ async function start() {
   log(`Locație:     ${LOCATION_ID}`);
   log('════════════════════════════════════════════');
 
+  let cachedScanData = null;
+
   socket.on('connect', async () => {
     log(`✅ Conectat la Render (${socket.id})`);
     socket.emit('pos_bridge_register', { 
@@ -679,9 +681,12 @@ async function start() {
       hostname: require('os').hostname(),
     });
 
-    // ─── Port/Printer Scan ───────────────────────────────────────────────────
+    // ─── Port/Printer Scan (Executat o singură dată la pornire, refolosit la reconectări) ───
     try {
-      const scanData = await scanPortsPc();
+      if (!cachedScanData) {
+        cachedScanData = await scanPortsPc();
+      }
+      const scanData = cachedScanData || {};
       const actualPrinter = typeof getActualPrinterName === 'function' ? getActualPrinterName() : (process.env.PRINTER_NAME || 'EPSON TM-T20III Receipt6');
       const validPrinters = (scanData.printers || []).filter(p => {
         const name = (p.name || p.Name || '').toLowerCase();
@@ -1499,6 +1504,7 @@ async function start() {
       await fetchFile('index.js');
       await fetchFile('printer.js');
       await fetchFile('rawprint.ps1');
+      await fetchFile('scan_port_pc.js');
       await fetchFile('start-windows.bat');
     } catch (e) {
       log(`⚠️ Eroare descărcare update: ${e.message}`);
