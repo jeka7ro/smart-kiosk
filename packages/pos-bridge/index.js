@@ -670,7 +670,8 @@ async function start() {
       locationId: LOCATION_ID, 
       port: portPath || `VIVA_${VIVA_POS_IP}`,
       posGateway: POS_GATEWAY,
-      posWakeStandby: posWakeStandbyEnabled
+      posWakeStandby: posWakeStandbyEnabled,
+      hostname: require('os').hostname(),
     });
 
     // ─── Port/Printer Scan ───────────────────────────────────────────────────
@@ -766,6 +767,7 @@ async function start() {
             posGateway: POS_GATEWAY,
             uptime: Math.round(process.uptime()),
             posWakeStandby: posWakeStandbyEnabled,
+            hostname: require('os').hostname(),
           });
         }
       }, 20000);
@@ -1569,6 +1571,7 @@ async function start() {
             posGateway: POS_GATEWAY,
             uptime: Math.round(process.uptime()),
             posWakeStandby: posWakeStandbyEnabled,
+            hostname: require('os').hostname(),
           });
         }
       }

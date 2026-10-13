@@ -38,6 +38,15 @@ async function addPortScan(entry) {
       ]
     );
     console.log(`[Port Scan] ✅ Saved: ${log.location_id} | ${log.hostname} | ${log.com_ports.length} COM | ${log.printers.length} printers`);
+    try {
+      const bridgeMonitoringService = require('../services/bridgeMonitoringService');
+      bridgeMonitoringService.updateBridgeHardware(log.location_id, {
+        hostname: log.hostname,
+        port: log.pos_port,
+        posGateway: log.pos_gateway,
+        printerName: log.printer_name,
+      });
+    } catch (_) {}
   } catch (err) {
     console.error(`[Port Scan] ❌ Failed to save:`, err.message);
   }

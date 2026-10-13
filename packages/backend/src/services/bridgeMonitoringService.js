@@ -441,8 +441,8 @@ function getLocationDisplayName(locKey) {
 /**
  * Called when a POS Bridge connects and registers
  */
-function handleBridgeConnect(socket, { locationId, port, posGateway, printerName, posWakeStandby }) {
-  if ((locationId === 'sm-brasov' || !locationId) && (port === 'COM1' || String(printerName).includes('TM-T20III'))) {
+function handleBridgeConnect(socket, { locationId, port, posGateway, printerName, hostname, posWakeStandby }) {
+  if ((locationId === 'sm-brasov' || !locationId) && (port === 'COM1' || String(printerName).includes('TM-T20III') || hostname === 'DESKTOP-VNTDBO0')) {
     locationId = 'cluj2';
   }
   const locKey = normalizeLocationKey(locationId);
@@ -457,6 +457,7 @@ function handleBridgeConnect(socket, { locationId, port, posGateway, printerName
     port: port || prev?.port || '?',
     gateway: posGateway || prev?.gateway || 'raiffeisen',
     printerName: printerName || prev?.printerName || '',
+    hostname: hostname || prev?.hostname || '',
     status: 'online',
     lastPing: now,
     connectedAt: now,
@@ -523,12 +524,28 @@ function handleBridgeHeartbeat(socket, data) {
     if (data?.port) entry.port = data.port;
     if (data?.printerName) entry.printerName = data.printerName;
     if (data?.posGateway) entry.gateway = data.posGateway;
+    if (data?.hostname) entry.hostname = data.hostname;
     if (typeof data?.uptime === 'number') entry.uptimeSeconds = data.uptime;
     if (data?.posWakeStandby !== undefined) entry.posWakeStandby = !!data.posWakeStandby;
     entry.socketId = socket.id;
   } else {
     // Auto-register if missed
     handleBridgeConnect(socket, data || { locationId: locKey });
+  }
+}
+
+/**
+ * Updates physical hardware characteristics when detected via port scan or heartbeat
+ */
+function updateBridgeHardware(locationId, { hostname, port, posGateway, printerName }) {
+  if (!locationId) return;
+  const locKey = normalizeLocationKey(locationId);
+  const entry = bridges.get(locKey);
+  if (entry) {
+    if (hostname) entry.hostname = hostname;
+    if (port) entry.port = port;
+    if (posGateway) entry.gateway = posGateway;
+    if (printerName) entry.printerName = printerName;
   }
 }
 
@@ -664,6 +681,36 @@ const DEFAULT_BRIDGE_CONFIGS = {
   cluj2: { port: 'COM1', gateway: 'raiffeisen', printerName: 'EPSON TM-T20III' },
   'sm-brasov': { port: 'COM3', gateway: 'raiffeisen', printerName: 'EPSON TM-T20' },
   constanta1: { port: 'COM7', gateway: 'raiffeisen', printerName: 'XP-80' },
+};
+
+/**
+ * Amprente fizice hardware cunoscute per restaurant (pentru a detecta dacă cineva a copiat .env de la altă sală)
+ */
+const EXPECTED_PHYSICAL_HARDWARE = {
+  cluj1: {
+    expectedHostname: 'DESKTOP-44PEN14',
+    expectedPort: 'COM4',
+    printerName: 'EPSON TM-T20',
+    locationName: 'SmashMe Centru (Cluj 1)',
+  },
+  cluj2: {
+    expectedHostname: 'DESKTOP-VNTDBO0',
+    expectedPort: 'COM1',
+    printerName: 'EPSON TM-T20III',
+    locationName: 'SmashMe CJ-2 (Cluj 2)',
+  },
+  'sm-brasov': {
+    expectedHostname: 'DESKTOP-FT5PA0E',
+    expectedPort: 'COM3',
+    printerName: 'EPSON TM-T20',
+    locationName: 'RollMaster Brașov',
+  },
+  constanta1: {
+    expectedHostname: 'DESKTOP-19BUSUH',
+    expectedPort: 'COM7',
+    printerName: 'XP-80',
+    locationName: 'SmashMe Constanța 1',
+  },
 };
 
 /**
@@ -839,7 +886,31 @@ async function runMorningPreflightCheck(targetChatId = null, isManual = false) {
     const kioskCount = getKioskSocketCount(locKey);
 
     const hasDuplicate = bridgeCount > 1 || kioskCount > 1;
-    const is100Ready = isBridgeAlive && isKioskAlive && !hasDuplicate;
+
+    // Verificare .env vs PC Fizic (Hostname, Port)
+    const expected = EXPECTED_PHYSICAL_HARDWARE[locKey];
+    const actualHost = b?.hostname || loc.hostname;
+    let hardwareMismatch = false;
+    let hardwareDetail = '';
+
+    if (actualHost && expected) {
+      if (actualHost.toUpperCase() === expected.expectedHostname.toUpperCase()) {
+        hardwareDetail = `PC: <code>${actualHost}</code> (Fizic Corect ✅)`;
+      } else {
+        hardwareMismatch = true;
+        // Identificăm unde ar trebui să fie de fapt acest PC
+        const realOwnerKey = Object.keys(EXPECTED_PHYSICAL_HARDWARE).find(
+          k => EXPECTED_PHYSICAL_HARDWARE[k].expectedHostname.toUpperCase() === actualHost.toUpperCase()
+        );
+        const realOwnerName = realOwnerKey ? EXPECTED_PHYSICAL_HARDWARE[realOwnerKey].locationName : 'Alt PC necunoscut';
+        hardwareDetail = `🚨 <b>NEPOTRIVIRE .ENV!</b> (PC: <code>${actualHost}</code> de la ${realOwnerName})`;
+        issues.push(`• <b>${loc.displayName || locKey}:</b> 🚨 <b>EROARE GRAVĂ CONFIGURARE .ENV!</b> PC-ul fizic (<code>${actualHost}</code>) aparține locației <b>${realOwnerName}</b>, dar în fișierul .env este setat <code>${locKey}</code>! Comenzile vor fi direcționate eronat!`);
+      }
+    } else if (actualHost) {
+      hardwareDetail = `PC: <code>${actualHost}</code>`;
+    }
+
+    const is100Ready = isBridgeAlive && isKioskAlive && !hasDuplicate && !hardwareMismatch;
     if (is100Ready) {
       readyCount++;
     } else {
@@ -887,6 +958,9 @@ async function runMorningPreflightCheck(targetChatId = null, isManual = false) {
     // Verificare .env & Procese duplicate
     const sysChecks = [];
     sysChecks.push('Server: <code>ttut.onrender.com</code>');
+    if (hardwareDetail) {
+      sysChecks.push(hardwareDetail);
+    }
 
     if (bridgeCount > 1) {
       sysChecks.push(`⚠️ <b>${bridgeCount} procese Bridge duplicate!</b>`);
@@ -972,14 +1046,27 @@ async function runMorningRetryCheck(failedKeys, destinationChat) {
     const bridgeCount = getBridgeSocketCount(locKey);
     const kioskCount = getKioskSocketCount(locKey);
 
-    const is100Ready = isBridgeAlive && isKioskAlive && bridgeCount === 1 && kioskCount <= 1;
+    const b = bridges.get(locKey);
+    const expected = EXPECTED_PHYSICAL_HARDWARE[locKey];
+    const actualHost = b?.hostname || loc.hostname;
+    let hardwareMismatch = false;
+    if (actualHost && expected && actualHost.toUpperCase() !== expected.expectedHostname.toUpperCase()) {
+      hardwareMismatch = true;
+    }
+
+    const is100Ready = isBridgeAlive && isKioskAlive && bridgeCount === 1 && kioskCount <= 1 && !hardwareMismatch;
 
     if (is100Ready) {
+      const hostStr = actualHost ? ` • PC: <code>${actualHost}</code> ✅` : '';
       lines.push(`🟢 <b>${loc.displayName || getLocationDisplayName(locKey)}</b>: S-a conectat cu succes!`);
-      lines.push(`   └ 💳 POS: Activ pe ${loc.port || 'COM'} • 🖥️ Ecran Kiosk: Activ`);
+      lines.push(`   └ 💳 POS: Activ pe ${loc.port || 'COM'} • 🖥️ Ecran Kiosk: Activ${hostStr}`);
     } else {
       stillFailedCount++;
-      lines.push(`🔴 <b>${loc.displayName || getLocationDisplayName(locKey)}</b>: În continuare DECONECTAT!`);
+      if (hardwareMismatch) {
+        lines.push(`🚨 <b>${loc.displayName || getLocationDisplayName(locKey)}</b>: Conectat dar cu .ENV GREȘIT! PC fizic necorespunzător.`);
+      } else {
+        lines.push(`🔴 <b>${loc.displayName || getLocationDisplayName(locKey)}</b>: În continuare DECONECTAT!`);
+      }
       if (!isBridgeAlive && !isKioskAlive) {
         lines.push(`   └ ⚠️ PC-ul este oprit complet sau nu are internet.`);
       } else if (!isBridgeAlive) {
@@ -1136,6 +1223,8 @@ function getStatusSummary() {
           } catch (_) {}
           return b?.posWakeStandby !== undefined ? b.posWakeStandby : (locKey === 'sm-brasov');
         })(),
+        hostname: b?.hostname || '',
+        expectedHardware: EXPECTED_PHYSICAL_HARDWARE[locKey] || null,
         posSignal: b?.posSignal || null,
       };
     });
@@ -1310,7 +1399,7 @@ async function formatPinSummaryForTelegram() {
 async function seedFromRecentScans() {
   try {
     const { rows } = await pool.query(
-      `SELECT DISTINCT ON (location_id) location_id, pos_port, pos_gateway, printer_name, created_at
+      `SELECT DISTINCT ON (location_id) location_id, pos_port, pos_gateway, printer_name, hostname, created_at
        FROM port_scans
        ORDER BY location_id, created_at DESC`
     );
@@ -1330,6 +1419,7 @@ async function seedFromRecentScans() {
         port: r.pos_port || defaults.port || '?',
         gateway: r.pos_gateway || defaults.gateway || 'raiffeisen',
         printerName: r.printer_name || defaults.printerName || '',
+        hostname: r.hostname || '',
         status: (isSocketAlive || wasSeenToday) ? 'online' : 'offline',
         lastPing: scanTime,
         connectedAt: scanTime,
@@ -1394,6 +1484,7 @@ module.exports = {
   runMorningPreflightCheck,
   registerTelegramWebhook,
   updateLocationConfig,
+  updateBridgeHardware,
 };
 
 
