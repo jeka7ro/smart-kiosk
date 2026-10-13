@@ -850,10 +850,29 @@ async function runMorningPreflightCheck(targetChatId = null, isManual = false) {
 
   const targetLocations = ['cluj1', 'cluj2', 'sm-brasov', 'constanta1'];
 
-  // 1. Declanșăm testul semnalului POS pe toate bridge-urile conectate (o singură dată per locație)
+  const dbLocs = await getDbLocationsList();
+
+  // 1. Declanșăm testul semnalului POS doar pe bridge-urile unde POS-ul este activat în setările sălii
   if (_io) {
     for (const locKey of targetLocations) {
-      _io.to(`pos-bridge-${locKey}`).emit('test_pos_signal', { locationId: locKey });
+      const cfg = dbLocs.find(l => 
+        l.id === locKey || 
+        l.kioskUrl === locKey || 
+        (Array.isArray(l.aliases) && l.aliases.includes(locKey)) ||
+        (locKey === 'constanta1' && (l.id === 'smashme-constanta' || l.name?.toLowerCase().includes('constanta'))) ||
+        (locKey === 'sm-brasov' && (l.id === 'rollmaster' || l.name?.toLowerCase().includes('brasov'))) ||
+        (locKey === 'cluj1' && (l.id === 'smashme-main' || l.name?.toLowerCase().includes('centru'))) ||
+        (locKey === 'cluj2' && (l.id === 'cluj2' || l.name?.toLowerCase().includes('cj-2')))
+      );
+      const isPosEnabled = Boolean(
+        cfg &&
+        cfg.paymentMode !== 'cash_only' &&
+        !cfg.cashOnly &&
+        cfg.paymentGateway !== 'none'
+      );
+      if (isPosEnabled) {
+        _io.to(`pos-bridge-${locKey}`).emit('test_pos_signal', { locationId: locKey });
+      }
     }
   }
 
@@ -887,6 +906,25 @@ async function runMorningPreflightCheck(targetChatId = null, isManual = false) {
 
     const hasDuplicate = bridgeCount > 1 || kioskCount > 1;
 
+    const cfg = dbLocs.find(l => 
+      l.id === locKey || 
+      l.kioskUrl === locKey || 
+      (Array.isArray(l.aliases) && l.aliases.includes(locKey)) ||
+      (locKey === 'constanta1' && (l.id === 'smashme-constanta' || l.name?.toLowerCase().includes('constanta'))) ||
+      (locKey === 'sm-brasov' && (l.id === 'rollmaster' || l.name?.toLowerCase().includes('brasov'))) ||
+      (locKey === 'cluj1' && (l.id === 'smashme-main' || l.name?.toLowerCase().includes('centru'))) ||
+      (locKey === 'cluj2' && (l.id === 'cluj2' || l.name?.toLowerCase().includes('cj-2')))
+    );
+
+    // Verificăm dacă POS-ul este activat în setările sălii
+    // Dacă paymentMode este 'cash_only' sau cashOnly e true sau paymentGateway e 'none', POS-ul este decuplat / dezactivat intenționat!
+    const isPosEnabled = Boolean(
+      cfg &&
+      cfg.paymentMode !== 'cash_only' &&
+      !cfg.cashOnly &&
+      cfg.paymentGateway !== 'none'
+    );
+
     // Verificare .env vs PC Fizic (Hostname, Port)
     const expected = EXPECTED_PHYSICAL_HARDWARE[locKey];
     const actualHost = b?.hostname || loc.hostname;
@@ -910,7 +948,8 @@ async function runMorningPreflightCheck(targetChatId = null, isManual = false) {
       hardwareDetail = `PC: <code>${actualHost}</code>`;
     }
 
-    const is100Ready = isBridgeAlive && isKioskAlive && !hasDuplicate && !hardwareMismatch;
+    const isPosReady = !isPosEnabled || isBridgeAlive;
+    const is100Ready = isKioskAlive && isPosReady && !hasDuplicate && !hardwareMismatch;
     if (is100Ready) {
       readyCount++;
     } else {
@@ -932,7 +971,9 @@ async function runMorningPreflightCheck(targetChatId = null, isManual = false) {
     }
 
     // Terminal POS & Semnal
-    if (isBridgeAlive) {
+    if (!isPosEnabled) {
+      lines.push(`   ├ 💳 <b>POS:</b> Inactiv din setări Kiosk (Plată doar Cash / Numerar 💵)`);
+    } else if (isBridgeAlive) {
       const portName = loc.port && loc.port !== 'N/A' ? loc.port : (b?.port || 'COM');
       const gatewayName = (loc.gateway || 'raiffeisen').toUpperCase();
       let signalText = 'activ';
@@ -1019,10 +1060,29 @@ async function runMorningRetryCheck(failedKeys, destinationChat) {
   const timeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
   console.log(`[MorningCheck] 🔁 Rulare re-verificare pentru: ${failedKeys.join(', ')} la ${timeStr}...`);
 
-  // Trimitere impuls de test semnal (o singură dată per locație)
+  const dbLocs = await getDbLocationsList();
+
+  // Trimitere impuls de test semnal (doar dacă POS-ul este activat)
   if (_io) {
     for (const locKey of failedKeys) {
-      _io.to(`pos-bridge-${locKey}`).emit('test_pos_signal', { locationId: locKey });
+      const cfg = dbLocs.find(l => 
+        l.id === locKey || 
+        l.kioskUrl === locKey || 
+        (Array.isArray(l.aliases) && l.aliases.includes(locKey)) ||
+        (locKey === 'constanta1' && (l.id === 'smashme-constanta' || l.name?.toLowerCase().includes('constanta'))) ||
+        (locKey === 'sm-brasov' && (l.id === 'rollmaster' || l.name?.toLowerCase().includes('brasov'))) ||
+        (locKey === 'cluj1' && (l.id === 'smashme-main' || l.name?.toLowerCase().includes('centru'))) ||
+        (locKey === 'cluj2' && (l.id === 'cluj2' || l.name?.toLowerCase().includes('cj-2')))
+      );
+      const isPosEnabled = Boolean(
+        cfg &&
+        cfg.paymentMode !== 'cash_only' &&
+        !cfg.cashOnly &&
+        cfg.paymentGateway !== 'none'
+      );
+      if (isPosEnabled) {
+        _io.to(`pos-bridge-${locKey}`).emit('test_pos_signal', { locationId: locKey });
+      }
     }
   }
 
@@ -1045,6 +1105,22 @@ async function runMorningRetryCheck(failedKeys, destinationChat) {
     const bridgeCount = getBridgeSocketCount(locKey);
     const kioskCount = getKioskSocketCount(locKey);
 
+    const cfg = dbLocs.find(l => 
+      l.id === locKey || 
+      l.kioskUrl === locKey || 
+      (Array.isArray(l.aliases) && l.aliases.includes(locKey)) ||
+      (locKey === 'constanta1' && (l.id === 'smashme-constanta' || l.name?.toLowerCase().includes('constanta'))) ||
+      (locKey === 'sm-brasov' && (l.id === 'rollmaster' || l.name?.toLowerCase().includes('brasov'))) ||
+      (locKey === 'cluj1' && (l.id === 'smashme-main' || l.name?.toLowerCase().includes('centru'))) ||
+      (locKey === 'cluj2' && (l.id === 'cluj2' || l.name?.toLowerCase().includes('cj-2')))
+    );
+    const isPosEnabled = Boolean(
+      cfg &&
+      cfg.paymentMode !== 'cash_only' &&
+      !cfg.cashOnly &&
+      cfg.paymentGateway !== 'none'
+    );
+
     const b = bridges.get(locKey);
     const expected = EXPECTED_PHYSICAL_HARDWARE[locKey];
     const actualHost = b?.hostname || loc.hostname;
@@ -1053,12 +1129,14 @@ async function runMorningRetryCheck(failedKeys, destinationChat) {
       hardwareMismatch = true;
     }
 
-    const is100Ready = isBridgeAlive && isKioskAlive && bridgeCount === 1 && kioskCount <= 1 && !hardwareMismatch;
+    const isPosReady = !isPosEnabled || isBridgeAlive;
+    const is100Ready = isKioskAlive && isPosReady && bridgeCount <= 1 && kioskCount <= 1 && !hardwareMismatch;
 
     if (is100Ready) {
       const hostStr = actualHost ? ` • PC: <code>${actualHost}</code> ✅` : '';
+      const posStr = isPosEnabled ? `💳 POS: Activ pe ${loc.port || 'COM'}` : '💳 POS: Inactiv din setări (Mod: Doar Numerar 💵)';
       lines.push(`🟢 <b>${loc.displayName || getLocationDisplayName(locKey)}</b>: S-a conectat cu succes!`);
-      lines.push(`   └ 💳 POS: Activ pe ${loc.port || 'COM'} • 🖥️ Ecran Kiosk: Activ${hostStr}`);
+      lines.push(`   └ ${posStr} • 🖥️ Ecran Kiosk: Activ${hostStr}`);
     } else {
       stillFailedCount++;
       if (hardwareMismatch) {
@@ -1068,7 +1146,7 @@ async function runMorningRetryCheck(failedKeys, destinationChat) {
       }
       if (!isBridgeAlive && !isKioskAlive) {
         lines.push(`   └ ⚠️ PC-ul este oprit complet sau nu are internet.`);
-      } else if (!isBridgeAlive) {
+      } else if (isPosEnabled && !isBridgeAlive) {
         lines.push(`   └ ⚠️ POS Bridge este oprit (start-windows.bat).`);
       } else if (!isKioskAlive) {
         lines.push(`   └ ⚠️ Ecranul Kiosk este închis.`);
@@ -1262,13 +1340,6 @@ async function formatStatusSummaryForTelegram() {
   ];
 
   for (const [k, loc] of Object.entries(summary.locations)) {
-    let dot = '🟢';
-    if (!loc.isBridgeOnline && !loc.isKioskOnline) {
-      dot = '🔴';
-    } else if (!loc.isBridgeOnline || !loc.isKioskOnline) {
-      dot = '🟡';
-    }
-
     const cfg = dbLocs.find(l => 
       l.id === k || 
       l.kioskUrl === k || 
@@ -1279,9 +1350,27 @@ async function formatStatusSummaryForTelegram() {
       (k === 'cluj2' && (l.id === 'cluj2' || l.name?.toLowerCase().includes('cj-2')))
     );
 
+    const isPosEnabled = Boolean(
+      cfg &&
+      cfg.paymentMode !== 'cash_only' &&
+      !cfg.cashOnly &&
+      cfg.paymentGateway !== 'none'
+    );
+
+    let dot = '🟢';
+    if (!isPosEnabled) {
+      dot = loc.isKioskOnline ? '🟢' : '🔴';
+    } else if (!loc.isBridgeOnline && !loc.isKioskOnline) {
+      dot = '🔴';
+    } else if (!loc.isBridgeOnline || !loc.isKioskOnline) {
+      dot = '🟡';
+    }
+
     // POS details: Port, Gateway, Semnal / Latență
     let posDetail = '';
-    if (loc.isBridgeOnline) {
+    if (!isPosEnabled) {
+      posDetail = 'Dezactivat din setări (Mod: Doar Numerar 💵)';
+    } else if (loc.isBridgeOnline) {
       const portName = loc.port && loc.port !== 'N/A' ? loc.port : 'COM';
       const gatewayName = loc.gateway ? loc.gateway.toUpperCase() : 'RAIFFEISEN';
       let signalStr = 'Conectat';
