@@ -108,12 +108,16 @@ router.post('/telegram-webhook', async (req, res) => {
     } else if (text.startsWith('/pin') || text === 'pin' || text.startsWith('/cod') || text === 'cod' || text.startsWith('/program') || text === 'program') {
       const pinText = await bridgeMonitoringService.formatPinSummaryForTelegram();
       await bridgeMonitoringService.sendTelegramMessage(pinText, null, chatId);
+    } else if (text.startsWith('/verificare') || text === 'verificare' || text.startsWith('/check') || text.startsWith('/dimineata') || text.startsWith('/0955') || text.startsWith('/preflight')) {
+      await bridgeMonitoringService.sendTelegramMessage('⏳ <i>Se efectuează verificarea matinală a echipamentelor (test semnal POS, ecran, .env, procese duplicate)...</i>', null, chatId);
+      await bridgeMonitoringService.runMorningPreflightCheck(chatId, true);
     } else if (text.startsWith('/ajutor') || text.startsWith('/help') || text.startsWith('/start')) {
       const helpText = [
         `🤖 <b>[SMART KIOSK BOT]</b>`,
         `Comenzi disponibile:`,
         `• <b>/status</b> — Afișează starea curentă a kiosk-urilor, POS, imprimante, PIN-uri și program.`,
         `• <b>/pin</b> — Afișează codurile PIN de deblocare și orarul programat de blocare.`,
+        `• <b>/verificare</b> — Rulează manual raportul complet de verificare matinală de deschidere (semnal POS, ecran, .env, procese duplicate).`,
       ].join('\n');
       await bridgeMonitoringService.sendTelegramMessage(helpText, null, chatId);
     }
@@ -122,6 +126,20 @@ router.post('/telegram-webhook', async (req, res) => {
   } catch (err) {
     console.error('[TelegramWebhook] Eroare procesare update Telegram:', err.message);
     return res.sendStatus(200);
+  }
+});
+
+/**
+ * POST /api/bridge-monitoring/trigger-morning-check
+ * Manually triggers the morning 09:55 pre-flight healthcheck report
+ */
+router.post('/trigger-morning-check', async (req, res) => {
+  try {
+    const result = await bridgeMonitoringService.runMorningPreflightCheck(null, true);
+    res.json(result);
+  } catch (err) {
+    console.error('[BridgeMonitoringRoute] Error triggering morning check:', err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 

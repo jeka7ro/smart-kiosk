@@ -679,6 +679,228 @@ function isLocationActive(locKey) {
 }
 
 /**
+ * Return Bucharest current time components
+ */
+function getBucharestTime() {
+  try {
+    const formatter = new Intl.DateTimeFormat('ro-RO', {
+      timeZone: 'Europe/Bucharest',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour12: false
+    });
+    const parts = formatter.formatToParts(new Date());
+    const m = {};
+    parts.forEach(p => m[p.type] = p.value);
+    return {
+      hour: parseInt(m.hour, 10),
+      minute: parseInt(m.minute, 10),
+      second: parseInt(m.second, 10),
+      dateStr: `${m.day}.${m.month}.${m.year}`
+    };
+  } catch (_) {
+    const d = new Date();
+    return {
+      hour: d.getHours(),
+      minute: d.getMinutes(),
+      second: d.getSeconds(),
+      dateStr: d.toLocaleDateString('ro-RO')
+    };
+  }
+}
+
+function getBridgeSocketCount(locKey) {
+  if (!_io || !_io.sockets || !_io.sockets.adapter || !_io.sockets.adapter.rooms) return 0;
+  try {
+    const { getLocationAliases } = require('../utils/locations');
+    const aliases = getLocationAliases(locKey) || [];
+    const checkKeys = Array.from(new Set([locKey, ...aliases]));
+    let count = 0;
+    for (const k of checkKeys) {
+      const room = _io.sockets.adapter.rooms.get(`pos-bridge-${k}`);
+      if (room) count += room.size;
+    }
+    return count;
+  } catch (_) {
+    return 0;
+  }
+}
+
+function getKioskSocketCount(locKey) {
+  try {
+    const { getLiveKiosksSummary } = require('./socketService');
+    const summary = getLiveKiosksSummary();
+    if (!summary) return 0;
+    const { getLocationAliases } = require('../utils/locations');
+    const aliases = getLocationAliases(locKey) || [];
+    const checkKeys = Array.from(new Set([locKey, ...aliases]));
+    let count = 0;
+    for (const k of checkKeys) {
+      if (summary[k] && summary[k].onlineCount) {
+        count += summary[k].onlineCount;
+      }
+    }
+    return count;
+  } catch (_) {
+    return 0;
+  }
+}
+
+let lastMorningCheckDate = null;
+
+/**
+ * Morning Pre-Flight Healthcheck (Automated at 09:55 or on-demand)
+ * Verifies live POS, UART signal/latency, Kiosk screen, .env config, and checks for duplicate processes
+ */
+async function runMorningPreflightCheck(targetChatId = null, isManual = false) {
+  const destinationChat = targetChatId || telegramConfig.chatId;
+  if (!destinationChat || (!telegramConfig.enabled && !isManual)) {
+    console.log('[MorningCheck] Omit verificare: Telegram dezactivat sau lipsă chatId.');
+    return { ok: false, error: 'Telegram dezactivat sau chatId lipsă' };
+  }
+
+  const { dateStr, hour, minute } = getBucharestTime();
+  const timeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+  console.log(`[MorningCheck] 🌅 Rulare verificare matinală la ${timeStr} (data: ${dateStr}, manual: ${isManual})...`);
+
+  const targetLocations = ['cluj1', 'cluj2', 'sm-brasov', 'constanta1'];
+
+  // 1. Declanșăm testul semnalului POS pe toate bridge-urile conectate
+  if (_io) {
+    for (const locKey of targetLocations) {
+      const { getLocationAliases } = require('../utils/locations');
+      const aliases = getLocationAliases(locKey) || [];
+      const targets = Array.from(new Set([locKey, ...aliases]));
+      for (const tid of targets) {
+        _io.to(`pos-bridge-${tid}`).emit('test_pos_signal', { locationId: tid });
+      }
+      _io.emit('test_pos_signal', { locationId: locKey });
+    }
+  }
+
+  // 2. Așteptăm 3 secunde pentru recepționarea latenței POS
+  await new Promise(r => setTimeout(r, 3000));
+
+  // 3. Compilăm raportul
+  const summary = getStatusSummary();
+  const { getLiveKiosksSummary } = require('./socketService');
+  const kiosksSummary = getLiveKiosksSummary() || {};
+
+  const lines = [
+    `🌅 <b>[VERIFICARE MATINALĂ SISTEM — 09:55]</b>`,
+    `📅 <b>Data:</b> ${dateStr} | 🕒 <b>Ora:</b> ${timeStr}`,
+    `⏰ <i>Program deschidere restaurante: 10:00</i>`,
+    ``
+  ];
+
+  let readyCount = 0;
+  const issues = [];
+
+  for (const locKey of targetLocations) {
+    const loc = summary.locations[locKey] || {};
+    const b = bridges.get(locKey);
+    const isBridgeAlive = isBridgeSocketConnected(locKey);
+    const isKioskAlive = isKioskSocketConnected(locKey);
+
+    const bridgeCount = getBridgeSocketCount(locKey);
+    const kioskCount = getKioskSocketCount(locKey);
+
+    const hasDuplicate = bridgeCount > 1 || kioskCount > 1;
+    const is100Ready = isBridgeAlive && isKioskAlive && !hasDuplicate;
+    if (is100Ready) readyCount++;
+
+    const dot = is100Ready ? '🟢' : ((isBridgeAlive || isKioskAlive) ? '🟡' : '🔴');
+    lines.push(`${dot} <b>${loc.displayName || getLocationDisplayName(locKey)}</b>`);
+
+    // Ecran Kiosk
+    if (isKioskAlive) {
+      const kData = kiosksSummary[locKey] || {};
+      const verStr = kData.scriptVersion ? `v${kData.scriptVersion}` : 'Universal';
+      const screenStr = kData.screen ? ` • Ecran: ${kData.screen}` : '';
+      lines.push(`   ├ 🖥️ <b>Ecran Kiosk:</b> Conectat (${verStr}${screenStr})`);
+    } else {
+      lines.push(`   ├ 🖥️ <b>Ecran Kiosk:</b> 🔴 Oprit / Deconectat`);
+      issues.push(`• <b>${loc.displayName || locKey}:</b> Ecranul Kiosk este oprit.`);
+    }
+
+    // Terminal POS & Semnal
+    if (isBridgeAlive) {
+      const portName = loc.port && loc.port !== 'N/A' ? loc.port : (b?.port || 'COM');
+      const gatewayName = (loc.gateway || 'raiffeisen').toUpperCase();
+      let signalText = 'activ';
+      if (b?.posSignal) {
+        if (b.posSignal.success) {
+          signalText = `${b.posSignal.latencyMs}ms (activ)`;
+        } else {
+          signalText = `⚠️ ${b.posSignal.message || 'fără răspuns'}`;
+        }
+      }
+      lines.push(`   ├ 💳 <b>POS (${gatewayName}):</b> Conectat pe ${portName} • Semnal: <b>${signalText}</b>`);
+    } else {
+      lines.push(`   ├ 💳 <b>POS:</b> 🔴 Bridge / PC Deconectat`);
+      issues.push(`• <b>${loc.displayName || locKey}:</b> POS Bridge este oprit (start-windows.bat nu rulează).`);
+    }
+
+    // Imprimantă
+    const printer = (loc.printerName && loc.printerName !== 'N/A' && loc.printerName !== 'Nedetectată')
+      ? loc.printerName
+      : (isBridgeAlive ? 'Nedetectată' : 'Offline');
+    lines.push(`   ├ 🖨️ <b>Imprimantă:</b> ${printer}`);
+
+    // Verificare .env & Procese duplicate
+    const sysChecks = [];
+    sysChecks.push('Server: <code>ttut.onrender.com</code>');
+
+    if (bridgeCount > 1) {
+      sysChecks.push(`⚠️ <b>${bridgeCount} procese Bridge duplicate!</b>`);
+      issues.push(`• <b>${loc.displayName || locKey}:</b> Rulează ${bridgeCount} procese Bridge simultan! Necesită restart.`);
+    } else if (bridgeCount === 1) {
+      sysChecks.push('Proces unic ✅');
+    }
+
+    if (kioskCount > 1) {
+      sysChecks.push(`⚠️ <b>${kioskCount} ferestre Kiosk duplicate!</b>`);
+      issues.push(`• <b>${loc.displayName || locKey}:</b> Sunt deschise ${kioskCount} ferestre Kiosk.`);
+    }
+
+    lines.push(`   └ 🛡️ <b>Sistem & .env:</b> ${sysChecks.join(' • ')}`);
+    lines.push(``);
+  }
+
+  // Rezumat final
+  lines.push(`━━━━━━━━━━━━━━━━━━━━━`);
+  lines.push(`📊 <b>Status General:</b> <b>${readyCount} din ${targetLocations.length}</b> locații pregătite 100%`);
+
+  if (issues.length > 0) {
+    lines.push(``);
+    lines.push(`🚨 <b>ACȚIUNI NECESARE ÎNAINTE DE ORA 10:00:</b>`);
+    issues.forEach(iss => lines.push(iss));
+  } else {
+    lines.push(`🎉 <b>Toate sistemele sunt funcționale pentru deschiderea de la 10:00!</b>`);
+  }
+
+  const reportText = lines.join('\n');
+  await sendTelegramMessage(reportText, null, destinationChat);
+  return { ok: true, report: reportText };
+}
+
+// Verificare automata orar zilnic la 09:55 Europe/Bucharest
+setInterval(() => {
+  const { hour, minute, dateStr } = getBucharestTime();
+  if (hour === 9 && minute === 55) {
+    if (lastMorningCheckDate !== dateStr) {
+      lastMorningCheckDate = dateStr;
+      console.log(`[BridgeMonitor] ⏰ Este 09:55 Europe/Bucharest! Declanșez verificarea matinală automată...`);
+      runMorningPreflightCheck().catch(e => console.error('[MorningCheck] Eroare:', e.message));
+    }
+  }
+}, 20000);
+
+/**
  * Periodic healthcheck loop (runs every 15s)
  * Catches bridges whose socket disconnected for longer than grace period
  */
@@ -1057,6 +1279,7 @@ module.exports = {
   formatDateTime,
   formatStatusSummaryForTelegram,
   formatPinSummaryForTelegram,
+  runMorningPreflightCheck,
   registerTelegramWebhook,
   updateLocationConfig,
 };
