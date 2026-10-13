@@ -572,6 +572,16 @@ function handleBridgeHeartbeat(socket, data) {
     if (typeof data?.uptime === 'number') entry.uptimeSeconds = data.uptime;
     if (data?.posWakeStandby !== undefined) entry.posWakeStandby = !!data.posWakeStandby;
     entry.socketId = socket.id;
+
+    // Asigurăm apartenența la cameră la fiecare heartbeat
+    if (socket && socket.connected && locKey) {
+      try {
+        socket.join(`pos-bridge-${locKey}`);
+        const { getLocationAliases } = require('../utils/locations');
+        const aliases = getLocationAliases(locKey) || [];
+        for (const a of aliases) socket.join(`pos-bridge-${a}`);
+      } catch (_) {}
+    }
   } else {
     // Auto-register if missed
     handleBridgeConnect(socket, data || { locationId: locKey });
@@ -769,6 +779,15 @@ function isBridgeSocketConnected(locKey) {
     for (const k of checkKeys) {
       const room = _io.sockets.adapter.rooms.get(`pos-bridge-${k}`);
       if (room && room.size > 0) {
+        return true;
+      }
+    }
+
+    // Siguranță: dacă podul trimite ping-uri recente (< 45 secunde) pe un socket conectat, este ONLINE
+    const b = bridges.get(locKey);
+    if (b && b.lastPing && (Date.now() - b.lastPing) < 45000 && b.socketId) {
+      const s = _io.sockets.sockets.get(b.socketId);
+      if (s && s.connected) {
         return true;
       }
     }
