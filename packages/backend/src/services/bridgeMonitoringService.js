@@ -439,6 +439,32 @@ function getLocationDisplayName(locKey) {
 }
 
 /**
+ * Check if a location is actively configured with POS (not cash_only and gateway !== 'none')
+ */
+function isPosEnabled(locKey) {
+  try {
+    const allLocs = typeof getAllLocations === 'function' ? getAllLocations() : [];
+    const cfg = allLocs.find(l => 
+      l.id === locKey || 
+      l.kioskUrl === locKey || 
+      (Array.isArray(l.aliases) && l.aliases.includes(locKey)) ||
+      (locKey === 'constanta1' && (l.id === 'smashme-constanta' || l.name?.toLowerCase().includes('constanta'))) ||
+      (locKey === 'sm-brasov' && (l.id === 'rollmaster' || l.name?.toLowerCase().includes('brasov'))) ||
+      (locKey === 'cluj1' && (l.id === 'smashme-main' || l.name?.toLowerCase().includes('centru'))) ||
+      (locKey === 'cluj2' && (l.id === 'cluj2' || l.name?.toLowerCase().includes('cj-2')))
+    );
+    if (!cfg) return true;
+    return Boolean(
+      cfg.paymentMode !== 'cash_only' &&
+      !cfg.cashOnly &&
+      cfg.paymentGateway !== 'none'
+    );
+  } catch (_) {
+    return true;
+  }
+}
+
+/**
  * Called when a POS Bridge connects and registers
  */
 function handleBridgeConnect(socket, { locationId, port, posGateway, printerName, hostname, posWakeStandby }) {
