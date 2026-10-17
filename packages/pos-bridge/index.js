@@ -254,7 +254,7 @@ function forceReopenPort(reason = 'Force Reset') {
 
 // ─── Standby POS Keep-Alive / Wake (la 30 min inactivitate, strict 10:00 - 22:00) ─────
 let globalSocket = null;
-let posWakeStandbyEnabled = process.env.POS_WAKE_STANDBY === 'true';
+let posWakeStandbyEnabled = process.env.POS_WAKE_STANDBY !== 'false'; // Activ implicit pe toate terminalele (se dezactivează doar dacă e explicit 'false')
 let lastActivityTime = Date.now();
 let wakeStartTime = 0;
 let posSignalTestStartTime = 0;
@@ -288,7 +288,7 @@ function wakePosKeepAlive() {
 
   clearTimeout(currentTransactionTimer);
   currentTransactionTimer = setTimeout(() => {
-    log('⚠️ [POS Wake] POS nu a răspuns la impulsul de trezire în 3000ms. Readuc linia în IDLE.');
+    log('⚠️ [POS Wake] POS nu a răspuns la impulsul de trezire în 3000ms. Inițiez autorecuperare port în fundal...');
     try { globalPort.write(Buffer.from([EOT])); } catch (_) {}
     state = 'IDLE';
     currentOperation = null;
@@ -297,9 +297,16 @@ function wakePosKeepAlive() {
         locationId: LOCATION_ID,
         success: false,
         latencyMs: 3000,
-        message: 'Auto-wake timeout (>3000ms)'
+        message: 'Auto-wake timeout (>3000ms) - inițiez recuperare port'
       });
     }
+    // Autorecuperare port în fundal DACĂ terminalul era adormit adânc,
+    // astfel încât la sosirea primului client terminalul să fie deja treaz și logat!
+    setTimeout(() => {
+      forceReopenPort('Autorecuperare după Auto-Wake timeout').then(() => {
+        ensurePosLogin().catch(e => log(`⚠️ Eroare re-login după auto-wake timeout: ${e.message}`));
+      });
+    }, 500);
   }, 3000);
 
   globalPort.write(Buffer.from([ENQ]));
@@ -502,6 +509,11 @@ function ecrSend(frame, ns, label, timeoutMs = 3000) {
     enqRetries++;
     if (enqRetries < 3) {
       log(`⚠️ Timeout ACK la ENQ (${label}). Trimit ENQ reîncercare (${enqRetries + 1}/3)...`);
+      try {
+        if (globalPort && typeof globalPort.set === 'function') {
+          globalPort.set({ dtr: true, rts: true }, () => {});
+        }
+      } catch (_) {}
       setTimeout(() => {
         ecrSend(frame, ns, label, timeoutMs);
       }, 400);
@@ -572,9 +584,16 @@ function ensurePosLogin() {
 }
 
 function processPrintecPayment(amount, onStatus) {
-  return new Promise((resolve) => {
+  return new Promise(async (resolve) => {
+    // Dacă portul este temporar în curs de redeschidere/resetare (ex: 300ms după o anulare sau recuperare), așteptăm până la 1.5s
+    let waitRetries = 0;
+    while ((!globalPort || !globalPort.isOpen) && waitRetries < 15) {
+      await new Promise(r => setTimeout(r, 100));
+      waitRetries++;
+    }
+
     if (!globalPort || !globalPort.isOpen) {
-       return resolve({ success: false, reason: 'Portul POS nu este deschis', code: 'DECLINED' });
+       return resolve({ success: false, reason: 'Portul POS nu este deschis (Cablu USB scos / POS oprit)', code: 'DECLINED' });
     }
     if (state !== 'IDLE') {
        log(`⚠️ Stare anterioară (${state}) la inițiere plată. Reciclez starea în IDLE...`);
@@ -741,18 +760,20 @@ async function start() {
             log(`📍 Locație rezolvată: aliases=[${LOCATION_ALIASES.join(', ')}]`);
             if (locData.posWakeStandby !== undefined) {
               posWakeStandbyEnabled = !!locData.posWakeStandby;
-              log(`⚙️ [POS Wake] Configurație încărcată de la server: ${posWakeStandbyEnabled ? 'ACTIVATĂ (la 30 min, 10:00-22:00)' : 'DEZACTIVATĂ'}`);
-              if (socket && socket.connected) {
-                const printer = typeof getActualPrinterName === 'function' ? getActualPrinterName() : (process.env.PRINTER_NAME || '');
-                socket.emit('pos_bridge_heartbeat', {
-                  locationId: LOCATION_ID,
-                  port: portPath || `VIVA_${VIVA_POS_IP}`,
-                  printerName: printer,
-                  posGateway: POS_GATEWAY,
-                  uptime: Math.round(process.uptime()),
-                  posWakeStandby: posWakeStandbyEnabled,
-                });
-              }
+            } else {
+              posWakeStandbyEnabled = true; // Implicit activat pe toate locațiile
+            }
+            log(`⚙️ [POS Wake] Configurație încărcată de la server: ${posWakeStandbyEnabled ? 'ACTIVATĂ (la 30 min, 10:00-22:00)' : 'DEZACTIVATĂ'}`);
+            if (socket && socket.connected) {
+              const printer = typeof getActualPrinterName === 'function' ? getActualPrinterName() : (process.env.PRINTER_NAME || '');
+              socket.emit('pos_bridge_heartbeat', {
+                locationId: LOCATION_ID,
+                port: portPath || `VIVA_${VIVA_POS_IP}`,
+                printerName: printer,
+                posGateway: POS_GATEWAY,
+                uptime: Math.round(process.uptime()),
+                posWakeStandby: posWakeStandbyEnabled,
+              });
             }
           } catch (e) {
             log(`⚠ Nu am putut parsa răspuns locație: ${e.message} | body: ${body.substring(0, 100)}`);
@@ -789,7 +810,7 @@ async function start() {
         if (!posWakeStandbyEnabled) return;
         if (!isWithinWorkingHours()) return;
         const idleMs = Date.now() - lastActivityTime;
-        const IDLE_LIMIT = 30 * 60 * 1000; // 30 minute
+        const IDLE_LIMIT = 30 * 60 * 1000; // 30 minute (standardul testat la Brașov și Constanța)
         if (idleMs >= IDLE_LIMIT) {
           lastActivityTime = Date.now(); // resetăm pentru a evita declanșări repetate la timeout
           wakePosKeepAlive();

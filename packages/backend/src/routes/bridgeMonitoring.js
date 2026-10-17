@@ -184,12 +184,9 @@ router.post('/:locationId/test-pos-signal', (req, res) => {
     const targets = new Set([locationId, ...aliases].filter(Boolean));
 
     if (io) {
-      for (const tid of targets) {
-        io.to(`pos-bridge-${tid}`).emit('test_pos_signal', { locationId: tid });
-        io.emit(`test_pos_signal_${tid}`, { locationId: tid });
-      }
-      io.emit('test_pos_signal', { locationId });
-      console.log(`[BridgeMonitor] Comandă test_pos_signal trimisă către: ${[...targets].join(', ')}`);
+      io.to(`pos-bridge-${locationId}`).emit('test_pos_signal', { locationId });
+      io.emit(`test_pos_signal_${locationId}`, { locationId });
+      console.log(`[BridgeMonitor] Comandă test_pos_signal unică transmisă către: ${locationId}`);
       res.json({ success: true, message: `Test semnal POS transmis către ${locationId}...` });
     } else {
       res.status(500).json({ error: 'Socket.io nu este inițializat pe server' });

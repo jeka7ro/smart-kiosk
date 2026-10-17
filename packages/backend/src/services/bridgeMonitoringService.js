@@ -245,11 +245,14 @@ function getPosReasonText(reason, code) {
   if (c.toUpperCase() === 'A0' || rawStr.includes('0xA0') || rawStr.toLowerCase().includes('tasta') || rawStr.toLowerCase().includes('anulat')) {
     return 'Anulat de client (Tasta roșie X)';
   }
-  if (rawStr.toLowerCase().includes('timeout') || rawStr.toLowerCase().includes('nu răspunde')) {
-    return 'Timp expirat citire card';
+  if (rawStr.includes('Timp expirat citire card') || rawStr.includes('2 minute')) {
+    return 'Timp expirat citire card (Clientul nu a apropiat cardul)';
   }
   if (rawStr.toLowerCase().includes('nu este deschis') || rawStr.toLowerCase().includes('port')) {
-    return 'Port POS nedeschis (Cablu USB scos / POS oprit)';
+    return 'Port POS nedeschis (Cablu USB scos / POS oprit / Reinițializare)';
+  }
+  if (rawStr.toLowerCase().includes('timeout') || rawStr.toLowerCase().includes('nu răspunde')) {
+    return 'POS-ul nu răspunde pe USB (Standby / Cablu serial)';
   }
   return rawStr || 'Tranzacție respinsă de bancă';
 }
@@ -266,29 +269,21 @@ async function sendPosAlert(data) {
   const loc = locationName || 'Kiosk';
 
   if (!paid) {
-    // 🔴 În grupul de alerte și status (chatId) trimitem DOAR plățile respinse cu explicații detaliate
-    const reasonText = getPosReasonText(error, responseCode || code);
-    const rejectMsg = [
-      `🔴 <b>[PLATĂ RESPINSĂ - POS]</b>`,
-      `Locație: <b>${loc}</b>`,
-      `Sumă: <b>${amtStr} RON</b>`,
-      `Comandă: #${orderId || '-'}`,
-      `Motiv exact: <b>${reasonText}</b>`,
-      `Timp: ${timeStr}`
-    ].join('\n');
-
-    // Livrare în Grupul de Alerte & Status (chatId)
+    // 🔴 Plățile respinse POS au fost scoase din Grupul de Alerte (chatId) la cererea expresă a utilizatorului.
     const alertsChat = telegramConfig.chatId;
-    if (alertsChat) {
-      await sendTelegramMessage(rejectMsg, null, alertsChat).catch(e => {
-        console.error('[Telegram] Eroare trimitere alertă POS respinsă în grupul de alerte:', e.message);
-      });
-    }
-
-    // Livrare și în Grupul de POS dacă este diferit
     if (telegramConfig.posChatId && telegramConfig.posChatId !== alertsChat) {
+      const reasonText = getPosReasonText(error, responseCode || code);
+      const rejectMsg = [
+        `🔴 <b>[PLATĂ RESPINSĂ - POS]</b>`,
+        `Locație: <b>${loc}</b>`,
+        `Sumă: <b>${amtStr} RON</b>`,
+        `Comandă: #${orderId || '-'}`,
+        `Motiv exact: <b>${reasonText}</b>`,
+        `Timp: ${timeStr}`
+      ].join('\n');
       await sendTelegramMessage(rejectMsg, null, telegramConfig.posChatId).catch(() => {});
     }
+    return;
   } else {
     // 🟢 Plățile aprobate se trimit EXCLUSIV în grupul dedicat POS (NU poluează grupul de alerte)
     if (telegramConfig.posChatId && telegramConfig.posChatId !== telegramConfig.chatId) {
@@ -348,20 +343,7 @@ async function sendOrderAlert(order) {
     `🕒 Timp: ${timeStr}`,
   ].join('\n');
 
-  // Ataseaza poza primului produs daca este disponibila
-  const photoItem = (order.items || []).find(it => it.imageUrl || it.image);
-  const photoUrl = photoItem ? (photoItem.imageUrl || photoItem.image) : null;
-
-  if (photoUrl && typeof photoUrl === 'string' && (photoUrl.startsWith('http') || photoUrl.startsWith('/'))) {
-    const photoRes = await sendTelegramPhoto(photoUrl, msg, targetChat).catch(e => {
-      console.warn('[Telegram] sendPhoto failed, fallback to sendMessage:', e.message);
-      return { ok: false };
-    });
-    if (photoRes && photoRes.ok) {
-      return photoRes;
-    }
-  }
-
+  // Pozele de pe comenzile Telegram au fost eliminate conform cerinței
   return sendTelegramMessage(msg, null, targetChat).catch(e => {
     console.error('[Telegram] Eroare trimitere alertă comandă:', e.message);
   });
@@ -491,7 +473,7 @@ function handleBridgeConnect(socket, { locationId, port, posGateway, printerName
     socketId: socket.id,
     ip: socket.handshake?.address || socket.conn?.remoteAddress || '',
     uptimeSeconds: 0,
-    posWakeStandby: posWakeStandby !== undefined ? !!posWakeStandby : (prev?.posWakeStandby ?? (locKey === 'sm-brasov')),
+    posWakeStandby: posWakeStandby !== undefined ? !!posWakeStandby : (prev?.posWakeStandby ?? true),
     posSignal: prev?.posSignal || null,
   };
 
@@ -645,6 +627,11 @@ function recordPosSignalResult(data) {
   }
   recordEvent('INFO', locKey, `Test semnal POS: ${signalInfo.success ? `Activ (${signalInfo.latencyMs}ms)` : (signalInfo.message || 'Eșuat')}`);
   console.log(`[BridgeMonitor] 📡 POS Signal rezultat pt ${locKey}:`, signalInfo);
+
+  // Ignorăm duplicatele provocate de comenzi paralele de test
+  if (signalInfo.message && signalInfo.message.includes('WAIT_ENQ_ACK')) {
+    return;
+  }
 
   // Salvare in PostgreSQL pos_signal_logs pentru istoric si statistici
   const logId = `SIG-${now}-${Math.random().toString(36).substring(2, 7)}`;
@@ -894,10 +881,11 @@ function getKioskSocketCount(locKey) {
   }
 }
 
-let lastMorningCheckDate = null;
+let lastCheck1000Date = null;
+let lastCheck1015Date = null;
 
 /**
- * Morning Pre-Flight Healthcheck (Automated at 09:55 or on-demand)
+ * Morning Pre-Flight Healthcheck (Automated at 10:00 and 10:15 or on-demand)
  * Verifies live POS, UART signal/latency, Kiosk screen, .env config, and checks for duplicate processes
  */
 async function runMorningPreflightCheck(targetChatId = null, isManual = false) {
@@ -948,7 +936,7 @@ async function runMorningPreflightCheck(targetChatId = null, isManual = false) {
   const kiosksSummary = getLiveKiosksSummary() || {};
 
   const lines = [
-    `🌅 <b>[VERIFICARE MATINALĂ SISTEM — 09:55]</b>`,
+    `🌅 <b>[VERIFICARE SISTEM — ${timeStr}]</b>`,
     `📅 <b>Data:</b> ${dateStr} | 🕒 <b>Ora:</b> ${timeStr}`,
     `⏰ <i>Program deschidere restaurante: 10:00</i>`,
     ``
@@ -1088,28 +1076,18 @@ async function runMorningPreflightCheck(targetChatId = null, isManual = false) {
 
   if (issues.length > 0) {
     lines.push(``);
-    lines.push(`🚨 <b>ACȚIUNI NECESARE ÎNAINTE DE ORA 10:00:</b>`);
+    lines.push(`🚨 <b>ACȚIUNI NECESARE:</b>`);
     issues.forEach(iss => lines.push(iss));
-    if (!isManual && failedLocationKeys.length > 0) {
+    if (!isManual && failedLocationKeys.length > 0 && minute < 15) {
       lines.push(``);
-      lines.push(`🔁 <i>Sistemul va repeta verificarea automat peste 10 minute (la 10:05) pentru locațiile neconectate.</i>`);
+      lines.push(`🔁 <i>Sistemul va repeta verificarea automat la ora 10:15 pentru toate locațiile.</i>`);
     }
   } else {
-    lines.push(`🎉 <b>Toate sistemele sunt funcționale pentru deschiderea de la 10:00!</b>`);
+    lines.push(`🎉 <b>Toate sistemele sunt funcționale!</b>`);
   }
 
   const reportText = lines.join('\n');
   await sendTelegramMessage(reportText, null, destinationChat);
-
-  // Repetă automat după 10 minute pentru locațiile care nu au fost online
-  if (failedLocationKeys.length > 0 && !isManual) {
-    console.log(`[MorningCheck] ⏳ ${failedLocationKeys.length} locații offline (${failedLocationKeys.join(', ')}). Programez re-verificare automată peste 10 minute...`);
-    setTimeout(() => {
-      runMorningRetryCheck(failedLocationKeys, destinationChat).catch(e => {
-        console.error('[MorningCheckRetry] Eroare la re-verificare:', e.message);
-      });
-    }, 10 * 60 * 1000); // 10 minute
-  }
 
   return { ok: true, report: reportText, failedLocations: failedLocationKeys };
 }
@@ -1227,14 +1205,21 @@ async function runMorningRetryCheck(failedKeys, destinationChat) {
   await sendTelegramMessage(lines.join('\n'), null, destinationChat);
 }
 
-// Verificare automata orar zilnic la 09:55 Europe/Bucharest
+// Verificare automata orar zilnic la 10:00 si 10:15 Europe/Bucharest
 setInterval(() => {
   const { hour, minute, dateStr } = getBucharestTime();
-  if (hour === 9 && minute === 55) {
-    if (lastMorningCheckDate !== dateStr) {
-      lastMorningCheckDate = dateStr;
-      console.log(`[BridgeMonitor] ⏰ Este 09:55 Europe/Bucharest! Declanșez verificarea matinală automată...`);
-      runMorningPreflightCheck().catch(e => console.error('[MorningCheck] Eroare:', e.message));
+  if (hour === 10 && minute === 0) {
+    if (lastCheck1000Date !== dateStr) {
+      lastCheck1000Date = dateStr;
+      console.log(`[BridgeMonitor] ⏰ Este 10:00 Europe/Bucharest! Declanșez verificarea automată de la 10:00...`);
+      runMorningPreflightCheck().catch(e => console.error('[MorningCheck 10:00] Eroare:', e.message));
+    }
+  }
+  if (hour === 10 && minute === 15) {
+    if (lastCheck1015Date !== dateStr) {
+      lastCheck1015Date = dateStr;
+      console.log(`[BridgeMonitor] ⏰ Este 10:15 Europe/Bucharest! Declanșez verificarea automată de la 10:15...`);
+      runMorningPreflightCheck().catch(e => console.error('[MorningCheck 10:15] Eroare:', e.message));
     }
   }
 }, 20000);
@@ -1361,7 +1346,7 @@ function getStatusSummary() {
               return Boolean(match.posWakeStandby);
             }
           } catch (_) {}
-          return b?.posWakeStandby !== undefined ? b.posWakeStandby : (locKey === 'sm-brasov');
+          return b?.posWakeStandby !== undefined ? b.posWakeStandby : true;
         })(),
         hostname: b?.hostname || '',
         expectedHardware: EXPECTED_PHYSICAL_HARDWARE[locKey] || null,
@@ -1635,6 +1620,7 @@ async function getPosSignalLogs(locationId, limit = 50) {
       `SELECT id, location_id, port, latency_ms, success, message, tested_at, created_at
        FROM pos_signal_logs
        WHERE location_id = ANY($1)
+         AND (message IS NULL OR message NOT LIKE '%WAIT_ENQ_ACK%')
        ORDER BY tested_at DESC
        LIMIT $2`,
       [targetKeys, limit]

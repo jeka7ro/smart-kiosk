@@ -3521,7 +3521,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
     menuOverrides: loc.menuOverrides || {},
     paymentGateway: loc.paymentGateway || 'none',
     paymentMode: loc.paymentMode || (loc.cashOnly ? 'cash_only' : 'both'),
-    posWakeStandby: loc.posWakeStandby ?? false,
+    posWakeStandby: loc.posWakeStandby ?? true,
     kioskUiSize: loc.kioskUiSize || 'S',
     visualEffects: loc.visualEffects || { parallax: true, steam: true, snow: false },
     categoryHeroActive: loc.categoryHeroActive ?? false,
