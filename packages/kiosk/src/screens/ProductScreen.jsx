@@ -810,7 +810,70 @@ export default function ProductScreen() {
         if (!isActuallyFries) return false;
       }
 
+      // Regula 5: La produsele Chicken Ranch / Ranch și Smoky Pepper (Dublu, Triplu, Meniu etc.), NU arăta "Fără usturoi" (sosul de iaurt / sosul de usturoi au usturoiul gata încorporat)
+      if (item.id === 'usturoi') {
+        const isRanch = pName.includes('ranch') || 
+                        (product.originalName || '').toLowerCase().includes('ranch') ||
+                        (product.title || '').toLowerCase().includes('ranch') ||
+                        catName.includes('ranch');
+        const isSmokyPepper = pName.includes('smoky pepper') || 
+                              pName.includes('pepper') ||
+                              (product.originalName || '').toLowerCase().includes('smoky pepper') ||
+                              (product.title || '').toLowerCase().includes('smoky pepper') ||
+                              catName.includes('smoky pepper');
+        if (isRanch || isSmokyPepper) {
+          return false;
+        }
+      }
+
+      // Regula 6: La preparatele Chicken BBQ (mici și mari: BBQ Cheese Chicken, Easy BBQ Cheese Chicken etc.),
+      // NU arăta "Fără ceapă", "Fără telemea" și "Fără roșii" (au doar ceapă tempura, telemeaua e în sosul de cheddar, iar roșiile sunt doar pasta din BBQ)
+      const isBbqChicken = (pName.includes('bbq') && (pName.includes('chicken') || pName.includes('pui'))) ||
+                           (product.originalName || '').toLowerCase().includes('bbq') ||
+                           (product.title || '').toLowerCase().includes('bbq') ||
+                           catName.includes('bbq');
+      if (isBbqChicken && (item.id === 'ceapa' || item.id === 'telemea' || item.id === 'rosii')) {
+        return false;
+      }
+
+      // Regula 7: La preparatele cu ceapă caramelizată (Big Boss, Spicy Jalapeno - Dublu, Triplu, Meniu etc.),
+      // ceapa caramelizată este mereu prezentă în rețetă
+      const hasCaramelizedOnion = pName.includes('big boss') || 
+                                  pName.includes('boss') ||
+                                  pName.includes('jalapeno') ||
+                                  pName.includes('jalapeño') ||
+                                  (product.originalName || '').toLowerCase().includes('big boss') ||
+                                  (product.originalName || '').toLowerCase().includes('jalapeno') ||
+                                  (product.title || '').toLowerCase().includes('big boss') ||
+                                  (product.title || '').toLowerCase().includes('jalapeno');
+      if (item.id === 'ceapa' && hasCaramelizedOnion) {
+        return true;
+      }
+
+      // Regula 8: La preparatele Oklahoma (Dublu, Triplu, Meniu etc.),
+      // NU arăta "Fără ceapă" generică (au doar ceapă tempura, deci rămâne doar "Fără ceapă tempura")
+      const isOklahoma = pName.includes('oklahoma') || 
+                         (product.originalName || '').toLowerCase().includes('oklahoma') ||
+                         (product.title || '').toLowerCase().includes('oklahoma') ||
+                         catName.includes('oklahoma');
+      if (isOklahoma && item.id === 'ceapa') {
+        return false;
+      }
+
       return item.keywords.some(kw => textToScan.includes(kw));
+    }).map(item => {
+      const hasCaramelizedOnion = pName.includes('big boss') || 
+                                  pName.includes('boss') ||
+                                  pName.includes('jalapeno') ||
+                                  pName.includes('jalapeño') ||
+                                  (product.originalName || '').toLowerCase().includes('big boss') ||
+                                  (product.originalName || '').toLowerCase().includes('jalapeno') ||
+                                  (product.title || '').toLowerCase().includes('big boss') ||
+                                  (product.title || '').toLowerCase().includes('jalapeno');
+      if (item.id === 'ceapa' && hasCaramelizedOnion) {
+        return { ...item, label: 'Fără ceapă caramelizată' };
+      }
+      return item;
     });
   }, [product, rawDesc, allergenLabels, menuCategories]);
 
