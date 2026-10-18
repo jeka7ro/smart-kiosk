@@ -223,16 +223,20 @@ function resetPosLine(reason = 'Reset') {
   rxBuf = Buffer.alloc(0);
 }
 
+let isReopeningPort = false;
+
 function forceReopenPort(reason = 'Force Reset') {
   return new Promise((resolve) => {
     if (!globalPort) return resolve();
     log(`🔄 Re-ciclare port serial POS (${reason})...`);
+    isReopeningPort = true;
     posLoggedIn = false;
     try {
       globalPort.close((err) => {
         setTimeout(() => {
           try {
             globalPort.open((openErr) => {
+              isReopeningPort = false;
               if (openErr) {
                 log(`⚠️ Eroare re-deschidere port: ${openErr.message}`);
               } else {
@@ -242,11 +246,13 @@ function forceReopenPort(reason = 'Force Reset') {
               resolve();
             });
           } catch (e) {
+            isReopeningPort = false;
             resolve();
           }
         }, 300);
       });
     } catch (_) {
+      isReopeningPort = false;
       resolve();
     }
   });
@@ -255,6 +261,8 @@ function forceReopenPort(reason = 'Force Reset') {
 // ─── Standby POS Keep-Alive / Wake (la 30 min inactivitate, strict 10:00 - 22:00) ─────
 let globalSocket = null;
 let posWakeStandbyEnabled = process.env.POS_WAKE_STANDBY !== 'false'; // Activ implicit pe toate terminalele (se dezactivează doar dacă e explicit 'false')
+let posWakeIntervalMinutes = parseInt(process.env.POS_WAKE_INTERVAL_MINUTES || '5', 10);
+if (isNaN(posWakeIntervalMinutes) || posWakeIntervalMinutes < 1) posWakeIntervalMinutes = 5;
 let lastActivityTime = Date.now();
 let wakeStartTime = 0;
 let posSignalTestStartTime = 0;
@@ -280,7 +288,7 @@ function wakePosKeepAlive() {
     log(`[POS Wake] ⏭️ Omit impuls trezire (port ocupat sau tranzacție activă, stare=${state})`);
     return;
   }
-  log('⚡ [POS Wake] Inactivitate de 30 minute în timpul programului (10:00 - 22:00). Trimit ENQ discret pentru trezire/prevenire sleep USB...');
+  log(`⚡ [POS Wake] Inactivitate de ${posWakeIntervalMinutes} minute în timpul programului (10:00 - 22:00). Trimit ENQ discret pentru trezire/prevenire sleep USB...`);
   wakeStartTime = Date.now();
   state = 'WAIT_ENQ_ACK__WAKE';
   currentOperation = 'WAKE';
@@ -524,6 +532,40 @@ function ecrSend(frame, ns, label, timeoutMs = 3000) {
       state = 'IDLE';
       const failedOp = currentOperation;
       currentOperation = null;
+
+      // 🛡️ Auto-Recovery Shield: dacă este o vânzare SALE și nu am încercat deja o autorecuperare în această tranzacție,
+      // NU respingem tranzacția! Resetăm portul, re-executăm LOGIN și reluăm comanda SALE în liniște!
+      if (failedOp === 'SALE' && globalPort && !globalPort.hasAutoRecoveredSale && currentTransactionResolve) {
+        globalPort.hasAutoRecoveredSale = true;
+        log('🛡️ [Auto-Recovery Shield] POS-ul nu a răspuns la primul ENQ (standby serial). Resetez portul și reîncerc vânzarea automat...');
+        if (typeof globalPort.currentStatusCallback === 'function') {
+          globalPort.currentStatusCallback('Se conectează terminalul bancar... vă rugăm așteptați...');
+        }
+        setTimeout(() => {
+          forceReopenPort('Auto-Recovery Shield SALE').then(async () => {
+            const loginOk = await ensurePosLogin();
+            if (loginOk && currentTransactionResolve) {
+              log('🚀 [Auto-Recovery Shield] Port recuperat și autentificat! Retrimit comanda SALE...');
+              setTimeout(() => {
+                if (currentTransactionResolve) {
+                  ecrSend(frame, ns, label, timeoutMs);
+                }
+              }, 300);
+            } else {
+              log('❌ [Auto-Recovery Shield] Re-autentificarea după recuperare a eșuat.');
+              if (currentTransactionResolve) {
+                currentTransactionResolve({ success: false, reason: 'POS-ul nu răspunde (Timeout).', code: 'DECLINED' });
+              }
+            }
+          }).catch((err) => {
+            if (currentTransactionResolve) {
+              currentTransactionResolve({ success: false, reason: 'Eroare recuperare POS: ' + err.message, code: 'DECLINED' });
+            }
+          });
+        }, 300);
+        return;
+      }
+
       if (currentTransactionResolve) {
         currentTransactionResolve({ success: false, reason: 'POS-ul nu răspunde (Timeout).', code: 'DECLINED' });
       }
@@ -585,10 +627,10 @@ function ensurePosLogin() {
 
 function processPrintecPayment(amount, onStatus) {
   return new Promise(async (resolve) => {
-    // Dacă portul este temporar în curs de redeschidere/resetare (ex: 300ms după o anulare sau recuperare), așteptăm până la 1.5s
+    // Dacă portul este temporar în curs de redeschidere/resetare sau în WAIT_LOGIN, așteptăm până la 3.5s pentru a evita coliziunea
     let waitRetries = 0;
-    while ((!globalPort || !globalPort.isOpen) && waitRetries < 15) {
-      await new Promise(r => setTimeout(r, 100));
+    while ((!globalPort || !globalPort.isOpen || isReopeningPort || state === 'WAIT_LOGIN') && waitRetries < 25) {
+      await new Promise(r => setTimeout(r, 150));
       waitRetries++;
     }
 
@@ -598,6 +640,10 @@ function processPrintecPayment(amount, onStatus) {
     if (state !== 'IDLE') {
        log(`⚠️ Stare anterioară (${state}) la inițiere plată. Reciclez starea în IDLE...`);
        state = 'IDLE';
+    }
+
+    if (globalPort) {
+      globalPort.hasAutoRecoveredSale = false;
     }
 
     rxBuf = Buffer.alloc(0);
@@ -697,6 +743,7 @@ async function start() {
       port: portPath || `VIVA_${VIVA_POS_IP}`,
       posGateway: POS_GATEWAY,
       posWakeStandby: posWakeStandbyEnabled,
+      posWakeIntervalMinutes: posWakeIntervalMinutes,
       hostname: require('os').hostname(),
     });
 
@@ -763,7 +810,11 @@ async function start() {
             } else {
               posWakeStandbyEnabled = true; // Implicit activat pe toate locațiile
             }
-            log(`⚙️ [POS Wake] Configurație încărcată de la server: ${posWakeStandbyEnabled ? 'ACTIVATĂ (la 30 min, 10:00-22:00)' : 'DEZACTIVATĂ'}`);
+            if (locData.posWakeIntervalMinutes !== undefined) {
+              const parsed = parseInt(locData.posWakeIntervalMinutes, 10);
+              if (!isNaN(parsed) && parsed >= 1) posWakeIntervalMinutes = parsed;
+            }
+            log(`⚙️ [POS Wake] Configurație încărcată de la server: ${posWakeStandbyEnabled ? `ACTIVATĂ (la ${posWakeIntervalMinutes} min, 10:00-22:00)` : 'DEZACTIVATĂ'}`);
             if (socket && socket.connected) {
               const printer = typeof getActualPrinterName === 'function' ? getActualPrinterName() : (process.env.PRINTER_NAME || '');
               socket.emit('pos_bridge_heartbeat', {
@@ -773,6 +824,7 @@ async function start() {
                 posGateway: POS_GATEWAY,
                 uptime: Math.round(process.uptime()),
                 posWakeStandby: posWakeStandbyEnabled,
+                posWakeIntervalMinutes: posWakeIntervalMinutes,
               });
             }
           } catch (e) {
@@ -798,24 +850,25 @@ async function start() {
             posGateway: POS_GATEWAY,
             uptime: Math.round(process.uptime()),
             posWakeStandby: posWakeStandbyEnabled,
+            posWakeIntervalMinutes: posWakeIntervalMinutes,
             hostname: require('os').hostname(),
           });
         }
       }, 20000);
     }
 
-    // Verificare inactivitate la fiecare 1 minut pentru trezire periodică POS (strict în intervalul 10:00 - 22:00)
+    // Verificare inactivitate la fiecare 30 secunde pentru trezire periodică POS (strict în intervalul 10:00 - 22:00)
     if (!global._posWakeInterval) {
       global._posWakeInterval = setInterval(() => {
         if (!posWakeStandbyEnabled) return;
         if (!isWithinWorkingHours()) return;
         const idleMs = Date.now() - lastActivityTime;
-        const IDLE_LIMIT = 30 * 60 * 1000; // 30 minute (standardul testat la Brașov și Constanța)
+        const IDLE_LIMIT = (posWakeIntervalMinutes || 5) * 60 * 1000;
         if (idleMs >= IDLE_LIMIT) {
           lastActivityTime = Date.now(); // resetăm pentru a evita declanșări repetate la timeout
           wakePosKeepAlive();
         }
-      }, 60000);
+      }, 30000);
     }
 
     // Aplică automat Auto-Hide Taskbar în fundal pe Windows pentru Kiosk
@@ -1615,11 +1668,36 @@ async function start() {
     }
   });
 
+  socket.on('pos_prewake', (data) => {
+    if (isMyLocation(data?.locationId, data?.kioskId)) {
+      const now = Date.now();
+      // Pre-wake doar dacă POS-ul este IDLE, portul este deschis și au trecut cel puțin 30s de la ultima activitate
+      if (globalPort && globalPort.isOpen && state === 'IDLE' && !paymentInProgress && !currentTransactionResolve) {
+        const idleMs = now - lastActivityTime;
+        if (idleMs > 30000) {
+          log('⚡ [Pre-Wake] Client activ la Kiosk (atingere/checkout). Trimit impuls ENQ discret pentru trezire din timp a terminalului...');
+          wakePosKeepAlive();
+        }
+      }
+    }
+  });
+
   socket.on('location_updated', (updatedLoc) => {
     if (updatedLoc && (updatedLoc.id === LOCATION_ID || LOCATION_ALIASES.includes(updatedLoc.id) || isMyLocation(updatedLoc.id, updatedLoc.kioskUrl))) {
+      let changed = false;
       if (updatedLoc.posWakeStandby !== undefined) {
         posWakeStandbyEnabled = !!updatedLoc.posWakeStandby;
-        log(`⚙️ [POS Wake] Setare actualizată din Admin: ${posWakeStandbyEnabled ? 'ACTIVATĂ (la 30 min, 10:00-22:00)' : 'DEZACTIVATĂ'}`);
+        changed = true;
+      }
+      if (updatedLoc.posWakeIntervalMinutes !== undefined) {
+        const parsed = parseInt(updatedLoc.posWakeIntervalMinutes, 10);
+        if (!isNaN(parsed) && parsed >= 1) {
+          posWakeIntervalMinutes = parsed;
+          changed = true;
+        }
+      }
+      if (changed) {
+        log(`⚙️ [POS Wake] Setare actualizată din Admin: ${posWakeStandbyEnabled ? `ACTIVATĂ (la ${posWakeIntervalMinutes} min, 10:00-22:00)` : 'DEZACTIVATĂ'}`);
         if (socket && socket.connected) {
           const printer = typeof getActualPrinterName === 'function' ? getActualPrinterName() : (process.env.PRINTER_NAME || '');
           socket.emit('pos_bridge_heartbeat', {
@@ -1629,6 +1707,7 @@ async function start() {
             posGateway: POS_GATEWAY,
             uptime: Math.round(process.uptime()),
             posWakeStandby: posWakeStandbyEnabled,
+            posWakeIntervalMinutes: posWakeIntervalMinutes,
             hostname: require('os').hostname(),
           });
         }

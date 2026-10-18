@@ -349,8 +349,21 @@ function initSocket(io) {
       }
     });
 
+    // Kiosk Pre-wake: trimis când clientul atinge ecranul sau deschide checkout-ul
+    socket.on('kiosk_prewake', (data) => {
+      const lid = data?.locationId;
+      if (lid) {
+        const { getLocationAliases } = require('../utils/locations');
+        const aliases = getLocationAliases ? getLocationAliases(lid) : [lid];
+        const targets = new Set([lid, ...aliases].filter(Boolean));
+        for (const tid of targets) {
+          io.to(`pos-bridge-${tid}`).emit('pos_prewake', { locationId: tid, kioskId: data?.kioskId });
+        }
+      }
+    });
+
     // Salvăm locationId pe socket la register și notificăm bridgeMonitoringService
-    socket.on('pos_bridge_register', async ({ locationId, port, posGateway, printerName, hostname, posWakeStandby }) => {
+    socket.on('pos_bridge_register', async ({ locationId, port, posGateway, printerName, hostname, posWakeStandby, posWakeIntervalMinutes }) => {
       // Auto-correct: if POS Bridge connects on COM5/COM1 or with TM-T20III or DESKTOP-VNTDBO0 (Cluj 2 hardware) but defaulted to sm-brasov
       if ((locationId === 'sm-brasov' || !locationId) && (port === 'COM5' || port === 'COM1' || String(printerName).includes('TM-T20III') || hostname === 'DESKTOP-VNTDBO0')) {
         console.log(`[Socket] 🔄 Auto-remap bridge to cluj2 based on hardware fingerprint (host=${hostname}, port=${port}, printer=${printerName})`);
@@ -388,7 +401,7 @@ function initSocket(io) {
 
       try {
         const bridgeMonitoringService = require('./bridgeMonitoringService');
-        bridgeMonitoringService.handleBridgeConnect(socket, { locationId, port, posGateway, printerName, hostname, posWakeStandby });
+        bridgeMonitoringService.handleBridgeConnect(socket, { locationId, port, posGateway, printerName, hostname, posWakeStandby, posWakeIntervalMinutes });
       } catch (e) {
         console.error('[BridgeMonitor] Register error:', e.message);
       }

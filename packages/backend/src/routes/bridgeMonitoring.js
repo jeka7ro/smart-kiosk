@@ -35,7 +35,7 @@ router.get('/telegram-config', (req, res) => {
  */
 router.post('/telegram-config', async (req, res) => {
   try {
-    const { botToken, chatId, posChatId, ordersChatId, enabled, alertCooldownMinutes } = req.body || {};
+    const { botToken, chatId, posChatId, ordersChatId, enabled, alertCooldownMinutes, posAlertsFilter, ordersAlertsEnabled } = req.body || {};
     const updates = {};
 
     if (typeof enabled === 'boolean') updates.enabled = enabled;
@@ -45,6 +45,12 @@ router.post('/telegram-config', async (req, res) => {
     if (typeof ordersChatId === 'string') updates.ordersChatId = ordersChatId.trim();
     if (typeof alertCooldownMinutes === 'number' && alertCooldownMinutes > 0) {
       updates.alertCooldownMinutes = alertCooldownMinutes;
+    }
+    if (typeof posAlertsFilter === 'string') {
+      updates.posAlertsFilter = posAlertsFilter;
+    }
+    if (typeof ordersAlertsEnabled === 'boolean') {
+      updates.ordersAlertsEnabled = ordersAlertsEnabled;
     }
 
     const result = await bridgeMonitoringService.saveTelegramConfig(updates);

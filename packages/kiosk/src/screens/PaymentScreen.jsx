@@ -183,6 +183,16 @@ export default function PaymentScreen() {
         orderPayload: payload,
       }),
     }).catch(() => {});
+
+    // Pre-wake silențios către POS când clientul intră în ecranul de plată
+    fetch(`${BACKEND}/api/payment/pre-wake`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        locationId: locationData?.kioskUrl || locationData?.id || '',
+        kioskId: effectiveKioskId,
+      }),
+    }).catch(() => {});
   }, [cartItems, total, locationData, activeBrandId, orderType, tableNumber, fiscalData, effectiveKioskId]);
 
   // Dacă timpul de 60s pentru card expiră, anulăm garantat tranzacția pe POS

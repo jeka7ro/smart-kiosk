@@ -22,6 +22,8 @@ let telegramConfig = {
   posChatId: process.env.TELEGRAM_POS_CHAT_ID || '-5554201057', // Grup 2: Kiosk POS
   ordersChatId: process.env.TELEGRAM_ORDERS_CHAT_ID || '-5209173668', // Grup 3: Kiosk Comenzi
   alertCooldownMinutes: 10,
+  posAlertsFilter: 'all', // 'all' | 'approved_only' | 'rejected_only' | 'none'
+  ordersAlertsEnabled: true, // boolean
 };
 
 // Cooldown tracking to prevent Telegram alert spam: locationKey -> lastAlertTimestamp
@@ -51,8 +53,10 @@ async function loadTelegramConfig() {
         ...rows[0].value,
         posChatId: rows[0].value.posChatId || telegramConfig.posChatId || '-5554201057',
         ordersChatId: rows[0].value.ordersChatId || telegramConfig.ordersChatId || '-5209173668',
+        posAlertsFilter: rows[0].value.posAlertsFilter || 'all',
+        ordersAlertsEnabled: rows[0].value.ordersAlertsEnabled !== undefined ? !!rows[0].value.ordersAlertsEnabled : true,
       };
-      console.log('[BridgeMonitor] Telegram config încărcat din DB (enabled:', telegramConfig.enabled, ', pos:', !!telegramConfig.posChatId, ', orders:', !!telegramConfig.ordersChatId, ')');
+      console.log('[BridgeMonitor] Telegram config încărcat din DB (enabled:', telegramConfig.enabled, ', pos:', telegramConfig.posAlertsFilter, ', orders:', telegramConfig.ordersAlertsEnabled, ')');
     }
     // Auto-register Telegram webhook for incoming /status commands
     if (telegramConfig.botToken) {
@@ -119,6 +123,8 @@ function getPublicTelegramConfig() {
     posChatId: telegramConfig.posChatId || '',
     ordersChatId: telegramConfig.ordersChatId || '',
     alertCooldownMinutes: telegramConfig.alertCooldownMinutes || 10,
+    posAlertsFilter: telegramConfig.posAlertsFilter || 'all',
+    ordersAlertsEnabled: telegramConfig.ordersAlertsEnabled !== undefined ? !!telegramConfig.ordersAlertsEnabled : true,
   };
 }
 
@@ -263,7 +269,14 @@ function getPosReasonText(reason, code) {
 async function sendPosAlert(data) {
   if (!telegramConfig.enabled) return;
 
+  const filter = telegramConfig.posAlertsFilter || 'all';
+  if (filter === 'none') return;
+
   const { paid, amount, locationName, orderId, cardNo, authCode, receiptNo, error, responseCode, code } = data;
+
+  if (!paid && filter === 'approved_only') return;
+  if (paid && filter === 'rejected_only') return;
+
   const amtStr = Number(amount || 0).toFixed(2);
   const timeStr = formatDateTime();
   const loc = locationName || 'Kiosk';
@@ -308,6 +321,7 @@ async function sendPosAlert(data) {
  */
 async function sendOrderAlert(order) {
   if (!telegramConfig.enabled) return;
+  if (telegramConfig.ordersAlertsEnabled === false) return;
   const targetChat = telegramConfig.ordersChatId || telegramConfig.chatId;
   if (!targetChat) return;
 
@@ -449,7 +463,7 @@ function isPosEnabled(locKey) {
 /**
  * Called when a POS Bridge connects and registers
  */
-function handleBridgeConnect(socket, { locationId, port, posGateway, printerName, hostname, posWakeStandby }) {
+function handleBridgeConnect(socket, { locationId, port, posGateway, printerName, hostname, posWakeStandby, posWakeIntervalMinutes }) {
   if ((locationId === 'sm-brasov' || !locationId) && (port === 'COM5' || port === 'COM1' || String(printerName).includes('TM-T20III') || hostname === 'DESKTOP-VNTDBO0')) {
     locationId = 'cluj2';
   }
@@ -474,6 +488,7 @@ function handleBridgeConnect(socket, { locationId, port, posGateway, printerName
     ip: socket.handshake?.address || socket.conn?.remoteAddress || '',
     uptimeSeconds: 0,
     posWakeStandby: posWakeStandby !== undefined ? !!posWakeStandby : (prev?.posWakeStandby ?? true),
+    posWakeIntervalMinutes: posWakeIntervalMinutes !== undefined ? Number(posWakeIntervalMinutes) : (prev?.posWakeIntervalMinutes || 5),
     posSignal: prev?.posSignal || null,
   };
 
@@ -553,6 +568,7 @@ function handleBridgeHeartbeat(socket, data) {
     if (data?.hostname) entry.hostname = data.hostname;
     if (typeof data?.uptime === 'number') entry.uptimeSeconds = data.uptime;
     if (data?.posWakeStandby !== undefined) entry.posWakeStandby = !!data.posWakeStandby;
+    if (data?.posWakeIntervalMinutes !== undefined) entry.posWakeIntervalMinutes = Number(data.posWakeIntervalMinutes);
     entry.socketId = socket.id;
 
     // Asigurăm apartenența la cameră la fiecare heartbeat
@@ -592,8 +608,13 @@ function updateLocationConfig(locId, locData) {
   if (!locId && !locData) return;
   const locKey = normalizeLocationKey(locId || locData?.kioskUrl || locData?.id);
   const entry = bridges.get(locKey);
-  if (entry && locData?.posWakeStandby !== undefined) {
-    entry.posWakeStandby = Boolean(locData.posWakeStandby);
+  if (entry) {
+    if (locData?.posWakeStandby !== undefined) {
+      entry.posWakeStandby = Boolean(locData.posWakeStandby);
+    }
+    if (locData?.posWakeIntervalMinutes !== undefined) {
+      entry.posWakeIntervalMinutes = Number(locData.posWakeIntervalMinutes);
+    }
   }
   if (_io) {
     _io.to('admin').emit('bridge_status_update', getStatusSummary());
@@ -1348,6 +1369,22 @@ function getStatusSummary() {
           } catch (_) {}
           return b?.posWakeStandby !== undefined ? b.posWakeStandby : true;
         })(),
+        posWakeIntervalMinutes: (() => {
+          try {
+            const allLocs = typeof getAllLocations === 'function' ? getAllLocations() : [];
+            const match = allLocs.find(l => 
+              l.id === locKey || 
+              l.kioskUrl === locKey || 
+              (Array.isArray(l.aliases) && l.aliases.includes(locKey)) ||
+              (locKey === 'constanta1' && (l.id === 'smashme-constanta' || l.name?.toLowerCase().includes('constanta'))) ||
+              (locKey === 'sm-brasov' && (l.id === 'rollmaster' || l.name?.toLowerCase().includes('brasov')))
+            );
+            if (match && match.posWakeIntervalMinutes !== undefined) {
+              return Number(match.posWakeIntervalMinutes) || 5;
+            }
+          } catch (_) {}
+          return b?.posWakeIntervalMinutes || 5;
+        })(),
         hostname: b?.hostname || '',
         expectedHardware: EXPECTED_PHYSICAL_HARDWARE[locKey] || null,
         posSignal: b?.posSignal || null,
@@ -1438,7 +1475,8 @@ async function formatStatusSummaryForTelegram() {
 
     // Standby wake status
     const wakeActive = (cfg?.posWakeStandby !== undefined) ? Boolean(cfg.posWakeStandby) : Boolean(loc.posWakeStandby);
-    const wakeStr = wakeActive ? 'Activă (10:00 - 22:00)' : 'Inactivă';
+    const wakeInterval = cfg?.posWakeIntervalMinutes || loc.posWakeIntervalMinutes || 5;
+    const wakeStr = wakeActive ? `Activă (la ${wakeInterval} min, 10:00 - 22:00)` : 'Inactivă';
 
     // PIN Manager & Casier
     let pinStr = cfg?.kioskPin ? `<code>${cfg.kioskPin}</code>` : 'Fără PIN';

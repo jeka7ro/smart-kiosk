@@ -3522,6 +3522,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
     paymentGateway: loc.paymentGateway || 'none',
     paymentMode: loc.paymentMode || (loc.cashOnly ? 'cash_only' : 'both'),
     posWakeStandby: loc.posWakeStandby ?? true,
+    posWakeIntervalMinutes: loc.posWakeIntervalMinutes || 5,
     kioskUiSize: loc.kioskUiSize || 'S',
     visualEffects: loc.visualEffects || { parallax: true, steam: true, snow: false },
     categoryHeroActive: loc.categoryHeroActive ?? false,
@@ -5509,17 +5510,17 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
               </div>
             </div>
 
-            {/* Standby Keep-Alive / Trezire periodică POS la 30 min */}
+            {/* Standby Keep-Alive / Trezire periodică POS */}
             <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-800">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="max-w-xl">
                   <div className="flex items-center gap-2">
                     <h4 className="text-sm font-bold text-slate-900 dark:text-white">
-                      Trezire automată POS din Standby (10:00 - 22:00, la 30 min)
+                      Trezire automată POS din Standby (10:00 - 22:00)
                     </h4>
                     {formData.posWakeStandby ? (
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400">
-                        Activ (10:00 - 22:00)
+                        Activ (la fiecare {formData.posWakeIntervalMinutes || 5} min)
                       </span>
                     ) : (
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500">
@@ -5528,8 +5529,8 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                     )}
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                    În intervalul programului de lucru (10:00 - 22:00), dacă chioșcul este inactiv de 30 de minute (în screensaver), trimite un impuls discret către terminalul bancar pentru a preveni adormirea portului USB în locații cu flux redus. Noaptea (după ora 22:00 și înainte de 10:00), impulsurile sunt oprite automat când restaurantul este închis.
-                    <span className="block mt-0.5 text-slate-400 dark:text-slate-500 italic">Recomandat: <strong>Activ</strong> pentru locații unde POS-ul intră în sleep.</span>
+                    În intervalul programului de lucru (10:00 - 22:00), dacă chioșcul este inactiv, trimite un impuls discret către terminalul bancar pentru a preveni adormirea portului USB în locații cu flux redus. Noaptea (după ora 22:00 și înainte de 10:00), impulsurile sunt oprite automat când restaurantul este închis.
+                    <span className="block mt-0.5 text-slate-400 dark:text-slate-500 italic">Recomandat: <strong>5 minute</strong> pentru a preveni deconectarea portului serial.</span>
                   </p>
                 </div>
                 
@@ -5547,6 +5548,94 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                   />
                 </button>
               </div>
+
+              {/* Selector Timer stil iPhone */}
+              {formData.posWakeStandby && (
+                <div className="mt-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      <Clock className="w-4 h-4 text-blue-500" />
+                      <span>Interval impuls Keep-Alive (Timer):</span>
+                    </div>
+
+                    {/* Stepper stil iOS */}
+                    <div className="inline-flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2 py-1 shadow-sm">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const current = Number(formData.posWakeIntervalMinutes || 5);
+                          if (current > 1) handleChange('posWakeIntervalMinutes', current - 1);
+                        }}
+                        disabled={Number(formData.posWakeIntervalMinutes || 5) <= 1}
+                        className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition font-extrabold text-lg select-none"
+                        title="Scade cu 1 minut"
+                      >
+                        -
+                      </button>
+
+                      <div className="px-3 py-0.5 text-center min-w-[76px]">
+                        <span className="text-lg font-black text-blue-600 dark:text-blue-400">
+                          {formData.posWakeIntervalMinutes || 5}
+                        </span>
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 ml-1">
+                          min
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const current = Number(formData.posWakeIntervalMinutes || 5);
+                          if (current < 60) handleChange('posWakeIntervalMinutes', current + 1);
+                        }}
+                        disabled={Number(formData.posWakeIntervalMinutes || 5) >= 60}
+                        className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition font-extrabold text-lg select-none"
+                        title="Crește cu 1 minut"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Preset Pills */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mr-1">Preset rapid:</span>
+                    {[
+                      { min: 2, label: '2 min' },
+                      { min: 3, label: '3 min' },
+                      { min: 5, label: '5 min (Recomandat)', highlight: true },
+                      { min: 10, label: '10 min' },
+                      { min: 15, label: '15 min' },
+                      { min: 30, label: '30 min' },
+                    ].map(preset => {
+                      const isSelected = Number(formData.posWakeIntervalMinutes || 5) === preset.min;
+                      return (
+                        <button
+                          key={preset.min}
+                          type="button"
+                          onClick={() => handleChange('posWakeIntervalMinutes', preset.min)}
+                          className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-all ${
+                            isSelected
+                              ? 'bg-blue-600 text-white shadow-sm ring-2 ring-blue-600/30 font-bold'
+                              : preset.highlight
+                                ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800'
+                                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700'
+                          }`}
+                        >
+                          {preset.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5 pt-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                    <span>
+                      Impuls discret de 100ms transmis la fiecare <strong>{formData.posWakeIntervalMinutes || 5} minute</strong> fără comenzi. Resetează ceasul de sleep din POS-ul Verifone fără zgomot sau tipărire.
+                    </span>
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 

@@ -140,6 +140,19 @@ export const useKioskStore = create((set, get) => ({
   goAfterWelcome: () => {
     const loc = get().locationData;
     const isMulti = loc && loc.brands && loc.brands.length > 1;
+
+    // Pre-wake silențios către POS când clientul atinge ecranul/screensaver-ul
+    try {
+      const locId = loc?.kioskUrl || loc?.id || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('loc') : '') || localStorage.getItem('kiosk_loc_id');
+      if (locId) {
+        const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
+        fetch(`${BACKEND_URL}/api/payment/pre-wake`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ locationId: locId }),
+        }).catch(() => {});
+      }
+    } catch (_) {}
     
     // Start iOS unlock sequence (start slide up CSS but instantly mount next route behind it)
     set({ 

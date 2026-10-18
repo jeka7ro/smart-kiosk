@@ -344,6 +344,25 @@ router.post('/pre-save-cart', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/payment/pre-wake
+ * Trimite semnal discret de trezire către POS Bridge când clientul este activ la Kiosk (atinge ecranul / checkout)
+ */
+router.post('/pre-wake', (req, res) => {
+  const { locationId, kioskId } = req.body || {};
+  if (!locationId) return res.status(400).json({ error: 'locationId required' });
+  const io = req.app.get('io');
+  if (io) {
+    const { getLocationAliases } = require('../utils/locations');
+    const aliases = getLocationAliases ? getLocationAliases(locationId) : [locationId];
+    const targets = new Set([locationId, ...aliases].filter(Boolean));
+    for (const tid of targets) {
+      io.to(`pos-bridge-${tid}`).emit('pos_prewake', { locationId: tid, kioskId });
+    }
+  }
+  res.json({ ok: true });
+});
+
 // ── GET /api/payment/pending-orders ──────────────────────────────
 router.get('/pending-orders', requireApiKey, async (req, res) => {
   try {
