@@ -158,21 +158,6 @@ function IconListLines() {
 // Catalog de ingrediente ce pot fi excluse la cererea clientului
 const REMOVABLE_INGREDIENTS = [
   {
-    id: 'ceapa',
-    label: 'Fără ceapă',
-    keywords: ['ceapă', 'ceapa', 'caramelizată', 'caramelizata', 'praz'],
-  },
-  {
-    id: 'ceapa_verde',
-    label: 'Fără ceapă verde',
-    keywords: ['ceapă verde', 'ceapa verde', 'chives', 'green onion'],
-  },
-  {
-    id: 'ceapa_tempura',
-    label: 'Fără ceapă tempura',
-    keywords: ['ceapă tempura', 'ceapa tempura', 'tempura', 'crispy onion', 'ceapă crispy', 'ceapa crispy'],
-  },
-  {
     id: 'telemea',
     label: 'Fără telemea',
     keywords: ['telemea', 'feta'],
@@ -193,19 +178,9 @@ const REMOVABLE_INGREDIENTS = [
     keywords: ['bacon', 'pancetta', 'costiță', 'costita', 'șuncă', 'sunca'],
   },
   {
-    id: 'branza',
-    label: 'Fără cașcaval / brânză',
-    keywords: ['cheddar', 'cașcaval', 'cascaval', 'brânză', 'branza', 'mozzarella', 'parmezan', 'gouda', 'gorgonzola'],
-  },
-  {
     id: 'salata',
     label: 'Fără salată',
     keywords: ['salată', 'salata', 'iceberg', 'rucola', 'varză', 'varza'],
-  },
-  {
-    id: 'rosii',
-    label: 'Fără roșii',
-    keywords: ['roșii', 'rosii', 'roșie', 'rosie', 'tomate'],
   },
   {
     id: 'sare',
@@ -222,16 +197,6 @@ const REMOVABLE_INGREDIENTS = [
     id: 'wasabi',
     label: 'Fără wasabi',
     keywords: ['wasabi'],
-  },
-  {
-    id: 'ghimbir',
-    label: 'Fără ghimbir',
-    keywords: ['ghimbir', 'ginger'],
-  },
-  {
-    id: 'usturoi',
-    label: 'Fără usturoi',
-    keywords: ['usturoi', 'garlic'],
   },
 ];
 
@@ -753,7 +718,6 @@ export default function ProductScreen() {
     if (isSushiProduct && !isAsianSoupOrWok) {
       return [
         { id: 'sos', label: 'Fără sos' },
-        { id: 'ghimbir', label: 'Fără ghimbir' },
       ];
     }
 
@@ -763,117 +727,21 @@ export default function ProductScreen() {
       allergenLabels.join(' '),
     ].join(' ').toLowerCase();
 
-    // Identificare platouri încărcate cu cartofi (Farmer's Fries, Rustic Cheesy Fries, Smoky Chicken Fries etc.)
-    const isFriesPlatter = (pName.includes('fries') || pName.includes('cartofi') || catName.includes('fries') || catName.includes('cartofi')) &&
-      !pName.includes('fried cheese & fries') &&
-      !pName.includes('mozzarella & fries') &&
-      !pName.includes('nuggets & fries') &&
-      !pName.includes('nuggests & fries');
-
     return REMOVABLE_INGREDIENTS.filter(item => {
-      // Regula 0: La produsele Crunch de 12 și 6 bucăți, NU arăta "Fără sos" / "Fără ghimbir" (evită confuzia bucătăriei Cluj)
+      // Regula 0: La produsele Crunch de 12 și 6 bucăți, NU arăta "Fără sos" (evită confuzia bucătăriei Cluj)
       const isCrunch12or6 = (pName.includes('crunch') || catName.includes('crunch')) && 
                             (pName.includes('12') || pName.includes('6'));
-      if (isCrunch12or6 && (item.id === 'sos' || item.id === 'ghimbir')) {
+      if (isCrunch12or6 && item.id === 'sos') {
         return false;
       }
 
-      // Regula 1: Pe platourile cu cartofi sau preparate pe bază de brânză prăjită, NU arăta "Fără cașcaval / brânză"
-      if (item.id === 'branza') {
-        if (isFriesPlatter || pName.includes('fried cheese') || pName.includes('mozzarella') || pName.includes('cheesy')) {
-          return false;
-        }
-      }
-
-      // Regula 2: Pe platourile cu cartofi, înlocuiește ceapa generică cu "Fără ceapă verde"
-      if (isFriesPlatter) {
-        if (item.id === 'ceapa') return false;
-        if (item.id === 'ceapa_verde') {
-          return textToScan.includes('ceap') || textToScan.includes('chives') || textToScan.includes('carameliz');
-        }
-      }
-
-      // Regula 3: Nu arăta "Fără ceapă" pe combos simple care nu conțin ceapă
-      if (item.id === 'ceapa') {
-        const isFriesOnlyCombo = pName.includes('mozzarella & fries') || 
-                                 pName.includes('fried cheese & fries') || 
-                                 pName.includes('nuggests & fries') || 
-                                 pName.includes('nuggets & fries');
-        if (isFriesOnlyCombo) {
-          return false;
-        }
-      }
-
-      // Regula 4: "Cartofi fără sare" — doar pe produse care SUNT cartofi (nu pe burgeri/sandvișuri)
+      // Regula: "Cartofi fără sare" — doar pe produse care SUNT cartofi (nu pe burgeri/sandvișuri)
       if (item.onlyForFries) {
         const isActuallyFries = pName.includes('cartof') || pName.includes('fries') || pName.includes('chips');
         if (!isActuallyFries) return false;
       }
 
-      // Regula 5: La produsele Chicken Ranch / Ranch și Smoky Pepper (Dublu, Triplu, Meniu etc.), NU arăta "Fără usturoi" (sosul de iaurt / sosul de usturoi au usturoiul gata încorporat)
-      if (item.id === 'usturoi') {
-        const isRanch = pName.includes('ranch') || 
-                        (product.originalName || '').toLowerCase().includes('ranch') ||
-                        (product.title || '').toLowerCase().includes('ranch') ||
-                        catName.includes('ranch');
-        const isSmokyPepper = pName.includes('smoky pepper') || 
-                              pName.includes('pepper') ||
-                              (product.originalName || '').toLowerCase().includes('smoky pepper') ||
-                              (product.title || '').toLowerCase().includes('smoky pepper') ||
-                              catName.includes('smoky pepper');
-        if (isRanch || isSmokyPepper) {
-          return false;
-        }
-      }
-
-      // Regula 6: La preparatele Chicken BBQ (mici și mari: BBQ Cheese Chicken, Easy BBQ Cheese Chicken etc.),
-      // NU arăta "Fără ceapă", "Fără telemea" și "Fără roșii" (au doar ceapă tempura, telemeaua e în sosul de cheddar, iar roșiile sunt doar pasta din BBQ)
-      const isBbqChicken = (pName.includes('bbq') && (pName.includes('chicken') || pName.includes('pui'))) ||
-                           (product.originalName || '').toLowerCase().includes('bbq') ||
-                           (product.title || '').toLowerCase().includes('bbq') ||
-                           catName.includes('bbq');
-      if (isBbqChicken && (item.id === 'ceapa' || item.id === 'telemea' || item.id === 'rosii')) {
-        return false;
-      }
-
-      // Regula 7: La preparatele cu ceapă caramelizată (Big Boss, Spicy Jalapeno - Dublu, Triplu, Meniu etc.),
-      // ceapa caramelizată este mereu prezentă în rețetă
-      const hasCaramelizedOnion = pName.includes('big boss') || 
-                                  pName.includes('boss') ||
-                                  pName.includes('jalapeno') ||
-                                  pName.includes('jalapeño') ||
-                                  (product.originalName || '').toLowerCase().includes('big boss') ||
-                                  (product.originalName || '').toLowerCase().includes('jalapeno') ||
-                                  (product.title || '').toLowerCase().includes('big boss') ||
-                                  (product.title || '').toLowerCase().includes('jalapeno');
-      if (item.id === 'ceapa' && hasCaramelizedOnion) {
-        return true;
-      }
-
-      // Regula 8: La preparatele Oklahoma (Dublu, Triplu, Meniu etc.),
-      // NU arăta "Fără ceapă" generică (au doar ceapă tempura, deci rămâne doar "Fără ceapă tempura")
-      const isOklahoma = pName.includes('oklahoma') || 
-                         (product.originalName || '').toLowerCase().includes('oklahoma') ||
-                         (product.title || '').toLowerCase().includes('oklahoma') ||
-                         catName.includes('oklahoma');
-      if (isOklahoma && item.id === 'ceapa') {
-        return false;
-      }
-
       return item.keywords.some(kw => textToScan.includes(kw));
-    }).map(item => {
-      const hasCaramelizedOnion = pName.includes('big boss') || 
-                                  pName.includes('boss') ||
-                                  pName.includes('jalapeno') ||
-                                  pName.includes('jalapeño') ||
-                                  (product.originalName || '').toLowerCase().includes('big boss') ||
-                                  (product.originalName || '').toLowerCase().includes('jalapeno') ||
-                                  (product.title || '').toLowerCase().includes('big boss') ||
-                                  (product.title || '').toLowerCase().includes('jalapeno');
-      if (item.id === 'ceapa' && hasCaramelizedOnion) {
-        return { ...item, label: 'Fără ceapă caramelizată' };
-      }
-      return item;
     });
   }, [product, rawDesc, allergenLabels, menuCategories]);
 
