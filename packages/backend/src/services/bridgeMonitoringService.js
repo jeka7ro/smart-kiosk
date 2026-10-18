@@ -249,7 +249,7 @@ function getPosReasonText(reason, code) {
   if (c === '91') return 'Banca emitentă nu răspunde';
   if (c === '96') return 'Eroare sistem bancar';
   if (c.toUpperCase() === 'A0' || rawStr.includes('0xA0') || rawStr.toLowerCase().includes('tasta') || rawStr.toLowerCase().includes('anulat')) {
-    return 'Anulat de client (Tasta roșie X)';
+    return 'Timp expirat / Anulat (Ecran sau POS)';
   }
   if (rawStr.includes('Timp expirat citire card') || rawStr.includes('2 minute')) {
     return 'Timp expirat citire card (Clientul nu a apropiat cardul)';
@@ -263,6 +263,9 @@ function getPosReasonText(reason, code) {
   return rawStr || 'Tranzacție respinsă de bancă';
 }
 
+// Buffer antifals pentru alerte POS respinse: bufferKey -> { timer, rejectMsg, loc, amtStr, orderId, normLoc, createdAt }
+const pendingRejectedPosAlerts = new Map();
+
 /**
  * Send alert to Grup 2: Kiosk POS
  */
@@ -272,17 +275,18 @@ async function sendPosAlert(data) {
   const filter = telegramConfig.posAlertsFilter || 'all';
   if (filter === 'none') return;
 
-  const { paid, amount, locationName, orderId, cardNo, authCode, receiptNo, error, responseCode, code } = data;
+  const { paid, amount, locationName, orderId, cardNo, authCode, receiptNo, error, responseCode, code, locationId } = data;
 
   if (!paid && filter === 'approved_only') return;
   if (paid && filter === 'rejected_only') return;
 
   const amtStr = Number(amount || 0).toFixed(2);
   const timeStr = formatDateTime();
-  const loc = locationName || 'Kiosk';
+  const loc = locationName || locationId || 'Kiosk';
+  const normLoc = String(locationId || locationName || 'kiosk').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const bufferKey = `${normLoc}_${amtStr}`;
 
   if (!paid) {
-    // 🔴 Plățile respinse POS au fost scoase din Grupul de Alerte (chatId) la cererea expresă a utilizatorului.
     const alertsChat = telegramConfig.chatId;
     if (telegramConfig.posChatId && telegramConfig.posChatId !== alertsChat) {
       const reasonText = getPosReasonText(error, responseCode || code);
@@ -294,14 +298,51 @@ async function sendPosAlert(data) {
         `Motiv exact: <b>${reasonText}</b>`,
         `Timp: ${timeStr}`
       ].join('\n');
-      await sendTelegramMessage(rejectMsg, null, telegramConfig.posChatId).catch(() => {});
+
+      // Curățăm orice timer anterior pe aceeași locație/sumă
+      if (pendingRejectedPosAlerts.has(bufferKey)) {
+        clearTimeout(pendingRejectedPosAlerts.get(bufferKey).timer);
+      }
+
+      // Buffer inteligent de 50 secunde: dacă clientul reîncearcă și plătește, alerta roșie este anulată complet!
+      const timer = setTimeout(() => {
+        pendingRejectedPosAlerts.delete(bufferKey);
+        sendTelegramMessage(rejectMsg, null, telegramConfig.posChatId).catch(() => {});
+      }, 50000);
+
+      pendingRejectedPosAlerts.set(bufferKey, {
+        timer,
+        rejectMsg,
+        normLoc,
+        amtStr,
+        createdAt: Date.now(),
+      });
     }
     return;
   } else {
-    // 🟢 Plățile aprobate se trimit EXCLUSIV în grupul dedicat POS (NU poluează grupul de alerte)
+    // 🟢 Plata este APROBATĂ!
+    // Dacă exista o alertă roșie în buffer pentru această sumă sau pe aceeași locație în ultimele 60s, o anulăm imediat!
+    let wasRecovered = false;
+    if (pendingRejectedPosAlerts.has(bufferKey)) {
+      clearTimeout(pendingRejectedPosAlerts.get(bufferKey).timer);
+      pendingRejectedPosAlerts.delete(bufferKey);
+      wasRecovered = true;
+      console.log(`[BridgeMonitor] 🛡️ [Anti-False-Alarm] Alerta roșie pentru ${bufferKey} a fost anulată! Plata a fost aprobată la reîncercare.`);
+    } else {
+      for (const [k, item] of pendingRejectedPosAlerts.entries()) {
+        if (item.normLoc === normLoc && (Date.now() - item.createdAt) < 65000) {
+          clearTimeout(item.timer);
+          pendingRejectedPosAlerts.delete(k);
+          wasRecovered = true;
+          console.log(`[BridgeMonitor] 🛡️ [Anti-False-Alarm] Alerta roșie pentru ${k} a fost anulată (aceeași locație aprobată la reîncercare)!`);
+          break;
+        }
+      }
+    }
+
     if (telegramConfig.posChatId && telegramConfig.posChatId !== telegramConfig.chatId) {
       const approvedMsg = [
-        `🟢 <b>[PLATĂ APROBATĂ - POS]</b>`,
+        `🟢 <b>[PLATĂ APROBATĂ - POS]</b>${wasRecovered ? ' <i>(la reîncercare)</i>' : ''}`,
         `Locație: <b>${loc}</b>`,
         `Sumă: <b>${amtStr} RON</b>`,
         `Bon: ${receiptNo || '-'} | Comandă: #${orderId || '-'}`,

@@ -258,6 +258,7 @@ function initSocket(io) {
           sendPosAlert({
             paid,
             amount: amount || logEntry?.amount || 0,
+            locationId: locationId || logEntry?.location_id || '',
             locationName: logEntry?.location_name || locationId || '',
             orderId,
             cardNo,

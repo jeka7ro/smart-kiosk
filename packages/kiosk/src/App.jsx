@@ -19,6 +19,7 @@ import ConfirmationScreen  from './screens/ConfirmationScreen';
 import PinScreen           from './screens/PinScreen';
 import ManagerPortalModal  from './components/ManagerPortalModal.jsx';
 import FullscreenExitPinModal from './components/FullscreenExitPinModal.jsx';
+import InactivityWarningModal from './components/InactivityWarningModal.jsx';
 import FortuneWheel        from './components/FortuneWheel';
 import { proxySyrveImage } from './utils/imageUtils.js';
 
@@ -84,6 +85,8 @@ export default function App() {
   const isManagerMode = urlParams.get('manager') === 'true' || urlParams.get('manager') === '1' || urlParams.get('mode') === 'manager';
 
   const screen = useKioskStore((s) => s.screen);
+  const lang = useKioskStore((s) => s.lang);
+  const inactivityWarning = useKioskStore((s) => s.inactivityWarning);
   const cartItems = useKioskStore((s) => s.cartItems);
   const isUnlocking = useKioskStore((s) => s.isUnlocking);
   const setLocationData = useKioskStore((s) => s.setLocationData);
@@ -1071,6 +1074,21 @@ export default function App() {
               const rfs = el.requestFullscreen || el.webkitRequestFullscreen;
               if (rfs) rfs.call(el).catch(() => {});
             }}
+          />
+        )}
+        
+        {/* ─── Avertisment Inactivitate Stil McDonald's / KFC (ultimele 20 secunde) ─── */}
+        {inactivityWarning?.show && (
+          <InactivityWarningModal
+            secondsLeft={inactivityWarning.secondsLeft}
+            onKeepOrdering={() => {
+              useKioskStore.getState().keepOrdering();
+            }}
+            onCancelOrder={() => {
+              useKioskStore.getState().resetAll();
+              useKioskStore.getState().goTo('welcome');
+            }}
+            lang={lang}
           />
         )}
         

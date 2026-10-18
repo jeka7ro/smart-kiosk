@@ -277,8 +277,14 @@ export const useKioskStore = create((set, get) => ({
     hasShownStartPromo: false,
     menuScrollTop: 0,
     menuActiveCategory: null,
+    inactivityWarning: { show: false, secondsLeft: 20 },
     screen: 'welcome',
   }),
+
+  // Inactivity warning modal controls
+  inactivityWarning: { show: false, secondsLeft: 20 },
+  setInactivityWarning: (warning) => set({ inactivityWarning: warning }),
+  keepOrdering: () => set({ inactivityWarning: { show: false, secondsLeft: 20 } }),
 
   // Alias for inactivity hook
   resetAll: () => set({
@@ -293,6 +299,7 @@ export const useKioskStore = create((set, get) => ({
     hasShownStartPromo: false,
     menuScrollTop: 0,
     menuActiveCategory: null,
+    inactivityWarning: { show: false, secondsLeft: 20 },
     screen: 'welcome',
   }),
 }));

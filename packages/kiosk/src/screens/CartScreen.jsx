@@ -9,7 +9,7 @@ import UpsellModal from '../components/UpsellModal.jsx';
 import './CartScreen.css';
 
 export default function CartScreen() {
-  useInactivityTimeout(90);
+  useInactivityTimeout(150);
   const cartItems      = useKioskStore((s) => s.cartItems);
   const menuProducts   = useKioskStore((s) => s.menuProducts);
   const menuCategories = useKioskStore((s) => s.menuCategories);

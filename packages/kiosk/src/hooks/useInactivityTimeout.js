@@ -1,40 +1,69 @@
 /**
- * useInactivityTimeout
- * Resets kiosk to welcome screen after `seconds` of no user interaction.
- * Attach to any screen except WelcomeScreen.
- *
- * Usage:
- *   useInactivityTimeout(90); // resets after 90s of inactivity
+ * useInactivityTimeout (McDonald's & KFC Layered Timer Pattern)
+ * Tracks user activity and triggers a friendly 20-second warning modal before resetting to welcome screen.
  */
 import { useEffect, useRef } from 'react';
 import { useKioskStore } from '../store/kioskStore';
 
 const EVENTS = ['mousedown', 'mousemove', 'keydown', 'touchstart', 'click', 'scroll'];
 
-export function useInactivityTimeout(seconds = 90) {
-  const goTo     = useKioskStore((s) => s.goTo);
+export function useInactivityTimeout(seconds = 150) {
+  const goTo = useKioskStore((s) => s.goTo);
   const resetAll = useKioskStore((s) => s.resetAll);
-  const timerRef = useRef(null);
+  const screen = useKioskStore((s) => s.screen);
+  const setInactivityWarning = useKioskStore((s) => s.setInactivityWarning);
+
+  const lastActivityRef = useRef(Date.now());
+  const intervalRef = useRef(null);
 
   useEffect(() => {
-    const reset = () => {
-      clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => {
+    // Dacă suntem pe ecranul welcome (screensaver), nu avem nevoie de timer de inactivitate
+    if (screen === 'welcome') {
+      setInactivityWarning({ show: false, secondsLeft: 20 });
+      return;
+    }
+
+    const onUserActivity = () => {
+      lastActivityRef.current = Date.now();
+      const currentWarning = useKioskStore.getState().inactivityWarning;
+      if (currentWarning?.show) {
+        setInactivityWarning({ show: false, secondsLeft: 20 });
+      }
+    };
+
+    lastActivityRef.current = Date.now();
+    EVENTS.forEach(e => window.addEventListener(e, onUserActivity, { passive: true }));
+
+    // Verificăm în fiecare secundă starea de inactivitate
+    intervalRef.current = setInterval(() => {
+      const currentScreen = useKioskStore.getState().screen;
+      if (currentScreen === 'welcome') return;
+
+      const idleSec = Math.floor((Date.now() - lastActivityRef.current) / 1000);
+      const remainingSec = seconds - idleSec;
+
+      if (remainingSec <= 0) {
         console.log('[Kiosk] Inactivity timeout — resetting to welcome');
+        setInactivityWarning({ show: false, secondsLeft: 0 });
         resetAll();
         goTo('welcome');
-      }, seconds * 1000);
-    };
-
-    // Start the timer
-    reset();
-
-    // Reset timer on any user interaction
-    EVENTS.forEach(e => window.addEventListener(e, reset, { passive: true }));
+      } else if (remainingSec <= 20) {
+        // Dacă suntem pe ecranul de plată și se procesează o plată activă cu cardul, nu suprapunem pop-up-ul
+        if (currentScreen === 'payment' && window._posPaymentActive) {
+          return;
+        }
+        setInactivityWarning({ show: true, secondsLeft: remainingSec });
+      } else {
+        const currentWarning = useKioskStore.getState().inactivityWarning;
+        if (currentWarning?.show) {
+          setInactivityWarning({ show: false, secondsLeft: 20 });
+        }
+      }
+    }, 1000);
 
     return () => {
-      clearTimeout(timerRef.current);
-      EVENTS.forEach(e => window.removeEventListener(e, reset));
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      EVENTS.forEach(e => window.removeEventListener(e, onUserActivity));
     };
-  }, [seconds, goTo, resetAll]);
+  }, [seconds, screen, goTo, resetAll, setInactivityWarning]);
 }

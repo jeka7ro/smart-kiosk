@@ -83,6 +83,14 @@ export default function PaymentScreen() {
   const payStateRef = useRef(payState);
   useEffect(() => {
     payStateRef.current = payState;
+    if (typeof window !== 'undefined') {
+      window._posPaymentActive = [STATE.WAITING_CARD, STATE.PIN_ENTRY, STATE.AUTHORIZING].includes(payState);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window._posPaymentActive = false;
+      }
+    };
   }, [payState]);
 
   useEffect(() => {
@@ -400,9 +408,12 @@ export default function PaymentScreen() {
   const handleRetry = () => {
     autoRetryCountRef.current = 0;
     setRetryNotice('');
-    setPayState(STATE.IDLE);
     setErrorMsg('');
     setTxInfo(null);
+    setPayState(STATE.INITIATING);
+    setTimeout(() => {
+      handlePayRef.current?.();
+    }, 200);
   };
 
   const canGoBack = [STATE.IDLE, STATE.ERROR, STATE.DECLINED].includes(payState);
@@ -934,39 +945,75 @@ export default function PaymentScreen() {
         )}
 
         {/* ── STATE: DECLINED / ERROR ── */}
-        {(payState === STATE.DECLINED || payState === STATE.ERROR) && (
-          <div className="kiosk-payment-card-mode fade-in">
-            <div className="kiosk-result-icon decline-pop">
-              <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
+        {(payState === STATE.DECLINED || payState === STATE.ERROR) && (() => {
+          const isCardTimeout = Boolean(
+            errorMsg && (
+              errorMsg.toLowerCase().includes('timp') ||
+              errorMsg.toLowerCase().includes('expirat') ||
+              errorMsg.toLowerCase().includes('nu a apropiat') ||
+              errorMsg.toLowerCase().includes('anulat') ||
+              errorMsg.toLowerCase().includes('tasta') ||
+              errorMsg.toLowerCase().includes('a0')
+            )
+          );
+
+          return (
+            <div className="kiosk-payment-card-mode fade-in">
+              {isCardTimeout ? (
+                <div className="kiosk-result-icon timeout-pop" style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}>
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
+                  </svg>
+                </div>
+              ) : (
+                <div className="kiosk-result-icon decline-pop">
+                  <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </div>
+              )}
+
+              <div className="kiosk-action-header">
+                <h2 className={`kiosk-action-title ${isCardTimeout ? '' : 'text-danger'}`} style={{ color: isCardTimeout ? '#d97706' : undefined }}>
+                  {isCardTimeout
+                    ? (t('card_timeout_title', lang) || 'Timpul pentru card a expirat')
+                    : (payState === STATE.ERROR ? 'Eroare conexiune terminal' : 'Plată refuzată')}
+                </h2>
+                <p className="kiosk-action-subtitle">
+                  {isCardTimeout
+                    ? (t('card_timeout_desc', lang) || 'Nu am detectat cardul la timp. Când ești gata, apasă pe „Plătește Acum” și apropie cardul de terminal.')
+                    : (errorMsg || 'Tranzacția nu a putut fi finalizată. Vă rugăm încercați din nou sau adresați-vă casieriei.')}
+                </p>
+              </div>
+
+              <div className="kiosk-pay-actions-row">
+                <button className="kiosk-touch-btn kiosk-btn-primary" onClick={handleRetry}>
+                  {isCardTimeout ? (
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="2" y="5" width="20" height="14" rx="2" />
+                      <line x1="2" y1="10" x2="22" y2="10" />
+                    </svg>
+                  ) : (
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                    </svg>
+                  )}
+                  <span>{isCardTimeout ? (t('pay_now_card', lang) || 'Plătește Acum cu Cardul') : (t('retry', lang) || 'Încearcă din nou')}</span>
+                </button>
+
+                <button className="kiosk-touch-btn kiosk-btn-secondary" onClick={handleCancel}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12" />
+                    <polyline points="12 19 5 12 12 5" />
+                  </svg>
+                  <span>{(t('back_to_cart', lang) || 'Înapoi la coș').replace(/^←\s*/, '')}</span>
+                </button>
+              </div>
             </div>
-            <div className="kiosk-action-header">
-              <h2 className="kiosk-action-title text-danger">
-                {payState === STATE.ERROR ? 'Eroare conexiune terminal' : 'Plată refuzată'}
-              </h2>
-              <p className="kiosk-action-subtitle">
-                {errorMsg || 'Tranzacția nu a putut fi finalizată. Vă rugăm încercați din nou sau adresați-vă casieriei.'}
-              </p>
-            </div>
-            <div className="kiosk-pay-actions-row">
-              <button className="kiosk-touch-btn kiosk-btn-primary" onClick={handleRetry}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
-                </svg>
-                <span>Încearcă din nou</span>
-              </button>
-              <button className="kiosk-touch-btn kiosk-btn-secondary" onClick={handleCancel}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="19" y1="12" x2="5" y2="12" />
-                  <polyline points="12 19 5 12 12 5" />
-                </svg>
-                <span>{(t('back_to_cart', lang) || 'Înapoi la coș').replace(/^←\s*/, '')}</span>
-              </button>
-            </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
 
       {/* Fiscal Modal */}

@@ -4,7 +4,7 @@ import { useInactivityTimeout } from '../hooks/useInactivityTimeout.js';
 import './OrderTypeScreen.css';
 
 export default function OrderTypeScreen() {
-  useInactivityTimeout(90);
+  useInactivityTimeout(150);
   const setOrderType = useKioskStore((s) => s.setOrderType);
   const goTo = useKioskStore((s) => s.goTo);
   const lang = useKioskStore((s) => s.lang);
