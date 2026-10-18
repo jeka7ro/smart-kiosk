@@ -32,7 +32,7 @@ if not defined CHOICE set /p "CHOICE=Introdu cifra locatiei (1-5) si apasa ENTER
 set "SCRIPT_VERSION=2.4.0"
 set "LOC_ID=cluj2"
 set "LOC_NAME=Cluj 2"
-set "COM_PORT=COM1"
+set "COM_PORT=COM5"
 set "PRINTER_NAME=EPSON TM-T20III Receipt"
 set "URL=https://kiosk-smashme.netlify.app/?loc=cluj2&universal=true&v=%SCRIPT_VERSION%"
 
@@ -47,7 +47,7 @@ if "%CHOICE%"=="2" (
     set "LOC_ID=cluj2"
     set "LOC_NAME=Cluj 2"
     set "URL=https://kiosk-smashme.netlify.app/?loc=cluj2&universal=true&v=%SCRIPT_VERSION%"
-    set "COM_PORT=COM1"
+    set "COM_PORT=COM5"
     set "PRINTER_NAME=EPSON TM-T20III Receipt"
 )
 if "%CHOICE%"=="3" (

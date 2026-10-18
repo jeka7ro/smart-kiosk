@@ -37,7 +37,7 @@ set "LOC_ID=cluj2"
 set "LOC_NAME=Cluj 2"
 set "URL=https://kiosk-smashme.netlify.app/?loc=cluj2&universal=true&v=%SCRIPT_VERSION%"
 set "PRINTER_NAME=EPSON"
-set "COM_PORT=auto"
+set "COM_PORT=COM5"
 set "POS_GATEWAY=raiffeisen"
 
 if "%CHOICE%"=="1" (
@@ -53,7 +53,7 @@ if "%CHOICE%"=="2" (
     set "LOC_NAME=Cluj 2"
     set "URL=https://kiosk-smashme.netlify.app/?loc=cluj2&universal=true&v=%SCRIPT_VERSION%"
     set "PRINTER_NAME=EPSON"
-    set "COM_PORT=auto"
+    set "COM_PORT=COM5"
     set "POS_GATEWAY=raiffeisen"
 )
 if "%CHOICE%"=="3" (

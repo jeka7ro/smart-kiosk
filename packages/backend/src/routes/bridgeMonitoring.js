@@ -172,6 +172,36 @@ router.post('/:locationId/restart-bridge', (req, res) => {
 });
 
 /**
+ * POST /api/bridge-monitoring/:locationId/set-port
+ * Remotely updates the POS COM_PORT in the bridge .env and restarts it
+ */
+router.post('/:locationId/set-port', (req, res) => {
+  try {
+    const io = req.app.get('io');
+    const { locationId } = req.params;
+    const { port } = req.body;
+    if (!port) return res.status(400).json({ error: 'Portul este obligatoriu (ex: COM5)' });
+    const { getLocationAliases } = require('../utils/locations');
+    const aliases = getLocationAliases ? getLocationAliases(locationId) : [locationId];
+    const targets = new Set([locationId, ...aliases].filter(Boolean));
+
+    if (io) {
+      for (const tid of targets) {
+        io.to(`pos-bridge-${tid}`).emit('set_pos_port', { locationId: tid, port });
+        io.emit(`set_pos_port_${tid}`, { locationId: tid, port });
+      }
+      console.log(`[BridgeMonitor] Comandă set_pos_port (${port}) trimisă către: ${[...targets].join(', ')}`);
+      res.json({ success: true, message: `Comanda de setare port ${port} a fost trimisă către ${locationId}` });
+    } else {
+      res.status(500).json({ error: 'Socket.io nu este inițializat pe server' });
+    }
+  } catch (err) {
+    console.error('[BridgeMonitor] Eroare set-port:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
  * POST /api/bridge-monitoring/:locationId/test-pos-signal
  * Sends a real-time signal and latency test command to POS Bridge
  */

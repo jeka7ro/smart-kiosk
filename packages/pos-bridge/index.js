@@ -1578,6 +1578,37 @@ async function start() {
     }
   });
 
+  function handleSetPosPort(newPort) {
+    if (!newPort) return;
+    try {
+      const envPath = pathMod.join(__dirname, '.env');
+      if (fs.existsSync(envPath)) {
+        let content = fs.readFileSync(envPath, 'utf8');
+        if (/COM_PORT=.*/i.test(content)) {
+          content = content.replace(/COM_PORT=.*/gi, `COM_PORT=${newPort}`);
+        } else {
+          content += `\nCOM_PORT=${newPort}\n`;
+        }
+        fs.writeFileSync(envPath, content, 'utf8');
+      }
+      log(`💾 COM_PORT actualizat la ${newPort}. Repornesc bridge-ul...`);
+      setTimeout(() => process.exit(0), 500);
+    } catch (e) {
+      log(`⚠️ Eroare set_pos_port: ${e.message}`);
+    }
+  }
+
+  socket.on('set_pos_port', (data) => {
+    const targetLoc = data?.locationId;
+    if (!targetLoc || isMyLocation(targetLoc)) {
+      handleSetPosPort(data?.port);
+    }
+  });
+
+  socket.on(`set_pos_port_${LOCATION_ID}`, (data) => {
+    handleSetPosPort(data?.port);
+  });
+
   socket.on('kiosk_activity', (data) => {
     if (isMyLocation(data?.locationId, data?.kioskId)) {
       noteActivity('kiosk_activity');

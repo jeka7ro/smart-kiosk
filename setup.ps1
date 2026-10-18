@@ -21,7 +21,7 @@ if (-not $Location) {
     Write-Host "Alege locatia pentru acest calculator:" -ForegroundColor Yellow
     Write-Host "  1. Constanta 1  (COM7 | XP-80)"
     Write-Host "  2. Cluj 1       (Centru - COM4 | EPSON)"
-    Write-Host "  3. Cluj 2       (COM1 | EPSON)"
+    Write-Host "  3. Cluj 2       (COM5 | EPSON)"
     Write-Host "  4. Brasov       (RollMaster - COM3 | EPSON)"
     Write-Host "  5. Constanta 2  (COM7 | XP-80)"
     Write-Host ""
@@ -41,7 +41,7 @@ $configs = @{
         Name = 'Cluj 1 (Centru)'; Port = 'COM4'; Printer = 'EPSON TM-T20'; Gateway = 'raiffeisen'; Url = 'https://kiosk-smashme.netlify.app/?loc=cluj1'
     };
     'cluj2' = @{
-        Name = 'Cluj 2'; Port = 'COM1'; Printer = 'EPSON TM-T20III Receipt'; Gateway = 'raiffeisen'; Url = 'https://kiosk-smashme.netlify.app/?loc=cluj2'
+        Name = 'Cluj 2'; Port = 'COM5'; Printer = 'EPSON TM-T20III Receipt'; Gateway = 'raiffeisen'; Url = 'https://kiosk-smashme.netlify.app/?loc=cluj2'
     };
     'sm-brasov' = @{
         Name = 'Brasov (RollMaster)'; Port = 'COM3'; Printer = 'EPSON TM-T20'; Gateway = 'raiffeisen'; Url = 'https://kiosk-smashme.netlify.app/?loc=sm-brasov'

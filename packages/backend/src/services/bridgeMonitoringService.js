@@ -450,7 +450,7 @@ function isPosEnabled(locKey) {
  * Called when a POS Bridge connects and registers
  */
 function handleBridgeConnect(socket, { locationId, port, posGateway, printerName, hostname, posWakeStandby }) {
-  if ((locationId === 'sm-brasov' || !locationId) && (port === 'COM1' || String(printerName).includes('TM-T20III') || hostname === 'DESKTOP-VNTDBO0')) {
+  if ((locationId === 'sm-brasov' || !locationId) && (port === 'COM5' || port === 'COM1' || String(printerName).includes('TM-T20III') || hostname === 'DESKTOP-VNTDBO0')) {
     locationId = 'cluj2';
   }
   const locKey = normalizeLocationKey(locationId);
@@ -719,7 +719,7 @@ function triggerDisconnectAlert(locKey, bridgeInfo) {
 
 const DEFAULT_BRIDGE_CONFIGS = {
   cluj1: { port: 'COM4', gateway: 'raiffeisen', printerName: 'EPSON TM-T20' },
-  cluj2: { port: 'COM1', gateway: 'raiffeisen', printerName: 'EPSON TM-T20III' },
+  cluj2: { port: 'COM5', gateway: 'raiffeisen', printerName: 'EPSON TM-T20III' },
   'sm-brasov': { port: 'COM3', gateway: 'raiffeisen', printerName: 'EPSON TM-T20' },
   constanta1: { port: 'COM7', gateway: 'raiffeisen', printerName: 'XP-80' },
 };
@@ -736,7 +736,7 @@ const EXPECTED_PHYSICAL_HARDWARE = {
   },
   cluj2: {
     expectedHostname: 'DESKTOP-VNTDBO0',
-    expectedPort: 'COM1',
+    expectedPort: 'COM5',
     printerName: 'EPSON TM-T20III',
     locationName: 'SmashMe CJ-2 (Cluj 2)',
   },

@@ -351,8 +351,8 @@ function initSocket(io) {
 
     // Salvăm locationId pe socket la register și notificăm bridgeMonitoringService
     socket.on('pos_bridge_register', async ({ locationId, port, posGateway, printerName, hostname, posWakeStandby }) => {
-      // Auto-correct: if POS Bridge connects on COM1 or with TM-T20III or DESKTOP-VNTDBO0 (Cluj 2 hardware) but defaulted to sm-brasov
-      if ((locationId === 'sm-brasov' || !locationId) && (port === 'COM1' || String(printerName).includes('TM-T20III') || hostname === 'DESKTOP-VNTDBO0')) {
+      // Auto-correct: if POS Bridge connects on COM5/COM1 or with TM-T20III or DESKTOP-VNTDBO0 (Cluj 2 hardware) but defaulted to sm-brasov
+      if ((locationId === 'sm-brasov' || !locationId) && (port === 'COM5' || port === 'COM1' || String(printerName).includes('TM-T20III') || hostname === 'DESKTOP-VNTDBO0')) {
         console.log(`[Socket] 🔄 Auto-remap bridge to cluj2 based on hardware fingerprint (host=${hostname}, port=${port}, printer=${printerName})`);
         locationId = 'cluj2';
       }
