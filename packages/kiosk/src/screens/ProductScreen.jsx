@@ -163,6 +163,11 @@ const REMOVABLE_INGREDIENTS = [
     keywords: ['ceapă', 'ceapa'],
   },
   {
+    id: 'branza',
+    label: 'Fără cașcaval / brânză',
+    keywords: ['cheddar', 'cașcaval', 'cascaval', 'brânză', 'branza'],
+  },
+  {
     id: 'telemea',
     label: 'Fără telemea',
     keywords: ['telemea', 'feta'],
@@ -737,6 +742,24 @@ export default function ProductScreen() {
                             (pName.includes('12') || pName.includes('6'));
       if (isCrunch12or6 && item.id === 'sos') {
         return false;
+      }
+
+      // Regula 1: La Chicken Burger, nu arăta "Fără cașcaval / brânză" și "Fără ceapă" (se păstrează doar murături, salată, sos)
+      const isChickenBurger = pName.includes('chicken burger') || (pName.includes('chicken') && pName.includes('burger'));
+      if (isChickenBurger && (item.id === 'branza' || item.id === 'ceapa')) {
+        return false;
+      }
+
+      // Regula 2: La Hotti Burger, nu arăta "Fără ceapă" (nu conține ceapă; are doar gogoșari murați, cașcaval și sos)
+      const isHotti = pName.includes('hotti');
+      if (isHotti && item.id === 'ceapa') {
+        return false;
+      }
+
+      // Regula 3: La Smashed ME Burger, asigură că Fără ceapă și Fără cașcaval sunt permise
+      const isSmashedMe = pName.includes('smashed me') || pName.includes('smash me');
+      if (isSmashedMe && (item.id === 'ceapa' || item.id === 'branza')) {
+        return true;
       }
 
       // Regula: "Cartofi fără sare" — doar pe produse care SUNT cartofi (nu pe burgeri/sandvișuri)
