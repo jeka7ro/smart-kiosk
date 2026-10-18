@@ -170,7 +170,7 @@ const REMOVABLE_INGREDIENTS = [
   {
     id: 'muraturi',
     label: 'Fără murături',
-    keywords: ['murături', 'muraturi', 'castraveți', 'castraveti', 'pickles'],
+    keywords: ['murături', 'muraturi', 'murați', 'murati', 'castraveți', 'castraveti', 'pickles', 'gogoșari', 'gogosari', 'gogoșar', 'gogosar'],
   },
   {
     id: 'bacon',
@@ -742,6 +742,14 @@ export default function ProductScreen() {
       }
 
       return item.keywords.some(kw => textToScan.includes(kw));
+    }).map(item => {
+      if (item.id === 'muraturi') {
+        const hasGogosari = textToScan.includes('gogoșar') || textToScan.includes('gogosar') || pName.includes('hotti');
+        if (hasGogosari) {
+          return { ...item, label: 'Fără gogoșari murați' };
+        }
+      }
+      return item;
     });
   }, [product, rawDesc, allergenLabels, menuCategories]);
 
