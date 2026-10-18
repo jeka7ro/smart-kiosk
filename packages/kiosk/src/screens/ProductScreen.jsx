@@ -158,6 +158,11 @@ function IconListLines() {
 // Catalog de ingrediente ce pot fi excluse la cererea clientului
 const REMOVABLE_INGREDIENTS = [
   {
+    id: 'ceapa',
+    label: 'Fără ceapă',
+    keywords: ['ceapă', 'ceapa'],
+  },
+  {
     id: 'telemea',
     label: 'Fără telemea',
     keywords: ['telemea', 'feta'],
@@ -723,8 +728,7 @@ export default function ProductScreen() {
 
     const textToScan = [
       product.name || '',
-      rawDesc || '',
-      allergenLabels.join(' '),
+      shortDesc || '',
     ].join(' ').toLowerCase();
 
     return REMOVABLE_INGREDIENTS.filter(item => {
@@ -751,7 +755,7 @@ export default function ProductScreen() {
       }
       return item;
     });
-  }, [product, rawDesc, allergenLabels, menuCategories]);
+  }, [product, shortDesc, menuCategories]);
 
   const getOptDescription = (opt) => {
     if (!opt) return '';
