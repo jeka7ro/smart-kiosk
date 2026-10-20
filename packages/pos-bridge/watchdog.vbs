@@ -48,10 +48,24 @@ For Each proc in colBrowser
 Next
 
 If Not browserRunning Then
-    startupFolder = ws.SpecialFolders("Startup")
-    kioskLnk = startupFolder & "\SmartKiosk.lnk"
-    If fso.FileExists(kioskLnk) Then
-        ws.Run """" & kioskLnk & """", 1, False
+    regCmd = ""
+    On Error Resume Next
+    regCmd = ws.RegRead("HKCU\Software\Microsoft\Windows\CurrentVersion\Run\SmartKioskScreen")
+    On Error GoTo 0
+    If regCmd <> "" Then
+        ws.Run regCmd, 1, False
+    Else
+        desktopFolder = ws.SpecialFolders("Desktop")
+        deskLnk = desktopFolder & "\Smart Kiosk Fullscreen.lnk"
+        If fso.FileExists(deskLnk) Then
+            ws.Run """" & deskLnk & """", 1, False
+        Else
+            startupFolder = ws.SpecialFolders("Startup")
+            kioskLnk = startupFolder & "\SmartKiosk.lnk"
+            If fso.FileExists(kioskLnk) Then
+                ws.Run """" & kioskLnk & """", 1, False
+            End If
+        End If
     End If
 End If
 

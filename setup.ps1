@@ -117,9 +117,8 @@ Get-CimInstance -ClassName MSPower_DeviceEnable -Namespace root\wmi | ForEach-Ob
 }
 Write-Host "[4/6] USB Selective Suspend si Power Saving la USB dezactivate." -ForegroundColor Green
 
-# 5. Descarcare fisiere VBS optimizate cu suport pentru spatii in cale
-curl.exe -s -O https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/kiosk-constanta/watchdog.vbs
-curl.exe -s -O https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/kiosk-constanta/run-hidden.vbs
+curl.exe -s -O https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/watchdog.vbs
+curl.exe -s -O https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/run-hidden.vbs
 if (-not (Test-Path "$targetDir\start-windows.bat")) {
     curl.exe -s -O https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/start-windows.bat
 }

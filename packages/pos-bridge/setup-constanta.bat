@@ -136,11 +136,6 @@ echo dBridge.WorkingDirectory = "%CURRENT_FOLDER%"
 echo dBridge.WindowStyle = 1
 echo dBridge.Save
 if defined CHROME_PATH (
-  echo Set sKiosk = ws.CreateShortcut("%STARTUP_FOLDER%\SmartKiosk.lnk"^)
-  echo sKiosk.TargetPath = "%CHROME_PATH%"
-  echo sKiosk.Arguments = "--kiosk """"%KIOSK_URL%"""" --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check"
-  echo sKiosk.WindowStyle = 3
-  echo sKiosk.Save
   echo Set dKiosk = ws.CreateShortcut("%DESKTOP_FOLDER%\Smart Kiosk Constanta.lnk"^)
   echo dKiosk.TargetPath = "%CHROME_PATH%"
   echo dKiosk.Arguments = "--kiosk """"%KIOSK_URL%"""" --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check"

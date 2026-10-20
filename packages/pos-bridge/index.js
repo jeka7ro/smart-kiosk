@@ -74,6 +74,30 @@ public class KioskWin {
 setTimeout(enforceKioskTaskbar, 1500);
 setInterval(enforceKioskTaskbar, 30000);
 
+function cleanupKioskDuplicates() {
+  if (process.platform !== 'win32') return;
+  try {
+    // 🛡️ Previne deschiderea a 2 ferestre Kiosk la pornirea Windows.
+    // Șterge scurtătura din Startup DOAR dacă ecranul pornește deja din Registry Run (SmartKioskScreen).
+    // Dacă Registry-ul nu există (ex: Cluj/Brașov, instalate doar cu Startup), NU șterge nimic.
+    exec('reg query "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v SmartKioskScreen', (err) => {
+      if (err) return; // fără intrare în Registry => scurtătura din Startup este singura pornire, o păstrăm
+      const startupDir = pathMod.join(process.env.APPDATA || '', 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup');
+      for (const name of ['SmartKiosk.lnk', 'Smart Kiosk.lnk']) {
+        const p = pathMod.join(startupDir, name);
+        try {
+          if (fs.existsSync(p)) {
+            fs.unlinkSync(p);
+            log(`🧹 [SYSTEM] Scurtătură Kiosk duplicat eliminată din Startup: ${name} (ecranul pornește deja din Registry).`);
+          }
+        } catch (_) {}
+      }
+    });
+  } catch (_) {}
+}
+
+setTimeout(cleanupKioskDuplicates, 2000);
+
 let RENDER_URL = process.env.RENDER_URL || 'https://smart-kiosk-ttut.onrender.com';
 if (RENDER_URL.includes('smart-kiosk-v7ws.onrender.com')) {
   RENDER_URL = 'https://smart-kiosk-ttut.onrender.com';
@@ -265,6 +289,7 @@ let posWakeIntervalMinutes = parseInt(process.env.POS_WAKE_INTERVAL_MINUTES || '
 if (isNaN(posWakeIntervalMinutes) || posWakeIntervalMinutes < 1) posWakeIntervalMinutes = 5;
 let lastActivityTime = Date.now();
 let wakeStartTime = 0;
+let wakeRecoveryTimer = null;
 let posSignalTestStartTime = 0;
 
 function isWithinWorkingHours() {
@@ -284,11 +309,14 @@ function wakePosKeepAlive() {
     log('[POS Wake] 🌙 În afara programului de lucru (10:00 - 22:00, restaurant închis). Omit impulsul de trezire.');
     return;
   }
-  if (!globalPort || !globalPort.isOpen || state !== 'IDLE' || currentTransactionResolve) {
+  if (!globalPort || !globalPort.isOpen || state !== 'IDLE' || currentTransactionResolve || isReopeningPort) {
     log(`[POS Wake] ⏭️ Omit impuls trezire (port ocupat sau tranzacție activă, stare=${state})`);
     return;
   }
   log(`⚡ [POS Wake] Inactivitate de ${posWakeIntervalMinutes} minute în timpul programului (10:00 - 22:00). Trimit ENQ discret pentru trezire/prevenire sleep USB...`);
+  
+  clearTimeout(wakeRecoveryTimer);
+  wakeRecoveryTimer = null;
   wakeStartTime = Date.now();
   state = 'WAIT_ENQ_ACK__WAKE';
   currentOperation = 'WAKE';
@@ -296,7 +324,7 @@ function wakePosKeepAlive() {
 
   clearTimeout(currentTransactionTimer);
   currentTransactionTimer = setTimeout(() => {
-    log('⚠️ [POS Wake] POS nu a răspuns la impulsul de trezire în 3000ms. Inițiez autorecuperare port în fundal...');
+    log('⚠️ [POS Wake] POS nu a răspuns la impulsul de trezire în 3000ms. Închei sesiunea WAKE conform protocol.');
     try { globalPort.write(Buffer.from([EOT])); } catch (_) {}
     state = 'IDLE';
     currentOperation = null;
@@ -308,12 +336,16 @@ function wakePosKeepAlive() {
         message: 'Auto-wake timeout (>3000ms) - inițiez recuperare port'
       });
     }
-    // Autorecuperare port în fundal DACĂ terminalul era adormit adânc,
-    // astfel încât la sosirea primului client terminalul să fie deja treaz și logat!
-    setTimeout(() => {
-      forceReopenPort('Autorecuperare după Auto-Wake timeout').then(() => {
-        ensurePosLogin().catch(e => log(`⚠️ Eroare re-login după auto-wake timeout: ${e.message}`));
-      });
+    // Autorecuperare port în fundal DOAR DACĂ magistrala a rămas IDLE și nu a început o plată SALE între timp
+    clearTimeout(wakeRecoveryTimer);
+    wakeRecoveryTimer = setTimeout(() => {
+      wakeRecoveryTimer = null;
+      if (state === 'IDLE' && !paymentInProgress && !currentTransactionResolve && !isReopeningPort) {
+        log('🔄 [POS Wake] Inițiez autorecuperare port după timeout auto-wake...');
+        forceReopenPort('Autorecuperare după Auto-Wake timeout').then(() => {
+          ensurePosLogin().catch(e => log(`⚠️ Eroare re-login după auto-wake timeout: ${e.message}`));
+        });
+      }
     }, 500);
   }, 3000);
 
@@ -627,6 +659,20 @@ function ensurePosLogin() {
 
 function processPrintecPayment(amount, onStatus) {
   return new Promise(async (resolve) => {
+    // 🛡️ Prioritate Absolută Plată: Anulăm orice impuls de pre-wake / auto-wake sau timer de recuperare
+    clearTimeout(wakeRecoveryTimer);
+    wakeRecoveryTimer = null;
+
+    if (state === 'WAIT_ENQ_ACK__WAKE' || currentOperation === 'WAKE' || state === 'WAIT_ENQ_ACK__TEST_SIGNAL' || currentOperation === 'TEST_SIGNAL') {
+      log('⚡ [POS Bridge] Anulez impulsul de pre-wake/wake/test pentru a elibera magistrala serială pentru SALE...');
+      clearTimeout(currentTransactionTimer);
+      try { globalPort.write(Buffer.from([EOT])); } catch (_) {}
+      state = 'IDLE';
+      currentOperation = null;
+      // Pauză de 200ms pentru liniștirea liniei seriale Verifone (quiescence half-duplex)
+      await new Promise(r => setTimeout(r, 200));
+    }
+
     // Dacă portul este temporar în curs de redeschidere/resetare sau în WAIT_LOGIN, așteptăm până la 3.5s pentru a evita coliziunea
     let waitRetries = 0;
     while ((!globalPort || !globalPort.isOpen || isReopeningPort || state === 'WAIT_LOGIN') && waitRetries < 25) {
@@ -639,7 +685,9 @@ function processPrintecPayment(amount, onStatus) {
     }
     if (state !== 'IDLE') {
        log(`⚠️ Stare anterioară (${state}) la inițiere plată. Reciclez starea în IDLE...`);
+       try { globalPort.write(Buffer.from([EOT])); } catch (_) {}
        state = 'IDLE';
+       await new Promise(r => setTimeout(r, 100));
     }
 
     if (globalPort) {
@@ -886,7 +934,6 @@ async function start() {
 
   socket.on('disconnect', (reason) => {
     log(`⚠️ Deconectat de la server: ${reason}`);
-    posLoggedIn = false;
     checkCanonicalServer();
   });
 
@@ -992,6 +1039,8 @@ async function start() {
             try { globalPort.write(Buffer.from([EOT])); } catch (_) {}
             state = 'IDLE';
             currentOperation = null;
+            clearTimeout(wakeRecoveryTimer);
+            wakeRecoveryTimer = null;
             if (globalSocket) {
               globalSocket.emit('pos_signal_result', {
                 locationId: LOCATION_ID,
@@ -1344,6 +1393,9 @@ async function start() {
       return;
     }
 
+    clearTimeout(wakeRecoveryTimer);
+    wakeRecoveryTimer = null;
+
     if (paymentInProgress) {
       log(`⚠️ SKIP: o plată e deja în curs`);
       socket.emit('pos_payment_result', { orderId, paid: false, error: 'Altă plată în curs' });
@@ -1399,9 +1451,19 @@ async function start() {
     const { locationId: lid, kioskId } = data || {};
     if (!isMyLocation(lid, kioskId)) return;
     
+    clearTimeout(wakeRecoveryTimer);
+    wakeRecoveryTimer = null;
+
+    if (state === 'WAIT_ENQ_ACK__WAKE' || currentOperation === 'WAKE' || state === 'WAIT_ENQ_ACK__TEST_SIGNAL' || currentOperation === 'TEST_SIGNAL') {
+      clearTimeout(currentTransactionTimer);
+      try { globalPort.write(Buffer.from([EOT])); } catch (_) {}
+      state = 'IDLE';
+      currentOperation = null;
+    }
+
     noteActivity('cancel_pos_payment');
     log('🛑 CANCEL payment solicitat din Kiosk (timeout / anulare client)!');
-    if (paymentInProgress) {
+    if (paymentInProgress || currentTransactionResolve) {
       // 1. Notificăm imediat Kiosk-ul ca interfața să redevină liberă instant
       paymentInProgress = false;
       if (globalPort && globalPort.currentFail) {
@@ -1409,7 +1471,7 @@ async function start() {
       }
 
       // 2. Pentru POS-ul fizic (Verifone V200t):
-      // Închidem și redeschidem portul serial (300ms) pentru a tăia DTR/RTS.
+      // Închidem și redeschidem portul serial (300ms) pentru a tăia DTR/RTS conform protocolului.
       // Aceasta determină terminalul Verifone să iasă imediat din ecranul "Apropiați cardul"
       // înapoi în standby, fără să rămână blocat în tranzacția veche.
       if (globalPort && globalPort.isOpen) {
@@ -1672,7 +1734,7 @@ async function start() {
     if (isMyLocation(data?.locationId, data?.kioskId)) {
       const now = Date.now();
       // Pre-wake doar dacă POS-ul este IDLE, portul este deschis și au trecut cel puțin 30s de la ultima activitate
-      if (globalPort && globalPort.isOpen && state === 'IDLE' && !paymentInProgress && !currentTransactionResolve) {
+      if (globalPort && globalPort.isOpen && state === 'IDLE' && !paymentInProgress && !currentTransactionResolve && !isReopeningPort) {
         const idleMs = now - lastActivityTime;
         if (idleMs > 30000) {
           log('⚡ [Pre-Wake] Client activ la Kiosk (atingere/checkout). Trimit impuls ENQ discret pentru trezire din timp a terminalului...');

@@ -234,6 +234,69 @@ router.post('/:locationId/test-pos-signal', (req, res) => {
 });
 
 /**
+ * POST /api/bridge-monitoring/:locationId/set-wake-config
+ * Updates POS Standby keep-alive config and broadcasts to bridge
+ */
+router.post('/:locationId/set-wake-config', async (req, res) => {
+  try {
+    const { locationId } = req.params;
+    const { posWakeStandby, posWakeIntervalMinutes } = req.body;
+    const { findLocation, getLocationAliases } = require('../utils/locations');
+    const { pool } = require('../db');
+    const fl = findLocation(locationId);
+    const targetId = fl?.id || locationId;
+
+    let updatedLoc = null;
+    try {
+      const existing = await pool.query('SELECT * FROM locations WHERE id = $1 OR data->>\'kioskUrl\' = $1', [targetId]);
+      if (existing.rows[0]) {
+        const current = existing.rows[0];
+        const merged = { ...current.data };
+        if (posWakeStandby !== undefined) merged.posWakeStandby = !!posWakeStandby;
+        if (posWakeIntervalMinutes !== undefined) merged.posWakeIntervalMinutes = Number(posWakeIntervalMinutes);
+        const { rows } = await pool.query(
+          `UPDATE locations SET data = $1, updated_at = NOW() WHERE id = $2 RETURNING *`,
+          [JSON.stringify(merged), current.id]
+        );
+        updatedLoc = { id: rows[0].id, active: rows[0].active, ...rows[0].data };
+      }
+    } catch (dbErr) {
+      console.warn('[BridgeMonitoring] DB update error:', dbErr.message);
+    }
+
+    if (!updatedLoc) {
+      updatedLoc = {
+        id: targetId,
+        posWakeStandby: posWakeStandby !== undefined ? !!posWakeStandby : true,
+        posWakeIntervalMinutes: Number(posWakeIntervalMinutes) || 5,
+      };
+    }
+
+    const io = req.app.get('io');
+    if (io) {
+      const aliases = getLocationAliases ? getLocationAliases(locationId) : [locationId];
+      const targets = new Set([locationId, targetId, ...aliases].filter(Boolean));
+      for (const tid of targets) {
+        io.to(`pos-bridge-${tid}`).emit('location_updated', updatedLoc);
+        io.emit(`location_updated_${tid}`, updatedLoc);
+      }
+      console.log(`[BridgeMonitoring] ⚡ Trimis location_updated (Wake: ${updatedLoc.posWakeStandby}, ${updatedLoc.posWakeIntervalMinutes}m) către: ${[...targets].join(', ')}`);
+    }
+
+    try {
+      if (typeof bridgeMonitoringService.updateLocationConfig === 'function') {
+        bridgeMonitoringService.updateLocationConfig(targetId, updatedLoc);
+      }
+    } catch (_) {}
+
+    res.json({ success: true, message: `Configurație Standby salvată pentru ${locationId}`, updatedLoc });
+  } catch (err) {
+    console.error('[BridgeMonitoring] Eroare set-wake-config:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
  * GET /api/bridge-monitoring/:locationId/signal-logs
  * Retrieves historical POS signal and latency tests for a location
  */
