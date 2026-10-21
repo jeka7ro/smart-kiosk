@@ -87,6 +87,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
   const [actionLoading, setActionLoading] = useState(null);
   const [actionFeedback, setActionFeedback] = useState(null);
   const [isReleaseNotesOpen, setIsReleaseNotesOpen] = useState(false);
+  const [releaseNotesTargetLoc, setReleaseNotesTargetLoc] = useState(null);
 
   const handleCompleteUpdate = (newVersion) => {
     setData(prev => {
@@ -998,7 +999,10 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
               return (
                 <button
                   type="button"
-                  onClick={() => setIsReleaseNotesOpen(true)}
+                  onClick={() => {
+                    setReleaseNotesTargetLoc(null);
+                    setIsReleaseNotesOpen(true);
+                  }}
                   disabled={actionLoading === 'all-update-all-bridges'}
                   className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-all duration-150 cursor-pointer disabled:opacity-50 whitespace-nowrap shrink-0 active:scale-95"
                   title={`Click pentru a vedea noutățile și a actualiza ${outdatedLocations.length} kiosk-uri la v${latestBridgeVerGlobal}`}
@@ -1015,7 +1019,10 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
             return (
               <button 
                 type="button"
-                onClick={() => setIsReleaseNotesOpen(true)}
+                onClick={() => {
+                  setReleaseNotesTargetLoc(null);
+                  setIsReleaseNotesOpen(true);
+                }}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-50 hover:bg-emerald-100/90 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 whitespace-nowrap shrink-0 shadow-xs transition-all cursor-pointer group active:scale-98"
                 title={`Click pentru a vedea noutățile versiunii oficiale (v${latestBridgeVerGlobal})`}
               >
@@ -1319,8 +1326,11 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                             </button>
                             <button
                               type="button"
-                              onClick={() => setIsReleaseNotesOpen(true)}
-                              title={loc.isBridgeUpToDate ? "Soft la zi" : `Actualizare disponibilă la v${loc.latestBridgeVer}. Click pentru noutăți și instalare.`}
+                              onClick={() => {
+                                setReleaseNotesTargetLoc(locKey);
+                                setIsReleaseNotesOpen(true);
+                              }}
+                              title={loc.isBridgeUpToDate ? "Soft la zi" : `Actualizare disponibilă la v${loc.latestBridgeVer}. Click pentru noutăți și instalare pe acest aparat.`}
                               className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold whitespace-nowrap cursor-pointer transition-all hover:scale-105 active:scale-95 ${
                                 loc.isBridgeUpToDate
                                   ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
@@ -1446,16 +1456,32 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                 {/* Action Buttons: 4-column responsive grid */}
                 <div className="pt-1 border-t border-slate-100 dark:border-slate-700/60">
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleRestartBridge(locKey, loc.displayName, !!isBridgeOnline)}
-                      disabled={actionLoading === `${locKey}-restart-bridge` || restartProgress[locKey]?.status === 'pending'}
-                      title="Restart POS Bridge (repornește conexiunea POS & imprimantă) — cere confirmare"
-                      className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/80 transition-colors disabled:opacity-50 cursor-pointer shadow-xs whitespace-nowrap"
-                    >
-                      <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${actionLoading === `${locKey}-restart-bridge` ? 'animate-spin' : ''}`} />
-                      <span>Bridge</span>
-                    </button>
+                    {!loc.isBridgeUpToDate ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setReleaseNotesTargetLoc(locKey);
+                          setIsReleaseNotesOpen(true);
+                        }}
+                        disabled={actionLoading === `${locKey}-restart-bridge` || restartProgress[locKey]?.status === 'pending'}
+                        title={`Actualizează POS Bridge la v${loc.latestBridgeVer} pe acest aparat`}
+                        className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-50 cursor-pointer shadow-xs whitespace-nowrap active:scale-95"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${actionLoading === `${locKey}-restart-bridge` ? 'animate-spin' : ''}`} />
+                        <span>Update v{loc.latestBridgeVer}</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleRestartBridge(locKey, loc.displayName, !!isBridgeOnline)}
+                        disabled={actionLoading === `${locKey}-restart-bridge` || restartProgress[locKey]?.status === 'pending'}
+                        title="Restart POS Bridge (repornește conexiunea POS & imprimantă) — cere confirmare"
+                        className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/80 transition-colors disabled:opacity-50 cursor-pointer shadow-xs whitespace-nowrap"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${actionLoading === `${locKey}-restart-bridge` ? 'animate-spin' : ''}`} />
+                        <span>Bridge</span>
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => handleAction(locKey, 'reload-kiosk')}
@@ -2113,12 +2139,30 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
       {/* Modal Apple macOS Software Release Notes & Action */}
       <SoftwareReleaseNotesModal
         isOpen={isReleaseNotesOpen}
-        onClose={() => setIsReleaseNotesOpen(false)}
+        onClose={() => {
+          setIsReleaseNotesOpen(false);
+          setReleaseNotesTargetLoc(null);
+        }}
         initialVersion={BRIDGE_RELEASE_NOTES[0]?.version || '3.5.0'}
+        targetLocation={releaseNotesTargetLoc}
         canUpdate={Object.values(computedLocations).some(l => l.isBridgeOnline && (l.bridgeVersion !== (BRIDGE_RELEASE_NOTES[0]?.version || '3.5.0') || !l.isBridgeUpToDate))}
         outdatedCount={Object.values(computedLocations).filter(l => l.isBridgeOnline && (l.bridgeVersion !== (BRIDGE_RELEASE_NOTES[0]?.version || '3.5.0') || !l.isBridgeUpToDate)).length}
         isUpdating={actionLoading === 'all-update-all-bridges'}
-        onUpdate={() => handleAction('all', 'execute-update-all-bridges')}
+        onUpdate={async (version, selectedIds) => {
+          const isAll = !selectedIds || selectedIds.length === 0 || selectedIds.length === 4;
+          try {
+            await fetch(`${backend}/api/bridge-monitoring/update-all-bridges`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': 'sk-live-2024-secure',
+              },
+              body: JSON.stringify({ locations: isAll ? undefined : selectedIds }),
+            });
+          } catch (err) {
+            console.error('Eroare actualizare bridge:', err);
+          }
+        }}
         onCompleteUpdate={handleCompleteUpdate}
       />
     </div>

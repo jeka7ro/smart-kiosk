@@ -446,19 +446,21 @@ router.post('/:locationId/test-print', (req, res) => {
  */
 /**
  * POST /api/bridge-monitoring/update-all-bridges
- * Remotely triggers software update and restart on ALL connected kiosks
+ * Remotely triggers software update and restart on ALL or SELECTED connected kiosks
  */
 router.post('/update-all-bridges', (req, res) => {
   try {
     const io = req.app.get('io');
     if (!io) return res.status(500).json({ error: 'Socket.io nu este inițializat pe server' });
 
-    const locations = ['cluj1', 'cluj2', 'sm-brasov', 'constanta1'];
+    const requested = req.body?.locations || (req.body?.locationId ? [req.body.locationId] : null);
+    const isTargeted = Array.isArray(requested) && requested.length > 0;
+    const locations = isTargeted ? requested : ['cluj1', 'cluj2', 'sm-brasov', 'constanta1'];
     const triggered = [];
 
     for (const tid of locations) {
       bridgeMonitoringService.startRestartRequest(tid, {
-        source: 'admin-all',
+        source: isTargeted ? `admin-targeted-${tid}` : 'admin-all',
         requestedBy: req.headers['x-forwarded-for'] || req.ip || null,
       });
       io.to(`pos-bridge-${tid}`).emit('remote_restart', { locationId: tid });
@@ -466,13 +468,17 @@ router.post('/update-all-bridges', (req, res) => {
       triggered.push(tid);
     }
 
-    // Broadcast general pentru ecranele Kiosk și bridge-uri
-    io.emit('remote_restart', { locationId: 'all' });
+    // Broadcast general DOAR dacă au fost vizate toate (nu la update selectiv per kiosk)
+    if (!isTargeted || locations.length >= 4) {
+      io.emit('remote_restart', { locationId: 'all' });
+    }
 
-    console.log(`[BridgeMonitor] Update global de software trimis către: ${triggered.join(', ')}`);
+    console.log(`[BridgeMonitor] Update software trimis către: ${triggered.join(', ')}`);
     res.json({
       success: true,
-      message: `Comanda de actualizare software a fost trimisă către toate cele ${triggered.length} Kiosk-uri!`,
+      message: isTargeted
+        ? `Comanda de actualizare software a fost trimisă către: ${triggered.join(', ')}!`
+        : `Comanda de actualizare software a fost trimisă către toate cele ${triggered.length} Kiosk-uri!`,
       locations: triggered,
     });
   } catch (err) {

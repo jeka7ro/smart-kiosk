@@ -314,6 +314,7 @@ export default function AdminApp() {
   const [dropdownActionFeedback, setDropdownActionFeedback] = useState(null);
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
   const [isReleaseNotesOpen, setIsReleaseNotesOpen] = useState(false);
+  const [releaseNotesTargetLoc, setReleaseNotesTargetLoc] = useState(null);
 
   const handleDropdownAction = async (locationId, actionType) => {
     // Acțiunile care repornesc ceva cer confirmare în fereastra aplicației (ca să nu se apese din greșeală)
@@ -1391,6 +1392,7 @@ export default function AdminApp() {
                                       type="button"
                                       onClick={() => {
                                         setActiveLocationDropdown(null);
+                                        setReleaseNotesTargetLoc(loc.id);
                                         setIsReleaseNotesOpen(true);
                                       }}
                                       className={`px-1.5 py-0.5 rounded text-[9px] font-bold cursor-pointer transition-all hover:scale-105 active:scale-95 ${
@@ -1550,7 +1552,10 @@ export default function AdminApp() {
                     return (
                       <button 
                         type="button"
-                        onClick={() => setIsReleaseNotesOpen(true)}
+                        onClick={() => {
+                          setReleaseNotesTargetLoc(null);
+                          setIsReleaseNotesOpen(true);
+                        }}
                         title={`Click pentru a vedea noutățile versiunii oficiale v${targetVer} (Release Notes)`}
                         className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 hover:bg-emerald-100/90 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 shadow-xs cursor-pointer transition-all active:scale-98 group whitespace-nowrap"
                       >
@@ -1562,7 +1567,10 @@ export default function AdminApp() {
                   return (
                     <button
                       type="button"
-                      onClick={() => setIsReleaseNotesOpen(true)}
+                      onClick={() => {
+                        setReleaseNotesTargetLoc(null);
+                        setIsReleaseNotesOpen(true);
+                      }}
                       title={`Click pentru noutăți și actualizare la v${targetVer} (${outdated.length} kiosk-uri)`}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-all cursor-pointer active:scale-98 whitespace-nowrap"
                     >
@@ -2287,8 +2295,12 @@ export default function AdminApp() {
     {/* ── Apple macOS Software Release Notes Modal ── */}
     <SoftwareReleaseNotesModal
       isOpen={isReleaseNotesOpen}
-      onClose={() => setIsReleaseNotesOpen(false)}
+      onClose={() => {
+        setIsReleaseNotesOpen(false);
+        setReleaseNotesTargetLoc(null);
+      }}
       initialVersion={BRIDGE_RELEASE_NOTES[0]?.version || '3.5.0'}
+      targetLocation={releaseNotesTargetLoc}
       canUpdate={(() => {
         const targetVer = BRIDGE_RELEASE_NOTES[0]?.version || '3.5.0';
         const locList = bridgeSummary?.locations ? Object.values(bridgeSummary.locations) : [];
@@ -2299,8 +2311,9 @@ export default function AdminApp() {
         const locList = bridgeSummary?.locations ? Object.values(bridgeSummary.locations) : [];
         return locList.filter(l => (l.status === 'online' || l.isBridgeOnline) && ((l.bridgeVersion && l.bridgeVersion !== targetVer) || l.isBridgeUpToDate === false)).length;
       })()}
-      onUpdate={async () => {
+      onUpdate={async (version, selectedIds) => {
         try {
+          const isAll = !selectedIds || selectedIds.length === 0 || selectedIds.length === 4;
           const backend = import.meta.env.VITE_BACKEND_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5001' : 'https://smart-kiosk-ttut.onrender.com');
           await fetch(`${backend}/api/bridge-monitoring/update-all-bridges`, {
             method: 'POST',
@@ -2308,6 +2321,7 @@ export default function AdminApp() {
               'Content-Type': 'application/json',
               'x-api-key': 'sk-live-2024-secure',
             },
+            body: JSON.stringify({ locations: isAll ? undefined : selectedIds }),
           });
         } catch (err) {
           console.error('Eroare actualizare bridge din Dashboard:', err);
