@@ -1,23 +1,34 @@
-// ── SINGLETON LOCK: Ensure only ONE instance of POS Bridge runs per PC ────────
+const BRIDGE_VERSION = '3.3.0';
+
+// ── SINGLETON LOCK & LOCAL HEALTH SERVER (Port 40499) ─────────────────────────
 const net = require('net');
 const SINGLETON_PORT = 40499;
-let singletonRetries = 0;
 
 function acquireSingletonLock() {
   return new Promise((resolve) => {
-    const singletonServer = net.createServer();
+    const singletonServer = net.createServer((socket) => {
+      socket.on('data', (data) => {
+        const msg = String(data).trim();
+        if (msg === 'PING' || msg === 'HEALTH') {
+          try { socket.write(`PONG:OK:${process.pid}:${BRIDGE_VERSION}\n`); } catch (_) {}
+        }
+      });
+      // La orice conexiune TCP, trimitem instant confirmarea că bridge-ul master este viu
+      try { socket.write(`ALIVE:${process.pid}:${BRIDGE_VERSION}\n`); } catch (_) {}
+    });
+
     singletonServer.once('error', (err) => {
       if (err.code === 'EADDRINUSE') {
         const testConn = net.connect(SINGLETON_PORT, '127.0.0.1', () => {
           testConn.destroy();
-          console.error(`[SINGLETON] ⚠️ O altă instanță a POS Bridge rulează deja pe acest sistem (portul ${SINGLETON_PORT} este activ).`);
-          console.error(`[SINGLETON] Această instanță duplicat se oprește IMEDIAT fără a atinge rețeaua sau portul serial (cod 42).`);
+          console.error(`[SINGLETON] 🔒 Bridge-ul Master rulează deja activ pe portul ${SINGLETON_PORT}.`);
+          console.error(`[SINGLETON] Această instanță secundară se oprește imediat fără a atinge COM sau Socket (cod 42).`);
           process.exit(42);
         });
         testConn.on('error', () => {
-          console.warn(`[SINGLETON] Portul ${SINGLETON_PORT} este temporar în eliberare. Reîncerc în 1.5s...`);
+          console.warn(`[SINGLETON] Portul ${SINGLETON_PORT} este temporar în eliberare (TIME_WAIT). Reîncerc în 1.5s...`);
           setTimeout(() => {
-            singletonServer.close();
+            try { singletonServer.close(); } catch (_) {}
             acquireSingletonLock().then(resolve);
           }, 1500);
         });
@@ -26,8 +37,9 @@ function acquireSingletonLock() {
       console.error(`[SINGLETON] Eroare neașteptată la lock:`, err);
       process.exit(1);
     });
+
     singletonServer.listen(SINGLETON_PORT, '127.0.0.1', () => {
-      console.log(`[SINGLETON] Lock exclusiv obținut pe portul ${SINGLETON_PORT}.`);
+      console.log(`[SINGLETON] Lock exclusiv activat pe portul ${SINGLETON_PORT}. Health responder activ.`);
       resolve(singletonServer);
     });
   });
@@ -42,11 +54,6 @@ const fs               = require('fs');
 const pathMod          = require('path');
 const { exec }         = require('child_process');
 
-let BRIDGE_VERSION = '3.3.0';
-try {
-  const pkg = require('./package.json');
-  if (pkg.version) BRIDGE_VERSION = pkg.version;
-} catch (_) {}
 
 const INSTANCE_ID = `${require('os').hostname()}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
@@ -108,6 +115,9 @@ function cleanupKioskDuplicates() {
         } catch (_) {}
       }
     });
+
+    // 🛡️ Curăță task-ul redundant de pornire la logon din Task Scheduler
+    exec('schtasks /delete /tn "SmartKiosk_Boot" /f', () => {});
   } catch (_) {}
 }
 
@@ -1659,9 +1669,19 @@ async function start() {
           res.on('data', chunk => data += chunk);
           res.on('end', () => {
             if (data && data.length > 50) {
-              fs.writeFileSync(pathMod.join(__dirname, filename), data, 'utf8');
-              log(`✅ Actualizat cu succes: ${filename} (${data.length} bytes)`);
-              resolve(true);
+              const targetPath = pathMod.join(__dirname, filename);
+              const tmpPath = targetPath + '.tmp';
+              try {
+                fs.writeFileSync(tmpPath, data, 'utf8');
+                if (fs.existsSync(tmpPath) && fs.statSync(tmpPath).size > 50) {
+                  fs.renameSync(tmpPath, targetPath);
+                  log(`✅ Actualizat cu succes (atomic): ${filename} (${data.length} bytes)`);
+                  return resolve(true);
+                }
+              } catch (writeErr) {
+                log(`⚠️ Eroare scriere atomică ${filename}: ${writeErr.message}`);
+              }
+              resolve(false);
             } else {
               resolve(false);
             }
@@ -1673,6 +1693,8 @@ async function start() {
       await fetchFile('printer.js');
       await fetchFile('rawprint.ps1');
       await fetchFile('scan_port_pc.js');
+      await fetchFile('package.json');
+      await fetchFile('watchdog.vbs');
       await fetchFile('start-windows.bat');
     } catch (e) {
       log(`⚠️ Eroare descărcare update: ${e.message}`);

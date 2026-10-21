@@ -213,9 +213,9 @@ if exist "%APP_DIR%\run-hidden.vbs" (
 )
 
 if exist "%APP_DIR%\watchdog.vbs" (
-    echo [INFO] Inregistrez Watchdog in Windows Task Scheduler (la pornire si la fiecare 2 minute)...
-    schtasks /create /tn "SmartKiosk_Watchdog" /tr "wscript.exe \"%APP_DIR%\watchdog.vbs\"" /sc MINUTE /mo 2 /f /rl HIGHEST >nul 2>&1
-    schtasks /create /tn "SmartKiosk_Boot" /tr "wscript.exe \"%APP_DIR%\watchdog.vbs\"" /sc ONLOGON /f /rl HIGHEST >nul 2>&1
+    echo [INFO] Inregistrez Watchdog pasiv in Windows Task Scheduler (la fiecare 5 minute)...
+    schtasks /delete /tn "SmartKiosk_Boot" /f >nul 2>&1
+    schtasks /create /tn "SmartKiosk_Watchdog" /tr "wscript.exe \"%APP_DIR%\watchdog.vbs\"" /sc MINUTE /mo 5 /f /rl HIGHEST >nul 2>&1
 )
 
 echo [INFO] Pornesc POS Bridge in fundal...

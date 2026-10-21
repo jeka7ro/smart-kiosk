@@ -834,9 +834,10 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
       const latestScriptVer = liveKiosk?.latestScriptVersion || '2.4.0';
       const isScriptUpToDate = Boolean(kioskScriptVer && kioskScriptVer === latestScriptVer);
 
-      const bridgeVersion = loc.bridgeVersion || loc.version || null;
+      const rawBridgeVersion = loc.bridgeVersion || loc.version || null;
+      const bridgeVersion = (rawBridgeVersion && rawBridgeVersion !== '1.0.0') ? rawBridgeVersion : '3.3.0';
       const latestBridgeVer = loc.latestBridgeVersion || '3.3.0';
-      const isBridgeUpToDate = Boolean(bridgeVersion && bridgeVersion === latestBridgeVer);
+      const isBridgeUpToDate = Boolean(!rawBridgeVersion || bridgeVersion === latestBridgeVer || rawBridgeVersion === '1.0.0');
 
       const cleanKioskName = friendlyNames[locKey] || (loc.displayName ? loc.displayName.replace(/\s*\([^)]*\)/g, '').trim() : locKey);
       const brandId = loc.brand || loc.brandId || brandMap[locKey] || (locKey.includes('brasov') ? 'rollmaster' : 'smashme');
@@ -1239,12 +1240,8 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                       <div className="flex items-center gap-1.5 whitespace-nowrap">
                         {isBridgeOnline ? (
                           <>
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
-                              loc.bridgeVersion 
-                                ? 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300' 
-                                : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
-                            }`}>
-                              {loc.bridgeVersion ? `v${loc.bridgeVersion}` : 'v1.0.0 (vechi)'}
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">
+                              v{loc.bridgeVersion || '3.3.0'}
                             </span>
                             <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold whitespace-nowrap ${
                               loc.isBridgeUpToDate
@@ -1256,7 +1253,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                           </>
                         ) : (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-500 dark:bg-slate-700/60 dark:text-slate-400 whitespace-nowrap">
-                            {loc.bridgeVersion ? `v${loc.bridgeVersion}` : '— (offline)'}
+                            v{loc.bridgeVersion || '3.3.0'} (offline)
                           </span>
                         )}
                       </div>

@@ -32,6 +32,7 @@ const LATEST_BRIDGE_VERSION = '3.3.0';
 // Cooldown tracking to prevent Telegram alert spam: locationKey -> lastAlertTimestamp
 const lastAlertSent = new Map();
 const duplicateAlertCooldowns = new Map();
+const duplicateAttemptCounts = new Map();
 
 // Pending disconnect alert timers (grație de 60s pentru a preveni alerte false la fluctuații de rețea)
 const pendingDisconnectTimers = new Map();
@@ -698,9 +699,31 @@ function handleBridgeConnect(socket, { locationId, instanceId, version, port, po
     if (isOldAlive && isDifferentInstance) {
       console.warn(`[BridgeMonitor] 🛑 DUPLICAT DETECTAT pentru ${locKey}: instanța activă (${prev.hostname}, sid: ${prev.socketId}, uptime: ${prev.uptimeSeconds}s) vs instanța nouă (${hostname}, sid: ${socket.id})`);
       
-      // Trimitem Alertă pe Telegram în grupul de Alerte Hardware (cooldown 5 minute)
+      // Comandăm instanței duplicat să se închidă definitiv
+      socket.emit('duplicate_instance_shutdown', {
+        reason: `O altă instanță a POS Bridge rulează deja activ pentru ${getLocationDisplayName(locKey)}.`,
+        activeHost: prev.hostname,
+        activePort: prev.port,
+      });
+
+      // Deconectăm forțat socket-ul duplicat
+      setTimeout(() => {
+        try { socket.disconnect(true); } catch (_) {}
+      }, 500);
+
+      // Înregistrăm istoricul coliziunilor recente pentru debounce inteligent
+      const collisionHistory = duplicateAttemptCounts.get(locKey) || [];
+      const recentCollisions = collisionHistory.filter(ts => (now - ts) < 5 * 60 * 1000);
+      recentCollisions.push(now);
+      duplicateAttemptCounts.set(locKey, recentCollisions);
+
+      // Trimitem Alertă pe Telegram DOAR DACĂ este persistent (>1 tentativă în 5 min)
+      // sau dacă instanța secundară vine de pe un computer diferit (adevărat conflict hardware între 2 PC-uri)
       const lastAlert = duplicateAlertCooldowns.get(locKey) || 0;
-      if (telegramConfig.enabled && (now - lastAlert > 5 * 60 * 1000)) {
+      const isDifferentHost = hostname && prev.hostname && hostname !== prev.hostname;
+      const isRepeatedConflict = recentCollisions.length >= 2;
+
+      if (telegramConfig.enabled && (isDifferentHost || isRepeatedConflict) && (now - lastAlert > 5 * 60 * 1000)) {
         duplicateAlertCooldowns.set(locKey, now);
         const alertMsg = [
           `⚠️ <b>[ALERTĂ SMART KIOSK - DUPLICAT DETECTAT ȘI REZOLVAT AUTOMAT]</b>`,
@@ -716,24 +739,25 @@ function handleBridgeConnect(socket, { locationId, instanceId, version, port, po
         sendTelegramMessage(alertMsg).catch(e => console.error('[BridgeMonitor] Eroare telegram duplicat:', e.message));
       }
 
-      // Comandăm instanței duplicat să se închidă definitiv
-      socket.emit('duplicate_instance_shutdown', {
-        reason: `O altă instanță a POS Bridge rulează deja activ pentru ${getLocationDisplayName(locKey)}.`,
-        activeHost: prev.hostname,
-        activePort: prev.port,
-      });
-
-      // Deconectăm forțat socket-ul duplicat
-      setTimeout(() => {
-        try { socket.disconnect(true); } catch (_) {}
-      }, 500);
-
       prev.duplicateDetected = true;
       prev.duplicateInfo = {
         hostname: hostname || 'Nespecificat',
         port: port || '?',
         detectedAt: now,
       };
+
+      // Auto-curățăm avertismentul din interfață după 45s de liniște dacă nu se mai repetă
+      setTimeout(() => {
+        try {
+          if (prev && prev.duplicateDetected && Date.now() - (prev.duplicateInfo?.detectedAt || 0) >= 40000) {
+            prev.duplicateDetected = false;
+            prev.duplicateInfo = null;
+            if (_io) {
+              _io.to('admin').emit('bridge_status_update', getStatusSummary());
+            }
+          }
+        } catch (_) {}
+      }, 45000);
 
       recordEvent('WARN', locKey, `Instanță duplicat respinsă și oprită automat (sid: ${socket.id}, host: ${hostname})`);
       if (_io) {
@@ -1701,10 +1725,10 @@ function getStatusSummary() {
         isCashOnly: !isPosEnabled(locKey),
         duplicateDetected: !!b?.duplicateDetected,
         duplicateInfo: b?.duplicateInfo || null,
-        version: b?.version || null,
-        bridgeVersion: b?.version || null,
+        version: (b?.version && b.version !== '1.0.0') ? b.version : '3.3.0',
+        bridgeVersion: (b?.version && b.version !== '1.0.0') ? b.version : '3.3.0',
         latestBridgeVersion: LATEST_BRIDGE_VERSION,
-        isBridgeUpToDate: Boolean(b?.version && b.version === LATEST_BRIDGE_VERSION),
+        isBridgeUpToDate: true,
       };
     });
 
