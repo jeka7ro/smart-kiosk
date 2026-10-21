@@ -1186,47 +1186,9 @@ export default function AdminApp() {
           <div className="space-y-4 md:space-y-6 px-3 md:px-8 pb-10 min-w-0 max-w-full w-full">
 
             {/* Live Kiosks Status Strip */}
-            <div className="bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-2.5 w-full max-w-full min-w-0">
-              {/* Header on mobile / Left on desktop */}
-              <div className="flex items-center justify-between gap-2 w-full md:w-auto shrink-0">
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-700/60 text-slate-800 dark:text-slate-200 text-xs font-bold">
-                  <MonitorSmartphone className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                  <span>Kiosk-uri Active:</span>
-                </div>
-
-                {/* Mobile actions: right next to title */}
-                <div className="flex items-center gap-2 md:hidden">
-                  {(() => {
-                    const targetVer = BRIDGE_RELEASE_NOTES[0]?.version || bridgeSummary?.latestBridgeVersion || '3.5.0';
-                    const locList = bridgeSummary?.locations ? Object.values(bridgeSummary.locations) : [];
-                    const onlineList = locList.filter(l => l.status === 'online' || l.isBridgeOnline);
-                    const outdated = onlineList.filter(l => (l.bridgeVersion && l.bridgeVersion !== targetVer) || l.isBridgeUpToDate === false);
-                    if (outdated.length > 0) {
-                      return (
-                        <button
-                          type="button"
-                          onClick={() => setIsReleaseNotesOpen(true)}
-                          className="px-2 py-1 rounded-lg text-[10px] font-bold bg-blue-600 text-white shadow-xs"
-                        >
-                          v{targetVer} ({outdated.length})
-                        </button>
-                      );
-                    }
-                    return null;
-                  })()}
-                  <button
-                    type="button"
-                    onClick={() => setTab('bridge-monitoring')}
-                    title="Monitorizare detaliată LIVE Status"
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors cursor-pointer"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-
-              {/* 2x2 Grid on Mobile, Flex Row on Desktop */}
-              <div className="grid grid-cols-2 md:flex md:items-center gap-2 w-full md:w-auto md:flex-1 md:justify-center">
+            <div className="bg-white dark:bg-slate-800 p-2 sm:p-2.5 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 w-full max-w-full min-w-0">
+              {/* Kiosk Pills: 2x2 pe ecrane foarte mici, flex-row pe desktop */}
+              <div className="grid grid-cols-2 sm:flex sm:items-center gap-1.5 sm:gap-2 w-full sm:w-auto sm:flex-1">
                 {[
                   { 
                     id: 'cluj1', 
@@ -1321,11 +1283,6 @@ export default function AdminApp() {
                           }`}>
                             {statusLabel}
                           </span>
-                          {hasBridgeUpdate && (
-                            <span className="px-1 py-0.5 rounded text-[8px] font-extrabold bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border border-blue-200 dark:border-blue-800/80">
-                              v{targetVerGlobal}
-                            </span>
-                          )}
                         </div>
                       </button>
 
@@ -1517,8 +1474,8 @@ export default function AdminApp() {
                 })}
               </div>
 
-              {/* Desktop actions: right aligned */}
-              <div className="hidden md:flex items-center gap-2.5 shrink-0">
+              {/* Actions: right aligned */}
+              <div className="flex items-center justify-end gap-2 shrink-0">
                 {/* Indicator versiune macOS-style: 'Soft la zi' sau buton 'Actualizează' */}
                 {(() => {
                   const targetVer = BRIDGE_RELEASE_NOTES[0]?.version || bridgeSummary?.latestBridgeVersion || '3.5.0';
