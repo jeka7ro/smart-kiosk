@@ -391,17 +391,10 @@ export default function AdminApp() {
     ];
 
     locDefs.forEach(loc => {
-      const liveKiosk = loc.aliases.map(a => kiosksLiveStatus[a]).find(Boolean);
-      const isKioskConnected = Boolean(liveKiosk?.isLive || liveKiosk?.online || (liveKiosk?.onlineCount > 0));
       const bridgeLoc = bridgeSummary?.locations?.[loc.id] || 
                        (loc.aliases ? loc.aliases.map(a => bridgeSummary?.locations?.[a]).find(Boolean) : null);
-      const hasRecentConnection = Boolean(
-        bridgeLoc?.connectedAt && 
-        (Date.now() - bridgeLoc.connectedAt < 12 * 3600 * 1000) && 
-        bridgeLoc.port && 
-        bridgeLoc.port !== 'N/A'
-      );
-      if (bridgeLoc?.status === 'online' || isKioskConnected || hasRecentConnection) {
+      const isBridgeOnline = Boolean(bridgeLoc?.status === 'online' || bridgeLoc?.isBridgeOnline);
+      if (isBridgeOnline) {
         activeLocations.add(loc.id);
       }
     });
@@ -1202,6 +1195,24 @@ export default function AdminApp() {
 
                 {/* Mobile actions: right next to title */}
                 <div className="flex items-center gap-2 md:hidden">
+                  {(() => {
+                    const targetVer = BRIDGE_RELEASE_NOTES[0]?.version || bridgeSummary?.latestBridgeVersion || '3.5.0';
+                    const locList = bridgeSummary?.locations ? Object.values(bridgeSummary.locations) : [];
+                    const onlineList = locList.filter(l => l.status === 'online' || l.isBridgeOnline);
+                    const outdated = onlineList.filter(l => (l.bridgeVersion && l.bridgeVersion !== targetVer) || l.isBridgeUpToDate === false);
+                    if (outdated.length > 0) {
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => setIsReleaseNotesOpen(true)}
+                          className="px-2 py-1 rounded-lg text-[10px] font-bold bg-blue-600 text-white shadow-xs"
+                        >
+                          v{targetVer} ({outdated.length})
+                        </button>
+                      );
+                    }
+                    return null;
+                  })()}
                   <button
                     type="button"
                     onClick={handleManualRefresh}
@@ -1256,6 +1267,8 @@ export default function AdminApp() {
                   
                   const hasRecentConnection = Boolean(bridgeLoc?.connectedAt && (Date.now() - bridgeLoc.connectedAt < 30 * 1000) && bridgeLoc.port && bridgeLoc.port !== 'N/A');
                   const bridgeIsActive = isBridgeOnline || hasRecentConnection;
+                  const targetVerGlobal = BRIDGE_RELEASE_NOTES[0]?.version || bridgeSummary?.latestBridgeVersion || '3.5.0';
+                  const hasBridgeUpdate = isBridgeOnline && Boolean(bridgeLoc?.bridgeVersion && bridgeLoc.bridgeVersion !== targetVerGlobal);
                   
                   // STRICT: Verde doar dacă TOATE sunt conectate (ecran + POS bridge activ pe port)
                   let statusTone = 'offline';
@@ -1307,15 +1320,22 @@ export default function AdminApp() {
                           }`} />
                           <span className="font-bold text-[11px] sm:text-xs truncate">{loc.name}</span>
                         </div>
-                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold shrink-0 ${
-                          statusTone === 'online' 
-                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300' 
-                            : statusTone === 'warning'
-                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300'
-                            : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-                        }`}>
-                          {statusLabel}
-                        </span>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                            statusTone === 'online' 
+                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300' 
+                              : statusTone === 'warning'
+                              ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300'
+                              : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                          }`}>
+                            {statusLabel}
+                          </span>
+                          {hasBridgeUpdate && (
+                            <span className="px-1 py-0.5 rounded text-[8px] font-extrabold bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border border-blue-200 dark:border-blue-800/80">
+                              v{targetVerGlobal}
+                            </span>
+                          )}
+                        </div>
                       </button>
 
                       {/* Dropdown Popover cu toate detaliile tehnice la click */}
@@ -1359,6 +1379,30 @@ export default function AdminApp() {
                                 <span className={`font-semibold ${isBridgeOnline ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400 font-bold'}`}>
                                   {isBridgeOnline ? 'Rulare activă' : 'Oprit / Deconectat'}
                                 </span>
+                              </div>
+                              <div className="flex items-center justify-between py-0.5 border-b border-slate-100/60 dark:border-slate-700/40">
+                                <span className="text-slate-500 dark:text-slate-400">Versiune Soft (PC):</span>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                                    v{bridgeLoc?.bridgeVersion || '3.4.0'}
+                                  </span>
+                                  {isBridgeOnline && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setActiveLocationDropdown(null);
+                                        setIsReleaseNotesOpen(true);
+                                      }}
+                                      className={`px-1.5 py-0.5 rounded text-[9px] font-bold cursor-pointer transition-all hover:scale-105 active:scale-95 ${
+                                        !hasBridgeUpdate
+                                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                                          : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 ring-1 ring-amber-300 dark:ring-amber-700/60'
+                                      }`}
+                                    >
+                                      {!hasBridgeUpdate ? 'La zi' : `Nou: v${targetVerGlobal}`}
+                                    </button>
+                                  )}
+                                </div>
                               </div>
                               <div className="flex items-center justify-between py-0.5 border-b border-slate-100/60 dark:border-slate-700/40">
                                 <span className="text-slate-500 dark:text-slate-400">Port Serial POS:</span>
@@ -1508,7 +1552,7 @@ export default function AdminApp() {
                         type="button"
                         onClick={() => setIsReleaseNotesOpen(true)}
                         title={`Click pentru a vedea noutățile versiunii oficiale v${targetVer} (Release Notes)`}
-                        className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 hover:bg-emerald-100/90 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 shadow-xs cursor-pointer transition-all active:scale-98 group"
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 hover:bg-emerald-100/90 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 shadow-xs cursor-pointer transition-all active:scale-98 group whitespace-nowrap"
                       >
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
                         <span>Soft la zi (v{targetVer})</span>
@@ -1520,9 +1564,10 @@ export default function AdminApp() {
                       type="button"
                       onClick={() => setIsReleaseNotesOpen(true)}
                       title={`Click pentru noutăți și actualizare la v${targetVer} (${outdated.length} kiosk-uri)`}
-                      className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-all cursor-pointer active:scale-98 whitespace-nowrap"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-all cursor-pointer active:scale-98 whitespace-nowrap"
                     >
-                      <span>Actualizare la v{targetVer} ({outdated.length})</span>
+                      <RefreshCw className="w-3 h-3 text-white/80 shrink-0" />
+                      <span>Actualizează la v{targetVer} ({outdated.length})</span>
                     </button>
                   );
                 })()}
@@ -2254,9 +2299,22 @@ export default function AdminApp() {
         const locList = bridgeSummary?.locations ? Object.values(bridgeSummary.locations) : [];
         return locList.filter(l => (l.status === 'online' || l.isBridgeOnline) && ((l.bridgeVersion && l.bridgeVersion !== targetVer) || l.isBridgeUpToDate === false)).length;
       })()}
-      onUpdate={() => {
-        setIsReleaseNotesOpen(false);
-        setTab('bridge-monitoring');
+      onUpdate={async () => {
+        try {
+          const backend = import.meta.env.VITE_BACKEND_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5001' : 'https://smart-kiosk-ttut.onrender.com');
+          await fetch(`${backend}/api/bridge-monitoring/update-all-bridges`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': 'sk-live-2024-secure',
+            },
+          });
+        } catch (err) {
+          console.error('Eroare actualizare bridge din Dashboard:', err);
+        }
+      }}
+      onCompleteUpdate={() => {
+        fetchBridgeSummary();
       }}
     />
 

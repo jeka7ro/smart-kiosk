@@ -24,7 +24,7 @@ router.get('/release-notes', (req, res) => {
   try {
     const { BRIDGE_RELEASE_NOTES } = require('../data/bridgeReleaseNotes');
     res.json({
-      latestVersion: BRIDGE_RELEASE_NOTES[0]?.version || '3.4.0',
+      latestVersion: BRIDGE_RELEASE_NOTES[0]?.version || '3.5.0',
       releaseNotes: BRIDGE_RELEASE_NOTES
     });
   } catch (err) {

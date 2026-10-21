@@ -876,7 +876,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
 
       const rawBridgeVersion = loc.bridgeVersion || loc.version || null;
       const bridgeVersion = (rawBridgeVersion && rawBridgeVersion !== '1.0.0') ? rawBridgeVersion : '3.4.0';
-      const latestBridgeVer = BRIDGE_RELEASE_NOTES[0]?.version || loc.latestBridgeVersion || '3.4.0';
+      const latestBridgeVer = BRIDGE_RELEASE_NOTES[0]?.version || loc.latestBridgeVersion || '3.5.0';
       const isBridgeUpToDate = Boolean(rawBridgeVersion && bridgeVersion === latestBridgeVer);
 
       const cleanKioskName = friendlyNames[locKey] || (loc.displayName ? loc.displayName.replace(/\s*\([^)]*\)/g, '').trim() : locKey);
@@ -988,7 +988,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
 
           {/* Indicator Status Soft stil macOS */}
           {(() => {
-            const latestBridgeVerGlobal = BRIDGE_RELEASE_NOTES[0]?.version || Object.values(computedLocations)[0]?.latestBridgeVersion || '3.4.0';
+            const latestBridgeVerGlobal = BRIDGE_RELEASE_NOTES[0]?.version || Object.values(computedLocations)[0]?.latestBridgeVersion || '3.5.0';
             const outdatedLocations = Object.values(computedLocations).filter(
               l => l.isBridgeOnline && (l.bridgeVersion !== latestBridgeVerGlobal || !l.isBridgeUpToDate)
             );
@@ -1320,14 +1320,14 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                             <button
                               type="button"
                               onClick={() => setIsReleaseNotesOpen(true)}
-                              title={loc.isBridgeUpToDate ? "Soft la zi" : `Actualizare disponibilă la v${loc.latestBridgeVer}. Click pentru detalii.`}
+                              title={loc.isBridgeUpToDate ? "Soft la zi" : `Actualizare disponibilă la v${loc.latestBridgeVer}. Click pentru noutăți și instalare.`}
                               className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold whitespace-nowrap cursor-pointer transition-all hover:scale-105 active:scale-95 ${
                                 loc.isBridgeUpToDate
                                   ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
                                   : 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900 ring-1 ring-amber-300 dark:ring-amber-700/60'
                               }`}
                             >
-                              {loc.isBridgeUpToDate ? 'La zi' : 'Update disp.'}
+                              {loc.isBridgeUpToDate ? 'La zi' : `Nou: v${loc.latestBridgeVer}`}
                             </button>
                           </>
                         ) : (
@@ -2114,9 +2114,9 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
       <SoftwareReleaseNotesModal
         isOpen={isReleaseNotesOpen}
         onClose={() => setIsReleaseNotesOpen(false)}
-        initialVersion={BRIDGE_RELEASE_NOTES[0]?.version || '3.4.0'}
-        canUpdate={Object.values(computedLocations).some(l => l.isBridgeOnline && (l.bridgeVersion !== (BRIDGE_RELEASE_NOTES[0]?.version || '3.4.0') || !l.isBridgeUpToDate))}
-        outdatedCount={Object.values(computedLocations).filter(l => l.isBridgeOnline && (l.bridgeVersion !== (BRIDGE_RELEASE_NOTES[0]?.version || '3.4.0') || !l.isBridgeUpToDate)).length}
+        initialVersion={BRIDGE_RELEASE_NOTES[0]?.version || '3.5.0'}
+        canUpdate={Object.values(computedLocations).some(l => l.isBridgeOnline && (l.bridgeVersion !== (BRIDGE_RELEASE_NOTES[0]?.version || '3.5.0') || !l.isBridgeUpToDate))}
+        outdatedCount={Object.values(computedLocations).filter(l => l.isBridgeOnline && (l.bridgeVersion !== (BRIDGE_RELEASE_NOTES[0]?.version || '3.5.0') || !l.isBridgeUpToDate)).length}
         isUpdating={actionLoading === 'all-update-all-bridges'}
         onUpdate={() => handleAction('all', 'execute-update-all-bridges')}
         onCompleteUpdate={handleCompleteUpdate}
