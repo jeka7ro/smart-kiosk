@@ -27,7 +27,7 @@ import Promotions     from './screens/Promotions';
 import FortuneWheelPreview from './components/FortuneWheelPreview';
 import MenuManager, { MenuProfileEditorModal } from './screens/MenuManager';
 import QrGenerator from './screens/QrGenerator';
-import { useConfirm } from './components/ConfirmModal';
+import { useConfirm, RestartDialogIcon } from './components/ConfirmModal';
 import { LayoutDashboard, Receipt, TrendingUp, MapPin, MonitorSmartphone, QrCode, Utensils, Languages, Image as ImageIcon, Tags, Users, Blocks, Gift, Store, Sun, Moon, LogOut, Menu, X, CreditCard, Download, Printer, Building2, Palette, Sparkles, Flame, Snowflake, Layers, Upload, Star, ChevronUp, ChevronDown, Check, Zap, Wifi, Sliders, Info, Trash2, AlertTriangle, Globe, Phone, Lock, Clock, ShieldCheck, ShieldAlert, Unlock, Eye, EyeOff, Activity, RotateCcw, Calendar, Copy, Server, ExternalLink, RefreshCw } from 'lucide-react';
 import { formatThousands } from './utils/formatters';
 
@@ -311,6 +311,20 @@ export default function AdminApp() {
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
 
   const handleDropdownAction = async (locationId, actionType) => {
+    // Acțiunile care repornesc ceva cer confirmare în fereastra aplicației (ca să nu se apese din greșeală)
+    if (actionType === 'restart-bridge') {
+      const ok = await confirm(
+        'POS Bridge va fi oprit aproximativ 1–2 minute. În acest timp NU se pot face plăți cu cardul și nu se tipărește bonul. Nu reporni dacă un client plătește chiar acum.',
+        { title: 'Restart POS Bridge — ești sigur?', icon: <RestartDialogIcon />, okLabel: 'Da, repornește', cancelLabel: 'Nu, renunț', danger: true }
+      );
+      if (!ok) return;
+    } else if (actionType === 'reload-kiosk') {
+      const ok = await confirm(
+        'Ecranul kiosk-ului din locație se reîncarcă. Dacă un client e în mijlocul unei comenzi, o va pierde.',
+        { title: 'Refresh Ecran Kiosk — ești sigur?', icon: <RestartDialogIcon />, okLabel: 'Da, reîncarcă', cancelLabel: 'Nu, renunț', danger: true }
+      );
+      if (!ok) return;
+    }
     const key = `${locationId}-${actionType}`;
     setDropdownActionLoading(key);
     setDropdownActionFeedback(null);
@@ -3176,8 +3190,13 @@ function KiosksManager({ backend, kiosksLiveStatus = {}, onNavigateToProducts })
                         className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 dark:hover:bg-orange-500/10 dark:hover:text-orange-400 text-slate-600 dark:text-slate-400 flex items-center justify-center transition-colors"
                         onClick={async (e) => {
                            e.stopPropagation();
-                           if (restartingId === loc.id) return; // already restarting
-                           setRestartingId(loc.id);
+                            if (restartingId === loc.id) return; // already restarting
+                            const okRestart = await confirm(
+                              `Se repornesc ecranul kiosk ȘI POS Bridge-ul la „${loc.name}”. Timp de 1–2 minute nu se pot face plăți cu cardul și nu se tipărește bonul. Nu continua dacă un client plătește chiar acum.`,
+                              { title: 'Restart locație — ești sigur?', icon: <RestartDialogIcon />, okLabel: 'Da, repornește', cancelLabel: 'Nu, renunț', danger: true }
+                            );
+                            if (!okRestart) return;
+                            setRestartingId(loc.id);
                            try {
                              const res = await fetchWithAuth(`${backend}/api/locations/${loc.id}/restart`, { method: 'POST' });
                              const data = await res.json();
@@ -3312,10 +3331,16 @@ function KiosksManager({ backend, kiosksLiveStatus = {}, onNavigateToProducts })
 }
 
 function RestartKioskBtn({ locId, backend, fetchWithAuth }) {
+  const confirm = useConfirm();
   const [rstState, setRstState] = useState('idle');
   const doRestart = async (e) => {
     e.stopPropagation();
     if (rstState === 'sending') return;
+    const ok = await confirm(
+      'Se repornesc ecranul kiosk ȘI POS Bridge-ul acestei locații. Timp de 1–2 minute nu se pot face plăți cu cardul. Nu continua dacă un client plătește chiar acum.',
+      { title: 'Refresh Kiosk — ești sigur?', icon: <RestartDialogIcon />, okLabel: 'Da, repornește', cancelLabel: 'Nu, renunț', danger: true }
+    );
+    if (!ok) return;
     setRstState('sending');
     try {
       const res = await fetchWithAuth(`${backend}/api/locations/${locId}/restart`, { method: 'POST' });

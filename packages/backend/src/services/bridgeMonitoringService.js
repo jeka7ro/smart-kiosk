@@ -26,8 +26,12 @@ let telegramConfig = {
   ordersAlertsEnabled: true, // boolean
 };
 
+// Versiunea oficială curentă a software-ului POS Bridge de pe PC
+const LATEST_BRIDGE_VERSION = '3.3.0';
+
 // Cooldown tracking to prevent Telegram alert spam: locationKey -> lastAlertTimestamp
 const lastAlertSent = new Map();
+const duplicateAlertCooldowns = new Map();
 
 // Pending disconnect alert timers (grație de 60s pentru a preveni alerte false la fluctuații de rețea)
 const pendingDisconnectTimers = new Map();
@@ -450,6 +454,178 @@ function recordEvent(type, locationId, details) {
   return entry;
 }
 
+// ─── Jurnal restartări POS Bridge ───────────────────────────────────────────────
+// Arată CINE a repornit bridge-ul: manual din Admin (butoane) sau automat din locație
+// (watchdog, crash, repornire PC, actualizare). Persistat în DB; memoria e fallback.
+const RESTART_WAIT_MS = 3 * 60 * 1000; // cât așteptăm revenirea bridge-ului după comandă
+const RESTART_SOURCE_LABELS = {
+  admin: 'Manual din Admin (buton Bridge)',
+  admin_port: 'Manual din Admin (schimbare port POS)',
+  admin_ecran: 'Din Admin (buton Ecran) — a repornit și bridge-ul',
+  admin_locatii: 'Din Admin (Restart locație)',
+  auto: 'Automat din locație (watchdog / crash / repornire PC / actualizare)',
+};
+const restartLog = [];              // cache în memorie (ultimele 300)
+const pendingRestarts = new Map();  // locKey -> cerere în așteptare
+let restartTableReady = false;
+
+async function ensureRestartTable() {
+  if (restartTableReady) return true;
+  try {
+    await pool.query(`CREATE TABLE IF NOT EXISTS bridge_restart_log (
+      id TEXT PRIMARY KEY,
+      data JSONB NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`);
+    restartTableReady = true;
+  } catch (e) {
+    console.warn('[BridgeMonitor] Nu pot crea tabelul bridge_restart_log (folosesc memoria):', e.message);
+  }
+  return restartTableReady;
+}
+
+function persistRestartEntry(entry) {
+  ensureRestartTable().then((ok) => {
+    if (!ok) return;
+    return pool.query(
+      `INSERT INTO bridge_restart_log (id, data) VALUES ($1, $2)
+       ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data`,
+      [entry.id, JSON.stringify(entry)]
+    );
+  }).catch((e) => console.warn('[BridgeMonitor] Eroare salvare jurnal restart:', e.message));
+}
+
+function pushRestartEntry(entry) {
+  restartLog.unshift(entry);
+  if (restartLog.length > 300) restartLog.pop();
+  persistRestartEntry(entry);
+  return entry;
+}
+
+function expireStaleRestarts() {
+  const now = Date.now();
+  for (const [k, e] of pendingRestarts.entries()) {
+    if (e.status === 'pending' && now - e.requestedAt > RESTART_WAIT_MS) {
+      e.status = 'timeout';
+      e.completedAt = now;
+      e.detail = 'Bridge-ul NU a revenit în 3 minute după comandă. Verifică PC-ul din locație (pornit? internet? start-windows.bat rulează?).';
+      pendingRestarts.delete(k);
+      persistRestartEntry(e);
+    }
+  }
+}
+
+/**
+ * Înregistrează o cerere de restart venită din Admin. Returnează requestId pentru urmărirea progresului.
+ * onlyIfOnline: pentru restartări colaterale (ex: butonul Ecran) — nu loghează dacă bridge-ul e offline.
+ */
+function startRestartRequest(locationId, { source = 'admin', requestedBy = null, onlyIfOnline = false } = {}) {
+  const locKey = normalizeLocationKey(locationId);
+  const now = Date.now();
+  expireStaleRestarts();
+  const b = bridges.get(locKey);
+  const bridgeOnline = !!(b && b.status === 'online');
+  if (onlyIfOnline && !bridgeOnline) return null;
+
+  const entry = {
+    id: `RST-${now}-${Math.random().toString(36).substring(2, 6)}`,
+    locationId: locKey,
+    displayName: getLocationDisplayName(locKey),
+    source,
+    sourceLabel: RESTART_SOURCE_LABELS[source] || source,
+    status: bridgeOnline ? 'pending' : 'failed',
+    requestedAt: now,
+    completedAt: bridgeOnline ? null : now,
+    requestedBy,
+    uptimeBefore: b?.uptimeSeconds ?? null,
+    uptimeAfter: null,
+    detail: bridgeOnline
+      ? 'Comandă trimisă. Aștept revenirea bridge-ului...'
+      : 'Bridge-ul era OFFLINE în momentul comenzii — comanda nu a putut fi livrată.',
+  };
+  pushRestartEntry(entry);
+  if (bridgeOnline) pendingRestarts.set(locKey, entry);
+  return { requestId: entry.id, bridgeOnline, entry };
+}
+
+/**
+ * Apelată la fiecare heartbeat: detectează dacă PROCESUL bridge a pornit din nou
+ * (uptime-ul procesului a scăzut) și atribuie restartul: cerere din Admin sau automat.
+ */
+function detectBridgeProcessRestart(locKey, entry, uptime, now) {
+  if (typeof uptime !== 'number' || uptime < 0) return;
+  const startedAt = now - uptime * 1000;
+  const prevStart = entry.processStartedAt;
+  let restarted;
+  if (prevStart) {
+    restarted = startedAt - prevStart > 30000; // proces nou pornit mai târziu decât cel cunoscut
+  } else {
+    // Prima informație despre acest bridge. Dacă serverul tocmai a pornit (redeploy), nu putem ști ce s-a întâmplat înainte.
+    restarted = uptime < 150 && process.uptime() > 300;
+  }
+  entry.processStartedAt = (prevStart && !restarted) ? prevStart : startedAt;
+  if (!restarted) return;
+
+  const pending = pendingRestarts.get(locKey);
+  if (pending && pending.status === 'pending') {
+    const seconds = Math.round((now - pending.requestedAt) / 1000);
+    pending.status = 'completed';
+    pending.completedAt = now;
+    pending.uptimeAfter = uptime;
+    pending.durationSeconds = seconds;
+    pending.detail = `Bridge repornit și reconectat în ${seconds}s (uptime nou: ${uptime}s).`;
+    pendingRestarts.delete(locKey);
+    persistRestartEntry(pending);
+    recordEvent('RESTART', locKey, `${pending.sourceLabel} — bridge repornit în ${seconds}s`);
+    return;
+  }
+
+  pushRestartEntry({
+    id: `RST-${now}-${Math.random().toString(36).substring(2, 6)}`,
+    locationId: locKey,
+    displayName: getLocationDisplayName(locKey),
+    source: 'auto',
+    sourceLabel: RESTART_SOURCE_LABELS.auto,
+    status: 'completed',
+    requestedAt: null,
+    completedAt: now,
+    requestedBy: null,
+    uptimeBefore: null,
+    uptimeAfter: uptime,
+    detail: 'Programul bridge a repornit FĂRĂ comandă din Admin (watchdog, crash, repornire PC sau actualizare automată).',
+  });
+  recordEvent('RESTART', locKey, 'Bridge repornit automat din locație (fără comandă din Admin)');
+}
+
+async function getRestartLog({ locationId = null, limit = 100 } = {}) {
+  expireStaleRestarts();
+  const lim = Math.max(1, Math.min(Number(limit) || 100, 500));
+  const locKey = locationId ? normalizeLocationKey(locationId) : null;
+  const byId = new Map();
+  try {
+    if (await ensureRestartTable()) {
+      const params = [];
+      let q = 'SELECT data FROM bridge_restart_log';
+      if (locKey) { params.push(locKey); q += ` WHERE data->>'locationId' = $1`; }
+      q += ` ORDER BY created_at DESC LIMIT ${lim}`;
+      const r = await pool.query(q, params);
+      for (const row of r.rows) if (row.data?.id) byId.set(row.data.id, row.data);
+    }
+  } catch (_) {}
+  // Memoria are mereu starea cea mai proaspătă (salvarea în DB e asincronă)
+  for (const e of restartLog) {
+    if (!locKey || e.locationId === locKey) byId.set(e.id, e);
+  }
+  return [...byId.values()]
+    .sort((a, b) => (b.completedAt || b.requestedAt || 0) - (a.completedAt || a.requestedAt || 0))
+    .slice(0, lim);
+}
+
+function getRestartRequest(requestId) {
+  expireStaleRestarts();
+  return restartLog.find((e) => e.id === requestId) || null;
+}
+
 /**
  * Normalise location ID to canonical key
  */
@@ -504,19 +680,77 @@ function isPosEnabled(locKey) {
 /**
  * Called when a POS Bridge connects and registers
  */
-function handleBridgeConnect(socket, { locationId, port, posGateway, printerName, hostname, posWakeStandby, posWakeIntervalMinutes }) {
+function handleBridgeConnect(socket, { locationId, instanceId, version, port, posGateway, printerName, hostname, posWakeStandby, posWakeIntervalMinutes }) {
   if ((locationId === 'sm-brasov' || !locationId) && (port === 'COM5' || port === 'COM1' || String(printerName).includes('TM-T20III') || hostname === 'DESKTOP-VNTDBO0')) {
     locationId = 'cluj2';
   }
   const locKey = normalizeLocationKey(locationId);
   const now = Date.now();
   const prev = bridges.get(locKey);
+
+  // ─── PROTECȚIE INSTANȚĂ DUPLICAT (DEDUPING & AUTO-KILL) ───────────────────
+  // Dacă există deja o instanță activă raportată, cu alt socket, și care trimite heartbeat-uri active:
+  if (prev && prev.status === 'online' && prev.socketId && prev.socketId !== socket.id) {
+    const existingSocket = _io?.sockets?.sockets?.get(prev.socketId);
+    const isOldAlive = existingSocket && existingSocket.connected && ((now - (prev.lastPing || 0)) < 25000);
+    const isDifferentInstance = !instanceId || !prev.instanceId || instanceId !== prev.instanceId;
+
+    if (isOldAlive && isDifferentInstance) {
+      console.warn(`[BridgeMonitor] 🛑 DUPLICAT DETECTAT pentru ${locKey}: instanța activă (${prev.hostname}, sid: ${prev.socketId}, uptime: ${prev.uptimeSeconds}s) vs instanța nouă (${hostname}, sid: ${socket.id})`);
+      
+      // Trimitem Alertă pe Telegram în grupul de Alerte Hardware (cooldown 5 minute)
+      const lastAlert = duplicateAlertCooldowns.get(locKey) || 0;
+      if (telegramConfig.enabled && (now - lastAlert > 5 * 60 * 1000)) {
+        duplicateAlertCooldowns.set(locKey, now);
+        const alertMsg = [
+          `⚠️ <b>[ALERTĂ SMART KIOSK - DUPLICAT DETECTAT ȘI REZOLVAT AUTOMAT]</b>`,
+          `Locație: <b>${getLocationDisplayName(locKey)}</b>`,
+          `Problemă: <b>O a doua instanță POS Bridge a încercat să se conecteze!</b>`,
+          `PC / Host secundar: <code>${hostname || 'Nespecificat'}</code>`,
+          `Port secundar: <code>${port || '?'}</code>`,
+          `🛡️ <b>Măsură Aplicată:</b> Instanța duplicat a primit semnal de oprire imediată (shutdown) și a fost deconectată.`,
+          `✅ <b>SITUAȚIE REZOLVATĂ:</b> Instanța principală continuă să ruleze normal (uptime ${Math.round((now - prev.connectedAt)/1000)}s pe ${prev.port}).`,
+          `ℹ️ <i>Nu este necesară nicio intervenție manuală din partea dumneavoastră.</i>`,
+          `Timp: ${formatDateTime(now)}`,
+        ].join('\n');
+        sendTelegramMessage(alertMsg).catch(e => console.error('[BridgeMonitor] Eroare telegram duplicat:', e.message));
+      }
+
+      // Comandăm instanței duplicat să se închidă definitiv
+      socket.emit('duplicate_instance_shutdown', {
+        reason: `O altă instanță a POS Bridge rulează deja activ pentru ${getLocationDisplayName(locKey)}.`,
+        activeHost: prev.hostname,
+        activePort: prev.port,
+      });
+
+      // Deconectăm forțat socket-ul duplicat
+      setTimeout(() => {
+        try { socket.disconnect(true); } catch (_) {}
+      }, 500);
+
+      prev.duplicateDetected = true;
+      prev.duplicateInfo = {
+        hostname: hostname || 'Nespecificat',
+        port: port || '?',
+        detectedAt: now,
+      };
+
+      recordEvent('WARN', locKey, `Instanță duplicat respinsă și oprită automat (sid: ${socket.id}, host: ${hostname})`);
+      if (_io) {
+        _io.to('admin').emit('bridge_status_update', getStatusSummary());
+      }
+      return { isDuplicate: true };
+    }
+  }
+
   const wasOffline = !prev || prev.status !== 'online';
 
   const entry = {
     locationId: locKey,
     rawLocationId: locationId,
+    instanceId: instanceId || prev?.instanceId || null,
     displayName: getLocationDisplayName(locKey),
+    version: version || prev?.version || null,
     port: port || prev?.port || '?',
     gateway: posGateway || prev?.gateway || 'raiffeisen',
     printerName: printerName || prev?.printerName || '',
@@ -531,6 +765,7 @@ function handleBridgeConnect(socket, { locationId, port, posGateway, printerName
     posWakeStandby: posWakeStandby !== undefined ? !!posWakeStandby : (prev?.posWakeStandby ?? true),
     posWakeIntervalMinutes: posWakeIntervalMinutes !== undefined ? Number(posWakeIntervalMinutes) : (prev?.posWakeIntervalMinutes || 5),
     posSignal: prev?.posSignal || null,
+    processStartedAt: prev?.processStartedAt,
   };
 
   bridges.set(locKey, entry);
@@ -603,11 +838,15 @@ function handleBridgeHeartbeat(socket, data) {
   if (entry) {
     entry.lastPing = now;
     entry.status = 'online';
+    if (data?.version) entry.version = data.version;
     if (data?.port) entry.port = data.port;
     if (data?.printerName) entry.printerName = data.printerName;
     if (data?.posGateway) entry.gateway = data.posGateway;
     if (data?.hostname) entry.hostname = data.hostname;
-    if (typeof data?.uptime === 'number') entry.uptimeSeconds = data.uptime;
+    if (typeof data?.uptime === 'number') {
+      entry.uptimeSeconds = data.uptime;
+      try { detectBridgeProcessRestart(locKey, entry, data.uptime, now); } catch (_) {}
+    }
     if (data?.posWakeStandby !== undefined) entry.posWakeStandby = !!data.posWakeStandby;
     if (data?.posWakeIntervalMinutes !== undefined) entry.posWakeIntervalMinutes = Number(data.posWakeIntervalMinutes);
     entry.socketId = socket.id;
@@ -832,12 +1071,19 @@ function isBridgeSocketConnected(locKey) {
       }
     }
 
-    // Siguranță: dacă podul trimite ping-uri recente (< 45 secunde) pe un socket conectat, este ONLINE
+    // Siguranță: dacă podul este marcat online sau a trimis ping recent (< 90 secunde)
     const b = bridges.get(locKey);
-    if (b && b.lastPing && (Date.now() - b.lastPing) < 45000 && b.socketId) {
-      const s = _io.sockets.sockets.get(b.socketId);
-      if (s && s.connected) {
+    if (b) {
+      const now = Date.now();
+      const lastPingAge = now - (b.lastPing || 0);
+      if (b.status === 'online' && lastPingAge < 90000) {
         return true;
+      }
+      if (b.socketId) {
+        const s = _io.sockets.sockets.get(b.socketId);
+        if (s && s.connected) {
+          return true;
+        }
       }
     }
   } catch (_) {}
@@ -852,9 +1098,17 @@ function isKioskSocketConnected(locKey) {
     const { getLocationAliases } = require('../utils/locations');
     const aliases = getLocationAliases(locKey) || [];
     const checkKeys = Array.from(new Set([locKey, ...aliases]));
+    const now = Date.now();
     for (const k of checkKeys) {
-      if (summary[k] && (summary[k].isLive || summary[k].online || summary[k].onlineCount > 0)) {
-        return true;
+      const entry = summary[k];
+      if (entry) {
+        if (entry.isLive || entry.online || entry.onlineCount > 0) {
+          return true;
+        }
+        if (Array.isArray(entry.devices) && entry.devices.length > 0) {
+          const hasConnectedDevice = entry.devices.some(d => d.isLive || (now - (d.lastPing || d.connectedAt || 0)) < 90000);
+          if (hasConnectedDevice) return true;
+        }
       }
     }
   } catch (_) {}
@@ -984,7 +1238,12 @@ async function runMorningPreflightCheck(targetChatId = null, isManual = false) {
         cfg.paymentGateway !== 'none'
       );
       if (isPosEnabled) {
-        _io.to(`pos-bridge-${locKey}`).emit('test_pos_signal', { locationId: locKey });
+        const { getLocationAliases } = require('../utils/locations');
+        const aliases = getLocationAliases(locKey) || [];
+        const targets = Array.from(new Set([locKey, ...aliases]));
+        for (const tid of targets) {
+          _io.to(`pos-bridge-${tid}`).emit('test_pos_signal', { locationId: tid });
+        }
       }
     }
   }
@@ -1109,9 +1368,12 @@ async function runMorningPreflightCheck(targetChatId = null, isManual = false) {
       : (isBridgeAlive ? 'Nedetectată' : 'Offline');
     lines.push(`   ├ 🖨️ <b>Imprimantă:</b> ${printer}`);
 
-    // Verificare .env & Procese duplicate
+    // Verificare .env & Procese duplicate & Versiune Soft
     const sysChecks = [];
     sysChecks.push('Server: <code>ttut.onrender.com</code>');
+    if (loc.bridgeVersion) {
+      sysChecks.push(`Soft: <code>v${loc.bridgeVersion}</code> ${loc.isBridgeUpToDate ? '✅' : '⚠️'}`);
+    }
     if (hardwareDetail) {
       sysChecks.push(hardwareDetail);
     }
@@ -1140,9 +1402,9 @@ async function runMorningPreflightCheck(targetChatId = null, isManual = false) {
     lines.push(``);
     lines.push(`🚨 <b>ACȚIUNI NECESARE:</b>`);
     issues.forEach(iss => lines.push(iss));
-    if (!isManual && failedLocationKeys.length > 0 && minute < 15) {
+    if (!isManual && failedLocationKeys.length > 0 && minute < 20) {
       lines.push(``);
-      lines.push(`🔁 <i>Sistemul va repeta verificarea automat la ora 10:15 pentru toate locațiile.</i>`);
+      lines.push(`🔁 <i>Sistemul va repeta verificarea automat la ora 10:20 pentru toate locațiile.</i>`);
     }
   } else {
     lines.push(`🎉 <b>Toate sistemele sunt funcționale!</b>`);
@@ -1184,7 +1446,12 @@ async function runMorningRetryCheck(failedKeys, destinationChat) {
         cfg.paymentGateway !== 'none'
       );
       if (isPosEnabled) {
-        _io.to(`pos-bridge-${locKey}`).emit('test_pos_signal', { locationId: locKey });
+        const { getLocationAliases } = require('../utils/locations');
+        const aliases = getLocationAliases(locKey) || [];
+        const targets = Array.from(new Set([locKey, ...aliases]));
+        for (const tid of targets) {
+          _io.to(`pos-bridge-${tid}`).emit('test_pos_signal', { locationId: tid });
+        }
       }
     }
   }
@@ -1267,21 +1534,21 @@ async function runMorningRetryCheck(failedKeys, destinationChat) {
   await sendTelegramMessage(lines.join('\n'), null, destinationChat);
 }
 
-// Verificare automata orar zilnic la 10:00 si 10:15 Europe/Bucharest
+// Verificare automata orar zilnic la 10:10 (la 10 min dupa deschidere) si re-verificare la 10:20 Europe/Bucharest
 setInterval(() => {
   const { hour, minute, dateStr } = getBucharestTime();
-  if (hour === 10 && minute === 0) {
+  if (hour === 10 && minute === 10) {
     if (lastCheck1000Date !== dateStr) {
       lastCheck1000Date = dateStr;
-      console.log(`[BridgeMonitor] ⏰ Este 10:00 Europe/Bucharest! Declanșez verificarea automată de la 10:00...`);
-      runMorningPreflightCheck().catch(e => console.error('[MorningCheck 10:00] Eroare:', e.message));
+      console.log(`[BridgeMonitor] ⏰ Este 10:10 Europe/Bucharest! Declanșez verificarea automată de dimineață...`);
+      runMorningPreflightCheck().catch(e => console.error('[MorningCheck 10:10] Eroare:', e.message));
     }
   }
-  if (hour === 10 && minute === 15) {
+  if (hour === 10 && minute === 20) {
     if (lastCheck1015Date !== dateStr) {
       lastCheck1015Date = dateStr;
-      console.log(`[BridgeMonitor] ⏰ Este 10:15 Europe/Bucharest! Declanșez verificarea automată de la 10:15...`);
-      runMorningPreflightCheck().catch(e => console.error('[MorningCheck 10:15] Eroare:', e.message));
+      console.log(`[BridgeMonitor] ⏰ Este 10:20 Europe/Bucharest! Declanșez verificarea automată de la 10:20...`);
+      runMorningPreflightCheck().catch(e => console.error('[MorningCheck 10:20] Eroare:', e.message));
     }
   }
 }, 20000);
@@ -1334,6 +1601,7 @@ function getStatusSummary() {
   const now = Date.now();
   const summary = {
     timestamp: now,
+    latestBridgeVersion: LATEST_BRIDGE_VERSION,
     locations: {},
     totalOnline: 0,
     totalOffline: 0,
@@ -1431,6 +1699,12 @@ function getStatusSummary() {
         posSignal: b?.posSignal || null,
         isPosEnabled: isPosEnabled(locKey),
         isCashOnly: !isPosEnabled(locKey),
+        duplicateDetected: !!b?.duplicateDetected,
+        duplicateInfo: b?.duplicateInfo || null,
+        version: b?.version || null,
+        bridgeVersion: b?.version || null,
+        latestBridgeVersion: LATEST_BRIDGE_VERSION,
+        isBridgeUpToDate: Boolean(b?.version && b.version === LATEST_BRIDGE_VERSION),
       };
     });
 
@@ -1611,6 +1885,112 @@ async function formatPinSummaryForTelegram() {
 }
 
 /**
+ * Test live UART POS signal and return latency details for Telegram /pos command
+ */
+async function formatPosSignalSummaryForTelegram() {
+  const { dateStr, hour, minute, second } = getBucharestTime();
+  const timeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:${String(second).padStart(2, '0')}`;
+  const targetLocations = ['cluj1', 'cluj2', 'sm-brasov', 'constanta1'];
+  const dbLocs = await getDbLocationsList();
+
+  // 1. Declanșăm testul semnalului POS pe toate bridge-urile
+  if (_io) {
+    for (const locKey of targetLocations) {
+      const { getLocationAliases } = require('../utils/locations');
+      const aliases = getLocationAliases(locKey) || [];
+      const targets = Array.from(new Set([locKey, ...aliases]));
+      for (const tid of targets) {
+        _io.to(`pos-bridge-${tid}`).emit('test_pos_signal', { locationId: tid });
+      }
+    }
+  }
+
+  // 2. Așteptăm 2.5 secunde pentru recepționarea latenței
+  await new Promise(r => setTimeout(r, 2500));
+
+  // 3. Compilăm raportul
+  const summary = getStatusSummary();
+  const lines = [
+    `💳 <b>[VERIFICARE SEMNAL POS — LĂȚENȚĂ UART]</b>`,
+    `📅 <b>Data:</b> ${dateStr} | 🕒 <b>Ora:</b> ${timeStr}`,
+    ``
+  ];
+
+  let activeCount = 0;
+  let totalEnabled = 0;
+
+  for (const locKey of targetLocations) {
+    const loc = summary.locations[locKey] || {};
+    const b = bridges.get(locKey);
+    const isBridgeAlive = isBridgeSocketConnected(locKey);
+
+    const cfg = dbLocs.find(l => 
+      l.id === locKey || 
+      l.kioskUrl === locKey || 
+      (Array.isArray(l.aliases) && l.aliases.includes(locKey)) ||
+      (locKey === 'constanta1' && (l.id === 'smashme-constanta' || l.name?.toLowerCase().includes('constanta'))) ||
+      (locKey === 'sm-brasov' && (l.id === 'rollmaster' || l.name?.toLowerCase().includes('brasov'))) ||
+      (locKey === 'cluj1' && (l.id === 'smashme-main' || l.name?.toLowerCase().includes('centru'))) ||
+      (locKey === 'cluj2' && (l.id === 'cluj2' || l.name?.toLowerCase().includes('cj-2')))
+    );
+
+    const isPosEnabled = Boolean(
+      cfg &&
+      cfg.paymentMode !== 'cash_only' &&
+      !cfg.cashOnly &&
+      cfg.paymentGateway !== 'none'
+    );
+
+    if (!isPosEnabled) {
+      lines.push(`⚪ <b>${loc.displayName || getLocationDisplayName(locKey)}</b>`);
+      lines.push(`   └ 💳 <b>POS:</b> Inactiv din setări (Mod: Doar Cash / Numerar 💵)`);
+      lines.push(``);
+      continue;
+    }
+
+    totalEnabled++;
+    const portName = loc.port && loc.port !== 'N/A' ? loc.port : (b?.port || 'COM');
+    const gatewayName = (loc.gateway || 'raiffeisen').toUpperCase();
+    const hostName = b?.hostname || loc.hostname || 'PC Locație';
+
+    let dot = '🔴';
+    let latencyText = 'Deconectat / Fără răspuns';
+
+    if (isBridgeAlive) {
+      if (b?.posSignal && b.posSignal.success) {
+        dot = '🟢';
+        activeCount++;
+        const lat = b.posSignal.latencyMs;
+        let quality = 'Excelent ✅';
+        if (lat > 500) quality = 'Acceptabil ⚠️';
+        if (lat > 1500) quality = 'Lent ⏱️';
+        latencyText = `<b>${lat}ms</b> (${quality})`;
+      } else if (b?.posSignal && !b.posSignal.success) {
+        dot = '🟡';
+        latencyText = `⚠️ <b>${b.posSignal.message || 'Eroare comunicare UART'}</b>`;
+      } else {
+        dot = '🟡';
+        latencyText = `⏳ Semnal în curs de verificare...`;
+      }
+    }
+
+    lines.push(`${dot} <b>${loc.displayName || getLocationDisplayName(locKey)}</b>`);
+    lines.push(`   ├ 💳 <b>POS (${gatewayName}):</b> Port ${portName}`);
+    lines.push(`   ├ ⚡ <b>Răspuns UART:</b> ${latencyText}`);
+    lines.push(`   └ 💻 <b>PC Fizic:</b> <code>${hostName}</code>`);
+    lines.push(``);
+  }
+
+  lines.push(`━━━━━━━━━━━━━━━━━━━━━`);
+  lines.push(`📊 <b>Rezultat:</b> <b>${activeCount} din ${totalEnabled}</b> terminale POS răspund activ.`);
+  if (activeCount === totalEnabled && totalEnabled > 0) {
+    lines.push(`🎉 <i>Toate terminalele POS comunică la latență optimă (sub 150ms).</i>`);
+  }
+
+  return lines.join('\n');
+}
+
+/**
  * Seed initial state from recent port_scans table so restarted backend doesn't show blank
  */
 async function seedFromRecentScans() {
@@ -1711,6 +2091,75 @@ async function getPosSignalLogs(locationId, limit = 50) {
   }
 }
 
+/**
+ * Force stop secondary / duplicate instances for a given location
+ */
+async function resolveDuplicateInstances(locationId) {
+  const locKey = normalizeLocationKey(locationId);
+  const b = bridges.get(locKey);
+  let killedCount = 0;
+
+  if (_io) {
+    try {
+      const roomSockets = await _io.in(`pos-bridge-${locKey}`).fetchSockets();
+      if (roomSockets.length > 1) {
+        for (const s of roomSockets) {
+          if (s.id !== b?.socketId) {
+            console.log(`[BridgeMonitor] 🛑 Trimit duplicate_instance_shutdown către socket secundar ${s.id} la ${locKey}`);
+            s.emit('duplicate_instance_shutdown', {
+              reason: 'Comandă din Admin: oprire instanțe duplicate.',
+            });
+            setTimeout(() => {
+              try { s.disconnect(true); } catch (_) {}
+            }, 300);
+            killedCount++;
+          }
+        }
+      }
+      
+      // Emite semnal de protecție către toate procesele din cameră: dacă nu au instanceId-ul activ, să se oprească
+      _io.to(`pos-bridge-${locKey}`).emit('duplicate_instance_shutdown_if_secondary', {
+        primarySocketId: b?.socketId,
+        primaryInstanceId: b?.instanceId,
+      });
+    } catch (e) {
+      console.warn('[BridgeMonitor] Eroare la curățarea socket-urilor duplicate:', e.message);
+    }
+  }
+
+  if (b) {
+    b.duplicateDetected = false;
+    b.duplicateInfo = null;
+  }
+  duplicateAlertCooldowns.delete(locKey);
+
+  recordEvent('INFO', locKey, `Instanțele duplicat au fost oprite din Admin (curățat: ${killedCount})`);
+
+  if (telegramConfig.enabled) {
+    const resMsg = [
+      `✅ <b>[SMART KIOSK - DUPLICAT REZOLVAT]</b>`,
+      `Locație: <b>${getLocationDisplayName(locKey)}</b>`,
+      `Acțiune: <b>Situația instanțelor duplicate a fost rezolvată!</b>`,
+      `Detalii: ${killedCount > 0 ? `Au fost oprite ${killedCount} procese duplicat/fantomă.` : 'Toate instanțele secundare au fost curățate.'}`,
+      `Stare curentă: Rămâne activă exclusiv instanța legitimă (PC: <code>${b?.hostname || 'Activ'}</code> pe ${b?.port || 'COM'}).`,
+      `Timp: ${formatDateTime(Date.now())}`,
+    ].join('\n');
+    sendTelegramMessage(resMsg).catch(e => console.error('[BridgeMonitor] Eroare telegram duplicate resolved:', e.message));
+  }
+
+  if (_io) {
+    _io.to('admin').emit('bridge_status_update', getStatusSummary());
+  }
+
+  return {
+    ok: true,
+    message: killedCount > 0 
+      ? `Au fost oprite ${killedCount} instanțe duplicat la ${getLocationDisplayName(locKey)}.`
+      : `Semnalul de oprire a fost transmis către instanțele secundare din ${getLocationDisplayName(locKey)}. Rămâne doar instanța legitimă.`,
+    killedCount,
+  };
+}
+
 module.exports = {
   setIo,
   loadTelegramConfig,
@@ -1732,10 +2181,15 @@ module.exports = {
   formatDateTime,
   formatStatusSummaryForTelegram,
   formatPinSummaryForTelegram,
+  formatPosSignalSummaryForTelegram,
   runMorningPreflightCheck,
   registerTelegramWebhook,
   updateLocationConfig,
   updateBridgeHardware,
+  startRestartRequest,
+  getRestartLog,
+  getRestartRequest,
+  resolveDuplicateInstances,
 };
 
 

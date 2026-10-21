@@ -74,9 +74,9 @@ curl -s -L -H "Cache-Control: no-cache" -o start-windows.bat "https://raw.github
 node index.js
 if %errorlevel% equ 42 (
     echo.
-    echo  [WARN] Port ocupat sau instanta concurenta. Reincerc in 5 secunde...
-    ping 127.0.0.1 -n 6 >nul
-    goto loop
+    echo  [INFO] O instanta activa a POS Bridge ruleaza deja pe acest PC.
+    echo  [INFO] Aceasta instanta secundara se opreste definitiv.
+    exit /b 0
 )
 echo.
 echo  [WARN] Procesul s-a oprit - repornesc automat in 3 secunde...

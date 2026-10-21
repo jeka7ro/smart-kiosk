@@ -12,7 +12,10 @@ function getLiveKiosksSummary() {
   const summary = {};
   for (const [sid, k] of connectedKiosks.entries()) {
     const ageMs = now - (k.lastPing || k.connectedAt || now);
-    const isLive = ageMs < 45000; // live if heard from in last 45 seconds
+    const sock = _io?.sockets?.sockets?.get(sid);
+    const isSocketOpen = Boolean(sock && sock.connected);
+    // Kiosk este LIVE dacă a trimis heartbeat în ultimele 90s sau conexiunea fizică TCP/WebSocket este încă deschisă (<120s)
+    const isLive = (isSocketOpen && ageMs < 120000) || ageMs < 90000;
     const locId = k.locationId || 'unknown';
     if (!summary[locId]) {
       summary[locId] = {
@@ -364,7 +367,7 @@ function initSocket(io) {
     });
 
     // Salvăm locationId pe socket la register și notificăm bridgeMonitoringService
-    socket.on('pos_bridge_register', async ({ locationId, port, posGateway, printerName, hostname, posWakeStandby, posWakeIntervalMinutes }) => {
+    socket.on('pos_bridge_register', async ({ locationId, instanceId, version, port, posGateway, printerName, hostname, posWakeStandby, posWakeIntervalMinutes }) => {
       // Auto-correct: if POS Bridge connects on COM5/COM1 or with TM-T20III or DESKTOP-VNTDBO0 (Cluj 2 hardware) but defaulted to sm-brasov
       if ((locationId === 'sm-brasov' || !locationId) && (port === 'COM5' || port === 'COM1' || String(printerName).includes('TM-T20III') || hostname === 'DESKTOP-VNTDBO0')) {
         console.log(`[Socket] 🔄 Auto-remap bridge to cluj2 based on hardware fingerprint (host=${hostname}, port=${port}, printer=${printerName})`);
@@ -373,39 +376,46 @@ function initSocket(io) {
 
       socket._posLocationId = locationId;
 
-      // Elimină din camere orice socket POS Bridge anterior / duplicat pentru aceeași locație fără a rupe agresiv conexiunea (previne bucla infinită de reconectare)
-      if (locationId) {
+      // Verificăm dacă este instanță duplicat înainte de a atinge camerele Socket.io
+      let regResult = null;
+      try {
+        const bridgeMonitoringService = require('./bridgeMonitoringService');
+        regResult = bridgeMonitoringService.handleBridgeConnect(socket, { locationId, instanceId, version, port, posGateway, printerName, hostname, posWakeStandby, posWakeIntervalMinutes });
+      } catch (e) {
+        console.error('[BridgeMonitor] Register error:', e.message);
+      }
+
+      if (regResult && regResult.isDuplicate) {
+        console.warn(`[Socket] 🛑 Instanță duplicat respinsă pentru ${locationId} (sid: ${socket.id}). Nu se adaugă în camere.`);
+        return;
+      }
+
+      const activeLocKey = socket._monitoredLocKey || locationId;
+      const { getLocationAliases } = require('../utils/locations');
+      const aliases = getLocationAliases(activeLocKey) || [];
+      const allRooms = Array.from(new Set([activeLocKey, locationId, ...aliases].filter(Boolean)));
+
+      // Elimină din camere orice socket POS Bridge vechi mort doar dacă instanța curentă este validă
+      if (allRooms.length > 0) {
         try {
-          const roomSockets = await io.in(`pos-bridge-${locationId}`).fetchSockets();
-          const { getLocationAliases } = require('../utils/locations');
-          const aliases = getLocationAliases(locationId) || [];
-          for (const s of roomSockets) {
-            if (s.id !== socket.id) {
-              console.log(`[Socket] ⚠️ Elimin socket POS Bridge anterior din camera ${locationId} (sid: ${s.id})`);
-              s.leave(`pos-bridge-${locationId}`);
-              for (const a of aliases) {
-                s.leave(`pos-bridge-${a}`);
+          for (const roomName of allRooms) {
+            const roomSockets = await io.in(`pos-bridge-${roomName}`).fetchSockets();
+            for (const s of roomSockets) {
+              if (s.id !== socket.id) {
+                console.log(`[Socket] ⚠️ Elimin socket POS Bridge anterior din camera pos-bridge-${roomName} (sid: ${s.id})`);
+                s.leave(`pos-bridge-${roomName}`);
               }
             }
           }
         } catch (e) {
-          console.warn('[Socket] Eroare curățare socket duplicat:', e.message);
+          console.warn('[Socket] Eroare curățare socket vechi:', e.message);
         }
       }
 
-      const { getLocationAliases } = require('../utils/locations');
-      const aliases = getLocationAliases(locationId);
-      for (const a of aliases) {
+      for (const a of allRooms) {
         socket.join(`pos-bridge-${a}`);
       }
-      console.log(`[Socket] 🔌 POS Bridge registered: location=${locationId} (${aliases.length} aliases) port=${port || '?'} host=${hostname || '?'} sid=${socket.id}`);
-
-      try {
-        const bridgeMonitoringService = require('./bridgeMonitoringService');
-        bridgeMonitoringService.handleBridgeConnect(socket, { locationId, port, posGateway, printerName, hostname, posWakeStandby, posWakeIntervalMinutes });
-      } catch (e) {
-        console.error('[BridgeMonitor] Register error:', e.message);
-      }
+      console.log(`[Socket] 🔌 POS Bridge registered: location=${activeLocKey} (joined ${allRooms.length} rooms) port=${port || '?'} host=${hostname || '?'} sid=${socket.id}`);
     });
 
     // POS Bridge heartbeat ping

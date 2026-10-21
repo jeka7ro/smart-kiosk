@@ -1,5 +1,14 @@
 import { createContext, useContext, useRef, useState, useCallback } from 'react';
-import { AlertTriangle, Trash2, HelpCircle, AlertCircle, Info } from 'lucide-react';
+import { AlertTriangle, Trash2, HelpCircle, AlertCircle, Info, RefreshCw } from 'lucide-react';
+
+/* Iconiță pentru dialogurile de restart/reîncărcare (în loc de coșul de gunoi) */
+export function RestartDialogIcon() {
+  return (
+    <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+      <RefreshCw size={24} strokeWidth={2} />
+    </div>
+  );
+}
 
 /* ── Context ──────────────────────────────────────────────────────────────── */
 const ConfirmCtx = createContext(null);
@@ -57,14 +66,14 @@ export function ConfirmProvider({ children }) {
               {!state.opts?.hideCancel && (
                 <button 
                   onClick={handleCancel}
-                  className="flex-1 py-2.5 px-5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[0.9rem] font-medium hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                  className="flex-1 py-2.5 px-4 whitespace-nowrap rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[0.9rem] font-medium hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                 >
                   {state.opts?.cancelLabel || 'Anulează'}
                 </button>
               )}
               <button 
                 onClick={handleOk}
-                className={`flex-1 py-2.5 px-5 rounded-xl border-none text-white text-[0.9rem] font-semibold shadow-lg hover:opacity-90 transition-opacity ${
+                className={`flex-1 py-2.5 px-4 whitespace-nowrap rounded-full border-none text-white text-[0.9rem] font-semibold shadow-lg hover:opacity-90 transition-opacity ${
                   state.opts?.danger ? 'bg-red-500 shadow-red-500/30' : 'bg-indigo-500 shadow-indigo-500/30'
                 }`}
               >

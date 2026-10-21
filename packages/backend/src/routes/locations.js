@@ -376,6 +376,15 @@ router.post('/:id/restart', requireApiKey, async (req, res) => {
         ...(targetLoc?.aliases || [])
       ].filter(Boolean));
 
+      // Restartul locației repornește și POS Bridge-ul — îl înregistrăm în jurnalul de restartări
+      try {
+        require('../services/bridgeMonitoringService').startRestartRequest(locId, {
+          source: 'admin_locatii',
+          requestedBy: req.headers['x-forwarded-for'] || req.ip || null,
+          onlyIfOnline: true,
+        });
+      } catch (_) {}
+
       for (const lid of locationIdsToNotify) {
         io.to(`kiosk-${lid}`).emit('remote_restart', { locationId: lid });
         io.to(`pos-bridge-${lid}`).emit('remote_restart', { locationId: lid });

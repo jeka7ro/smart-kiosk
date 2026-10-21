@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useConfirm, RestartDialogIcon } from '../components/ConfirmModal.jsx';
 import { io as ioClient } from 'socket.io-client';
 import { 
   Server, 
@@ -22,7 +23,9 @@ import {
   X,
   History,
   BarChart2,
-  Zap
+  Zap,
+  ShieldAlert,
+  AlertTriangle
 } from 'lucide-react';
 import BrandLogo from '../components/BrandLogo.jsx';
 
@@ -82,6 +85,16 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
   const [actionFeedback, setActionFeedback] = useState(null);
 
   const handleAction = async (locationId, actionType) => {
+    if (actionType === 'reload-kiosk') {
+      const isAll = locationId === 'all';
+      const ok = await confirm(
+        isAll
+          ? 'Se reîncarcă ecranul TUTUROR kiosk-urilor din toate locațiile. Clienții aflați în mijlocul unei comenzi o vor pierde.'
+          : 'Se reîncarcă doar ecranul kiosk-ului din această locație (POS Bridge-ul NU se repornește). Dacă un client e în mijlocul unei comenzi, o va pierde.',
+        { title: isAll ? 'Refresh Ecran la TOATE kiosk-urile — ești sigur?' : 'Refresh Ecran Kiosk — ești sigur?', icon: <RestartDialogIcon />, okLabel: 'Da, reîncarcă', cancelLabel: 'Nu, renunț', danger: true }
+      );
+      if (!ok) return;
+    }
     const key = `${locationId}-${actionType}`;
     setActionLoading(key);
     setActionFeedback(null);
@@ -160,6 +173,217 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
       setTimeout(() => setActionFeedback(null), 2500);
       setTimeout(fetchStatus, 1000);
     } catch (_) {}
+  };
+
+  // ───────── Restart POS Bridge: confirmare + progres + jurnal ─────────
+  const confirm = useConfirm();
+  const apiBase = backend || 'https://smart-kiosk-ttut.onrender.com';
+  const apiHeaders = { 'Content-Type': 'application/json', 'x-api-key': 'sk-live-2024-secure' };
+  const [restartProgress, setRestartProgress] = useState({}); // locKey -> { requestId, startedAt, status, detail, ... }
+  const [restartLogs, setRestartLogs] = useState([]);
+  const [restartLogFilter, setRestartLogFilter] = useState('all');
+  const [restartLogLimit, setRestartLogLimit] = useState(15);
+  const [restartLogLoaded, setRestartLogLoaded] = useState(false);
+  const restartPollers = useRef({});
+
+  const fetchRestartLog = useCallback(async () => {
+    try {
+      const res = await fetch(`${apiBase}/api/bridge-monitoring/restart-log?limit=200`, { headers: apiHeaders });
+      if (!res.ok) return;
+      const json = await res.json();
+      setRestartLogs(Array.isArray(json.logs) ? json.logs : []);
+      setRestartLogLoaded(true);
+    } catch (_) {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiBase]);
+
+  useEffect(() => {
+    fetchRestartLog();
+    const t = setInterval(fetchRestartLog, 30000);
+    const pollers = restartPollers.current;
+    return () => {
+      clearInterval(t);
+      Object.values(pollers).forEach(clearInterval);
+    };
+  }, [fetchRestartLog]);
+
+  const trackRestart = (locKey, requestId) => {
+    if (restartPollers.current[locKey]) clearInterval(restartPollers.current[locKey]);
+    const startedAt = Date.now();
+    setRestartProgress(prev => ({
+      ...prev,
+      [locKey]: { requestId, startedAt, status: 'pending', detail: 'Comandă trimisă. Aștept revenirea bridge-ului...' },
+    }));
+    const poll = async () => {
+      try {
+        const res = await fetch(`${apiBase}/api/bridge-monitoring/restart-requests/${requestId}`, { headers: apiHeaders });
+        if (res.status === 404) {
+          // serverul a repornit între timp — nu mai putem urmări
+          clearInterval(restartPollers.current[locKey]);
+          delete restartPollers.current[locKey];
+          setRestartProgress(prev => ({ ...prev, [locKey]: { ...prev[locKey], status: 'unknown', detail: 'Nu mai pot urmări restartul (serverul a repornit). Verifică starea bridge-ului mai jos.' } }));
+          return;
+        }
+        if (!res.ok) return;
+        const entry = await res.json();
+        if (entry.status !== 'pending') {
+          clearInterval(restartPollers.current[locKey]);
+          delete restartPollers.current[locKey];
+          setRestartProgress(prev => ({
+            ...prev,
+            [locKey]: { ...prev[locKey], status: entry.status, detail: entry.detail, finishedAt: Date.now(), uptimeAfter: entry.uptimeAfter },
+          }));
+          fetchStatus();
+          fetchRestartLog();
+          // mesajul de final dispare singur după 20s dacă a reușit
+          if (entry.status === 'completed') {
+            setTimeout(() => {
+              setRestartProgress(prev => {
+                if (prev[locKey]?.requestId !== requestId) return prev;
+                const next = { ...prev };
+                delete next[locKey];
+                return next;
+              });
+            }, 20000);
+          }
+        }
+      } catch (_) {}
+    };
+    restartPollers.current[locKey] = setInterval(poll, 3000);
+  };
+
+  // Rezervă: dacă serverul e încă vechi (nu returnează requestId), urmărim restartul după starea bridge-ului:
+  // bridge-ul se consideră repornit când uptime-ul lui scade (proces nou) sau dispare și reapare online.
+  const trackRestartByStatus = (locKey, uptimeBefore) => {
+    if (restartPollers.current[locKey]) clearInterval(restartPollers.current[locKey]);
+    const startedAt = Date.now();
+    const token = `local-${startedAt}`;
+    let sawOffline = false;
+    setRestartProgress(prev => ({
+      ...prev,
+      [locKey]: { requestId: token, startedAt, status: 'pending', detail: 'Comandă trimisă. Aștept revenirea bridge-ului...' },
+    }));
+    const finish = (status, detail) => {
+      clearInterval(restartPollers.current[locKey]);
+      delete restartPollers.current[locKey];
+      setRestartProgress(prev => ({ ...prev, [locKey]: { ...prev[locKey], status, detail, finishedAt: Date.now() } }));
+      fetchStatus();
+      if (status === 'completed') {
+        setTimeout(() => {
+          setRestartProgress(prev => {
+            if (prev[locKey]?.requestId !== token) return prev;
+            const next = { ...prev };
+            delete next[locKey];
+            return next;
+          });
+        }, 20000);
+      }
+    };
+    const poll = async () => {
+      if (Date.now() - startedAt > 180000) {
+        finish('timeout', 'Bridge-ul NU a revenit în 3 minute. Verifică PC-ul din locație (pornit? internet? start-windows.bat rulează?).');
+        return;
+      }
+      try {
+        const res = await fetch('https://smart-kiosk-ttut.onrender.com/api/bridge-monitoring/status', { headers: apiHeaders });
+        if (!res.ok) return;
+        const json = await res.json();
+        const l = json?.locations?.[locKey];
+        if (!l) return;
+        if (!l.isBridgeOnline) { sawOffline = true; return; }
+        const up = typeof l.uptimeSeconds === 'number' ? l.uptimeSeconds : null;
+        const resetDetected = up !== null && typeof uptimeBefore === 'number' && up < uptimeBefore - 5;
+        if (sawOffline || resetDetected) {
+          finish('completed', `Bridge repornit și reconectat (uptime nou: ${up !== null ? Math.round(up) + 's' : '—'}).`);
+        }
+      } catch (_) {}
+    };
+    restartPollers.current[locKey] = setInterval(poll, 3000);
+  };
+
+  const handleRestartBridge = async (locKey, displayName, isBridgeOnlineNow) => {
+    if (restartProgress[locKey]?.status === 'pending') return;
+
+    if (!isBridgeOnlineNow) {
+      setActionFeedback({ type: 'error', text: `Bridge-ul ${displayName} este OFFLINE — comanda de restart nu are cum să ajungă. Verifică dacă PC-ul din locație e pornit și are internet.` });
+      setTimeout(() => setActionFeedback(null), 8000);
+      return;
+    }
+
+    const ok = await confirm(
+      <div className="text-left space-y-2 text-sm">
+        <p>Vrei să repornești <b>POS Bridge</b> la <b>{displayName}</b>?</p>
+        <ul className="list-disc pl-5 space-y-1 text-xs opacity-90">
+          <li>Bridge-ul va fi oprit aproximativ <b>1–2 minute</b>.</li>
+          <li>În acest timp <b>nu se pot face plăți cu cardul</b> și nu se tipărește bonul.</li>
+          <li><b>Nu reporni dacă un client plătește chiar acum.</b></li>
+        </ul>
+      </div>,
+      { title: `Restart POS Bridge — ${displayName}`, icon: <RestartDialogIcon />, okLabel: 'Da, repornește', cancelLabel: 'Nu, renunț', danger: true }
+    );
+    if (!ok) return;
+
+    const key = `${locKey}-restart-bridge`;
+    setActionLoading(key);
+    try {
+      const res = await fetch(`${apiBase}/api/bridge-monitoring/${locKey}/restart-bridge`, { method: 'POST', headers: apiHeaders }).catch(() => null);
+      const json = res ? await res.json().catch(() => ({})) : {};
+      if (res && res.ok && json.requestId) {
+        trackRestart(locKey, json.requestId);
+      } else if (res && res.ok) {
+        // Server vechi: comanda a plecat, dar fără requestId — urmărim după starea bridge-ului
+        trackRestartByStatus(locKey, data?.locations?.[locKey]?.uptimeSeconds);
+      } else {
+        setActionFeedback({ type: 'error', text: json.error || 'Nu am putut trimite comanda de restart (fără răspuns de la server).' });
+        setTimeout(() => setActionFeedback(null), 8000);
+        fetchRestartLog();
+      }
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleResolveDuplicate = async (locKey, displayName) => {
+    const ok = await confirm(
+      <div className="text-left space-y-2 text-sm">
+        <p>Vrei să forțezi oprirea instanțelor duplicat/fantomă la <b>{displayName}</b>?</p>
+        <ul className="list-disc pl-5 space-y-1 text-xs opacity-90">
+          <li>Serverul va comanda oprirea imediată a oricărui proces clonă care rulează în fundal.</li>
+          <li>Instanța principală care ține portul POS și imprimanta va rămâne <b>activă și protejată</b>.</li>
+          <li>Fereastra duplicat de pe PC se va închide automat definitiv.</li>
+        </ul>
+      </div>,
+      {
+        title: `Oprire Instanțe Duplicat — ${displayName}`,
+        icon: <ShieldAlert className="w-5 h-5 text-rose-600 dark:text-rose-400" />,
+        okLabel: 'Da, oprește duplicat',
+        cancelLabel: 'Nu, renunț',
+        danger: true,
+      }
+    );
+    if (!ok) return;
+
+    const key = `${locKey}-resolve-duplicate`;
+    setActionLoading(key);
+    try {
+      const res = await fetch(`${apiBase}/api/bridge-monitoring/${locKey}/resolve-duplicate`, {
+        method: 'POST',
+        headers: apiHeaders,
+      }).catch(() => null);
+      const json = res ? await res.json().catch(() => ({})) : {};
+      if (res && res.ok) {
+        setActionFeedback({ type: 'success', text: json.message || `Instanțele duplicat au fost oprite pentru ${displayName}!` });
+        setTimeout(fetchStatus, 1000);
+        setTimeout(fetchStatus, 3000);
+      } else {
+        setActionFeedback({ type: 'error', text: json.error || 'Eroare la transmiterea comenzii de oprire duplicat.' });
+      }
+    } catch (err) {
+      setActionFeedback({ type: 'error', text: err.message });
+    } finally {
+      setActionLoading(null);
+      setTimeout(() => setActionFeedback(null), 6000);
+    }
   };
 
   // POS Signal History Modal state
@@ -610,6 +834,10 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
       const latestScriptVer = liveKiosk?.latestScriptVersion || '2.4.0';
       const isScriptUpToDate = Boolean(kioskScriptVer && kioskScriptVer === latestScriptVer);
 
+      const bridgeVersion = loc.bridgeVersion || loc.version || null;
+      const latestBridgeVer = loc.latestBridgeVersion || '3.3.0';
+      const isBridgeUpToDate = Boolean(bridgeVersion && bridgeVersion === latestBridgeVer);
+
       const cleanKioskName = friendlyNames[locKey] || (loc.displayName ? loc.displayName.replace(/\s*\([^)]*\)/g, '').trim() : locKey);
       const brandId = loc.brand || loc.brandId || brandMap[locKey] || (locKey.includes('brasov') ? 'rollmaster' : 'smashme');
 
@@ -636,6 +864,9 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
         kioskScriptVer,
         latestScriptVer,
         isScriptUpToDate,
+        bridgeVersion,
+        latestBridgeVer,
+        isBridgeUpToDate,
         hasRecentConnection,
         uptimeSeconds: effectiveUptime,
         lastPingSecondsAgo: effectiveLastPing,
@@ -848,7 +1079,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                     </div>
 
                     <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
-                      <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Versiune Script:</span>
+                      <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Versiune Script (Kiosk):</span>
                       <div className="flex items-center gap-1.5 whitespace-nowrap">
                         {isKioskConnected ? (
                           <>
@@ -936,15 +1167,47 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                       <button
                         type="button"
                         onClick={() => handleToggleWake(locKey, loc.posWakeStandby, loc.posWakeIntervalMinutes)}
-                        title="Click pentru a comuta ON/OFF trezirea automată din standby pe acest POS"
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap transition-all cursor-pointer hover:scale-105 active:scale-95 ${
-                          loc.posWakeStandby
-                            ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-950/80 dark:text-emerald-300 dark:hover:bg-emerald-900/90 shadow-2xs'
-                            : 'bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700'
-                        }`}
+                        title={loc.posWakeStandby ? "Trezire automată Standby este ACTIVĂ. Click pentru a comuta pe OFF." : "Trezire automată Standby este INACTIVĂ. Click pentru a comuta pe ON."}
+                        className="inline-flex items-center gap-2 cursor-pointer group py-0.5 select-none"
                       >
-                        {loc.posWakeStandby ? `Activă (${loc.posWakeIntervalMinutes || 5}m) ⚡` : 'Inactivă 💤'}
+                        <span className={`text-[11px] font-bold tracking-tight transition-colors ${
+                          loc.posWakeStandby ? 'text-emerald-700 dark:text-emerald-400 font-extrabold' : 'text-slate-400 dark:text-slate-500 font-semibold'
+                        }`}>
+                          {loc.posWakeStandby ? `ON (${loc.posWakeIntervalMinutes || 5}m)` : 'OFF'}
+                        </span>
+                        <div className={`relative w-9 h-5 rounded-full transition-colors duration-200 ease-in-out p-0.5 ${
+                          loc.posWakeStandby ? 'bg-emerald-500 group-hover:bg-emerald-600' : 'bg-slate-300 dark:bg-slate-600 group-hover:bg-slate-400'
+                        }`}>
+                          <div className={`w-4 h-4 bg-white rounded-full transition-transform duration-200 ease-in-out shadow-xs ${
+                            loc.posWakeStandby ? 'translate-x-4' : 'translate-x-0'
+                          }`} />
+                        </div>
                       </button>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
+                      <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Instanță Duplicat:</span>
+                      {loc.duplicateDetected ? (
+                        <div className="flex items-center gap-1.5">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-300 dark:border-rose-700 animate-pulse">
+                            DA ⚠️
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleResolveDuplicate(locKey, loc.displayName)}
+                            disabled={actionLoading === `${locKey}-resolve-duplicate`}
+                            title="Oprește procesele duplicat din fundal și păstrează o singură instanță activă"
+                            className="px-2.5 py-0.5 rounded-full text-[10px] font-bold text-white bg-rose-600 hover:bg-rose-700 active:scale-95 shadow-xs transition-all cursor-pointer inline-flex items-center gap-1"
+                          >
+                            <ShieldAlert className="w-3 h-3" />
+                            <span>{actionLoading === `${locKey}-resolve-duplicate` ? 'Se oprește...' : 'Rezolvă'}</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60">
+                          Nu (Unic)
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -969,6 +1232,34 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                       <span className="font-semibold text-slate-800 dark:text-slate-200 truncate ml-2 text-right" title={loc.printerName || 'Nedetectată'}>
                         {loc.printerName || 'Nedetectată'}
                       </span>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
+                      <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">Versiune Soft (PC):</span>
+                      <div className="flex items-center gap-1.5 whitespace-nowrap">
+                        {isBridgeOnline ? (
+                          <>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
+                              loc.bridgeVersion 
+                                ? 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300' 
+                                : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+                            }`}>
+                              {loc.bridgeVersion ? `v${loc.bridgeVersion}` : 'v1.0.0 (vechi)'}
+                            </span>
+                            <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold whitespace-nowrap ${
+                              loc.isBridgeUpToDate
+                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
+                                : 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300'
+                            }`}>
+                              {loc.isBridgeUpToDate ? 'La zi' : 'Update disp.'}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-500 dark:bg-slate-700/60 dark:text-slate-400 whitespace-nowrap">
+                            {loc.bridgeVersion ? `v${loc.bridgeVersion}` : '— (offline)'}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/50 dark:border-slate-700/40">
@@ -997,6 +1288,25 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                   </div>
                 </div>
 
+                {/* Avertisment Prominent Instanță Duplicat Detectată */}
+                {loc.duplicateDetected && (
+                  <div className="p-2.5 rounded-xl bg-rose-50/90 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-[11px] text-rose-800 dark:text-rose-300 leading-tight flex items-center justify-between gap-2 shadow-xs">
+                    <div className="flex items-center gap-1.5 font-medium">
+                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                      <span>⚠️ <b>Atenție:</b> A fost detectată o instanță clonă/fantomă în fundal! Rata de succes POS poate fi degradată.</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleResolveDuplicate(locKey, loc.displayName)}
+                      disabled={actionLoading === `${locKey}-resolve-duplicate`}
+                      className="px-3 py-1 rounded-full text-[10px] font-bold text-white bg-rose-600 hover:bg-rose-700 active:scale-95 transition-all shadow-xs shrink-0 cursor-pointer inline-flex items-center gap-1"
+                    >
+                      <ShieldAlert className="w-3.5 h-3.5" />
+                      <span>{actionLoading === `${locKey}-resolve-duplicate` ? 'Se oprește...' : 'Oprește Duplicat'}</span>
+                    </button>
+                  </div>
+                )}
+
                 {/* Status Note Indicator */}
                 {isOnline ? (
                   <div className="p-2.5 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/70 dark:border-emerald-900/40 text-[11px] text-emerald-800 dark:text-emerald-300 leading-tight flex items-center gap-1.5">
@@ -1024,14 +1334,47 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                   </div>
                 )}
 
+                {/* Progres restart POS Bridge */}
+                {restartProgress[locKey] && (() => {
+                  const rp = restartProgress[locKey];
+                  const elapsed = Math.max(0, Math.round(((rp.finishedAt || currentTime) - rp.startedAt) / 1000));
+                  const isPending = rp.status === 'pending';
+                  const isDone = rp.status === 'completed';
+                  const pct = isDone ? 100 : isPending ? Math.min(95, Math.round((elapsed / 90) * 100)) : 100;
+                  const tone = isDone
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
+                    : isPending
+                      ? 'bg-blue-50 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800'
+                      : 'bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800';
+                  const bar = isDone ? 'bg-emerald-500' : isPending ? 'bg-blue-500' : 'bg-rose-500';
+                  return (
+                    <div className={`p-3 rounded-xl border text-xs space-y-2 ${tone}`}>
+                      <div className="font-bold flex items-center gap-2">
+                        {isPending && <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0" />}
+                        {isDone && <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />}
+                        {!isPending && !isDone && <AlertCircle className="w-3.5 h-3.5 shrink-0" />}
+                        <span>
+                          {isPending && `Se repornește POS Bridge… ${elapsed}s (durează de obicei 1–2 minute, nu închide pagina)`}
+                          {isDone && `POS Bridge repornit cu succes în ${elapsed}s`}
+                          {!isPending && !isDone && 'Restartul nu s-a confirmat'}
+                        </span>
+                      </div>
+                      <div className="h-2 w-full rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
+                        <div className={`h-full rounded-full transition-all duration-1000 ${bar} ${isPending ? 'animate-pulse' : ''}`} style={{ width: `${pct}%` }} />
+                      </div>
+                      {!isPending && rp.detail && <div className="opacity-90">{rp.detail}</div>}
+                    </div>
+                  );
+                })()}
+
                 {/* Action Buttons: 4-column responsive grid */}
                 <div className="pt-1 border-t border-slate-100 dark:border-slate-700/60">
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     <button
                       type="button"
-                      onClick={() => handleAction(locKey, 'restart-bridge')}
-                      disabled={actionLoading === `${locKey}-restart-bridge`}
-                      title="Restart POS Bridge (repornește conexiunea POS & imprimantă)"
+                      onClick={() => handleRestartBridge(locKey, loc.displayName, !!isBridgeOnline)}
+                      disabled={actionLoading === `${locKey}-restart-bridge` || restartProgress[locKey]?.status === 'pending'}
+                      title="Restart POS Bridge (repornește conexiunea POS & imprimantă) — cere confirmare"
                       className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/80 transition-colors disabled:opacity-50 cursor-pointer shadow-xs whitespace-nowrap"
                     >
                       <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${actionLoading === `${locKey}-restart-bridge` ? 'animate-spin' : ''}`} />
@@ -1345,6 +1688,99 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
           </div>
         </form>
       </div>
+
+      {/* Jurnal Restartări POS Bridge: manual (Admin) vs automat (din locație) */}
+      {(() => {
+        const filtered = restartLogs.filter(r => restartLogFilter === 'all' || r.locationId === restartLogFilter);
+        const shown = filtered.slice(0, restartLogLimit);
+        const locOptions = Array.from(new Set([...Object.keys(computedLocations || {}), ...restartLogs.map(r => r.locationId)]));
+        const isManual = (s) => typeof s === 'string' && s.startsWith('admin');
+        const statusBadge = (st) => {
+          if (st === 'completed') return { cls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300', txt: '✅ Repornit' };
+          if (st === 'pending') return { cls: 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300', txt: '⏳ În curs' };
+          if (st === 'timeout') return { cls: 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300', txt: '❌ Nu a revenit' };
+          if (st === 'failed') return { cls: 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300', txt: '❌ Nelivrat (offline)' };
+          return { cls: 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300', txt: st || '—' };
+        };
+        return (
+          <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl p-6 rounded-3xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
+              <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <RotateCcw className="w-4 h-4 text-blue-600" />
+                <span>Jurnal Restartări POS Bridge</span>
+              </h2>
+              <select
+                value={restartLogFilter}
+                onChange={e => { setRestartLogFilter(e.target.value); setRestartLogLimit(15); }}
+                className="text-xs rounded-full border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 px-3 py-1.5"
+              >
+                <option value="all">Toate locațiile</option>
+                {locOptions.map(k => <option key={k} value={k}>{computedLocations?.[k]?.displayName || k}</option>)}
+              </select>
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-4">
+              <b>Manual (Admin)</b> = a apăsat cineva butonul din Admin. <b>Automat / din locație</b> = bridge-ul a repornit fără comandă din Admin (singur, repornire PC, update, crash). Se înregistrează doar restartările de la această versiune încoace.
+            </p>
+
+            {!restartLogLoaded ? (
+              <div className="py-6 text-center text-xs text-slate-400">Se încarcă…</div>
+            ) : filtered.length === 0 ? (
+              <div className="py-6 text-center text-xs text-slate-400">Nicio restartare înregistrată încă.</div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400">
+                        <th className="py-2 px-3 font-semibold">Nr.</th>
+                        <th className="py-2 px-3 font-semibold">Data / Ora</th>
+                        <th className="py-2 px-3 font-semibold">Locație</th>
+                        <th className="py-2 px-3 font-semibold">Cine a repornit</th>
+                        <th className="py-2 px-3 font-semibold">Rezultat</th>
+                        <th className="py-2 px-3 font-semibold">Detalii</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                      {shown.map((r, idx) => {
+                        const sb = statusBadge(r.status);
+                        const manual = isManual(r.source);
+                        return (
+                          <tr key={r.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-700/30">
+                            <td className="py-2.5 px-3 text-slate-500">{idx + 1}</td>
+                            <td className="py-2.5 px-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">{formatDateTime(r.requestedAt)}</td>
+                            <td className="py-2.5 px-3 font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">{r.displayName || r.locationId}</td>
+                            <td className="py-2.5 px-3 whitespace-nowrap">
+                              <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-bold ${manual ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'}`}>
+                                {manual ? '👤 Manual (Admin)' : '🤖 Automat / din locație'}
+                              </span>
+                              {manual && r.sourceLabel && <div className="text-[10px] text-slate-500 mt-0.5">{r.sourceLabel}</div>}
+                            </td>
+                            <td className="py-2.5 px-3 whitespace-nowrap">
+                              <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-bold ${sb.cls}`}>{sb.txt}</span>
+                            </td>
+                            <td className="py-2.5 px-3 text-slate-700 dark:text-slate-300">
+                              {r.detail}
+                              {manual && r.requestedBy && <div className="text-[10px] text-slate-400">IP: {String(r.requestedBy).split(',')[0]}</div>}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-3 text-[11px] text-slate-500 dark:text-slate-400">
+                  <span>Afișate {shown.length} din {filtered.length} restartări</span>
+                  {filtered.length > restartLogLimit && (
+                    <button type="button" onClick={() => setRestartLogLimit(l => l + 15)} className="px-4 py-1.5 whitespace-nowrap rounded-full font-bold bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 cursor-pointer">
+                      Arată mai multe
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Istoric Evenimente Recente */}
       <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl p-6 rounded-3xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs">

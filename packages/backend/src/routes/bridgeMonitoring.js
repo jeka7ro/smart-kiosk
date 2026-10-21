@@ -111,6 +111,10 @@ router.post('/telegram-webhook', async (req, res) => {
     if (text.startsWith('/status') || text === 'status' || text.startsWith('/stare')) {
       const statusText = await bridgeMonitoringService.formatStatusSummaryForTelegram();
       await bridgeMonitoringService.sendTelegramMessage(statusText, null, chatId);
+    } else if (text.startsWith('/pos') || text === 'pos' || text.startsWith('/semnal') || text === 'semnal' || text.startsWith('/latenta') || text === 'latenta') {
+      await bridgeMonitoringService.sendTelegramMessage('⏳ <i>Se interoghează terminalele POS prin UART (calcul latență în milisecunde)...</i>', null, chatId);
+      const posText = await bridgeMonitoringService.formatPosSignalSummaryForTelegram();
+      await bridgeMonitoringService.sendTelegramMessage(posText, null, chatId);
     } else if (text.startsWith('/pin') || text === 'pin' || text.startsWith('/cod') || text === 'cod' || text.startsWith('/program') || text === 'program') {
       const pinText = await bridgeMonitoringService.formatPinSummaryForTelegram();
       await bridgeMonitoringService.sendTelegramMessage(pinText, null, chatId);
@@ -121,6 +125,7 @@ router.post('/telegram-webhook', async (req, res) => {
       const helpText = [
         `🤖 <b>[SMART KIOSK BOT]</b>`,
         `Comenzi disponibile:`,
+        `• <b>/pos</b> — Interoghează semnalul UART către terminalele POS și afișează latența exactă în milisecunde (ms).`,
         `• <b>/status</b> — Afișează starea curentă a kiosk-urilor, POS, imprimante, PIN-uri și program.`,
         `• <b>/pin</b> — Afișează codurile PIN de deblocare și orarul programat de blocare.`,
         `• <b>/verificare</b> — Rulează manual raportul complet de verificare matinală de deschidere (semnal POS, ecran, .env, procese duplicate).`,
@@ -157,24 +162,65 @@ router.post('/:locationId/restart-bridge', (req, res) => {
   try {
     const io = req.app.get('io');
     const { locationId } = req.params;
+    if (!io) return res.status(500).json({ error: 'Socket.io nu este inițializat pe server' });
+
     const { getLocationAliases } = require('../utils/locations');
     const aliases = getLocationAliases ? getLocationAliases(locationId) : [locationId];
     const targets = new Set([locationId, ...aliases].filter(Boolean));
 
-    if (io) {
-      for (const tid of targets) {
-        io.to(`pos-bridge-${tid}`).emit('remote_restart', { locationId: tid });
-        io.emit(`remote_restart_${tid}`, { locationId: tid });
-      }
-      console.log(`[BridgeMonitor] Comandă restart trimisă către bridge: ${[...targets].join(', ')}`);
-      res.json({ success: true, message: `Comanda de restart a fost trimisă către bridge (${locationId})` });
-    } else {
-      res.status(500).json({ error: 'Socket.io nu este inițializat pe server' });
+    // Înregistrăm cererea în jurnalul de restartări (cine a cerut, când, dacă bridge-ul a revenit)
+    const reqInfo = bridgeMonitoringService.startRestartRequest(locationId, {
+      source: 'admin',
+      requestedBy: req.headers['x-forwarded-for'] || req.ip || null,
+    });
+
+    if (!reqInfo.bridgeOnline) {
+      return res.status(409).json({
+        error: `Bridge-ul (${locationId}) este OFFLINE — comanda NU poate ajunge la el. Verifică PC-ul din locație (pornit? internet? start-windows.bat rulează?).`,
+        requestId: reqInfo.requestId,
+      });
     }
+
+    for (const tid of targets) {
+      io.to(`pos-bridge-${tid}`).emit('remote_restart', { locationId: tid });
+      io.emit(`remote_restart_${tid}`, { locationId: tid });
+    }
+    console.log(`[BridgeMonitor] Comandă restart trimisă către bridge: ${[...targets].join(', ')} (cerere ${reqInfo.requestId})`);
+    res.json({
+      success: true,
+      requestId: reqInfo.requestId,
+      message: `Comanda de restart a fost trimisă către bridge (${locationId}). Aștept revenirea lui...`,
+    });
   } catch (err) {
     console.error('[BridgeMonitor] Eroare restart bridge:', err.message);
     res.status(500).json({ error: err.message });
   }
+});
+
+/**
+ * GET /api/bridge-monitoring/restart-log?locationId=&limit=
+ * Jurnalul restartărilor POS Bridge: manual din Admin vs automat din locație
+ */
+router.get('/restart-log', async (req, res) => {
+  try {
+    const logs = await bridgeMonitoringService.getRestartLog({
+      locationId: req.query.locationId || null,
+      limit: req.query.limit,
+    });
+    res.json({ logs, total: logs.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /api/bridge-monitoring/restart-requests/:id
+ * Starea unei cereri de restart (pentru bara de progres din Admin)
+ */
+router.get('/restart-requests/:id', (req, res) => {
+  const entry = bridgeMonitoringService.getRestartRequest(req.params.id);
+  if (!entry) return res.status(404).json({ error: 'Cerere de restart necunoscută (serverul a repornit între timp?)' });
+  res.json(entry);
 });
 
 /**
@@ -192,6 +238,13 @@ router.post('/:locationId/set-port', (req, res) => {
     const targets = new Set([locationId, ...aliases].filter(Boolean));
 
     if (io) {
+      try {
+        bridgeMonitoringService.startRestartRequest(locationId, {
+          source: 'admin_port',
+          requestedBy: req.headers['x-forwarded-for'] || req.ip || null,
+          onlyIfOnline: true,
+        });
+      } catch (_) {}
       for (const tid of targets) {
         io.to(`pos-bridge-${tid}`).emit('set_pos_port', { locationId: tid, port });
         io.emit(`set_pos_port_${tid}`, { locationId: tid, port });
@@ -230,6 +283,21 @@ router.post('/:locationId/test-pos-signal', (req, res) => {
   } catch (err) {
     console.error('[BridgeMonitor] Eroare test-pos-signal:', err.message);
     res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /api/bridge-monitoring/:locationId/resolve-duplicate
+ * Force stop duplicate bridge instances and reset duplicate flag
+ */
+router.post('/:locationId/resolve-duplicate', async (req, res) => {
+  try {
+    const { locationId } = req.params;
+    const result = await bridgeMonitoringService.resolveDuplicateInstances(locationId);
+    res.json(result);
+  } catch (err) {
+    console.error(`[BridgeMonitor] Eroare resolve-duplicate pentru ${req.params.locationId}:`, err.message);
+    res.status(500).json({ error: err.message || 'Eroare la oprirea instanțelor duplicat' });
   }
 });
 
@@ -400,11 +468,14 @@ router.post('/:locationId/reload-kiosk', (req, res) => {
     const targets = new Set([locationId, ...aliases].filter(Boolean));
 
     if (io) {
+      // Butonul Ecran reîncarcă DOAR ecranul kiosk. Emisia globală `remote_restart_<loc>` (fallback pentru kiosk-uri
+      // care nu au intrat încă în cameră) o trimitem cu EXCEPȚIA camerelor POS Bridge, altfel ar reporni și bridge-ul.
+      const bridgeRooms = [...targets].map(tid => `pos-bridge-${tid}`);
       for (const tid of targets) {
         io.to(`kiosk-${tid}`).emit('remote_restart', { locationId: tid });
-        io.emit(`remote_restart_${tid}`, { locationId: tid });
+        io.except(bridgeRooms).emit(`remote_restart_${tid}`, { locationId: tid });
       }
-      console.log(`[BridgeMonitor] Comandă reload trimisă către ecran kiosk: ${[...targets].join(', ')}`);
+      console.log(`[BridgeMonitor] Comandă reload trimisă către ecran kiosk (fără bridge): ${[...targets].join(', ')}`);
       res.json({ success: true, message: `Comanda de reîncărcare a fost trimisă către ecranul kiosk (${locationId})` });
     } else {
       res.status(500).json({ error: 'Socket.io nu este inițializat pe server' });

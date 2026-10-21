@@ -4,25 +4,34 @@ const SINGLETON_PORT = 40499;
 let singletonRetries = 0;
 
 function acquireSingletonLock() {
-  const singletonServer = net.createServer();
-  singletonServer.once('error', (err) => {
-    if (err.code === 'EADDRINUSE') {
-      singletonRetries++;
-      if (singletonRetries <= 6) {
-        console.warn(`[SINGLETON] Portul ${SINGLETON_PORT} este temporar ocupat (TIME_WAIT după restart). Reîncerc în 2s (${singletonRetries}/6)...`);
-        setTimeout(acquireSingletonLock, 2000);
+  return new Promise((resolve) => {
+    const singletonServer = net.createServer();
+    singletonServer.once('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        const testConn = net.connect(SINGLETON_PORT, '127.0.0.1', () => {
+          testConn.destroy();
+          console.error(`[SINGLETON] ⚠️ O altă instanță a POS Bridge rulează deja pe acest sistem (portul ${SINGLETON_PORT} este activ).`);
+          console.error(`[SINGLETON] Această instanță duplicat se oprește IMEDIAT fără a atinge rețeaua sau portul serial (cod 42).`);
+          process.exit(42);
+        });
+        testConn.on('error', () => {
+          console.warn(`[SINGLETON] Portul ${SINGLETON_PORT} este temporar în eliberare. Reîncerc în 1.5s...`);
+          setTimeout(() => {
+            singletonServer.close();
+            acquireSingletonLock().then(resolve);
+          }, 1500);
+        });
         return;
       }
-      console.error(`[SINGLETON] ⚠️ O altă instanță a POS Bridge rulează deja pe acest sistem (portul ${SINGLETON_PORT} este activ).`);
-      console.error(`[SINGLETON] Această instanță duplicat se închide (cod 42).`);
-      process.exit(42);
-    }
-  });
-  singletonServer.listen(SINGLETON_PORT, '127.0.0.1', () => {
-    console.log(`[SINGLETON] Lock exclusiv obținut pe portul ${SINGLETON_PORT}.`);
+      console.error(`[SINGLETON] Eroare neașteptată la lock:`, err);
+      process.exit(1);
+    });
+    singletonServer.listen(SINGLETON_PORT, '127.0.0.1', () => {
+      console.log(`[SINGLETON] Lock exclusiv obținut pe portul ${SINGLETON_PORT}.`);
+      resolve(singletonServer);
+    });
   });
 }
-acquireSingletonLock();
 
 require('dotenv').config();
 const { printTicket, getActualPrinterName } = require('./printer');
@@ -33,6 +42,14 @@ const fs               = require('fs');
 const pathMod          = require('path');
 const { exec }         = require('child_process');
 
+let BRIDGE_VERSION = '3.3.0';
+try {
+  const pkg = require('./package.json');
+  if (pkg.version) BRIDGE_VERSION = pkg.version;
+} catch (_) {}
+
+const INSTANCE_ID = `${require('os').hostname()}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
 const LOG_FILE = pathMod.join(__dirname, 'pos-bridge.log');
 function log(msg) {
   const d = new Date();
@@ -42,8 +59,6 @@ function log(msg) {
   try { fs.appendFileSync(LOG_FILE, line + '\n'); } catch (_) {}
 }
 
-// Curata fisierul de log la pornire
-try { fs.writeFileSync(LOG_FILE, ''); } catch (_) {}
 
 function enforceKioskTaskbar() {
   if (process.platform !== 'win32') return;
@@ -784,10 +799,26 @@ async function start() {
 
   let cachedScanData = null;
 
+  socket.on('duplicate_instance_shutdown', (data) => {
+    log(`🛑 [SINGLETON] Serverul a respins această instanță: ${data?.reason || 'Instanță duplicat detectată'}`);
+    log(`🛑 Această instanță fantomă se oprește definitiv (cod 42).`);
+    process.exit(42);
+  });
+
+  socket.on('duplicate_instance_shutdown_if_secondary', (data) => {
+    if (data?.primaryInstanceId && data.primaryInstanceId !== INSTANCE_ID) {
+      log(`🛑 [SINGLETON] Ordin oprire instanță secundară primit din Admin. Instanța activă este ${data.primaryInstanceId}.`);
+      log(`🛑 Această instanță duplicat se oprește definitiv (cod 42).`);
+      process.exit(42);
+    }
+  });
+
   socket.on('connect', async () => {
-    log(`✅ Conectat la Render (${socket.id})`);
+    log(`✅ Conectat la Render (${socket.id}) [instance: ${INSTANCE_ID}, soft: v${BRIDGE_VERSION}]`);
     socket.emit('pos_bridge_register', { 
       locationId: LOCATION_ID, 
+      instanceId: INSTANCE_ID,
+      version: BRIDGE_VERSION,
       port: portPath || `VIVA_${VIVA_POS_IP}`,
       posGateway: POS_GATEWAY,
       posWakeStandby: posWakeStandbyEnabled,
@@ -893,6 +924,7 @@ async function start() {
           const printer = typeof getActualPrinterName === 'function' ? getActualPrinterName() : (process.env.PRINTER_NAME || '');
           socket.emit('pos_bridge_heartbeat', {
             locationId: LOCATION_ID,
+            version: BRIDGE_VERSION,
             port: portPath || `VIVA_${VIVA_POS_IP}`,
             printerName: printer,
             posGateway: POS_GATEWAY,
@@ -1800,7 +1832,11 @@ process.on('unhandledRejection', (reason) => {
   log(`⚠️ PROMISE RESPINS NEPRINS (unhandledRejection): ${reason?.stack || reason}`);
 });
 
-start().catch(err => {
+(async () => {
+  await acquireSingletonLock();
+  try { fs.writeFileSync(LOG_FILE, ''); } catch (_) {}
+  await start();
+})().catch(err => {
   log(`❌ EROARE FATALĂ: ${err.message}`);
   process.exit(1);
 });
