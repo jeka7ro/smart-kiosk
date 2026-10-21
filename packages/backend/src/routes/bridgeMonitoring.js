@@ -428,6 +428,43 @@ router.post('/:locationId/test-print', (req, res) => {
  * POST /api/bridge-monitoring/reload-all-kiosks
  * Remotely triggers reload and update of ALL connected kiosk screens
  */
+/**
+ * POST /api/bridge-monitoring/update-all-bridges
+ * Remotely triggers software update and restart on ALL connected kiosks
+ */
+router.post('/update-all-bridges', (req, res) => {
+  try {
+    const io = req.app.get('io');
+    if (!io) return res.status(500).json({ error: 'Socket.io nu este inițializat pe server' });
+
+    const locations = ['cluj1', 'cluj2', 'sm-brasov', 'constanta1'];
+    const triggered = [];
+
+    for (const tid of locations) {
+      bridgeMonitoringService.startRestartRequest(tid, {
+        source: 'admin-all',
+        requestedBy: req.headers['x-forwarded-for'] || req.ip || null,
+      });
+      io.to(`pos-bridge-${tid}`).emit('remote_restart', { locationId: tid });
+      io.emit(`remote_restart_${tid}`, { locationId: tid });
+      triggered.push(tid);
+    }
+
+    // Broadcast general pentru ecranele Kiosk și bridge-uri
+    io.emit('remote_restart', { locationId: 'all' });
+
+    console.log(`[BridgeMonitor] Update global de software trimis către: ${triggered.join(', ')}`);
+    res.json({
+      success: true,
+      message: `Comanda de actualizare software a fost trimisă către toate cele ${triggered.length} Kiosk-uri!`,
+      locations: triggered,
+    });
+  } catch (err) {
+    console.error('[BridgeMonitor] Eroare update-all-bridges:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.post('/reload-all-kiosks', (req, res) => {
   try {
     const io = req.app.get('io');

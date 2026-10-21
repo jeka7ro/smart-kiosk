@@ -1704,7 +1704,7 @@ async function start() {
   }
 
   socket.on('remote_restart', (data) => {
-    if (!data || !data.locationId || data.locationId === LOCATION_ID || isMyLocation(data.locationId)) {
+    if (!data || !data.locationId || data.locationId === 'all' || data.locationId === LOCATION_ID || isMyLocation(data.locationId)) {
       downloadUpdateAndRestart();
     }
   });

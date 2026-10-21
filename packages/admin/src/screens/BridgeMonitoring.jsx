@@ -25,7 +25,8 @@ import {
   BarChart2,
   Zap,
   ShieldAlert,
-  AlertTriangle
+  AlertTriangle,
+  Sparkles
 } from 'lucide-react';
 import BrandLogo from '../components/BrandLogo.jsx';
 
@@ -85,6 +86,21 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
   const [actionFeedback, setActionFeedback] = useState(null);
 
   const handleAction = async (locationId, actionType) => {
+    if (actionType === 'update-all-bridges') {
+      const latestVer = Object.values(computedLocations)[0]?.latestBridgeVersion || '3.4.0';
+      const outdated = Object.values(computedLocations).filter(l => l.isBridgeOnline && !l.isBridgeUpToDate).length;
+      const msg = outdated > 0
+        ? `Se va efectua update de software la versiunea oficială v${latestVer} pe TOATE Kiosk-urile conectate (${outdated} necesită actualizare). Fiecare PC va descărca cele mai noi fișiere de pe GitHub și va reporni bridge-ul automat. Continui?`
+        : `Toate Kiosk-urile rulează deja versiunea la zi v${latestVer}. Doriți să forțați o descărcare și repornire generală pe toată rețeaua?`;
+      const ok = await confirm(msg, {
+        title: `Actualizare Software Globală (v${latestVer})`,
+        icon: <RestartDialogIcon />,
+        okLabel: 'Da, actualizează toate',
+        cancelLabel: 'Nu, renunț',
+        danger: false
+      });
+      if (!ok) return;
+    }
     if (actionType === 'reload-kiosk') {
       const isAll = locationId === 'all';
       const ok = await confirm(
@@ -114,7 +130,9 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
     }
 
     try {
-      const endpoint = locationId === 'all' && actionType === 'reload-kiosk'
+      const endpoint = actionType === 'update-all-bridges'
+        ? `${backend}/api/bridge-monitoring/update-all-bridges`
+        : locationId === 'all' && actionType === 'reload-kiosk'
         ? `${backend}/api/bridge-monitoring/reload-all-kiosks`
         : `${backend}/api/bridge-monitoring/${locationId}/${actionType}`;
 
@@ -134,10 +152,11 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
       }
 
       // Schedule aggressive status re-fetches for instant badge update
-      if (actionType === 'test-pos-signal' || actionType === 'restart-bridge') {
-        setTimeout(fetchStatus, 1000);
-        setTimeout(fetchStatus, 2500);
-        setTimeout(fetchStatus, 4500);
+      if (actionType === 'test-pos-signal' || actionType === 'restart-bridge' || actionType === 'update-all-bridges') {
+        setTimeout(fetchStatus, 1500);
+        setTimeout(fetchStatus, 3500);
+        setTimeout(fetchStatus, 6000);
+        setTimeout(fetchStatus, 10000);
         if (signalModalLoc && signalModalLoc.locKey === locationId) {
           setTimeout(() => fetchSignalLogs(locationId), 1500);
           setTimeout(() => fetchSignalLogs(locationId), 3000);
@@ -946,17 +965,43 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
             </span>
           </div>
 
-          {/* Buton Global Actualizează Toate Kiosk-urile */}
-          <button
-            type="button"
-            onClick={() => handleAction('all', 'reload-kiosk')}
-            disabled={actionLoading === 'all-reload-kiosk'}
-            title="Trimite semnalul de reload și actualizare pe toate Kiosk-urile"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-700 hover:via-indigo-700 hover:to-violet-700 shadow-md shadow-blue-500/20 active:scale-95 transition-all duration-200 cursor-pointer disabled:opacity-50 whitespace-nowrap shrink-0"
-          >
-            <RotateCcw className={`w-3.5 h-3.5 ${actionLoading === 'all-reload-kiosk' ? 'animate-spin' : ''} shrink-0`} />
-            <span className="whitespace-nowrap">Actualizează Toate Kiosk-urile</span>
-          </button>
+          {/* Buton Global Actualizare Software & Status Versiune */}
+          {(() => {
+            const latestBridgeVerGlobal = Object.values(computedLocations)[0]?.latestBridgeVersion || '3.4.0';
+            const outdatedLocationsCount = Object.values(computedLocations).filter(
+              l => l.isBridgeOnline && !l.isBridgeUpToDate
+            ).length;
+            const hasUpdatesPending = outdatedLocationsCount > 0;
+
+            return (
+              <button
+                type="button"
+                onClick={() => handleAction('all', 'update-all-bridges')}
+                disabled={actionLoading === 'all-update-all-bridges'}
+                title={hasUpdatesPending 
+                  ? `Există ${outdatedLocationsCount} kiosk-uri cu versiune veche. Click pentru a actualiza la v${latestBridgeVerGlobal}.`
+                  : `Toate Kiosk-urile rulează versiunea la zi v${latestBridgeVerGlobal}. Click pentru forțare update general.`}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-150 cursor-pointer disabled:opacity-50 whitespace-nowrap shrink-0 shadow-xs border ${
+                  hasUpdatesPending
+                    ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600 shadow-amber-500/20 active:scale-95 font-bold'
+                    : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/80 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-600'
+                }`}
+              >
+                {actionLoading === 'all-update-all-bridges' ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0" />
+                ) : hasUpdatesPending ? (
+                  <Sparkles className="w-3.5 h-3.5 text-white shrink-0 animate-bounce" />
+                ) : (
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                )}
+                <span className="whitespace-nowrap">
+                  {hasUpdatesPending 
+                    ? `Update v${latestBridgeVerGlobal} Disponibil (${outdatedLocationsCount})` 
+                    : `Toate la zi (v${latestBridgeVerGlobal})`}
+                </span>
+              </button>
+            );
+          })()}
 
           <button
             type="button"
