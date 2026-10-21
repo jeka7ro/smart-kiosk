@@ -1727,10 +1727,10 @@ function getStatusSummary() {
         isCashOnly: !isPosEnabled(locKey),
         duplicateDetected: !!b?.duplicateDetected,
         duplicateInfo: b?.duplicateInfo || null,
-        version: (b?.version && b.version !== '1.0.0') ? b.version : '3.3.0',
-        bridgeVersion: (b?.version && b.version !== '1.0.0') ? b.version : '3.3.0',
+        version: (b?.version && b.version !== '1.0.0') ? b.version : '3.4.0',
+        bridgeVersion: (b?.version && b.version !== '1.0.0') ? b.version : '3.4.0',
         latestBridgeVersion: LATEST_BRIDGE_VERSION,
-        isBridgeUpToDate: true,
+        isBridgeUpToDate: ((b?.version && b.version !== '1.0.0') ? b.version : '3.4.0') === LATEST_BRIDGE_VERSION,
       };
     });
 
