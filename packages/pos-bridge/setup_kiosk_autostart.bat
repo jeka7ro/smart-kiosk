@@ -208,23 +208,22 @@ call npm install --no-audit --no-fund >nul 2>&1
 
 :skip_npm
 
-if exist "%APP_DIR%\run-hidden.vbs" (
-    powershell -NoProfile -Command "$w=New-Object -Com WScript.Shell; $u=[Environment]::GetFolderPath('Startup'); $s=$w.CreateShortcut(\"$u\POSBridge.lnk\"); $s.TargetPath='wscript.exe'; $s.Arguments='\"%APP_DIR%\run-hidden.vbs\"'; $s.WorkingDirectory='%APP_DIR%'; $s.WindowStyle=0; $s.Save()" >nul 2>&1
-)
+if not exist "%APP_DIR%\run-hidden.vbs" goto :skip_pos_shortcut
+powershell -NoProfile -Command "$w=New-Object -Com WScript.Shell; $u=[Environment]::GetFolderPath('Startup'); $s=$w.CreateShortcut((Join-Path $u 'POSBridge.lnk')); $s.TargetPath='wscript.exe'; $s.Arguments='\"%APP_DIR%\run-hidden.vbs\"'; $s.WorkingDirectory='%APP_DIR%'; $s.WindowStyle=0; $s.Save()" >nul 2>&1
+:skip_pos_shortcut
 
-if exist "%APP_DIR%\watchdog.vbs" (
-    echo [INFO] Inregistrez Watchdog pasiv in Windows Task Scheduler (la fiecare 5 minute)...
-    schtasks /delete /tn "SmartKiosk_Boot" /f >nul 2>&1
-    schtasks /create /tn "SmartKiosk_Watchdog" /tr "wscript.exe \"%APP_DIR%\watchdog.vbs\"" /sc MINUTE /mo 5 /f /rl HIGHEST >nul 2>&1
-)
+if not exist "%APP_DIR%\watchdog.vbs" goto :skip_watchdog
+echo [INFO] Inregistrez Watchdog pasiv in Windows Task Scheduler (la fiecare 5 minute)...
+schtasks /delete /tn "SmartKiosk_Boot" /f >nul 2>&1
+schtasks /create /tn "SmartKiosk_Watchdog" /tr "wscript.exe \"%APP_DIR%\watchdog.vbs\"" /sc MINUTE /mo 5 /f /rl HIGHEST >nul 2>&1
+:skip_watchdog
 
 echo [INFO] Pornesc POS Bridge in fundal...
-if exist "%APP_DIR%\run-hidden.vbs" (
-    start "" wscript.exe "%APP_DIR%\run-hidden.vbs"
-) else (
-    start "" /min cmd /k "%APP_DIR%\start-windows.bat"
-)
-
+if exist "%APP_DIR%\run-hidden.vbs" goto :start_hidden
+start "" /min cmd /k "%APP_DIR%\start-windows.bat"
+goto :bridge_started
+:start_hidden
+start "" wscript.exe "%APP_DIR%\run-hidden.vbs"
 :bridge_started
 
 :: 7. Lansare Kiosk Fullscreen
@@ -232,18 +231,7 @@ echo [7/7] Pornire ecran Kiosk in Fullscreen Total...
 timeout /t 2 >nul
 start "" "%BROWSER%" --kiosk "%URL%" --start-fullscreen --start-maximized --window-position=0,0 --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble --disable-infobars --disable-pinch --overscroll-history-navigation=0 --check-for-update-interval=31536000
 timeout /t 2 >nul
-powershell -NoProfile -WindowStyle Hidden -Command "$c=@'
-using System;
-using System.Runtime.InteropServices;
-public class KioskWin {
-    [DllImport(\"user32.dll\")]
-    public static extern IntPtr FindWindow(string c, string n);
-    [DllImport(\\"user32.dll\")]
-    public static extern bool ShowWindow(IntPtr h, int s);
-    [DllImport(\\"user32.dll\")]
-    public static extern bool SetForegroundWindow(IntPtr h);
-}
-'@; Add-Type -TypeDefinition $c -ErrorAction SilentlyContinue; $t=[KioskWin]::FindWindow('Shell_TrayWnd',$null); if($t -ne [IntPtr]::Zero){ [KioskWin]::ShowWindow($t,0) }; $s=[KioskWin]::FindWindow('Shell_SecondaryTrayWnd',$null); if($s -ne [IntPtr]::Zero){ [KioskWin]::ShowWindow($s,0) }; $w=[KioskWin]::FindWindow('Chrome_WidgetWin_1',$null); if($w -ne [IntPtr]::Zero){ [KioskWin]::SetForegroundWindow($w) }" >nul 2>&1
+powershell -NoProfile -Command "(New-Object -Com WScript.Shell).AppActivate('Google Chrome')" >nul 2>&1
 
 echo.
 echo =============================================================
