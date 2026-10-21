@@ -28,6 +28,14 @@ if "%~1"=="cluj2" set "CHOICE=2"
 if "%~1"=="constanta1" set "CHOICE=4"
 if "%~1"=="constanta2" set "CHOICE=5"
 
+:: Detectie automata dupa hostname PC daca nu a fost dat parametru
+if "%CHOICE%"=="" (
+    if /i "%COMPUTERNAME%"=="DESKTOP-44PEN14" set "CHOICE=1"
+    if /i "%COMPUTERNAME%"=="DESKTOP-VNTDBO0" set "CHOICE=2"
+    if /i "%COMPUTERNAME%"=="DESKTOP-FT5PA0E" set "CHOICE=3"
+    if /i "%COMPUTERNAME%"=="DESKTOP-19BUSUH" set "CHOICE=4"
+)
+
 if "%CHOICE%"=="" (
     set /p "CHOICE=Introdu cifra locatiei (1-5) si apasa ENTER: "
 )
@@ -125,13 +133,20 @@ echo [1/7] Inchidere ferestre browser, procese vechi si curatare fisiere legacy.
 taskkill /F /IM chrome.exe >nul 2>&1
 taskkill /F /IM msedge.exe >nul 2>&1
 taskkill /F /IM node.exe >nul 2>&1
+taskkill /F /IM wscript.exe >nul 2>&1
 timeout /t 1 >nul
 
-:: Curatare foldere legacy duplicate (ex: C:\SmartKiosk_Data)
-if exist "C:\SmartKiosk_Data" (
-    echo [INFO] Curatare folder legacy C:\SmartKiosk_Data...
-    rmdir /s /q "C:\SmartKiosk_Data" >nul 2>&1
-)
+:: Curatare task-uri vechi din Windows Task Scheduler
+schtasks /delete /tn "SmartKiosk_POS_Watchdog" /f >nul 2>&1
+schtasks /delete /tn "SmartKiosk_Boot" /f >nul 2>&1
+
+:: Curatare foldere legacy duplicate
+if exist "C:\Smart Kiosk" rmdir /s /q "C:\Smart Kiosk" >nul 2>&1
+if exist "C:\SmartKiosk_Data" rmdir /s /q "C:\SmartKiosk_Data" >nul 2>&1
+if exist "C:\POSNEW" rmdir /s /q "C:\POSNEW" >nul 2>&1
+
+:: Curatare fisiere descarcate accidental in folderul utilizatorului
+del /f /q "%USERPROFILE%\.env" "%USERPROFILE%\index.js*" "%USERPROFILE%\start-windows.bat" "%USERPROFILE%\run-hidden.vbs" >nul 2>&1
 
 :: Curatare scurtaturi legacy orfane din Startup
 powershell -NoProfile -Command "$u=[Environment]::GetFolderPath('Startup'); @('start-pos.bat.lnk', 'Kiosk.lnk', 'start-windows.lnk', 'bridge.lnk', 'start-pos.lnk') | ForEach-Object { $p = Join-Path $u $_; if (Test-Path $p) { Remove-Item $p -Force -ErrorAction SilentlyContinue } }" >nul 2>&1
@@ -182,12 +197,8 @@ if not exist "%BROWSER%" (
 echo [OK] Browser gasit: %BROWSER%
 netsh advfirewall firewall add rule name="Smart Kiosk Browser" dir=in action=allow program="%BROWSER%" enable=yes >nul 2>&1
 
-:: 6. Salvare Autostart si Scurtaturi Desktop (Ecran + POS Bridge)
-echo [6/7] Configurare Autostart la pornirea Windows si creare scurtaturi...
-powershell -NoProfile -Command "$w=New-Object -Com WScript.Shell; $d=[Environment]::GetFolderPath('Desktop'); $s=$w.CreateShortcut(\"$d\Smart Kiosk (%LOC_NAME%).lnk\"); $s.TargetPath='%BROWSER%'; $s.Arguments='--kiosk %URL% --start-fullscreen --start-maximized --window-position=0,0 --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble --disable-infobars --disable-pinch --overscroll-history-navigation=0 --check-for-update-interval=31536000'; $s.WindowStyle=3; $s.Save(); $u=[Environment]::GetFolderPath('Startup'); $s2=$w.CreateShortcut(\"$u\SmartKiosk.lnk\"); $s2.TargetPath='%BROWSER%'; $s2.Arguments='--kiosk %URL% --start-fullscreen --start-maximized --window-position=0,0 --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble --disable-infobars --disable-pinch --overscroll-history-navigation=0 --check-for-update-interval=31536000'; $s2.WindowStyle=3; $s2.Save()" >nul 2>&1
-
-:: Descarcare / actualizare fisiere necesare POS Bridge
-echo [INFO] Actualizare fisiere POS Bridge in %APP_DIR%...
+:: 6. Descarcare fisiere POS Bridge si configurare Autostart
+echo [6/7] Actualizare fisiere POS Bridge in %APP_DIR%...
 curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\start-windows.bat" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/start-windows.bat"
 curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\run-hidden.vbs" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/run-hidden.vbs"
 curl -s -L -H "Cache-Control: no-cache" -o "%APP_DIR%\watchdog.vbs" "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/watchdog.vbs"
@@ -208,13 +219,29 @@ call npm install --no-audit --no-fund >nul 2>&1
 
 :skip_npm
 
-if not exist "%APP_DIR%\run-hidden.vbs" goto :skip_pos_shortcut
-powershell -NoProfile -Command "$w=New-Object -Com WScript.Shell; $u=[Environment]::GetFolderPath('Startup'); $s=$w.CreateShortcut((Join-Path $u 'POSBridge.lnk')); $s.TargetPath='wscript.exe'; $s.Arguments='\"%APP_DIR%\run-hidden.vbs\"'; $s.WorkingDirectory='%APP_DIR%'; $s.WindowStyle=0; $s.Save()" >nul 2>&1
-:skip_pos_shortcut
+echo [INFO] Configurare Autostart (Ecran + POS Bridge)...
+echo Set w = CreateObject("WScript.Shell") > "%TEMP%\kiosk_sc.vbs"
+echo Set s = w.CreateShortcut(w.SpecialFolders("Startup") ^& "\SmartKiosk.lnk") >> "%TEMP%\kiosk_sc.vbs"
+echo s.TargetPath = "%BROWSER%" >> "%TEMP%\kiosk_sc.vbs"
+echo s.Arguments = "--kiosk %URL% --start-fullscreen --start-maximized --window-position=0,0 --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble --disable-infobars --disable-pinch --overscroll-history-navigation=0 --check-for-update-interval=31536000" >> "%TEMP%\kiosk_sc.vbs"
+echo s.WindowStyle = 3 >> "%TEMP%\kiosk_sc.vbs"
+echo s.Save >> "%TEMP%\kiosk_sc.vbs"
+echo Set s2 = w.CreateShortcut(w.SpecialFolders("Startup") ^& "\POSBridge.lnk") >> "%TEMP%\kiosk_sc.vbs"
+echo s2.TargetPath = "wscript.exe" >> "%TEMP%\kiosk_sc.vbs"
+echo s2.Arguments = """%APP_DIR%\run-hidden.vbs""" >> "%TEMP%\kiosk_sc.vbs"
+echo s2.WorkingDirectory = "%APP_DIR%" >> "%TEMP%\kiosk_sc.vbs"
+echo s2.WindowStyle = 0 >> "%TEMP%\kiosk_sc.vbs"
+echo s2.Save >> "%TEMP%\kiosk_sc.vbs"
+echo Set s3 = w.CreateShortcut(w.SpecialFolders("Desktop") ^& "\Smart Kiosk.lnk") >> "%TEMP%\kiosk_sc.vbs"
+echo s3.TargetPath = "%BROWSER%" >> "%TEMP%\kiosk_sc.vbs"
+echo s3.Arguments = "--kiosk %URL% --start-fullscreen --start-maximized" >> "%TEMP%\kiosk_sc.vbs"
+echo s3.WindowStyle = 3 >> "%TEMP%\kiosk_sc.vbs"
+echo s3.Save >> "%TEMP%\kiosk_sc.vbs"
+cscript //nologo "%TEMP%\kiosk_sc.vbs" >nul 2>&1
+del /f /q "%TEMP%\kiosk_sc.vbs" >nul 2>&1
 
 if not exist "%APP_DIR%\watchdog.vbs" goto :skip_watchdog
 echo [INFO] Inregistrez Watchdog pasiv in Windows Task Scheduler (la fiecare 5 minute)...
-schtasks /delete /tn "SmartKiosk_Boot" /f >nul 2>&1
 schtasks /create /tn "SmartKiosk_Watchdog" /tr "wscript.exe \"%APP_DIR%\watchdog.vbs\"" /sc MINUTE /mo 5 /f /rl HIGHEST >nul 2>&1
 :skip_watchdog
 
