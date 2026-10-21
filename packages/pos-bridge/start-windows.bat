@@ -38,16 +38,10 @@ echo  [INFO] Fisiere actualizate cu succes!
 
 :: Verifica daca exista .env (creeaza automat daca lipseste)
 if not exist ".env" (
-    echo  [INFO] Fisierul .env lipseste, il creez automat...
-    (
-        echo RENDER_URL=https://smart-kiosk-ttut.onrender.com
-        echo COM_PORT=COM3
-        echo BAUD_RATE=9600
-        echo LOCATION_ID=sm-brasov
-        echo BRIDGE_KEY=pos-bridge-2024
-        echo POS_GATEWAY=raiffeisen
-        echo PRINTER_NAME=EPSON TM-T20
-    ) > ".env"
+    echo  [EROARE] Fisierul .env lipseste in acest folder!
+    echo  Rulati configuratorul setup_kiosk_autostart.bat pentru a alege locatia corecta.
+    pause
+    exit /b 1
 )
 
 :: Instaleaza dependentele daca lipsesc
@@ -68,7 +62,7 @@ echo.
 :loop
 curl -s -L -H "Cache-Control: no-cache" -o index.js.tmp "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/index.js?ts=%random%%random%"
 if exist "index.js.tmp" (
-    for %%A in ("index.js.tmp") do if %%~zA GTR 10000 move /y "index.js.tmp" "index.js" >nul 2>&1
+    for %%A in ("index.js.tmp") do if "%%~zA" neq "" if %%~zA GTR 10000 move /y "index.js.tmp" "index.js" >nul 2>&1
     if exist "index.js.tmp" del /f /q "index.js.tmp" >nul 2>&1
 )
 curl -s -L -H "Cache-Control: no-cache" -o printer.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/printer.js?ts=%random%%random%"

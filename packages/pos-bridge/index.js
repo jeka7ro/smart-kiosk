@@ -1,4 +1,4 @@
-const BRIDGE_VERSION = '3.3.0';
+const BRIDGE_VERSION = '3.4.0';
 
 // ── SINGLETON LOCK & LOCAL HEALTH SERVER (Port 40499) ─────────────────────────
 const net = require('net');

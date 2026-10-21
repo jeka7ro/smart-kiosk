@@ -27,7 +27,7 @@ let telegramConfig = {
 };
 
 // Versiunea oficială curentă a software-ului POS Bridge de pe PC
-const LATEST_BRIDGE_VERSION = '3.3.0';
+const LATEST_BRIDGE_VERSION = '3.4.0';
 
 // Cooldown tracking to prevent Telegram alert spam: locationKey -> lastAlertTimestamp
 const lastAlertSent = new Map();
