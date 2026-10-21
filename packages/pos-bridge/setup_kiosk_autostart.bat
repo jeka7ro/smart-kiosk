@@ -144,6 +144,9 @@ schtasks /delete /tn "SmartKiosk_Boot" /f >nul 2>&1
 if exist "C:\Smart Kiosk" rmdir /s /q "C:\Smart Kiosk" >nul 2>&1
 if exist "C:\SmartKiosk_Data" rmdir /s /q "C:\SmartKiosk_Data" >nul 2>&1
 if exist "C:\POSNEW" rmdir /s /q "C:\POSNEW" >nul 2>&1
+if exist "C:\kiosk_jk" rmdir /s /q "C:\kiosk_jk" >nul 2>&1
+if exist "C:\KIOSKV2" rmdir /s /q "C:\KIOSKV2" >nul 2>&1
+if exist "C:\POSINTEGRAT" rmdir /s /q "C:\POSINTEGRAT" >nul 2>&1
 
 :: Curatare fisiere descarcate accidental in folderul utilizatorului
 del /f /q "%USERPROFILE%\.env" "%USERPROFILE%\index.js*" "%USERPROFILE%\start-windows.bat" "%USERPROFILE%\run-hidden.vbs" >nul 2>&1
