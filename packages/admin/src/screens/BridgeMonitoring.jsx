@@ -965,52 +965,56 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
             </span>
           </div>
 
-          {/* Buton Global Actualizare Software & Status Versiune */}
+          {/* Indicator Status Soft stil macOS */}
           {(() => {
             const latestBridgeVerGlobal = Object.values(computedLocations)[0]?.latestBridgeVersion || '3.4.0';
-            const outdatedLocationsCount = Object.values(computedLocations).filter(
+            const outdatedLocations = Object.values(computedLocations).filter(
               l => l.isBridgeOnline && !l.isBridgeUpToDate
-            ).length;
-            const hasUpdatesPending = outdatedLocationsCount > 0;
+            );
+            const hasUpdatesPending = outdatedLocations.length > 0;
 
+            if (hasUpdatesPending) {
+              // Exact ca pe macOS: Când există update, apare butonul albastru de acțiune
+              return (
+                <button
+                  type="button"
+                  onClick={() => handleAction('all', 'update-all-bridges')}
+                  disabled={actionLoading === 'all-update-all-bridges'}
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-all duration-150 cursor-pointer disabled:opacity-50 whitespace-nowrap shrink-0 active:scale-95"
+                  title={`Actualizează ${outdatedLocations.length} kiosk-uri la v${latestBridgeVerGlobal}`}
+                >
+                  {actionLoading === 'all-update-all-bridges' ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0" />
+                  ) : (
+                    <Sparkles className="w-3.5 h-3.5 text-blue-200 shrink-0" />
+                  )}
+                  <span>Actualizează la v{latestBridgeVerGlobal} ({outdatedLocations.length})</span>
+                </button>
+              );
+            }
+
+            // Exact ca pe macOS: Când totul e la zi, este o insignă curată, discretă (nu un buton activ de update)
             return (
-              <button
-                type="button"
-                onClick={() => handleAction('all', 'update-all-bridges')}
-                disabled={actionLoading === 'all-update-all-bridges'}
-                title={hasUpdatesPending 
-                  ? `Există ${outdatedLocationsCount} kiosk-uri cu versiune veche. Click pentru a actualiza la v${latestBridgeVerGlobal}.`
-                  : `Toate Kiosk-urile rulează versiunea la zi v${latestBridgeVerGlobal}. Click pentru forțare update general.`}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-150 cursor-pointer disabled:opacity-50 whitespace-nowrap shrink-0 shadow-xs border ${
-                  hasUpdatesPending
-                    ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600 shadow-amber-500/20 active:scale-95 font-bold'
-                    : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/80 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-600'
-                }`}
+              <div 
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-slate-100/90 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-600/60 whitespace-nowrap shrink-0 select-none"
+                title={`Toate kiosk-urile rulează ultima versiune oficială (v${latestBridgeVerGlobal})`}
               >
-                {actionLoading === 'all-update-all-bridges' ? (
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0" />
-                ) : hasUpdatesPending ? (
-                  <Sparkles className="w-3.5 h-3.5 text-white shrink-0 animate-bounce" />
-                ) : (
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                )}
-                <span className="whitespace-nowrap">
-                  {hasUpdatesPending 
-                    ? `Update v${latestBridgeVerGlobal} Disponibil (${outdatedLocationsCount})` 
-                    : `Toate la zi (v${latestBridgeVerGlobal})`}
-                </span>
-              </button>
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                <span>Soft la zi (v{latestBridgeVerGlobal})</span>
+              </div>
             );
           })()}
 
+          {/* Buton Refresh date panou (stil macOS: Reverifică) */}
           <button
             type="button"
             onClick={handleRefresh}
             disabled={refreshing}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 shadow-xs transition-colors disabled:opacity-50 cursor-pointer whitespace-nowrap shrink-0"
+            title="Reinteroghează serverul pentru a actualiza timpii de ping și starea conexiunilor"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 shadow-xs transition-colors disabled:opacity-50 cursor-pointer whitespace-nowrap shrink-0"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''} shrink-0`} />
-            <span className="whitespace-nowrap">Actualizează</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''} shrink-0 text-slate-400`} />
+            <span className="whitespace-nowrap">Reverifică</span>
           </button>
         </div>
       </div>
