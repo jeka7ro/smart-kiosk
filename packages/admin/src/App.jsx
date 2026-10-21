@@ -19,6 +19,8 @@ import BridgeMonitoring from './screens/BridgeMonitoring';
 import BrandLogo from './components/BrandLogo.jsx';
 import BankLogo from './components/BankLogo.jsx';
 import ThermalReceiptModal from './components/ThermalReceiptModal.jsx';
+import SoftwareReleaseNotesModal from './components/SoftwareReleaseNotesModal.jsx';
+import { BRIDGE_RELEASE_NOTES } from './data/bridgeReleaseNotes.js';
 import DashboardCharts3D, { detectCardBrand, detectCardBank, BANK_CONFIG } from './components/DashboardCharts3D.jsx';
 import OrderToastNotificationStack, { playNewOrderSound } from './components/OrderToastNotification.jsx';
 import DeviceAlertToastStack from './components/DeviceAlertToast.jsx';
@@ -28,7 +30,7 @@ import FortuneWheelPreview from './components/FortuneWheelPreview';
 import MenuManager, { MenuProfileEditorModal } from './screens/MenuManager';
 import QrGenerator from './screens/QrGenerator';
 import { useConfirm, RestartDialogIcon } from './components/ConfirmModal';
-import { LayoutDashboard, Receipt, TrendingUp, MapPin, MonitorSmartphone, QrCode, Utensils, Languages, Image as ImageIcon, Tags, Users, Blocks, Gift, Store, Sun, Moon, LogOut, Menu, X, CreditCard, Download, Printer, Building2, Palette, Sparkles, Flame, Snowflake, Layers, Upload, Star, ChevronUp, ChevronDown, Check, Zap, Wifi, Sliders, Info, Trash2, AlertTriangle, Globe, Phone, Lock, Clock, ShieldCheck, ShieldAlert, Unlock, Eye, EyeOff, Activity, RotateCcw, Calendar, Copy, Server, ExternalLink, RefreshCw } from 'lucide-react';
+import { LayoutDashboard, Receipt, TrendingUp, MapPin, MonitorSmartphone, QrCode, Utensils, Languages, Image as ImageIcon, Tags, Users, Blocks, Gift, Store, Sun, Moon, LogOut, Menu, X, CreditCard, Download, Printer, Building2, Palette, Sparkles, Flame, Snowflake, Layers, Upload, Star, ChevronUp, ChevronDown, Check, CheckCircle2, Zap, Wifi, Sliders, Info, Trash2, AlertTriangle, Globe, Phone, Lock, Clock, ShieldCheck, ShieldAlert, Unlock, Eye, EyeOff, Activity, RotateCcw, Calendar, Copy, Server, ExternalLink, RefreshCw } from 'lucide-react';
 import { formatThousands } from './utils/formatters';
 
 
@@ -282,6 +284,8 @@ export default function AdminApp() {
   const [deviceAlerts, setDeviceAlerts] = useState([]);
   const lastKnownDeviceStatusRef = useRef({});
   const deviceAlertsInitializedRef = useRef(false);
+  const disconnectPendingSinceRef = useRef({});
+  const disconnectAlertTriggeredRef = useRef({});
 
   const handleDismissDeviceAlert = useCallback((id) => {
     setDeviceAlerts(prev => prev.filter(a => a.id !== id));
@@ -309,6 +313,7 @@ export default function AdminApp() {
   const [dropdownActionLoading, setDropdownActionLoading] = useState(null);
   const [dropdownActionFeedback, setDropdownActionFeedback] = useState(null);
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
+  const [isReleaseNotesOpen, setIsReleaseNotesOpen] = useState(false);
 
   const handleDropdownAction = async (locationId, actionType) => {
     // Acțiunile care repornesc ceva cer confirmare în fereastra aplicației (ca să nu se apese din greșeală)
@@ -452,50 +457,59 @@ export default function AdminApp() {
 
       const prev = lastKnownDeviceStatusRef.current[loc.id];
 
-      // Do not spam intrusive red popups on initial page load; only trigger alerts on live status changes
-      if (deviceAlertsInitializedRef.current && prev) {
-        // Tranziții ulterioare de stare:
-        if (prev.statusTone !== statusTone) {
-          if (statusTone === 'online' && prev.statusTone !== 'online') {
-            newAlerts.push({
-              id: `dev-alert-${loc.id}-${Date.now()}`,
-              locationId: loc.id,
-              locationName: loc.name,
-              statusTone: 'online',
-              statusLabel: 'Online',
-              message: 'Conexiunea a fost restabilită cu succes!',
-              type: 'reconnected',
-              timestamp: Date.now()
-            });
-          } else if (statusTone === 'offline' && prev.statusTone !== 'offline') {
-            newAlerts.push({
-              id: `dev-alert-${loc.id}-${Date.now()}`,
-              locationId: loc.id,
-              locationName: loc.name,
-              statusTone: 'offline',
-              statusLabel,
-              message,
-              type: 'disconnected',
-              timestamp: Date.now()
-            });
-          } else if (statusTone === 'warning' && prev.statusTone === 'online') {
-            newAlerts.push({
-              id: `dev-alert-${loc.id}-${Date.now()}`,
-              locationId: loc.id,
-              locationName: loc.name,
-              statusTone: 'warning',
-              statusLabel,
-              message,
-              type: 'warning',
-              timestamp: Date.now()
-            });
-          }
+      // Filtru inteligent anti-alarme false:
+      // Dacă este online, curățăm pending-ul și trimitem reconnected doar dacă a fost trimisă anterior alertă reală
+      if (statusTone === 'online') {
+        if (disconnectAlertTriggeredRef.current[loc.id]) {
+          newAlerts.push({
+            id: `dev-alert-${loc.id}-${Date.now()}`,
+            locationId: loc.id,
+            locationName: loc.name,
+            statusTone: 'online',
+            statusLabel: 'Online',
+            message: 'Conexiunea a fost restabilită cu succes!',
+            type: 'reconnected',
+            timestamp: Date.now()
+          });
+          disconnectAlertTriggeredRef.current[loc.id] = false;
+        }
+        disconnectPendingSinceRef.current[loc.id] = null;
+      } else {
+        // statusTone este 'warning' sau 'offline'
+        if (!disconnectPendingSinceRef.current[loc.id]) {
+          disconnectPendingSinceRef.current[loc.id] = Date.now();
+        }
+
+        const durationDown = Date.now() - disconnectPendingSinceRef.current[loc.id];
+        // Declanșează toast de alertă DOAR dacă deconectarea persistă mai mult de 35 secunde
+        // (astfel evităm complet alarmele false la restarturile automate de soft de 15 secunde)
+        if (deviceAlertsInitializedRef.current && prev && durationDown >= 35000 && !disconnectAlertTriggeredRef.current[loc.id]) {
+          newAlerts.push({
+            id: `dev-alert-${loc.id}-${Date.now()}`,
+            locationId: loc.id,
+            locationName: loc.name,
+            statusTone,
+            statusLabel,
+            message,
+            type: statusTone === 'offline' ? 'disconnected' : 'warning',
+            timestamp: Date.now()
+          });
+          disconnectAlertTriggeredRef.current[loc.id] = true;
         }
       }
     });
 
     lastKnownDeviceStatusRef.current = currentStatuses;
     deviceAlertsInitializedRef.current = true;
+
+    // Elimină automat alertele de avertizare pentru orice locație care a revenit ONLINE
+    setDeviceAlerts(prev => prev.filter(a => {
+      const locStatus = currentStatuses[a.locationId];
+      if (locStatus && locStatus.statusTone === 'online' && a.type !== 'reconnected') {
+        return false;
+      }
+      return true;
+    }));
 
     if (newAlerts.length > 0) {
       setDeviceAlerts(prev => {
@@ -1192,7 +1206,7 @@ export default function AdminApp() {
                     type="button"
                     onClick={handleManualRefresh}
                     disabled={isManualRefreshing}
-                    title="Actualizează instantaneu"
+                    title="Reîmprospătează datele din pagină"
                     className="p-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 transition-all cursor-pointer disabled:opacity-50"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 text-slate-500 dark:text-slate-400 ${isManualRefreshing ? 'animate-spin text-blue-600 dark:text-blue-400' : ''}`} />
@@ -1479,16 +1493,49 @@ export default function AdminApp() {
               </div>
 
               {/* Desktop actions: right aligned */}
-              <div className="hidden md:flex items-center gap-3 shrink-0">
+              <div className="hidden md:flex items-center gap-2.5 shrink-0">
+                {/* Indicator versiune macOS-style: 'Soft la zi' sau buton 'Actualizează' */}
+                {(() => {
+                  const targetVer = BRIDGE_RELEASE_NOTES[0]?.version || bridgeSummary?.latestBridgeVersion || '3.5.0';
+                  const locList = bridgeSummary?.locations ? Object.values(bridgeSummary.locations) : [];
+                  const onlineList = locList.filter(l => l.status === 'online' || l.isBridgeOnline);
+                  if (onlineList.length === 0) return null;
+                  const outdated = onlineList.filter(l => (l.bridgeVersion && l.bridgeVersion !== targetVer) || l.isBridgeUpToDate === false);
+                  
+                  if (outdated.length === 0) {
+                    return (
+                      <button 
+                        type="button"
+                        onClick={() => setIsReleaseNotesOpen(true)}
+                        title={`Click pentru a vedea noutățile versiunii oficiale v${targetVer} (Release Notes)`}
+                        className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 hover:bg-emerald-100/90 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 shadow-xs cursor-pointer transition-all active:scale-98 group"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
+                        <span>Soft la zi (v{targetVer})</span>
+                      </button>
+                    );
+                  }
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => setIsReleaseNotesOpen(true)}
+                      title={`Click pentru noutăți și actualizare la v${targetVer} (${outdated.length} kiosk-uri)`}
+                      className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-all cursor-pointer active:scale-98 whitespace-nowrap"
+                    >
+                      <span>Actualizare la v{targetVer} ({outdated.length})</span>
+                    </button>
+                  );
+                })()}
+
                 <button
                   type="button"
                   onClick={handleManualRefresh}
                   disabled={isManualRefreshing}
-                  title="Actualizează instantaneu starea kiosk-urilor și a comenzilor"
+                  title="Reîmprospătează datele și comenzile din pagină"
                   className="px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-700/60 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-xs"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 text-slate-500 dark:text-slate-400 ${isManualRefreshing ? 'animate-spin text-blue-600 dark:text-blue-400' : ''}`} />
-                  <span>{isManualRefreshing ? 'Se actualizează...' : 'Actualizează'}</span>
+                  <span>{isManualRefreshing ? 'Se reîmprospătează...' : 'Reîmprospătează'}</span>
                 </button>
 
                 <button
@@ -2191,6 +2238,27 @@ export default function AdminApp() {
         onClose={() => setThermalReceiptOrder(null)} 
       />
     )}
+
+    {/* ── Apple macOS Software Release Notes Modal ── */}
+    <SoftwareReleaseNotesModal
+      isOpen={isReleaseNotesOpen}
+      onClose={() => setIsReleaseNotesOpen(false)}
+      initialVersion={BRIDGE_RELEASE_NOTES[0]?.version || '3.5.0'}
+      canUpdate={(() => {
+        const targetVer = BRIDGE_RELEASE_NOTES[0]?.version || '3.5.0';
+        const locList = bridgeSummary?.locations ? Object.values(bridgeSummary.locations) : [];
+        return locList.some(l => (l.status === 'online' || l.isBridgeOnline) && ((l.bridgeVersion && l.bridgeVersion !== targetVer) || l.isBridgeUpToDate === false));
+      })()}
+      outdatedCount={(() => {
+        const targetVer = BRIDGE_RELEASE_NOTES[0]?.version || '3.5.0';
+        const locList = bridgeSummary?.locations ? Object.values(bridgeSummary.locations) : [];
+        return locList.filter(l => (l.status === 'online' || l.isBridgeOnline) && ((l.bridgeVersion && l.bridgeVersion !== targetVer) || l.isBridgeUpToDate === false)).length;
+      })()}
+      onUpdate={() => {
+        setIsReleaseNotesOpen(false);
+        setTab('bridge-monitoring');
+      }}
+    />
 
     {/* ── Product Detail Modal ── */}
     {selectedItemDetail && (

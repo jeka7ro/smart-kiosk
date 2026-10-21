@@ -17,6 +17,22 @@ router.get('/status', (req, res) => {
 });
 
 /**
+ * GET /api/bridge-monitoring/release-notes
+ * Returns version changelogs and release notes
+ */
+router.get('/release-notes', (req, res) => {
+  try {
+    const { BRIDGE_RELEASE_NOTES } = require('../data/bridgeReleaseNotes');
+    res.json({
+      latestVersion: BRIDGE_RELEASE_NOTES[0]?.version || '3.4.0',
+      releaseNotes: BRIDGE_RELEASE_NOTES
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
  * GET /api/bridge-monitoring/telegram-config
  * Returns public configuration of Telegram alerts
  */

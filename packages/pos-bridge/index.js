@@ -1,8 +1,9 @@
-const BRIDGE_VERSION = '3.4.0';
+const BRIDGE_VERSION = '3.5.0';
 
 // ── SINGLETON LOCK & LOCAL HEALTH SERVER (Port 40499) ─────────────────────────
 const net = require('net');
 const SINGLETON_PORT = 40499;
+let globalSingletonServer = null;
 
 function acquireSingletonLock() {
   return new Promise((resolve) => {
@@ -40,6 +41,7 @@ function acquireSingletonLock() {
 
     singletonServer.listen(SINGLETON_PORT, '127.0.0.1', () => {
       console.log(`[SINGLETON] Lock exclusiv activat pe portul ${SINGLETON_PORT}. Health responder activ.`);
+      globalSingletonServer = singletonServer;
       resolve(singletonServer);
     });
   });
@@ -1695,12 +1697,38 @@ async function start() {
       await fetchFile('scan_port_pc.js');
       await fetchFile('package.json');
       await fetchFile('watchdog.vbs');
-      await fetchFile('start-windows.bat');
     } catch (e) {
       log(`⚠️ Eroare descărcare update: ${e.message}`);
     }
     enforceKioskTaskbar();
-    setTimeout(() => process.exit(0), 1000);
+    try {
+      if (globalPort && globalPort.isOpen) {
+        try { globalPort.close(); } catch (_) {}
+      }
+      if (socket && socket.connected) {
+        try { socket.disconnect(); } catch (_) {}
+      }
+      if (globalSingletonServer) {
+        try { globalSingletonServer.close(); } catch (_) {}
+      }
+    } catch (_) {}
+
+    // Auto-repornire nativă garantată în sub 1 secundă:
+    try {
+      const { spawn } = require('child_process');
+      const child = spawn(process.execPath, [pathMod.join(__dirname, 'index.js')], {
+        detached: true,
+        stdio: 'ignore',
+        cwd: __dirname,
+        windowsHide: true,
+      });
+      child.unref();
+      log('🚀 Noua instanță POS Bridge a fost spawn-uită independent (detached).');
+    } catch (spawnErr) {
+      log(`⚠️ Eroare la spawn direct: ${spawnErr.message}`);
+    }
+
+    setTimeout(() => process.exit(0), 400);
   }
 
   socket.on('remote_restart', (data) => {

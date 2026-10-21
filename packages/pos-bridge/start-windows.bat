@@ -32,7 +32,6 @@ curl -s -L -H "Cache-Control: no-cache" -o scan_port_pc.js "https://raw.githubus
 curl -s -L -H "Cache-Control: no-cache" -o PrinterServiceDatecsFP950.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/PrinterServiceDatecsFP950.js?ts=%random%%random%"
 curl -s -L -H "Cache-Control: no-cache" -o VivaPosService.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/VivaPosService.js?ts=%random%%random%"
 curl -s -L -H "Cache-Control: no-cache" -o package.json "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/package.json?ts=%random%%random%"
-curl -s -L -H "Cache-Control: no-cache" -o start-windows.bat "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/start-windows.bat?ts=%random%%random%"
 if not exist "run-hidden.vbs" curl -s -L -H "Cache-Control: no-cache" -o run-hidden.vbs "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/run-hidden.vbs"
 echo  [INFO] Fisiere actualizate cu succes!
 
@@ -69,7 +68,6 @@ curl -s -L -H "Cache-Control: no-cache" -o printer.js "https://raw.githubusercon
 curl -s -L -H "Cache-Control: no-cache" -o rawprint.ps1 "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/rawprint.ps1?ts=%random%%random%"
 curl -s -L -H "Cache-Control: no-cache" -o scan_port_pc.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/scan_port_pc.js?ts=%random%%random%"
 curl -s -L -H "Cache-Control: no-cache" -o watchdog.vbs "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/watchdog.vbs?ts=%random%%random%"
-curl -s -L -H "Cache-Control: no-cache" -o start-windows.bat "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/start-windows.bat?ts=%random%%random%"
 node index.js
 if %errorlevel% equ 42 (
     echo.

@@ -1,6 +1,6 @@
 {
   "name": "pos-bridge",
-  "version": "3.4.0",
+  "version": "3.5.0",
   "description": "POS Bridge — conectează Render cu Raiffeisen POS serial (COM port) pe Windows",
   "main": "index.js",
   "scripts": {

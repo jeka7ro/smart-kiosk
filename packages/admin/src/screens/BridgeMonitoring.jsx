@@ -29,6 +29,8 @@ import {
   Sparkles
 } from 'lucide-react';
 import BrandLogo from '../components/BrandLogo.jsx';
+import SoftwareReleaseNotesModal from '../components/SoftwareReleaseNotesModal.jsx';
+import { BRIDGE_RELEASE_NOTES } from '../data/bridgeReleaseNotes.js';
 
 const UNIVERSAL_COMMAND = 'cmd /c "mkdir C:\\SmartKiosk 2>nul & cd /d C:\\SmartKiosk & curl -s -L -o setup.bat https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/setup_kiosk_autostart.bat & setup.bat"';
 
@@ -84,22 +86,41 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
   // Hardware action state
   const [actionLoading, setActionLoading] = useState(null);
   const [actionFeedback, setActionFeedback] = useState(null);
+  const [isReleaseNotesOpen, setIsReleaseNotesOpen] = useState(false);
+
+  const handleCompleteUpdate = (newVersion) => {
+    setData(prev => {
+      if (!prev) return prev;
+      const updatedLocations = { ...(prev.locations || {}) };
+      Object.keys(updatedLocations).forEach(k => {
+        updatedLocations[k] = {
+          ...updatedLocations[k],
+          bridgeVersion: newVersion,
+          version: newVersion,
+          latestBridgeVersion: newVersion,
+          isBridgeUpToDate: true,
+        };
+      });
+      return {
+        ...prev,
+        latestBridgeVersion: newVersion,
+        locations: updatedLocations,
+      };
+    });
+    setActionFeedback({
+      type: 'success',
+      text: `Actualizarea la v${newVersion} a fost finalizată cu succes pe toate cele 4 kiosk-uri!`,
+    });
+    setTimeout(() => setActionFeedback(null), 6000);
+  };
 
   const handleAction = async (locationId, actionType) => {
     if (actionType === 'update-all-bridges') {
-      const latestVer = Object.values(computedLocations)[0]?.latestBridgeVersion || '3.4.0';
-      const outdated = Object.values(computedLocations).filter(l => l.isBridgeOnline && !l.isBridgeUpToDate).length;
-      const msg = outdated > 0
-        ? `Se va efectua update de software la versiunea oficială v${latestVer} pe TOATE Kiosk-urile conectate (${outdated} necesită actualizare). Fiecare PC va descărca cele mai noi fișiere de pe GitHub și va reporni bridge-ul automat. Continui?`
-        : `Toate Kiosk-urile rulează deja versiunea la zi v${latestVer}. Doriți să forțați o descărcare și repornire generală pe toată rețeaua?`;
-      const ok = await confirm(msg, {
-        title: `Actualizare Software Globală (v${latestVer})`,
-        icon: <RestartDialogIcon />,
-        okLabel: 'Da, actualizează toate',
-        cancelLabel: 'Nu, renunț',
-        danger: false
-      });
-      if (!ok) return;
+      setIsReleaseNotesOpen(true);
+      return;
+    }
+    if (actionType === 'execute-update-all-bridges') {
+      actionType = 'update-all-bridges';
     }
     if (actionType === 'reload-kiosk') {
       const isAll = locationId === 'all';
@@ -854,16 +875,16 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
       const isScriptUpToDate = Boolean(kioskScriptVer && kioskScriptVer === latestScriptVer);
 
       const rawBridgeVersion = loc.bridgeVersion || loc.version || null;
-      const bridgeVersion = (rawBridgeVersion && rawBridgeVersion !== '1.0.0') ? rawBridgeVersion : '3.3.0';
-      const latestBridgeVer = loc.latestBridgeVersion || '3.3.0';
-      const isBridgeUpToDate = Boolean(!rawBridgeVersion || bridgeVersion === latestBridgeVer || rawBridgeVersion === '1.0.0');
+      const bridgeVersion = (rawBridgeVersion && rawBridgeVersion !== '1.0.0') ? rawBridgeVersion : '3.4.0';
+      const latestBridgeVer = BRIDGE_RELEASE_NOTES[0]?.version || loc.latestBridgeVersion || '3.4.0';
+      const isBridgeUpToDate = Boolean(rawBridgeVersion && bridgeVersion === latestBridgeVer);
 
       const cleanKioskName = friendlyNames[locKey] || (loc.displayName ? loc.displayName.replace(/\s*\([^)]*\)/g, '').trim() : locKey);
       const brandId = loc.brand || loc.brandId || brandMap[locKey] || (locKey.includes('brasov') ? 'rollmaster' : 'smashme');
 
+      const hasRecentConnection = Boolean(loc.lastPingSecondsAgo !== null && loc.lastPingSecondsAgo < 300);
       const isBridgeOnline = Boolean(loc.status === 'online' || loc.isBridgeOnline);
-      const hasRecentConnection = Boolean(loc.connectedAt && (Date.now() - loc.connectedAt < 12 * 3600 * 1000) && loc.port && loc.port !== 'N/A');
-      const isOnline = isBridgeOnline || isKioskConnected || hasRecentConnection;
+      const isOnline = isBridgeOnline;
 
       const elapsedSinceFetch = Math.max(0, Math.floor((currentTime - dataReceivedAt) / 1000));
       const effectiveUptime = isBridgeOnline && loc.uptimeSeconds > 0 
@@ -957,51 +978,50 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
           </div>
 
           <div className="flex items-center gap-2 text-xs font-semibold px-3.5 py-2 rounded-xl bg-slate-100/80 dark:bg-slate-700/60 text-slate-700 dark:text-slate-200 border border-slate-200/50 dark:border-slate-600/50 shadow-inner">
-            <Radio className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
-            <span>Active: <strong className="text-emerald-700 dark:text-emerald-400 font-bold">{totalOnlineCount}</strong></span>
+            <Radio className={`w-3.5 h-3.5 ${totalOnlineCount > 0 ? 'text-emerald-500 animate-pulse' : 'text-slate-400'}`} />
+            <span>POS Active: <strong className={totalOnlineCount > 0 ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-slate-500'}>{totalOnlineCount}</strong></span>
             <span className="text-slate-300 dark:text-slate-600">|</span>
-            <span className={totalOfflineCount > 0 ? 'text-amber-600 dark:text-amber-400 font-bold' : 'text-slate-400'}>
+            <span className={totalOfflineCount > 0 ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-slate-400'}>
               Deconectate: <strong>{totalOfflineCount}</strong>
             </span>
           </div>
 
           {/* Indicator Status Soft stil macOS */}
           {(() => {
-            const latestBridgeVerGlobal = Object.values(computedLocations)[0]?.latestBridgeVersion || '3.4.0';
+            const latestBridgeVerGlobal = BRIDGE_RELEASE_NOTES[0]?.version || Object.values(computedLocations)[0]?.latestBridgeVersion || '3.4.0';
             const outdatedLocations = Object.values(computedLocations).filter(
-              l => l.isBridgeOnline && !l.isBridgeUpToDate
+              l => l.isBridgeOnline && (l.bridgeVersion !== latestBridgeVerGlobal || !l.isBridgeUpToDate)
             );
             const hasUpdatesPending = outdatedLocations.length > 0;
 
             if (hasUpdatesPending) {
-              // Exact ca pe macOS: Când există update, apare butonul albastru de acțiune
               return (
                 <button
                   type="button"
-                  onClick={() => handleAction('all', 'update-all-bridges')}
+                  onClick={() => setIsReleaseNotesOpen(true)}
                   disabled={actionLoading === 'all-update-all-bridges'}
                   className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-all duration-150 cursor-pointer disabled:opacity-50 whitespace-nowrap shrink-0 active:scale-95"
-                  title={`Actualizează ${outdatedLocations.length} kiosk-uri la v${latestBridgeVerGlobal}`}
+                  title={`Click pentru a vedea noutățile și a actualiza ${outdatedLocations.length} kiosk-uri la v${latestBridgeVerGlobal}`}
                 >
-                  {actionLoading === 'all-update-all-bridges' ? (
+                  {actionLoading === 'all-update-all-bridges' && (
                     <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0" />
-                  ) : (
-                    <Sparkles className="w-3.5 h-3.5 text-blue-200 shrink-0" />
                   )}
                   <span>Actualizează la v{latestBridgeVerGlobal} ({outdatedLocations.length})</span>
                 </button>
               );
             }
 
-            // Exact ca pe macOS: Când totul e la zi, este o insignă curată, discretă (nu un buton activ de update)
+            // Exact ca pe macOS: Când totul e la zi, este o insignă curată și clicabilă pentru detalii versiune
             return (
-              <div 
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-slate-100/90 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-600/60 whitespace-nowrap shrink-0 select-none"
-                title={`Toate kiosk-urile rulează ultima versiune oficială (v${latestBridgeVerGlobal})`}
+              <button 
+                type="button"
+                onClick={() => setIsReleaseNotesOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-50 hover:bg-emerald-100/90 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 whitespace-nowrap shrink-0 shadow-xs transition-all cursor-pointer group active:scale-98"
+                title={`Click pentru a vedea noutățile versiunii oficiale (v${latestBridgeVerGlobal})`}
               >
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0 group-hover:scale-110 transition-transform" />
                 <span>Soft la zi (v{latestBridgeVerGlobal})</span>
-              </div>
+              </button>
             );
           })()}
 
@@ -1289,20 +1309,30 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                       <div className="flex items-center gap-1.5 whitespace-nowrap">
                         {isBridgeOnline ? (
                           <>
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">
-                              v{loc.bridgeVersion || '3.3.0'}
-                            </span>
-                            <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold whitespace-nowrap ${
-                              loc.isBridgeUpToDate
-                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
-                                : 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300'
-                            }`}>
+                            <button
+                              type="button"
+                              onClick={() => setIsReleaseNotesOpen(true)}
+                              title="Click pentru a vedea noutățile acestei versiuni"
+                              className="px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900 transition-colors cursor-pointer"
+                            >
+                              v{loc.bridgeVersion || '3.4.0'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setIsReleaseNotesOpen(true)}
+                              title={loc.isBridgeUpToDate ? "Soft la zi" : `Actualizare disponibilă la v${loc.latestBridgeVer}. Click pentru detalii.`}
+                              className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold whitespace-nowrap cursor-pointer transition-all hover:scale-105 active:scale-95 ${
+                                loc.isBridgeUpToDate
+                                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
+                                  : 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900 ring-1 ring-amber-300 dark:ring-amber-700/60'
+                              }`}
+                            >
                               {loc.isBridgeUpToDate ? 'La zi' : 'Update disp.'}
-                            </span>
+                            </button>
                           </>
                         ) : (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-500 dark:bg-slate-700/60 dark:text-slate-400 whitespace-nowrap">
-                            v{loc.bridgeVersion || '3.3.0'} (offline)
+                            v{loc.bridgeVersion || '3.4.0'} (offline)
                           </span>
                         )}
                       </div>
@@ -2079,6 +2109,18 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
           </div>
         </div>
       )}
+
+      {/* Modal Apple macOS Software Release Notes & Action */}
+      <SoftwareReleaseNotesModal
+        isOpen={isReleaseNotesOpen}
+        onClose={() => setIsReleaseNotesOpen(false)}
+        initialVersion={BRIDGE_RELEASE_NOTES[0]?.version || '3.4.0'}
+        canUpdate={Object.values(computedLocations).some(l => l.isBridgeOnline && (l.bridgeVersion !== (BRIDGE_RELEASE_NOTES[0]?.version || '3.4.0') || !l.isBridgeUpToDate))}
+        outdatedCount={Object.values(computedLocations).filter(l => l.isBridgeOnline && (l.bridgeVersion !== (BRIDGE_RELEASE_NOTES[0]?.version || '3.4.0') || !l.isBridgeUpToDate)).length}
+        isUpdating={actionLoading === 'all-update-all-bridges'}
+        onUpdate={() => handleAction('all', 'execute-update-all-bridges')}
+        onCompleteUpdate={handleCompleteUpdate}
+      />
     </div>
   );
 }
