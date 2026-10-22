@@ -149,18 +149,25 @@ router.post('/telegram-webhook', async (req, res) => {
       const pinText = await bridgeMonitoringService.formatPinSummaryForTelegram();
       await bridgeMonitoringService.sendTelegramMessage(pinText, null, chatId);
     } else if (isComenziCmd) {
-      const isYesterday = cleanText.includes('ieri') || cleanText.includes('yesterday');
+      const targetDate = bridgeMonitoringService.detectDateFromText(rawText);
+      const isYesterday = !targetDate && (cleanText.includes('ieri') || cleanText.includes('yesterday'));
       const targetLocation = bridgeMonitoringService.detectLocationFromText(rawText);
       const locName = targetLocation ? bridgeMonitoringService.getLocationDisplayName(targetLocation) : null;
       const scopeLabel = locName ? `pentru <b>${locName}</b>` : 'din toate locațiile';
-      const dayLabel = isYesterday ? 'de ieri' : 'de astăzi';
+      
+      let dayLabel = 'de astăzi';
+      if (targetDate) {
+        dayLabel = `din data de <b>${targetDate.displayDate}</b>`;
+      } else if (isYesterday) {
+        dayLabel = 'de ieri';
+      }
 
       await bridgeMonitoringService.sendTelegramMessage(
         `⏳ <i>Se extrag comenzile ${dayLabel} ${scopeLabel}...</i>`,
         null,
         chatId
       );
-      const ordersText = await bridgeMonitoringService.formatOrdersSummaryForTelegram({ isYesterday, targetLocation });
+      const ordersText = await bridgeMonitoringService.formatOrdersSummaryForTelegram({ isYesterday, targetLocation, targetDate });
       await bridgeMonitoringService.sendTelegramMessage(ordersText, null, chatId);
     } else if (cleanText.startsWith('/verificare') || cleanText === 'verificare' || cleanText.startsWith('/check') || cleanText.startsWith('/dimineata') || cleanText.startsWith('/0955') || cleanText.startsWith('/preflight')) {
       await bridgeMonitoringService.sendTelegramMessage('⏳ <i>Se efectuează verificarea matinală a echipamentelor (test semnal POS, ecran, .env, procese duplicate)...</i>', null, chatId);
@@ -170,11 +177,13 @@ router.post('/telegram-webhook', async (req, res) => {
         `🤖 <b>[SMART KIOSK BOT]</b>`,
         `Comenzi disponibile (click direct sau scrie cu spațiu):`,
         `• <b>/comenzi</b> — Toate comenzile de astăzi (masă/pachet, card/cash, produse, încasări)`,
+        `• <b>/comenzi 21.10.2026</b> — Comenzi pentru orice dată specifică (sau <code>/comenzi 21.10</code>)`,
         `• <b>/comenzi_cluj1</b> sau <code>/comenzi cluj1</code> — Cluj 1 (SmashMe)`,
         `• <b>/comenzi_cluj2</b> sau <code>/comenzi cluj2</code> — Cluj 2 (SmashMe)`,
         `• <b>/comenzi_brasov</b> sau <code>/comenzi brasov</code> — Brașov (RollMaster)`,
         `• <b>/comenzi_constanta1</b> sau <code>/comenzi constanta1</code> — Constanța 1 (SmashMe)`,
         `• <b>/comenzi_ieri</b> sau <code>/comenzi ieri</code> — Toate comenzile de ieri`,
+        `• Poți combina dată și locație: <code>/comenzi 21.10 cluj1</code> sau <code>/comenzi ieri brasov</code>`,
         `• <b>/pos</b> — Interoghează semnalul UART către terminalele POS și latența (ms)`,
         `• <b>/status</b> — Afișează starea curentă a kiosk-urilor, POS, imprimante, PIN-uri`,
         `• <b>/pin</b> — Afișează codurile PIN de deblocare și orarul programat de blocare`,

@@ -709,6 +709,53 @@ function detectLocationFromText(text) {
   return null;
 }
 
+/**
+ * Detect specific date from text input (supports "21.10.2026", "21-10-2026", "21/10/2026", "21_10_2026", "21.10", "2026-10-21", etc.)
+ * Returns { isoDate: 'YYYY-MM-DD', displayDate: 'DD.MM.YYYY' } or null
+ */
+function detectDateFromText(text) {
+  if (!text) return null;
+  // Înlocuim underscore-urile cu spații pentru a asigura separarea termenilor
+  const str = String(text).trim().replace(/[_]+/g, ' ');
+
+  // 1. Format: YYYY-MM-DD (ex: 2026-10-21)
+  const isoMatch = str.match(/\b(202\d)-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])\b/);
+  if (isoMatch) {
+    const [, y, m, d] = isoMatch;
+    return {
+      isoDate: `${y}-${m}-${d}`,
+      displayDate: `${d}.${m}.${y}`
+    };
+  }
+
+  // 2. Format: DD.MM.YYYY sau DD-MM-YYYY sau DD/MM/YYYY sau DD_MM_YYYY sau DD MM YYYY (ex: 21.10.2026)
+  const fullMatch = str.match(/\b([0-2]?[0-9]|3[01])[\.\-\/\s](0?[1-9]|1[0-2])[\.\-\/\s](202\d)\b/);
+  if (fullMatch) {
+    const [, d, m, y] = fullMatch;
+    const padD = String(d).padStart(2, '0');
+    const padM = String(m).padStart(2, '0');
+    return {
+      isoDate: `${y}-${padM}-${padD}`,
+      displayDate: `${padD}.${padM}.${y}`
+    };
+  }
+
+  // 3. Format: DD.MM sau DD-MM sau DD/MM (fără an, se deduce anul curent din București)
+  const shortMatch = str.match(/\b([0-2]?[0-9]|3[01])[\.\-\/](0?[1-9]|1[0-2])\b(?![0-9\.\-])/);
+  if (shortMatch) {
+    const [, d, m] = shortMatch;
+    const currentYear = new Date().getFullYear();
+    const padD = String(d).padStart(2, '0');
+    const padM = String(m).padStart(2, '0');
+    return {
+      isoDate: `${currentYear}-${padM}-${padD}`,
+      displayDate: `${padD}.${padM}.${currentYear}`
+    };
+  }
+
+  return null;
+}
+
 function getLocationDisplayName(locKey) {
   switch (locKey) {
     case 'cluj1': return 'Cluj 1 (SmashMe 🍔)';
@@ -2305,37 +2352,46 @@ async function resolveDuplicateInstances(locationId) {
  * Format orders summary for Telegram /comenzi command (supports today and yesterday)
  */
 async function formatOrdersSummaryForTelegram(options = {}) {
-  const { isYesterday = false, targetLocation = null } = options;
+  const { isYesterday = false, targetLocation = null, targetDate = null } = options;
   const { dateStr, hour, minute } = getBucharestTime();
   const timeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
 
   try {
-    const dayOffset = isYesterday ? 1 : 0;
-    
+    let dateCondition = `(created_at AT TIME ZONE 'Europe/Bucharest')::date = (NOW() AT TIME ZONE 'Europe/Bucharest')::date`;
+    let reportDateStr = dateStr;
+    let periodTitle = `ASTĂZI — ${dateStr}`;
+
+    if (targetDate && targetDate.isoDate) {
+      dateCondition = `(created_at AT TIME ZONE 'Europe/Bucharest')::date = '${targetDate.isoDate}'::date`;
+      reportDateStr = targetDate.displayDate;
+      periodTitle = reportDateStr;
+    } else if (isYesterday) {
+      dateCondition = `(created_at AT TIME ZONE 'Europe/Bucharest')::date = ((NOW() AT TIME ZONE 'Europe/Bucharest')::date - INTERVAL '1 day')::date`;
+      const targetDateRes = await pool.query(`
+        SELECT to_char(((NOW() AT TIME ZONE 'Europe/Bucharest')::date - INTERVAL '1 day')::date, 'DD.MM.YYYY') as d
+      `);
+      reportDateStr = targetDateRes.rows[0]?.d || dateStr;
+      periodTitle = `IERI — ${reportDateStr}`;
+    }
+
     // Extragem comenzile pentru ziua dorită (conform fusului orar București)
     const { rows } = await pool.query(`
       SELECT id, location_id, status, data, created_at
       FROM orders
-      WHERE (created_at AT TIME ZONE 'Europe/Bucharest')::date = ((NOW() AT TIME ZONE 'Europe/Bucharest')::date - INTERVAL '${dayOffset} day')::date
+      WHERE ${dateCondition}
       ORDER BY created_at DESC
       LIMIT 200
     `);
-
-    // Obținem data exactă a zilei interogate
-    const targetDateRes = await pool.query(`
-      SELECT to_char(((NOW() AT TIME ZONE 'Europe/Bucharest')::date - INTERVAL '${dayOffset} day')::date, 'DD.MM.YYYY') as d
-    `);
-    const reportDateStr = targetDateRes.rows[0]?.d || dateStr;
 
     // Normalizăm targetLocation dacă a fost specificat
     const canonTarget = targetLocation ? normalizeLocationKey(targetLocation) : null;
     const targetLocName = canonTarget ? getLocationDisplayName(canonTarget) : null;
 
-    let titleLabel = isYesterday ? `COMENZI IERI — ${reportDateStr}` : `COMENZI ASTĂZI — ${reportDateStr}`;
+    let titleLabel = `COMENZI ${periodTitle}`;
     if (targetLocName) {
-      titleLabel = isYesterday 
-        ? `COMENZI IERI [${targetLocName}] — ${reportDateStr}` 
-        : `COMENZI ASTĂZI [${targetLocName}] — ${reportDateStr}`;
+      titleLabel = targetDate
+        ? `COMENZI [${targetLocName}] — ${reportDateStr}`
+        : (isYesterday ? `COMENZI IERI [${targetLocName}] — ${reportDateStr}` : `COMENZI ASTĂZI [${targetLocName}] — ${reportDateStr}`);
     }
 
     // Filtrăm pe locație dacă este specificat
@@ -2349,19 +2405,25 @@ async function formatOrdersSummaryForTelegram(options = {}) {
 
     if (!filteredRows || filteredRows.length === 0) {
       const tipCmd = canonTarget ? `/comenzi_${canonTarget}_ieri` : `/comenzi_ieri`;
-      const tipText = !isYesterday ? `\n\n💡 <i>Trimite <b>${tipCmd}</b> pentru a vedea vânzările de ieri.</i>` : '';
+      let tipText = '';
+      if (targetDate) {
+        tipText = `\n\n💡 <i>Verifică dacă pe data de <b>${reportDateStr}</b> au existat comenzi sau dacă data a fost introdusă corect.</i>`;
+      } else if (!isYesterday) {
+        tipText = `\n\n💡 <i>Trimite <b>${tipCmd}</b> pentru a vedea vânzările de ieri.</i>`;
+      }
+
       return [
         `🛍️ <b>[${titleLabel}]</b>`,
-        `🕒 <b>Ora:</b> ${timeStr}`,
+        `🕒 <b>Ora raport:</b> ${timeStr}`,
         ``,
-        `ℹ️ <i>Nu s-a înregistrat nicio comandă ${isYesterday ? 'ieri' : 'astăzi până la această oră'}${targetLocName ? ` pentru <b>${targetLocName}</b>` : ''}.</i>${tipText}`,
+        `ℹ️ <i>Nu s-a înregistrat nicio comandă pe data de <b>${reportDateStr}</b>${targetLocName ? ` pentru <b>${targetLocName}</b>` : ''}.</i>${tipText}`,
         ``,
-        `🔗 <i>Comenzi rapide alte locații:</i>`,
-        `• /comenzi — Toate locațiile`,
-        `• /comenzi_cluj1 — Cluj 1`,
-        `• /comenzi_cluj2 — Cluj 2`,
-        `• /comenzi_brasov — Brașov`,
-        `• /comenzi_constanta1 — Constanța 1`
+        `🔗 <i>Comenzi rapide:</i>`,
+        `• /comenzi — Comenzile de astăzi`,
+        `• /comenzi_ieri — Comenzile de ieri`,
+        `• /comenzi_cluj1 — Cluj 1 astăzi`,
+        `• /comenzi_brasov — Brașov astăzi`,
+        `• /comenzi_constanta1 — Constanța 1 astăzi`
       ].join('\n');
     }
 
@@ -2512,7 +2574,7 @@ async function formatOrdersSummaryForTelegram(options = {}) {
     lines.push(`🔗 <b>Comenzi rapide (click pentru filtrare):</b>`);
     if (canonTarget) {
       lines.push(`• /comenzi — Toate locațiile (astăzi)`);
-      if (!isYesterday) {
+      if (!isYesterday && !targetDate) {
         lines.push(`• /comenzi_${canonTarget}_ieri — Raport ieri (${targetLocName})`);
       }
     } else {
@@ -2520,7 +2582,7 @@ async function formatOrdersSummaryForTelegram(options = {}) {
       lines.push(`• /comenzi_cluj2 — Cluj 2`);
       lines.push(`• /comenzi_brasov — Brașov`);
       lines.push(`• /comenzi_constanta1 — Constanța 1`);
-      if (!isYesterday) {
+      if (!isYesterday && !targetDate) {
         lines.push(`• /comenzi_ieri — Toate comenzile de ieri`);
       }
     }
@@ -2556,6 +2618,7 @@ module.exports = {
   formatPosSignalSummaryForTelegram,
   formatOrdersSummaryForTelegram,
   detectLocationFromText,
+  detectDateFromText,
   getLocationDisplayName,
   normalizeLocationKey,
   runMorningPreflightCheck,
