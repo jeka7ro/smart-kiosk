@@ -134,6 +134,15 @@ router.post('/telegram-webhook', async (req, res) => {
     } else if (text.startsWith('/pin') || text === 'pin' || text.startsWith('/cod') || text === 'cod' || text.startsWith('/program') || text === 'program') {
       const pinText = await bridgeMonitoringService.formatPinSummaryForTelegram();
       await bridgeMonitoringService.sendTelegramMessage(pinText, null, chatId);
+    } else if (text.startsWith('/comenzi') || text === 'comenzi' || text.startsWith('/orders') || text === 'orders') {
+      const isYesterday = text.includes('ieri') || text.includes('yesterday');
+      await bridgeMonitoringService.sendTelegramMessage(
+        `⏳ <i>Se extrag comenzile ${isYesterday ? 'de ieri' : 'de astăzi'} din sistem...</i>`,
+        null,
+        chatId
+      );
+      const ordersText = await bridgeMonitoringService.formatOrdersSummaryForTelegram({ isYesterday });
+      await bridgeMonitoringService.sendTelegramMessage(ordersText, null, chatId);
     } else if (text.startsWith('/verificare') || text === 'verificare' || text.startsWith('/check') || text.startsWith('/dimineata') || text.startsWith('/0955') || text.startsWith('/preflight')) {
       await bridgeMonitoringService.sendTelegramMessage('⏳ <i>Se efectuează verificarea matinală a echipamentelor (test semnal POS, ecran, .env, procese duplicate)...</i>', null, chatId);
       await bridgeMonitoringService.runMorningPreflightCheck(chatId, true);
@@ -141,6 +150,7 @@ router.post('/telegram-webhook', async (req, res) => {
       const helpText = [
         `🤖 <b>[SMART KIOSK BOT]</b>`,
         `Comenzi disponibile:`,
+        `• <b>/comenzi</b> — Afișează comenzile de astăzi cu detalii (la masă / la pachet, card / cash, sume, produse). Suportă și <code>/comenzi ieri</code>.`,
         `• <b>/pos</b> — Interoghează semnalul UART către terminalele POS și afișează latența exactă în milisecunde (ms).`,
         `• <b>/status</b> — Afișează starea curentă a kiosk-urilor, POS, imprimante, PIN-uri și program.`,
         `• <b>/pin</b> — Afișează codurile PIN de deblocare și orarul programat de blocare.`,

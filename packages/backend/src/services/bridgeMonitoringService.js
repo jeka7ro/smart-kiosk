@@ -2234,6 +2234,192 @@ async function resolveDuplicateInstances(locationId) {
   };
 }
 
+/**
+ * Format orders summary for Telegram /comenzi command (supports today and yesterday)
+ */
+async function formatOrdersSummaryForTelegram(options = {}) {
+  const { isYesterday = false } = options;
+  const { dateStr, hour, minute } = getBucharestTime();
+  const timeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+
+  try {
+    const dayOffset = isYesterday ? 1 : 0;
+    
+    // Extragem comenzile pentru ziua dorită (conform fusului orar București)
+    const { rows } = await pool.query(`
+      SELECT id, location_id, status, data, created_at
+      FROM orders
+      WHERE (created_at AT TIME ZONE 'Europe/Bucharest')::date = ((NOW() AT TIME ZONE 'Europe/Bucharest')::date - INTERVAL '${dayOffset} day')::date
+      ORDER BY created_at DESC
+      LIMIT 120
+    `);
+
+    // Obținem data exactă a zilei interogate
+    const targetDateRes = await pool.query(`
+      SELECT to_char(((NOW() AT TIME ZONE 'Europe/Bucharest')::date - INTERVAL '${dayOffset} day')::date, 'DD.MM.YYYY') as d
+    `);
+    const reportDateStr = targetDateRes.rows[0]?.d || dateStr;
+    const titleLabel = isYesterday ? `COMENZI IERI — ${reportDateStr}` : `COMENZI ASTĂZI — ${reportDateStr}`;
+
+    if (!rows || rows.length === 0) {
+      const tipText = !isYesterday ? `\n\n💡 <i>Trimite <b>/comenzi ieri</b> pentru a vedea vânzările și comenzile de ieri.</i>` : '';
+      return [
+        `🛍️ <b>[${titleLabel}]</b>`,
+        `🕒 <b>Ora:</b> ${timeStr}`,
+        ``,
+        `ℹ️ <i>Nu s-a înregistrat nicio comandă ${isYesterday ? 'ieri' : 'astăzi până la această oră'}.</i>${tipText}`
+      ].join('\n');
+    }
+
+    let totalSum = 0;
+    let cardCount = 0;
+    let cardSum = 0;
+    let cashCount = 0;
+    let cashSum = 0;
+    let dineInCount = 0;
+    let takeawayCount = 0;
+
+    const locStats = {};
+    const formattedOrders = [];
+
+    for (const r of rows) {
+      const o = typeof r.data === 'string' ? JSON.parse(r.data) : (r.data || {});
+      const amount = Number(o.totalAmount || o.subtotal || 0);
+      
+      const rawPay = String(o.paymentMethod || 'card').toLowerCase();
+      const isCard = ['card', 'viva', 'viva_pos', 'pos'].includes(rawPay);
+
+      const rawType = String(o.orderType || '').toLowerCase();
+      const isDineIn = ['dine-in', 'dine_in', 'dinein', 'table', 'masa'].includes(rawType);
+
+      const rawStatus = String(r.status || o.status || '').toLowerCase();
+      const isCancelled = ['cancelled', 'anulata', 'failed'].includes(rawStatus);
+
+      if (!isCancelled) {
+        totalSum += amount;
+        if (isCard) {
+          cardCount++;
+          cardSum += amount;
+        } else {
+          cashCount++;
+          cashSum += amount;
+        }
+
+        if (isDineIn) {
+          dineInCount++;
+        } else {
+          takeawayCount++;
+        }
+
+        const canonLoc = normalizeLocationKey(r.location_id || o.locationId);
+        if (!locStats[canonLoc]) locStats[canonLoc] = { count: 0, sum: 0, cardCount: 0, cashCount: 0 };
+        locStats[canonLoc].count++;
+        locStats[canonLoc].sum += amount;
+        if (isCard) locStats[canonLoc].cardCount++;
+        else locStats[canonLoc].cashCount++;
+      }
+
+      // Ora comenzii (fus orar București)
+      let oTime = '';
+      try {
+        const d = new Date(r.created_at || o.createdAt || o.arrivedAt);
+        oTime = d.toLocaleTimeString('ro-RO', { timeZone: 'Europe/Bucharest', hour: '2-digit', minute: '2-digit', hour12: false });
+      } catch (_) {
+        oTime = timeStr;
+      }
+
+      const orderNum = o.orderNumber || r.id;
+      const locDisplay = getLocationDisplayName(normalizeLocationKey(r.location_id || o.locationId));
+
+      // Tip comanda (La masă vs La pachet)
+      let typeLabel = '';
+      if (isDineIn) {
+        typeLabel = o.tableNumber ? `La masă (Masa #${o.tableNumber}) 🍽️` : `La masă 🍽️`;
+      } else {
+        typeLabel = `La pachet 🥡`;
+      }
+
+      // Metoda plata (Card vs Cash)
+      const payLabel = isCard ? `Card POS 💳` : `Cash (Numerar) 💵`;
+
+      // Status
+      let statusLabel = 'Confirmată ✅';
+      if (rawStatus === 'completed') statusLabel = 'Finalizată ✅';
+      else if (rawStatus === 'awaiting_payment') statusLabel = 'Așteaptă plata cash ⏳';
+      else if (rawStatus === 'pending') statusLabel = 'În preparare 🍳';
+      else if (rawStatus === 'cancelled') statusLabel = 'Anulată ❌';
+
+      // Sumar produse (ex: 2x Burger Smash, 1x Cartofi...)
+      let itemsSummary = '';
+      if (Array.isArray(o.items) && o.items.length > 0) {
+        const itemsList = o.items.map(it => `${it.quantity || 1}x ${it.name || it.title || 'Produs'}`);
+        if (itemsList.length <= 3) {
+          itemsSummary = itemsList.join(', ');
+        } else {
+          itemsSummary = `${itemsList.slice(0, 3).join(', ')} (+${itemsList.length - 3} produse)`;
+        }
+      }
+
+      formattedOrders.push({
+        num: orderNum,
+        time: oTime,
+        amount: amount.toFixed(2),
+        loc: locDisplay,
+        type: typeLabel,
+        pay: payLabel,
+        status: statusLabel,
+        items: itemsSummary,
+        isCancelled
+      });
+    }
+
+    const lines = [
+      `🛍️ <b>[${titleLabel}]</b>`,
+      `🕒 <b>Ora raport:</b> ${timeStr}`,
+      `📊 <b>Total comenzi:</b> <b>${rows.length}</b> • <b>Încasări:</b> <b>${totalSum.toFixed(2)} RON</b>`,
+      `💳 <b>Card:</b> ${cardCount} (${cardSum.toFixed(2)} RON) • 💵 <b>Cash:</b> ${cashCount} (${cashSum.toFixed(2)} RON)`,
+      `🍽️ <b>La masă:</b> ${dineInCount} • 🥡 <b>La pachet:</b> ${takeawayCount}`,
+      ``,
+      `📍 <b>Vânzări pe locații:</b>`
+    ];
+
+    for (const [lKey, st] of Object.entries(locStats)) {
+      lines.push(`• <b>${getLocationDisplayName(lKey)}:</b> ${st.count} comenzi • <b>${st.sum.toFixed(2)} RON</b> (💳 ${st.cardCount} card / 💵 ${st.cashCount} cash)`);
+    }
+
+    lines.push(``);
+    lines.push(`📋 <b>Comenzi recente detaliate:</b>`);
+
+    // Afișăm ultimele comenzi (până la 15 pentru a respecta limita de lungime a Telegram)
+    const showLimit = Math.min(15, formattedOrders.length);
+    for (let i = 0; i < showLimit; i++) {
+      const fo = formattedOrders[i];
+      lines.push(`<b>#${fo.num}</b> (${fo.time}) • <b>${fo.amount} RON</b>`);
+      lines.push(`   ├ 📍 ${fo.loc}`);
+      lines.push(`   ├ 🍽️ <b>Tip:</b> ${fo.type}`);
+      lines.push(`   ├ 💳 <b>Plată:</b> ${fo.pay}`);
+      if (fo.items) {
+        lines.push(`   ├ 📦 <b>Produse:</b> ${fo.items}`);
+      }
+      lines.push(`   └ ⚙️ <b>Status:</b> ${fo.status}`);
+      lines.push(``);
+    }
+
+    if (formattedOrders.length > showLimit) {
+      lines.push(`<i>... și încă ${formattedOrders.length - showLimit} comenzi anterioare (vizibile în panoul Admin).</i>`);
+    }
+
+    if (!isYesterday) {
+      lines.push(`\n💡 <i>Trimite <b>/comenzi ieri</b> pentru raportul zilei precedente.</i>`);
+    }
+
+    return lines.join('\n');
+  } catch (err) {
+    console.error('[BridgeMonitor] Eroare formatare comenzi Telegram:', err.message);
+    return `⚠️ <i>Eroare la extragerea comenzilor: ${err.message}</i>`;
+  }
+}
+
 module.exports = {
   setIo,
   loadTelegramConfig,
@@ -2256,6 +2442,7 @@ module.exports = {
   formatStatusSummaryForTelegram,
   formatPinSummaryForTelegram,
   formatPosSignalSummaryForTelegram,
+  formatOrdersSummaryForTelegram,
   runMorningPreflightCheck,
   registerTelegramWebhook,
   updateLocationConfig,
