@@ -785,7 +785,7 @@ function handleBridgeConnect(socket, { locationId, instanceId, version, port, po
     connectedAt: now,
     disconnectTime: null,
     socketId: socket.id,
-    ip: socket.handshake?.address || socket.conn?.remoteAddress || '',
+    ip: socket.handshake?.headers?.['x-forwarded-for']?.split(',')?.[0]?.trim() || socket.handshake?.address || socket.conn?.remoteAddress || '',
     uptimeSeconds: 0,
     posWakeStandby: posWakeStandby !== undefined ? !!posWakeStandby : (prev?.posWakeStandby ?? true),
     posWakeIntervalMinutes: posWakeIntervalMinutes !== undefined ? Number(posWakeIntervalMinutes) : (prev?.posWakeIntervalMinutes || 5),
@@ -1200,26 +1200,68 @@ function getBridgeSocketCount(locKey) {
   }
 }
 
-function getKioskSocketCount(locKey) {
+function getKioskSocketAnalysis(locKey) {
   try {
     const { getLiveKiosksSummary } = require('./socketService');
     const summary = getLiveKiosksSummary();
-    if (!summary) return 0;
+    if (!summary) return { totalLive: 0, maxOnSameIp: 0, hasLocalDuplicate: false, uniqueIps: [], devices: [] };
     const { getLocationAliases } = require('../utils/locations');
     const aliases = getLocationAliases(locKey) || [];
     const checkKeys = Array.from(new Set([locKey, ...aliases]));
-    const uniqueDevices = new Set();
+    const seenSockets = new Set();
+    const liveDevices = [];
+    const now = Date.now();
+
     for (const k of checkKeys) {
       if (summary[k] && Array.isArray(summary[k].devices)) {
         for (const dev of summary[k].devices) {
-          if (dev.socketId) uniqueDevices.add(dev.socketId);
+          if (dev.socketId && !seenSockets.has(dev.socketId)) {
+            const ageMs = now - (dev.lastPing || dev.connectedAt || now);
+            // Strict: device-ul trebuie să fie activ (<90s)
+            if (dev.isLive && ageMs < 90000) {
+              seenSockets.add(dev.socketId);
+              liveDevices.push(dev);
+            }
+          }
         }
       }
     }
-    return uniqueDevices.size;
+
+    // Grupăm socket-urile active după adresa IP
+    const ipMap = {};
+    for (const dev of liveDevices) {
+      const devIp = dev.ip || 'necunoscut';
+      if (!ipMap[devIp]) ipMap[devIp] = [];
+      ipMap[devIp].push(dev);
+    }
+
+    // Un duplicat local real pe același PC există DOAR dacă aceeași adresă IP are mai mult de 1 conexiune
+    let maxOnSameIp = 0;
+    let duplicateIp = null;
+    for (const [ip, devs] of Object.entries(ipMap)) {
+      if (devs.length > 1 && devs.length > maxOnSameIp) {
+        maxOnSameIp = devs.length;
+        duplicateIp = ip;
+      }
+    }
+
+    const uniqueIps = Object.keys(ipMap);
+    return {
+      totalLive: liveDevices.length,
+      maxOnSameIp,
+      hasLocalDuplicate: maxOnSameIp > 1,
+      duplicateIp,
+      hasExternalSessions: uniqueIps.length > 1,
+      uniqueIps,
+      devices: liveDevices
+    };
   } catch (_) {
-    return 0;
+    return { totalLive: 0, maxOnSameIp: 0, hasLocalDuplicate: false, uniqueIps: [], devices: [] };
   }
+}
+
+function getKioskSocketCount(locKey) {
+  return getKioskSocketAnalysis(locKey).totalLive;
 }
 
 let lastCheck1000Date = null;
@@ -1299,9 +1341,10 @@ async function runMorningPreflightCheck(targetChatId = null, isManual = false) {
     const isKioskAlive = isKioskSocketConnected(locKey);
 
     const bridgeCount = getBridgeSocketCount(locKey);
-    const kioskCount = getKioskSocketCount(locKey);
+    const kioskAnalysis = getKioskSocketAnalysis(locKey);
+    const kioskCount = kioskAnalysis.totalLive;
 
-    const hasDuplicate = bridgeCount > 1 || kioskCount > 1;
+    const hasDuplicate = bridgeCount > 1 || kioskAnalysis.hasLocalDuplicate;
 
     const cfg = dbLocs.find(l => 
       l.id === locKey || 
@@ -1410,9 +1453,13 @@ async function runMorningPreflightCheck(targetChatId = null, isManual = false) {
       sysChecks.push('Proces unic ✅');
     }
 
-    if (kioskCount > 1) {
-      sysChecks.push(`⚠️ <b>${kioskCount} ferestre Kiosk duplicate!</b>`);
-      issues.push(`• <b>${loc.displayName || locKey}:</b> Sunt deschise ${kioskCount} ferestre Kiosk.`);
+    if (kioskAnalysis.hasLocalDuplicate) {
+      sysChecks.push(`⚠️ <b>${kioskAnalysis.maxOnSameIp} ferestre Kiosk deschise pe același PC!</b>`);
+      issues.push(`• <b>${loc.displayName || locKey}:</b> Sunt deschise ${kioskAnalysis.maxOnSameIp} ferestre Kiosk pe același PC (${kioskAnalysis.duplicateIp}).`);
+    } else if (kioskAnalysis.hasExternalSessions) {
+      sysChecks.push(`Ecran restaurant unic ✅ <i>(${kioskCount} conexiuni din ${kioskAnalysis.uniqueIps.length} rețele)</i>`);
+    } else if (kioskCount === 1) {
+      sysChecks.push('Ecran unic ✅');
     }
 
     lines.push(`   └ 🛡️ <b>Sistem & .env:</b> ${sysChecks.join(' • ')}`);
@@ -1498,7 +1545,8 @@ async function runMorningRetryCheck(failedKeys, destinationChat) {
     const isBridgeAlive = isBridgeSocketConnected(locKey);
     const isKioskAlive = isKioskSocketConnected(locKey);
     const bridgeCount = getBridgeSocketCount(locKey);
-    const kioskCount = getKioskSocketCount(locKey);
+    const kioskAnalysis = getKioskSocketAnalysis(locKey);
+    const kioskCount = kioskAnalysis.totalLive;
 
     const cfg = dbLocs.find(l => 
       l.id === locKey || 
@@ -1525,7 +1573,7 @@ async function runMorningRetryCheck(failedKeys, destinationChat) {
     }
 
     const isPosReady = !isPosEnabled || isBridgeAlive;
-    const is100Ready = isKioskAlive && isPosReady && bridgeCount <= 1 && kioskCount <= 1 && !hardwareMismatch;
+    const is100Ready = isKioskAlive && isPosReady && bridgeCount <= 1 && !kioskAnalysis.hasLocalDuplicate && !hardwareMismatch;
 
     if (is100Ready) {
       const hostStr = actualHost ? ` • PC: <code>${actualHost}</code> ✅` : '';

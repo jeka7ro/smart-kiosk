@@ -341,6 +341,28 @@ export default function App() {
     
     const locId = locationData.id;
     
+    // 🛡️ Singleton Window Guard: Previne conectarea a două ferestre/taburi simultan pe același PC
+    const instanceId = 'kiosk_inst_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+    let isDuplicateWindow = false;
+    let singletonChannel = null;
+
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        singletonChannel = new BroadcastChannel(`smart_kiosk_singleton_${locId}`);
+        singletonChannel.onmessage = (event) => {
+          if (event.data?.type === 'PING_INSTANCE' && event.data?.sender !== instanceId) {
+            singletonChannel.postMessage({ type: 'INSTANCE_ACTIVE', sender: instanceId });
+            try { window.focus(); } catch (_) {}
+          } else if (event.data?.type === 'INSTANCE_ACTIVE' && event.data?.sender !== instanceId) {
+            console.warn('[Kiosk] ⚠️ O altă fereastră Kiosk este deja activă pe acest calculator. Deconectez instanța duplicat.');
+            isDuplicateWindow = true;
+            try { socket.disconnect(); } catch (_) {}
+          }
+        };
+        singletonChannel.postMessage({ type: 'PING_INSTANCE', sender: instanceId });
+      }
+    } catch (_) {}
+
     const socket = io(BACKEND, {
       transports: ['websocket', 'polling'], // allow polling fallback
       reconnectionDelayMax: 5000,
@@ -415,6 +437,11 @@ export default function App() {
     };
 
     socket.on('connect', () => {
+      if (isDuplicateWindow) {
+        console.warn(`[Kiosk] ⚠️ Instanță duplicat detectată pe acest PC. Omit înregistrarea socket-ului.`);
+        socket.disconnect();
+        return;
+      }
       console.log(`[Kiosk] Socket connected (${socket.id}), joining room kiosk-${locId}`);
       const tele = getKioskTelemetry();
       socket.emit('join', {
@@ -527,6 +554,9 @@ export default function App() {
       socket.off(`kiosk_ping_${locId}`, handlePing);
       if (urlLoc && urlLoc !== locId) {
         socket.off(`kiosk_ping_${urlLoc}`, handlePing);
+      }
+      if (singletonChannel) {
+        try { singletonChannel.close(); } catch (_) {}
       }
       socket.disconnect();
     };

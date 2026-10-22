@@ -16,6 +16,12 @@ function getLiveKiosksSummary() {
     const isSocketOpen = Boolean(sock && sock.connected);
     // Kiosk este LIVE dacă a trimis heartbeat în ultimele 90s sau conexiunea fizică TCP/WebSocket este încă deschisă (<120s)
     const isLive = (isSocketOpen && ageMs < 120000) || ageMs < 90000;
+
+    // Curățăm automat socket-urile deconectate/expirate (>120s fără socket activ)
+    if (!isSocketOpen && ageMs > 120000) {
+      connectedKiosks.delete(sid);
+      continue;
+    }
     const locId = k.locationId || 'unknown';
     if (!summary[locId]) {
       summary[locId] = {
@@ -117,7 +123,7 @@ function initSocket(io) {
           locationId: String(locationId || ''),
           kioskId: String(kioskId || '1'),
           screen: screen || 'welcome',
-          ip: socket.handshake.headers['x-forwarded-for'] || socket.handshake.address,
+          ip: socket.handshake.headers['x-forwarded-for']?.split(',')?.[0]?.trim() || socket.handshake.address,
           connectedAt: Date.now(),
           lastPing: Date.now(),
           isUniversal: typeof data?.isUniversal !== 'undefined' ? Boolean(data.isUniversal) : false,
@@ -142,7 +148,7 @@ function initSocket(io) {
         locationId: String(data.locationId || ''),
         kioskId: String(data.kioskId || '1'),
         connectedAt: Date.now(),
-        ip: socket.handshake.headers['x-forwarded-for'] || socket.handshake.address
+        ip: socket.handshake.headers['x-forwarded-for']?.split(',')?.[0]?.trim() || socket.handshake.address
       };
       k.lastPing = Date.now();
       if (data.locationId) k.locationId = String(data.locationId);
