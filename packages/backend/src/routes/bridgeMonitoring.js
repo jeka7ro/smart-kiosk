@@ -121,40 +121,64 @@ router.post('/telegram-webhook', async (req, res) => {
       return res.sendStatus(200);
     }
 
-    const text = String(message.text || '').trim().toLowerCase();
+    const rawText = String(message.text || '').trim();
+    // Curățăm textul: eliminăm bot tag (@BotName), convertim _ și - în spații pentru potrivire flexibilă
+    const cleanText = rawText
+      .toLowerCase()
+      .replace(/@\w+/g, '')
+      .replace(/[_\-]+/g, ' ')
+      .trim();
+
     const chatId = message.chat?.id;
 
-    if (text.startsWith('/status') || text === 'status' || text.startsWith('/stare')) {
+    // Detectăm dacă este o comandă legată de comenzi sau o cerere directă pe o locație
+    const isComenziCmd = 
+      cleanText.startsWith('/comenzi') || cleanText.startsWith('comenzi') ||
+      cleanText.startsWith('/orders') || cleanText.startsWith('orders') ||
+      cleanText.startsWith('/comanda') || cleanText.startsWith('comanda') ||
+      ['/cluj1', '/cluj2', '/brasov', '/brașov', '/constanta1', '/constanța1', '/constanta', '/constanța', 'cluj1', 'cluj2', 'brasov', 'constanta1'].some(k => cleanText === k || cleanText.startsWith(k + ' '));
+
+    if (cleanText.startsWith('/status') || cleanText === 'status' || cleanText.startsWith('/stare')) {
       const statusText = await bridgeMonitoringService.formatStatusSummaryForTelegram();
       await bridgeMonitoringService.sendTelegramMessage(statusText, null, chatId);
-    } else if (text.startsWith('/pos') || text === 'pos' || text.startsWith('/semnal') || text === 'semnal' || text.startsWith('/latenta') || text === 'latenta') {
+    } else if (cleanText.startsWith('/pos') || cleanText === 'pos' || cleanText.startsWith('/semnal') || cleanText === 'semnal' || cleanText.startsWith('/latenta') || cleanText === 'latenta') {
       await bridgeMonitoringService.sendTelegramMessage('⏳ <i>Se interoghează terminalele POS prin UART (calcul latență în milisecunde)...</i>', null, chatId);
       const posText = await bridgeMonitoringService.formatPosSignalSummaryForTelegram();
       await bridgeMonitoringService.sendTelegramMessage(posText, null, chatId);
-    } else if (text.startsWith('/pin') || text === 'pin' || text.startsWith('/cod') || text === 'cod' || text.startsWith('/program') || text === 'program') {
+    } else if (cleanText.startsWith('/pin') || cleanText === 'pin' || cleanText.startsWith('/cod') || cleanText === 'cod' || cleanText.startsWith('/program') || cleanText === 'program') {
       const pinText = await bridgeMonitoringService.formatPinSummaryForTelegram();
       await bridgeMonitoringService.sendTelegramMessage(pinText, null, chatId);
-    } else if (text.startsWith('/comenzi') || text === 'comenzi' || text.startsWith('/orders') || text === 'orders') {
-      const isYesterday = text.includes('ieri') || text.includes('yesterday');
+    } else if (isComenziCmd) {
+      const isYesterday = cleanText.includes('ieri') || cleanText.includes('yesterday');
+      const targetLocation = bridgeMonitoringService.detectLocationFromText(rawText);
+      const locName = targetLocation ? bridgeMonitoringService.getLocationDisplayName(targetLocation) : null;
+      const scopeLabel = locName ? `pentru <b>${locName}</b>` : 'din toate locațiile';
+      const dayLabel = isYesterday ? 'de ieri' : 'de astăzi';
+
       await bridgeMonitoringService.sendTelegramMessage(
-        `⏳ <i>Se extrag comenzile ${isYesterday ? 'de ieri' : 'de astăzi'} din sistem...</i>`,
+        `⏳ <i>Se extrag comenzile ${dayLabel} ${scopeLabel}...</i>`,
         null,
         chatId
       );
-      const ordersText = await bridgeMonitoringService.formatOrdersSummaryForTelegram({ isYesterday });
+      const ordersText = await bridgeMonitoringService.formatOrdersSummaryForTelegram({ isYesterday, targetLocation });
       await bridgeMonitoringService.sendTelegramMessage(ordersText, null, chatId);
-    } else if (text.startsWith('/verificare') || text === 'verificare' || text.startsWith('/check') || text.startsWith('/dimineata') || text.startsWith('/0955') || text.startsWith('/preflight')) {
+    } else if (cleanText.startsWith('/verificare') || cleanText === 'verificare' || cleanText.startsWith('/check') || cleanText.startsWith('/dimineata') || cleanText.startsWith('/0955') || cleanText.startsWith('/preflight')) {
       await bridgeMonitoringService.sendTelegramMessage('⏳ <i>Se efectuează verificarea matinală a echipamentelor (test semnal POS, ecran, .env, procese duplicate)...</i>', null, chatId);
       await bridgeMonitoringService.runMorningPreflightCheck(chatId, true);
-    } else if (text.startsWith('/ajutor') || text.startsWith('/help') || text.startsWith('/start')) {
+    } else if (cleanText.startsWith('/ajutor') || cleanText.startsWith('/help') || cleanText.startsWith('/start')) {
       const helpText = [
         `🤖 <b>[SMART KIOSK BOT]</b>`,
-        `Comenzi disponibile:`,
-        `• <b>/comenzi</b> — Afișează comenzile de astăzi cu detalii (la masă / la pachet, card / cash, sume, produse). Suportă și <code>/comenzi ieri</code>.`,
-        `• <b>/pos</b> — Interoghează semnalul UART către terminalele POS și afișează latența exactă în milisecunde (ms).`,
-        `• <b>/status</b> — Afișează starea curentă a kiosk-urilor, POS, imprimante, PIN-uri și program.`,
-        `• <b>/pin</b> — Afișează codurile PIN de deblocare și orarul programat de blocare.`,
-        `• <b>/verificare</b> — Rulează manual raportul complet de verificare matinală de deschidere (semnal POS, ecran, .env, procese duplicate).`,
+        `Comenzi disponibile (click direct sau scrie cu spațiu):`,
+        `• <b>/comenzi</b> — Toate comenzile de astăzi (masă/pachet, card/cash, produse, încasări)`,
+        `• <b>/comenzi_cluj1</b> sau <code>/comenzi cluj1</code> — Cluj 1 (SmashMe)`,
+        `• <b>/comenzi_cluj2</b> sau <code>/comenzi cluj2</code> — Cluj 2 (SmashMe)`,
+        `• <b>/comenzi_brasov</b> sau <code>/comenzi brasov</code> — Brașov (RollMaster)`,
+        `• <b>/comenzi_constanta1</b> sau <code>/comenzi constanta1</code> — Constanța 1 (SmashMe)`,
+        `• <b>/comenzi_ieri</b> sau <code>/comenzi ieri</code> — Toate comenzile de ieri`,
+        `• <b>/pos</b> — Interoghează semnalul UART către terminalele POS și latența (ms)`,
+        `• <b>/status</b> — Afișează starea curentă a kiosk-urilor, POS, imprimante, PIN-uri`,
+        `• <b>/pin</b> — Afișează codurile PIN de deblocare și orarul programat de blocare`,
+        `• <b>/verificare</b> — Raport complet matinal de deschidere (POS, ecran, duplicate)`,
       ].join('\n');
       await bridgeMonitoringService.sendTelegramMessage(helpText, null, chatId);
     }

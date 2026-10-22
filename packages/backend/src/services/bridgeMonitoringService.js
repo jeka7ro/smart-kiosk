@@ -91,6 +91,30 @@ async function registerTelegramWebhook(serverBaseUrl = 'https://smart-kiosk-ttut
     });
     const data = await res.json();
     console.log('[BridgeMonitor] Telegram Webhook registration:', data.ok, data.description || '');
+
+    // Set bot commands menu for Telegram UI autocomplete
+    try {
+      await fetch(`https://api.telegram.org/bot${telegramConfig.botToken}/setMyCommands`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          commands: [
+            { command: 'comenzi', description: 'Toate comenzile de astăzi' },
+            { command: 'comenzi_cluj1', description: 'Comenzi Cluj 1 (SmashMe)' },
+            { command: 'comenzi_cluj2', description: 'Comenzi Cluj 2 (SmashMe)' },
+            { command: 'comenzi_brasov', description: 'Comenzi Brașov (RollMaster)' },
+            { command: 'comenzi_constanta1', description: 'Comenzi Constanța 1 (SmashMe)' },
+            { command: 'comenzi_ieri', description: 'Toate comenzile de ieri' },
+            { command: 'pos', description: 'Test latență și semnal UART POS' },
+            { command: 'status', description: 'Stare Kiosk-uri, POS, Imprimante' },
+            { command: 'pin', description: 'PIN-uri deblocare și orar' },
+            { command: 'verificare', description: 'Raport verificare matinală' },
+            { command: 'ajutor', description: 'Ghid și listă comenzi' }
+          ]
+        })
+      });
+    } catch (_) {}
+
     return data;
   } catch (err) {
     console.warn('[BridgeMonitor] Eroare înregistrare webhook Telegram:', err.message);
@@ -634,12 +658,55 @@ function getRestartRequest(requestId) {
 function normalizeLocationKey(locId) {
   if (!locId) return 'unknown';
   const str = String(locId).toLowerCase().trim();
-  if (str.includes('cluj1') || str === 'smashme-main' || str === 'cluj-centru') return 'cluj1';
-  if (str.includes('cluj2')) return 'cluj2';
-  if (str.includes('brasov') || str.includes('bv') || str === 'sm-brasov') return 'sm-brasov';
-  if (str.includes('constanta1') || str === 'smashme-constanta' || str === 'constanta') return 'constanta1';
-  if (str.includes('constanta2') || str === 'constanta-2') return 'constanta2';
+  if (str.includes('cluj2') || str.includes('cluj 2') || str === 'cj2') return 'cluj2';
+  if (str.includes('cluj1') || str.includes('cluj 1') || str === 'smashme-main' || str === 'cluj-centru' || str === 'cj1') return 'cluj1';
+  if (str.includes('brasov') || str.includes('brașov') || str.includes('bv') || str === 'sm-brasov' || str === 'rollmaster') return 'sm-brasov';
+  if (str.includes('constanta2') || str.includes('constanța2') || str.includes('constanta 2') || str.includes('constanța 2') || str === 'constanta-2' || str === 'ct2') return 'constanta2';
+  if (str.includes('constanta1') || str.includes('constanța1') || str.includes('constanta 1') || str.includes('constanța 1') || str === 'smashme-constanta' || str.includes('constanta') || str.includes('constanța') || str === 'ct1' || str === 'ct') return 'constanta1';
   return str;
+}
+
+/**
+ * Detect location key from text input (supports "cluj1", "/comenzi_cluj1", "comenzi cluj 1", etc.)
+ */
+function detectLocationFromText(text) {
+  if (!text) return null;
+  const clean = String(text)
+    .toLowerCase()
+    .replace(/@\w+/g, '')
+    .replace(/[_\-]+/g, ' ')
+    .replace(/[^a-z0-9ășîțâ\s]/gi, ' ')
+    .trim();
+  
+  const words = clean.split(/\s+/);
+  
+  // Cluj 2
+  if (clean.includes('cluj 2') || clean.includes('cluj2') || clean.includes('cj 2') || clean.includes('cj2')) {
+    return 'cluj2';
+  }
+  // Cluj 1
+  if (
+    clean.includes('cluj 1') || clean.includes('cluj1') || clean.includes('cj 1') || clean.includes('cj1') ||
+    words.includes('cluj') || words.includes('cj')
+  ) {
+    return 'cluj1';
+  }
+  // Brașov
+  if (clean.includes('brasov') || clean.includes('brașov') || clean.includes('bv') || clean.includes('rollmaster')) {
+    return 'sm-brasov';
+  }
+  // Constanța 2
+  if (clean.includes('constanta 2') || clean.includes('constanța 2') || clean.includes('constanta2') || clean.includes('constanța2') || clean.includes('ct 2') || clean.includes('ct2')) {
+    return 'constanta2';
+  }
+  // Constanța 1
+  if (
+    clean.includes('constanta 1') || clean.includes('constanța 1') || clean.includes('constanta1') || clean.includes('constanța1') ||
+    clean.includes('constanta') || clean.includes('constanța') || clean.includes('ct 1') || clean.includes('ct1') || words.includes('ct')
+  ) {
+    return 'constanta1';
+  }
+  return null;
 }
 
 function getLocationDisplayName(locKey) {
@@ -2238,7 +2305,7 @@ async function resolveDuplicateInstances(locationId) {
  * Format orders summary for Telegram /comenzi command (supports today and yesterday)
  */
 async function formatOrdersSummaryForTelegram(options = {}) {
-  const { isYesterday = false } = options;
+  const { isYesterday = false, targetLocation = null } = options;
   const { dateStr, hour, minute } = getBucharestTime();
   const timeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
 
@@ -2251,7 +2318,7 @@ async function formatOrdersSummaryForTelegram(options = {}) {
       FROM orders
       WHERE (created_at AT TIME ZONE 'Europe/Bucharest')::date = ((NOW() AT TIME ZONE 'Europe/Bucharest')::date - INTERVAL '${dayOffset} day')::date
       ORDER BY created_at DESC
-      LIMIT 120
+      LIMIT 200
     `);
 
     // Obținem data exactă a zilei interogate
@@ -2259,15 +2326,42 @@ async function formatOrdersSummaryForTelegram(options = {}) {
       SELECT to_char(((NOW() AT TIME ZONE 'Europe/Bucharest')::date - INTERVAL '${dayOffset} day')::date, 'DD.MM.YYYY') as d
     `);
     const reportDateStr = targetDateRes.rows[0]?.d || dateStr;
-    const titleLabel = isYesterday ? `COMENZI IERI — ${reportDateStr}` : `COMENZI ASTĂZI — ${reportDateStr}`;
 
-    if (!rows || rows.length === 0) {
-      const tipText = !isYesterday ? `\n\n💡 <i>Trimite <b>/comenzi ieri</b> pentru a vedea vânzările și comenzile de ieri.</i>` : '';
+    // Normalizăm targetLocation dacă a fost specificat
+    const canonTarget = targetLocation ? normalizeLocationKey(targetLocation) : null;
+    const targetLocName = canonTarget ? getLocationDisplayName(canonTarget) : null;
+
+    let titleLabel = isYesterday ? `COMENZI IERI — ${reportDateStr}` : `COMENZI ASTĂZI — ${reportDateStr}`;
+    if (targetLocName) {
+      titleLabel = isYesterday 
+        ? `COMENZI IERI [${targetLocName}] — ${reportDateStr}` 
+        : `COMENZI ASTĂZI [${targetLocName}] — ${reportDateStr}`;
+    }
+
+    // Filtrăm pe locație dacă este specificat
+    const filteredRows = canonTarget
+      ? (rows || []).filter(r => {
+          const o = typeof r.data === 'string' ? JSON.parse(r.data) : (r.data || {});
+          const locKey = normalizeLocationKey(r.location_id || o.locationId);
+          return locKey === canonTarget;
+        })
+      : (rows || []);
+
+    if (!filteredRows || filteredRows.length === 0) {
+      const tipCmd = canonTarget ? `/comenzi_${canonTarget}_ieri` : `/comenzi_ieri`;
+      const tipText = !isYesterday ? `\n\n💡 <i>Trimite <b>${tipCmd}</b> pentru a vedea vânzările de ieri.</i>` : '';
       return [
         `🛍️ <b>[${titleLabel}]</b>`,
         `🕒 <b>Ora:</b> ${timeStr}`,
         ``,
-        `ℹ️ <i>Nu s-a înregistrat nicio comandă ${isYesterday ? 'ieri' : 'astăzi până la această oră'}.</i>${tipText}`
+        `ℹ️ <i>Nu s-a înregistrat nicio comandă ${isYesterday ? 'ieri' : 'astăzi până la această oră'}${targetLocName ? ` pentru <b>${targetLocName}</b>` : ''}.</i>${tipText}`,
+        ``,
+        `🔗 <i>Comenzi rapide alte locații:</i>`,
+        `• /comenzi — Toate locațiile`,
+        `• /comenzi_cluj1 — Cluj 1`,
+        `• /comenzi_cluj2 — Cluj 2`,
+        `• /comenzi_brasov — Brașov`,
+        `• /comenzi_constanta1 — Constanța 1`
       ].join('\n');
     }
 
@@ -2282,7 +2376,7 @@ async function formatOrdersSummaryForTelegram(options = {}) {
     const locStats = {};
     const formattedOrders = [];
 
-    for (const r of rows) {
+    for (const r of filteredRows) {
       const o = typeof r.data === 'string' ? JSON.parse(r.data) : (r.data || {});
       const amount = Number(o.totalAmount || o.subtotal || 0);
       
@@ -2376,26 +2470,31 @@ async function formatOrdersSummaryForTelegram(options = {}) {
     const lines = [
       `🛍️ <b>[${titleLabel}]</b>`,
       `🕒 <b>Ora raport:</b> ${timeStr}`,
-      `📊 <b>Total comenzi:</b> <b>${rows.length}</b> • <b>Încasări:</b> <b>${totalSum.toFixed(2)} RON</b>`,
+      `📊 <b>Total comenzi:</b> <b>${filteredRows.length}</b> • <b>Încasări:</b> <b>${totalSum.toFixed(2)} RON</b>`,
       `💳 <b>Card:</b> ${cardCount} (${cardSum.toFixed(2)} RON) • 💵 <b>Cash:</b> ${cashCount} (${cashSum.toFixed(2)} RON)`,
       `🍽️ <b>La masă:</b> ${dineInCount} • 🥡 <b>La pachet:</b> ${takeawayCount}`,
-      ``,
-      `📍 <b>Vânzări pe locații:</b>`
     ];
 
-    for (const [lKey, st] of Object.entries(locStats)) {
-      lines.push(`• <b>${getLocationDisplayName(lKey)}:</b> ${st.count} comenzi • <b>${st.sum.toFixed(2)} RON</b> (💳 ${st.cardCount} card / 💵 ${st.cashCount} cash)`);
+    if (!canonTarget) {
+      lines.push(``);
+      lines.push(`📍 <b>Vânzări pe locații:</b>`);
+      for (const [lKey, st] of Object.entries(locStats)) {
+        lines.push(`• <b>${getLocationDisplayName(lKey)}:</b> ${st.count} comenzi • <b>${st.sum.toFixed(2)} RON</b> (💳 ${st.cardCount} card / 💵 ${st.cashCount} cash)`);
+      }
     }
 
     lines.push(``);
     lines.push(`📋 <b>Comenzi recente detaliate:</b>`);
 
-    // Afișăm ultimele comenzi (până la 15 pentru a respecta limita de lungime a Telegram)
-    const showLimit = Math.min(15, formattedOrders.length);
+    // Afișăm ultimele comenzi (până la 15 pentru global, până la 20 pentru locație specifică)
+    const maxShow = canonTarget ? 20 : 15;
+    const showLimit = Math.min(maxShow, formattedOrders.length);
     for (let i = 0; i < showLimit; i++) {
       const fo = formattedOrders[i];
       lines.push(`<b>#${fo.num}</b> (${fo.time}) • <b>${fo.amount} RON</b>`);
-      lines.push(`   ├ 📍 ${fo.loc}`);
+      if (!canonTarget) {
+        lines.push(`   ├ 📍 ${fo.loc}`);
+      }
       lines.push(`   ├ 🍽️ <b>Tip:</b> ${fo.type}`);
       lines.push(`   ├ 💳 <b>Plată:</b> ${fo.pay}`);
       if (fo.items) {
@@ -2406,11 +2505,24 @@ async function formatOrdersSummaryForTelegram(options = {}) {
     }
 
     if (formattedOrders.length > showLimit) {
-      lines.push(`<i>... și încă ${formattedOrders.length - showLimit} comenzi anterioare (vizibile în panoul Admin).</i>`);
+      lines.push(`<i>... și încă ${formattedOrders.length - showLimit} comenzi anterioare (vizibile în panoul Admin).</i>\n`);
     }
 
-    if (!isYesterday) {
-      lines.push(`\n💡 <i>Trimite <b>/comenzi ieri</b> pentru raportul zilei precedente.</i>`);
+    // Comenzi rapide clickable (Telegram links fără spații)
+    lines.push(`🔗 <b>Comenzi rapide (click pentru filtrare):</b>`);
+    if (canonTarget) {
+      lines.push(`• /comenzi — Toate locațiile (astăzi)`);
+      if (!isYesterday) {
+        lines.push(`• /comenzi_${canonTarget}_ieri — Raport ieri (${targetLocName})`);
+      }
+    } else {
+      lines.push(`• /comenzi_cluj1 — Cluj 1`);
+      lines.push(`• /comenzi_cluj2 — Cluj 2`);
+      lines.push(`• /comenzi_brasov — Brașov`);
+      lines.push(`• /comenzi_constanta1 — Constanța 1`);
+      if (!isYesterday) {
+        lines.push(`• /comenzi_ieri — Toate comenzile de ieri`);
+      }
     }
 
     return lines.join('\n');
@@ -2443,6 +2555,9 @@ module.exports = {
   formatPinSummaryForTelegram,
   formatPosSignalSummaryForTelegram,
   formatOrdersSummaryForTelegram,
+  detectLocationFromText,
+  getLocationDisplayName,
+  normalizeLocationKey,
   runMorningPreflightCheck,
   registerTelegramWebhook,
   updateLocationConfig,
