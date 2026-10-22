@@ -86,7 +86,7 @@ async function registerTelegramWebhook(serverBaseUrl = 'https://smart-kiosk-ttut
       body: JSON.stringify({
         url: webhookUrl,
         drop_pending_updates: true,
-        allowed_updates: ['message']
+        allowed_updates: ['message', 'edited_message']
       })
     });
     const data = await res.json();

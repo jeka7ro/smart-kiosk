@@ -116,7 +116,7 @@ router.post('/telegram-test', async (req, res) => {
 router.post('/telegram-webhook', async (req, res) => {
   try {
     const update = req.body || {};
-    const message = update.message;
+    const message = update.message || update.edited_message;
     if (!message || !message.text) {
       return res.sendStatus(200);
     }
