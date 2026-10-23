@@ -845,6 +845,28 @@ export const T = {
     bg: "продукти",
     de: "Artikel"
   },
+  send_to_cashier: {
+    ro: 'Trimite la casierie',
+    en: 'Send to cashier',
+    fr: 'Envoyer à la caisse',
+    hu: 'Küldés a pénztárhoz',
+    ru: 'Отправить на кассу',
+    uk: 'Відправити на касу',
+    bg: 'Към касата',
+    de: 'An die Kasse senden',
+    es: 'Enviar a caja'
+  },
+  pay_at_cashier: {
+    ro: 'Plată la casierie',
+    en: 'Pay at cashier',
+    fr: 'Payer à la caisse',
+    hu: 'Fizetés a pénztárnál',
+    ru: 'Оплата на кассе',
+    uk: 'Оплата на касі',
+    bg: 'Плащане на каса',
+    de: 'Zahlung an der Kasse',
+    es: 'Pago en caja'
+  },
   paid_by_card: {
     ro: 'Plătit cu cardul',
     en: 'Paid by card',

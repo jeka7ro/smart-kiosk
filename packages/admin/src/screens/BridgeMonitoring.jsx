@@ -26,7 +26,8 @@ import {
   Zap,
   ShieldAlert,
   AlertTriangle,
-  Sparkles
+  Sparkles,
+  ArrowDown
 } from 'lucide-react';
 import BrandLogo from '../components/BrandLogo.jsx';
 import SoftwareReleaseNotesModal from '../components/SoftwareReleaseNotesModal.jsx';
@@ -940,6 +941,29 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
   const totalOnlineCount = Object.values(computedLocations).filter(l => l.status === 'online').length;
   const totalOfflineCount = locationKeys.length - totalOnlineCount;
 
+  const offlineScrollIndexRef = useRef(0);
+
+  const handleScrollToOffline = useCallback(() => {
+    const offlineList = sortedLocationKeys
+      .map(k => computedLocations[k])
+      .filter(l => l && (l.status !== 'online' || !l.isBridgeOnline));
+
+    if (offlineList.length === 0) return;
+
+    const targetIdx = offlineScrollIndexRef.current % offlineList.length;
+    offlineScrollIndexRef.current = targetIdx + 1;
+    const targetLoc = offlineList[targetIdx];
+
+    const el = document.getElementById(`loc-card-${targetLoc.locationId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('ring-4', 'ring-rose-500', 'ring-offset-4', 'dark:ring-offset-slate-900');
+      setTimeout(() => {
+        el.classList.remove('ring-4', 'ring-rose-500', 'ring-offset-4', 'dark:ring-offset-slate-900');
+      }, 2500);
+    }
+  }, [sortedLocationKeys, computedLocations]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -982,9 +1006,24 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
             <Radio className={`w-3.5 h-3.5 ${totalOnlineCount > 0 ? 'text-emerald-500 animate-pulse' : 'text-slate-400'}`} />
             <span>POS Active: <strong className={totalOnlineCount > 0 ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-slate-500'}>{totalOnlineCount}</strong></span>
             <span className="text-slate-300 dark:text-slate-600">|</span>
-            <span className={totalOfflineCount > 0 ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-slate-400'}>
-              Deconectate: <strong>{totalOfflineCount}</strong>
-            </span>
+            {totalOfflineCount > 0 ? (
+              <button
+                type="button"
+                onClick={handleScrollToOffline}
+                className="text-rose-600 dark:text-rose-400 font-bold inline-flex items-center gap-1.5 hover:text-rose-700 dark:hover:text-rose-300 hover:underline cursor-pointer transition-colors active:scale-95 group/off"
+                title="Click pentru a naviga direct la kiosk-ul deconectat"
+              >
+                <span>Deconectate:</span>
+                <span className="px-1.5 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 text-[11px] font-extrabold shadow-2xs group-hover/off:bg-rose-200 dark:group-hover/off:bg-rose-900/90 transition-colors">
+                  {totalOfflineCount}
+                </span>
+                <ArrowDown className="w-3.5 h-3.5 text-rose-500 shrink-0 group-hover/off:translate-y-0.5 transition-transform" />
+              </button>
+            ) : (
+              <span className="text-slate-400">
+                Deconectate: <strong>0</strong>
+              </span>
+            )}
           </div>
 
           {/* Indicator Status Soft stil macOS */}
@@ -1067,7 +1106,8 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
           return (
             <div
               key={locKey}
-              className="group p-4 sm:p-5 rounded-2xl border transition-all duration-200 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border-slate-200/80 dark:border-slate-700/80 hover:border-blue-400/80 dark:hover:border-blue-500/80 shadow-xs hover:shadow-md flex flex-col justify-between"
+              id={`loc-card-${locKey}`}
+              className="group p-4 sm:p-5 rounded-2xl border transition-all duration-300 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border-slate-200/80 dark:border-slate-700/80 hover:border-blue-400/80 dark:hover:border-blue-500/80 shadow-xs hover:shadow-md flex flex-col justify-between scroll-mt-24"
             >
               <div className="space-y-3.5">
                 {/* Card Header with Brand Logo Avatar, Clean Kiosk Name, Server & Online State */}

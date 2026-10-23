@@ -360,20 +360,12 @@ function wakePosKeepAlive() {
         locationId: LOCATION_ID,
         success: false,
         latencyMs: 3000,
-        message: 'Auto-wake timeout (>3000ms) - inițiez recuperare port'
+        message: 'POS în standby (fără răspuns la wake în 3000ms)'
       });
     }
-    // Autorecuperare port în fundal DOAR DACĂ magistrala a rămas IDLE și nu a început o plată SALE între timp
-    clearTimeout(wakeRecoveryTimer);
-    wakeRecoveryTimer = setTimeout(() => {
-      wakeRecoveryTimer = null;
-      if (state === 'IDLE' && !paymentInProgress && !currentTransactionResolve && !isReopeningPort) {
-        log('🔄 [POS Wake] Inițiez autorecuperare port după timeout auto-wake...');
-        forceReopenPort('Autorecuperare după Auto-Wake timeout').then(() => {
-          ensurePosLogin().catch(e => log(`⚠️ Eroare re-login după auto-wake timeout: ${e.message}`));
-        });
-      }
-    }, 500);
+    // Conform Regulii 6 & Protocol Printec v3.9.3:
+    // La timeout de wake NU se resetează forțat portul serial (forceReopenPort)!
+    // Resetarea forțată se face STRICT la comanda explicită de anulare (cancel_pos_payment).
   }, 3000);
 
   globalPort.write(Buffer.from([ENQ]));
@@ -632,10 +624,10 @@ function ecrSend(frame, ns, label, timeoutMs = 3000) {
         const cb = onLoginFailure;
         onLoginFailure = null;
         cb('Timeout ENQ (POS nu răspunde)');
-      } else if (failedOp && failedOp !== 'LOGIN') {
-        // Dacă o operațiune (ex: SALE) a eșuat la 3 încercări ENQ, portul USB sau terminalul e în sleep/blocat.
+      } else if (failedOp && failedOp !== 'LOGIN' && failedOp !== 'WAKE' && failedOp !== 'WAKE_STANDBY') {
+        // Dacă o vânzare SALE a eșuat după 3 încercări ENQ, portul USB sau terminalul e în sleep/blocat.
         // Re-ciclăm portul controlat (toggle DTR/RTS) pentru a trezi adaptorul serial și Verifone-ul
-        log('🔄 Inițiez autorecuperare port POS după eșec 3x ENQ...');
+        log('🔄 Inițiez autorecuperare port POS după eșec 3x ENQ pe tranzacție...');
         setTimeout(() => {
           forceReopenPort('Autorecuperare după Timeout ENQ').then(() => {
             ensurePosLogin().catch(e => log(`⚠️ Eroare re-login după timeout: ${e.message}`));
@@ -691,13 +683,19 @@ function processPrintecPayment(amount, onStatus) {
     wakeRecoveryTimer = null;
 
     if (state === 'WAIT_ENQ_ACK__WAKE' || currentOperation === 'WAKE' || state === 'WAIT_ENQ_ACK__TEST_SIGNAL' || currentOperation === 'TEST_SIGNAL') {
-      log('⚡ [POS Bridge] Anulez impulsul de pre-wake/wake/test pentru a elibera magistrala serială pentru SALE...');
-      clearTimeout(currentTransactionTimer);
-      try { globalPort.write(Buffer.from([EOT])); } catch (_) {}
-      state = 'IDLE';
-      currentOperation = null;
-      // Pauză de 200ms pentru liniștirea liniei seriale Verifone (quiescence half-duplex)
-      await new Promise(r => setTimeout(r, 200));
+      log('⏳ [POS Bridge] Impuls de wake/test activ pe magistrală — aștept finalizarea normală (sub 300ms) înainte de SALE...');
+      let waitWake = 0;
+      while ((state === 'WAIT_ENQ_ACK__WAKE' || state === 'WAIT_ENQ_ACK__TEST_SIGNAL') && waitWake < 8) {
+        await new Promise(r => setTimeout(r, 50));
+        waitWake++;
+      }
+      if (state !== 'IDLE') {
+        clearTimeout(currentTransactionTimer);
+        try { globalPort.write(Buffer.from([EOT])); } catch (_) {}
+        state = 'IDLE';
+        currentOperation = null;
+        await new Promise(r => setTimeout(r, 150));
+      }
     }
 
     // Dacă portul este temporar în curs de redeschidere/resetare sau în WAIT_LOGIN, așteptăm până la 3.5s pentru a evita coliziunea
@@ -996,6 +994,10 @@ async function start() {
     });
 
     globalPort.on('close', () => {
+      if (isReopeningPort) {
+        log(`ℹ️ [Port] Închidere controlată în curs (isReopeningPort=true) — omit reconectarea concurentă.`);
+        return;
+      }
       log(`⚠️ Portul serial POS ${portPath} s-a închis (cablu deconectat sau terminal oprit).`);
       posLoggedIn = false;
       state = 'IDLE';
