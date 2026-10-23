@@ -588,5 +588,47 @@ router.post('/:locationId/reload-kiosk', (req, res) => {
   }
 });
 
+/**
+ * POST /api/bridge-monitoring/:locationId/fullscreen-kiosk
+ * Remotely triggers fullscreen on Kiosk browser & POS Bridge (F11) WITHOUT reload or losing cart
+ */
+router.post('/:locationId/fullscreen-kiosk', (req, res) => {
+  try {
+    const io = req.app.get('io');
+    const { locationId } = req.params;
+
+    if (locationId === 'all') {
+      if (io) {
+        io.emit('kiosk_force_fullscreen', { locationId: 'all' });
+        console.log('[BridgeMonitor] 🖥️ Comandă globală Fullscreen trimisă către TOATE Kiosk-urile și PC-urile!');
+        return res.json({ success: true, message: 'Comanda Fullscreen a fost trimisă către TOATE Kiosk-urile!' });
+      } else {
+        return res.status(500).json({ error: 'Socket.io nu este inițializat pe server' });
+      }
+    }
+
+    const { getLocationAliases } = require('../utils/locations');
+    const aliases = getLocationAliases ? getLocationAliases(locationId) : [locationId];
+    const targets = new Set([locationId, ...aliases].filter(Boolean));
+
+    if (io) {
+      for (const tid of targets) {
+        // 1. Către aplicația Web Kiosk (requestFullscreen)
+        io.to(`kiosk-${tid}`).emit('kiosk_force_fullscreen', { locationId: tid });
+        io.emit(`kiosk_force_fullscreen_${tid}`, { locationId: tid });
+        // 2. Către POS Bridge pe PC (Windows F11 nativ)
+        io.to(`pos-bridge-${tid}`).emit('kiosk_force_fullscreen', { locationId: tid });
+      }
+      console.log(`[BridgeMonitor] 🖥️ Comandă Fullscreen trimisă către kiosk & bridge: ${[...targets].join(', ')}`);
+      res.json({ success: true, message: `Comanda Fullscreen a fost trimisă către Kiosk (${locationId})` });
+    } else {
+      res.status(500).json({ error: 'Socket.io nu este inițializat pe server' });
+    }
+  } catch (err) {
+    console.error('[BridgeMonitor] Eroare fullscreen kiosk:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
 

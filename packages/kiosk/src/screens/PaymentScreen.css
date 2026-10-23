@@ -140,6 +140,114 @@
   align-items: center;
   gap: 10px;
   box-sizing: border-box;
+  position: relative;
+  overflow: visible;
+}
+
+/* ─── HALLOWEEN SPIDERWEB & MASCOT ON PAYMENT CARD ─── */
+.kiosk-amount-header-card.kahc-halloween {
+  border: 2px solid rgba(255, 160, 0, 0.5);
+  box-shadow: 0 16px 44px -8px rgba(0, 0, 0, 0.12), 0 0 25px rgba(255, 140, 0, 0.25);
+}
+
+/* 3D Pumpkin Mascot Perched on Top-Left Corner */
+.halloween-payment-pumpkin {
+  position: absolute;
+  top: -16px;
+  left: 22px;
+  width: 58px;
+  height: 58px;
+  z-index: 16;
+  pointer-events: none;
+  filter: drop-shadow(0 6px 16px rgba(255, 120, 0, 0.65)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25));
+  animation: pumpkinCardFloat 4s ease-in-out infinite alternate;
+}
+
+.payment-pumpkin-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+@keyframes pumpkinCardFloat {
+  0% {
+    transform: translateY(0) rotate(-6deg) scale(1);
+  }
+  50% {
+    transform: translateY(-4px) rotate(-1deg) scale(1.04);
+  }
+  100% {
+    transform: translateY(0) rotate(-6deg) scale(1);
+  }
+}
+
+/* Spiderwebs Clipped Smoothly to Rounded 34px Inner Corner */
+.halloween-spiderweb-corner {
+  position: absolute;
+  top: 0;
+  width: 96px;
+  height: 96px;
+  pointer-events: none;
+  z-index: 10;
+  opacity: 0.8;
+}
+
+.halloween-spiderweb-corner.web-top-left {
+  left: 0;
+  border-top-left-radius: 34px;
+  overflow: hidden;
+}
+
+.halloween-spiderweb-corner.web-top-right {
+  right: 0;
+  border-top-right-radius: 34px;
+  overflow: hidden;
+}
+
+.halloween-spiderweb-corner svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Dangling Spider Hanging Down from Right Corner */
+.halloween-dangling-spider {
+  position: absolute;
+  top: 56px;
+  right: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  animation: spiderSway 3.6s ease-in-out infinite alternate;
+  transform-origin: top center;
+  z-index: 14;
+}
+
+.spider-silk-thread {
+  width: 1.5px;
+  height: 28px;
+  background: linear-gradient(180deg, rgba(148, 163, 184, 0.8), rgba(203, 213, 225, 0.3));
+}
+
+.spider-icon {
+  font-size: 1.35rem;
+  line-height: 1;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
+  user-select: none;
+}
+
+@keyframes spiderSway {
+  0% {
+    transform: rotate(-14deg);
+  }
+  50% {
+    transform: rotate(10deg);
+  }
+  100% {
+    transform: rotate(-8deg);
+  }
 }
 
 .kahc-context-row {

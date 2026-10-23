@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useKioskStore } from '../store/kioskStore';
 import { useBrand } from '../context/BrandContext.js';
 import { BRANDS, applyBrandTheme } from '../config/brands.js';
@@ -150,12 +150,26 @@ const FLAG_GRADIENTS = {
   es: 'linear-gradient(180deg, #AA151B 25%, #F1BF00 25% 75%, #AA151B 75%)',
 };
 
+  const isHalloweenActive = useMemo(() => {
+    const setting = locationData?.halloweenButtonTheme || 'auto';
+    if (setting === 'on') return true;
+    if (setting === 'off') return false;
+    // 'auto' calendar: activ automat între 23 Octombrie și 3 Noiembrie
+    const now = new Date();
+    const month = now.getMonth(); // 9 = Octombrie, 10 = Noiembrie
+    const day = now.getDate();
+    return (month === 9 && day >= 23) || (month === 10 && day <= 3);
+  }, [locationData?.halloweenButtonTheme]);
+
   const useFlagBg = locationData?.langButtonFlagColors === true;
   const baseBtnColor = locationData?.langButtonColor || '#0f172a';
-  const btnColor = useFlagBg ? (FLAG_GRADIENTS[lang] || baseBtnColor) : baseBtnColor;
-  const btnShadowColor = baseBtnColor;
+  const defaultBtnColor = useFlagBg ? (FLAG_GRADIENTS[lang] || baseBtnColor) : baseBtnColor;
+  const btnColor = isHalloweenActive 
+    ? 'linear-gradient(135deg, #ff6b00 0%, #d82613 40%, #7928ca 85%, #4c1d95 100%)' 
+    : defaultBtnColor;
+  const btnShadowColor = isHalloweenActive ? '#ff6b00' : baseBtnColor;
   const btnTextColor = locationData?.langButtonTextColor || '#ffffff';
-  const btnBorderColor = locationData?.langButtonBorderColor || 'transparent';
+  const btnBorderColor = isHalloweenActive ? '#f97316' : (locationData?.langButtonBorderColor || 'transparent');
   const customBtnText = locationData?.langButtonText || '';
   const pos = locationData?.langSelectorPosition || 'after';
   const showLangOnWelcome = pos === 'before' || pos === 'both';
@@ -256,22 +270,38 @@ const FLAG_GRADIENTS = {
             </div>
 
             <button 
-              className="poster-cta-btn-glass" 
-              style={{ background: btnColor, color: btnTextColor, borderColor: btnBorderColor, borderWidth: btnBorderColor !== 'transparent' ? '3px' : '0', borderStyle: 'solid', boxShadow: `0 12px 32px ${btnShadowColor}80` }}
+              className={`poster-cta-btn-glass ${isHalloweenActive ? 'btn-halloween-glow' : ''}`} 
+              style={{ 
+                background: btnColor, 
+                color: btnTextColor, 
+                borderColor: btnBorderColor, 
+                borderWidth: (isHalloweenActive || btnBorderColor !== 'transparent') ? '2px' : '0', 
+                borderStyle: 'solid',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '18px',
+                padding: isHalloweenActive ? '16px 48px' : undefined
+              }}
               onClick={(e) => { e.stopPropagation(); handlePosterTap(); }}
             >
-              <span className="poster-cta-label" style={{ 
-                color: btnTextColor, 
-                background: 'rgba(0, 0, 0, 0.45)', 
-                backdropFilter: 'blur(8px)', 
-                WebkitBackdropFilter: 'blur(8px)', 
-                padding: '8px 24px', 
-                borderRadius: '16px',
-                textShadow: '0 2px 8px rgba(0,0,0,0.5)',
-                display: 'inline-block'
-              }}>
+              {isHalloweenActive && (
+                <img 
+                  src="/halloween_pumpkin.png" 
+                  alt="🎃" 
+                  className="standby-pumpkin-img" 
+                />
+              )}
+              <span className={`poster-cta-label ${isHalloweenActive ? 'halloween-btn-label' : ''}`}>
                 {customBtnText || t('start_order', lang)}
               </span>
+              {isHalloweenActive && (
+                <img 
+                  src="/halloween_bat.png" 
+                  alt="🦇" 
+                  className="standby-bat-img" 
+                />
+              )}
             </button>
 
             <span className="poster-tap-hint">{t('touch_anywhere', lang)}</span>
@@ -330,10 +360,11 @@ const FLAG_GRADIENTS = {
       {/* CTA */}
       <div className="welcome-cta">
         <button 
-          className="cta-button" 
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, background: btnColor, color: btnTextColor, borderColor: btnBorderColor, borderWidth: btnBorderColor !== 'transparent' ? '3px' : '0', borderStyle: 'solid', boxShadow: `0 12px 32px ${btnShadowColor}80` }}
+          className={`cta-button ${isHalloweenActive ? 'btn-halloween-glow' : ''}`} 
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, background: btnColor, color: btnTextColor, borderColor: btnBorderColor, borderWidth: (isHalloweenActive || btnBorderColor !== 'transparent') ? '2px' : '0', borderStyle: 'solid', boxShadow: isHalloweenActive ? undefined : `0 12px 32px ${btnShadowColor}80` }}
           onClick={goAfterWelcome}
         >
+          {isHalloweenActive && <img src="/halloween_pumpkin.png" alt="🎃" className="standby-pumpkin-img" style={{ width: 38, height: 38 }} />}
           {(locationData?.brands?.length > 1 ? locationData.brands : [brand.id]).map((bId) => (
             <img
               key={bId}
@@ -343,7 +374,8 @@ const FLAG_GRADIENTS = {
               onError={(e) => { e.target.style.display='none'; }}
             />
           ))}
-          <span style={{ color: btnTextColor }}>{customBtnText || t('tap_to_order', lang)}</span>
+          <span style={{ color: btnTextColor }} className={isHalloweenActive ? 'halloween-btn-label' : ''}>{customBtnText || t('tap_to_order', lang)}</span>
+          {isHalloweenActive && <img src="/halloween_bat.png" alt="🦇" className="standby-bat-img" style={{ height: 40, width: 'auto', maxWidth: 95 }} />}
         </button>
       </div>
 

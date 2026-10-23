@@ -49,6 +49,17 @@ export default function MenuScreen() {
   const locationData      = useKioskStore((s) => s.locationData);
   const brand             = useBrand();
 
+  const isHalloweenActive = useMemo(() => {
+    const setting = locationData?.halloweenButtonTheme || 'auto';
+    if (setting === 'on') return true;
+    if (setting === 'off') return false;
+    // 'auto' calendar: activ automat între 23 Octombrie și 3 Noiembrie
+    const now = new Date();
+    const month = now.getMonth(); // 9 = Octombrie, 10 = Noiembrie
+    const day = now.getDate();
+    return (month === 9 && day >= 23) || (month === 10 && day <= 3);
+  }, [locationData?.halloweenButtonTheme]);
+
   const setMenuProducts   = useKioskStore(s => s.setMenuProducts);
   const setMenuCategories = useKioskStore(s => s.setMenuCategories);
 
@@ -792,17 +803,32 @@ export default function MenuScreen() {
 
       {/* ─── FLOATING CART BAR ──────────────────────── */}
       {cartCount > 0 && (
-        <div className="cart-bar" ref={cartBarRef} onClick={() => goTo('cart')} style={{ display: 'flex', alignItems: 'center', padding: '12px 28px 12px 14px' }}>
+        <div 
+          className={`cart-bar ${isHalloweenActive ? 'cart-bar-halloween' : ''}`} 
+          ref={cartBarRef} 
+          onClick={() => goTo('cart')} 
+          style={{ display: 'flex', alignItems: 'center', padding: '12px 28px 12px 14px' }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {activeBrandLogo && (
-              <div className="cart-bar-brand-logo">
-                <img src={activeBrandLogo} alt={activeBrandName} onError={(e) => { e.currentTarget.parentElement.style.display = 'none'; }} />
+            {isHalloweenActive ? (
+              <div className="cart-bar-brand-logo cart-bar-pumpkin-badge">
+                <img 
+                  src="/halloween_pumpkin.png" 
+                  alt="Halloween" 
+                  className="cart-bar-pumpkin-3d-img" 
+                />
               </div>
+            ) : (
+              activeBrandLogo && (
+                <div className="cart-bar-brand-logo">
+                  <img src={activeBrandLogo} alt={activeBrandName} onError={(e) => { e.currentTarget.parentElement.style.display = 'none'; }} />
+                </div>
+              )
             )}
             <svg width="28" height="28" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
               <path d="M7 18C5.9 18 5.01 18.9 5.01 20C5.01 21.1 5.9 22 7 22C8.1 22 9 21.1 9 20C9 18.9 8.1 18 7 18ZM1 2V4H3L6.6 11.59L5.24 14.04C5.09 14.32 5 14.65 5 15C5 16.1 5.9 17 7 17H19V15H7.42C7.28 15 7.17 14.89 7.17 14.75L7.2 14.63L8.1 13H15.55C16.3 13 16.96 12.59 17.3 11.97L20.88 5.48C20.96 5.34 21 5.17 21 5C21 4.45 20.55 4 20 4H5.21L4.27 2H1ZM17 18C15.9 18 15.01 18.9 15.01 20C15.01 21.1 15.9 22 17 22C18.1 22 19 21.1 19 20C19 18.9 18.1 18 17 18Z"/>
             </svg>
-            <span className="cart-bar-count" style={{ background: 'rgba(255,255,255,0.2)', padding: '4px 10px', borderRadius: '16px', fontSize: '0.9rem', fontWeight: 600 }}>{cartCount} {cartCount > 1 ? t('items_many', lang) : t('item_one', lang)}</span>
+            <span className="cart-bar-count" style={{ background: 'rgba(255,255,255,0.22)', padding: '4px 10px', borderRadius: '16px', fontSize: '0.9rem', fontWeight: 600 }}>{cartCount} {cartCount > 1 ? t('items_many', lang) : t('item_one', lang)}</span>
           </div>
           <span className="cart-bar-label" style={{ flex: 1, textAlign: 'center', fontSize: '1.2rem', fontWeight: 700 }}>{t('my_cart', lang)}</span>
           <span className="cart-bar-total" style={{ fontSize: '1.4rem', fontWeight: 800 }}>{cartTotal.toFixed(2)} {t('lei', lang)}</span>

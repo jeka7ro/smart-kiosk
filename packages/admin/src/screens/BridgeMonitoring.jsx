@@ -27,7 +27,8 @@ import {
   ShieldAlert,
   AlertTriangle,
   Sparkles,
-  ArrowDown
+  ArrowDown,
+  Maximize2
 } from 'lucide-react';
 import BrandLogo from '../components/BrandLogo.jsx';
 import SoftwareReleaseNotesModal from '../components/SoftwareReleaseNotesModal.jsx';
@@ -1531,6 +1532,16 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                     >
                       <RotateCcw className={`w-3.5 h-3.5 shrink-0 ${actionLoading === `${locKey}-reload-kiosk` ? 'animate-spin' : ''}`} />
                       <span>Ecran</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAction(locKey, 'fullscreen-kiosk')}
+                      disabled={actionLoading === `${locKey}-fullscreen-kiosk`}
+                      title="Intră instant în modul Fullscreen pe ecranul Kiosk (fără reîncărcare de pagină, fără întrerupere comenzi)"
+                      className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/80 transition-colors disabled:opacity-50 cursor-pointer shadow-xs whitespace-nowrap"
+                    >
+                      <Maximize2 className={`w-3.5 h-3.5 shrink-0 ${actionLoading === `${locKey}-fullscreen-kiosk` ? 'animate-pulse' : ''}`} />
+                      <span>Fullscreen</span>
                     </button>
                     <button
                       type="button"

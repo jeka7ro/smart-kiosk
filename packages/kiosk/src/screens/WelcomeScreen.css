@@ -317,3 +317,183 @@
 
 /* ─── ANIMATIONS ─────────────────────────────────────────── */
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── HALLOWEEN BUTTON THEME: ULTRA-SMOOTH & PERIODIC ─── */
+.btn-halloween-glow {
+  position: relative !important;
+  overflow: hidden !important;
+  background: linear-gradient(135deg, #ff4500 0%, #c41800 35%, #7e22ce 75%, #3b0764 100%) !important;
+  border: 2px solid #ff8800 !important;
+  animation: halloweenButtonAlive 5.5s cubic-bezier(0.4, 0, 0.2, 1) infinite !important;
+  cursor: pointer;
+  z-index: 2;
+}
+
+/* Dynamic smooth light blade sweep */
+.btn-halloween-glow::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -80%;
+  width: 55%;
+  height: 200%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 25%,
+    rgba(255, 230, 100, 0.65) 50%,
+    rgba(255, 255, 255, 0.15) 75%,
+    transparent 100%
+  );
+  transform: rotate(25deg);
+  pointer-events: none;
+  animation: halloweenLightSweep 5.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  z-index: 1;
+}
+
+@keyframes halloweenButtonAlive {
+  0%, 65%, 100% {
+    transform: scale(1) rotate(0deg);
+    box-shadow: 0 0 20px rgba(255, 85, 0, 0.65), 0 0 45px rgba(126, 34, 206, 0.4), 0 10px 25px rgba(0, 0, 0, 0.5);
+  }
+  72% {
+    transform: scale(1.025) rotate(-1.5deg);
+    box-shadow: 0 0 32px rgba(255, 120, 0, 0.85), 0 0 60px rgba(168, 85, 247, 0.6), 0 14px 32px rgba(0, 0, 0, 0.55);
+  }
+  80% {
+    transform: scale(1.025) rotate(1.5deg);
+    box-shadow: 0 0 35px rgba(255, 120, 0, 0.9), 0 0 65px rgba(168, 85, 247, 0.65), 0 14px 32px rgba(0, 0, 0, 0.55);
+  }
+  88% {
+    transform: scale(1.01) rotate(-0.5deg);
+  }
+  94% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes halloweenLightSweep {
+  0% {
+    left: -80%;
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.65;
+  }
+  38% {
+    left: 180%;
+    opacity: 0;
+  }
+  100% {
+    left: 180%;
+    opacity: 0;
+  }
+}
+.standby-pumpkin-img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  display: inline-block;
+  vertical-align: middle;
+  filter: drop-shadow(0 4px 12px rgba(255, 120, 0, 0.85));
+  animation: standbyPumpkinFloat 3.8s ease-in-out infinite;
+  transform-origin: center bottom;
+  user-select: none;
+  pointer-events: none;
+  position: relative;
+  z-index: 2;
+}
+
+@keyframes standbyPumpkinFloat {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg) scale(1);
+  }
+  35% {
+    transform: translateY(-5px) rotate(-4deg) scale(1.08);
+  }
+  70% {
+    transform: translateY(-2px) rotate(4deg) scale(1.04);
+  }
+}
+
+.standby-bat-img {
+  height: 52px;
+  width: auto;
+  max-width: 120px;
+  object-fit: contain;
+  display: inline-block;
+  vertical-align: middle;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.85)) drop-shadow(0 0 10px rgba(255, 160, 0, 0.6));
+  animation: standbyBatHover 3.4s ease-in-out infinite alternate;
+  transform-origin: center center;
+  user-select: none;
+  pointer-events: none;
+  position: relative;
+  z-index: 2;
+}
+
+@keyframes standbyBatHover {
+  0% {
+    transform: translateY(0px) rotate(-2.5deg) scale(0.98);
+  }
+  50% {
+    transform: translateY(-4px) rotate(1.5deg) scale(1.03);
+  }
+  100% {
+    transform: translateY(-1.5px) rotate(3deg) scale(1.01);
+  }
+}
+
+.halloween-pumpkin-float {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35em;
+  line-height: 1;
+  animation: pumpkinFloat 3.5s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+  filter: drop-shadow(0 0 8px rgba(255, 120, 0, 0.95));
+  position: relative;
+  z-index: 2;
+}
+
+@keyframes pumpkinFloat {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+  35% {
+    transform: translateY(-3.5px) rotate(-3deg) scale(1.05);
+  }
+  70% {
+    transform: translateY(-1.5px) rotate(3deg) scale(1.02);
+  }
+}
+
+.halloween-bat-corner {
+  position: absolute;
+  top: -8px;
+  right: 14px;
+  font-size: 1.15rem;
+  line-height: 1;
+  animation: batHover 3.2s ease-in-out infinite alternate;
+  filter: drop-shadow(0 0 6px rgba(168, 85, 247, 0.9));
+  pointer-events: none;
+  z-index: 3;
+}
+
+@keyframes batHover {
+  0% {
+    transform: translateY(0) rotate(-4deg) scale(0.98);
+  }
+  100% {
+    transform: translateY(-4px) rotate(4deg) scale(1.05);
+  }
+}
+
+.halloween-btn-label {
+  position: relative;
+  z-index: 2;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-shadow: 0 0 12px rgba(255, 210, 0, 0.75), 0 2px 6px rgba(0, 0, 0, 0.85);
+}
+

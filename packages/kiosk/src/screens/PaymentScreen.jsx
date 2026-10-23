@@ -62,6 +62,16 @@ export default function PaymentScreen() {
     return [single];
   }, [cartItems, locationData, activeBrandId, urlBrand]);
 
+  const isHalloweenActive = useMemo(() => {
+    const setting = locationData?.halloweenButtonTheme || 'auto';
+    if (setting === 'on') return true;
+    if (setting === 'off') return false;
+    const now = new Date();
+    const month = now.getMonth(); // 9 = Oct, 10 = Nov
+    const day = now.getDate();
+    return (month === 9 && day >= 23) || (month === 10 && day <= 3);
+  }, [locationData?.halloweenButtonTheme]);
+
   const [showFiscalModal, setShowFiscalModal] = useState(false);
 
   const total      = getCartTotal();
@@ -452,7 +462,54 @@ export default function PaymentScreen() {
         )}
 
         {/* ── Top Amount & Context Display ── */}
-        <div className="kiosk-amount-header-card">
+        <div className={`kiosk-amount-header-card ${isHalloweenActive ? 'kahc-halloween' : ''}`}>
+          {isHalloweenActive && (
+            <>
+              {/* Halloween Pumpkin Mascot on Payment Card */}
+              <div className="halloween-payment-pumpkin" aria-hidden="true">
+                <img src="/halloween_pumpkin.png" alt="🎃" className="payment-pumpkin-img" />
+              </div>
+
+              {/* Spiderweb Left Corner (Smoothly contoured to rounded container) */}
+              <div className="halloween-spiderweb-corner web-top-left" aria-hidden="true">
+                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  {/* Outer boundary thread matching rounded corner and edges */}
+                  <path d="M 0 100 L 0 34 A 34 34 0 0 1 34 0 L 100 0" stroke="rgba(100, 116, 139, 0.45)" strokeWidth="1.6" />
+                  {/* Radial spokes */}
+                  <path d="M 6 26 L 42 100 M 14 18 L 74 84 M 20 12 L 88 64 M 26 6 L 100 38" stroke="rgba(100, 116, 139, 0.4)" strokeWidth="1.3" />
+                  {/* Inner curve near corner */}
+                  <path d="M 0 42 A 42 42 0 0 1 42 0" stroke="rgba(100, 116, 139, 0.28)" strokeWidth="1" strokeDasharray="2 2" />
+                  {/* Scalloped spiderweb cross-threads dipping toward corner */}
+                  <path d="M 0 54 Q 10 48 18 44 Q 28 36 36 28 Q 44 18 48 10 Q 51 5 54 0" stroke="rgba(100, 116, 139, 0.38)" strokeWidth="1.2" fill="none" />
+                  <path d="M 0 76 Q 16 68 26 62 Q 40 50 50 40 Q 62 26 68 16 Q 72 8 76 0" stroke="rgba(100, 116, 139, 0.38)" strokeWidth="1.2" fill="none" />
+                  <path d="M 0 98 Q 24 88 38 80 Q 56 66 66 56 Q 80 38 88 24 Q 93 12 98 0" stroke="rgba(100, 116, 139, 0.38)" strokeWidth="1.2" fill="none" />
+                </svg>
+              </div>
+
+              {/* Spiderweb Right Corner (Smoothly contoured to rounded container) */}
+              <div className="halloween-spiderweb-corner web-top-right" aria-hidden="true">
+                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  {/* Outer boundary thread matching rounded corner and edges */}
+                  <path d="M 0 0 L 66 0 A 34 34 0 0 1 100 34 L 100 100" stroke="rgba(100, 116, 139, 0.45)" strokeWidth="1.6" />
+                  {/* Radial spokes */}
+                  <path d="M 94 26 L 58 100 M 86 18 L 26 84 M 80 12 L 12 64 M 74 6 L 0 38" stroke="rgba(100, 116, 139, 0.4)" strokeWidth="1.3" />
+                  {/* Inner curve near corner */}
+                  <path d="M 58 0 A 42 42 0 0 1 100 42" stroke="rgba(100, 116, 139, 0.28)" strokeWidth="1" strokeDasharray="2 2" />
+                  {/* Scalloped spiderweb cross-threads dipping toward corner */}
+                  <path d="M 100 54 Q 90 48 82 44 Q 72 36 64 28 Q 56 18 52 10 Q 49 5 46 0" stroke="rgba(100, 116, 139, 0.38)" strokeWidth="1.2" fill="none" />
+                  <path d="M 100 76 Q 84 68 74 62 Q 60 50 50 40 Q 38 26 32 16 Q 28 8 24 0" stroke="rgba(100, 116, 139, 0.38)" strokeWidth="1.2" fill="none" />
+                  <path d="M 100 98 Q 76 88 62 80 Q 44 66 34 56 Q 20 38 12 24 Q 7 12 2 0" stroke="rgba(100, 116, 139, 0.38)" strokeWidth="1.2" fill="none" />
+                </svg>
+              </div>
+
+              {/* Dangling Spider */}
+              <div className="halloween-dangling-spider" aria-hidden="true">
+                <div className="spider-silk-thread" />
+                <span className="spider-icon">🕷️</span>
+              </div>
+            </>
+          )}
+
           <div className="kahc-context-row">
             <span className="kahc-badge-type">
               {orderType === 'takeaway' ? 'LA PACHET' : 'SERVIRE ÎN RESTAURANT'}

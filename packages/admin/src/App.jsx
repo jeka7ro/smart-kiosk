@@ -30,7 +30,7 @@ import FortuneWheelPreview from './components/FortuneWheelPreview';
 import MenuManager, { MenuProfileEditorModal } from './screens/MenuManager';
 import QrGenerator from './screens/QrGenerator';
 import { useConfirm, RestartDialogIcon } from './components/ConfirmModal';
-import { LayoutDashboard, Receipt, TrendingUp, MapPin, MonitorSmartphone, QrCode, Utensils, Languages, Image as ImageIcon, Tags, Users, Blocks, Gift, Store, Sun, Moon, LogOut, Menu, X, CreditCard, Download, Printer, Building2, Palette, Sparkles, Flame, Snowflake, Layers, Upload, Star, ChevronUp, ChevronDown, Check, CheckCircle2, Zap, Wifi, Sliders, Info, Trash2, AlertTriangle, Globe, Phone, Lock, Clock, ShieldCheck, ShieldAlert, Unlock, Eye, EyeOff, Activity, RotateCcw, Calendar, Copy, Server, ExternalLink, RefreshCw } from 'lucide-react';
+import { LayoutDashboard, Receipt, TrendingUp, MapPin, MonitorSmartphone, QrCode, Utensils, Languages, Image as ImageIcon, Tags, Users, Blocks, Gift, Store, Sun, Moon, LogOut, Menu, X, CreditCard, Download, Printer, Building2, Palette, Sparkles, Flame, Snowflake, Layers, Upload, Star, ChevronUp, ChevronDown, Check, CheckCircle2, Zap, Wifi, Sliders, Info, Trash2, AlertTriangle, Globe, Phone, Lock, Clock, ShieldCheck, ShieldAlert, Unlock, Eye, EyeOff, Activity, RotateCcw, Calendar, Copy, Server, ExternalLink, RefreshCw, Maximize2 } from 'lucide-react';
 import { formatThousands } from './utils/formatters';
 
 
@@ -1434,7 +1434,7 @@ export default function AdminApp() {
                             )}
 
                             {/* Butoane Acțiuni Control */}
-                            <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 grid grid-cols-3 gap-1.5">
+                            <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 grid grid-cols-4 gap-1.5">
                               <button
                                 type="button"
                                 onClick={() => handleDropdownAction(loc.id, 'test-print')}
@@ -1453,7 +1453,7 @@ export default function AdminApp() {
                                 className="flex flex-col items-center justify-center gap-1 py-1.5 px-1 rounded-lg text-[10px] font-semibold bg-slate-50 dark:bg-slate-700/60 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 transition-colors disabled:opacity-50 cursor-pointer"
                               >
                                 <RefreshCw className={`w-3.5 h-3.5 text-slate-500 dark:text-slate-400 ${dropdownActionLoading === `${loc.id}-restart-bridge` ? 'animate-spin' : ''}`} />
-                                <span className="whitespace-nowrap">Restart Bridge</span>
+                                <span className="whitespace-nowrap">Bridge</span>
                               </button>
                               <button
                                 type="button"
@@ -1463,7 +1463,17 @@ export default function AdminApp() {
                                 className="flex flex-col items-center justify-center gap-1 py-1.5 px-1 rounded-lg text-[10px] font-semibold bg-slate-50 dark:bg-slate-700/60 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 transition-colors disabled:opacity-50 cursor-pointer"
                               >
                                 <RotateCcw className={`w-3.5 h-3.5 text-slate-500 dark:text-slate-400 ${dropdownActionLoading === `${loc.id}-reload-kiosk` ? 'animate-spin' : ''}`} />
-                                <span className="whitespace-nowrap">Refresh Ecran</span>
+                                <span className="whitespace-nowrap">Ecran</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDropdownAction(loc.id, 'fullscreen-kiosk')}
+                                disabled={dropdownActionLoading === `${loc.id}-fullscreen-kiosk`}
+                                title="Activează modul Fullscreen pe ecranul Kiosk (fără restart, fără pierderi comenzi)"
+                                className="flex flex-col items-center justify-center gap-1 py-1.5 px-1 rounded-lg text-[10px] font-semibold bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-700 transition-colors disabled:opacity-50 cursor-pointer"
+                              >
+                                <Maximize2 className={`w-3.5 h-3.5 text-amber-600 dark:text-amber-400 ${dropdownActionLoading === `${loc.id}-fullscreen-kiosk` ? 'animate-pulse' : ''}`} />
+                                <span className="whitespace-nowrap">Fullscreen</span>
                               </button>
                             </div>
                           </div>
@@ -3603,6 +3613,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
     langButtonBorderColor: loc.langButtonBorderColor || 'transparent',
     langButtonText: loc.langButtonText || '',
     langButtonFlagColors: loc.langButtonFlagColors || false,
+    halloweenButtonTheme: loc.halloweenButtonTheme || 'auto',
     langVerticalPosition: loc.langVerticalPosition || 'bottom',
     langSelectorPosition: loc.langSelectorPosition || 'after',
     langBgColor: loc.langBgColor || '',
@@ -4419,35 +4430,196 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                 </div>
               </div>
 
-              <div className="p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between gap-3">
-                <div className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Folosește culorile tricolorului (suprascrie fundalul)
+              {/* Halloween Seasonal Theme Selector */}
+              <div className="p-4 rounded-2xl border border-orange-300/80 dark:border-orange-900/60 bg-gradient-to-r from-orange-500/10 via-purple-600/10 to-slate-900/10 dark:from-orange-950/40 dark:via-purple-950/40 dark:to-slate-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                <div className="space-y-1">
+                  <div className="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                    <span className="text-base">🎃</span>
+                    <span>Temă Festivă Halloween (Animații Periodice)</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-500 text-white font-black tracking-wide uppercase">Sezonier</span>
+                  </div>
+                  <div className="text-[11px] text-slate-600 dark:text-slate-300">
+                    Animație periodică vie pe butonul de start: reflexie de lumină rotativă, pulsație incandescentă și dovleac plutitor.
+                  </div>
                 </div>
-                <KioskSwitch
-                  checked={formData.langButtonFlagColors || false}
-                  onChange={val => handleChange('langButtonFlagColors', val)}
-                />
+                <div className="flex items-center gap-1 bg-white/90 dark:bg-slate-800/90 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shrink-0 shadow-xs">
+                  {[
+                    { id: 'auto', label: '📅 Auto (23 Oct - 3 Nov)' },
+                    { id: 'on', label: '🎃 Pornit' },
+                    { id: 'off', label: '⚪ Oprit' },
+                  ].map(opt => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => handleChange('halloweenButtonTheme', opt.id)}
+                      className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                        (formData.halloweenButtonTheme || 'auto') === opt.id
+                          ? 'bg-gradient-to-r from-orange-600 to-purple-600 text-white shadow-sm'
+                          : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Live Button Preview */}
-              <div className="pt-2 flex flex-col items-center">
-                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Previzualizare Buton</span>
-                <div
-                  className="px-6 py-3 rounded-2xl font-bold text-sm shadow-md transition-all flex items-center gap-2"
-                  style={{
-                    background: formData.langButtonFlagColors 
-                      ? 'linear-gradient(90deg, #002B7F 0%, #002B7F 33.3%, #FCD116 33.3%, #FCD116 66.6%, #CE1126 66.6%, #CE1126 100%)'
-                      : (formData.langButtonColor || '#0f172a'),
-                    color: formData.langButtonTextColor || '#ffffff',
-                    border: formData.langButtonBorderColor && formData.langButtonBorderColor !== 'transparent' 
-                      ? `2px solid ${formData.langButtonBorderColor}` 
-                      : 'none'
-                  }}
-                >
-                  <span>{formData.langButtonText || 'Începe comanda'}</span>
-                  <span>→</span>
-                </div>
-              </div>
+              {(() => {
+                const isHActive = (() => {
+                  const s = formData.halloweenButtonTheme || 'auto';
+                  if (s === 'on') return true;
+                  if (s === 'off') return false;
+                  const now = new Date();
+                  const m = now.getMonth();
+                  const d = now.getDate();
+                  return (m === 9 && d >= 23) || (m === 10 && d <= 3);
+                })();
+
+                return (
+                  <div className="pt-3 pb-1 flex flex-col items-center">
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                      <span>Previzualizare Buton Kiosk</span>
+                      {isHActive && <span className="px-1.5 py-0.2 rounded bg-orange-100 dark:bg-orange-950 text-orange-600 dark:text-orange-400 font-extrabold text-[10px]">🎃 MOD HALLOWEEN ACTIV</span>}
+                    </span>
+
+                    {/* Inline Animation Styles for accurate Admin Preview */}
+                    <style>{`
+                      @keyframes adminHalloweenAlive {
+                        0%, 65%, 100% {
+                          transform: scale(1) rotate(0deg);
+                          box-shadow: 0 0 20px rgba(255, 85, 0, 0.65), 0 0 45px rgba(126, 34, 206, 0.4), 0 10px 25px rgba(0,0,0,0.4);
+                        }
+                        72% {
+                          transform: scale(1.025) rotate(-1.5deg);
+                          box-shadow: 0 0 32px rgba(255, 120, 0, 0.85), 0 0 60px rgba(168, 85, 247, 0.6), 0 14px 30px rgba(0,0,0,0.5);
+                        }
+                        80% {
+                          transform: scale(1.025) rotate(1.5deg);
+                          box-shadow: 0 0 35px rgba(255, 120, 0, 0.9), 0 0 65px rgba(168, 85, 247, 0.65), 0 14px 30px rgba(0,0,0,0.5);
+                        }
+                        88% { transform: scale(1.01) rotate(-0.5deg); }
+                        94% { transform: scale(1) rotate(0deg); }
+                      }
+                      @keyframes adminLightSweep {
+                        0% { left: -80%; opacity: 0; }
+                        12% { opacity: 0.65; }
+                        38% { left: 180%; opacity: 0; }
+                        100% { left: 180%; opacity: 0; }
+                      }
+                      @keyframes adminPumpkinFloat {
+                        0%, 100% { transform: translateY(0) rotate(0deg) scale(1); }
+                        35% { transform: translateY(-3.5px) rotate(-3deg) scale(1.05); }
+                        70% { transform: translateY(-1.5px) rotate(3deg) scale(1.02); }
+                      }
+                      @keyframes adminBatHover {
+                        0% { transform: translateY(0) rotate(-4deg); }
+                        100% { transform: translateY(-4px) rotate(4deg); }
+                      }
+                    `}</style>
+
+                    <div
+                      className="relative px-8 py-3.5 rounded-2xl font-black text-sm select-none transition-all flex items-center justify-center gap-3 overflow-hidden cursor-pointer"
+                      style={isHActive ? {
+                        background: 'linear-gradient(135deg, #ff4500 0%, #c41800 35%, #7e22ce 75%, #3b0764 100%)',
+                        color: '#ffffff',
+                        border: '2px solid #ff8800',
+                        animation: 'adminHalloweenAlive 5.5s cubic-bezier(0.4, 0, 0.2, 1) infinite',
+                      } : {
+                        background: formData.langButtonColor || '#0f172a',
+                        color: formData.langButtonTextColor || '#ffffff',
+                        border: formData.langButtonBorderColor && formData.langButtonBorderColor !== 'transparent'
+                          ? `2px solid ${formData.langButtonBorderColor}`
+                          : 'none',
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.18)'
+                      }}
+                    >
+                      {/* Sweeping Light Blade */}
+                      {isHActive && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: '-50%',
+                            left: '-80%',
+                            width: '55%',
+                            height: '200%',
+                            background: 'linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.1) 25%, rgba(255, 230, 100, 0.65) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 100%)',
+                            transform: 'rotate(25deg)',
+                            pointerEvents: 'none',
+                            animation: 'adminLightSweep 5.2s cubic-bezier(0.4, 0, 0.2, 1) infinite',
+                            zIndex: 1,
+                          }}
+                        />
+                      )}
+
+                      {/* Bat in top corner */}
+                      {isHActive && (
+                        <span
+                          style={{
+                            position: 'absolute',
+                            top: '-6px',
+                            right: '12px',
+                            fontSize: '1rem',
+                            animation: 'adminBatHover 2s ease-in-out infinite alternate',
+                            filter: 'drop-shadow(0 0 5px rgba(168, 85, 247, 0.9))',
+                            zIndex: 3,
+                          }}
+                        >
+                          🦇
+                        </span>
+                      )}
+
+                      {/* Floating Pumpkin */}
+                      {isHActive && (
+                        <img
+                          src="/halloween_pumpkin.png"
+                          alt="🎃"
+                          style={{
+                            width: 26,
+                            height: 26,
+                            objectFit: 'contain',
+                            animation: 'adminPumpkinFloat 3.5s ease-in-out infinite',
+                            filter: 'drop-shadow(0 0 8px rgba(255, 120, 0, 0.95))',
+                            zIndex: 2,
+                          }}
+                        />
+                      )}
+
+                      {/* Button Label */}
+                      <span
+                        style={{
+                          position: 'relative',
+                          zIndex: 2,
+                          fontWeight: 800,
+                          letterSpacing: '0.02em',
+                          textShadow: isHActive ? '0 0 12px rgba(255, 210, 0, 0.8), 0 2px 4px rgba(0,0,0,0.85)' : 'none',
+                        }}
+                      >
+                        {formData.langButtonText || 'Începe comanda'}
+                      </span>
+
+                      {/* Trailing Icon: Bat */}
+                      {isHActive ? (
+                        <img
+                          src="/halloween_bat.png"
+                          alt="🦇"
+                          style={{
+                            height: 26,
+                            width: 'auto',
+                            maxWidth: 62,
+                            objectFit: 'contain',
+                            animation: 'adminBatHover 3.4s ease-in-out infinite alternate',
+                            filter: 'drop-shadow(0 2px 6px rgba(0, 0, 0, 0.75)) drop-shadow(0 0 5px rgba(255, 160, 0, 0.4))',
+                            zIndex: 2,
+                          }}
+                        />
+                      ) : (
+                        <span style={{ zIndex: 2 }}>→</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>

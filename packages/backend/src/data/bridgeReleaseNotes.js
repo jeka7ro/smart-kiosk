@@ -4,9 +4,38 @@
 
 const BRIDGE_RELEASE_NOTES = [
   {
+    version: '3.5.1',
+    releaseDate: '23 Octombrie 2026',
+    isLatest: true,
+    tag: 'Tanc Blindat Auto-Recuperabil',
+    title: 'Watchdog Proactiv: Auto-Kill Zombie & Auto-Restart la Deconectare',
+    summary: 'Elimină definitiv starea de zombie când portul COM sau socket-ul se deconectează. Dacă bridge-ul rămâne deconectat de Render > 60s, procesul se auto-termină forțat pentru a permite buclei batch să repornească curat. Watchdog-ul local verifică activ conexiunea înainte de a raporta starea ALIVE.',
+    categories: [
+      {
+        title: 'Auto-Recuperare & Watchdog',
+        badge: 'Critic',
+        badgeColor: 'emerald',
+        items: [
+          {
+            title: 'Auto-Exit la Deconectare Render (>60s)',
+            desc: 'Dacă bridge-ul pierde conexiunea socket cu Render și nu se reconectează în 60s, procesul apelează process.exit(1) pentru a fi repornit curat de bucla start-windows.bat.'
+          },
+          {
+            title: 'Sondă Sănătate Inteligentă (Port 40499)',
+            desc: 'Portul 40499 raportează ALIVE:OK strict dacă bridge-ul este activ conectat la Render. În caz de stare zombie, raportează DEAD, declanșând taskkill-ul automat din watchdog.vbs.'
+          },
+          {
+            title: 'Timer de Siguranță pe Resetare Port COM (2.5s)',
+            desc: 'Previne blocarea thread-ului pe Windows în apeluri de închidere/deschidere a portului serial.'
+          }
+        ]
+      }
+    ]
+  },
+  {
     version: '3.5.0',
     releaseDate: '21 Octombrie 2026',
-    isLatest: true,
+    isLatest: false,
     tag: 'Versiune Oficială',
     title: 'Patch Critic: Auto-Repornire Nativă & Eliminare Crash Batch',
     summary: 'Această actualizare rezolvă definitiv problema de repornire pe Windows. Procesul Node.js se repornește acum nativ în sub 1 secundă fără a mai depinde de scriptul extern de batch, iar porturile UART/COM sunt eliberate ordonat.',

@@ -521,6 +521,35 @@ export default function App() {
       socket.on(`remote_restart_${urlLoc}`, hardReload);
     }
 
+    // Remote Fullscreen (fără refresh, fără pierdere date sau comenzi active)
+    const triggerFullscreen = () => {
+      console.log('[Kiosk] 🖥️ Comandă Remote Fullscreen primită.');
+      try {
+        if (!document.fullscreenElement) {
+          const docEl = document.documentElement;
+          const reqFn = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+          if (reqFn) {
+            reqFn.call(docEl).catch(() => {
+              // Dacă browserul cere gest manual, asigurăm activarea la primul touch oriunde pe ecran
+              const oneTouch = () => {
+                try { reqFn.call(docEl); } catch (_) {}
+                window.removeEventListener('click', oneTouch);
+                window.removeEventListener('touchstart', oneTouch);
+              };
+              window.addEventListener('click', oneTouch, { once: true });
+              window.addEventListener('touchstart', oneTouch, { once: true });
+            });
+          }
+        }
+      } catch (_) {}
+    };
+
+    socket.on('kiosk_force_fullscreen', triggerFullscreen);
+    socket.on(`kiosk_force_fullscreen_${locId}`, triggerFullscreen);
+    if (urlLoc && urlLoc !== locId) {
+      socket.on(`kiosk_force_fullscreen_${urlLoc}`, triggerFullscreen);
+    }
+
     socket.on('location_updated', (newData) => {
       console.log('[Kiosk] Live config update received from Admin Panel.');
       setLocationData(newData);

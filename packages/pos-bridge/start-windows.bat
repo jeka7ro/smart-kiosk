@@ -68,15 +68,16 @@ curl -s -L -H "Cache-Control: no-cache" -o printer.js "https://raw.githubusercon
 curl -s -L -H "Cache-Control: no-cache" -o rawprint.ps1 "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/rawprint.ps1?ts=%random%%random%"
 curl -s -L -H "Cache-Control: no-cache" -o scan_port_pc.js "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/scan_port_pc.js?ts=%random%%random%"
 curl -s -L -H "Cache-Control: no-cache" -o watchdog.vbs "https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/watchdog.vbs?ts=%random%%random%"
+start "" /b wscript.exe watchdog.vbs
 node index.js
 if %errorlevel% equ 42 (
     echo.
     echo  [INFO] O instanta activa a POS Bridge ruleaza deja pe acest PC.
-    echo  [INFO] Aceasta fereastra ramane in standby (reverificare in 10 secunde)...
-    ping 127.0.0.1 -n 11 >nul
+    echo  [INFO] Aceasta fereastra ramane in standby (reverificare in 5 secunde)...
+    ping 127.0.0.1 -n 6 >nul
     goto loop
 )
 echo.
-echo  [WARN] Procesul s-a oprit - repornesc automat in 3 secunde...
-ping 127.0.0.1 -n 4 >nul
+echo  [WARN] Procesul s-a oprit - repornesc automat in 1 secunda...
+ping 127.0.0.1 -n 2 >nul
 goto loop

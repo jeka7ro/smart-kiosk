@@ -2,7 +2,7 @@ import { create } from 'zustand';
 
 export const useKioskStore = create((set, get) => ({
   // ─── App state ────────────────────────────────────────────
-  screen: 'welcome', // welcome | orderType | brandSelect | menu | product | cart | payment | confirmation
+  screen: typeof window !== 'undefined' ? (new URLSearchParams(window.location.search).get('screen') || 'welcome') : 'welcome', // welcome | orderType | brandSelect | menu | product | cart | payment | confirmation
   orderType: null,   // 'dine-in' | 'takeaway'
   tableNumber: null,
   paymentMethod: 'card', // 'card' | 'cash'
@@ -82,7 +82,14 @@ export const useKioskStore = create((set, get) => ({
 
 
   // ─── Cart ─────────────────────────────────────────────────
-  cartItems: [],
+  cartItems: (() => {
+    try {
+      if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('screen') === 'payment') {
+        return [{ productId: 'demo_1', name: 'Smash Burger Deluxe', price: 42.0, quantity: 1, brandId: 'smashme' }];
+      }
+    } catch {}
+    return [];
+  })(),
 
   // ─── Favorites (wishlist — persists until checkout/reset) ─
   favorites: [],

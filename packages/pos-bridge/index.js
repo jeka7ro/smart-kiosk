@@ -1,4 +1,6 @@
-const BRIDGE_VERSION = '3.5.0';
+const BRIDGE_VERSION = '3.5.1';
+const PROCESS_BOOT_TIME = Date.now();
+let globalSocket = null;
 
 // ── SINGLETON LOCK & LOCAL HEALTH SERVER (Port 40499) ─────────────────────────
 const net = require('net');
@@ -8,14 +10,28 @@ let globalSingletonServer = null;
 function acquireSingletonLock() {
   return new Promise((resolve) => {
     const singletonServer = net.createServer((socket) => {
+      const isWarmup = (Date.now() - PROCESS_BOOT_TIME) < 60000;
+      const isSocketConnected = Boolean(globalSocket && globalSocket.connected);
+      const isHealthy = isSocketConnected || isWarmup;
+
       socket.on('data', (data) => {
         const msg = String(data).trim();
         if (msg === 'PING' || msg === 'HEALTH') {
-          try { socket.write(`PONG:OK:${process.pid}:${BRIDGE_VERSION}\n`); } catch (_) {}
+          if (isHealthy) {
+            try { socket.write(`PONG:OK:${process.pid}:${BRIDGE_VERSION}\n`); } catch (_) {}
+          } else {
+            try { socket.write(`PONG:DEAD:DISCONNECTED:${process.pid}:${BRIDGE_VERSION}\n`); } catch (_) {}
+          }
         }
       });
-      // La orice conexiune TCP, trimitem instant confirmarea că bridge-ul master este viu
-      try { socket.write(`ALIVE:${process.pid}:${BRIDGE_VERSION}\n`); } catch (_) {}
+      // La orice conexiune TCP a sondei de watchdog (ex: PowerShell / watchdog.vbs):
+      // Trimitem confirmare ALIVE:OK DOAR dacă bridge-ul este activ conectat la Render (sau în primul minut de la boot)
+      if (isHealthy) {
+        try { socket.write(`ALIVE:OK:${process.pid}:${BRIDGE_VERSION}\n`); } catch (_) {}
+      } else {
+        console.warn(`[HEALTH] ⚠️ Sonda locală de watchdog a detectat bridge-ul în stare ZOMBIE (deconectat de Render > 60s). Răspund DEAD.`);
+        try { socket.write(`DEAD:DISCONNECTED:${process.pid}:${BRIDGE_VERSION}\n`); } catch (_) {}
+      }
     });
 
     singletonServer.once('error', (err) => {
@@ -282,35 +298,46 @@ function forceReopenPort(reason = 'Force Reset') {
     log(`🔄 Re-ciclare port serial POS (${reason})...`);
     isReopeningPort = true;
     posLoggedIn = false;
+    
+    let resolved = false;
+    const complete = (msg) => {
+      if (resolved) return;
+      resolved = true;
+      clearTimeout(hardSafetyTimer);
+      isReopeningPort = false;
+      rxBuf = Buffer.alloc(0);
+      if (msg) log(msg);
+      resolve();
+    };
+
+    // Hard fallback: dacă driverul Windows COM blochează globalPort.close / open mai mult de 2500ms
+    const hardSafetyTimer = setTimeout(() => {
+      complete('⚠️ [PORT SAFETY] Re-ciclarea portului a depășit 2500ms (blocaj driver serial). Forțez eliberarea stării.');
+    }, 2500);
+
     try {
       globalPort.close((err) => {
         setTimeout(() => {
           try {
             globalPort.open((openErr) => {
-              isReopeningPort = false;
               if (openErr) {
-                log(`⚠️ Eroare re-deschidere port: ${openErr.message}`);
+                complete(`⚠️ Eroare re-deschidere port: ${openErr.message}`);
               } else {
-                log(`✅ Port serial re-deschis și reinițializat cu succes!`);
+                complete(`✅ Port serial re-deschis și reinițializat cu succes!`);
               }
-              rxBuf = Buffer.alloc(0);
-              resolve();
             });
           } catch (e) {
-            isReopeningPort = false;
-            resolve();
+            complete(`⚠️ Excepție deschidere port: ${e.message}`);
           }
         }, 300);
       });
-    } catch (_) {
-      isReopeningPort = false;
-      resolve();
+    } catch (e) {
+      complete(`⚠️ Excepție închidere port: ${e.message}`);
     }
   });
 }
 
 // ─── Standby POS Keep-Alive / Wake (la 30 min inactivitate, strict 10:00 - 22:00) ─────
-let globalSocket = null;
 let posWakeStandbyEnabled = process.env.POS_WAKE_STANDBY !== 'false'; // Activ implicit pe toate terminalele (se dezactivează doar dacă e explicit 'false')
 let posWakeIntervalMinutes = parseInt(process.env.POS_WAKE_INTERVAL_MINUTES || '5', 10);
 if (isNaN(posWakeIntervalMinutes) || posWakeIntervalMinutes < 1) posWakeIntervalMinutes = 5;
@@ -823,7 +850,13 @@ async function start() {
     }
   });
 
+  let renderDisconnectTimer = null;
+
   socket.on('connect', async () => {
+    if (renderDisconnectTimer) {
+      clearTimeout(renderDisconnectTimer);
+      renderDisconnectTimer = null;
+    }
     log(`✅ Conectat la Render (${socket.id}) [instance: ${INSTANCE_ID}, soft: v${BRIDGE_VERSION}]`);
     socket.emit('pos_bridge_register', { 
       locationId: LOCATION_ID, 
@@ -972,11 +1005,27 @@ async function start() {
       log(`⚠️ [RECONECTARE] Eroare conectare la server: ${err.message}. Verific adresa Cloud...`);
       checkCanonicalServer();
     }
+    if (!renderDisconnectTimer && (Date.now() - PROCESS_BOOT_TIME > 15000)) {
+      renderDisconnectTimer = setTimeout(() => {
+        if (!globalSocket || !globalSocket.connected) {
+          log('🚨 [INSTANT TANK] Podul nu reușește să se reconecteze la Render de peste 12s. Forțez auto-restart curat (process.exit)...');
+          process.exit(1);
+        }
+      }, 12000);
+    }
   });
 
   socket.on('disconnect', (reason) => {
     log(`⚠️ Deconectat de la server: ${reason}`);
     checkCanonicalServer();
+    if (!renderDisconnectTimer) {
+      renderDisconnectTimer = setTimeout(() => {
+        if (!globalSocket || !globalSocket.connected) {
+          log('🚨 [INSTANT TANK] Podul este deconectat de la Render de 12s. Forțez auto-restart curat prin process.exit(1)...');
+          process.exit(1);
+        }
+      }, 12000);
+    }
   });
 
   if (POS_GATEWAY === 'raiffeisen') {
@@ -1741,6 +1790,20 @@ async function start() {
 
   socket.on(`remote_restart_${LOCATION_ID}`, () => {
     downloadUpdateAndRestart();
+  });
+
+  // ─── Comandă Remote Fullscreen (fără restart, fără întrerupere comenzi) ───
+  socket.on('kiosk_force_fullscreen', (data) => {
+    if (!data || !data.locationId || data.locationId === 'all' || data.locationId === LOCATION_ID || isMyLocation(data.locationId)) {
+      log('🖥️ Comandă Remote Fullscreen primită! Activez fereastra Chrome/Edge și trimit F11...');
+      if (process.platform === 'win32') {
+        const psCmd = `powershell -NoProfile -WindowStyle Hidden -Command "$ws = New-Object -ComObject wscript.shell; if ($ws.AppActivate('Smart Kiosk') -or $ws.AppActivate('Chrome') -or $ws.AppActivate('Edge')) { Start-Sleep -Milliseconds 150; $ws.SendKeys('{F11}') }"`;
+        exec(psCmd, (err) => {
+          if (err) log(`⚠️ Eroare trimitere F11 Fullscreen: ${err.message}`);
+          else log(`✅ Comandă F11 Fullscreen trimisă cu succes către fereastra Kiosk.`);
+        });
+      }
+    }
   });
 
   socket.on('set_server_url', (data) => {
