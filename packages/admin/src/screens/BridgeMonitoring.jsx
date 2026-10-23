@@ -1494,9 +1494,9 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                   );
                 })()}
 
-                {/* Action Buttons: 4-column responsive grid */}
+                {/* Action Buttons: 5-column responsive grid (all on one row) */}
                 <div className="pt-1 border-t border-slate-100 dark:border-slate-700/60">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 sm:gap-2">
                     {!loc.isBridgeUpToDate ? (
                       <button
                         type="button"
@@ -1506,7 +1506,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                         }}
                         disabled={actionLoading === `${locKey}-restart-bridge` || restartProgress[locKey]?.status === 'pending'}
                         title={`Actualizează POS Bridge la v${loc.latestBridgeVer} pe acest aparat`}
-                        className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-50 cursor-pointer shadow-xs whitespace-nowrap active:scale-95"
+                        className="flex items-center justify-center gap-1.5 py-2 px-1.5 sm:px-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-50 cursor-pointer shadow-xs whitespace-nowrap active:scale-95"
                       >
                         <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${actionLoading === `${locKey}-restart-bridge` ? 'animate-spin' : ''}`} />
                         <span>Update v{loc.latestBridgeVer}</span>
@@ -1517,7 +1517,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                         onClick={() => handleRestartBridge(locKey, loc.displayName, !!isBridgeOnline)}
                         disabled={actionLoading === `${locKey}-restart-bridge` || restartProgress[locKey]?.status === 'pending'}
                         title="Restart POS Bridge (repornește conexiunea POS & imprimantă) — cere confirmare"
-                        className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/80 transition-colors disabled:opacity-50 cursor-pointer shadow-xs whitespace-nowrap"
+                        className="flex items-center justify-center gap-1.5 py-2 px-1.5 sm:px-2 rounded-xl text-xs font-bold bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/80 transition-colors disabled:opacity-50 cursor-pointer shadow-xs whitespace-nowrap"
                       >
                         <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${actionLoading === `${locKey}-restart-bridge` ? 'animate-spin' : ''}`} />
                         <span>Bridge</span>
@@ -1528,7 +1528,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                       onClick={() => handleAction(locKey, 'reload-kiosk')}
                       disabled={actionLoading === `${locKey}-reload-kiosk`}
                       title="Refresh Ecran Kiosk (reîncarcă pagina Kiosk din browser)"
-                      className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/80 transition-colors disabled:opacity-50 cursor-pointer shadow-xs whitespace-nowrap"
+                      className="flex items-center justify-center gap-1.5 py-2 px-1.5 sm:px-2 rounded-xl text-xs font-bold bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/80 transition-colors disabled:opacity-50 cursor-pointer shadow-xs whitespace-nowrap"
                     >
                       <RotateCcw className={`w-3.5 h-3.5 shrink-0 ${actionLoading === `${locKey}-reload-kiosk` ? 'animate-spin' : ''}`} />
                       <span>Ecran</span>
@@ -1538,7 +1538,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                       onClick={() => handleAction(locKey, 'fullscreen-kiosk')}
                       disabled={actionLoading === `${locKey}-fullscreen-kiosk`}
                       title="Intră instant în modul Fullscreen pe ecranul Kiosk (fără reîncărcare de pagină, fără întrerupere comenzi)"
-                      className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/80 transition-colors disabled:opacity-50 cursor-pointer shadow-xs whitespace-nowrap"
+                      className="flex items-center justify-center gap-1.5 py-2 px-1.5 sm:px-2 rounded-xl text-xs font-bold bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/80 transition-colors disabled:opacity-50 cursor-pointer shadow-xs whitespace-nowrap"
                     >
                       <Maximize2 className={`w-3.5 h-3.5 shrink-0 ${actionLoading === `${locKey}-fullscreen-kiosk` ? 'animate-pulse' : ''}`} />
                       <span>Fullscreen</span>
@@ -1548,7 +1548,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                       onClick={() => handleAction(locKey, 'test-pos-signal')}
                       disabled={actionLoading === `${locKey}-test-pos-signal`}
                       title="Testează semnalul și latența magistralei seriale cu POS-ul"
-                      className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/80 transition-colors disabled:opacity-50 cursor-pointer shadow-xs whitespace-nowrap"
+                      className="flex items-center justify-center gap-1.5 py-2 px-1.5 sm:px-2 rounded-xl text-xs font-bold bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/80 transition-colors disabled:opacity-50 cursor-pointer shadow-xs whitespace-nowrap"
                     >
                       <Radio className={`w-3.5 h-3.5 shrink-0 ${actionLoading === `${locKey}-test-pos-signal` ? 'animate-pulse text-emerald-600' : 'text-emerald-600 dark:text-emerald-400'}`} />
                       <span>Semnal POS</span>
@@ -1558,7 +1558,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                       onClick={() => handleAction(locKey, 'test-print')}
                       disabled={actionLoading === `${locKey}-test-print`}
                       title="Scoate un bon de probă pe imprimanta termică din locație"
-                      className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-700/50 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700 dark:hover:bg-emerald-950/40 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-600/80 transition-colors disabled:opacity-50 cursor-pointer shadow-xs whitespace-nowrap"
+                      className="flex items-center justify-center gap-1.5 py-2 px-1.5 sm:px-2 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-700/50 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700 dark:hover:bg-emerald-950/40 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-600/80 transition-colors disabled:opacity-50 cursor-pointer shadow-xs whitespace-nowrap"
                     >
                       <Printer className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                       <span>Test Bon</span>
