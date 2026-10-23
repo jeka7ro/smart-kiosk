@@ -1,0 +1,12 @@
+{
+  "kioskBaseUrl": "https://kiosk-smashme.netlify.app",
+  "locationId": "cluj1",
+  "kioskLockdown": true,
+  "alwaysOnTop": true,
+  "autoStartOnBoot": true,
+  "autoHideCursor": false,
+  "allowDevTools": false,
+  "managerPin": "1234",
+  "networkRetrySeconds": 5,
+  "checkUpdatesOnStartup": true
+}

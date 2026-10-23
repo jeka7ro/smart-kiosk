@@ -359,12 +359,12 @@ export const T = {
     es: "Total"
   },
   tva: {
-    ro: 'TVA 9%',
-    en: 'VAT 9%',
-    fr: 'TVA 9%',
-    hu: 'ÁFA 9%',
-    ru: 'НДС 9%',
-    uk: 'ПДВ 9%',
+    ro: 'TVA',
+    en: 'VAT',
+    fr: 'TVA',
+    hu: 'ÁFA',
+    ru: 'НДС',
+    uk: 'ПДВ',
     bg: "ДДС",
     de: "MwSt",
     es: "IVA"

@@ -32,8 +32,6 @@ export default function CartScreen() {
   const [hasEvaluatedUpsell, setHasEvaluatedUpsell] = useState(false);
 
   const subtotal  = getCartTotal();
-  const VAT_RATE  = 0.09;
-  const vatAmount = subtotal * VAT_RATE / (1 + VAT_RATE);
 
   // IDs already in cart
   const cartProductIds = new Set(cartItems.map(i => i.productId));
@@ -448,8 +446,8 @@ export default function CartScreen() {
               <span>{subtotal.toFixed(2)} {t('lei', lang)}</span>
             </div>
             <div className="summary-row">
-              <span>{t('tva', lang)} {t('tva_included', lang)}</span>
-              <span>{vatAmount.toFixed(2)} {t('lei', lang)}</span>
+              <span>{t('tva', lang)}</span>
+              <span>{t('tva_included', lang)}</span>
             </div>
             <div className="summary-divider" />
             <div className="summary-row summary-row--total">

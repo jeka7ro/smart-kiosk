@@ -279,14 +279,7 @@ router.put('/:id/promos', (req, res, next) => {
           popupStart: popupStart !== undefined ? !!popupStart : false
         };
         locs[idx].kioskPromos[kioskId][productId] = promoObj;
-        if (productName) {
-          locs[idx].kioskPromos[kioskId][productName.trim().toLowerCase()] = promoObj;
-        }
       } else {
-        const old = locs[idx].kioskPromos[kioskId][productId];
-        if (old?.productName) {
-          delete locs[idx].kioskPromos[kioskId][old.productName.trim().toLowerCase()];
-        }
         delete locs[idx].kioskPromos[kioskId][productId];
       }
 

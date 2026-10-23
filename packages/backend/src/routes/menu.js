@@ -101,19 +101,25 @@ router.get('/', requireApiKey, async (req, res) => {
   });
 
   const enrichedProducts = menu.products.map(p => {
+    const directOverride = productOverrides[p.id] || {};
     const pNameLower = (p.name || '').trim().toLowerCase();
-    const over = productOverrides[p.id] || productOverridesByName[pNameLower] || {};
+    const imageOverride = directOverride.custom_image_url || directOverride.syrve_image_url || directOverride.local_image_url
+      || productOverridesByName[pNameLower]?.custom_image_url || productOverridesByName[pNameLower]?.syrve_image_url || productOverridesByName[pNameLower]?.local_image_url;
+
+    const promoPriceVal = directOverride.promo_price ? parseFloat(directOverride.promo_price) : null;
+    const safePromoPrice = (promoPriceVal && p.price && promoPriceVal < p.price) ? promoPriceVal : null;
+
     return {
       ...p,
-      image: over.custom_image_url || over.syrve_image_url || p.image || over.local_image_url,
-      isVegetarian: over.is_vegetarian || false,
-      isSpicy: over.is_spicy || false,
-      isHidden: over.is_hidden || false,
-      isFeatured: over.is_featured || false,
-      promoPrice: over.promo_price ? parseFloat(over.promo_price) : null,
-      promoStart: over.promo_start || null,
-      promoEnd: over.promo_end || null,
-      popupStart: over.popup_start !== undefined ? !!over.popup_start : false,
+      image: imageOverride || p.image || null,
+      isVegetarian: directOverride.is_vegetarian || false,
+      isSpicy: directOverride.is_spicy || false,
+      isHidden: directOverride.is_hidden || false,
+      isFeatured: directOverride.is_featured || false,
+      promoPrice: safePromoPrice,
+      promoStart: safePromoPrice ? (directOverride.promo_start || null) : null,
+      promoEnd: safePromoPrice ? (directOverride.promo_end || null) : null,
+      popupStart: safePromoPrice && directOverride.popup_start !== undefined ? !!directOverride.popup_start : false,
       modifierGroups: (p.modifierGroups || []).map(gm => ({
         ...gm,
         options: (gm.options || []).map(opt => ({
@@ -326,18 +332,19 @@ router.get('/', requireApiKey, async (req, res) => {
           || {};
         const now = new Date();
         finalProducts = finalProducts.map(p => {
-          const pNameLower = (p.name || '').trim().toLowerCase();
+          // STRICT ID MATCHING: NEVER match promos by product name!
           const promo = promoOverrides[p.id] 
-            || promoOverrides[pNameLower] 
-            || (productOverrides[p.id]?.promo_price ? { price: productOverrides[p.id].promo_price, start: productOverrides[p.id].promo_start, end: productOverrides[p.id].promo_end, popupStart: productOverrides[p.id].popup_start } : null) 
-            || (productOverridesByName[pNameLower]?.promo_price ? { price: productOverridesByName[pNameLower].promo_price, start: productOverridesByName[pNameLower].promo_start, end: productOverridesByName[pNameLower].promo_end, popupStart: productOverridesByName[pNameLower].popup_start } : null);
+            || (productOverrides[p.id]?.promo_price ? { price: productOverrides[p.id].promo_price, start: productOverrides[p.id].promo_start, end: productOverrides[p.id].promo_end, popupStart: productOverrides[p.id].popup_start } : null);
 
           if (!promo || !promo.price) return p;
+          const parsedPrice = parseFloat(promo.price);
+          // Safety: promo price must strictly be a discount (lower than Syrve base price)
+          if (isNaN(parsedPrice) || (p.price && parsedPrice >= p.price)) return p;
           const inRange = (!promo.start || new Date(promo.start) <= now) && (!promo.end || new Date(promo.end) >= now);
           if (!inRange) return p;
           return { 
             ...p, 
-            promoPrice: parseFloat(promo.price), 
+            promoPrice: parsedPrice, 
             promoStart: promo.start || null, 
             promoEnd: promo.end || null,
             popupStart: promo.popupStart !== undefined ? !!promo.popupStart : true

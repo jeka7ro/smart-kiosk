@@ -12,9 +12,13 @@
     "dev:qr": "npm run dev --workspace=packages/qr-web",
     "dev:admin": "npm run dev --workspace=packages/admin",
     "dev:kitchen": "npm run dev --workspace=packages/kds",
+    "dev:electron": "npm run dev --workspace=packages/kiosk-electron",
+    "build:kiosk-exe": "npm run build:win --workspace=packages/kiosk-electron",
+    "build:kiosk-portable": "npm run build:portable --workspace=packages/kiosk-electron",
     "install:all": "npm install"
   },
   "devDependencies": {
+    "app-builder-bin": "^5.0.0-alpha.10",
     "concurrently": "^8.2.2"
   }
 }

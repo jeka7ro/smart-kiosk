@@ -424,6 +424,32 @@ export default function PaymentScreen() {
 
   return (
     <div className="payment-screen screen">
+      {/* ── Halloween Atmospheric Ambient: Flying bats & candlelit pumpkins ── */}
+      {isHalloweenActive && (
+        <div className="halloween-payment-ambient" aria-hidden="true">
+          {/* Flying Bats */}
+          <div className="ambient-bat ambient-bat--1">
+            <img src="/halloween_bat.png" alt="" className="bat-sprite" />
+          </div>
+          <div className="ambient-bat ambient-bat--2">
+            <img src="/halloween_bat.png" alt="" className="bat-sprite" />
+          </div>
+          <div className="ambient-bat ambient-bat--3">
+            <img src="/halloween_bat.png" alt="" className="bat-sprite" />
+          </div>
+
+          {/* Cozy Corner Pumpkins with modest candlelight glow */}
+          <div className="ambient-pumpkin-corner corner-bottom-left">
+            <div className="pumpkin-candle-glow" />
+            <img src="/halloween_pumpkin.png" alt="🎃" className="ambient-pumpkin-img" />
+          </div>
+          <div className="ambient-pumpkin-corner corner-bottom-right">
+            <div className="pumpkin-candle-glow glow-delayed" />
+            <img src="/halloween_pumpkin.png" alt="🎃" className="ambient-pumpkin-img" />
+          </div>
+        </div>
+      )}
+
       {canGoBack && (
         <button className="back-btn-abs" onClick={handleCancel}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -465,8 +491,9 @@ export default function PaymentScreen() {
         <div className={`kiosk-amount-header-card ${isHalloweenActive ? 'kahc-halloween' : ''}`}>
           {isHalloweenActive && (
             <>
-              {/* Halloween Pumpkin Mascot on Payment Card */}
+              {/* Halloween Pumpkin Mascot on Payment Card with modest inner candle glow */}
               <div className="halloween-payment-pumpkin" aria-hidden="true">
+                <div className="pumpkin-candle-glow" />
                 <img src="/halloween_pumpkin.png" alt="🎃" className="payment-pumpkin-img" />
               </div>
 

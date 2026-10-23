@@ -1,0 +1,53 @@
+{
+  "name": "smart-kiosk-electron",
+  "version": "1.0.0",
+  "description": "Smart Kiosk Windows Armored Kiosk Shell (.EXE)",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build:win": "electron-builder --win --x64",
+    "build:portable": "electron-builder --win portable --x64"
+  },
+  "keywords": [
+    "kiosk",
+    "electron",
+    "windows",
+    "smart-kiosk"
+  ],
+  "author": "Smart Kiosk Team",
+  "license": "ISC",
+  "dependencies": {
+    "electron-updater": "^6.3.9"
+  },
+  "devDependencies": {
+    "app-builder-bin": "^5.0.0-alpha.10",
+    "electron": "33.4.11",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "electronVersion": "33.4.11",
+    "appId": "ro.smashme.smartkiosk",
+    "productName": "Smart Kiosk",
+    "directories": {
+      "output": "dist-win"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "assets/icon.png",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": false,
+      "runAfterFinish": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Smart Kiosk"
+    }
+  }
+}
