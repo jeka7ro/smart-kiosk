@@ -69,7 +69,7 @@ export default function PaymentScreen() {
     const now = new Date();
     const month = now.getMonth(); // 9 = Oct, 10 = Nov
     const day = now.getDate();
-    return (month === 9 && day >= 23) || (month === 10 && day <= 3);
+    return (month === 9 && day >= 15) || (month === 10 && day <= 5);
   }, [locationData?.halloweenButtonTheme]);
 
   const [showFiscalModal, setShowFiscalModal] = useState(false);

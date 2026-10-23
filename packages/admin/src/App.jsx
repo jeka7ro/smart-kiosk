@@ -4444,7 +4444,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                 </div>
                 <div className="flex items-center gap-1 bg-white/90 dark:bg-slate-800/90 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shrink-0 shadow-xs">
                   {[
-                    { id: 'auto', label: '📅 Auto (23 Oct - 3 Nov)' },
+                    { id: 'auto', label: '📅 Auto (15 Oct - 5 Nov)' },
                     { id: 'on', label: '🎃 Pornit' },
                     { id: 'off', label: '⚪ Oprit' },
                   ].map(opt => (
@@ -4473,7 +4473,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                   const now = new Date();
                   const m = now.getMonth();
                   const d = now.getDate();
-                  return (m === 9 && d >= 23) || (m === 10 && d <= 3);
+                  return (m === 9 && d >= 15) || (m === 10 && d <= 5);
                 })();
 
                 return (

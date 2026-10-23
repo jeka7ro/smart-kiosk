@@ -154,11 +154,11 @@ const FLAG_GRADIENTS = {
     const setting = locationData?.halloweenButtonTheme || 'auto';
     if (setting === 'on') return true;
     if (setting === 'off') return false;
-    // 'auto' calendar: activ automat între 23 Octombrie și 3 Noiembrie
+    // 'auto' calendar: activ automat între 15 Octombrie și 5 Noiembrie
     const now = new Date();
     const month = now.getMonth(); // 9 = Octombrie, 10 = Noiembrie
     const day = now.getDate();
-    return (month === 9 && day >= 23) || (month === 10 && day <= 3);
+    return (month === 9 && day >= 15) || (month === 10 && day <= 5);
   }, [locationData?.halloweenButtonTheme]);
 
   const useFlagBg = locationData?.langButtonFlagColors === true;
