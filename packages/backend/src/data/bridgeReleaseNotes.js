@@ -4,9 +4,38 @@
 
 const BRIDGE_RELEASE_NOTES = [
   {
+    version: '3.5.2',
+    releaseDate: '24 Octombrie 2026',
+    isLatest: true,
+    tag: 'Stabilitate Rețea & Reconectare Nativă',
+    title: 'Eliminare Oprire la Deconectare & Persistență Conexiune',
+    summary: 'Elimină complet timer-ul de oprire la deconectare de internet. Bridge-ul rămâne activ pe calculator, ține portul POS și imprimanta deschise, iar Socket.io se reconectează automat și silențios în secunda în care revine semnalul de internet.',
+    categories: [
+      {
+        title: 'Reconectare & Persistență',
+        badge: 'Critic',
+        badgeColor: 'emerald',
+        items: [
+          {
+            title: 'Eliminare process.exit la Lipsă Rețea',
+            desc: 'Procesul Node.js nu se mai auto-oprește la căderi de internet, prevenind blocarea terminalului.'
+          },
+          {
+            title: 'Sondă Sănătate Locală Permanent Activă',
+            desc: 'Portul 40499 raportează ALIVE:OK cât timp procesul este activ pe PC, eliminând intervențiile premature ale watchdog-ului.'
+          },
+          {
+            title: 'Decuplare Watchdog de Consola Batch',
+            desc: 'Watchdog-ul rulează ca proces de sine stătător în Windows, protejat împotriva închiderii accidentale.'
+          }
+        ]
+      }
+    ]
+  },
+  {
     version: '3.5.1',
     releaseDate: '23 Octombrie 2026',
-    isLatest: true,
+    isLatest: false,
     tag: 'Tanc Blindat Auto-Recuperabil',
     title: 'Watchdog Proactiv: Auto-Kill Zombie & Auto-Restart la Deconectare',
     summary: 'Elimină definitiv starea de zombie când portul COM sau socket-ul se deconectează. Dacă bridge-ul rămâne deconectat de Render > 60s, procesul se auto-termină forțat pentru a permite buclei batch să repornească curat. Watchdog-ul local verifică activ conexiunea înainte de a raporta starea ALIVE.',
