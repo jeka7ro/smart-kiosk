@@ -1,4 +1,4 @@
-const BRIDGE_VERSION = '3.5.1';
+const BRIDGE_VERSION = '3.5.2';
 const PROCESS_BOOT_TIME = Date.now();
 let globalSocket = null;
 
@@ -10,28 +10,15 @@ let globalSingletonServer = null;
 function acquireSingletonLock() {
   return new Promise((resolve) => {
     const singletonServer = net.createServer((socket) => {
-      const isWarmup = (Date.now() - PROCESS_BOOT_TIME) < 60000;
-      const isSocketConnected = Boolean(globalSocket && globalSocket.connected);
-      const isHealthy = isSocketConnected || isWarmup;
-
       socket.on('data', (data) => {
         const msg = String(data).trim();
         if (msg === 'PING' || msg === 'HEALTH') {
-          if (isHealthy) {
-            try { socket.write(`PONG:OK:${process.pid}:${BRIDGE_VERSION}\n`); } catch (_) {}
-          } else {
-            try { socket.write(`PONG:DEAD:DISCONNECTED:${process.pid}:${BRIDGE_VERSION}\n`); } catch (_) {}
-          }
+          try { socket.write(`PONG:OK:${process.pid}:${BRIDGE_VERSION}\n`); } catch (_) {}
         }
       });
-      // La orice conexiune TCP a sondei de watchdog (ex: PowerShell / watchdog.vbs):
-      // Trimitem confirmare ALIVE:OK DOAR dacă bridge-ul este activ conectat la Render (sau în primul minut de la boot)
-      if (isHealthy) {
-        try { socket.write(`ALIVE:OK:${process.pid}:${BRIDGE_VERSION}\n`); } catch (_) {}
-      } else {
-        console.warn(`[HEALTH] ⚠️ Sonda locală de watchdog a detectat bridge-ul în stare ZOMBIE (deconectat de Render > 60s). Răspund DEAD.`);
-        try { socket.write(`DEAD:DISCONNECTED:${process.pid}:${BRIDGE_VERSION}\n`); } catch (_) {}
-      }
+      // Sonda locală de watchdog (watchdog.vbs / PowerShell):
+      // Dacă procesul Node este activ și răspunde pe portul 40499, este ALIVE:OK!
+      try { socket.write(`ALIVE:OK:${process.pid}:${BRIDGE_VERSION}\n`); } catch (_) {}
     });
 
     singletonServer.once('error', (err) => {
@@ -850,13 +837,7 @@ async function start() {
     }
   });
 
-  let renderDisconnectTimer = null;
-
   socket.on('connect', async () => {
-    if (renderDisconnectTimer) {
-      clearTimeout(renderDisconnectTimer);
-      renderDisconnectTimer = null;
-    }
     log(`✅ Conectat la Render (${socket.id}) [instance: ${INSTANCE_ID}, soft: v${BRIDGE_VERSION}]`);
     socket.emit('pos_bridge_register', { 
       locationId: LOCATION_ID, 
@@ -1005,27 +986,11 @@ async function start() {
       log(`⚠️ [RECONECTARE] Eroare conectare la server: ${err.message}. Verific adresa Cloud...`);
       checkCanonicalServer();
     }
-    if (!renderDisconnectTimer && (Date.now() - PROCESS_BOOT_TIME > 15000)) {
-      renderDisconnectTimer = setTimeout(() => {
-        if (!globalSocket || !globalSocket.connected) {
-          log('🚨 [INSTANT TANK] Podul nu reușește să se reconecteze la Render de peste 12s. Forțez auto-restart curat (process.exit)...');
-          process.exit(1);
-        }
-      }, 12000);
-    }
   });
 
   socket.on('disconnect', (reason) => {
-    log(`⚠️ Deconectat de la server: ${reason}`);
+    log(`⚠️ Deconectat de la server: ${reason}. Socket.io va reîncerca automat reconectarea.`);
     checkCanonicalServer();
-    if (!renderDisconnectTimer) {
-      renderDisconnectTimer = setTimeout(() => {
-        if (!globalSocket || !globalSocket.connected) {
-          log('🚨 [INSTANT TANK] Podul este deconectat de la Render de 12s. Forțez auto-restart curat prin process.exit(1)...');
-          process.exit(1);
-        }
-      }, 12000);
-    }
   });
 
   if (POS_GATEWAY === 'raiffeisen') {

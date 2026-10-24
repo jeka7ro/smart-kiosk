@@ -23,7 +23,7 @@ router.post('/login', async (req, res) => {
         const token = jwt.sign(
           { id: 'env-admin', email, role: 'admin', locations: [] },
           process.env.JWT_SECRET || 'dev-secret',
-          { expiresIn: '12h' }
+          { expiresIn: '90d' }
         );
         return res.json({ token, role: 'admin', user: { email, role: 'admin', name: 'Admin' } });
       }
@@ -33,7 +33,7 @@ router.post('/login', async (req, res) => {
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role, locations: user.locations || [] },
       process.env.JWT_SECRET || 'dev-secret',
-      { expiresIn: '12h' }
+      { expiresIn: '90d' }
     );
 
     return res.json({
@@ -49,7 +49,7 @@ router.post('/login', async (req, res) => {
       const token = jwt.sign(
         { id: 'env-admin', email, role: 'admin', locations: [] },
         process.env.JWT_SECRET || 'dev-secret',
-        { expiresIn: '12h' }
+        { expiresIn: '90d' }
       );
       return res.json({ token, role: 'admin', user: { email, role: 'admin', name: 'Admin' } });
     }

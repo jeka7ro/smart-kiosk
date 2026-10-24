@@ -348,8 +348,35 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
     if (restartProgress[locKey]?.status === 'pending') return;
 
     if (!isBridgeOnlineNow) {
-      setActionFeedback({ type: 'error', text: `Bridge-ul ${displayName} este OFFLINE — comanda de restart nu are cum să ajungă. Verifică dacă PC-ul din locație e pornit și are internet.` });
-      setTimeout(() => setActionFeedback(null), 8000);
+      const num = { cluj1: '1', cluj2: '2', 'sm-brasov': '3', constanta1: '4', constanta2: '5' }[locKey] || '1';
+      const startCmd = `cmd /c "mkdir C:\\SmartKiosk 2>nul & cd /d C:\\SmartKiosk & curl -s -L -o setup.bat https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge/setup_kiosk_autostart.bat & setup.bat ${num}"`;
+      await confirm(
+        <div className="text-left space-y-3 text-sm">
+          <p className="text-amber-600 dark:text-amber-400 font-bold">
+            ⚠️ Bridge-ul {displayName} este în prezent OFFLINE (deconectat).
+          </p>
+          <p className="text-xs text-slate-600 dark:text-slate-300">
+            Comanda de restart prin internet nu poate ajunge la calculator deoarece procesul local nu este conectat la server.
+          </p>
+          <div className="p-2.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono break-all select-all">
+            {startCmd}
+          </div>
+          <p className="text-xs text-slate-500">
+            Apasă pe butonul de mai jos pentru a copia comanda de pornire rapidă pentru acest PC.
+          </p>
+        </div>,
+        {
+          title: `Bridge Deconectat — ${displayName}`,
+          okLabel: 'Copiază Comanda de Pornire',
+          cancelLabel: 'Închide',
+        }
+      ).then((confirmed) => {
+        if (confirmed) {
+          navigator.clipboard.writeText(startCmd);
+          setActionFeedback({ type: 'success', text: `Comanda de pornire pentru ${displayName} a fost copiată!` });
+          setTimeout(() => setActionFeedback(null), 4000);
+        }
+      });
       return;
     }
 

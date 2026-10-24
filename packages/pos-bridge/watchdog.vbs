@@ -23,9 +23,12 @@ Do
         If ret2 <> 0 Then
             ' Bridge-ul este cu adevărat oprit, blocat sau zombie. Curățăm orice orfan și pornim curat!
             ws.Run "taskkill /F /IM node.exe", 0, True
-            WScript.Sleep 500
-            ws.CurrentDirectory = currentDir
-            ws.Run "cmd.exe /c """ & currentDir & "\start-windows.bat""", 0, False
+            WScript.Sleep 1500
+            Set colNodeCheck = objWMIService.ExecQuery("Select * from Win32_Process Where Name = 'node.exe'")
+            If colNodeCheck.Count = 0 Then
+                ws.CurrentDirectory = currentDir
+                ws.Run "cmd.exe /c """ & currentDir & "\start-windows.bat""", 0, False
+            End If
         End If
     End If
 

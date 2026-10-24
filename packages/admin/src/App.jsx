@@ -317,6 +317,7 @@ export default function AdminApp() {
   const [releaseNotesTargetLoc, setReleaseNotesTargetLoc] = useState(null);
 
   const handleDropdownAction = async (locationId, actionType) => {
+    setActiveLocationDropdown(null);
     // Acțiunile care repornesc ceva cer confirmare în fereastra aplicației (ca să nu se apese din greșeală)
     if (actionType === 'restart-bridge') {
       const ok = await confirm(

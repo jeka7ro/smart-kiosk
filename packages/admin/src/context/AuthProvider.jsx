@@ -38,12 +38,13 @@ export function AuthProvider({ children }) {
 
   // Helper fetch to automatically inject token
   const fetchWithAuth = async (url, options = {}) => {
+    const activeToken = token || localStorage.getItem('adminToken');
     const defaultHeaders = { 
       'Content-Type': 'application/json',
       'x-api-key': import.meta.env.VITE_API_KEY || 'sk-live-2024-secure'
     };
     const headers = { ...defaultHeaders, ...options.headers };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (activeToken) headers['Authorization'] = `Bearer ${activeToken}`;
     
     // Remove Content-Type for FormData so browser can set boundary automatically
     if (options.body instanceof FormData) {
@@ -51,12 +52,13 @@ export function AuthProvider({ children }) {
     }
     
     const res = await fetch(url, { ...options, headers });
-    if (res.status === 401) {
+    if (res.status === 401 && activeToken) {
       try {
         const clone = res.clone();
         const data = await clone.json();
-        if (data && (data.error === 'Not authorized, token failed' || data.error === 'Not authorized, no token')) {
-          console.warn('[Auth] Token invalid sau expirat:', data.error);
+        // Deconectează DOAR dacă serverul confirmă că token-ul a fost trimis, dar este expirat/invalid
+        if (data && data.error === 'Not authorized, token failed') {
+          console.warn('[Auth] Token expirat:', data.error);
           logout();
         }
       } catch (_) {}
