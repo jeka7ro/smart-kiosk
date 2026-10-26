@@ -1020,16 +1020,21 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
 
     let orderComment = `[${kioskDisplayName}] ${orderTypeLabel} | ${isPaidLabel} | Comanda #${order.orderNumber}`;
     let cuiDigits = '';
-    let cuiWithRo = '';
+    let cuiFormatted = '';
+    let hasRo = false;
     if (order.fiscal?.cui) {
       cuiDigits = String(order.fiscal.cui || order.fiscal.rawCui || '').replace(/\D/g, '');
-      cuiWithRo = cuiDigits ? `RO${cuiDigits}` : String(order.fiscal.rawCui || '');
+      const rawUpper = String(order.fiscal.rawCui || '').toUpperCase().trim();
+      hasRo = order.fiscal.hasRoPrefix === true ||
+              (order.fiscal.hasRoPrefix === undefined && order.fiscal.isVatPayer === true) ||
+              (order.fiscal.hasRoPrefix === undefined && rawUpper.startsWith('RO'));
+      cuiFormatted = hasRo && cuiDigits ? `RO${cuiDigits}` : cuiDigits;
       const firmDisplay = order.fiscal.name ? ` (${order.fiscal.name})` : '';
 
       // RSISTEMS / Datecs fiscal driver in Romania parses the comment for standard tags:
       // "CF: <cui_digits>", "CIF: <cui_digits>", or "[CF:<cui_digits>]" strictly numeric (no emojis/unicode).
       // Datecs hardware protocol ONLY accepts 2-10 digits for client TaxNumber.
-      orderComment = `CF:${cuiDigits} | CIF:${cuiDigits} | [CF:${cuiDigits}] | CUI: ${cuiWithRo}${firmDisplay} | ` + orderComment;
+      orderComment = `CF:${cuiDigits} | CIF:${cuiDigits} | [CF:${cuiDigits}] | CUI: ${cuiFormatted}${firmDisplay} | ` + orderComment;
     }
     if (specialNotes.length > 0) {
       orderComment += ` | MENȚIUNI: ${specialNotes.join('; ')}`;
@@ -1056,11 +1061,11 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
     const customerData = order.fiscal?.cui ? {
       name: (order.fiscal.name || 'Client').slice(0, 60),
       surname: cuiDigits || String(order.fiscal.rawCui || order.fiscal.cui || '').slice(0, 30),
-      comment: `CF:${cuiDigits} CIF:${cuiDigits} CUI:${cuiWithRo} | RegCom: ${order.fiscal.regCom || ''} | Adresa: ${order.fiscal.address || ''}`,
+      comment: `CF:${cuiDigits} CIF:${cuiDigits} CUI:${cuiFormatted} | RegCom: ${order.fiscal.regCom || ''} | Adresa: ${order.fiscal.address || ''}`,
       // Syrve/iiko fiscal fields — 'inn' is the standard taxpayer ID field
       // that Syrve passes to the fiscal printer driver for buyer identification
       inn: cuiDigits,
-      cardNumber: cuiWithRo,
+      cardNumber: cuiFormatted,
       cardTrack: cuiDigits,
     } : {
       name: kioskDisplayName,
@@ -1133,16 +1138,18 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
         sourceKey: 'Smart Kiosk',
         ...(discountsInfo ? { discountsInfo } : {}),
         externalData: order.fiscal?.cui ? [
-          { key: 'cui', value: cuiWithRo },
+          { key: 'cui', value: cuiFormatted },
           { key: 'cif', value: cuiDigits },
           { key: 'FiscalCode', value: cuiDigits },
           { key: 'CIF', value: cuiDigits },
-          { key: 'CUI', value: cuiDigits },
+          { key: 'CUI', value: cuiFormatted },
           { key: 'TaxNumber', value: cuiDigits },
           { key: 'BuyerTaxNumber', value: cuiDigits },
           { key: 'ClientFiscalCode', value: cuiDigits },
           { key: 'ClientCIF', value: cuiDigits },
           { key: 'FiscalReceiptCUI', value: cuiDigits },
+          { key: 'isVatPayer', value: hasRo ? 'true' : 'false' },
+          { key: 'hasRoPrefix', value: hasRo ? 'true' : 'false' },
           { key: 'companyName', value: String(order.fiscal.name || '') },
           { key: 'companyAddress', value: String(order.fiscal.address || '') },
           { key: 'regCom', value: String(order.fiscal.regCom || '') },

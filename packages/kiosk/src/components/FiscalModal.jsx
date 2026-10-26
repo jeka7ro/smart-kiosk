@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import './FiscalModal.css';
 
-export default function FiscalModal({ isOpen, onClose, onConfirm, initialCui = '', lang = 'ro' }) {
+export default function FiscalModal({ isOpen, onClose, onConfirm, initialCui = '', initialFiscalData = null, lang = 'ro' }) {
   const [cuiInput, setCuiInput] = useState('');
+  const [hasRo, setHasRo] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [companyResult, setCompanyResult] = useState(null);
@@ -13,6 +14,7 @@ export default function FiscalModal({ isOpen, onClose, onConfirm, initialCui = '
       abortControllerRef.current.abort();
     }
     setCuiInput('');
+    setHasRo(false);
     setErrorMsg('');
     setCompanyResult(null);
     setLoading(false);
@@ -22,20 +24,29 @@ export default function FiscalModal({ isOpen, onClose, onConfirm, initialCui = '
   // Când se deschide sau se închide modalul:
   useEffect(() => {
     if (isOpen) {
-      setCuiInput(initialCui ? String(initialCui).replace(/^RO/i, '').trim() : '');
+      const cleanInit = initialCui ? String(initialCui).replace(/^RO/i, '').trim() : '';
+      const initialHasRo = initialFiscalData?.hasRoPrefix !== undefined
+        ? Boolean(initialFiscalData.hasRoPrefix)
+        : (initialFiscalData?.isVatPayer !== undefined
+            ? Boolean(initialFiscalData.isVatPayer)
+            : String(initialCui || '').toUpperCase().startsWith('RO'));
+
+      setCuiInput(cleanInit);
+      setHasRo(initialHasRo);
       setErrorMsg('');
-      setCompanyResult(null);
+      setCompanyResult(initialFiscalData && initialFiscalData.name ? initialFiscalData : null);
       setLoading(false);
     } else {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
       setCuiInput('');
+      setHasRo(false);
       setErrorMsg('');
       setCompanyResult(null);
       setLoading(false);
     }
-  }, [isOpen, initialCui]);
+  }, [isOpen, initialCui, initialFiscalData]);
 
   const lookupCui = useCallback(async (targetCui, isManual = false) => {
     const cleanCui = (targetCui || cuiInput || '').replace(/\D/g, '');
@@ -75,6 +86,10 @@ export default function FiscalModal({ isOpen, onClose, onConfirm, initialCui = '
       }
 
       setCompanyResult(data.company);
+      // Auto-detecție automată din ANAF: plătitor sau neplătitor de TVA
+      if (typeof data.company?.isVatPayer === 'boolean') {
+        setHasRo(data.company.isVatPayer);
+      }
       setErrorMsg('');
     } catch (err) {
       if (err.name === 'AbortError') return;
@@ -122,7 +137,15 @@ export default function FiscalModal({ isOpen, onClose, onConfirm, initialCui = '
 
   const handleSave = () => {
     if (companyResult) {
-      onConfirm(companyResult);
+      const clean = (companyResult.cui || cuiInput || '').replace(/\D/g, '');
+      const finalResult = {
+        ...companyResult,
+        cui: clean,
+        rawCui: (hasRo ? 'RO' : '') + clean,
+        isVatPayer: hasRo,
+        hasRoPrefix: hasRo,
+      };
+      onConfirm(finalResult);
       handleClose();
     }
   };
@@ -157,10 +180,30 @@ export default function FiscalModal({ isOpen, onClose, onConfirm, initialCui = '
 
         {/* Body */}
         <div className="fm-body">
+          {/* Selector Cu RO / Fără RO */}
+          <div className="fm-ro-toggle-group" role="group" aria-label="Tip plătitor TVA">
+            <button
+              type="button"
+              className={`fm-ro-btn ${hasRo ? 'active vat-yes' : ''}`}
+              onClick={() => setHasRo(true)}
+            >
+              <span>Cu RO</span>
+              <span className="fm-ro-sub">Plătitor TVA</span>
+            </button>
+            <button
+              type="button"
+              className={`fm-ro-btn ${!hasRo ? 'active vat-no' : ''}`}
+              onClick={() => setHasRo(false)}
+            >
+              <span>Fără RO</span>
+              <span className="fm-ro-sub">Neplătitor TVA</span>
+            </button>
+          </div>
+
           {/* CUI Display & Search Button */}
           <div className="fm-input-wrapper focused">
             <div className="fm-input-content">
-              <span className="fm-prefix">RO</span>
+              {hasRo && <span className="fm-prefix">RO</span>}
               {cuiInput ? (
                 <span className="fm-cui-text">{cuiInput}</span>
               ) : (
@@ -210,12 +253,12 @@ export default function FiscalModal({ isOpen, onClose, onConfirm, initialCui = '
             <div className="fm-result-card">
               <div className="fm-result-top">
                 <h4 className="fm-result-name">{companyResult.name}</h4>
-                <span className={`fm-vat-pill ${companyResult.isVatPayer ? 'vat-yes' : 'vat-no'}`}>
-                  {companyResult.isVatPayer ? 'Plătitor TVA' : 'Neplătitor TVA'}
+                <span className={`fm-vat-pill ${hasRo ? 'vat-yes' : 'vat-no'}`}>
+                  {hasRo ? 'Plătitor TVA (Cu RO)' : 'Neplătitor TVA (Fără RO)'}
                 </span>
               </div>
               <p className="fm-result-detail">
-                <strong>CUI:</strong> {companyResult.rawCui} {companyResult.regCom ? `| Reg.Com: ${companyResult.regCom}` : ''}
+                <strong>CUI:</strong> {hasRo ? `RO${(companyResult.cui || cuiInput).replace(/\D/g, '')}` : (companyResult.cui || cuiInput).replace(/\D/g, '')} {companyResult.regCom ? `| Reg.Com: ${companyResult.regCom}` : ''}
               </p>
               {companyResult.address && (
                 <p className="fm-result-detail">
@@ -227,7 +270,7 @@ export default function FiscalModal({ isOpen, onClose, onConfirm, initialCui = '
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
-                <span>Salvează Datele Firmei</span>
+                <span>Confirmă Datele Firmei</span>
               </button>
             </div>
           )}

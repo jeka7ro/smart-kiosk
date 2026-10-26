@@ -23,11 +23,15 @@ function acquireSingletonLock() {
 
     singletonServer.once('error', (err) => {
       if (err.code === 'EADDRINUSE') {
+        let responded = false;
         const testConn = net.connect(SINGLETON_PORT, '127.0.0.1', () => {
-          testConn.destroy();
-          console.error(`[SINGLETON] 🔒 Bridge-ul Master rulează deja activ pe portul ${SINGLETON_PORT}.`);
-          console.error(`[SINGLETON] Această instanță secundară se oprește imediat fără a atinge COM sau Socket (cod 42).`);
-          process.exit(42);
+          testConn.on('data', (d) => {
+            responded = true;
+            try { testConn.destroy(); } catch (_) {}
+            console.error(`[SINGLETON] 🔒 Bridge-ul Master (${String(d).trim()}) rulează deja activ pe portul ${SINGLETON_PORT}.`);
+            console.error(`[SINGLETON] Această instanță secundară se oprește imediat fără a atinge COM sau Socket (cod 42).`);
+            process.exit(42);
+          });
         });
         testConn.on('error', () => {
           console.warn(`[SINGLETON] Portul ${SINGLETON_PORT} este temporar în eliberare (TIME_WAIT). Reîncerc în 1.5s...`);
@@ -36,6 +40,16 @@ function acquireSingletonLock() {
             acquireSingletonLock().then(resolve);
           }, 1500);
         });
+        setTimeout(() => {
+          if (!responded) {
+            try { testConn.destroy(); } catch (_) {}
+            console.warn(`[SINGLETON] Serverul de pe portul ${SINGLETON_PORT} nu a răspuns cu date ALIVE (proces vechi în oprire). Reîncerc în 1.5s...`);
+            setTimeout(() => {
+              try { singletonServer.close(); } catch (_) {}
+              acquireSingletonLock().then(resolve);
+            }, 1500);
+          }
+        }, 1200);
         return;
       }
       console.error(`[SINGLETON] Eroare neașteptată la lock:`, err);
@@ -1729,22 +1743,27 @@ async function start() {
       }
     } catch (_) {}
 
-    // Auto-repornire nativă garantată în sub 1 secundă:
+    // Declanșăm comanda de supraveghere/repornire cu o pauză de siguranță de 2 secunde:
+    // În aceste 2 secunde, procesul curent se închide complet (process.exit), iar portul 40499 și portul COM se eliberează garantat!
     try {
-      const { spawn } = require('child_process');
-      const child = spawn(process.execPath, [pathMod.join(__dirname, 'index.js')], {
-        detached: true,
-        stdio: 'ignore',
-        cwd: __dirname,
-        windowsHide: true,
-      });
-      child.unref();
-      log('🚀 Noua instanță POS Bridge a fost spawn-uită independent (detached).');
-    } catch (spawnErr) {
-      log(`⚠️ Eroare la spawn direct: ${spawnErr.message}`);
+      if (process.platform === 'win32') {
+        const fallbackCmd = `timeout /t 2 /nobreak >nul & cd /d "${__dirname}" & if exist run-hidden.vbs (wscript.exe run-hidden.vbs) else (start "" cmd.exe /c start-windows.bat)`;
+        const { spawn } = require('child_process');
+        const child = spawn('cmd.exe', ['/c', fallbackCmd], {
+          detached: true,
+          stdio: 'ignore',
+          cwd: __dirname,
+          windowsHide: true,
+        });
+        child.unref();
+      }
+    } catch (e) {
+      log(`⚠️ Eroare pregătire restart: ${e.message}`);
     }
 
-    setTimeout(() => process.exit(0), 400);
+    log('👋 Procesul se oprește curat (cod 0). Supervizorul local start-windows.bat îl repornește automat.');
+    // Închidere imediată — eliberează portul COM și portul 40499 instantaneu!
+    process.exit(0);
   }
 
   socket.on('remote_restart', (data) => {

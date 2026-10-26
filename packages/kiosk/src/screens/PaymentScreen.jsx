@@ -591,7 +591,7 @@ export default function PaymentScreen() {
                   <div className="ps-fiscal-active-info">
                     <span className="ps-fiscal-active-name">{fiscalData.name}</span>
                     <span className="ps-fiscal-active-cui">
-                      CUI: {fiscalData.rawCui || fiscalData.cui} {fiscalData.isVatPayer ? '• Plătitor TVA' : ''}
+                      CUI: {fiscalData.rawCui || (fiscalData.hasRoPrefix ? `RO${fiscalData.cui}` : fiscalData.cui)} • {fiscalData.isVatPayer ? 'Plătitor TVA' : 'Neplătitor TVA'}
                     </span>
                   </div>
                   <button
@@ -1111,6 +1111,7 @@ export default function PaymentScreen() {
           isOpen={showFiscalModal}
           onClose={() => setShowFiscalModal(false)}
           onConfirm={(data) => setFiscalData(data)}
+          initialFiscalData={fiscalData}
           initialCui={fiscalData?.cui || ''}
           lang={lang}
         />

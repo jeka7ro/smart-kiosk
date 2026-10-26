@@ -1539,7 +1539,14 @@ export default function AdminApp() {
             </div>
 
             {/* Stat Cards Grid - Responsive Grid with comfortable spacing */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-7 gap-3">
+            <div className={`grid ${
+              (2 + Object.keys(BRAND_COLORS).filter(b => (dashboardBrandStats[b] || 0) > 0).length) <= 2 ? 'grid-cols-2' :
+              (2 + Object.keys(BRAND_COLORS).filter(b => (dashboardBrandStats[b] || 0) > 0).length) === 3 ? 'grid-cols-2 sm:grid-cols-3' :
+              (2 + Object.keys(BRAND_COLORS).filter(b => (dashboardBrandStats[b] || 0) > 0).length) === 4 ? 'grid-cols-2 sm:grid-cols-4' :
+              (2 + Object.keys(BRAND_COLORS).filter(b => (dashboardBrandStats[b] || 0) > 0).length) === 5 ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-5' :
+              (2 + Object.keys(BRAND_COLORS).filter(b => (dashboardBrandStats[b] || 0) > 0).length) === 6 ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-6' :
+              'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-7'
+            } gap-3`}>
               <div className="w-full">
                 <StatCard 
                   label={
@@ -1566,18 +1573,20 @@ export default function AdminApp() {
                   icon={TrendingUp}
                 />
               </div>
-              {Object.keys(BRAND_COLORS).map(b => (
-                <div key={b} className="w-full">
-                  <StatCard 
-                    label={b === 'smashme' ? 'SmashMe' : b === 'crunch' ? 'Crunch' : b === 'rollmaster' ? 'Roll Master' : b === 'lovesushi' ? 'Love Sushi' : 'Poki-Woki'} 
-                    value={dashboardBrandStats[b] || 0} 
-                    color={BRAND_COLORS[b]} 
-                    brandId={b}
-                    onClick={() => toggleDashboardBrand(b)}
-                    active={dashboardBrands.includes(b)}
-                  />
-                </div>
-              ))}
+              {Object.keys(BRAND_COLORS)
+                .filter(b => (dashboardBrandStats[b] || 0) > 0)
+                .map(b => (
+                  <div key={b} className="w-full">
+                    <StatCard 
+                      label={b === 'smashme' ? 'SmashMe' : b === 'crunch' ? 'Crunch' : b === 'rollmaster' ? 'Roll Master' : b === 'lovesushi' ? 'Love Sushi' : 'Poki-Woki'} 
+                      value={dashboardBrandStats[b] || 0} 
+                      color={BRAND_COLORS[b]} 
+                      brandId={b}
+                      onClick={() => toggleDashboardBrand(b)}
+                      active={dashboardBrands.includes(b)}
+                    />
+                  </div>
+                ))}
             </div>
 
             {/* Controls & Period Filter Bar - Responsive layout */}
