@@ -831,6 +831,32 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
     }
   };
 
+  const [sendingQuickPanel, setSendingQuickPanel] = useState(false);
+
+  const handleSendQuickCommandsPanel = async () => {
+    setSendingQuickPanel(true);
+    setTelegramStatusMsg(null);
+    try {
+      const res = await fetch(`${backend}/api/bridge-monitoring/telegram-send-quick-commands`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': 'sk-live-2024-secure',
+        },
+      });
+      const result = await res.json();
+      if (res.ok && result.success) {
+        setTelegramStatusMsg({ type: 'success', text: result.message || 'Panoul cu butoane rapide a fost trimis în Grupul de Alerte Telegram!' });
+      } else {
+        setTelegramStatusMsg({ type: 'error', text: result.error || 'Eroare la trimiterea panoului de comenzi rapide.' });
+      }
+    } catch (err) {
+      setTelegramStatusMsg({ type: 'error', text: err.message });
+    } finally {
+      setSendingQuickPanel(false);
+    }
+  };
+
   const renderDigitalTimer = (seconds) => {
     if (!seconds || seconds <= 0) return <span className="text-[12px] font-semibold text-slate-400">00:00:00</span>;
     const totalHrs = Math.floor(seconds / 3600);
@@ -1864,6 +1890,17 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
             >
               <Send className={`w-3.5 h-3.5 ${testingTelegram ? 'animate-pulse' : ''}`} />
               <span>{testingTelegram ? 'Trimit mesaj...' : 'Trimite Test pe Telegram'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSendQuickCommandsPanel}
+              disabled={sendingQuickPanel || !data.telegramConfig?.enabled}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors disabled:opacity-50"
+              title="Trimite panoul interactiv cu butoane rapide direct în Grupul 1: Kiosk Alerts"
+            >
+              <Zap className={`w-3.5 h-3.5 ${sendingQuickPanel ? 'animate-spin' : ''}`} />
+              <span>{sendingQuickPanel ? 'Se trimite...' : 'Trimite Butoane Rapide în Grup'}</span>
             </button>
           </div>
         </form>

@@ -86,7 +86,7 @@ async function registerTelegramWebhook(serverBaseUrl = 'https://smart-kiosk-ttut
       body: JSON.stringify({
         url: webhookUrl,
         drop_pending_updates: true,
-        allowed_updates: ['message', 'edited_message']
+        allowed_updates: ['message', 'edited_message', 'callback_query']
       })
     });
     const data = await res.json();
@@ -99,6 +99,7 @@ async function registerTelegramWebhook(serverBaseUrl = 'https://smart-kiosk-ttut
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           commands: [
+            { command: 'comenzi_rapide', description: '🎛️ Panou cu butoane rapide' },
             { command: 'comenzi', description: 'Toate comenzile de astăzi' },
             { command: 'comenzi_cluj1', description: 'Comenzi Cluj 1 (SmashMe)' },
             { command: 'comenzi_cluj2', description: 'Comenzi Cluj 2 (SmashMe)' },
@@ -180,10 +181,108 @@ function formatDateTime(date = new Date()) {
   }
 }
 
+// ─── TASTATURI CU BUTOANE RAPIDE TELEGRAM (INLINE KEYBOARDS) ────────────────
+const QUICK_ALERT_KEYBOARD = {
+  inline_keyboard: [
+    [
+      { text: '📊 Status Live', callback_data: 'cmd_status' },
+      { text: '💳 Test Semnal POS', callback_data: 'cmd_pos' }
+    ],
+    [
+      { text: '🍔 Comenzi Azi', callback_data: 'cmd_comenzi' },
+      { text: '🌅 Verificare Matinală', callback_data: 'cmd_verificare' }
+    ],
+    [
+      { text: '🔐 Coduri PIN', callback_data: 'cmd_pin' },
+      { text: '❓ Ajutor', callback_data: 'cmd_ajutor' }
+    ]
+  ]
+};
+
+const ORDERS_KEYBOARD = {
+  inline_keyboard: [
+    [
+      { text: '🏙️ Cluj 1', callback_data: 'cmd_comenzi_cluj1' },
+      { text: '🏙️ Cluj 2', callback_data: 'cmd_comenzi_cluj2' }
+    ],
+    [
+      { text: '🏔️ Brașov', callback_data: 'cmd_comenzi_brasov' },
+      { text: '🌊 Constanța 1', callback_data: 'cmd_comenzi_constanta1' }
+    ],
+    [
+      { text: '📅 Vânzări Ieri', callback_data: 'cmd_comenzi_ieri' },
+      { text: '🔄 Toate Azi', callback_data: 'cmd_comenzi' }
+    ],
+    [
+      { text: '📊 Status Live', callback_data: 'cmd_status' },
+      { text: '💳 Test POS', callback_data: 'cmd_pos' }
+    ]
+  ]
+};
+
+const STATUS_KEYBOARD = {
+  inline_keyboard: [
+    [
+      { text: '🔄 Refresh Status', callback_data: 'cmd_status' },
+      { text: '💳 Test Semnal POS', callback_data: 'cmd_pos' }
+    ],
+    [
+      { text: '🍔 Comenzi Azi', callback_data: 'cmd_comenzi' },
+      { text: '🌅 Verificare Matinală', callback_data: 'cmd_verificare' }
+    ],
+    [
+      { text: '🔐 Coduri PIN', callback_data: 'cmd_pin' },
+      { text: '❓ Ajutor', callback_data: 'cmd_ajutor' }
+    ]
+  ]
+};
+
+function getQuickCommandsMenuText() {
+  return [
+    `🎛️ <b>[PANOU COMENZI RAPIDE SMART KIOSK]</b>`,
+    `Apasă pe oricare dintre butoanele de mai jos pentru a primi raportul instant:`,
+    ``,
+    `• <b>📊 Status Live</b> — Starea tuturor kiosk-urilor, POS și imprimantelor`,
+    `• <b>💳 Test Semnal POS</b> — Interogare latență UART în milisecunde`,
+    `• <b>🍔 Comenzi Azi</b> — Vânzări, produse și totaluri de astăzi`,
+    `• <b>🌅 Verificare Matinală</b> — Raport pre-flight (echipamente, duplicate, ecran)`,
+    `• <b>🔐 Coduri PIN</b> — PIN-uri deblocare ecran și orar de blocare`,
+    `• <b>📅 Comenzi Ieri</b> — Încasări și comenzi din ziua anterioară`,
+  ].join('\n');
+}
+
 /**
- * Send Telegram message using native fetch
+ * Answer Telegram callback query (removes loading spinner on inline buttons)
  */
-async function sendTelegramMessage(text, overrideConfig = null, targetChatId = null) {
+async function answerTelegramCallbackQuery(callbackQueryId, text = null) {
+  if (!telegramConfig.botToken || !callbackQueryId) return;
+  try {
+    const payload = { callback_query_id: callbackQueryId };
+    if (text) payload.text = text;
+    await fetch(`https://api.telegram.org/bot${telegramConfig.botToken.trim()}/answerCallbackQuery`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  } catch (err) {
+    console.warn('[Telegram] answerTelegramCallbackQuery error:', err.message);
+  }
+}
+
+/**
+ * Trimite panoul complet cu butoane rapide către Grupul de Alerte
+ */
+async function sendQuickCommandsPanel(targetChatId = null) {
+  const destinationChat = targetChatId || telegramConfig.chatId;
+  if (!destinationChat) return { ok: false, error: 'Chat ID lipsă' };
+  const text = getQuickCommandsMenuText();
+  return sendTelegramMessage(text, null, destinationChat, QUICK_ALERT_KEYBOARD);
+}
+
+/**
+ * Send Telegram message using native fetch (suportă și reply_markup pentru butoane interactive)
+ */
+async function sendTelegramMessage(text, overrideConfig = null, targetChatId = null, replyMarkup = null) {
   const cfg = overrideConfig || telegramConfig;
   const destinationChatId = targetChatId || cfg.chatId;
   if (!cfg.botToken || !destinationChatId) {
@@ -192,15 +291,20 @@ async function sendTelegramMessage(text, overrideConfig = null, targetChatId = n
 
   const url = `https://api.telegram.org/bot${cfg.botToken.trim()}/sendMessage`;
   try {
+    const payload = {
+      chat_id: String(destinationChatId).trim(),
+      text: text,
+      parse_mode: 'HTML',
+      disable_web_page_preview: true,
+    };
+    if (replyMarkup) {
+      payload.reply_markup = replyMarkup;
+    }
+
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: String(destinationChatId).trim(),
-        text: text,
-        parse_mode: 'HTML',
-        disable_web_page_preview: true,
-      }),
+      body: JSON.stringify(payload),
     });
     const data = await res.json();
     if (!data.ok) {
@@ -458,7 +562,7 @@ async function sendIikoAlert(order, errorMsg) {
     `🕒 Timp: ${timeStr}`,
   ].join('\n');
 
-  return sendTelegramMessage(msg, null, targetChat).catch(e => {
+  return sendTelegramMessage(msg, null, targetChat, QUICK_ALERT_KEYBOARD).catch(e => {
     console.error('[Telegram] Eroare trimitere alertă iiko:', e.message);
   });
 }
@@ -851,7 +955,7 @@ function handleBridgeConnect(socket, { locationId, instanceId, version, port, po
           `ℹ️ <i>Nu este necesară nicio intervenție manuală din partea dumneavoastră.</i>`,
           `Timp: ${formatDateTime(now)}`,
         ].join('\n');
-        sendTelegramMessage(alertMsg).catch(e => console.error('[BridgeMonitor] Eroare telegram duplicat:', e.message));
+        sendTelegramMessage(alertMsg, null, telegramConfig.chatId, QUICK_ALERT_KEYBOARD).catch(e => console.error('[BridgeMonitor] Eroare telegram duplicat:', e.message));
       }
 
       prev.duplicateDetected = true;
@@ -941,7 +1045,7 @@ function handleBridgeConnect(socket, { locationId, instanceId, version, port, po
         `Timp: ${formatDateTime(now)}`,
       ].join('\n');
 
-      sendTelegramMessage(msg).catch(e => console.error('[BridgeMonitor] Eroare telegram reconnect:', e.message));
+      sendTelegramMessage(msg, null, telegramConfig.chatId, QUICK_ALERT_KEYBOARD).catch(e => console.error('[BridgeMonitor] Eroare telegram reconnect:', e.message));
     } else {
       console.log(`[BridgeMonitor] Reconectare rapidă (${downSeconds}s) pentru ${locKey}. Omit notificare Telegram (sub 1 minut).`);
     }
@@ -1154,7 +1258,7 @@ function triggerDisconnectAlert(locKey, bridgeInfo) {
     `Actiune necesara: Verificati PC-ul din locatie si porniti start-windows.bat.`,
   ].join('\n');
 
-  sendTelegramMessage(msg).catch(e => console.error('[BridgeMonitor] Eroare telegram disconnect alert:', e.message));
+  sendTelegramMessage(msg, null, telegramConfig.chatId, QUICK_ALERT_KEYBOARD).catch(e => console.error('[BridgeMonitor] Eroare telegram disconnect alert:', e.message));
 }
 
 const DEFAULT_BRIDGE_CONFIGS = {
@@ -1597,7 +1701,7 @@ async function runMorningPreflightCheck(targetChatId = null, isManual = false) {
   }
 
   const reportText = lines.join('\n');
-  await sendTelegramMessage(reportText, null, destinationChat);
+  await sendTelegramMessage(reportText, null, destinationChat, QUICK_ALERT_KEYBOARD);
 
   return { ok: true, report: reportText, failedLocations: failedLocationKeys };
 }
@@ -1718,7 +1822,7 @@ async function runMorningRetryCheck(failedKeys, destinationChat) {
     lines.push(`🎉 <b>Excelent! Toate locațiile sunt acum 100% active și funcționale!</b>`);
   }
 
-  await sendTelegramMessage(lines.join('\n'), null, destinationChat);
+  await sendTelegramMessage(lines.join('\n'), null, destinationChat, QUICK_ALERT_KEYBOARD);
 }
 
 // Verificare automata orar zilnic la 10:10 (la 10 min dupa deschidere) si re-verificare la 10:20 Europe/Bucharest
@@ -2332,7 +2436,7 @@ async function resolveDuplicateInstances(locationId) {
       `Stare curentă: Rămâne activă exclusiv instanța legitimă (PC: <code>${b?.hostname || 'Activ'}</code> pe ${b?.port || 'COM'}).`,
       `Timp: ${formatDateTime(Date.now())}`,
     ].join('\n');
-    sendTelegramMessage(resMsg).catch(e => console.error('[BridgeMonitor] Eroare telegram duplicate resolved:', e.message));
+    sendTelegramMessage(resMsg, null, telegramConfig.chatId, QUICK_ALERT_KEYBOARD).catch(e => console.error('[BridgeMonitor] Eroare telegram duplicate resolved:', e.message));
   }
 
   if (_io) {
@@ -2629,6 +2733,12 @@ module.exports = {
   getRestartLog,
   getRestartRequest,
   resolveDuplicateInstances,
+  QUICK_ALERT_KEYBOARD,
+  ORDERS_KEYBOARD,
+  STATUS_KEYBOARD,
+  answerTelegramCallbackQuery,
+  getQuickCommandsMenuText,
+  sendQuickCommandsPanel,
 };
 
 

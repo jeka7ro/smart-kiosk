@@ -111,11 +111,64 @@ router.post('/telegram-test', async (req, res) => {
 
 /**
  * POST /api/bridge-monitoring/telegram-webhook
- * Receives incoming bot commands from Telegram groups (e.g. /status)
+ * Receives incoming bot commands and callback query button clicks from Telegram
  */
 router.post('/telegram-webhook', async (req, res) => {
   try {
     const update = req.body || {};
+
+    // ─── 1. Procesare CALLBACK QUERY (apăsare de butoane interactive) ─────
+    if (update.callback_query) {
+      const cb = update.callback_query;
+      const data = String(cb.data || '').trim();
+      const chatId = cb.message?.chat?.id;
+
+      // Confirmăm instant către Telegram pentru a opri spinner-ul de pe buton
+      await bridgeMonitoringService.answerTelegramCallbackQuery(cb.id);
+
+      if (!chatId) return res.sendStatus(200);
+
+      if (data === 'cmd_status') {
+        const statusText = await bridgeMonitoringService.formatStatusSummaryForTelegram();
+        await bridgeMonitoringService.sendTelegramMessage(statusText, null, chatId, bridgeMonitoringService.STATUS_KEYBOARD);
+      } else if (data === 'cmd_pos') {
+        await bridgeMonitoringService.sendTelegramMessage('⏳ <i>Se interoghează terminalele POS prin UART (calcul latență în milisecunde)...</i>', null, chatId);
+        const posText = await bridgeMonitoringService.formatPosSignalSummaryForTelegram();
+        await bridgeMonitoringService.sendTelegramMessage(posText, null, chatId, bridgeMonitoringService.STATUS_KEYBOARD);
+      } else if (data === 'cmd_pin') {
+        const pinText = await bridgeMonitoringService.formatPinSummaryForTelegram();
+        await bridgeMonitoringService.sendTelegramMessage(pinText, null, chatId, bridgeMonitoringService.STATUS_KEYBOARD);
+      } else if (data === 'cmd_verificare') {
+        await bridgeMonitoringService.sendTelegramMessage('⏳ <i>Se efectuează verificarea matinală a echipamentelor (test semnal POS, ecran, .env, procese duplicate)...</i>', null, chatId);
+        await bridgeMonitoringService.runMorningPreflightCheck(chatId, true);
+      } else if (data === 'cmd_ajutor' || data === 'cmd_comenzi_rapide' || data === 'cmd_meniu') {
+        const helpText = bridgeMonitoringService.getQuickCommandsMenuText();
+        await bridgeMonitoringService.sendTelegramMessage(helpText, null, chatId, bridgeMonitoringService.QUICK_ALERT_KEYBOARD);
+      } else if (data.startsWith('cmd_comenzi')) {
+        const isYesterday = data.includes('ieri');
+        let targetLocation = null;
+        if (data.includes('cluj1')) targetLocation = 'cluj1';
+        else if (data.includes('cluj2')) targetLocation = 'cluj2';
+        else if (data.includes('brasov')) targetLocation = 'sm-brasov';
+        else if (data.includes('constanta1')) targetLocation = 'constanta1';
+
+        const locName = targetLocation ? bridgeMonitoringService.getLocationDisplayName(targetLocation) : null;
+        const scopeLabel = locName ? `pentru <b>${locName}</b>` : 'din toate locațiile';
+        const dayLabel = isYesterday ? 'de ieri' : 'de astăzi';
+
+        await bridgeMonitoringService.sendTelegramMessage(
+          `⏳ <i>Se extrag comenzile ${dayLabel} ${scopeLabel}...</i>`,
+          null,
+          chatId
+        );
+        const ordersText = await bridgeMonitoringService.formatOrdersSummaryForTelegram({ isYesterday, targetLocation });
+        await bridgeMonitoringService.sendTelegramMessage(ordersText, null, chatId, bridgeMonitoringService.ORDERS_KEYBOARD);
+      }
+
+      return res.sendStatus(200);
+    }
+
+    // ─── 2. Procesare MESAJE TEXT / COMENZI TASTATE ───────────────────────
     const message = update.message || update.edited_message;
     if (!message || !message.text) {
       return res.sendStatus(200);
@@ -138,16 +191,19 @@ router.post('/telegram-webhook', async (req, res) => {
       cleanText.startsWith('/comanda') || cleanText.startsWith('comanda') ||
       ['/cluj1', '/cluj2', '/brasov', '/brașov', '/constanta1', '/constanța1', '/constanta', '/constanța', 'cluj1', 'cluj2', 'brasov', 'constanta1'].some(k => cleanText === k || cleanText.startsWith(k + ' '));
 
-    if (cleanText.startsWith('/status') || cleanText === 'status' || cleanText.startsWith('/stare')) {
+    if (cleanText.startsWith('/comenzi rapide') || cleanText.startsWith('/butoane') || cleanText === 'butoane' || cleanText.startsWith('/meniu') || cleanText === 'meniu') {
+      const panelText = bridgeMonitoringService.getQuickCommandsMenuText();
+      await bridgeMonitoringService.sendTelegramMessage(panelText, null, chatId, bridgeMonitoringService.QUICK_ALERT_KEYBOARD);
+    } else if (cleanText.startsWith('/status') || cleanText === 'status' || cleanText.startsWith('/stare')) {
       const statusText = await bridgeMonitoringService.formatStatusSummaryForTelegram();
-      await bridgeMonitoringService.sendTelegramMessage(statusText, null, chatId);
+      await bridgeMonitoringService.sendTelegramMessage(statusText, null, chatId, bridgeMonitoringService.STATUS_KEYBOARD);
     } else if (cleanText.startsWith('/pos') || cleanText === 'pos' || cleanText.startsWith('/semnal') || cleanText === 'semnal' || cleanText.startsWith('/latenta') || cleanText === 'latenta') {
       await bridgeMonitoringService.sendTelegramMessage('⏳ <i>Se interoghează terminalele POS prin UART (calcul latență în milisecunde)...</i>', null, chatId);
       const posText = await bridgeMonitoringService.formatPosSignalSummaryForTelegram();
-      await bridgeMonitoringService.sendTelegramMessage(posText, null, chatId);
+      await bridgeMonitoringService.sendTelegramMessage(posText, null, chatId, bridgeMonitoringService.STATUS_KEYBOARD);
     } else if (cleanText.startsWith('/pin') || cleanText === 'pin' || cleanText.startsWith('/cod') || cleanText === 'cod' || cleanText.startsWith('/program') || cleanText === 'program') {
       const pinText = await bridgeMonitoringService.formatPinSummaryForTelegram();
-      await bridgeMonitoringService.sendTelegramMessage(pinText, null, chatId);
+      await bridgeMonitoringService.sendTelegramMessage(pinText, null, chatId, bridgeMonitoringService.STATUS_KEYBOARD);
     } else if (isComenziCmd) {
       const targetDate = bridgeMonitoringService.detectDateFromText(rawText);
       const isYesterday = !targetDate && (cleanText.includes('ieri') || cleanText.includes('yesterday'));
@@ -168,34 +224,51 @@ router.post('/telegram-webhook', async (req, res) => {
         chatId
       );
       const ordersText = await bridgeMonitoringService.formatOrdersSummaryForTelegram({ isYesterday, targetLocation, targetDate });
-      await bridgeMonitoringService.sendTelegramMessage(ordersText, null, chatId);
+      await bridgeMonitoringService.sendTelegramMessage(ordersText, null, chatId, bridgeMonitoringService.ORDERS_KEYBOARD);
     } else if (cleanText.startsWith('/verificare') || cleanText === 'verificare' || cleanText.startsWith('/check') || cleanText.startsWith('/dimineata') || cleanText.startsWith('/0955') || cleanText.startsWith('/preflight')) {
       await bridgeMonitoringService.sendTelegramMessage('⏳ <i>Se efectuează verificarea matinală a echipamentelor (test semnal POS, ecran, .env, procese duplicate)...</i>', null, chatId);
       await bridgeMonitoringService.runMorningPreflightCheck(chatId, true);
     } else if (cleanText.startsWith('/ajutor') || cleanText.startsWith('/help') || cleanText.startsWith('/start')) {
       const helpText = [
         `🤖 <b>[SMART KIOSK BOT]</b>`,
-        `Comenzi disponibile (click direct sau scrie cu spațiu):`,
+        `Apasă direct pe butoanele de mai jos sau folosește comenzile text:`,
         `• <b>/comenzi</b> — Toate comenzile de astăzi (masă/pachet, card/cash, produse, încasări)`,
-        `• <b>/comenzi 21.10.2026</b> — Comenzi pentru orice dată specifică (sau <code>/comenzi 21.10</code>)`,
-        `• <b>/comenzi_cluj1</b> sau <code>/comenzi cluj1</code> — Cluj 1 (SmashMe)`,
-        `• <b>/comenzi_cluj2</b> sau <code>/comenzi cluj2</code> — Cluj 2 (SmashMe)`,
-        `• <b>/comenzi_brasov</b> sau <code>/comenzi brasov</code> — Brașov (RollMaster)`,
-        `• <b>/comenzi_constanta1</b> sau <code>/comenzi constanta1</code> — Constanța 1 (SmashMe)`,
-        `• <b>/comenzi_ieri</b> sau <code>/comenzi ieri</code> — Toate comenzile de ieri`,
-        `• Poți combina dată și locație: <code>/comenzi 21.10 cluj1</code> sau <code>/comenzi ieri brasov</code>`,
-        `• <b>/pos</b> — Interoghează semnalul UART către terminalele POS și latența (ms)`,
-        `• <b>/status</b> — Afișează starea curentă a kiosk-urilor, POS, imprimante, PIN-uri`,
-        `• <b>/pin</b> — Afișează codurile PIN de deblocare și orarul programat de blocare`,
-        `• <b>/verificare</b> — Raport complet matinal de deschidere (POS, ecran, duplicate)`,
+        `• <b>/comenzi 21.10.2026</b> — Comenzi pentru orice dată specifică`,
+        `• <b>/comenzi_cluj1</b> — Cluj 1 (SmashMe)`,
+        `• <b>/comenzi_cluj2</b> — Cluj 2 (SmashMe)`,
+        `• <b>/comenzi_brasov</b> — Brașov (RollMaster)`,
+        `• <b>/comenzi_constanta1</b> — Constanța 1 (SmashMe)`,
+        `• <b>/comenzi_ieri</b> — Toate comenzile de ieri`,
+        `• <b>/pos</b> — Latență UART către terminalele POS (ms)`,
+        `• <b>/status</b> — Starea kiosk-urilor, POS, imprimante`,
+        `• <b>/pin</b> — PIN-uri deblocare ecran și orar`,
+        `• <b>/verificare</b> — Raport complet matinal de deschidere`,
+        `• <b>/comenzi_rapide</b> — Afișează panoul cu butoane rapide`,
       ].join('\n');
-      await bridgeMonitoringService.sendTelegramMessage(helpText, null, chatId);
+      await bridgeMonitoringService.sendTelegramMessage(helpText, null, chatId, bridgeMonitoringService.QUICK_ALERT_KEYBOARD);
     }
 
     return res.sendStatus(200);
   } catch (err) {
     console.error('[TelegramWebhook] Eroare procesare update Telegram:', err.message);
     return res.sendStatus(200);
+  }
+});
+
+/**
+ * POST /api/bridge-monitoring/telegram-send-quick-commands
+ * Trimite panoul de comenzi rapide ca butoane direct în Grupul de Alerte Telegram
+ */
+router.post('/telegram-send-quick-commands', async (req, res) => {
+  try {
+    const result = await bridgeMonitoringService.sendQuickCommandsPanel();
+    if (!result.ok) {
+      return res.status(400).json({ success: false, error: result.error });
+    }
+    res.json({ success: true, message: 'Panoul cu butoane rapide a fost trimis în Grupul de Alerte Telegram!' });
+  } catch (err) {
+    console.error('[BridgeMonitoringRoute] Error sending quick commands panel:', err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 
