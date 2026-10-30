@@ -21,6 +21,53 @@ let memoryCj1Max = 648;
 let memoryCj1AMax = 0;
 let memoryCj2Max = 0;
 
+// Helper: formatează secvența alfabetică A-001..A-999 -> B-001..B-999 -> C-001..C-999 ...
+// totalSeq = 1..999 => A-001..A-999; totalSeq = 1000..1998 => B-001..B-999; totalSeq = 1999..2997 => C-001..C-999
+function formatAlphaSeriesOrder(basePrefix, totalSeq, hyphenBeforeLetter = false) {
+  const seq = Math.max(1, parseInt(totalSeq, 10) || 1);
+  const letterIdx = Math.floor((seq - 1) / 999);
+  const seriesLetter = String.fromCharCode(65 + (letterIdx % 26)); // A, B, C, ..., Z
+  const subSeq = ((seq - 1) % 999) + 1; // 1..999
+  const padded = String(subSeq).padStart(3, '0');
+  if (!basePrefix) return `${seriesLetter}-${padded}`;
+  return hyphenBeforeLetter
+    ? `${basePrefix}-${seriesLetter}-${padded}`
+    : `${basePrefix}${seriesLetter}-${padded}`;
+}
+
+// Rulează la boot: convertește orice comandă trecută de 999 pe seria A (ex: CJ1A-1000, CJ1A-1001) în B-001, B-002 etc.
+async function fixRolloverSeriesOrders() {
+  try {
+    await pool.query(`
+      UPDATE orders
+      SET data = jsonb_set(
+        data,
+        '{orderNumber}',
+        to_jsonb(
+          'CJ1' || chr(65 + (((substring(data->>'orderNumber' from '^CJ1A-(\\d+)$')::int) - 1) / 999))
+          || '-' || lpad(((((substring(data->>'orderNumber' from '^CJ1A-(\\d+)$')::int) - 1) % 999) + 1)::text, 3, '0')
+        )
+      )
+      WHERE data->>'orderNumber' ~ '^CJ1A-\\d{4,}$'
+    `);
+    await pool.query(`
+      UPDATE orders
+      SET data = jsonb_set(
+        data,
+        '{orderNumber}',
+        to_jsonb(
+          'CJ2' || chr(65 + (((substring(data->>'orderNumber' from '^CJ2A-(\\d+)$')::int) - 1) / 999))
+          || '-' || lpad(((((substring(data->>'orderNumber' from '^CJ2A-(\\d+)$')::int) - 1) % 999) + 1)::text, 3, '0')
+        )
+      )
+      WHERE data->>'orderNumber' ~ '^CJ2A-\\d{4,}$'
+    `);
+  } catch (e) {
+    console.warn('[Orders] Rollover auto-fix warning:', e.message);
+  }
+}
+fixRolloverSeriesOrders();
+
 // ── Core order creation logic (callable via HTTP or directly on POS socket confirmation) ──
 async function processOrderCreation(body, io) {
   const {
@@ -116,30 +163,51 @@ async function processOrderCreation(body, io) {
     await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-647"') WHERE data->>'orderNumber' = 'CJ2-647'`).catch(() => {});
     await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-648"') WHERE data->>'orderNumber' = 'CJ2-648'`).catch(() => {});
 
+    // Auto-corecție comenzi trecute de 999 pe seria A (ex: CJ1A-1000 -> CJ1B-001, CJ1A-1001 -> CJ1B-002)
+    await fixRolloverSeriesOrders();
+
     const { rows } = await pool.query(`SELECT data->>'orderNumber' as num, location_id FROM orders WHERE (data->>'orderNumber') IS NOT NULL`);
     for (const row of rows) {
       const str = String(row.num || '').trim();
       if (!str) continue;
 
-      // Căutăm prefix cu format [LITERE][CIFRĂ]?-?A-?[NUMĂR] (ex: CJ1A-001, CJ1-A-001, CJ1-A001, CJ2A-304, BVA-670, CTA-001)
-      const aSeriesMatch = str.match(/^([a-zA-Z]+)(\d*)-?A-?(\d+)$/i);
-      if (aSeriesMatch) {
-        const letterPrefix = aSeriesMatch[1].toUpperCase(); // ex: 'CJ', 'BV', 'CT'
-        const kioskDigit = aSeriesMatch[2] || '';
+      // Căutăm serii alfabetice A..Z (999 comenzi per literă: A-001..A-999 -> B-001..B-999 -> C-001..C-999):
+      // 1) Format cu cifră kiosk: CJ1A-001, CJ1B-001, CJ2A-962, CJ2B-001, CJ1-A-001
+      // 2) Format cu cratimă înainte și după literă: BV-A-736, BV-B-001, CT-A-352, CT-B-001
+      // 3) Format istoric fără cratimă pe seria A: BVA-670, CTA-001
+      // 4) Format fără prefix de oraș: A-001, B-001
+      const kioskSeriesMatch = str.match(/^([a-zA-Z]{2,})(\d+)-?([a-zA-Z])-?(\d+)$/i);
+      const hyphenSeriesMatch = !kioskSeriesMatch && str.match(/^([a-zA-Z]{2,})(\d*)-([a-zA-Z])-?(\d+)$/i);
+      const legacyNoHyphenAMatch = !kioskSeriesMatch && !hyphenSeriesMatch && str.match(/^([a-zA-Z]{2,})()(A)-(\d+)$/i);
+      const plainSeriesMatch = !kioskSeriesMatch && !hyphenSeriesMatch && !legacyNoHyphenAMatch && str.match(/^()()([a-zA-Z])-(\d+)$/i);
+
+      const alphaMatch = kioskSeriesMatch || hyphenSeriesMatch || legacyNoHyphenAMatch || plainSeriesMatch;
+      if (alphaMatch) {
+        const letterPrefix = (alphaMatch[1] || '').toUpperCase(); // ex: 'CJ', 'BV', 'CT'
+        const kioskDigit = alphaMatch[2] || '';
         const fullPrefix = `${letterPrefix}${kioskDigit}`; // ex: 'CJ1', 'CJ2', 'BV'
-        const seqNum = parseInt(aSeriesMatch[3], 10);
-        if (!isNaN(seqNum)) {
+        const seriesLetter = (alphaMatch[3] || 'A').toUpperCase();
+        const rawSeqNum = parseInt(alphaMatch[4], 10);
+        if (!isNaN(rawSeqNum) && rawSeqNum > 0) {
+          const letterIdx = Math.max(0, seriesLetter.charCodeAt(0) - 65);
+          // Dacă e seria A cu >= 1000 (neconvertită încă), totalSeq = rawSeqNum; altfel letterIdx * 999 + rawSeqNum
+          const totalSeq = (letterIdx === 0 && rawSeqNum >= 1000)
+            ? rawSeqNum
+            : (letterIdx * 999 + rawSeqNum);
+
           if (fullPrefix === 'CJ1') {
-            cj1AMax = Math.max(cj1AMax, seqNum);
-            usedSeqsByPrefix.CJ1A.add(seqNum);
+            cj1AMax = Math.max(cj1AMax, totalSeq);
+            usedSeqsByPrefix.CJ1A.add(totalSeq);
           } else if (fullPrefix === 'CJ2') {
-            cj2Max = Math.max(cj2Max, seqNum);
-            usedSeqsByPrefix.CJ2.add(seqNum);
+            cj2Max = Math.max(cj2Max, totalSeq);
+            usedSeqsByPrefix.CJ2.add(totalSeq);
           } else if (letterPrefix === 'BV') {
-            brasovMax = Math.max(brasovMax, seqNum);
+            brasovMax = Math.max(brasovMax, totalSeq);
+          } else if (letterPrefix) {
+            maxByPrefix[fullPrefix] = Math.max(maxByPrefix[fullPrefix] || 0, totalSeq);
+            maxByPrefix[letterPrefix] = Math.max(maxByPrefix[letterPrefix] || 0, totalSeq);
           } else {
-            maxByPrefix[fullPrefix] = Math.max(maxByPrefix[fullPrefix] || 0, seqNum);
-            maxByPrefix[letterPrefix] = Math.max(maxByPrefix[letterPrefix] || 0, seqNum);
+            maxOrderNumber = Math.max(maxOrderNumber, totalSeq);
           }
         }
         continue;
@@ -226,28 +294,28 @@ async function processOrderCreation(body, io) {
       while (usedSeqsByPrefix.CJ2.has(nextSeq)) {
         nextSeq++;
       }
-      orderNumber = `CJ2A-${formatOrderSeq(nextSeq)}`;
+      orderNumber = formatAlphaSeriesOrder('CJ2', nextSeq, false);
       memoryCj2Max = Math.max(memoryCj2Max, nextSeq);
     } else {
-      // Kiosk 1 (sau implicit) -> pornește curat de la 001
+      // Kiosk 1 (sau implicit) -> A-001..A-999, apoi B-001..B-999, C-001..C-999
       let nextSeq = cj1AMax + 1;
       while (usedSeqsByPrefix.CJ1A.has(nextSeq)) {
         nextSeq++;
       }
-      orderNumber = `CJ1A-${formatOrderSeq(nextSeq)}`;
+      orderNumber = formatAlphaSeriesOrder('CJ1', nextSeq, false);
       memoryCj1AMax = Math.max(memoryCj1AMax, nextSeq);
     }
   } else if (city === 'brasov') {
     const nextSeq = Math.max(brasovMax, maxOrderNumber) + 1;
-    orderNumber = `BV-A-${formatOrderSeq(nextSeq)}`;
+    orderNumber = formatAlphaSeriesOrder('BV', nextSeq, true);
   } else {
     const prefix = getOrderPrefix(locId, resolvedLocationName);
     if (prefix) {
       const nextSeq = (maxByPrefix[prefix] !== undefined ? maxByPrefix[prefix] : 0) + 1;
-      orderNumber = `${prefix}-A-${formatOrderSeq(nextSeq)}`;
+      orderNumber = formatAlphaSeriesOrder(prefix, nextSeq, true);
     } else {
       const nextSeq = maxOrderNumber + 1;
-      orderNumber = `A-${formatOrderSeq(nextSeq)}`;
+      orderNumber = formatAlphaSeriesOrder('', nextSeq, false);
     }
   }
 
