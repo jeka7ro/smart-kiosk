@@ -17,9 +17,9 @@ const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.on
 
 const STATUS_CONFIG = {
   approved:    { label: 'Aprobat',          color: '#ffffff', bg: '#059669' },
-  declined:    { label: 'Respins',          color: '#ffffff', bg: '#dc2626' },
-  cancelled:   { label: 'Anulat de client', color: '#ffffff', bg: '#64748b' },
-  timeout:     { label: 'Timeout POS',      color: '#ffffff', bg: '#d97706' },
+  declined:    { label: 'Respins bancă',    color: '#ffffff', bg: '#dc2626' },
+  cancelled:   { label: 'Anulat de client', color: '#ffffff', bg: '#d97706' },
+  timeout:     { label: 'Timeout POS',      color: '#ffffff', bg: '#b45309' },
   refunded:    { label: 'Returnat',         color: '#ffffff', bg: '#2563eb' },
   unsolicited: { label: 'POS Info',         color: '#ffffff', bg: '#7c3aed' },
 };
@@ -1124,12 +1124,20 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
               active={filter === 'approved'}
             />
             <StatCard 
-              label="Anulate Client / Respinse" 
-              value={derivedStats.cancelledOrDeclined} 
-              color="#ef4444" 
+              label="Anulate de client" 
+              value={derivedStats.cancelled} 
+              color="#f59e0b" 
               icon={XCircle}
-              onClick={() => { setFilter(filter === 'cancelled_or_declined' ? 'all' : 'cancelled_or_declined'); setCurrentPage(1); }}
-              active={filter === 'cancelled_or_declined'}
+              onClick={() => { setFilter(filter === 'cancelled' ? 'all' : 'cancelled'); setCurrentPage(1); }}
+              active={filter === 'cancelled'}
+            />
+            <StatCard 
+              label="Respinse bancă" 
+              value={derivedStats.declined} 
+              color="#ef4444" 
+              icon={AlertTriangle}
+              onClick={() => { setFilter(filter === 'declined' ? 'all' : 'declined'); setCurrentPage(1); }}
+              active={filter === 'declined'}
             />
             <StatCard 
               label="iiko Eșuat" 

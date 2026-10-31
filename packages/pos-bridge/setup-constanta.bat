@@ -111,9 +111,37 @@ set "STARTUP_FOLDER=%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup"
 set "DESKTOP_FOLDER=%USERPROFILE%\Desktop"
 set "KIOSK_URL=https://kiosk-smashme.netlify.app/?loc=constanta1"
 set "BRIDGE_BAT=%CURRENT_FOLDER%\start-windows.bat"
+set "LAUNCH_ALL_BAT=%CURRENT_FOLDER%\launch-kiosk-all.bat"
 
-:: 1. Adaugare directa in Windows Registry Run (garantie la orice restart de Windows)
-reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "POSBridge" /t REG_SZ /d "\"%BRIDGE_BAT%\"" /f >nul
+:: 0. Dezactivare Windows Sleep, Standby si Oprire Monitor/USB
+powercfg /change standby-timeout-ac 0 >nul 2>nul
+powercfg /change monitor-timeout-ac 0 >nul 2>nul
+powercfg /change hibernate-timeout-ac 0 >nul 2>nul
+powercfg /setacvalueindex SCHEME_CURRENT 2a737441-1930-4402-8685-5b0887e3290d 48e6b7a6-50f5-4760-a579-e4c11dd81862 0 >nul 2>nul
+powercfg /setactive SCHEME_CURRENT >nul 2>nul
+
+:: 1. Creare script unificat de pornire (Kiosk + POS Bridge impreuna)
+(
+echo @echo off
+echo cd /d "%%~dp0"
+echo start "" wscript.exe "%%~dp0run-hidden.vbs"
+echo timeout /t 1 ^>nul
+if defined CHROME_PATH (
+    echo start "" "!CHROME_PATH!" --kiosk "%KIOSK_URL%" --start-fullscreen --start-maximized --window-position=0,0 --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check
+) else (
+    echo start "" chrome.exe --kiosk "%KIOSK_URL%" --start-fullscreen --start-maximized --window-position=0,0 --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check
+)
+) > "%LAUNCH_ALL_BAT%"
+
+:: 2. Inregistrare Watchdog in Windows Task Scheduler (la fiecare 1 minut si la Logon)
+schtasks /create /tn "SmartKiosk_POS_Watchdog" /tr "wscript.exe \"%CURRENT_FOLDER%\watchdog.vbs\"" /sc minute /mo 1 /f /rl highest >nul 2>nul
+if %errorlevel% neq 0 (
+    schtasks /create /tn "SmartKiosk_POS_Watchdog" /tr "wscript.exe \"%CURRENT_FOLDER%\watchdog.vbs\"" /sc minute /mo 1 /f >nul 2>nul
+)
+schtasks /create /tn "SmartKiosk_POS_OnLogon" /tr "wscript.exe \"%CURRENT_FOLDER%\watchdog.vbs\"" /sc onlogon /f >nul 2>nul
+
+:: 3. Adaugare directa in Windows Registry Run (garantie la orice restart de Windows)
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "POSBridge" /t REG_SZ /d "wscript.exe \"%CURRENT_FOLDER%\run-hidden.vbs\"" /f >nul
 if defined CHROME_PATH (
     reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "SmartKioskScreen" /t REG_SZ /d "\"%CHROME_PATH%\" --kiosk %KIOSK_URL% --no-first-run --no-default-browser-check" /f >nul
 ) else (
@@ -121,31 +149,29 @@ if defined CHROME_PATH (
 )
 reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "SmartKioskPOSBridge" /f >nul 2>nul
 
-
-:: 2. Creare scurtaturi prin VBScript nativ (fara erori de ghilimele PowerShell)
+:: 4. Creare scurtaturi prin VBScript nativ
 (
 echo Set ws = CreateObject("WScript.Shell"^)
 echo Set sBridge = ws.CreateShortcut("%STARTUP_FOLDER%\POS-Bridge.lnk"^)
-echo sBridge.TargetPath = "%BRIDGE_BAT%"
+echo sBridge.TargetPath = "wscript.exe"
+echo sBridge.Arguments = """%CURRENT_FOLDER%\run-hidden.vbs"""
 echo sBridge.WorkingDirectory = "%CURRENT_FOLDER%"
-echo sBridge.WindowStyle = 1
+echo sBridge.WindowStyle = 0
 echo sBridge.Save
 echo Set dBridge = ws.CreateShortcut("%DESKTOP_FOLDER%\Porneste POS Bridge.lnk"^)
 echo dBridge.TargetPath = "%BRIDGE_BAT%"
 echo dBridge.WorkingDirectory = "%CURRENT_FOLDER%"
 echo dBridge.WindowStyle = 1
 echo dBridge.Save
-if defined CHROME_PATH (
-  echo Set dKiosk = ws.CreateShortcut("%DESKTOP_FOLDER%\Smart Kiosk Constanta.lnk"^)
-  echo dKiosk.TargetPath = "%CHROME_PATH%"
-  echo dKiosk.Arguments = "--kiosk """"%KIOSK_URL%"""" --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check"
-  echo dKiosk.WindowStyle = 3
-  echo dKiosk.Save
-)
+echo Set dKiosk = ws.CreateShortcut("%DESKTOP_FOLDER%\Smart Kiosk Constanta.lnk"^)
+echo dKiosk.TargetPath = "%LAUNCH_ALL_BAT%"
+echo dKiosk.WorkingDirectory = "%CURRENT_FOLDER%"
+echo dKiosk.WindowStyle = 7
+echo dKiosk.Save
 ) > "%TEMP%\create_kiosk_shortcuts.vbs"
 cscript //nologo "%TEMP%\create_kiosk_shortcuts.vbs" >nul 2>nul
 del "%TEMP%\create_kiosk_shortcuts.vbs" >nul 2>nul
-echo   [OK] Autostart si comenzi rapide configurate cu succes!
+echo   [OK] Watchdog, Task Scheduler si comenzi rapide configurate cu succes!
 
 echo.
 echo =====================================================================

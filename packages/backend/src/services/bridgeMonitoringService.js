@@ -28,7 +28,7 @@ let telegramConfig = {
 
 // Versiunea oficială curentă a software-ului POS Bridge de pe PC
 const { BRIDGE_RELEASE_NOTES } = require('../data/bridgeReleaseNotes');
-const LATEST_BRIDGE_VERSION = BRIDGE_RELEASE_NOTES[0]?.version || '3.5.0';
+const LATEST_BRIDGE_VERSION = BRIDGE_RELEASE_NOTES[0]?.version || '3.5.4';
 
 // Cooldown tracking to prevent Telegram alert spam: locationKey -> lastAlertTimestamp
 const lastAlertSent = new Map();
@@ -1993,10 +1993,10 @@ function getStatusSummary() {
         isCashOnly: !isPosEnabled(locKey),
         duplicateDetected: !!b?.duplicateDetected,
         duplicateInfo: b?.duplicateInfo || null,
-        version: (b?.version && b.version !== '1.0.0') ? b.version : '3.4.0',
-        bridgeVersion: (b?.version && b.version !== '1.0.0') ? b.version : '3.4.0',
+        version: (b?.version && b.version !== '1.0.0') ? b.version : LATEST_BRIDGE_VERSION,
+        bridgeVersion: (b?.version && b.version !== '1.0.0') ? b.version : LATEST_BRIDGE_VERSION,
         latestBridgeVersion: LATEST_BRIDGE_VERSION,
-        isBridgeUpToDate: ((b?.version && b.version !== '1.0.0') ? b.version : '3.4.0') === LATEST_BRIDGE_VERSION,
+        isBridgeUpToDate: ((b?.version && b.version !== '1.0.0') ? b.version : LATEST_BRIDGE_VERSION) === LATEST_BRIDGE_VERSION,
       };
     });
 

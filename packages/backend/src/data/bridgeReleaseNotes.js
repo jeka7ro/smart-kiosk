@@ -4,9 +4,45 @@
 
 const BRIDGE_RELEASE_NOTES = [
   {
-    version: '3.5.3',
+    version: '3.5.4',
     releaseDate: '31 Octombrie 2026',
     isLatest: true,
+    tag: 'Prevenire Sleep POS & Sincronizare Sumă',
+    title: 'Keep-Alive la 2 min, Autorecuperare DTR/RTS și Reset Sumă',
+    summary: 'Reduce intervalul de keep-alive la 2 minute în timpul programului (10:00-22:00) pentru a împiedica intrarea Verifone în standby profund. Autorecuperare hardware automată la timeout și actualizare forțată a sumei pe POS dacă clientul își modifică produsele în coș.',
+    categories: [
+      {
+        title: 'Management Standby & Conexiune UART',
+        badge: 'Performanță',
+        badgeColor: 'blue',
+        items: [
+          {
+            title: 'Keep-Alive la 2 Minute',
+            desc: 'Trimite impuls discret ENQ (107ms) la fiecare 2 minute de inactivitate, menținând procesorul și portul serial al terminalului permanent calde.'
+          },
+          {
+            title: 'Autorecuperare Hardware la Timeout',
+            desc: 'Dacă un pachet ENQ atinge 3000ms fără răspuns, bridge-ul declanșează un ciclu controlat DTR/RTS de 300ms și re-login automat.'
+          }
+        ]
+      },
+      {
+        title: 'Flux Plată & Actualizare Coș',
+        badge: 'Stabilitate',
+        badgeColor: 'emerald',
+        items: [
+          {
+            title: 'Override Plată Veche la Sumă Nouă',
+            desc: 'Dacă clientul s-a întors în coș și a adăugat/șters produse, revenirea la plată anulează curat comanda veche de pe POS și afișează instant noua sumă.'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    version: '3.5.3',
+    releaseDate: '31 Octombrie 2026',
+    isLatest: false,
     tag: 'Scut Matinal & Auto-Login Reîncercare',
     title: 'Recuperare Automată Lipsă Login (80 02 00)',
     summary: 'Tratează automat situațiile în care POS-ul Verifone își pierde sesiunea de login peste noapte. Detectează refuzul 80 02 00 la plată, execută LOGIN automat și reia instant tranzacția clientului fără eroare.',

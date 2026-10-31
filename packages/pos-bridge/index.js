@@ -1,4 +1,4 @@
-const BRIDGE_VERSION = '3.5.3';
+const BRIDGE_VERSION = '3.5.4';
 const PROCESS_BOOT_TIME = Date.now();
 let globalSocket = null;
 
@@ -340,8 +340,8 @@ function forceReopenPort(reason = 'Force Reset') {
 
 // ─── Standby POS Keep-Alive / Wake (la 30 min inactivitate, strict 10:00 - 22:00) ─────
 let posWakeStandbyEnabled = process.env.POS_WAKE_STANDBY !== 'false'; // Activ implicit pe toate terminalele (se dezactivează doar dacă e explicit 'false')
-let posWakeIntervalMinutes = parseInt(process.env.POS_WAKE_INTERVAL_MINUTES || '5', 10);
-if (isNaN(posWakeIntervalMinutes) || posWakeIntervalMinutes < 1) posWakeIntervalMinutes = 5;
+let posWakeIntervalMinutes = parseInt(process.env.POS_WAKE_INTERVAL_MINUTES || '2', 10);
+if (isNaN(posWakeIntervalMinutes) || posWakeIntervalMinutes < 1) posWakeIntervalMinutes = 2;
 let lastActivityTime = Date.now();
 let wakeStartTime = 0;
 let wakeRecoveryTimer = null;
@@ -400,9 +400,17 @@ function wakePosKeepAlive() {
         message: 'POS în standby (fără răspuns la wake în 3000ms)'
       });
     }
-    // Conform Regulii 6 & Protocol Printec v3.9.3:
-    // La timeout de wake NU se resetează forțat portul serial (forceReopenPort)!
-    // Resetarea forțată se face STRICT la comanda explicită de anulare (cancel_pos_payment).
+    // Autorecuperare inteligentă în fundal DOAR dacă magistrala e IDLE și nu a început o vânzare între timp
+    clearTimeout(wakeRecoveryTimer);
+    wakeRecoveryTimer = setTimeout(() => {
+      wakeRecoveryTimer = null;
+      if (state === 'IDLE' && !paymentInProgress && !currentTransactionResolve && !isReopeningPort) {
+        log('🔄 [POS Wake] Autorecuperare port: trimit impuls hardware DTR/RTS pentru trezire terminal Verifone...');
+        forceReopenPort('Autorecuperare după Auto-Wake timeout').then(() => {
+          ensurePosLogin().catch(e => log(`⚠️ Eroare re-login după auto-wake timeout: ${e.message}`));
+        });
+      }
+    }, 500);
   }, 3000);
 
   globalPort.write(Buffer.from([ENQ]));
@@ -990,7 +998,7 @@ async function start() {
         if (!posWakeStandbyEnabled) return;
         if (!isWithinWorkingHours()) return;
         const idleMs = Date.now() - lastActivityTime;
-        const IDLE_LIMIT = (posWakeIntervalMinutes || 5) * 60 * 1000;
+        const IDLE_LIMIT = (posWakeIntervalMinutes || 2) * 60 * 1000;
         if (idleMs >= IDLE_LIMIT) {
           lastActivityTime = Date.now(); // resetăm pentru a evita declanșări repetate la timeout
           wakePosKeepAlive();
@@ -1480,9 +1488,16 @@ async function start() {
     wakeRecoveryTimer = null;
 
     if (paymentInProgress) {
-      log(`⚠️ SKIP: o plată e deja în curs`);
-      socket.emit('pos_payment_result', { orderId, paid: false, error: 'Altă plată în curs' });
-      return;
+      log(`⚠️ O plată anterioară era încă activă pe terminal. O anulez forțat pentru a procesa noua sumă (${amount} RON)...`);
+      try {
+        if (globalPort && globalPort.isOpen) {
+          await forceReopenPort('Reset tranzacție anterioară la plată nouă');
+          await ensurePosLogin();
+        }
+      } catch (e) {
+        log(`⚠️ Eroare reset tranzacție veche: ${e.message}`);
+      }
+      paymentInProgress = false;
     }
 
     paymentInProgress = true;

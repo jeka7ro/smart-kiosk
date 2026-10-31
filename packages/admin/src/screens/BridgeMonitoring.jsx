@@ -931,8 +931,8 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
       const isScriptUpToDate = Boolean(kioskScriptVer && kioskScriptVer === latestScriptVer);
 
       const rawBridgeVersion = loc.bridgeVersion || loc.version || null;
-      const bridgeVersion = (rawBridgeVersion && rawBridgeVersion !== '1.0.0') ? rawBridgeVersion : '3.4.0';
-      const latestBridgeVer = BRIDGE_RELEASE_NOTES[0]?.version || loc.latestBridgeVersion || '3.5.0';
+      const latestBridgeVer = BRIDGE_RELEASE_NOTES[0]?.version || loc.latestBridgeVersion || '3.5.4';
+      const bridgeVersion = (rawBridgeVersion && rawBridgeVersion !== '1.0.0') ? rawBridgeVersion : latestBridgeVer;
       const isBridgeUpToDate = Boolean(rawBridgeVersion && bridgeVersion === latestBridgeVer);
 
       const cleanKioskName = friendlyNames[locKey] || (loc.displayName ? loc.displayName.replace(/\s*\([^)]*\)/g, '').trim() : locKey);
@@ -1416,7 +1416,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                               title="Click pentru a vedea noutățile acestei versiuni"
                               className="px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900 transition-colors cursor-pointer"
                             >
-                              v{loc.bridgeVersion || '3.4.0'}
+                              v{loc.bridgeVersion || loc.latestBridgeVer || '3.5.4'}
                             </button>
                             <button
                               type="button"
@@ -1436,7 +1436,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                           </>
                         ) : (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-500 dark:bg-slate-700/60 dark:text-slate-400 whitespace-nowrap">
-                            v{loc.bridgeVersion || '3.4.0'} (offline)
+                            v{loc.bridgeVersion || loc.latestBridgeVer || '3.5.4'} (offline)
                           </span>
                         )}
                       </div>

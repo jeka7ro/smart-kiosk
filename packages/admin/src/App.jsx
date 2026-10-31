@@ -1333,7 +1333,7 @@ export default function AdminApp() {
                                 <span className="text-slate-500 dark:text-slate-400">Versiune Soft (PC):</span>
                                 <div className="flex items-center gap-1.5">
                                   <span className="font-semibold text-slate-800 dark:text-slate-200">
-                                    v{bridgeLoc?.bridgeVersion || '3.4.0'}
+                                    v{bridgeLoc?.bridgeVersion || bridgeLoc?.latestBridgeVer || '3.5.4'}
                                   </span>
                                   {isBridgeOnline && (
                                     <button
