@@ -1,4 +1,4 @@
-const BRIDGE_VERSION = '3.5.2';
+const BRIDGE_VERSION = '3.5.3';
 const PROCESS_BOOT_TIME = Date.now();
 let globalSocket = null;
 
@@ -354,8 +354,17 @@ function isWithinWorkingHours() {
   return currentHour >= 10 && currentHour < 22;
 }
 
+let lastWorkingDay = new Date().toDateString();
+
 function noteActivity(source = 'general') {
   lastActivityTime = Date.now();
+  // Dacă s-a schimbat ziua (trecut de miezul nopții), invalidăm sesiunea veche de login
+  const today = new Date().toDateString();
+  if (today !== lastWorkingDay) {
+    lastWorkingDay = today;
+    posLoggedIn = false;
+    log('🌅 [Zi Nouă] Resetez sesiunea de LOGIN POS pentru ziua curentă.');
+  }
 }
 
 function wakePosKeepAlive() {
@@ -1287,7 +1296,7 @@ async function start() {
 
           // Cazul A: Răspuns LOGIN (80 00 00 sau 84 XX 00)
           if ((klasse === 0x80 || klasse === 0x84) && currentOperation === 'LOGIN') {
-            const ok = (klasse === 0x80) || (klasse === 0x84 && instr === 0x00);
+            const ok = (klasse === 0x80 || klasse === 0x84) && instr === 0x00;
             if (ok) {
               log('✅ Răspuns LOGIN pozitiv de la POS. Aștept EOT de la terminal...');
               pendingPosAction = 'LOGIN_DONE';
@@ -1302,7 +1311,7 @@ async function start() {
 
           // Cazul B: Confirmare acceptare SALE (80 00 00 / 84 00 00) — ANEXA A, PAG. 18
           if ((klasse === 0x80 || klasse === 0x84) && currentOperation === 'SALE') {
-            const ok = (klasse === 0x80) || (klasse === 0x84 && instr === 0x00);
+            const ok = (klasse === 0x80 || klasse === 0x84) && instr === 0x00;
             if (ok) {
               log('✅ SALE acceptat de POS! Terminal activat — apropiați cardul. Aștept EOT de la terminal...');
               onStatus && onStatus('Terminal activat — apropiați cardul');
