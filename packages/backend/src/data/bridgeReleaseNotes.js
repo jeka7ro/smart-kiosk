@@ -4,9 +4,34 @@
 
 const BRIDGE_RELEASE_NOTES = [
   {
+    version: '3.5.3',
+    releaseDate: '31 Octombrie 2026',
+    isLatest: true,
+    tag: 'Scut Matinal & Auto-Login Reîncercare',
+    title: 'Recuperare Automată Lipsă Login (80 02 00)',
+    summary: 'Tratează automat situațiile în care POS-ul Verifone își pierde sesiunea de login peste noapte. Detectează refuzul 80 02 00 la plată, execută LOGIN automat și reia instant tranzacția clientului fără eroare.',
+    categories: [
+      {
+        title: 'Protocol POS Printec v3.9.3',
+        badge: 'Critic',
+        badgeColor: 'emerald',
+        items: [
+          {
+            title: 'Tratare Cadru 80 02 00',
+            desc: 'Detectare strictă a codului de login neefectuat și reautentificare transparentă în fundal.'
+          },
+          {
+            title: 'Resetare Sesiune la Zi Nouă',
+            desc: 'La trecerea de miezul nopții, starea de login se reîmprospătează proactiv pentru prima comandă a zilei.'
+          }
+        ]
+      }
+    ]
+  },
+  {
     version: '3.5.2',
     releaseDate: '24 Octombrie 2026',
-    isLatest: true,
+    isLatest: false,
     tag: 'Stabilitate Rețea & Reconectare Nativă',
     title: 'Eliminare Oprire la Deconectare & Persistență Conexiune',
     summary: 'Elimină complet timer-ul de oprire la deconectare de internet. Bridge-ul rămâne activ pe calculator, ține portul POS și imprimanta deschise, iar Socket.io se reconectează automat și silențios în secunda în care revine semnalul de internet.',
