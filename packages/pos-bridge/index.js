@@ -1,4 +1,4 @@
-const BRIDGE_VERSION = '3.5.4';
+const BRIDGE_VERSION = '3.5.5';
 const PROCESS_BOOT_TIME = Date.now();
 let globalSocket = null;
 
@@ -305,11 +305,19 @@ function forceReopenPort(reason = 'Force Reset') {
       if (resolved) return;
       resolved = true;
       clearTimeout(hardSafetyTimer);
+      clearTimeout(currentTransactionTimer);
+      state = 'IDLE';
+      currentOperation = null;
       isReopeningPort = false;
       rxBuf = Buffer.alloc(0);
       if (msg) log(msg);
       resolve();
     };
+
+    // Dacă portul nu e deschis, curățăm starea și ieșim fără eroare
+    if (!globalPort.isOpen) {
+      return complete('Portul serial era deja închis.');
+    }
 
     // Hard fallback: dacă driverul Windows COM blochează globalPort.close / open mai mult de 2500ms
     const hardSafetyTimer = setTimeout(() => {
@@ -400,17 +408,9 @@ function wakePosKeepAlive() {
         message: 'POS în standby (fără răspuns la wake în 3000ms)'
       });
     }
-    // Autorecuperare inteligentă în fundal DOAR dacă magistrala e IDLE și nu a început o vânzare între timp
-    clearTimeout(wakeRecoveryTimer);
-    wakeRecoveryTimer = setTimeout(() => {
-      wakeRecoveryTimer = null;
-      if (state === 'IDLE' && !paymentInProgress && !currentTransactionResolve && !isReopeningPort) {
-        log('🔄 [POS Wake] Autorecuperare port: trimit impuls hardware DTR/RTS pentru trezire terminal Verifone...');
-        forceReopenPort('Autorecuperare după Auto-Wake timeout').then(() => {
-          ensurePosLogin().catch(e => log(`⚠️ Eroare re-login după auto-wake timeout: ${e.message}`));
-        });
-      }
-    }, 500);
+    // Conform Regulii 6 & Protocol Printec v3.9.3:
+    // La timeout de wake NU se resetează forțat portul serial (forceReopenPort)!
+    // Resetarea forțată se face STRICT la comanda explicită de anulare (cancel_pos_payment).
   }, 3000);
 
   globalPort.write(Buffer.from([ENQ]));

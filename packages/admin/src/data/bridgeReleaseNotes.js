@@ -5,9 +5,45 @@
 
 export const BRIDGE_RELEASE_NOTES = [
   {
+    version: '3.5.5',
+    releaseDate: '1 Noiembrie 2026',
+    isLatest: true,
+    tag: 'Stabilitate Totală Standby & Protocol Printec v3.9.3',
+    title: 'Eliminare Reset Port la Wake & Curățare Stare la Anulare Kiosk',
+    summary: 'Respectă cu strictețe Regula 6 a protocolului Printec v3.9.3: elimină definitiv ciclarea portului COM la timeout de wake în standby, prevenind oprirea procesului Node.js pe Windows. Curățare imediată de buffer și forțare stare IDLE la comanda explicită de anulare a clientului din Kiosk.',
+    categories: [
+      {
+        title: 'Management Standby & Conexiune UART',
+        badge: 'Critic',
+        badgeColor: 'emerald',
+        items: [
+          {
+            title: 'Eliminare forceReopenPort la Wake Timeout',
+            desc: 'La timeout de 3000ms pe impulsul de trezire, bridge-ul trimite doar EOT și revine în IDLE fără să mai închidă portul COM, eliminând crash-urile cauzate de driverul Prolific pe Windows.'
+          },
+          {
+            title: 'Protecție Port Închis',
+            desc: 'Verificare de siguranță înainte de orice manipulare serială pentru a garanta că nu se aruncă excepții necaptate.'
+          }
+        ]
+      },
+      {
+        title: 'Anulare Plată Kiosk & Curățare Stare',
+        badge: 'Stabilitate',
+        badgeColor: 'blue',
+        items: [
+          {
+            title: 'Curățare Automată Timere și Buffer la Anulare',
+            desc: 'Când clientul apasă Anulează sau părăsește ecranul de plată, toate timerele de tranzacție sunt resetate, buffer-ul este golit și starea redevine IDLE instant.'
+          }
+        ]
+      }
+    ]
+  },
+  {
     version: '3.5.4',
     releaseDate: '31 Octombrie 2026',
-    isLatest: true,
+    isLatest: false,
     tag: 'Prevenire Sleep POS & Sincronizare Sumă',
     title: 'Keep-Alive la 2 min, Autorecuperare DTR/RTS și Reset Sumă',
     summary: 'Reduce intervalul de keep-alive la 2 minute în timpul programului (10:00-22:00) pentru a împiedica intrarea Verifone în standby profund. Autorecuperare hardware automată la timeout și actualizare forțată a sumei pe POS dacă clientul își modifică produsele în coș.',
