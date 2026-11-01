@@ -438,18 +438,26 @@ async function sendPosAlert(data) {
         return;
       }
 
-      const alertTitle = isCancellation
-        ? `🟡 <b>[ANULATĂ DE CLIENT - POS]</b>`
-        : `🔴 <b>[PLATĂ RESPINSĂ - POS]</b>`;
-
-      const rejectMsg = [
-        alertTitle,
-        `Locație: <b>${loc}</b>`,
-        `Sumă: <b>${amtStr} RON</b>`,
-        `Comandă: #${orderId || '-'}`,
-        `Motiv exact: <b>${reasonText}</b>`,
-        `Timp: ${timeStr}`
-      ].join('\n');
+      let rejectMsg = '';
+      if (isCancellation) {
+        rejectMsg = [
+          `🟡 <b>[ANULARE CLIENT - KIOSK]</b>`,
+          `Locație: <b>${loc}</b>`,
+          `Sumă: <b>${amtStr} RON</b>`,
+          `Comandă: #${orderId || '-'}`,
+          `Status: <i>Clientul a apăsat „Anulează” pe ecran (sau a renunțat)</i>`,
+          `Timp: ${timeStr}`
+        ].join('\n');
+      } else {
+        rejectMsg = [
+          `🔴 <b>[PLATĂ RESPINSĂ - POS]</b>`,
+          `Locație: <b>${loc}</b>`,
+          `Sumă: <b>${amtStr} RON</b>`,
+          `Comandă: #${orderId || '-'}`,
+          `Motiv exact: <b>${reasonText}</b>`,
+          `Timp: ${timeStr}`
+        ].join('\n');
+      }
 
       // Curățăm orice timer anterior pe aceeași locație/sumă
       if (pendingRejectedPosAlerts.has(bufferKey)) {
