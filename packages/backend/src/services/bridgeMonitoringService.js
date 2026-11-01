@@ -23,12 +23,13 @@ let telegramConfig = {
   ordersChatId: process.env.TELEGRAM_ORDERS_CHAT_ID || '-5209173668', // Grup 3: Kiosk Comenzi
   alertCooldownMinutes: 10,
   posAlertsFilter: 'all', // 'all' | 'approved_only' | 'rejected_only' | 'none'
+  posCancellationAlerts: 'warning', // 'warning' (Opțiunea B: 🟡 Anulată de client) | 'ignore' (Opțiunea A: Fără mesaj)
   ordersAlertsEnabled: true, // boolean
 };
 
 // Versiunea oficială curentă a software-ului POS Bridge de pe PC
 const { BRIDGE_RELEASE_NOTES } = require('../data/bridgeReleaseNotes');
-const LATEST_BRIDGE_VERSION = BRIDGE_RELEASE_NOTES[0]?.version || '3.5.4';
+const LATEST_BRIDGE_VERSION = BRIDGE_RELEASE_NOTES[0]?.version || '3.5.5';
 
 // Cooldown tracking to prevent Telegram alert spam: locationKey -> lastAlertTimestamp
 const lastAlertSent = new Map();
@@ -155,6 +156,7 @@ function getPublicTelegramConfig() {
     ordersChatId: telegramConfig.ordersChatId || '',
     alertCooldownMinutes: telegramConfig.alertCooldownMinutes || 10,
     posAlertsFilter: telegramConfig.posAlertsFilter || 'all',
+    posCancellationAlerts: telegramConfig.posCancellationAlerts || 'warning',
     ordersAlertsEnabled: telegramConfig.ordersAlertsEnabled !== undefined ? !!telegramConfig.ordersAlertsEnabled : true,
   };
 }
@@ -424,8 +426,24 @@ async function sendPosAlert(data) {
     const alertsChat = telegramConfig.chatId;
     if (telegramConfig.posChatId && telegramConfig.posChatId !== alertsChat) {
       const reasonText = getPosReasonText(error, responseCode || code);
+      const isCancellation = (responseCode || code || '').toUpperCase() === 'A0' 
+        || String(error || '').toLowerCase().includes('anulat') 
+        || String(reasonText).includes('Anulat')
+        || String(error || '').toLowerCase().includes('tasta');
+
+      // Verificăm setarea de tratare a anulărilor clienților (Opțiunea A vs B)
+      const cancellationMode = telegramConfig.posCancellationAlerts || 'warning';
+      if (isCancellation && cancellationMode === 'ignore') {
+        // Opțiunea A: Se ignoră complet anulările clienților pe Telegram
+        return;
+      }
+
+      const alertTitle = isCancellation
+        ? `🟡 <b>[ANULATĂ DE CLIENT - POS]</b>`
+        : `🔴 <b>[PLATĂ RESPINSĂ - POS]</b>`;
+
       const rejectMsg = [
-        `🔴 <b>[PLATĂ RESPINSĂ - POS]</b>`,
+        alertTitle,
         `Locație: <b>${loc}</b>`,
         `Sumă: <b>${amtStr} RON</b>`,
         `Comandă: #${orderId || '-'}`,

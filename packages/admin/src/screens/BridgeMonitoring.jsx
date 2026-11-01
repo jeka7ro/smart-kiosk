@@ -522,6 +522,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
     ordersChatId: '',
     alertCooldownMinutes: 10,
     posAlertsFilter: 'all',
+    posCancellationAlerts: 'warning',
     ordersAlertsEnabled: true,
   });
   const [savingTelegram, setSavingTelegram] = useState(false);
@@ -644,6 +645,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
           ordersChatId: merged.telegramConfig.ordersChatId || '',
           alertCooldownMinutes: merged.telegramConfig.alertCooldownMinutes || 10,
           posAlertsFilter: merged.telegramConfig.posAlertsFilter || 'all',
+          posCancellationAlerts: merged.telegramConfig.posCancellationAlerts || 'warning',
           ordersAlertsEnabled: merged.telegramConfig.ordersAlertsEnabled !== undefined ? !!merged.telegramConfig.ordersAlertsEnabled : true,
         }));
       }
@@ -767,6 +769,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
         ordersChatId: telegramForm.ordersChatId,
         alertCooldownMinutes: Number(telegramForm.alertCooldownMinutes) || 10,
         posAlertsFilter: telegramForm.posAlertsFilter || 'all',
+        posCancellationAlerts: telegramForm.posCancellationAlerts || 'warning',
         ordersAlertsEnabled: telegramForm.ordersAlertsEnabled !== undefined ? !!telegramForm.ordersAlertsEnabled : true,
       };
       if (telegramForm.botToken && telegramForm.botToken.trim()) {
@@ -1835,6 +1838,55 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                         <span className="font-bold text-[11px]">{opt.label}</span>
                       </div>
                       <span className="text-[10px] text-slate-400 dark:text-slate-500 pl-5 mt-0.5">{opt.desc}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Tratare Anulări Client pe Telegram (Opțiunea A vs B) */}
+            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
+              <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1.5">
+                Alerte Anulări Client (Ecran / Tasta X):
+              </label>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2.5">
+                Alege cum dorești să fie raportate pe Telegram anulările făcute de clienți pe Kiosk:
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  {
+                    id: 'warning',
+                    label: '🟡 Opțiunea B: Notificare Galbenă (Azi)',
+                    desc: 'Trimite ca [ANULATĂ DE CLIENT] (Informativ, fără roșu)',
+                  },
+                  {
+                    id: 'ignore',
+                    label: '🚫 Opțiunea A: Fără Mesaj (În timp)',
+                    desc: 'Nu trimite deloc pe Telegram când clientul apasă Anulează',
+                  },
+                ].map(opt => {
+                  const isChecked = (telegramForm.posCancellationAlerts || 'warning') === opt.id;
+                  return (
+                    <label
+                      key={opt.id}
+                      className={`flex flex-col p-2.5 rounded-lg border text-xs cursor-pointer transition-all ${
+                        isChecked
+                          ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 font-semibold shadow-xs ring-1 ring-amber-500/20'
+                          : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="radio"
+                          name="posCancellationAlerts"
+                          value={opt.id}
+                          checked={isChecked}
+                          onChange={(e) => setTelegramForm(prev => ({ ...prev, posCancellationAlerts: e.target.value }))}
+                          className="w-3.5 h-3.5 text-amber-600 focus:ring-amber-500 border-slate-300"
+                        />
+                        <span className="font-bold text-[11px]">{opt.label}</span>
+                      </div>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 pl-5 mt-1 leading-snug">{opt.desc}</span>
                     </label>
                   );
                 })}
