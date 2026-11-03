@@ -23,8 +23,9 @@ export default function WelcomeScreen() {
     ? [{ headline: 'Bine ați venit!', sub: 'Alegeți restaurantul preferat', emoji: '🍽️' }]
     : brand.welcomeSlides;
 
-  // ─── Poster / Screensaver ────────────────────────────────
-  const [poster, setPoster] = useState(null);   // { url, type, showLogo }
+  // ─── Poster / Screensaver (Single or Multi-dish rotation) ──
+  const [posterItems, setPosterItems] = useState([]);
+  const [posterIndex, setPosterIndex] = useState(0);
   const [posterVisible, setPosterVisible] = useState(!!locationData?.posterUrl);
 
   useEffect(() => {
@@ -35,28 +36,54 @@ export default function WelcomeScreen() {
         return 'iframe'; // Default to iframe to support arbitrary web pages, Canva links, and interactive promos
       };
       
-      let finalUrl = locationData.posterUrl;
-      if (finalUrl && finalUrl.startsWith('/uploads')) {
-        finalUrl = `${BACKEND}${finalUrl}`;
-      }
-      
-      let rotation = locationData.posterRotation || 0;
-      if (finalUrl.includes('rotate=true') || finalUrl.includes('#rotate')) {
-        rotation = 90;
-      }
-      
-      setPoster({
-        url: finalUrl,
-        type: detectType(finalUrl),
-        showLogo: true, // Always show logo based on user requirements for now
-        rotation
+      const rawUrls = String(locationData.posterUrl)
+        .split(/[,|\n]+/)
+        .map(s => s.trim())
+        .filter(Boolean);
+
+      const items = rawUrls.map(raw => {
+        let finalUrl = raw;
+        if (finalUrl && finalUrl.startsWith('/uploads')) {
+          finalUrl = `${BACKEND}${finalUrl}`;
+        }
+        let rotation = locationData.posterRotation || 0;
+        if (finalUrl.includes('rotate=true') || finalUrl.includes('#rotate')) {
+          rotation = 90;
+        }
+        return {
+          url: finalUrl,
+          type: detectType(finalUrl),
+          showLogo: true,
+          rotation
+        };
       });
-      setPosterVisible(true);
+
+      setPosterItems(items);
+      setPosterIndex(0);
+      setPosterVisible(items.length > 0);
+
+      // Preload images for seamless transitions
+      items.forEach(it => {
+        if (it.type === 'image') {
+          const img = new Image();
+          img.src = it.url;
+        }
+      });
     } else {
-      setPoster(null);
+      setPosterItems([]);
       setPosterVisible(false);
     }
   }, [locationData]);
+
+  // Rotate between multiple posters every 10 seconds (or configured interval)
+  useEffect(() => {
+    if (posterItems.length <= 1) return;
+    const intervalSec = Number(locationData?.posterInterval) || 10;
+    const timer = setInterval(() => {
+      setPosterIndex(prev => (prev + 1) % posterItems.length);
+    }, intervalSec * 1000);
+    return () => clearInterval(timer);
+  }, [posterItems.length, locationData?.posterInterval]);
 
   // Ensure poster comes back EVERY time we return to welcome screen
   useEffect(() => {
@@ -174,6 +201,8 @@ const FLAG_GRADIENTS = {
   const pos = locationData?.langSelectorPosition || 'after';
   const showLangOnWelcome = pos === 'before' || pos === 'both';
   const allowedLangs = locationData?.languages && locationData.languages.length > 0 ? locationData.languages : LANGUAGES;
+  const poster = posterItems[posterIndex] || posterItems[0] || null;
+
   // Renders the poster media with correct rotation.
   // For iframe with 90/270deg: we need a wrapper DIV that is the size of the PORTRAIT screen,
   // but the iframe inside is rendered in LANDSCAPE dimensions and then rotated+scaled to fit.

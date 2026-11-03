@@ -424,7 +424,15 @@ export default function MenuScreen() {
 
   const categoryHeroProducts = useMemo(() => {
     if (!isHeroActive || !filteredProducts || filteredProducts.length === 0 || search) return [];
-    const withImage = filteredProducts.filter(p => !!p.image && Number(p.price) > 0);
+
+    // Nu afișăm banner hero pentru categorii de sosuri/extra-uri/ambalaje
+    const currentCatName = categories.find(c => c.id === activeCategory)?.name?.toLowerCase() || '';
+    if (currentCatName.includes('extra') || currentCatName.includes('sos') || currentCatName.includes('ambalaj') || currentCatName.includes('băutur') || currentCatName.includes('bautur')) {
+      return [];
+    }
+
+    // Doar mâncăruri de bază cu poză și preț de fel principal (minim 15 lei, fără sosuri/mici suplimente)
+    const withImage = filteredProducts.filter(p => !!p.image && Number(p.price) >= 15);
     if (withImage.length === 0) return [];
 
     // Prioritate 1: Produs Fix setat explicit din Panoul Admin (ID sau Nume)
