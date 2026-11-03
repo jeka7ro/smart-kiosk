@@ -1030,11 +1030,10 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
               (order.fiscal.hasRoPrefix === undefined && rawUpper.startsWith('RO'));
       cuiFormatted = hasRo && cuiDigits ? `RO${cuiDigits}` : cuiDigits;
       const firmDisplay = order.fiscal.name ? ` (${order.fiscal.name})` : '';
+      const roLabel = hasRo ? '(cu RO)' : '(fără RO)';
 
-      // RSISTEMS / Datecs fiscal driver in Romania parses the comment for standard tags:
-      // "CF: <cui_digits>", "CIF: <cui_digits>", or "[CF:<cui_digits>]" strictly numeric (no emojis/unicode).
-      // Datecs hardware protocol ONLY accepts 2-10 digits for client TaxNumber.
-      orderComment = `CF:${cuiDigits} | CIF:${cuiDigits} | [CF:${cuiDigits}] | CUI: ${cuiFormatted}${firmDisplay} | ` + orderComment;
+      // CUI unic, clar și explicit pe bonul din iiko (fără duplicate de 4 ori)
+      orderComment = `CUI: ${cuiFormatted} ${roLabel}${firmDisplay} | ` + orderComment;
     }
     if (specialNotes.length > 0) {
       orderComment += ` | MENȚIUNI: ${specialNotes.join('; ')}`;
@@ -1061,7 +1060,7 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
     const customerData = order.fiscal?.cui ? {
       name: (order.fiscal.name || 'Client').slice(0, 60),
       surname: cuiDigits || String(order.fiscal.rawCui || order.fiscal.cui || '').slice(0, 30),
-      comment: `CF:${cuiDigits} CIF:${cuiDigits} CUI:${cuiFormatted} | RegCom: ${order.fiscal.regCom || ''} | Adresa: ${order.fiscal.address || ''}`,
+      comment: `CUI: ${cuiFormatted} ${hasRo ? '(cu RO)' : '(fără RO)'} | RegCom: ${order.fiscal.regCom || ''} | Adresa: ${order.fiscal.address || ''}`,
       // Syrve/iiko fiscal fields — 'inn' is the standard taxpayer ID field
       // that Syrve passes to the fiscal printer driver for buyer identification
       inn: cuiDigits,
