@@ -210,9 +210,32 @@ const FLAG_GRADIENTS = {
     const r = poster?.rotation || 0;
     const baseImgStyle = { position: 'absolute', top: 0, left: 0, zIndex: 1, width: '100%', height: '100%', objectFit: 'cover', display: 'block' };
 
+    // Multi-image crossfade slideshow
+    if (posterItems.length > 1 && posterItems.every(p => p.type === 'image' && (p.rotation || 0) === 0)) {
+      return posterItems.map((item, idx) => (
+        <img
+          key={item.url}
+          src={item.url}
+          alt="Promo"
+          referrerPolicy="no-referrer"
+          crossOrigin="anonymous"
+          style={{
+            ...baseImgStyle,
+            opacity: idx === posterIndex ? 1 : 0,
+            transition: 'opacity 1s ease-in-out',
+            pointerEvents: idx === posterIndex ? 'auto' : 'none',
+          }}
+          onError={(e) => {
+            console.warn('[WelcomeScreen] Failed to load poster image:', item.url);
+            e.target.style.display = 'none';
+          }}
+        />
+      ));
+    }
+
     if (r === 0) {
       if (poster.type === 'video') return <video src={poster.url} autoPlay loop muted playsInline style={baseImgStyle} onError={() => setPosterVisible(false)} />;
-      if (poster.type === 'image') return <img src={poster.url} alt="Promo" style={baseImgStyle} onError={() => setPosterVisible(false)} />;
+      if (poster.type === 'image') return <img key={poster.url} src={poster.url} alt="Promo" referrerPolicy="no-referrer" crossOrigin="anonymous" style={baseImgStyle} onError={() => setPosterVisible(false)} />;
       return <iframe src={poster.url} style={{ ...baseImgStyle, border: 'none' }} title="Promo" frameBorder="0" allow="autoplay; fullscreen" />;
     }
 
