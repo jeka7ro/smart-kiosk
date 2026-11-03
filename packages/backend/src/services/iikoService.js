@@ -43,8 +43,8 @@ const BRANDS = {
     tokenExpiry: 0,
   },
   pokiwoki: {
-    apiKey: process.env.SYRVE_API_KEY_SUSHI || '93a34e75123e47b897e390f31ecfa4cb',
-    orgId:  process.env.SYRVE_ORG_ID_POKIWOKI || process.env.SYRVE_ORG_ID_SUSHI || 'adddb5a0-26e5-4d50-b472-1c74726c3f72',
+    apiKey: process.env.SYRVE_API_KEY_POKIWOKI || '4948a5c99b404e57890630a25f93d738',
+    orgId:  process.env.SYRVE_ORG_ID_POKIWOKI || '29ba038b-f7b6-4b64-ad1f-aef5ccbd43c4',
     token: null,
     tokenExpiry: 0,
   },
@@ -235,7 +235,8 @@ function transformMenu(raw, brandId = 'smashme') {
       const isIncluded = sp?.price?.isIncludedInMenu;
       
       // Products disabled in Syrve/iiko (isIncludedInMenu: false) must not appear in kiosk
-      if (isIncluded === false) return false;
+      // (Unless it's pokiwoki where products are scoped strictly under POKI WOKI root group and have a valid price)
+      if (isIncluded === false && brandId !== 'pokiwoki') return false;
 
       if (brandId === 'rollmaster' || brandId === 'lovesushi' || brandId === 'smashme') {
         // Explicitly requires this flag to be TRUE to hide non-kiosk or retired items
@@ -651,7 +652,7 @@ const SYRVE_PAYMENT_TYPES_BY_BRAND = {
   },
   pokiwoki: {
     cash: { paymentTypeId: '09322f46-578a-d210-add7-eec222a08871', paymentTypeKind: 'Cash', isProcessedExternally: false },
-    card: { paymentTypeId: '29ee5e97-c1cf-42ad-90e6-b4c876025bc9', paymentTypeKind: 'Card', isProcessedExternally: false },
+    card: { paymentTypeId: '9cd5d67a-89b4-ab69-1365-7b8c51865a90', paymentTypeKind: 'Card', isProcessedExternally: false },
     viva: { paymentTypeId: '07b0e68b-d19a-4b43-ab9b-75c30fd7edc1', paymentTypeKind: 'Card', isProcessedExternally: false },
   },
   smashme: {
