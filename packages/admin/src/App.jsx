@@ -4440,6 +4440,28 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                 </div>
               </div>
 
+              {/* Toggle Format Steag Tricolor pe Buton */}
+              <div className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                <div className="space-y-0.5">
+                  <div className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                    <span className="text-base">🇷🇴</span>
+                    <span>Format Buton Steag (Tricolor)</span>
+                  </div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Afișează fundal în format de steag (tricolor / steagul limbii) pe butonul „Începe comanda”. Debifează pentru fundal simplu/solid.
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(formData.langButtonFlagColors)}
+                    onChange={e => handleChange('langButtonFlagColors', e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+
               {/* Halloween Seasonal Theme Selector */}
               <div className="p-4 rounded-2xl border border-orange-300/80 dark:border-orange-900/60 bg-gradient-to-r from-orange-500/10 via-purple-600/10 to-slate-900/10 dark:from-orange-950/40 dark:via-purple-950/40 dark:to-slate-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
                 <div className="space-y-1">
@@ -4536,7 +4558,9 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                         border: '2px solid #ff8800',
                         animation: 'adminHalloweenAlive 5.5s cubic-bezier(0.4, 0, 0.2, 1) infinite',
                       } : {
-                        background: formData.langButtonColor || '#0f172a',
+                        background: formData.langButtonFlagColors 
+                          ? 'linear-gradient(90deg, #002B7F 33.3%, #FCD116 33.3% 66.6%, #CE1126 66.6%)'
+                          : (formData.langButtonColor || '#0f172a'),
                         color: formData.langButtonTextColor || '#ffffff',
                         border: formData.langButtonBorderColor && formData.langButtonBorderColor !== 'transparent'
                           ? `2px solid ${formData.langButtonBorderColor}`
@@ -5682,6 +5706,28 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                 clearValue=""
                 clearLabel="Default"
               />
+
+              {/* Toggle Format Steag Tricolor pe Buton Principal */}
+              <div className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 mt-2">
+                <div className="space-y-0.5">
+                  <div className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                    <span className="text-base">🇷🇴</span>
+                    <span>Format Buton Steag (Tricolor)</span>
+                  </div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Dacă este bifat, butonul mare „Începe comanda” va avea fundal tricolor. Debifează pentru culoare solidă/simplă.
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(formData.langButtonFlagColors)}
+                    onChange={e => handleChange('langButtonFlagColors', e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
             </div>
           </div>
         </div>
