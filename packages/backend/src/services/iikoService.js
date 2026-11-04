@@ -16,16 +16,25 @@ const fs = require('fs');
 const path = require('path');
 const { pool } = require('../db');
 
+const OLD_EXPIRED_SMASHME_KEY = '0a7d8cc6e0ea436a8da2a3f999c40da5';
+const CLUJ_SMASHME_KEY = 'd2879e94add948599051d37154e0ad7d';
+
+const getSmashMeApiKey = () => {
+  const envKey = process.env.SYRVE_API_KEY;
+  if (envKey && envKey !== OLD_EXPIRED_SMASHME_KEY) return envKey;
+  return CLUJ_SMASHME_KEY;
+};
+
 // Brand config — each brand has its own API key + org ID
 const BRANDS = {
   smashme: {
-    apiKey: process.env.SYRVE_API_KEY || '',
+    apiKey: getSmashMeApiKey(),
     orgId:  (process.env.SYRVE_ORG_IDS || '9c63cff6-1d66-442d-a98d-2302656e3943').split(',')[0].trim(),
     token: null,
     tokenExpiry: 0,
   },
   crunch: {
-    apiKey: process.env.SYRVE_API_KEY || '',
+    apiKey: getSmashMeApiKey(),
     orgId:  (process.env.SYRVE_ORG_IDS || '9c63cff6-1d66-442d-a98d-2302656e3943').split(',')[0].trim(),
     token: null,
     tokenExpiry: 0,
@@ -43,7 +52,7 @@ const BRANDS = {
     tokenExpiry: 0,
   },
   pokiwoki: {
-    apiKey: process.env.SYRVE_API_KEY_POKIWOKI || '4948a5c99b404e57890630a25f93d738',
+    apiKey: process.env.SYRVE_API_KEY_POKIWOKI || '3629d573ee654c65a81b02f6cd13579a',
     orgId:  process.env.SYRVE_ORG_ID_POKIWOKI || '29ba038b-f7b6-4b64-ad1f-aef5ccbd43c4',
     token: null,
     tokenExpiry: 0,
@@ -54,16 +63,38 @@ const BRANDS = {
 
 async function getToken(brandId = 'smashme') {
   const brand = BRANDS[brandId];
-  if (!brand?.apiKey) throw new Error(`No API key configured for brand: ${brandId}`);
+  if (!brand?.apiKey) {
+    if (brandId === 'smashme' || brandId === 'crunch') {
+      brand.apiKey = CLUJ_SMASHME_KEY;
+    } else {
+      throw new Error(`No API key configured for brand: ${brandId}`);
+    }
+  }
   const now = Date.now();
   if (brand.token && now < brand.tokenExpiry - 60_000) return brand.token;
 
-  const res = await fetch(`${API_URL}/api/1/access_token`, {
+  let res = await fetch(`${API_URL}/api/1/access_token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ apiLogin: brand.apiKey }),
   });
-  const data = await res.json();
+  let data = await res.json();
+
+  // Auto-recovery: If currently configured key fails and this is SmashMe/Cluj, try the new verified key
+  if (!data.token && (brandId === 'smashme' || brandId === 'crunch') && brand.apiKey !== CLUJ_SMASHME_KEY) {
+    console.warn(`[Syrve] Primary key for ${brandId} failed (${data.errorDescription}). Switching to verified Cluj key ${CLUJ_SMASHME_KEY}...`);
+    const retryRes = await fetch(`${API_URL}/api/1/access_token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apiLogin: CLUJ_SMASHME_KEY }),
+    });
+    const retryData = await retryRes.json();
+    if (retryData.token) {
+      brand.apiKey = CLUJ_SMASHME_KEY;
+      data = retryData;
+    }
+  }
+
   if (!data.token) throw new Error(`Syrve auth failed [${brandId}]: ${data.errorDescription}`);
 
   brand.token = data.token;
