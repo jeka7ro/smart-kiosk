@@ -218,7 +218,6 @@ const FLAG_GRADIENTS = {
           src={item.url}
           alt="Promo"
           referrerPolicy="no-referrer"
-          crossOrigin="anonymous"
           style={{
             ...baseImgStyle,
             opacity: idx === posterIndex ? 1 : 0,
@@ -235,7 +234,7 @@ const FLAG_GRADIENTS = {
 
     if (r === 0) {
       if (poster.type === 'video') return <video src={poster.url} autoPlay loop muted playsInline style={baseImgStyle} onError={() => setPosterVisible(false)} />;
-      if (poster.type === 'image') return <img key={poster.url} src={poster.url} alt="Promo" referrerPolicy="no-referrer" crossOrigin="anonymous" style={baseImgStyle} onError={() => setPosterVisible(false)} />;
+      if (poster.type === 'image') return <img key={poster.url} src={poster.url} alt="Promo" referrerPolicy="no-referrer" style={baseImgStyle} onError={() => setPosterVisible(false)} />;
       return <iframe src={poster.url} style={{ ...baseImgStyle, border: 'none' }} title="Promo" frameBorder="0" allow="autoplay; fullscreen" />;
     }
 
