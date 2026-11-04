@@ -652,7 +652,7 @@ const SYRVE_PAYMENT_TYPES_BY_BRAND = {
   },
   pokiwoki: {
     cash: { paymentTypeId: '09322f46-578a-d210-add7-eec222a08871', paymentTypeKind: 'Cash', isProcessedExternally: false },
-    card: { paymentTypeId: '9cd5d67a-89b4-ab69-1365-7b8c51865a90', paymentTypeKind: 'Card', isProcessedExternally: false },
+    card: { paymentTypeId: '29ee5e97-c1cf-42ad-90e6-b4c876025bc9', paymentTypeKind: 'Card', isProcessedExternally: false }, // CARD KIOSK (la fel ca la Brasov)
     viva: { paymentTypeId: '07b0e68b-d19a-4b43-ab9b-75c30fd7edc1', paymentTypeKind: 'Card', isProcessedExternally: false },
   },
   smashme: {
