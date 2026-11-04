@@ -9,7 +9,7 @@ const getReceiptBrandLogo = (brand) => {
   if (b.includes('crunch')) return { mono: null, color: '/brands/crunch-logo.png' };
   if (b.includes('lovesushi')) return { mono: null, color: '/brands/lovesushi-logo.png' };
   if (b.includes('welovesushi')) return { mono: null, color: '/brands/welovesushi-logo.png' };
-  if (b.includes('pokiwoki')) return { mono: null, color: '/brands/pokiwoki-logo.png' };
+  if (b.includes('pokiwoki')) return { mono: '/brands/pokiwoki-logo-mono.png', color: '/brands/pokiwoki-logo.png' };
   return { mono: null, color: `/brands/${b}-logo.png` };
 };
 

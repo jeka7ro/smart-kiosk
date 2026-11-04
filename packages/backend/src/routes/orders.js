@@ -20,6 +20,7 @@ const { detectCity, getOrderPrefix, findLocation, getLocationAliases } = require
 let memoryCj1Max = 648;
 let memoryCj1AMax = 0;
 let memoryCj2Max = 0;
+let memoryCtAMax = 0;
 
 // Helper: formatează secvența alfabetică A-001..A-999 -> B-001..B-999 -> C-001..C-999 ...
 // totalSeq = 1..999 => A-001..A-999; totalSeq = 1000..1998 => B-001..B-999; totalSeq = 1999..2997 => C-001..C-999
@@ -61,6 +62,18 @@ async function fixRolloverSeriesOrders() {
         )
       )
       WHERE data->>'orderNumber' ~ '^CJ2A-\\d{4,}$'
+    `);
+    await pool.query(`
+      UPDATE orders
+      SET data = jsonb_set(
+        data,
+        '{orderNumber}',
+        to_jsonb(
+          'CT-' || chr(65 + (((substring(data->>'orderNumber' from '^CT-A-(\\d+)$')::int) - 1) / 999))
+          || '-' || lpad(((((substring(data->>'orderNumber' from '^CT-A-(\\d+)$')::int) - 1) % 999) + 1)::text, 3, '0')
+        )
+      )
+      WHERE data->>'orderNumber' ~ '^CT-A-\\d{4,}$'
     `);
   } catch (e) {
     console.warn('[Orders] Rollover auto-fix warning:', e.message);
@@ -112,12 +125,14 @@ async function processOrderCreation(body, io) {
   let cj1Max = Math.max(648, memoryCj1Max || 648);
   let cj1AMax = Math.max(0, memoryCj1AMax || 0);
   let cj2Max = Math.max(0, memoryCj2Max || 0);
+  let constantaAMax = Math.max(0, memoryCtAMax || 0);
   let brasovMax = 0;
   const maxByPrefix = {};
   const usedSeqsByPrefix = {
     CJ1: new Set(),
     CJ1A: new Set(),
     CJ2: new Set(),
+    CT: new Set(),
   };
 
   try {
@@ -203,6 +218,9 @@ async function processOrderCreation(body, io) {
             usedSeqsByPrefix.CJ2.add(totalSeq);
           } else if (letterPrefix === 'BV') {
             brasovMax = Math.max(brasovMax, totalSeq);
+          } else if (letterPrefix === 'CT') {
+            constantaAMax = Math.max(constantaAMax, totalSeq);
+            usedSeqsByPrefix.CT.add(totalSeq);
           } else if (letterPrefix) {
             maxByPrefix[fullPrefix] = Math.max(maxByPrefix[fullPrefix] || 0, totalSeq);
             maxByPrefix[letterPrefix] = Math.max(maxByPrefix[letterPrefix] || 0, totalSeq);
@@ -308,6 +326,13 @@ async function processOrderCreation(body, io) {
   } else if (city === 'brasov') {
     const nextSeq = Math.max(brasovMax, maxOrderNumber) + 1;
     orderNumber = formatAlphaSeriesOrder('BV', nextSeq, true);
+  } else if (city === 'constanta') {
+    let nextSeq = Math.max(constantaAMax, memoryCtAMax) + 1;
+    while (usedSeqsByPrefix.CT.has(nextSeq)) {
+      nextSeq++;
+    }
+    orderNumber = formatAlphaSeriesOrder('CT', nextSeq, true);
+    memoryCtAMax = Math.max(memoryCtAMax, nextSeq);
   } else {
     const prefix = getOrderPrefix(locId, resolvedLocationName);
     if (prefix) {
