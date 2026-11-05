@@ -5,7 +5,7 @@ const cors = require('cors');
 const { Server } = require('socket.io');
 const cron = require('node-cron');
 
-const { initDb } = require('./db');
+const { initDb, pool } = require('./db');
 const { connectRedis } = require('./services/redisService');
 const { syncAllMenus, syncStopLists } = require('./services/iikoService');
 const { initSocket } = require('./services/socketService');
@@ -100,8 +100,50 @@ app.use('/api/bridge-monitoring', require('./routes/bridgeMonitoring.js'));
 app.use('/api/anaf',         anafRoutes);
 app.use('/api/webhooks/kitchen', kitchenWebhookRoutes);
 
-// Serve uploaded brand logos
+// Serve uploaded media (screensavers, logos, products) with PostgreSQL fallback (persists across Render container redeploys)
 const path = require('path');
+const fs = require('fs');
+
+app.use('/uploads', async (req, res, next) => {
+  const reqSubpath = req.path.replace(/^\/+/, '');
+  const filename = path.basename(reqSubpath);
+  const diskPath = path.join(__dirname, '../data/uploads', reqSubpath);
+
+  // If already on disk, let express.static serve it
+  if (fs.existsSync(diskPath)) {
+    return next();
+  }
+
+  // Not on ephemeral container disk — check persistent PostgreSQL uploaded_media
+  try {
+    const { rows } = await pool.query(
+      `SELECT mime_type, data FROM uploaded_media WHERE filename = $1 OR id = $1 OR id = $2 LIMIT 1`,
+      [filename, reqSubpath]
+    );
+    if (rows.length > 0) {
+      const fileData = rows[0].data;
+      const mimeType = rows[0].mime_type || 'image/png';
+
+      // Restore to disk cache so future requests don't even need DB
+      try {
+        const dir = path.dirname(diskPath);
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(diskPath, fileData);
+      } catch (writeErr) {
+        console.warn('[Uploads Cache Disk Write]', writeErr.message);
+      }
+
+      res.setHeader('Content-Type', mimeType);
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      return res.end(fileData);
+    }
+  } catch (dbErr) {
+    console.warn('[Uploads DB Fallback]', dbErr.message);
+  }
+
+  next();
+});
+
 app.use('/uploads', express.static(path.join(__dirname, '../data/uploads')));
 
 // Health check

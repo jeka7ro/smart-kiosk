@@ -7,7 +7,7 @@ const path = require('path');
 const fs = require('fs');
 
 // Ensure uploads directory exists
-const uploadDir = path.join(__dirname, '../../uploads/brands');
+const uploadDir = path.join(__dirname, '../../data/uploads/brands');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
 const storage = multer.diskStorage({
@@ -88,6 +88,19 @@ router.post('/:brandId/logo', protect, upload.single('logo'), async (req, res) =
     const backendUrl = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
     const ext = path.extname(req.file.filename);
     const logoUrl = `${backendUrl}/uploads/brands/${req.params.brandId}${ext}`;
+
+    // Save to PostgreSQL uploaded_media for persistence across Render redeploys
+    try {
+      const fileBuf = fs.readFileSync(req.file.path);
+      await pool.query(
+        `INSERT INTO uploaded_media (id, filename, mime_type, data)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (id) DO UPDATE SET filename = EXCLUDED.filename, mime_type = EXCLUDED.mime_type, data = EXCLUDED.data`,
+        [req.file.filename, req.file.filename, req.file.mimetype || 'image/png', fileBuf]
+      );
+    } catch (dbErr) {
+      console.warn('[Brand Logo DB Save]', dbErr.message);
+    }
 
     // Update logo_url in brands table
     await pool.query(

@@ -44,6 +44,41 @@ async function initDb() {
     );
   `);
 
+  // ─── Uploaded Media (Persistent Storage across deploys) ───────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS uploaded_media (
+      id          TEXT PRIMARY KEY,
+      filename    TEXT NOT NULL,
+      mime_type   TEXT NOT NULL,
+      data        BYTEA NOT NULL,
+      created_at  TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_uploaded_media_filename ON uploaded_media(filename);
+  `);
+
+  // Auto-seed existing media files from repository into database if not present
+  try {
+    const scDir = path.join(__dirname, '../../data/uploads/screensavers');
+    if (fs.existsSync(scDir)) {
+      const files = fs.readdirSync(scDir);
+      for (const f of files) {
+        if (f.endsWith('.png') || f.endsWith('.jpg') || f.endsWith('.jpeg') || f.endsWith('.webp')) {
+          const filePath = path.join(scDir, f);
+          const buf = fs.readFileSync(filePath);
+          const mime = f.endsWith('.png') ? 'image/png' : (f.endsWith('.webp') ? 'image/webp' : 'image/jpeg');
+          await pool.query(
+            `INSERT INTO uploaded_media (id, filename, mime_type, data)
+             VALUES ($1, $2, $3, $4)
+             ON CONFLICT (id) DO NOTHING`,
+            [f, f, mime, buf]
+          );
+        }
+      }
+    }
+  } catch (seedErr) {
+    console.warn('[DB Media Seed]', seedErr.message);
+  }
+
   // ─── Users ───────────────────────────────────────────────────────────────
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (

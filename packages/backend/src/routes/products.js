@@ -7,7 +7,7 @@ const path = require('path');
 const fs = require('fs');
 
 // Ensure uploads directory exists
-const uploadDir = path.join(__dirname, '../../uploads/products');
+const uploadDir = path.join(__dirname, '../../data/uploads/products');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
 const storage = multer.diskStorage({
@@ -80,6 +80,19 @@ router.post('/overrides/:brandId/:productId/image', protect, upload.single('imag
   const { brandId, productId } = req.params;
 
   try {
+    // Save to PostgreSQL uploaded_media for persistence across Render redeploys
+    try {
+      const fileBuf = fs.readFileSync(req.file.path);
+      await pool.query(
+        `INSERT INTO uploaded_media (id, filename, mime_type, data)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (id) DO UPDATE SET filename = EXCLUDED.filename, mime_type = EXCLUDED.mime_type, data = EXCLUDED.data`,
+        [req.file.filename, req.file.filename, req.file.mimetype || 'image/jpeg', fileBuf]
+      );
+    } catch (dbErr) {
+      console.warn('[Product Custom Image DB Save]', dbErr.message);
+    }
+
     const { rows } = await pool.query(
       `INSERT INTO product_overrides (id, brand_id, custom_image_url, updated_at)
        VALUES ($1, $2, $3, NOW())

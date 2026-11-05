@@ -410,6 +410,20 @@ router.post('/:id/ping', protect, async (req, res) => {
 router.post('/:id/screensaver', protect, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+    // Save to PostgreSQL uploaded_media for persistence across Render redeploys
+    try {
+      const fileBuf = fs.readFileSync(req.file.path);
+      await pool.query(
+        `INSERT INTO uploaded_media (id, filename, mime_type, data)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (id) DO UPDATE SET filename = EXCLUDED.filename, mime_type = EXCLUDED.mime_type, data = EXCLUDED.data`,
+        [req.file.filename, req.file.filename, req.file.mimetype || 'image/png', fileBuf]
+      );
+    } catch (dbErr) {
+      console.warn('[Screensaver DB Save]', dbErr.message);
+    }
+
     const backendUrl = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
     const fileUrl = `${backendUrl}/uploads/screensavers/${req.file.filename}`;
     res.json({ ok: true, posterUrl: fileUrl, url: fileUrl });
@@ -422,6 +436,20 @@ router.post('/:id/screensaver', protect, upload.single('file'), async (req, res)
 router.post('/:id/upload-asset', protect, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+    // Save to PostgreSQL uploaded_media for persistence across Render redeploys
+    try {
+      const fileBuf = fs.readFileSync(req.file.path);
+      await pool.query(
+        `INSERT INTO uploaded_media (id, filename, mime_type, data)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (id) DO UPDATE SET filename = EXCLUDED.filename, mime_type = EXCLUDED.mime_type, data = EXCLUDED.data`,
+        [req.file.filename, req.file.filename, req.file.mimetype || 'image/png', fileBuf]
+      );
+    } catch (dbErr) {
+      console.warn('[Asset DB Save]', dbErr.message);
+    }
+
     const backendUrl = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
     const fileUrl = `${backendUrl}/uploads/screensavers/${req.file.filename}`;
     res.json({ ok: true, url: fileUrl, posterUrl: fileUrl });
