@@ -157,6 +157,26 @@ export default function ProductOverrides() {
     })();
   }, []);
 
+  // Filter locations strictly by activeBrand (only locations that belong to this brand)
+  const brandLocations = useMemo(() => {
+    return locations.filter(loc => {
+      const bList = loc.brands || [];
+      const orgs = loc.orgIds || {};
+      return bList.includes(activeBrand) || !!orgs[activeBrand];
+    });
+  }, [locations, activeBrand]);
+
+  // When activeBrand changes, ensure activeLocation belongs to that brand
+  useEffect(() => {
+    if (brandLocations.length > 0) {
+      if (!brandLocations.some(l => l.id === activeLocation)) {
+        setActiveLocation(brandLocations[0].id);
+      }
+    } else {
+      setActiveLocation('');
+    }
+  }, [activeBrand, brandLocations]);
+
   // Fetch promo overrides for selected location and kiosk
   useEffect(() => {
     if (!activeLocation) return;
@@ -474,14 +494,14 @@ export default function ProductOverrides() {
         
         {/* Filters & Search */}
         <div className="flex flex-wrap gap-2.5 items-center">
-          {locations.length > 0 && (
+          {brandLocations.length > 0 && (
             <select
               value={activeLocation}
               onChange={e => setActiveLocation(e.target.value)}
               className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-medium bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-400"
             >
               <option value="" disabled>Locație...</option>
-              {locations.map(loc => (
+              {brandLocations.map(loc => (
                 <option key={loc.id} value={loc.id}>{loc.name}</option>
               ))}
             </select>
