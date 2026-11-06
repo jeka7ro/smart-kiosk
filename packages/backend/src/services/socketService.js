@@ -44,6 +44,8 @@ function getLiveKiosksSummary() {
       if (k.isUniversal) s.isUniversal = true;
       if (k.scriptVersion) s.scriptVersion = k.scriptVersion;
       if (typeof k.isFullscreen !== 'undefined') s.isFullscreen = k.isFullscreen;
+      if (typeof k.isVisible !== 'undefined') s.isVisible = k.isVisible;
+      if (typeof k.isFocused !== 'undefined') s.isFocused = k.isFocused;
     }
     s.latestScriptVersion = '2.4.0';
     const pingTime = k.lastPing || k.connectedAt || 0;
@@ -62,6 +64,8 @@ function getLiveKiosksSummary() {
       isUniversal: Boolean(k.isUniversal),
       scriptVersion: k.scriptVersion || null,
       isFullscreen: Boolean(k.isFullscreen),
+      isVisible: typeof k.isVisible !== 'undefined' ? Boolean(k.isVisible) : true,
+      isFocused: typeof k.isFocused !== 'undefined' ? Boolean(k.isFocused) : true,
       latestScriptVersion: '2.4.0'
     });
   }
@@ -128,11 +132,13 @@ function initSocket(io) {
           lastPing: Date.now(),
           isUniversal: typeof data?.isUniversal !== 'undefined' ? Boolean(data.isUniversal) : false,
           scriptVersion: data?.scriptVersion ? String(data.scriptVersion) : null,
-          isFullscreen: typeof data?.isFullscreen !== 'undefined' ? Boolean(data.isFullscreen) : false
+          isFullscreen: typeof data?.isFullscreen !== 'undefined' ? Boolean(data.isFullscreen) : false,
+          isVisible: typeof data?.isVisible !== 'undefined' ? Boolean(data.isVisible) : true,
+          isFocused: typeof data?.isFocused !== 'undefined' ? Boolean(data.isFocused) : true
         };
         connectedKiosks.set(socket.id, info);
         socket._kioskInfo = info;
-        console.log(`[Socket] 🟢 Kiosk connected: location=${locationId} kiosk=${info.kioskId} sid=${socket.id}`);
+        console.log(`[Socket] 🟢 Kiosk connected: location=${locationId} kiosk=${info.kioskId} sid=${socket.id} visible=${info.isVisible}`);
         broadcastLiveKiosks();
       } else if (role === 'admin') {
         socket.join('admin');
@@ -157,9 +163,27 @@ function initSocket(io) {
       if (typeof data.isUniversal !== 'undefined') k.isUniversal = Boolean(data.isUniversal);
       if (data.scriptVersion) k.scriptVersion = String(data.scriptVersion);
       if (typeof data.isFullscreen !== 'undefined') k.isFullscreen = Boolean(data.isFullscreen);
+      if (typeof data.isVisible !== 'undefined') k.isVisible = Boolean(data.isVisible);
+      if (typeof data.isFocused !== 'undefined') k.isFocused = Boolean(data.isFocused);
       connectedKiosks.set(socket.id, k);
       socket._kioskInfo = k;
       broadcastLiveKiosks();
+    });
+
+    // Kiosk Visibility Changed (instant event when minimized to taskbar or restored)
+    socket.on('kiosk_visibility_changed', (data) => {
+      if (!data) return;
+      const k = connectedKiosks.get(socket.id) || socket._kioskInfo;
+      if (k) {
+        k.lastPing = Date.now();
+        if (typeof data.isVisible !== 'undefined') k.isVisible = Boolean(data.isVisible);
+        if (typeof data.isFocused !== 'undefined') k.isFocused = Boolean(data.isFocused);
+        if (data.screen) k.screen = String(data.screen);
+        connectedKiosks.set(socket.id, k);
+        socket._kioskInfo = k;
+        console.log(`[Socket] 👁️ Kiosk visibility changed: loc=${k.locationId} isVisible=${k.isVisible}`);
+        broadcastLiveKiosks();
+      }
     });
 
     // Kiosk Pong (reply to live ping test)

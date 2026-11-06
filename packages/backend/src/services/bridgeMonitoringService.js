@@ -1648,7 +1648,13 @@ async function runMorningPreflightCheck(targetChatId = null, isManual = false) {
       const kData = kiosksSummary[locKey] || {};
       const verStr = kData.scriptVersion ? `v${kData.scriptVersion}` : 'Universal';
       const screenStr = kData.screen ? ` • Ecran: ${kData.screen}` : '';
-      lines.push(`   ├ 🖥️ <b>Ecran Kiosk:</b> Conectat (${verStr}${screenStr})`);
+      const isVis = typeof kData.isVisible !== 'undefined' ? Boolean(kData.isVisible) : true;
+      if (isVis) {
+        lines.push(`   ├ 🖥️ <b>Ecran Kiosk:</b> Conectat (${verStr}${screenStr})`);
+      } else {
+        lines.push(`   ├ 🖥️ <b>Ecran Kiosk:</b> ⚠️ MINIMIZAT ÎN BARĂ! (${verStr}${screenStr})`);
+        issues.push(`• <b>${loc.displayName || locKey}:</b> ⚠️ Fereastra Kiosk este minimizată în bară! Nu se vede pe ecran.`);
+      }
     } else {
       lines.push(`   ├ 🖥️ <b>Ecran Kiosk:</b> 🔴 Oprit / Deconectat`);
       issues.push(`• <b>${loc.displayName || locKey}:</b> Ecranul Kiosk este oprit.`);
@@ -1929,12 +1935,20 @@ function getStatusSummary() {
 
   // Known target locations (active production kiosks)
   const targetLocations = ['cluj1', 'cluj2', 'sm-brasov', 'constanta1'];
+  const { getLiveKiosksSummary } = require('./socketService');
+  const kiosksSummary = (typeof getLiveKiosksSummary === 'function') ? (getLiveKiosksSummary() || {}) : {};
 
   targetLocations.forEach(locKey => {
     let b = bridges.get(locKey);
     const isBridgeAlive = isBridgeSocketConnected(locKey);
     const isKioskAlive = isKioskSocketConnected(locKey);
     const defaults = DEFAULT_BRIDGE_CONFIGS[locKey] || {};
+
+    const kData = kiosksSummary[locKey] || 
+      (locKey === 'cluj1' ? (kiosksSummary['smashme-main'] || kiosksSummary['cluj']) : null) ||
+      (locKey === 'constanta1' ? (kiosksSummary['smashme-constanta'] || kiosksSummary['constanta']) : null) ||
+      (locKey === 'sm-brasov' ? (kiosksSummary['rollmaster'] || kiosksSummary['brasov']) : null) || {};
+    const isKioskVisible = typeof kData.isVisible !== 'undefined' ? Boolean(kData.isVisible) : true;
 
     if (isBridgeAlive) {
       if (!b) {
@@ -1971,6 +1985,7 @@ function getStatusSummary() {
         status: isOnline ? 'online' : 'offline',
         isBridgeOnline: isBridgeAlive,
         isKioskOnline: isKioskAlive,
+        isKioskVisible: isKioskAlive ? isKioskVisible : false,
         port: b?.port || defaults.port || 'N/A',
         gateway: b?.gateway || defaults.gateway || 'raiffeisen',
         printerName: b?.printerName || defaults.printerName || 'N/A',

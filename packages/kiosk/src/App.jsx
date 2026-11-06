@@ -428,11 +428,15 @@ export default function App() {
       const scriptVersionFromUrl = urlParams.get('v') || urlParams.get('script_version');
       const isUniversal = Boolean(isUniversalFromUrl || isFullscreen);
       const scriptVersion = scriptVersionFromUrl || (isUniversal ? '2.4.0' : null);
+      const isVisible = typeof document.visibilityState !== 'undefined' ? (document.visibilityState === 'visible' && !document.hidden) : true;
+      const isFocused = typeof document.hasFocus === 'function' ? document.hasFocus() : true;
 
       return {
         isUniversal,
         scriptVersion,
-        isFullscreen
+        isFullscreen,
+        isVisible,
+        isFocused
       };
     };
 
@@ -513,6 +517,22 @@ export default function App() {
       }
     }, 10000);
 
+    // Instant alert when kiosk window is minimized / backgrounded or restored
+    const handleVisibilityChange = () => {
+      if (socket.connected) {
+        const tele = getKioskTelemetry();
+        socket.emit('kiosk_visibility_changed', {
+          locationId: locId,
+          kioskId: kioskDeviceId,
+          screen: isLocked ? 'pin' : screen,
+          ...tele
+        });
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleVisibilityChange);
+    window.addEventListener('blur', handleVisibilityChange);
+
     // Room-level restart (when in room kiosk-{id})
     socket.on('remote_restart', hardReload);
     // Global fallback restart (before room join completes)
@@ -579,6 +599,9 @@ export default function App() {
 
     return () => {
       clearInterval(hbInterval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleVisibilityChange);
+      window.removeEventListener('blur', handleVisibilityChange);
       socket.off('kiosk_ping', handlePing);
       socket.off(`kiosk_ping_${locId}`, handlePing);
       if (urlLoc && urlLoc !== locId) {

@@ -928,6 +928,9 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                        (locKey === 'constanta1' ? (allLive['smashme-constanta'] || allLive['constanta']) : null) ||
                        (locKey === 'sm-brasov' ? (allLive['rollmaster'] || allLive['brasov'] || allLive['sm-brasov']) : null);
       const isKioskConnected = Boolean(liveKiosk?.isLive || liveKiosk?.online || (liveKiosk?.onlineCount > 0) || loc.isKioskOnline);
+      const isKioskVisible = typeof liveKiosk?.isVisible !== 'undefined'
+        ? Boolean(liveKiosk.isVisible)
+        : (typeof loc.isKioskVisible !== 'undefined' ? Boolean(loc.isKioskVisible) : true);
       const isUniversalConfig = Boolean(liveKiosk?.isUniversal);
       const kioskScriptVer = liveKiosk?.scriptVersion || null;
       const latestScriptVer = liveKiosk?.latestScriptVersion || '2.4.0';
@@ -960,6 +963,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
         status: isOnline ? 'online' : 'offline',
         isBridgeOnline,
         isKioskConnected,
+        isKioskVisible,
         isUniversalConfig,
         kioskScriptVer,
         latestScriptVer,
@@ -1158,7 +1162,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
         {sortedLocationKeys.map(locKey => {
           const loc = computedLocations[locKey];
           const isOnline = loc.status === 'online';
-          const { isKioskConnected, isUniversalConfig, kioskScriptVer, latestScriptVer, isScriptUpToDate, isBridgeOnline } = loc;
+          const { isKioskConnected, isKioskVisible, isUniversalConfig, kioskScriptVer, latestScriptVer, isScriptUpToDate, isBridgeOnline } = loc;
 
           return (
             <div
@@ -1191,6 +1195,14 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
 
                   {(() => {
                     if (isBridgeOnline && isKioskConnected) {
+                      if (!isKioskVisible) {
+                        return (
+                          <div className="px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-xs whitespace-nowrap bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-700 animate-pulse" title="Fereastra Kiosk este minimizată în bara de Windows!">
+                            <span className="w-2 h-2 rounded-full shrink-0 bg-amber-500" />
+                            <span>MINIMIZAT ÎN BARĂ</span>
+                          </div>
+                        );
+                      }
                       return (
                         <div className="px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-xs whitespace-nowrap bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                           <span className="w-2 h-2 rounded-full shrink-0 bg-emerald-500 animate-pulse" />
@@ -1199,6 +1211,14 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                       );
                     }
                     if (!isBridgeOnline && isKioskConnected) {
+                      if (!isKioskVisible) {
+                        return (
+                          <div className="px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-xs whitespace-nowrap bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-700 animate-pulse">
+                            <span className="w-2 h-2 rounded-full shrink-0 bg-amber-500" />
+                            <span>MINIMIZAT / FĂRĂ POS</span>
+                          </div>
+                        );
+                      }
                       return (
                         <div className="px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-xs whitespace-nowrap bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                           <span className="w-2 h-2 rounded-full shrink-0 bg-amber-500" />
@@ -1234,10 +1254,12 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                       </span>
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
                         isKioskConnected 
-                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300' 
+                          ? (isKioskVisible
+                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300' 
+                              : 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 animate-pulse')
                           : 'bg-slate-200/60 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
                       }`}>
-                        {isKioskConnected ? 'Conectat' : 'Inactiv'}
+                        {isKioskConnected ? (isKioskVisible ? 'Conectat (Pe ecran)' : 'Minimizat în bară') : 'Inactiv'}
                       </span>
                     </div>
 
