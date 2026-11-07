@@ -94,11 +94,16 @@ for %%d in ("C:\Smart Kiosk\packages\pos-bridge" "C:\SmartKiosk\packages\pos-bri
 )
 
 
-:: 1. Inchidere instante vechi browser
-echo [1/6] Inchidere ferestre browser existente...
+:: 1. Inchidere instante vechi browser si oprire aplicatii concurente
+echo [1/6] Inchidere ferestre existente si oprire aplicatii concurente...
 taskkill /F /IM chrome.exe >nul 2>&1
 taskkill /F /IM msedge.exe >nul 2>&1
 taskkill /F /IM node.exe >nul 2>&1
+taskkill /F /IM iiko* >nul 2>&1
+taskkill /F /IM Syrve* >nul 2>&1
+taskkill /F /IM Resto* >nul 2>&1
+taskkill /F /IM TapX* >nul 2>&1
+taskkill /F /IM Ordero* >nul 2>&1
 
 :: 2. Dezactivare Sleep, Standby si Oprire Monitor (Anti-Sleep)
 echo [2/6] Dezactivare Sleep, Standby si Oprire Monitor in Windows...
@@ -148,7 +153,7 @@ netsh advfirewall firewall add rule name="Smart Kiosk Browser" dir=in action=all
 
 :: 6. Salvare Autostart si Scurtaturi Desktop
 echo [5/6] Configurare Autostart la pornirea Windows si creare scurtaturi...
-powershell -NoProfile -Command "$w=New-Object -Com WScript.Shell; $d=[Environment]::GetFolderPath('Desktop'); $s=$w.CreateShortcut(\"$d\Smart Kiosk (%LOC_NAME%).lnk\"); $s.TargetPath='%BROWSER%'; $s.Arguments='--kiosk %URL% --start-fullscreen --start-maximized --window-position=0,0 --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble --disable-infobars --disable-pinch --overscroll-history-navigation=0 --check-for-update-interval=31536000'; $s.WindowStyle=3; $s.Save(); $u=[Environment]::GetFolderPath('Startup'); $s2=$w.CreateShortcut(\"$u\SmartKiosk.lnk\"); $s2.TargetPath='%BROWSER%'; $s2.Arguments='--kiosk %URL% --start-fullscreen --start-maximized --window-position=0,0 --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble --disable-infobars --disable-pinch --overscroll-history-navigation=0 --check-for-update-interval=31536000'; $s2.WindowStyle=3; $s2.Save()" >nul 2>&1
+powershell -NoProfile -Command "$w=New-Object -Com WScript.Shell; $d=[Environment]::GetFolderPath('Desktop'); $s=$w.CreateShortcut(\"$d\Smart Kiosk (%LOC_NAME%).lnk\"); $s.TargetPath='%BROWSER%'; $s.Arguments='--kiosk %URL% --start-fullscreen --start-maximized --window-position=0,0 --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble --disable-infobars --disable-pinch --overscroll-history-navigation=0 --check-for-update-interval=31536000'; $s.WindowStyle=3; $s.Save(); $u=[Environment]::GetFolderPath('Startup'); $s2=$w.CreateShortcut(\"$u\SmartKiosk.lnk\"); $s2.TargetPath='%BROWSER%'; $s2.Arguments='--kiosk %URL% --start-fullscreen --start-maximized --window-position=0,0 --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble --disable-infobars --disable-pinch --overscroll-history-navigation=0 --check-for-update-interval=31536000'; $s2.WindowStyle=3; $s2.Save(); for ($f in @('C:\SmartKiosk', 'C:\Smart Kiosk\packages\pos-bridge', 'C:\SmartKiosk\packages\pos-bridge')) { if (Test-Path \"$f\run-hidden.vbs\") { $sb=$w.CreateShortcut(\"$u\POSBridge.lnk\"); $sb.TargetPath='wscript.exe'; $sb.Arguments=\"`\"$f\run-hidden.vbs`\"\"; $sb.WorkingDirectory=$f; $sb.WindowStyle=0; $sb.Save(); break } }" >nul 2>&1
 
 :: 7. Lansare Kiosk Fullscreen
 echo [6/6] Pornire ecran Kiosk in Fullscreen Total...
@@ -157,7 +162,7 @@ start "" "%BROWSER%" --kiosk "%URL%" --start-fullscreen --start-maximized --wind
 
 :: Pornire automata POS Bridge daca exista pe acest PC
 set "BRIDGE_STARTED="
-for %%d in ("C:\Smart Kiosk\packages\pos-bridge" "C:\SmartKiosk\packages\pos-bridge" "C:\packages\pos-bridge" "C:\pos-bridge" "%USERPROFILE%\Desktop\pos-bridge") do (
+for %%d in ("C:\SmartKiosk" "C:\Smart Kiosk\packages\pos-bridge" "C:\SmartKiosk\packages\pos-bridge" "C:\packages\pos-bridge" "C:\pos-bridge" "%USERPROFILE%\Desktop\pos-bridge") do (
     if not defined BRIDGE_STARTED if exist "%%~d\start-windows.bat" (
         echo [INFO] Pornesc POS Bridge din %%~d...
         start "" /min cmd /c "cd /d \"%%~d\" && start-windows.bat"

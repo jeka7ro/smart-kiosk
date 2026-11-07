@@ -86,24 +86,57 @@ function log(msg) {
 }
 
 
+function getKioskTargetUrl() {
+  const loc = process.env.LOCATION_ID || 'cluj2';
+  return `https://kiosk-smashme.netlify.app/?loc=${loc}&universal=true`;
+}
+
 function enforceKioskTaskbar() {
   if (process.platform !== 'win32') return;
   try {
+    const kUrl = getKioskTargetUrl();
     const psCmd = `powershell -NoProfile -WindowStyle Hidden -Command "$c=@'
 using System;
 using System.Runtime.InteropServices;
 public class KioskWin {
-    [DllImport(\\"user32.dll\\")]
-    public static extern IntPtr FindWindow(string c, string n);
-    [DllImport(\\"user32.dll\\")]
-    public static extern bool ShowWindow(IntPtr h, int s);
-    [DllImport(\\"user32.dll\\")]
-    public static extern bool SetForegroundWindow(IntPtr h);
+    [DllImport(\\"user32.dll\\")] public static extern IntPtr FindWindow(string c, string n);
+    [DllImport(\\"user32.dll\\")] public static extern bool ShowWindow(IntPtr h, int s);
+    [DllImport(\\"user32.dll\\")] public static extern bool SetForegroundWindow(IntPtr h);
+    [DllImport(\\"user32.dll\\")] public static extern bool IsIconic(IntPtr h);
+    [DllImport(\\"user32.dll\\")] public static extern IntPtr GetForegroundWindow();
 }
-'@; Add-Type -TypeDefinition $c -ErrorAction SilentlyContinue; $t=[KioskWin]::FindWindow('Shell_TrayWnd',$null); if($t -ne [IntPtr]::Zero){ [KioskWin]::ShowWindow($t,0) }; $s=[KioskWin]::FindWindow('Shell_SecondaryTrayWnd',$null); if($s -ne [IntPtr]::Zero){ [KioskWin]::ShowWindow($s,0) }; $w=[KioskWin]::FindWindow('Chrome_WidgetWin_1',$null); if($w -ne [IntPtr]::Zero){ [KioskWin]::SetForegroundWindow($w) }; $p='HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StuckRects3'; if(Test-Path $p){ $v=(Get-ItemProperty $p).Settings; if($v -and $v.Length -gt 8 -and $v[8] -ne 3){ $v[8]=3; Set-ItemProperty $p Settings $v -Force -ErrorAction SilentlyContinue } }"`;
+'@; Add-Type -TypeDefinition $c -ErrorAction SilentlyContinue;
+# 1. Ascunde bara de taskbar
+$t=[KioskWin]::FindWindow('Shell_TrayWnd',$null); if($t -ne [IntPtr]::Zero){ [KioskWin]::ShowWindow($t,0) };
+$s=[KioskWin]::FindWindow('Shell_SecondaryTrayWnd',$null); if($s -ne [IntPtr]::Zero){ [KioskWin]::ShowWindow($s,0) };
+# 2. Opreste orice proces concurent / de la alta companie
+Get-Process -Name 'iiko*','Syrve*','Resto*','TapX*','Ordero*','SmartTouch*','PosSector*' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue;
+# 3. Verifica fereastra Chrome/Edge Kiosk
+$w=[KioskWin]::FindWindow('Chrome_WidgetWin_1',$null);
+if($w -ne [IntPtr]::Zero){
+    if([KioskWin]::IsIconic($w)){
+        [KioskWin]::ShowWindow($w, 3);
+        [KioskWin]::SetForegroundWindow($w);
+    } else {
+        $fg=[KioskWin]::GetForegroundWindow();
+        if($fg -ne $w -and $fg -ne [IntPtr]::Zero){
+            [KioskWin]::ShowWindow($w, 3);
+            [KioskWin]::SetForegroundWindow($w);
+        }
+    }
+} else {
+    # Daca ecranul Kiosk este inchis, il redeschide automat pe tot ecranul
+    $b='C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+    if(!(Test-Path $b)){ $b='C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe' };
+    if(!(Test-Path $b)){ $b='C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe' };
+    if(Test-Path $b){
+        Start-Process $b -ArgumentList '--kiosk \\\"${kUrl}\\\" --start-fullscreen --start-maximized --window-position=0,0 --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble';
+    }
+}
+$p='HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StuckRects3'; if(Test-Path $p){ $v=(Get-ItemProperty $p).Settings; if($v -and $v.Length -gt 8 -and $v[8] -ne 3){ $v[8]=3; Set-ItemProperty $p Settings $v -Force -ErrorAction SilentlyContinue } }"`;
     exec(psCmd, (err) => {
       if (!err) {
-        log('🖥️ [SYSTEM] Taskbar ascuns complet (SW_HIDE) & Kiosk adus în prim-plan.');
+        // log('🖥️ [SYSTEM] Taskbar ascuns, concurenți opriți & Kiosk menținut pe tot ecranul.');
       }
     });
   } catch (err) {
@@ -111,36 +144,49 @@ public class KioskWin {
   }
 }
 
-// Menține taskbar-ul ascuns garantat la pornire și periodic
+// Menține Kiosk-ul activ pe tot ecranul garantat la fiecare 8 secunde
 setTimeout(enforceKioskTaskbar, 1500);
-setInterval(enforceKioskTaskbar, 30000);
+setInterval(enforceKioskTaskbar, 8000);
 
-function cleanupKioskDuplicates() {
+function ensureKioskAutoStartAndProtection() {
   if (process.platform !== 'win32') return;
   try {
-    // 🛡️ Previne deschiderea a 2 ferestre Kiosk la pornirea Windows.
-    // Șterge scurtătura din Startup DOAR dacă ecranul pornește deja din Registry Run (SmartKioskScreen).
-    // Dacă Registry-ul nu există (ex: Cluj/Brașov, instalate doar cu Startup), NU șterge nimic.
-    exec('reg query "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v SmartKioskScreen', (err) => {
-      if (err) return; // fără intrare în Registry => scurtătura din Startup este singura pornire, o păstrăm
-      const startupDir = pathMod.join(process.env.APPDATA || '', 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup');
-      for (const name of ['SmartKiosk.lnk', 'Smart Kiosk.lnk']) {
-        const p = pathMod.join(startupDir, name);
-        try {
-          if (fs.existsSync(p)) {
-            fs.unlinkSync(p);
-            log(`🧹 [SYSTEM] Scurtătură Kiosk duplicat eliminată din Startup: ${name} (ecranul pornește deja din Registry).`);
-          }
-        } catch (_) {}
-      }
-    });
+    const kUrl = getKioskTargetUrl();
+    const appDir = __dirname;
+    const psCmd = `powershell -NoProfile -WindowStyle Hidden -Command "$ws=New-Object -Com WScript.Shell;
+$startup=[Environment]::GetFolderPath('Startup');
+$commonStartup='C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Startup';
+$b='C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+if(!(Test-Path $b)){ $b='C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe' };
+if(!(Test-Path $b)){ $b='C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe' };
 
-    // 🛡️ Curăță task-ul redundant de pornire la logon din Task Scheduler
+# 1. Asigura scurtatura POSBridge.lnk in Startup
+$sb=$ws.CreateShortcut(\\\"$startup\\POSBridge.lnk\\\");
+$sb.TargetPath='wscript.exe';
+$sb.Arguments='\\\"${pathMod.join(appDir, 'run-hidden.vbs')}\\\"';
+$sb.WorkingDirectory='${appDir}';
+$sb.WindowStyle=0;
+$sb.Save();
+
+# 2. Asigura scurtatura SmartKiosk.lnk in Startup
+$sk=$ws.CreateShortcut(\\\"$startup\\SmartKiosk.lnk\\\");
+$sk.TargetPath=$b;
+$sk.Arguments='--kiosk \\\"${kUrl}\\\" --start-fullscreen --start-maximized --window-position=0,0 --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble';
+$sk.WindowStyle=3;
+$sk.Save();
+
+# 3. Elimina orice scurtatura a altor companii din ambele directoare Startup
+Get-ChildItem -Path $startup, $commonStartup -Filter '*.lnk' -ErrorAction SilentlyContinue | Where-Object { $_.Name -match 'iiko|syrve|resto|tapx|ordero|posintegrat|kiosk_jk' } | Remove-Item -Force -ErrorAction SilentlyContinue;
+"`;
+    exec(psCmd, (err) => {
+      if (!err) log('🛡️ [SYSTEM] Auto-Start & Watchdog Kiosk asigurate complet în Startup.');
+    });
+    // Curăță task-ul redundant de pornire la logon din Task Scheduler
     exec('schtasks /delete /tn "SmartKiosk_Boot" /f', () => {});
   } catch (_) {}
 }
 
-setTimeout(cleanupKioskDuplicates, 2000);
+setTimeout(ensureKioskAutoStartAndProtection, 2000);
 
 let RENDER_URL = process.env.RENDER_URL || 'https://smart-kiosk-ttut.onrender.com';
 if (RENDER_URL.includes('smart-kiosk-v7ws.onrender.com')) {

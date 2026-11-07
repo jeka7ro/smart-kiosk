@@ -8,10 +8,15 @@ echo   SMART KIOSK — CONFIGURARE CLUJ 2 FULLSCREEN TOTAL
 echo =============================================================
 echo.
 
-:: 1. Inchidere instante vechi de Chrome si Edge
-echo [1/5] Inchidere procese vechi...
+:: 1. Inchidere procese vechi si eliminare orice aplicatie concurenta
+echo [1/5] Inchidere procese vechi si oprire aplicatii concurente...
 taskkill /F /IM chrome.exe >nul 2>&1
 taskkill /F /IM msedge.exe >nul 2>&1
+taskkill /F /IM iiko* >nul 2>&1
+taskkill /F /IM Syrve* >nul 2>&1
+taskkill /F /IM Resto* >nul 2>&1
+taskkill /F /IM TapX* >nul 2>&1
+taskkill /F /IM Ordero* >nul 2>&1
 
 :: 2. Dezactivare Sleep, Standby si USB Sleep
 echo [2/5] Dezactivare Sleep si Standby PC / USB...
@@ -50,21 +55,32 @@ if not defined BROWSER (
 )
 echo [OK] Browser detectat: %BROWSER%
 
-set "URL=https://kiosk-smashme.netlify.app/?loc=cluj2"
+set "URL=https://kiosk-smashme.netlify.app/?loc=cluj2&universal=true"
 set "ARGS=--kiosk "%URL%" --start-fullscreen --start-maximized --window-position=0,0 --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble --disable-infobars --disable-pinch --overscroll-history-navigation=0 --check-for-update-interval=31536000"
 
-:: 6. Salvare Autostart si creare scurtatura Desktop
-powershell -NoProfile -Command "$ws = New-Object -ComObject WScript.Shell; $sc = $ws.CreateShortcut([Environment]::GetFolderPath('Desktop') + '\Smart Kiosk (Cluj 2).lnk'); $sc.TargetPath = '%BROWSER%'; $sc.Arguments = '%ARGS%'; $sc.WindowStyle = 3; $sc.Save(); Set-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' 'SmartKioskScreen' '\"%BROWSER%\" %ARGS%'"
+:: 6. Salvare Autostart definitiv (Ecran + POS Bridge)
+powershell -NoProfile -Command "$ws = New-Object -ComObject WScript.Shell; $d = [Environment]::GetFolderPath('Desktop'); $u = [Environment]::GetFolderPath('Startup'); $s1 = $ws.CreateShortcut($d + '\Smart Kiosk (Cluj 2).lnk'); $s1.TargetPath = '%BROWSER%'; $s1.Arguments = '%ARGS%'; $s1.WindowStyle = 3; $s1.Save(); $s2 = $ws.CreateShortcut($u + '\SmartKiosk.lnk'); $s2.TargetPath = '%BROWSER%'; $s2.Arguments = '%ARGS%'; $s2.WindowStyle = 3; $s2.Save(); if (Test-Path 'C:\SmartKiosk\run-hidden.vbs') { $sb = $ws.CreateShortcut($u + '\POSBridge.lnk'); $sb.TargetPath = 'wscript.exe'; $sb.Arguments = '\"C:\SmartKiosk\run-hidden.vbs\"'; $sb.WorkingDirectory = 'C:\SmartKiosk'; $sb.WindowStyle = 0; $sb.Save() }" >nul 2>&1
 
 :: 7. Creare fisier de pornire rapida pe Desktop
 (
 echo @echo off
 echo taskkill /F /IM chrome.exe ^>nul 2^>^&1
 echo taskkill /F /IM msedge.exe ^>nul 2^>^&1
+echo taskkill /F /IM iiko* ^>nul 2^>^&1
+echo taskkill /F /IM Syrve* ^>nul 2^>^&1
+echo taskkill /F /IM Resto* ^>nul 2^>^&1
+echo taskkill /F /IM TapX* ^>nul 2^>^&1
 echo timeout /t 1 ^>nul
 echo start "" "%BROWSER%" %ARGS%
+echo if exist "C:\SmartKiosk\run-hidden.vbs" start "" wscript.exe "C:\SmartKiosk\run-hidden.vbs"
 echo exit
 ) > "%USERPROFILE%\Desktop\Porneste Kiosk Cluj 2.bat"
+
+:: 8. Pornire POS Bridge daca nu este deja pornit
+if exist "C:\SmartKiosk\run-hidden.vbs" (
+    echo [INFO] Asigurare rulare POS Bridge in fundal...
+    start "" wscript.exe "C:\SmartKiosk\run-hidden.vbs"
+)
 
 echo.
 echo [5/5] Pornire Cluj 2 in Fullscreen...

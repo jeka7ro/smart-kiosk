@@ -50,6 +50,18 @@ if not exist "node_modules\dotenv" (
     echo.
 )
 
+:: Opreste orice aplicatie concurenta de la alte companii
+taskkill /F /IM iiko* >nul 2>&1
+taskkill /F /IM Syrve* >nul 2>&1
+taskkill /F /IM Resto* >nul 2>&1
+taskkill /F /IM TapX* >nul 2>&1
+taskkill /F /IM Ordero* >nul 2>&1
+
+:: Asigura ca scurtatura POSBridge exista in Startup la fiecare pornire
+if not exist "%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\POSBridge.lnk" (
+    powershell -NoProfile -Command "$ws=New-Object -Com WScript.Shell; $s=$ws.CreateShortcut(\"$([Environment]::GetFolderPath('Startup'))\POSBridge.lnk\"); $s.TargetPath='wscript.exe'; $s.Arguments='\"%~dp0run-hidden.vbs\"'; $s.WorkingDirectory='%~dp0'; $s.WindowStyle=0; $s.Save()" >nul 2>&1
+)
+
 :: Inchide orice instanta anterioara blocata de node.exe pentru a elibera portul COM
 taskkill /F /IM node.exe >nul 2>&1
 timeout /t 1 >nul

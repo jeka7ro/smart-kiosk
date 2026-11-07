@@ -50,35 +50,34 @@ Do
         End If
     End If
 
-    ' ─── 2. Monitorizare & Menținere Ecran Kiosk (Chrome / Edge) ─────────────
+    ' ─── 2. Monitorizare & Menținere Ecran Kiosk (Anti-Minimizare & Anti-Închidere) ───
     Set colBrowser = objWMIService.ExecQuery("Select * from Win32_Process Where Name = 'chrome.exe' Or Name = 'msedge.exe'")
     If colBrowser.Count = 0 Then
-        regCmd = ""
-        On Error Resume Next
-        regCmd = ws.RegRead("HKCU\Software\Microsoft\Windows\CurrentVersion\Run\SmartKioskScreen")
-        On Error GoTo 0
-        If regCmd <> "" Then
-            ws.Run regCmd, 1, False
+        ' Dacă browserul este complet închis, îl repornim garantat din scurtătură sau Registry
+        startupFolder = ws.SpecialFolders("Startup")
+        kioskLnk = startupFolder & "\SmartKiosk.lnk"
+        If fso.FileExists(kioskLnk) Then
+            ws.Run """" & kioskLnk & """", 1, False
         Else
             desktopFolder = ws.SpecialFolders("Desktop")
-            deskLnk = desktopFolder & "\Smart Kiosk Fullscreen.lnk"
+            deskLnk = desktopFolder & "\Smart Kiosk.lnk"
             If fso.FileExists(deskLnk) Then
                 ws.Run """" & deskLnk & """", 1, False
-            Else
-                startupFolder = ws.SpecialFolders("Startup")
-                kioskLnk = startupFolder & "\SmartKiosk.lnk"
-                If fso.FileExists(kioskLnk) Then
-                    ws.Run """" & kioskLnk & """", 1, False
-                End If
             End If
         End If
+    Else
+        ' Browserul rulează: dacă este minimizat (coborât în bară) sau acoperit, îl aducem forțat în prim-plan
+        On Error Resume Next
+        focusCmd = "powershell -NoProfile -WindowStyle Hidden -Command ""Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class KioskWin { [DllImport(\""user32.dll\"")] public static extern IntPtr FindWindow(string c, string n); [DllImport(\""user32.dll\"")] public static extern bool ShowWindow(IntPtr h, int s); [DllImport(\""user32.dll\"")] public static extern bool SetForegroundWindow(IntPtr h); [DllImport(\""user32.dll\"")] public static extern bool IsIconic(IntPtr h); [DllImport(\""user32.dll\"")] public static extern IntPtr GetForegroundWindow(); }'; $w=[KioskWin]::FindWindow('Chrome_WidgetWin_1',$null); if($w -ne [IntPtr]::Zero){ if([KioskWin]::IsIconic($w)){ [KioskWin]::ShowWindow($w,3); [KioskWin]::SetForegroundWindow($w) } else { $fg=[KioskWin]::GetForegroundWindow(); if($fg -ne $w -and $fg -ne [IntPtr]::Zero){ [KioskWin]::ShowWindow($w,3); [KioskWin]::SetForegroundWindow($w) } } }; Get-Process -Name 'iiko*','Syrve*','Resto*','TapX*','Ordero*' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue"""
+        ws.Run focusCmd, 0, False
+        On Error GoTo 0
     End If
 
     ' ─── 3. Menținere Taskbar Ascuns (SW_HIDE) ──────────────────────────────
     On Error Resume Next
-    hideCmd = "powershell -NoProfile -WindowStyle Hidden -Command ""Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class KioskWin { [DllImport(\""user32.dll\"")] public static extern IntPtr FindWindow(string c, string n); [DllImport(\""user32.dll\"")] public static extern bool ShowWindow(IntPtr h, int s); }'; $t=[KioskWin]::FindWindow('Shell_TrayWnd',$null); if($t -ne [IntPtr]::Zero){ [KioskWin]::ShowWindow($t,0) }"""
+    hideCmd = "powershell -NoProfile -WindowStyle Hidden -Command ""Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class KioskWin { [DllImport(\""user32.dll\"")] public static extern IntPtr FindWindow(string c, string n); [DllImport(\""user32.dll\"")] public static extern bool ShowWindow(IntPtr h, int s); }'; $t=[KioskWin]::FindWindow('Shell_TrayWnd',$null); if($t -ne [IntPtr]::Zero){ [KioskWin]::ShowWindow($t,0) }; $s=[KioskWin]::FindWindow('Shell_SecondaryTrayWnd',$null); if($s -ne [IntPtr]::Zero){ [KioskWin]::ShowWindow($s,0) }"""
     ws.Run hideCmd, 0, False
     On Error GoTo 0
 
-    WScript.Sleep 10000 ' Reverificare la fiecare 10 secunde
+    WScript.Sleep 5000 ' Reverificare la fiecare 5 secunde
 Loop
