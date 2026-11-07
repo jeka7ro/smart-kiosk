@@ -182,6 +182,10 @@ function initSocket(io) {
         connectedKiosks.set(socket.id, k);
         socket._kioskInfo = k;
         console.log(`[Socket] 👁️ Kiosk visibility changed: loc=${k.locationId} isVisible=${k.isVisible}`);
+        if (k.isVisible === false && k.locationId) {
+          // Notifică instant POS Bridge-ul de pe acel PC să readucă Kiosk-ul pe tot ecranul
+          io.to(`pos-bridge-${k.locationId}`).emit('kiosk_force_fullscreen', { locationId: k.locationId });
+        }
         broadcastLiveKiosks();
       }
     });

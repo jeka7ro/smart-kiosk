@@ -1849,14 +1849,8 @@ async function start() {
   // ─── Comandă Remote Fullscreen (fără restart, fără întrerupere comenzi) ───
   socket.on('kiosk_force_fullscreen', (data) => {
     if (!data || !data.locationId || data.locationId === 'all' || data.locationId === LOCATION_ID || isMyLocation(data.locationId)) {
-      log('🖥️ Comandă Remote Fullscreen primită! Activez fereastra Chrome/Edge și trimit F11...');
-      if (process.platform === 'win32') {
-        const psCmd = `powershell -NoProfile -WindowStyle Hidden -Command "$ws = New-Object -ComObject wscript.shell; if ($ws.AppActivate('Smart Kiosk') -or $ws.AppActivate('Chrome') -or $ws.AppActivate('Edge')) { Start-Sleep -Milliseconds 150; $ws.SendKeys('{F11}') }"`;
-        exec(psCmd, (err) => {
-          if (err) log(`⚠️ Eroare trimitere F11 Fullscreen: ${err.message}`);
-          else log(`✅ Comandă F11 Fullscreen trimisă cu succes către fereastra Kiosk.`);
-        });
-      }
+      log('🖥️ Comandă Remote Fullscreen / Auto-Recover primită! Readuc forțat fereastra Kiosk pe tot ecranul...');
+      enforceKioskTaskbar();
     }
   });
 
