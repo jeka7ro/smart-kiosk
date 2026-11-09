@@ -771,9 +771,28 @@ const CONSTANTA_PRODUCT_ID_FIXES = {
 // ── SGR (Sistemul Garanție-Returnare) Constants & Helper ───────────────────────
 // In Romania, Syrve strictly enforces minAmount: 1 for modifier group Sgr (0.50 RON per container)
 // on all packaged/canned beverages. Auto-attached if not present in kiosk cart.
-const SGR_GROUP_ID = 'c15d3fdd-6b8e-487a-b75f-bf2628b5abc5';
-const SGR_MODIFIER_PRODUCT_ID = 'e4b48e28-f52c-49c0-a029-c5cae198de7e'; // *SGR
+// SmashMe (Cluj) SGR IDs:
+const SGR_GROUP_ID_CLUJ = 'c15d3fdd-6b8e-487a-b75f-bf2628b5abc5';
+const SGR_MODIFIER_PRODUCT_ID_CLUJ = 'e4b48e28-f52c-49c0-a029-c5cae198de7e'; // *SGR
+
+// SushiMaster / PokiWoki (Constanța & others) SGR IDs:
+const SGR_GROUP_ID_CONSTANTA = 'e19aa802-1946-4054-830b-1da8998c303c';
+const SGR_MODIFIER_PRODUCT_ID_CONSTANTA = '9866d6c9-cb6f-44f8-a206-9cf7331124ed'; // SGR
+
+// Fallback aliases for backward compatibility
+const SGR_GROUP_ID = SGR_GROUP_ID_CLUJ;
+const SGR_MODIFIER_PRODUCT_ID = SGR_MODIFIER_PRODUCT_ID_CLUJ;
 const SGR_PRICE = 0.50;
+
+const ALL_SGR_MODIFIER_PRODUCT_IDS = new Set([
+  SGR_MODIFIER_PRODUCT_ID_CLUJ,
+  SGR_MODIFIER_PRODUCT_ID_CONSTANTA,
+]);
+
+const ALL_SGR_GROUP_IDS = new Set([
+  SGR_GROUP_ID_CLUJ,
+  SGR_GROUP_ID_CONSTANTA,
+]);
 
 const KNOWN_SGR_PRODUCT_IDS = new Set([
   '4f354a1c-6210-46bd-8713-10b5abd056dd',
@@ -824,7 +843,7 @@ function isSgrProduct(item, targetProdId) {
     const cachedMenu = _menuCache[cacheKey]?.menu;
     if (cachedMenu?.products) {
       const p = cachedMenu.products.find(prod => prod.id === targetProdId || prod.id === item?.productId);
-      if (p?.modifierGroups?.some(mg => mg.id === SGR_GROUP_ID || mg.options?.some(opt => opt.id === SGR_MODIFIER_PRODUCT_ID))) {
+      if (p?.modifierGroups?.some(mg => ALL_SGR_GROUP_IDS.has(mg.id) || mg.options?.some(opt => ALL_SGR_MODIFIER_PRODUCT_IDS.has(opt.id)))) {
         return true;
       }
     }
@@ -937,6 +956,7 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
 
     // Build items in correct Syrve format
     const isConstanta = resolvedOrgId === '8308e796-8780-4d18-ae66-4e430178c778' ||
+                        resolvedOrgId === '29ba038b-f7b6-4b64-ad1f-aef5ccbd43c4' ||
                         String(order.locationId || '').includes('constanta') ||
                         String(order.orderNumber || '').includes('CT');
 
@@ -981,16 +1001,31 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
         }
       }
 
-      // Auto-attach Romanian mandatory SGR bottle/can deposit modifier (*SGR 0.50 lei)
+      // Auto-attach Romanian mandatory SGR bottle/can deposit modifier (0.50 lei)
       // for packaged beverages where Syrve strictly requires minAmount: 1, maxAmount: 1
       if (isSgrProduct(item, itemProdId)) {
-        const hasSgr = syrveModifiers.some(m => m.productId === SGR_MODIFIER_PRODUCT_ID || m.productGroupId === SGR_GROUP_ID);
+        const hasSgr = syrveModifiers.some(m => 
+          ALL_SGR_MODIFIER_PRODUCT_IDS.has(m.productId) || 
+          ALL_SGR_GROUP_IDS.has(m.productGroupId)
+        ) || (item.selectedModifiers && item.selectedModifiers.some(m =>
+          ALL_SGR_MODIFIER_PRODUCT_IDS.has(m.productId || m.id || m.optionId) ||
+          ALL_SGR_GROUP_IDS.has(m.groupId || m.productGroupId || m.modifierGroupId) ||
+          String(m.optionName || m.name || '').toLowerCase().includes('sgr')
+        ));
+
         if (!hasSgr) {
-          console.log(`[Syrve-SGR] Auto-attaching mandatory SGR modifier (*SGR 0.50 lei) for product "${item.name || ''}" (${itemProdId})`);
+          const sgrGroupId = (isConstanta || brandId === 'pokiwoki' || brandId === 'sushimaster')
+            ? SGR_GROUP_ID_CONSTANTA
+            : SGR_GROUP_ID_CLUJ;
+          const sgrModifierId = (isConstanta || brandId === 'pokiwoki' || brandId === 'sushimaster')
+            ? SGR_MODIFIER_PRODUCT_ID_CONSTANTA
+            : SGR_MODIFIER_PRODUCT_ID_CLUJ;
+
+          console.log(`[Syrve-SGR] Auto-attaching mandatory SGR modifier (0.50 lei) for product "${item.name || ''}" (${itemProdId}) [group: ${sgrGroupId}]`);
           syrveModifiers.push({
-            productId: SGR_MODIFIER_PRODUCT_ID,
+            productId: sgrModifierId,
             amount: 1,
-            productGroupId: SGR_GROUP_ID,
+            productGroupId: sgrGroupId,
             price: SGR_PRICE,
             positionId: null,
           });
@@ -1286,6 +1321,12 @@ module.exports = {
   CONSTANTA_PRODUCT_ID_FIXES,
   SGR_GROUP_ID,
   SGR_MODIFIER_PRODUCT_ID,
+  SGR_GROUP_ID_CLUJ,
+  SGR_MODIFIER_PRODUCT_ID_CLUJ,
+  SGR_GROUP_ID_CONSTANTA,
+  SGR_MODIFIER_PRODUCT_ID_CONSTANTA,
+  ALL_SGR_GROUP_IDS,
+  ALL_SGR_MODIFIER_PRODUCT_IDS,
   KNOWN_SGR_PRODUCT_IDS,
   isSgrProduct,
 };
