@@ -879,6 +879,14 @@ async function logIikoRequest(orderId, brandId, payload, response, error = null)
   }
 }
 
+// Cache for terminal group IDs per organization
+const TERMINAL_GROUP_CACHE = {};
+const TERMINAL_GROUP_FALLBACKS = {
+  '9c63cff6-1d66-442d-a98d-2302656e3943': 'cf589c4a-37dd-54ed-015a-4e33131300bf', // Cluj (SmashMe)
+  'adddb5a0-26e5-4d50-b472-1c74726c3f72': 'cf589c4a-37dd-54ed-015a-4e33131300bf', // Brașov (RollMaster)
+  '29ba038b-f7b6-4b64-ad1f-aef5ccbd43c4': '5aaba298-9af8-44be-869d-62d246b2527b', // Constanța (PokiWoki)
+};
+
 // Cache for discount type IDs per organization (e.g. 'kiosk' / 'KIOSK')
 const KIOSK_DISCOUNT_CACHE = {};
 
@@ -1106,22 +1114,25 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
       orderComment += ` | MENȚIUNI: ${specialNotes.join('; ')}`;
     }
 
-    // Dynamically fetch terminalGroupId for the target organization
-    let terminalGroupId = 'cf589c4a-37dd-54ed-015a-4e33131300bf'; // Fallback
-    try {
-      const termRes = await syrvePost('/api/1/terminal_groups', {
-        organizationIds: [resolvedOrgId],
-        includeDisabled: false
-      }, brandId);
-      
-      const items = termRes?.terminalGroups?.[0]?.items || [];
-      if (items.length > 0) {
-        terminalGroupId = items[0].id;
-      } else {
-        console.warn(`[Syrve] Warning: No active terminal groups found for org ${resolvedOrgId}. Using fallback.`);
+    // Dynamically fetch (and cache) terminalGroupId for the target organization
+    let terminalGroupId = TERMINAL_GROUP_CACHE[resolvedOrgId] || TERMINAL_GROUP_FALLBACKS[resolvedOrgId] || 'cf589c4a-37dd-54ed-015a-4e33131300bf';
+    if (!TERMINAL_GROUP_CACHE[resolvedOrgId]) {
+      try {
+        const termRes = await syrvePost('/api/1/terminal_groups', {
+          organizationIds: [resolvedOrgId],
+          includeDisabled: false
+        }, brandId);
+        
+        const items = termRes?.terminalGroups?.[0]?.items || [];
+        if (items.length > 0) {
+          terminalGroupId = items[0].id;
+          TERMINAL_GROUP_CACHE[resolvedOrgId] = terminalGroupId;
+        } else {
+          console.warn(`[Syrve] Warning: No active terminal groups found for org ${resolvedOrgId}. Using fallback ${terminalGroupId}.`);
+        }
+      } catch (tErr) {
+        console.warn(`[Syrve] Failed to fetch terminal groups for org ${resolvedOrgId} (using fallback ${terminalGroupId}):`, tErr.message);
       }
-    } catch (tErr) {
-      console.warn(`[Syrve] Failed to fetch terminal groups for org ${resolvedOrgId}:`, tErr.message);
     }
 
     const customerData = order.fiscal?.cui ? {
