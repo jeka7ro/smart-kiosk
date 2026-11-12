@@ -17,13 +17,16 @@ import CartScreen          from './screens/CartScreen';
 import PaymentScreen       from './screens/PaymentScreen';
 import ConfirmationScreen  from './screens/ConfirmationScreen';
 import PinScreen           from './screens/PinScreen';
+import MaintenanceScreen   from './screens/MaintenanceScreen';
 import ManagerPortalModal  from './components/ManagerPortalModal.jsx';
 import FullscreenExitPinModal from './components/FullscreenExitPinModal.jsx';
 import InactivityWarningModal from './components/InactivityWarningModal.jsx';
 import FortuneWheel        from './components/FortuneWheel';
 import { proxySyrveImage } from './utils/imageUtils.js';
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
+const PROD_BACKEND = 'https://smart-kiosk-ttut.onrender.com';
+const envBackend = import.meta.env.VITE_BACKEND_URL;
+const BACKEND = (!envBackend || envBackend.includes('localhost:4000')) ? PROD_BACKEND : envBackend;
 
 function isWithinLockSchedule(loc, now = new Date()) {
   if (!loc || !loc.lockScheduleActive) return false;
@@ -99,6 +102,9 @@ export default function App() {
   const [isLocked, setIsLocked] = useState(() => {
     return new URLSearchParams(window.location.search).get('locked') === 'true';
   });
+  const [isMaintenance, setIsMaintenance] = useState(() => {
+    return new URLSearchParams(window.location.search).get('maintenance') === 'true';
+  });
   const [isScheduleLocked, setIsScheduleLocked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showManagerPortal, setShowManagerPortal] = useState(isManagerMode);
@@ -118,10 +124,38 @@ export default function App() {
   const evaluateLockState = (loc) => {
     if (!loc || !loc.id) return;
 
-    const isUrlLocked = new URLSearchParams(window.location.search).get('locked') === 'true';
+    const urlSearch = new URLSearchParams(window.location.search);
+    if (urlSearch.get('maintenance') === 'true' || loc.maintenanceMode) {
+      setIsMaintenance(true);
+    } else {
+      setIsMaintenance(false);
+    }
+
+    const isUrlLocked = urlSearch.get('locked') === 'true';
     if (isUrlLocked) {
       setIsLocked(true);
       return;
+    }
+
+    if (loc.forceLocked) {
+      const forceWinKey = `kiosk_force_unlocked_${loc.id}_${loc.forceLockedAt || 'manual'}`;
+      if (sessionStorage.getItem(forceWinKey) !== 'true') {
+        const windowId = getLockWindowId(loc);
+        if (windowId) sessionStorage.removeItem(windowId);
+        setIsScheduleLocked(false);
+        setIsLocked(true);
+        return;
+      }
+    } else if (loc.remoteUnlockedAt) {
+      const remoteKey = `kiosk_remote_unlocked_${loc.id}_${loc.remoteUnlockedAt}`;
+      if (sessionStorage.getItem(remoteKey) !== 'true') {
+        sessionStorage.setItem(remoteKey, 'true');
+        const windowId = getLockWindowId(loc);
+        if (windowId) sessionStorage.setItem(windowId, 'true');
+        setIsScheduleLocked(false);
+        setIsLocked(false);
+        return;
+      }
     }
 
     if (loc.lockScheduleActive) {
@@ -151,6 +185,9 @@ export default function App() {
             }
             return true;
           });
+        } else {
+          setIsScheduleLocked(false);
+          setIsLocked(false);
         }
       } else {
         setIsScheduleLocked(false);
@@ -248,9 +285,17 @@ export default function App() {
 
     const fetchLocation = async () => {
       try {
-        const r = await fetch(`${BACKEND}/api/locations/${locId}?t=${Date.now()}`, {
-          headers: { 'x-api-key': import.meta.env.VITE_API_KEY || 'sk-live-2024-secure' }
-        });
+        const headers = { 'x-api-key': import.meta.env.VITE_API_KEY || 'sk-live-2024-secure' };
+        let r = null;
+        try {
+          r = await fetch(`${BACKEND}/api/locations/${locId}?t=${Date.now()}`, { headers });
+        } catch (err) {
+          if (BACKEND !== PROD_BACKEND) {
+            r = await fetch(`${PROD_BACKEND}/api/locations/${locId}?t=${Date.now()}`, { headers });
+          } else {
+            throw err;
+          }
+        }
         const loc = await r.json();
         if (loc && !loc.error) {
 
@@ -318,8 +363,9 @@ export default function App() {
     // Fetch immediately on boot
     fetchLocation();
 
-    // Then poll every 30 seconds to pick up any Admin changes
-    const interval = setInterval(fetchLocation, 30_000);
+    // Poll every 2.5s on localhost for instant testing, or every 30s in production
+    const isLocalHost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    const interval = setInterval(fetchLocation, isLocalHost ? 2500 : 30_000);
     return () => clearInterval(interval);
   }, [setLocationData]);
 
@@ -341,7 +387,7 @@ export default function App() {
     
     const locId = locationData.id;
     
-    // 🛡️ Singleton Window Guard: Previne conectarea a două ferestre/taburi simultan pe același PC
+    // Singleton Window Guard: Previne conectarea a două ferestre/taburi simultan pe același PC
     const instanceId = 'kiosk_inst_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
     let isDuplicateWindow = false;
     let singletonChannel = null;
@@ -354,7 +400,7 @@ export default function App() {
             singletonChannel.postMessage({ type: 'INSTANCE_ACTIVE', sender: instanceId });
             try { window.focus(); } catch (_) {}
           } else if (event.data?.type === 'INSTANCE_ACTIVE' && event.data?.sender !== instanceId) {
-            console.warn('[Kiosk] ⚠️ O altă fereastră Kiosk este deja activă pe acest calculator. Deconectez instanța duplicat.');
+            console.warn('[Kiosk] O altă fereastră Kiosk este deja activă pe acest calculator. Deconectez instanța duplicat.');
             isDuplicateWindow = true;
             try { socket.disconnect(); } catch (_) {}
           }
@@ -442,7 +488,7 @@ export default function App() {
 
     socket.on('connect', () => {
       if (isDuplicateWindow) {
-        console.warn(`[Kiosk] ⚠️ Instanță duplicat detectată pe acest PC. Omit înregistrarea socket-ului.`);
+        console.warn(`[Kiosk] Instanță duplicat detectată pe acest PC. Omit înregistrarea socket-ului.`);
         socket.disconnect();
         return;
       }
@@ -488,7 +534,7 @@ export default function App() {
 
     // Handle live ping from admin panel
     const handlePing = (data) => {
-      console.log('[Kiosk] 🏓 Ping signal received from Admin, responding with pong...');
+      console.log('[Kiosk] Ping signal received from Admin, responding with pong...');
       const tele = getKioskTelemetry();
       socket.emit('kiosk_pong', {
         pingId: data?.pingId,
@@ -543,7 +589,7 @@ export default function App() {
 
     // Remote Fullscreen (fără refresh, fără pierdere date sau comenzi active)
     const triggerFullscreen = () => {
-      console.log('[Kiosk] 🖥️ Comandă Remote Fullscreen primită.');
+      console.log('[Kiosk] Comandă Remote Fullscreen primită.');
       try {
         if (!document.fullscreenElement) {
           const docEl = document.documentElement;
@@ -570,8 +616,52 @@ export default function App() {
       socket.on(`kiosk_force_fullscreen_${urlLoc}`, triggerFullscreen);
     }
 
-    socket.on('location_updated', (newData) => {
+    const handleLockControl = (payload) => {
+      if (!payload) return;
+      if (typeof payload.maintenanceMode !== 'undefined') {
+        const maint = Boolean(payload.maintenanceMode);
+        setIsMaintenance(maint);
+        if (locationData) {
+          setLocationData({ ...locationData, maintenanceMode: maint });
+        }
+      }
+      if (typeof payload.locked !== 'undefined' || typeof payload.forceLocked !== 'undefined') {
+        const shouldLock = Boolean(payload.locked ?? payload.forceLocked);
+        if (locationData) {
+          const nextLoc = { ...locationData, forceLocked: shouldLock, ...(payload.forceLockedAt ? { forceLockedAt: payload.forceLockedAt } : {}) };
+          const windowId = getLockWindowId(nextLoc);
+          if (shouldLock && windowId) {
+            sessionStorage.removeItem(windowId);
+          } else if (!shouldLock && windowId) {
+            sessionStorage.setItem(windowId, 'true');
+          }
+          if (shouldLock && nextLoc.forceLockedAt) {
+            sessionStorage.removeItem(`kiosk_force_unlocked_${nextLoc.id}_${nextLoc.forceLockedAt}`);
+          }
+          setLocationData(nextLoc);
+        }
+        if (shouldLock) {
+          setIsScheduleLocked(false);
+          setIsLocked(true);
+        } else {
+          setIsScheduleLocked(false);
+          setIsLocked(false);
+        }
+      }
+    };
+
+    socket.on('kiosk_lock_control', handleLockControl);
+    socket.on(`kiosk_lock_control_${locId}`, handleLockControl);
+    if (urlLoc && urlLoc !== locId) {
+      socket.on(`kiosk_lock_control_${urlLoc}`, handleLockControl);
+    }
+
+    const handleLocationUpdated = (newData) => {
       console.log('[Kiosk] Live config update received from Admin Panel.');
+      if (newData?.forceLocked) {
+        const windowId = getLockWindowId(newData);
+        if (windowId) sessionStorage.removeItem(windowId);
+      }
       setLocationData(newData);
       evaluateLockState(newData);
       if (newData.categoryHeroActive !== undefined) {
@@ -595,7 +685,44 @@ export default function App() {
       if (newData.upsellActive !== undefined) {
         try { localStorage.setItem('kiosk_upsell_active', String(newData.upsellActive)); } catch {}
       }
-    });
+    };
+
+    socket.on('location_updated', handleLocationUpdated);
+
+    // Also connect to PROD_BACKEND socket if running locally so Admin changes on Render arrive immediately
+    let prodSocket = null;
+    if (BACKEND !== PROD_BACKEND) {
+      try {
+        prodSocket = io(PROD_BACKEND, { transports: ['websocket', 'polling'], reconnection: true });
+        prodSocket.on('connect', () => {
+          const tele = getKioskTelemetry();
+          prodSocket.emit('join', { role: 'kiosk', locationId: locId, kioskId: kioskDeviceId, screen: activeScreen, ...tele });
+          if (urlLoc && urlLoc !== locId) {
+            prodSocket.emit('join', { role: 'kiosk', locationId: urlLoc, kioskId: kioskDeviceId, screen: activeScreen, ...tele });
+          }
+        });
+        prodSocket.on('location_updated', handleLocationUpdated);
+        prodSocket.on('kiosk_lock_control', handleLockControl);
+        prodSocket.on(`kiosk_lock_control_${locId}`, handleLockControl);
+      } catch (_) {}
+    }
+
+    // Local BroadcastChannel for instant 0ms testing between localhost Admin and localhost Kiosk tabs
+    let localSyncChannel = null;
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        localSyncChannel = new BroadcastChannel('smart_kiosk_local_sync');
+        localSyncChannel.onmessage = (ev) => {
+          const msg = ev.data;
+          if (!msg) return;
+          const targetMatch = msg.locationId === locId || msg.locationId === urlLoc || msg.kioskUrl === locId || msg.kioskUrl === urlLoc;
+          if (targetMatch) {
+            if (msg.type === 'LOCK_CONTROL') handleLockControl(msg.payload);
+            if (msg.type === 'LOCATION_UPDATED' && msg.location) handleLocationUpdated(msg.location);
+          }
+        };
+      }
+    } catch (_) {}
 
     return () => {
       clearInterval(hbInterval);
@@ -610,9 +737,15 @@ export default function App() {
       if (singletonChannel) {
         try { singletonChannel.close(); } catch (_) {}
       }
+      if (localSyncChannel) {
+        try { localSyncChannel.close(); } catch (_) {}
+      }
+      if (prodSocket) {
+        try { prodSocket.disconnect(); } catch (_) {}
+      }
       socket.disconnect();
     };
-  }, [locationData?.id, setLocationData, screen, isLocked]);
+  }, [locationData?.id, setLocationData, screen, isLocked, isMaintenance]);
 
   // Auto-fullscreen pentru kiosk/tabletă (activ doar pentru modul kiosk, NICIODATĂ pe linkul de manager)
   useEffect(() => {
@@ -729,6 +862,42 @@ export default function App() {
     );
   }
 
+  if (isMaintenance) {
+    return (
+      <MaintenanceScreen
+        loc={locationData}
+        brandId={activeBrandId}
+        backendUrl={BACKEND}
+        onUnlock={(role) => {
+          if (locationData) {
+            const updatedLoc = { ...locationData, maintenanceMode: false };
+            setLocationData(updatedLoc);
+            const targetId = encodeURIComponent(locationData.id || locationData.kioskUrl);
+            const apiKey = import.meta.env.VITE_API_KEY || 'sk-live-2024-secure';
+            fetch(`${BACKEND}/api/locations/${targetId}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
+              body: JSON.stringify({ maintenanceMode: false })
+            }).catch(() => {});
+            if (BACKEND !== PROD_BACKEND) {
+              fetch(`${PROD_BACKEND}/api/locations/${targetId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
+                body: JSON.stringify({ maintenanceMode: false })
+              }).catch(() => {});
+            }
+            try {
+              const ch = new BroadcastChannel('smart_kiosk_local_sync');
+              ch.postMessage({ type: 'LOCATION_UPDATED', locationId: locationData.id, kioskUrl: locationData.kioskUrl, location: updatedLoc });
+              ch.close();
+            } catch (_) {}
+          }
+          setIsMaintenance(false);
+        }}
+      />
+    );
+  }
+
   if (isLocked) {
     return (
       <PinScreen 
@@ -742,7 +911,35 @@ export default function App() {
             if (windowId) {
               sessionStorage.setItem(windowId, 'true');
             }
+            const forceWinKey = `kiosk_force_unlocked_${locationData.id}_${locationData.forceLockedAt || 'manual'}`;
+            sessionStorage.setItem(forceWinKey, 'true');
             localStorage.setItem(`kiosk_unlocked_${locationData.id}_${locationData.kioskPin}`, 'true');
+            const updatedLoc = { ...locationData, forceLocked: false };
+            setLocationData(updatedLoc);
+            const targetId = encodeURIComponent(locationData.id || locationData.kioskUrl);
+            const apiKey = import.meta.env.VITE_API_KEY || 'sk-live-2024-secure';
+            fetch(`${BACKEND}/api/locations/${targetId}/lock`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
+              body: JSON.stringify({ locked: false, unlockedBy: role })
+            }).catch(() => {});
+            fetch(`${BACKEND}/api/locations/${targetId}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
+              body: JSON.stringify({ forceLocked: false })
+            }).catch(() => {});
+            if (BACKEND !== PROD_BACKEND) {
+              fetch(`${PROD_BACKEND}/api/locations/${targetId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
+                body: JSON.stringify({ forceLocked: false })
+              }).catch(() => {});
+            }
+            try {
+              const ch = new BroadcastChannel('smart_kiosk_local_sync');
+              ch.postMessage({ type: 'LOCATION_UPDATED', locationId: locationData.id, kioskUrl: locationData.kioskUrl, location: updatedLoc });
+              ch.close();
+            } catch (_) {}
           }
           setIsLocked(false);
         }} 

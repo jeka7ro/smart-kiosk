@@ -41,6 +41,7 @@ function getLiveKiosksSummary() {
       s.online = true;
       s.onlineCount += 1;
       if (k.screen) s.screen = k.screen;
+      if (k.isLocked || k.screen === 'pin') s.isLocked = true;
       if (k.isUniversal) s.isUniversal = true;
       if (k.scriptVersion) s.scriptVersion = k.scriptVersion;
       if (typeof k.isFullscreen !== 'undefined') s.isFullscreen = k.isFullscreen;
@@ -160,6 +161,8 @@ function initSocket(io) {
       if (data.locationId) k.locationId = String(data.locationId);
       if (data.kioskId) k.kioskId = String(data.kioskId);
       if (data.screen) k.screen = String(data.screen);
+      if (typeof data.isLocked !== 'undefined') k.isLocked = Boolean(data.isLocked);
+      else if (data.screen) k.isLocked = data.screen === 'pin';
       if (typeof data.isUniversal !== 'undefined') k.isUniversal = Boolean(data.isUniversal);
       if (data.scriptVersion) k.scriptVersion = String(data.scriptVersion);
       if (typeof data.isFullscreen !== 'undefined') k.isFullscreen = Boolean(data.isFullscreen);
@@ -168,6 +171,23 @@ function initSocket(io) {
       connectedKiosks.set(socket.id, k);
       socket._kioskInfo = k;
       broadcastLiveKiosks();
+    });
+
+    // Kiosk State Update (instant event when kiosk locks/unlocks or changes screen)
+    socket.on('kiosk_state_update', (data) => {
+      if (!data) return;
+      const k = connectedKiosks.get(socket.id) || socket._kioskInfo;
+      if (k) {
+        k.lastPing = Date.now();
+        if (data.locationId) k.locationId = String(data.locationId);
+        if (data.kioskId) k.kioskId = String(data.kioskId);
+        if (data.screen) k.screen = String(data.screen);
+        if (typeof data.isLocked !== 'undefined') k.isLocked = Boolean(data.isLocked);
+        else if (data.screen) k.isLocked = data.screen === 'pin';
+        connectedKiosks.set(socket.id, k);
+        socket._kioskInfo = k;
+        broadcastLiveKiosks();
+      }
     });
 
     // Kiosk Visibility Changed (instant event when minimized to taskbar or restored)
@@ -181,7 +201,7 @@ function initSocket(io) {
         if (data.screen) k.screen = String(data.screen);
         connectedKiosks.set(socket.id, k);
         socket._kioskInfo = k;
-        console.log(`[Socket] 👁️ Kiosk visibility changed: loc=${k.locationId} isVisible=${k.isVisible}`);
+        console.log(`[Socket] Kiosk visibility changed: loc=${k.locationId} isVisible=${k.isVisible}`);
         if (k.isVisible === false && k.locationId) {
           // Notifică instant POS Bridge-ul de pe acel PC să readucă Kiosk-ul pe tot ecranul
           io.to(`pos-bridge-${k.locationId}`).emit('kiosk_force_fullscreen', { locationId: k.locationId });
@@ -230,7 +250,7 @@ function initSocket(io) {
 
     // Kiosk solicită anularea plății pe POS (clientul a apăsat Înapoi sau Anulează)
     socket.on('cancel_pos_payment', (data) => {
-      console.log(`[Socket] 🛑 Cerere anulare plată POS pentru locația: ${data?.locationId}`);
+      console.log(`[Socket] Cerere anulare plată POS pentru locația: ${data?.locationId}`);
       const loc = data?.locationId;
       if (loc) {
         const { getLocationAliases } = require('../utils/locations');
@@ -248,7 +268,7 @@ function initSocket(io) {
     // POS Bridge trimite rezultatul plății
     socket.on('pos_payment_result', async (data) => {
       const { orderId, paid, authCode, responseCode, code, refNum, receiptNo, cardNo, txDate, error, raw, locationId, amount } = data;
-      console.log(`[Socket] 💳 POS result: orderId=${orderId} paid=${paid} auth=${authCode || '-'} code=${responseCode || code || '-'}`);
+      console.log(`[Socket] POS result: orderId=${orderId} paid=${paid} auth=${authCode || '-'} code=${responseCode || code || '-'}`);
       
       // Dacă este doar un skip intern de mutex ("Altă plată în curs"), nu îl înregistrăm ca tranzacție POS eșuată
       if (error === 'Altă plată în curs') {
@@ -320,7 +340,7 @@ function initSocket(io) {
           const { processOrderCreation } = require('../routes/orders');
           const pendingPayload = await getPendingPosOrder(orderId);
           if (pendingPayload) {
-            console.log(`[Socket] 🚀 Finalizez comanda automat pe backend pentru POS ${orderId} (${pendingPayload.items?.length || 0} produse)`);
+            console.log(`[Socket] Finalizez comanda automat pe backend pentru POS ${orderId} (${pendingPayload.items?.length || 0} produse)`);
             const createResult = await processOrderCreation({
               ...pendingPayload,
               posOrderId: orderId,
@@ -338,16 +358,16 @@ function initSocket(io) {
             }, io);
             if (createResult?.data?.order) {
               finalizedOrder = createResult.data.order;
-              console.log(`[Socket] ✅ Comandă creată și trimisă automat pe backend: #${finalizedOrder.orderNumber}`);
+              console.log(`[Socket] Comandă creată și trimisă automat pe backend: #${finalizedOrder.orderNumber}`);
               await removePendingPosOrder(orderId);
             } else {
-              console.error(`[Socket] ⚠️ Comanda pre-salvată pentru ${orderId} NU s-a putut finaliza. PĂSTREZ coșul în baza de date ca să nu se piardă!`);
+              console.error(`[Socket] Comanda pre-salvată pentru ${orderId} NU s-a putut finaliza. PĂSTREZ coșul în baza de date ca să nu se piardă!`);
             }
           } else {
             console.log(`[Socket] ℹ️ Nu s-a găsit draft pre-salvat pentru ${orderId}`);
           }
         } catch (autoErr) {
-          console.error(`[Socket] ❌ Eroare la finalizarea automată a comenzii:`, autoErr.message);
+          console.error(`[Socket] Eroare la finalizarea automată a comenzii:`, autoErr.message);
           // NU ștergem draftul la eroare ca să nu pierdem produsele!
         }
       }
@@ -404,7 +424,7 @@ function initSocket(io) {
     socket.on('pos_bridge_register', async ({ locationId, instanceId, version, port, posGateway, printerName, hostname, posWakeStandby, posWakeIntervalMinutes }) => {
       // Auto-correct: if POS Bridge connects on COM5/COM1 or with TM-T20III or DESKTOP-VNTDBO0 (Cluj 2 hardware) but defaulted to sm-brasov
       if ((locationId === 'sm-brasov' || !locationId) && (port === 'COM5' || port === 'COM1' || String(printerName).includes('TM-T20III') || hostname === 'DESKTOP-VNTDBO0')) {
-        console.log(`[Socket] 🔄 Auto-remap bridge to cluj2 based on hardware fingerprint (host=${hostname}, port=${port}, printer=${printerName})`);
+        console.log(`[Socket] Auto-remap bridge to cluj2 based on hardware fingerprint (host=${hostname}, port=${port}, printer=${printerName})`);
         locationId = 'cluj2';
       }
 
@@ -420,7 +440,7 @@ function initSocket(io) {
       }
 
       if (regResult && regResult.isDuplicate) {
-        console.warn(`[Socket] 🛑 Instanță duplicat respinsă pentru ${locationId} (sid: ${socket.id}). Nu se adaugă în camere.`);
+        console.warn(`[Socket] Instanță duplicat respinsă pentru ${locationId} (sid: ${socket.id}). Nu se adaugă în camere.`);
         return;
       }
 
@@ -436,7 +456,7 @@ function initSocket(io) {
             const roomSockets = await io.in(`pos-bridge-${roomName}`).fetchSockets();
             for (const s of roomSockets) {
               if (s.id !== socket.id) {
-                console.log(`[Socket] ⚠️ Elimin socket POS Bridge anterior din camera pos-bridge-${roomName} (sid: ${s.id})`);
+                console.log(`[Socket] Elimin socket POS Bridge anterior din camera pos-bridge-${roomName} (sid: ${s.id})`);
                 s.leave(`pos-bridge-${roomName}`);
               }
             }
@@ -449,7 +469,7 @@ function initSocket(io) {
       for (const a of allRooms) {
         socket.join(`pos-bridge-${a}`);
       }
-      console.log(`[Socket] 🔌 POS Bridge registered: location=${activeLocKey} (joined ${allRooms.length} rooms) port=${port || '?'} host=${hostname || '?'} sid=${socket.id}`);
+      console.log(`[Socket] POS Bridge registered: location=${activeLocKey} (joined ${allRooms.length} rooms) port=${port || '?'} host=${hostname || '?'} sid=${socket.id}`);
     });
 
     // POS Bridge heartbeat ping
@@ -495,13 +515,13 @@ function initSocket(io) {
 
     // ─── POS Settlement Result (from bridge) ──────────────────────────────
     socket.on('pos_settlement_result', (data) => {
-      console.log(`[Socket] 📊 POS Settlement result received:`, data);
+      console.log(`[Socket] POS Settlement result received:`, data);
       io.to('admin').emit('pos_settlement_result', data);
     });
 
     // ─── POS Signal Test Result (from bridge) ─────────────────────────────
     socket.on('pos_signal_result', (data) => {
-      console.log(`[Socket] 📡 POS Signal result received:`, data);
+      console.log(`[Socket] POS Signal result received:`, data);
       try {
         const bridgeMonitoringService = require('./bridgeMonitoringService');
         bridgeMonitoringService.recordPosSignalResult(data);
@@ -509,6 +529,38 @@ function initSocket(io) {
         console.error('[Socket] Eroare recordPosSignalResult:', e.message);
       }
       io.to('admin').emit('pos_signal_result', data);
+    });
+
+    // ─── Control PC Windows Remote (Admin <-> POS Bridge) ─────────────────
+    socket.on('pc_remote_request', (data = {}) => {
+      const locId = data.locationId;
+      if (locId) {
+        const { getLocationAliases } = require('../utils/locations');
+        const aliases = getLocationAliases ? getLocationAliases(locId) : [locId];
+        const targets = new Set([locId, ...aliases].filter(Boolean));
+        for (const tid of targets) {
+          io.to(`pos-bridge-${tid}`).emit('pc_remote_request', data);
+          io.emit(`pc_remote_request_${tid}`, data);
+        }
+      } else {
+        io.emit('pc_remote_request', data);
+      }
+    });
+
+    socket.on('pc_remote_response', (data = {}) => {
+      io.to('admin').emit('pc_remote_response', data);
+    });
+
+    socket.on('set_pos_port', (data = {}) => {
+      const locId = data.locationId;
+      if (locId) {
+        const { getLocationAliases } = require('../utils/locations');
+        const aliases = getLocationAliases ? getLocationAliases(locId) : [locId];
+        for (const tid of new Set([locId, ...aliases].filter(Boolean))) {
+          io.to(`pos-bridge-${tid}`).emit('set_pos_port', data);
+          io.emit(`set_pos_port_${tid}`, data);
+        }
+      }
     });
 
     socket.on('disconnect', () => {
@@ -522,7 +574,7 @@ function initSocket(io) {
       if (connectedKiosks.has(socket.id)) {
         const k = connectedKiosks.get(socket.id);
         connectedKiosks.delete(socket.id);
-        console.log(`[Socket] 🔴 Kiosk disconnected: location=${k?.locationId} sid=${socket.id}`);
+        console.log(`[Socket] Kiosk disconnected: location=${k?.locationId} sid=${socket.id}`);
         broadcastLiveKiosks();
       }
       console.log(`[Socket] Client disconnected: ${socket.id}`);
@@ -532,7 +584,7 @@ function initSocket(io) {
 
 function triggerPosSettlement(locationId) {
   if (!_io) return false;
-  console.log(`[Socket] 🔄 Triggering POS Settlement for location=${locationId || 'ALL'}`);
+  console.log(`[Socket] Triggering POS Settlement for location=${locationId || 'ALL'}`);
   if (locationId) {
     _io.to(`pos-bridge-${locationId}`).emit('pos_settlement', { locationId });
     _io.emit('pos_settlement', { locationId });
@@ -550,6 +602,19 @@ function emitToAll(event, data) {
   if (_io) _io.emit(event, data);
 }
 
+function setLocationLockState(locationIds, isLocked) {
+  const idSet = new Set((Array.isArray(locationIds) ? locationIds : [locationIds]).filter(Boolean).map(String));
+  let changed = false;
+  for (const [, k] of connectedKiosks.entries()) {
+    if (k && idSet.has(String(k.locationId))) {
+      k.isLocked = Boolean(isLocked);
+      k.screen = isLocked ? 'pin' : (k.screen === 'pin' ? 'welcome' : (k.screen || 'welcome'));
+      changed = true;
+    }
+  }
+  if (changed) broadcastLiveKiosks();
+}
+
 module.exports = { 
   initSocket, 
   emitToKitchen, 
@@ -557,5 +622,6 @@ module.exports = {
   getLiveKiosksSummary, 
   broadcastLiveKiosks, 
   pingKioskLocation,
-  triggerPosSettlement
+  triggerPosSettlement,
+  setLocationLockState
 };

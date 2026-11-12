@@ -20,6 +20,7 @@ import BrandLogo from './components/BrandLogo.jsx';
 import BankLogo from './components/BankLogo.jsx';
 import ThermalReceiptModal from './components/ThermalReceiptModal.jsx';
 import SoftwareReleaseNotesModal from './components/SoftwareReleaseNotesModal.jsx';
+import WindowsRemoteModal from './components/WindowsRemoteModal.jsx';
 import { BRIDGE_RELEASE_NOTES } from './data/bridgeReleaseNotes.js';
 import DashboardCharts3D, { detectCardBrand, detectCardBank, BANK_CONFIG } from './components/DashboardCharts3D.jsx';
 import OrderToastNotificationStack, { playNewOrderSound } from './components/OrderToastNotification.jsx';
@@ -307,14 +308,45 @@ export default function AdminApp() {
     return localStorage.getItem('admin-theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
   });
   const socketRef = useRef(null);
-  const [kiosksLiveStatus, setKiosksLiveStatus] = useState({});
-  const [bridgeSummary, setBridgeSummary] = useState(null);
+  const [kiosksLiveStatus, setKiosksLiveStatus] = useState(() => {
+    try {
+      const cached = localStorage.getItem('admin_cached_kiosks_live_status');
+      return cached ? JSON.parse(cached) : {};
+    } catch {
+      return {};
+    }
+  });
+  const [bridgeSummary, setBridgeSummary] = useState(() => {
+    try {
+      const cached = localStorage.getItem('admin_cached_bridge_summary');
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    if (kiosksLiveStatus && Object.keys(kiosksLiveStatus).length > 0) {
+      try {
+        localStorage.setItem('admin_cached_kiosks_live_status', JSON.stringify(kiosksLiveStatus));
+      } catch {}
+    }
+  }, [kiosksLiveStatus]);
+
+  useEffect(() => {
+    if (bridgeSummary?.locations && Object.keys(bridgeSummary.locations).length > 0) {
+      try {
+        localStorage.setItem('admin_cached_bridge_summary', JSON.stringify(bridgeSummary));
+      } catch {}
+    }
+  }, [bridgeSummary]);
   const [activeLocationDropdown, setActiveLocationDropdown] = useState(null);
   const [dropdownActionLoading, setDropdownActionLoading] = useState(null);
   const [dropdownActionFeedback, setDropdownActionFeedback] = useState(null);
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
   const [isReleaseNotesOpen, setIsReleaseNotesOpen] = useState(false);
   const [releaseNotesTargetLoc, setReleaseNotesTargetLoc] = useState(null);
+  const [dashboardRemoteLoc, setDashboardRemoteLoc] = useState(null);
 
   const handleDropdownAction = async (locationId, actionType) => {
     setActiveLocationDropdown(null);
@@ -596,13 +628,40 @@ export default function AdminApp() {
     });
     socket.on('kiosks_live_status', (statusMap) => {
       if (statusMap) {
-        setKiosksLiveStatus(prev => ({ ...prev, ...statusMap }));
+        setKiosksLiveStatus(prev => {
+          const next = { ...prev };
+          for (const [k, val] of Object.entries(statusMap)) {
+            const incomingOnline = Boolean(val?.isLive || val?.online || (val?.onlineCount > 0));
+            const prevOnline = Boolean(next[k]?.isLive || next[k]?.online || (next[k]?.onlineCount > 0));
+            if (incomingOnline || !prevOnline) {
+              next[k] = val;
+            }
+          }
+          return next;
+        });
       }
     });
 
     socket.on('bridge_status_update', (summary) => {
       if (summary?.locations) {
-        setBridgeSummary(summary);
+        setBridgeSummary(prev => {
+          if (!prev?.locations) return summary;
+          const mergedLocs = { ...prev.locations };
+          for (const [k, loc] of Object.entries(summary.locations)) {
+            const incomingOnline = Boolean(loc?.isBridgeOnline || loc?.status === 'online');
+            const prevOnline = Boolean(mergedLocs[k]?.isBridgeOnline || mergedLocs[k]?.status === 'online');
+            if (incomingOnline || !prevOnline) {
+              mergedLocs[k] = { ...(mergedLocs[k] || {}), ...loc };
+            }
+          }
+          return { ...prev, ...summary, locations: mergedLocs };
+        });
+      }
+    });
+
+    socket.on('location_updated', (updatedLoc) => {
+      if (updatedLoc?.id) {
+        window.dispatchEvent(new CustomEvent('admin_location_updated', { detail: updatedLoc }));
       }
     });
 
@@ -617,11 +676,21 @@ export default function AdminApp() {
           headers: { 'x-api-key': 'sk-live-2024-secure' }
         }).then(r => r.json()).catch(() => null)
       ]).then(([d1, d2, d3]) => {
-        const mergedLive = {
-          ...(d1?.liveStatus || {}),
-          ...(d2?.liveStatus || {}),
-          ...(d3?.liveStatus || {})
-        };
+        const sources = [d1?.liveStatus || {}, d2?.liveStatus || {}, d3?.liveStatus || {}];
+        const mergedLive = {};
+        for (const src of sources) {
+          for (const [k, val] of Object.entries(src)) {
+            const isValOnline = Boolean(val?.isLive || val?.online || (val?.onlineCount > 0));
+            const isExistingOnline = Boolean(mergedLive[k]?.isLive || mergedLive[k]?.online || (mergedLive[k]?.onlineCount > 0));
+            if (!mergedLive[k] || isValOnline || !isExistingOnline) {
+              mergedLive[k] = {
+                ...(mergedLive[k] || {}),
+                ...val,
+                ...(isExistingOnline || isValOnline ? { isLive: true, online: true } : {})
+              };
+            }
+          }
+        }
         if (Object.keys(mergedLive).length > 0) {
           setKiosksLiveStatus(prev => ({ ...prev, ...mergedLive }));
         }
@@ -1477,6 +1546,17 @@ export default function AdminApp() {
                                 <span className="whitespace-nowrap">Fullscreen</span>
                               </button>
                             </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveLocationDropdown(null);
+                                setDashboardRemoteLoc({ id: loc.id, kioskUrl: loc.id, name: loc.name, bridgeLoc, isOnline: statusTone === 'online' || isKioskConnected });
+                              }}
+                              className="mt-2 w-full py-2 px-3 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
+                            >
+                              <Server className="w-3.5 h-3.5" />
+                              <span>💻 Control PC Windows (C:\SmartKiosk)</span>
+                            </button>
                           </div>
                         </>
                       )}
@@ -1723,19 +1803,19 @@ export default function AdminApp() {
                   <span key={b} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-bold">
                     <BrandLogo brandId={b} size={15} />
                     <span>Brand: {b}</span>
-                    <button onClick={() => toggleDashboardBrand(b)} className="hover:text-red-500 font-bold ml-1 cursor-pointer">✕</button>
+                    <button onClick={() => toggleDashboardBrand(b)} className="hover:text-red-500 font-bold ml-1 cursor-pointer"></button>
                   </span>
                 ))}
                 {dashboardHour !== null && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 font-bold">
                     Oră: {dashboardHour}:00 - {dashboardHour + 1}:00
-                    <button onClick={() => toggleDashboardHour(dashboardHour)} className="hover:text-red-500 font-bold ml-1 cursor-pointer">✕</button>
+                    <button onClick={() => toggleDashboardHour(dashboardHour)} className="hover:text-red-500 font-bold ml-1 cursor-pointer"></button>
                   </span>
                 )}
                 {dashboardDay !== null && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-bold">
                     Zi: {dashboardDay.label}
-                    <button onClick={() => toggleDashboardDay(dashboardDay)} className="hover:text-red-500 font-bold ml-1 cursor-pointer">✕</button>
+                    <button onClick={() => toggleDashboardDay(dashboardDay)} className="hover:text-red-500 font-bold ml-1 cursor-pointer"></button>
                   </span>
                 )}
                 {dashboardPayment !== 'all' && (
@@ -1747,19 +1827,19 @@ export default function AdminApp() {
                       dashboardPayment.startsWith('bank_') ? `Card ${BANK_CONFIG[dashboardPayment.replace('bank_', '')]?.name || 'Bancă'}` :
                       'Numerar (Cash)'
                     }
-                    <button onClick={() => toggleDashboardPayment(dashboardPayment)} className="hover:text-red-500 font-bold ml-1 cursor-pointer">✕</button>
+                    <button onClick={() => toggleDashboardPayment(dashboardPayment)} className="hover:text-red-500 font-bold ml-1 cursor-pointer"></button>
                   </span>
                 )}
                 {dashboardLocation !== 'all' && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 font-bold">
                     Locație: {dashboardLocation}
-                    <button onClick={() => setDashboardLocation('all')} className="hover:text-red-500 font-bold ml-1 cursor-pointer">✕</button>
+                    <button onClick={() => setDashboardLocation('all')} className="hover:text-red-500 font-bold ml-1 cursor-pointer"></button>
                   </span>
                 )}
                 {dashboardSearch && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-500/10 text-slate-700 dark:text-slate-300 border border-slate-500/20 font-bold">
                     Căutare: "{dashboardSearch}"
-                    <button onClick={() => setDashboardSearch('')} className="hover:text-red-500 font-bold ml-1 cursor-pointer">✕</button>
+                    <button onClick={() => setDashboardSearch('')} className="hover:text-red-500 font-bold ml-1 cursor-pointer"></button>
                   </span>
                 )}
                 <button 
@@ -1922,6 +2002,8 @@ export default function AdminApp() {
               <KiosksManager 
                 backend={BACKEND} 
                 kiosksLiveStatus={kiosksLiveStatus} 
+                bridgeSummary={bridgeSummary}
+                socket={socketRef.current}
                 onNavigateToProducts={(locId, kioskId, filterDiet = 'promo', brandId = 'smashme') => {
                   if (locId) localStorage.setItem('admin_active_location', locId);
                   if (kioskId) localStorage.setItem('admin_active_kiosk', kioskId);
@@ -2027,7 +2109,7 @@ export default function AdminApp() {
               <div className="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500 tracking-wider">COMANDA</div>
               <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">#{selectedOrder.orderNumber}</h2>
             </div>
-            <button onClick={() => setSelectedOrder(null)} className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer">✕</button>
+            <button onClick={() => setSelectedOrder(null)} className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"></button>
           </div>
 
           <div className="p-6 space-y-4 overflow-y-auto">
@@ -2063,7 +2145,7 @@ export default function AdminApp() {
                   <span className="font-bold">{selectedOrder.paymentMethod === 'cash' ? 'CASH' : (selectedOrder.paymentMethod === 'card' ? 'CARD' : '—')}</span> 
                   {selectedOrder.paymentMethod === 'card' ? (
                     <>
-                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap bg-emerald-500/20 text-emerald-500 border border-emerald-500/40">✓ Aprobat</span>
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap bg-emerald-500/20 text-emerald-500 border border-emerald-500/40">Aprobat</span>
                       {(() => {
                         const bank = detectCardBank(selectedOrder);
                         return bank ? (
@@ -2143,7 +2225,7 @@ export default function AdminApp() {
                   }}
                   className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold rounded-lg transition-colors text-sm"
                 >
-                  ✕ Anulează Comanda (Refuz POS)
+                  Anulează Comanda (Refuz POS)
                 </button>
               </div>
             )}
@@ -2283,7 +2365,7 @@ export default function AdminApp() {
         <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
           <div className="flex items-center justify-between px-8 py-5 border-b border-slate-200 dark:border-slate-800">
             <h2 className="text-xl font-bold">{selectedItemDetail.name}</h2>
-            <button onClick={() => setSelectedItemDetail(null)} className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">✕</button>
+            <button onClick={() => setSelectedItemDetail(null)} className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"></button>
           </div>
 
           <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
@@ -2324,6 +2406,18 @@ export default function AdminApp() {
         </div>
       </div>
     )}
+
+    <WindowsRemoteModal
+      isOpen={Boolean(dashboardRemoteLoc)}
+      onClose={() => setDashboardRemoteLoc(null)}
+      loc={dashboardRemoteLoc}
+      bridgeLoc={dashboardRemoteLoc?.bridgeLoc}
+      isOnline={dashboardRemoteLoc?.isOnline}
+      isLocked={false}
+      isMaintenance={false}
+      backend={BACKEND}
+      socket={socketRef.current}
+    />
 
     </div>
   );
@@ -2794,20 +2888,166 @@ function KioskPosterCard({ brandId, brandName, emoji, backend }) {
   );
 }
 
-function KiosksManager({ backend, kiosksLiveStatus = {}, onNavigateToProducts }) {
+function KiosksManager({ backend, kiosksLiveStatus = {}, bridgeSummary = null, socket = null, onNavigateToProducts }) {
   const { fetchWithAuth } = useAuth();
   const confirm = useConfirm();
-  const [locations, setLocations] = useState([]);
-  const [brandsData, setBrandsData] = useState([]);
+  const [remoteModalLoc, setRemoteModalLoc] = useState(null);
+  const [locations, setLocations] = useState(() => {
+    try {
+      const cached = localStorage.getItem('admin_cached_locations');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [brandsData, setBrandsData] = useState(() => {
+    try {
+      const cached = localStorage.getItem('admin_cached_brands');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
   const [allMenus, setAllMenus] = useState({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => {
+    try {
+      return !localStorage.getItem('admin_cached_locations');
+    } catch {
+      return true;
+    }
+  });
   const [brandFilter, setBrandFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('online'); // 'all' | 'online' (default online)
   const [revealedPins, setRevealedPins] = useState(new Set()); // IDs of kiosks with revealed PINs
   const [editingLoc, setEditingLoc] = useState(null);
   const [editingTab, setEditingTab] = useState('design');
   const [restartingId, setRestartingId] = useState(null); // ID of loc currently restarting
+  const [lockingId, setLockingId] = useState(null); // ID of loc currently being locked
+  const [maintainingId, setMaintainingId] = useState(null); // ID of loc toggling maintenance
   const [toast, setToast] = useState(null); // { msg, type: 'success'|'error' }
+
+  useEffect(() => {
+    const onLocUpdated = (e) => {
+      const updated = e.detail;
+      if (!updated?.id) return;
+      setLocations(prev => prev.map(l => l.id === updated.id ? { ...l, ...updated } : l));
+    };
+    window.addEventListener('admin_location_updated', onLocUpdated);
+
+    let localCh = null;
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        localCh = new BroadcastChannel('smart_kiosk_local_sync');
+        localCh.onmessage = (ev) => {
+          const msg = ev.data;
+          if (msg?.type === 'LOCATION_UPDATED' && msg.location?.id) {
+            setLocations(prev => prev.map(l => l.id === msg.location.id ? { ...l, ...msg.location } : l));
+          }
+        };
+      }
+    } catch (_) {}
+
+    return () => {
+      window.removeEventListener('admin_location_updated', onLocUpdated);
+      if (localCh) {
+        try { localCh.close(); } catch (_) {}
+      }
+    };
+  }, []);
+
+  const broadcastLocalSync = (loc, payload, updatedLoc) => {
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        const ch = new BroadcastChannel('smart_kiosk_local_sync');
+        ch.postMessage({ type: 'LOCK_CONTROL', locationId: loc.id, kioskUrl: loc.kioskUrl, payload });
+        if (updatedLoc) {
+          ch.postMessage({ type: 'LOCATION_UPDATED', locationId: loc.id, kioskUrl: loc.kioskUrl, location: updatedLoc });
+        }
+        ch.close();
+      }
+    } catch (_) {}
+  };
+
+  const lockKioskNow = async (loc, e, currentlyLocked = false) => {
+    if (e) e.stopPropagation();
+    if (!loc || lockingId === loc.id) return;
+    setLockingId(loc.id);
+    const shouldLock = !currentlyLocked;
+    const nowIso = new Date().toISOString();
+    const updatedObj = {
+      ...loc,
+      forceLocked: shouldLock,
+      forceLockedAt: shouldLock ? nowIso : null,
+      ...(!shouldLock ? { remoteUnlockedAt: nowIso } : {})
+    };
+    broadcastLocalSync(loc, { locked: shouldLock, forceLocked: shouldLock, forceLockedAt: shouldLock ? nowIso : null, remoteUnlockedAt: !shouldLock ? nowIso : null }, updatedObj);
+    try {
+      const [putRes] = await Promise.all([
+        fetchWithAuth(`${backend}/api/locations/${loc.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedObj)
+        }),
+        fetchWithAuth(`${backend}/api/locations/${loc.id}/lock`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ locked: shouldLock, unlockedBy: shouldLock ? null : 'admin' })
+        }).catch(() => null)
+      ]);
+      if (putRes && putRes.ok) {
+        setLocations(prev => prev.map(l => l.id === loc.id ? updatedObj : l));
+        if (editingLoc && editingLoc.id === loc.id) {
+          setEditingLoc(prev => prev ? { ...prev, forceLocked: shouldLock, forceLockedAt: shouldLock ? nowIso : null } : prev);
+        }
+        showToast(
+          shouldLock
+            ? `Kiosk-ul „${loc.name}” a fost blocat cu ecranul PIN!`
+            : `Kiosk-ul „${loc.name}” a fost deblocat de la distanță!`
+        );
+      } else {
+        const data = await putRes?.json().catch(() => ({}));
+        showToast(data?.error || 'Eroare la schimbarea stării de blocare.', 'error');
+      }
+    } catch {
+      showToast('Eroare de rețea la trimiterea comenzii.', 'error');
+    } finally {
+      setLockingId(null);
+    }
+  };
+
+  const toggleMaintenanceMode = async (loc, e) => {
+    if (e) e.stopPropagation();
+    if (!loc || maintainingId === loc.id) return;
+    setMaintainingId(loc.id);
+    const nextMaint = !loc.maintenanceMode;
+    const updatedObj = { ...loc, maintenanceMode: nextMaint };
+    broadcastLocalSync(loc, { maintenanceMode: nextMaint }, updatedObj);
+    try {
+      const putRes = await fetchWithAuth(`${backend}/api/locations/${loc.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedObj)
+      });
+      if (putRes && putRes.ok) {
+        setLocations(prev => prev.map(l => l.id === loc.id ? updatedObj : l));
+        if (editingLoc && editingLoc.id === loc.id) {
+          setEditingLoc(prev => prev ? { ...prev, maintenanceMode: nextMaint } : prev);
+        }
+        showToast(
+          nextMaint
+            ? `Mod Mentenanță ACTIVAT pentru „${loc.name}” (ecran animat cu logo-ul brandului)!`
+            : `Mod Mentenanță OPRIT pentru „${loc.name}”. Kiosk-ul a revenit la normal!`
+        );
+      } else {
+        const data = await putRes?.json().catch(() => ({}));
+        showToast(data?.error || 'Eroare la schimbarea modului mentenanță.', 'error');
+      }
+    } catch {
+      showToast('Eroare de rețea la schimbarea modului mentenanță.', 'error');
+    } finally {
+      setMaintainingId(null);
+    }
+  };
 
   const deleteLoc = async (loc) => {
     const ok = await confirm(`Ești sigur că vrei să ștergi chioșcul "${loc.name}"?`, {
@@ -2857,7 +3097,7 @@ function KiosksManager({ backend, kiosksLiveStatus = {}, onNavigateToProducts })
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const fetchLocs = () => {
-    setLoading(true);
+    if (locations.length === 0) setLoading(true);
     Promise.all([
       fetchWithAuth(`${backend}/api/locations`).then(r => r.json()).catch(err => {
         console.error('[Kiosks] fetch locations error:', err);
@@ -2868,8 +3108,14 @@ function KiosksManager({ backend, kiosksLiveStatus = {}, onNavigateToProducts })
     ])
       .then(([locData, bData, mData]) => {
         const rawLocs = locData?.locations || (Array.isArray(locData) ? locData : []);
-        setLocations(rawLocs);
-        setBrandsData(bData.brands || []);
+        if (rawLocs.length > 0) {
+          setLocations(rawLocs);
+          try { localStorage.setItem('admin_cached_locations', JSON.stringify(rawLocs)); } catch {}
+        }
+        if (bData.brands?.length > 0) {
+          setBrandsData(bData.brands);
+          try { localStorage.setItem('admin_cached_brands', JSON.stringify(bData.brands)); } catch {}
+        }
         setAllMenus(mData || {});
         setLoading(false);
       })
@@ -3100,7 +3346,9 @@ function KiosksManager({ backend, kiosksLiveStatus = {}, onNavigateToProducts })
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
             {paginated.map((loc, index) => {
-              const finalKioskUrl = loc.kioskUrl ? `https://kiosk-smashme.netlify.app/?loc=${loc.kioskUrl}` : `https://kiosk-smashme.netlify.app/?loc=${loc.id}`;
+              const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+              const kioskBaseUrl = isLocalhost ? 'http://localhost:4010' : 'https://kiosk-smashme.netlify.app';
+              const finalKioskUrl = loc.kioskUrl ? `${kioskBaseUrl}/?loc=${loc.kioskUrl}` : `${kioskBaseUrl}/?loc=${loc.id}`;
               const brandsArr = [...new Set((loc.brands && loc.brands.length > 0 ? loc.brands : (loc.brandId ? [loc.brandId] : (loc.name && loc.name.toLowerCase().includes('roll') ? ['rollmaster'] : (loc.name && loc.name.toLowerCase().includes('smash') ? ['smashme'] : [])))).map(b => (b === 'sushimaster' || b === 'ikura') ? 'rollmaster' : b))];
               const displayBrands = brandsArr.length > 1 && loc.name 
                 ? (brandsArr.filter(b => loc.name.toLowerCase().replace(/[\s\-_]+/g, '').includes(b)).length > 0
@@ -3112,7 +3360,8 @@ function KiosksManager({ backend, kiosksLiveStatus = {}, onNavigateToProducts })
                            (loc.kioskUrl ? kiosksLiveStatus[loc.kioskUrl] : null) ||
                            (loc.aliases && Array.isArray(loc.aliases) ? loc.aliases.map(a => kiosksLiveStatus[a]).find(Boolean) : null);
               const isOnline = isLocOnline(loc);
-              const isLocked = live ? (live.isLocked || live.screen === 'pin') : false;
+              const isLocked = Boolean(loc.forceLocked) || (live ? Boolean(live.isLocked || live.screen === 'pin') : false);
+              const isMaintenance = Boolean(loc.maintenanceMode);
               
               return (
                 <tr key={loc.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
@@ -3138,7 +3387,7 @@ function KiosksManager({ backend, kiosksLiveStatus = {}, onNavigateToProducts })
                       </button>
                       <div className="flex items-center gap-2 text-[11px] font-medium whitespace-nowrap">
                         <a 
-                          href={`/kiosk/${loc.kioskUrl || loc.id}`}
+                          href={finalKioskUrl}
                           target="_blank"
                           rel="noreferrer"
                           title={`Deschide chioșcul live (${loc.kioskUrl || loc.id})`}
@@ -3260,9 +3509,14 @@ function KiosksManager({ backend, kiosksLiveStatus = {}, onNavigateToProducts })
                           className={`w-2 h-2 rounded-full shrink-0 ${isOnline ? 'bg-white animate-pulse' : 'bg-slate-300'}`} 
                         />
                         <span>{isOnline ? 'Conectat' : (loc.active ? 'Offline' : 'Inactiv')}</span>
-                        {isOnline && isLocked && (
+                        {isLocked && (
                           <span className="ml-1 inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full text-[9px] font-black bg-red-600 text-white">
                             <Lock className="w-2.5 h-2.5 text-white" /> Blocat PIN
+                          </span>
+                        )}
+                        {isMaintenance && (
+                          <span className="ml-1 inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full text-[9px] font-black bg-amber-500 text-slate-950">
+                            <Sliders className="w-2.5 h-2.5" /> Mentenanță
                           </span>
                         )}
                       </div>
@@ -3270,6 +3524,45 @@ function KiosksManager({ backend, kiosksLiveStatus = {}, onNavigateToProducts })
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={(e) => lockKioskNow(loc, e, isLocked)}
+                        disabled={lockingId === loc.id}
+                        title={isLocked ? 'Blocat cu PIN — Apasă pentru a debloca rapid din Admin' : 'Blochează acum (Ecran PIN fără X — se deblochează cu PIN Manager/Casier sau de aici)'}
+                        className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all cursor-pointer active:scale-95 ${
+                          isLocked
+                            ? 'bg-red-600 hover:bg-emerald-600 text-white border-red-600 hover:border-emerald-600 shadow-sm ring-2 ring-red-500/30'
+                            : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 dark:hover:bg-rose-500/10 dark:hover:text-rose-400 text-slate-600 dark:text-slate-400'
+                        } ${lockingId === loc.id ? 'opacity-70 cursor-wait' : ''}`}
+                      >
+                        <Lock className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => toggleMaintenanceMode(loc, e)}
+                        disabled={maintainingId === loc.id}
+                        title={isMaintenance ? 'În Mentenanță — Apasă pentru a opri modul Mentenanță' : 'Mod Mentenanță (Ecran animat cu logo-ul brandului — clienții nu văd ce lucrezi și nu pot apăsa)'}
+                        className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all cursor-pointer active:scale-95 ${
+                          isMaintenance
+                            ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-sm ring-2 ring-amber-400/40'
+                            : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 dark:hover:bg-amber-500/10 dark:hover:text-amber-400 text-slate-600 dark:text-slate-400'
+                        } ${maintainingId === loc.id ? 'opacity-70 cursor-wait' : ''}`}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRemoteModalLoc(loc);
+                        }}
+                        title="Control PC Windows (C:\SmartKiosk, .env, Startup & Consolă — fără AnyDesk)"
+                        className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400 text-slate-600 dark:text-slate-400 flex items-center justify-center transition-all cursor-pointer active:scale-95"
+                      >
+                        <Server className="w-4 h-4" />
+                      </button>
                       <button 
                         title="Restartare Ecrane Remote"
                         className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 dark:hover:bg-orange-500/10 dark:hover:text-orange-400 text-slate-600 dark:text-slate-400 flex items-center justify-center transition-colors"
@@ -3398,6 +3691,24 @@ function KiosksManager({ backend, kiosksLiveStatus = {}, onNavigateToProducts })
         </div>
       </div>
     </div>
+    {remoteModalLoc && (
+      <WindowsRemoteModal
+        isOpen={Boolean(remoteModalLoc)}
+        onClose={() => setRemoteModalLoc(null)}
+        loc={locations.find(l => l.id === remoteModalLoc.id) || remoteModalLoc}
+        bridgeLoc={
+          bridgeSummary?.locations?.[remoteModalLoc.kioskUrl || remoteModalLoc.id] ||
+          bridgeSummary?.locations?.[remoteModalLoc.id]
+        }
+        isOnline={isLocOnline(remoteModalLoc)}
+        isLocked={Boolean((locations.find(l => l.id === remoteModalLoc.id) || remoteModalLoc).forceLocked)}
+        isMaintenance={Boolean((locations.find(l => l.id === remoteModalLoc.id) || remoteModalLoc).maintenanceMode)}
+        onToggleLock={(l, e, curLocked) => lockKioskNow(locations.find(x => x.id === l.id) || l, e, curLocked)}
+        onToggleMaintenance={(l, e) => toggleMaintenanceMode(locations.find(x => x.id === l.id) || l, e)}
+        backend={backend}
+        socket={socket}
+      />
+    )}
     {toast && (
       <div style={{
         position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
@@ -3407,7 +3718,7 @@ function KiosksManager({ backend, kiosksLiveStatus = {}, onNavigateToProducts })
         boxShadow: '0 8px 30px rgba(0,0,0,0.2)',
         display: 'flex', alignItems: 'center', gap: 10,
       }}>
-        <span style={{ fontSize: '1.2rem' }}>{toast.type === 'error' ? '✕' : '✓'}</span>
+        <span style={{ fontSize: '1.2rem' }}>{toast.type === 'error' ? '' : ''}</span>
         {toast.msg}
       </div>
     )}
@@ -3434,7 +3745,7 @@ function RestartKioskBtn({ locId, backend, fetchWithAuth }) {
     setTimeout(() => setRstState('idle'), 3000);
   };
   const colors = { idle: 'var(--surface)', sending: '#f59e0b', ok: '#059669', err: '#ef4444' };
-  const labels = { idle: 'Refresh Kiosk', sending: 'Se trimite...', ok: '✓ Trimis!', err: '✕ Eroare' };
+  const labels = { idle: 'Refresh Kiosk', sending: 'Se trimite...', ok: 'Trimis!', err: 'Eroare' };
   return (
     <button
       onClick={doRestart}
@@ -3611,6 +3922,8 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
     lockStartTime: loc.lockStartTime || '22:00',
     lockEndTime: loc.lockEndTime || '09:00',
     lockAutoUnlock: loc.lockAutoUnlock !== undefined ? loc.lockAutoUnlock : true,
+    forceLocked: Boolean(loc.forceLocked),
+    forceLockedAt: loc.forceLockedAt || null,
     brands: loc.brands || [],
     promoActive: loc.promoActive || false,
     promoBrandId: loc.promoBrandId || '',
@@ -4444,7 +4757,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
               <div className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
                 <div className="space-y-0.5">
                   <div className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                    <span className="text-base">🇷🇴</span>
+                    <span className="text-base"></span>
                     <span>Format Buton Steag (Tricolor)</span>
                   </div>
                   <div className="text-[11px] text-slate-500 dark:text-slate-400">
@@ -4466,7 +4779,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
               <div className="p-4 rounded-2xl border border-orange-300/80 dark:border-orange-900/60 bg-gradient-to-r from-orange-500/10 via-purple-600/10 to-slate-900/10 dark:from-orange-950/40 dark:via-purple-950/40 dark:to-slate-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
                 <div className="space-y-1">
                   <div className="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                    <span className="text-base">🎃</span>
+                    <span className="text-base"></span>
                     <span>Temă Festivă Halloween (Animații Periodice)</span>
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-500 text-white font-black tracking-wide uppercase">Sezonier</span>
                   </div>
@@ -4476,9 +4789,9 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                 </div>
                 <div className="flex items-center gap-1 bg-white/90 dark:bg-slate-800/90 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shrink-0 shadow-xs">
                   {[
-                    { id: 'auto', label: '📅 Auto (15 Oct - 5 Nov)' },
-                    { id: 'on', label: '🎃 Pornit' },
-                    { id: 'off', label: '⚪ Oprit' },
+                    { id: 'auto', label: 'Auto (15 Oct - 5 Nov)' },
+                    { id: 'on', label: 'Pornit' },
+                    { id: 'off', label: 'Oprit' },
                   ].map(opt => (
                     <button
                       key={opt.id}
@@ -4512,7 +4825,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                   <div className="pt-3 pb-1 flex flex-col items-center">
                     <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
                       <span>Previzualizare Buton Kiosk</span>
-                      {isHActive && <span className="px-1.5 py-0.2 rounded bg-orange-100 dark:bg-orange-950 text-orange-600 dark:text-orange-400 font-extrabold text-[10px]">🎃 MOD HALLOWEEN ACTIV</span>}
+                      {isHActive && <span className="px-1.5 py-0.2 rounded bg-orange-100 dark:bg-orange-950 text-orange-600 dark:text-orange-400 font-extrabold text-[10px]">MOD HALLOWEEN ACTIV</span>}
                     </span>
 
                     {/* Inline Animation Styles for accurate Admin Preview */}
@@ -4599,15 +4912,14 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                             zIndex: 3,
                           }}
                         >
-                          🦇
-                        </span>
+                          </span>
                       )}
 
                       {/* Floating Pumpkin */}
                       {isHActive && (
                         <img
                           src="/halloween_pumpkin.png"
-                          alt="🎃"
+                          alt=""
                           style={{
                             width: 26,
                             height: 26,
@@ -4636,7 +4948,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                       {isHActive ? (
                         <img
                           src="/halloween_bat.png"
-                          alt="🦇"
+                          alt=""
                           style={{
                             height: 26,
                             width: 'auto',
@@ -5252,7 +5564,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                   {/* Real-scale Footer Bar Strip Preview */}
                   <div className="w-full mt-4 pt-3 border-t border-slate-200 dark:border-slate-800">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5 text-center">
-                      Previzualizare Bară Footer (Reală: Logo ➔ Site ➔ Telefon)
+                      Previzualizare Bară Footer (Reală: Logo Site Telefon)
                     </span>
                     {(() => {
                       const { website: pWeb, phone: pPhone, extra: pExtra } = parseFooterDetails(formData.bottomBannerText);
@@ -5711,7 +6023,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
               <div className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 mt-2">
                 <div className="space-y-0.5">
                   <div className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                    <span className="text-base">🇷🇴</span>
+                    <span className="text-base"></span>
                     <span>Format Buton Steag (Tricolor)</span>
                   </div>
                   <div className="text-[11px] text-slate-500 dark:text-slate-400">
@@ -6239,6 +6551,60 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                       </div>
                     </div>
 
+                    {/* Secțiune Blocare Instantă (Manuală) */}
+                    <div className="p-4 rounded-xl bg-rose-50/60 dark:bg-rose-950/20 border border-rose-200/80 dark:border-rose-800/50 flex flex-wrap items-center justify-between gap-4">
+                      <div>
+                        <div className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                          <Lock className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                          Blocare / Deblocare Kiosk Instantă (Ecran PIN)
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          Blochează imediat chioșcul exact ca în timpul nopții (fără buton X). Se poate debloca de pe Kiosk cu PIN Manager/Casier sau rapid din Admin.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const shouldLock = !formData.forceLocked;
+                          const nowIso = new Date().toISOString();
+                          const nextData = {
+                            ...formData,
+                            forceLocked: shouldLock,
+                            forceLockedAt: shouldLock ? nowIso : null,
+                            remoteUnlockedAt: !shouldLock ? nowIso : null
+                          };
+                          setFormData(nextData);
+                          try {
+                            const [putRes] = await Promise.all([
+                              fetchWithAuth(`${backend}/api/locations/${loc.id}`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(nextData)
+                              }),
+                              fetchWithAuth(`${backend}/api/locations/${loc.id}/lock`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ locked: shouldLock })
+                              }).catch(() => null)
+                            ]);
+                            if (putRes && putRes.ok) {
+                              window.dispatchEvent(new CustomEvent('admin_location_updated', { detail: nextData }));
+                            } else {
+                              confirm('Eroare la actualizarea stării de blocare.', { title: 'Eroare', danger: true, hideCancel: true, okLabel: 'Închide' });
+                            }
+                          } catch {
+                            confirm('Eroare de rețea la actualizarea stării de blocare.', { title: 'Eroare de rețea', danger: true, hideCancel: true, okLabel: 'Închide' });
+                          }
+                        }}
+                        className={`px-4 py-2 rounded-xl text-xs font-bold text-white shadow-sm flex items-center gap-2 transition-all active:scale-95 cursor-pointer shrink-0 ${
+                          formData.forceLocked ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'
+                        }`}
+                      >
+                        {formData.forceLocked ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+                        <span>{formData.forceLocked ? 'Deblochează acum' : 'Blochează acum'}</span>
+                      </button>
+                    </div>
+
                     {/* Secțiune Blocare Kiosk după Program */}
                     <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/60 space-y-4">
                       <div className="flex items-center justify-between">
@@ -6486,7 +6852,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
             onClick={() => setShowWheelPreviewFull(false)}
             className="absolute top-6 right-6 px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white text-sm font-bold border border-white/20 transition-all cursor-pointer"
           >
-            ✕ Închide
+            Închide
           </button>
           <h2 className="text-white text-2xl font-black mb-8 drop-shadow-md">
             Simulare Roată Noroc pe Kiosk
@@ -7045,7 +7411,7 @@ function BrandsManager({ backend }) {
           fontWeight: 700, fontSize: '0.95rem', boxShadow: '0 8px 30px rgba(0,0,0,0.2)',
           display: 'flex', alignItems: 'center', gap: 10,
         }}>
-          <span>{toast.type === 'error' ? '✕' : '✓'}</span> {toast.msg}
+          <span>{toast.type === 'error' ? '' : ''}</span> {toast.msg}
         </div>
       )}
     </div>

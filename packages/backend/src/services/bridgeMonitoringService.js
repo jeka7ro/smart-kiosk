@@ -100,7 +100,7 @@ async function registerTelegramWebhook(serverBaseUrl = 'https://smart-kiosk-ttut
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           commands: [
-            { command: 'comenzi_rapide', description: '🎛️ Panou cu butoane rapide' },
+            { command: 'comenzi_rapide', description: 'Panou cu butoane rapide' },
             { command: 'comenzi', description: 'Toate comenzile de astăzi' },
             { command: 'comenzi_cluj1', description: 'Comenzi Cluj 1 (SmashMe)' },
             { command: 'comenzi_cluj2', description: 'Comenzi Cluj 2 (SmashMe)' },
@@ -109,6 +109,10 @@ async function registerTelegramWebhook(serverBaseUrl = 'https://smart-kiosk-ttut
             { command: 'comenzi_ieri', description: 'Toate comenzile de ieri' },
             { command: 'pos', description: 'Test latență și semnal UART POS' },
             { command: 'status', description: 'Stare Kiosk-uri, POS, Imprimante' },
+            { command: 'restart_cluj1', description: 'Restart POS Bridge Cluj 1' },
+            { command: 'restart_cluj2', description: 'Restart POS Bridge Cluj 2' },
+            { command: 'restart_brasov', description: 'Restart POS Bridge Brașov' },
+            { command: 'restart_constanta1', description: 'Restart POS Bridge Constanța 1' },
             { command: 'pin', description: 'PIN-uri deblocare și orar' },
             { command: 'verificare', description: 'Raport verificare matinală' },
             { command: 'ajutor', description: 'Ghid și listă comenzi' }
@@ -187,16 +191,39 @@ function formatDateTime(date = new Date()) {
 const QUICK_ALERT_KEYBOARD = {
   inline_keyboard: [
     [
-      { text: '📊 Status Live', callback_data: 'cmd_status' },
-      { text: '💳 Test Semnal POS', callback_data: 'cmd_pos' }
+      { text: 'Status Live', callback_data: 'cmd_status' },
+      { text: 'Test Semnal POS', callback_data: 'cmd_pos' }
     ],
     [
-      { text: '🍔 Comenzi Azi', callback_data: 'cmd_comenzi' },
-      { text: '🌅 Verificare Matinală', callback_data: 'cmd_verificare' }
+      { text: '🔄 Restart POS Bridge', callback_data: 'cmd_restart_menu' },
+      { text: 'Comenzi Azi', callback_data: 'cmd_comenzi' }
     ],
     [
-      { text: '🔐 Coduri PIN', callback_data: 'cmd_pin' },
-      { text: '❓ Ajutor', callback_data: 'cmd_ajutor' }
+      { text: 'Verificare Matinală', callback_data: 'cmd_verificare' },
+      { text: 'Coduri PIN', callback_data: 'cmd_pin' }
+    ],
+    [
+      { text: 'Ajutor', callback_data: 'cmd_ajutor' }
+    ]
+  ]
+};
+
+const RESTART_KEYBOARD = {
+  inline_keyboard: [
+    [
+      { text: '🔄 Restart Cluj 1', callback_data: 'cmd_restart_cluj1' },
+      { text: '🔄 Restart Cluj 2', callback_data: 'cmd_restart_cluj2' }
+    ],
+    [
+      { text: '🔄 Restart Brașov', callback_data: 'cmd_restart_brasov' },
+      { text: '🔄 Restart Constanța 1', callback_data: 'cmd_restart_constanta1' }
+    ],
+    [
+      { text: '🔄 Restart TOATE Locațiile', callback_data: 'cmd_restart_all' }
+    ],
+    [
+      { text: '⬅️ Înapoi la Status', callback_data: 'cmd_status' },
+      { text: '📡 Test Semnal POS', callback_data: 'cmd_pos' }
     ]
   ]
 };
@@ -204,20 +231,20 @@ const QUICK_ALERT_KEYBOARD = {
 const ORDERS_KEYBOARD = {
   inline_keyboard: [
     [
-      { text: '🏙️ Cluj 1', callback_data: 'cmd_comenzi_cluj1' },
-      { text: '🏙️ Cluj 2', callback_data: 'cmd_comenzi_cluj2' }
+      { text: 'Cluj 1', callback_data: 'cmd_comenzi_cluj1' },
+      { text: 'Cluj 2', callback_data: 'cmd_comenzi_cluj2' }
     ],
     [
-      { text: '🏔️ Brașov', callback_data: 'cmd_comenzi_brasov' },
-      { text: '🌊 Constanța 1', callback_data: 'cmd_comenzi_constanta1' }
+      { text: 'Brașov', callback_data: 'cmd_comenzi_brasov' },
+      { text: 'Constanța 1', callback_data: 'cmd_comenzi_constanta1' }
     ],
     [
-      { text: '📅 Vânzări Ieri', callback_data: 'cmd_comenzi_ieri' },
-      { text: '🔄 Toate Azi', callback_data: 'cmd_comenzi' }
+      { text: 'Vânzări Ieri', callback_data: 'cmd_comenzi_ieri' },
+      { text: 'Toate Azi', callback_data: 'cmd_comenzi' }
     ],
     [
-      { text: '📊 Status Live', callback_data: 'cmd_status' },
-      { text: '💳 Test POS', callback_data: 'cmd_pos' }
+      { text: 'Status Live', callback_data: 'cmd_status' },
+      { text: 'Test POS', callback_data: 'cmd_pos' }
     ]
   ]
 };
@@ -225,31 +252,35 @@ const ORDERS_KEYBOARD = {
 const STATUS_KEYBOARD = {
   inline_keyboard: [
     [
-      { text: '🔄 Refresh Status', callback_data: 'cmd_status' },
-      { text: '💳 Test Semnal POS', callback_data: 'cmd_pos' }
+      { text: 'Refresh Status', callback_data: 'cmd_status' },
+      { text: 'Test Semnal POS', callback_data: 'cmd_pos' }
     ],
     [
-      { text: '🍔 Comenzi Azi', callback_data: 'cmd_comenzi' },
-      { text: '🌅 Verificare Matinală', callback_data: 'cmd_verificare' }
+      { text: '🔄 Restart POS Bridge', callback_data: 'cmd_restart_menu' },
+      { text: 'Comenzi Azi', callback_data: 'cmd_comenzi' }
     ],
     [
-      { text: '🔐 Coduri PIN', callback_data: 'cmd_pin' },
-      { text: '❓ Ajutor', callback_data: 'cmd_ajutor' }
+      { text: 'Verificare Matinală', callback_data: 'cmd_verificare' },
+      { text: 'Coduri PIN', callback_data: 'cmd_pin' }
+    ],
+    [
+      { text: 'Ajutor', callback_data: 'cmd_ajutor' }
     ]
   ]
 };
 
 function getQuickCommandsMenuText() {
   return [
-    `🎛️ <b>[PANOU COMENZI RAPIDE SMART KIOSK]</b>`,
+    `<b>[PANOU COMENZI RAPIDE SMART KIOSK]</b>`,
     `Apasă pe oricare dintre butoanele de mai jos pentru a primi raportul instant:`,
     ``,
-    `• <b>📊 Status Live</b> — Starea tuturor kiosk-urilor, POS și imprimantelor`,
-    `• <b>💳 Test Semnal POS</b> — Interogare latență UART în milisecunde`,
-    `• <b>🍔 Comenzi Azi</b> — Vânzări, produse și totaluri de astăzi`,
-    `• <b>🌅 Verificare Matinală</b> — Raport pre-flight (echipamente, duplicate, ecran)`,
-    `• <b>🔐 Coduri PIN</b> — PIN-uri deblocare ecran și orar de blocare`,
-    `• <b>📅 Comenzi Ieri</b> — Încasări și comenzi din ziua anterioară`,
+    `• <b>Status Live</b> — Starea tuturor kiosk-urilor, POS și imprimantelor`,
+    `• <b>Test Semnal POS</b> — Interogare latență UART în milisecunde`,
+    `• <b>🔄 Restart POS Bridge</b> — Repornește POS Bridge-ul pe orice locație (deblochează portul USB)`,
+    `• <b>Comenzi Azi</b> — Vânzări, produse și totaluri de astăzi`,
+    `• <b>Verificare Matinală</b> — Raport pre-flight (echipamente, duplicate, ecran)`,
+    `• <b>Coduri PIN</b> — PIN-uri deblocare ecran și orar de blocare`,
+    `• <b>Comenzi Ieri</b> — Încasări și comenzi din ziua anterioară`,
   ].join('\n');
 }
 
@@ -450,7 +481,7 @@ async function sendPosAlert(data) {
         ].join('\n');
       } else {
         rejectMsg = [
-          `🔴 <b>[PLATĂ RESPINSĂ - POS]</b>`,
+          `<b>[PLATĂ RESPINSĂ - POS]</b>`,
           `Locație: <b>${loc}</b>`,
           `Sumă: <b>${amtStr} RON</b>`,
           `Comandă: #${orderId || '-'}`,
@@ -465,9 +496,19 @@ async function sendPosAlert(data) {
       }
 
       // Buffer inteligent de 50 secunde: dacă clientul reîncearcă și plătește, alerta roșie este anulată complet!
+      const canonLoc = normalizeLocationKey(locationId || locationName || '');
+      const rejectKeyboard = (!isCancellation && canonLoc) ? {
+        inline_keyboard: [
+          [
+            { text: `🔄 Restart POS Bridge (${getLocationDisplayName(canonLoc)})`, callback_data: `cmd_restart_${canonLoc}` },
+            { text: '📡 Test Semnal POS', callback_data: 'cmd_pos' }
+          ]
+        ]
+      } : null;
+
       const timer = setTimeout(() => {
         pendingRejectedPosAlerts.delete(bufferKey);
-        sendTelegramMessage(rejectMsg, null, telegramConfig.posChatId).catch(() => {});
+        sendTelegramMessage(rejectMsg, null, telegramConfig.posChatId, rejectKeyboard).catch(() => {});
       }, 50000);
 
       pendingRejectedPosAlerts.set(bufferKey, {
@@ -487,14 +528,14 @@ async function sendPosAlert(data) {
       clearTimeout(pendingRejectedPosAlerts.get(bufferKey).timer);
       pendingRejectedPosAlerts.delete(bufferKey);
       wasRecovered = true;
-      console.log(`[BridgeMonitor] 🛡️ [Anti-False-Alarm] Alerta roșie pentru ${bufferKey} a fost anulată! Plata a fost aprobată la reîncercare.`);
+      console.log(`[BridgeMonitor] [Anti-False-Alarm] Alerta roșie pentru ${bufferKey} a fost anulată! Plata a fost aprobată la reîncercare.`);
     } else {
       for (const [k, item] of pendingRejectedPosAlerts.entries()) {
         if (item.normLoc === normLoc && (Date.now() - item.createdAt) < 65000) {
           clearTimeout(item.timer);
           pendingRejectedPosAlerts.delete(k);
           wasRecovered = true;
-          console.log(`[BridgeMonitor] 🛡️ [Anti-False-Alarm] Alerta roșie pentru ${k} a fost anulată (aceeași locație aprobată la reîncercare)!`);
+          console.log(`[BridgeMonitor] [Anti-False-Alarm] Alerta roșie pentru ${k} a fost anulată (aceeași locație aprobată la reîncercare)!`);
           break;
         }
       }
@@ -529,7 +570,7 @@ async function sendOrderAlert(order) {
   const loc = order.locationName || order.locationId || 'Kiosk';
   const brand = (order.brand || '').toUpperCase();
   const orderNum = order.orderNumber || order._id || '-';
-  const orderTypeStr = order.orderType === 'dine_in' ? '🍽️ Aici (La masă)' : '🥡 La pachet';
+  const orderTypeStr = order.orderType === 'dine_in' ? 'Aici (La masă)' : 'La pachet';
   const totalStr = Number(order.totalAmount || 0).toFixed(2);
   const timeStr = formatDateTime(order.createdAt || new Date());
 
@@ -549,13 +590,13 @@ async function sendOrderAlert(order) {
   });
 
   const msg = [
-    `🍔 <b>COMANDĂ NOUĂ #${orderNum}</b>`,
-    `🏢 <b>${brand ? `${brand} — ` : ''}${loc}</b>`,
-    `📦 Tip: <b>${orderTypeStr}</b> | Plată: <b>${order.paymentMethod === 'card' ? 'Card POS' : 'Numerar'}</b>`,
-    `💰 Total: <b>${totalStr} RON</b>`,
-    `🛒 <b>Produse (${order.items?.length || 0}):</b>`,
+    `<b>COMANDĂ NOUĂ #${orderNum}</b>`,
+    `<b>${brand ? `${brand} — ` : ''}${loc}</b>`,
+    `Tip: <b>${orderTypeStr}</b> | Plată: <b>${order.paymentMethod === 'card' ? 'Card POS' : 'Numerar'}</b>`,
+    `Total: <b>${totalStr} RON</b>`,
+    `<b>Produse (${order.items?.length || 0}):</b>`,
     ...itemsLines,
-    `🕒 Timp: ${timeStr}`,
+    `Timp: ${timeStr}`,
   ].join('\n');
 
   // Pozele de pe comenzile Telegram au fost eliminate conform cerinței
@@ -578,14 +619,14 @@ async function sendIikoAlert(order, errorMsg) {
   const timeStr = formatDateTime();
 
   const msg = [
-    `⚠️ <b>[URGENT - EROARE SINCRONIZARE IIKO]</b>`,
-    `🏢 Locație: <b>${loc}</b>`,
-    `🧾 Comandă: <b>#${orderNum}</b> (${totalStr} RON)`,
-    `💳 Status plată: <b>Card încasat cu succes</b>`,
-    `❌ Problemă: Comanda <b>NU a putut fi transmisă în iiko</b>!`,
-    `💡 Detalii: <i>${errorMsg || 'iiko order push failed'}</i>`,
-    `🚨 <b>Acțiune necesară:</b> Introduceți comanda manual la bucătărie!`,
-    `🕒 Timp: ${timeStr}`,
+    `<b>[URGENT - EROARE SINCRONIZARE IIKO]</b>`,
+    `Locație: <b>${loc}</b>`,
+    `Comandă: <b>#${orderNum}</b> (${totalStr} RON)`,
+    `Status plată: <b>Card încasat cu succes</b>`,
+    `Problemă: Comanda <b>NU a putut fi transmisă în iiko</b>!`,
+    `Detalii: <i>${errorMsg || 'iiko order push failed'}</i>`,
+    `<b>Acțiune necesară:</b> Introduceți comanda manual la bucătărie!`,
+    `Timp: ${timeStr}`,
   ].join('\n');
 
   return sendTelegramMessage(msg, null, targetChat, QUICK_ALERT_KEYBOARD).catch(e => {
@@ -619,6 +660,7 @@ const RESTART_SOURCE_LABELS = {
   admin_port: 'Manual din Admin (schimbare port POS)',
   admin_ecran: 'Din Admin (buton Ecran) — a repornit și bridge-ul',
   admin_locatii: 'Din Admin (Restart locație)',
+  telegram: 'Manual din Telegram Bot (buton / comandă)',
   auto: 'Automat din locație (watchdog / crash / repornire PC / actualizare)',
 };
 const restartLog = [];              // cache în memorie (ultimele 300)
@@ -675,7 +717,7 @@ function expireStaleRestarts() {
  * Înregistrează o cerere de restart venită din Admin. Returnează requestId pentru urmărirea progresului.
  * onlyIfOnline: pentru restartări colaterale (ex: butonul Ecran) — nu loghează dacă bridge-ul e offline.
  */
-function startRestartRequest(locationId, { source = 'admin', requestedBy = null, onlyIfOnline = false } = {}) {
+function startRestartRequest(locationId, { source = 'admin', requestedBy = null, onlyIfOnline = false, telegramChatId = null } = {}) {
   const locKey = normalizeLocationKey(locationId);
   const now = Date.now();
   expireStaleRestarts();
@@ -693,6 +735,7 @@ function startRestartRequest(locationId, { source = 'admin', requestedBy = null,
     requestedAt: now,
     completedAt: bridgeOnline ? null : now,
     requestedBy,
+    telegramChatId,
     uptimeBefore: b?.uptimeSeconds ?? null,
     uptimeAfter: null,
     detail: bridgeOnline
@@ -702,6 +745,52 @@ function startRestartRequest(locationId, { source = 'admin', requestedBy = null,
   pushRestartEntry(entry);
   if (bridgeOnline) pendingRestarts.set(locKey, entry);
   return { requestId: entry.id, bridgeOnline, entry };
+}
+
+/**
+ * Trimite comanda de restart POS Bridge direct din Telegram (pe o locație sau 'all')
+ */
+async function restartBridgeFromTelegram(locationId, chatId, requestedBy = 'Telegram') {
+  if (!_io) {
+    await sendTelegramMessage('⚠️ <b>Eroare:</b> Socket.io nu este inițializat pe server.', null, chatId, STATUS_KEYBOARD);
+    return;
+  }
+
+  const allLocs = ['cluj1', 'cluj2', 'sm-brasov', 'constanta1'];
+  const targetsToRestart = (locationId === 'all') ? allLocs : [normalizeLocationKey(locationId)];
+  const results = [];
+
+  for (const locKey of targetsToRestart) {
+    const displayName = getLocationDisplayName(locKey);
+    const reqInfo = startRestartRequest(locKey, {
+      source: 'telegram',
+      requestedBy,
+      telegramChatId: chatId,
+    });
+
+    if (!reqInfo || !reqInfo.bridgeOnline) {
+      results.push(`🔴 <b>${displayName}:</b> OFFLINE — comanda nu poate ajunge (verifică PC-ul din locație).`);
+      continue;
+    }
+
+    const aliases = getLocationAliases ? getLocationAliases(locKey) : [locKey];
+    const emitTargets = new Set([locKey, ...aliases].filter(Boolean));
+    for (const tid of emitTargets) {
+      _io.to(`pos-bridge-${tid}`).emit('remote_restart', { locationId: tid });
+      _io.emit(`remote_restart_${tid}`, { locationId: tid });
+    }
+    console.log(`[BridgeMonitor] Comandă restart din Telegram trimisă către bridge: ${[...emitTargets].join(', ')} (cerere ${reqInfo.requestId})`);
+    results.push(`🔄 <b>${displayName}:</b> Comandă de restart trimisă! Se reinițializează procesul node.exe și portul serial POS...`);
+  }
+
+  const msg = [
+    `<b>[RESTART POS BRIDGE — TELEGRAM]</b>`,
+    ...results,
+    ``,
+    `<i>Vei primi automat mesaj de confirmare aici imediat ce bridge-ul revine online (2–5 secunde).</i>`
+  ].join('\n');
+
+  await sendTelegramMessage(msg, null, chatId, STATUS_KEYBOARD);
 }
 
 /**
@@ -733,6 +822,14 @@ function detectBridgeProcessRestart(locKey, entry, uptime, now) {
     pendingRestarts.delete(locKey);
     persistRestartEntry(pending);
     recordEvent('RESTART', locKey, `${pending.sourceLabel} — bridge repornit în ${seconds}s`);
+    if (pending.telegramChatId) {
+      const confirmMsg = [
+        `✅ <b>[RESTART REUȘIT — ${entry.displayName || locKey}]</b>`,
+        `POS Bridge-ul a repornit și s-a reconectat în <b>${seconds} secunde</b>!`,
+        `Port serial POS: <b>${entry.port || '?'}</b> — Echipamentul este gata de plăți.`
+      ].join('\n');
+      sendTelegramMessage(confirmMsg, null, pending.telegramChatId, STATUS_KEYBOARD).catch(() => {});
+    }
     return;
   }
 
@@ -888,11 +985,11 @@ function detectDateFromText(text) {
 
 function getLocationDisplayName(locKey) {
   switch (locKey) {
-    case 'cluj1': return 'Cluj 1 (SmashMe 🍔)';
-    case 'cluj2': return 'Cluj 2 (SmashMe 🍔)';
-    case 'sm-brasov': return 'Brașov (RollMaster 🍣)';
-    case 'constanta1': return 'Constanța 1 (SmashMe 🍔)';
-    case 'constanta2': return 'Constanța 2 (SmashMe 🍔)';
+    case 'cluj1': return 'Cluj 1 (SmashMe )';
+    case 'cluj2': return 'Cluj 2 (SmashMe )';
+    case 'sm-brasov': return 'Brașov (RollMaster )';
+    case 'constanta1': return 'Constanța 1 (SmashMe )';
+    case 'constanta2': return 'Constanța 2 (SmashMe )';
     default: return locKey;
   }
 }
@@ -942,7 +1039,7 @@ function handleBridgeConnect(socket, { locationId, instanceId, version, port, po
     const isDifferentInstance = !instanceId || !prev.instanceId || instanceId !== prev.instanceId;
 
     if (isOldAlive && isDifferentInstance) {
-      console.warn(`[BridgeMonitor] 🛑 DUPLICAT DETECTAT pentru ${locKey}: instanța activă (${prev.hostname}, sid: ${prev.socketId}, uptime: ${prev.uptimeSeconds}s) vs instanța nouă (${hostname}, sid: ${socket.id})`);
+      console.warn(`[BridgeMonitor] DUPLICAT DETECTAT pentru ${locKey}: instanța activă (${prev.hostname}, sid: ${prev.socketId}, uptime: ${prev.uptimeSeconds}s) vs instanța nouă (${hostname}, sid: ${socket.id})`);
       
       // Comandăm instanței duplicat să se închidă definitiv
       socket.emit('duplicate_instance_shutdown', {
@@ -971,13 +1068,13 @@ function handleBridgeConnect(socket, { locationId, instanceId, version, port, po
       if (telegramConfig.enabled && (isDifferentHost || isRepeatedConflict) && (now - lastAlert > 5 * 60 * 1000)) {
         duplicateAlertCooldowns.set(locKey, now);
         const alertMsg = [
-          `⚠️ <b>[ALERTĂ SMART KIOSK - DUPLICAT DETECTAT ȘI REZOLVAT AUTOMAT]</b>`,
+          `<b>[ALERTĂ SMART KIOSK - DUPLICAT DETECTAT ȘI REZOLVAT AUTOMAT]</b>`,
           `Locație: <b>${getLocationDisplayName(locKey)}</b>`,
           `Problemă: <b>O a doua instanță POS Bridge a încercat să se conecteze!</b>`,
           `PC / Host secundar: <code>${hostname || 'Nespecificat'}</code>`,
           `Port secundar: <code>${port || '?'}</code>`,
-          `🛡️ <b>Măsură Aplicată:</b> Instanța duplicat a primit semnal de oprire imediată (shutdown) și a fost deconectată.`,
-          `✅ <b>SITUAȚIE REZOLVATĂ:</b> Instanța principală continuă să ruleze normal (uptime ${Math.round((now - prev.connectedAt)/1000)}s pe ${prev.port}).`,
+          `<b>Măsură Aplicată:</b> Instanța duplicat a primit semnal de oprire imediată (shutdown) și a fost deconectată.`,
+          `<b>SITUAȚIE REZOLVATĂ:</b> Instanța principală continuă să ruleze normal (uptime ${Math.round((now - prev.connectedAt)/1000)}s pe ${prev.port}).`,
           `ℹ️ <i>Nu este necesară nicio intervenție manuală din partea dumneavoastră.</i>`,
           `Timp: ${formatDateTime(now)}`,
         ].join('\n');
@@ -1089,7 +1186,7 @@ function handleBridgeConnect(socket, { locationId, instanceId, version, port, po
           for (const tid of targets) {
             _io.to(`pos-bridge-${tid}`).emit('test_pos_signal', { locationId: tid });
           }
-          console.log(`[BridgeMonitor] 📡 Auto-test live semnal POS inițiat la conectare pentru ${locKey}`);
+          console.log(`[BridgeMonitor] Auto-test live semnal POS inițiat la conectare pentru ${locKey}`);
         } catch (_) {}
       }, 3000);
     }
@@ -1196,7 +1293,7 @@ function recordPosSignalResult(data) {
     bridges.set(locKey, entry);
   }
   recordEvent('INFO', locKey, `Test semnal POS: ${signalInfo.success ? `Activ (${signalInfo.latencyMs}ms)` : (signalInfo.message || 'Eșuat')}`);
-  console.log(`[BridgeMonitor] 📡 POS Signal rezultat pt ${locKey}:`, signalInfo);
+  console.log(`[BridgeMonitor] POS Signal rezultat pt ${locKey}:`, signalInfo);
 
   // Ignorăm duplicatele provocate de comenzi paralele de test
   if (signalInfo.message && signalInfo.message.includes('WAIT_ENQ_ACK')) {
@@ -1274,7 +1371,7 @@ function triggerDisconnectAlert(locKey, bridgeInfo) {
   lastAlertSent.set(locKey, now);
 
   const msg = [
-    `🔴 <b>[ALERTA SMART KIOSK]</b>`,
+    `<b>[ALERTA SMART KIOSK]</b>`,
     `Locatie: ${bridgeInfo.displayName || locKey}`,
     `Dispozitiv: POS Bridge (start-windows.bat)`,
     `Stare: DECONECTAT / OPRIT`,
@@ -1524,7 +1621,7 @@ async function runMorningPreflightCheck(targetChatId = null, isManual = false) {
 
   const { dateStr, hour, minute } = getBucharestTime();
   const timeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-  console.log(`[MorningCheck] 🌅 Rulare verificare matinală la ${timeStr} (data: ${dateStr}, manual: ${isManual})...`);
+  console.log(`[MorningCheck] Rulare verificare matinală la ${timeStr} (data: ${dateStr}, manual: ${isManual})...`);
 
   const targetLocations = ['cluj1', 'cluj2', 'sm-brasov', 'constanta1'];
 
@@ -1568,8 +1665,8 @@ async function runMorningPreflightCheck(targetChatId = null, isManual = false) {
   const kiosksSummary = getLiveKiosksSummary() || {};
 
   const lines = [
-    `🌅 <b>[VERIFICARE SISTEM — ${timeStr}]</b>`,
-    `📅 <b>Data:</b> ${dateStr} | 🕒 <b>Ora:</b> ${timeStr}`,
+    `<b>[VERIFICARE SISTEM — ${timeStr}]</b>`,
+    `<b>Data:</b> ${dateStr} | <b>Ora:</b> ${timeStr}`,
     `⏰ <i>Program deschidere restaurante: 10:00</i>`,
     ``
   ];
@@ -1617,7 +1714,7 @@ async function runMorningPreflightCheck(targetChatId = null, isManual = false) {
 
     if (actualHost && expected) {
       if (actualHost.toUpperCase() === expected.expectedHostname.toUpperCase()) {
-        hardwareDetail = `PC: <code>${actualHost}</code> (Fizic Corect ✅)`;
+        hardwareDetail = `PC: <code>${actualHost}</code> (Fizic Corect )`;
       } else {
         hardwareMismatch = true;
         // Identificăm unde ar trebui să fie de fapt acest PC
@@ -1625,8 +1722,8 @@ async function runMorningPreflightCheck(targetChatId = null, isManual = false) {
           k => EXPECTED_PHYSICAL_HARDWARE[k].expectedHostname.toUpperCase() === actualHost.toUpperCase()
         );
         const realOwnerName = realOwnerKey ? EXPECTED_PHYSICAL_HARDWARE[realOwnerKey].locationName : 'Alt PC necunoscut';
-        hardwareDetail = `🚨 <b>NEPOTRIVIRE .ENV!</b> (PC: <code>${actualHost}</code> de la ${realOwnerName})`;
-        issues.push(`• <b>${loc.displayName || locKey}:</b> 🚨 <b>EROARE GRAVĂ CONFIGURARE .ENV!</b> PC-ul fizic (<code>${actualHost}</code>) aparține locației <b>${realOwnerName}</b>, dar în fișierul .env este setat <code>${locKey}</code>! Comenzile vor fi direcționate eronat!`);
+        hardwareDetail = `<b>NEPOTRIVIRE .ENV!</b> (PC: <code>${actualHost}</code> de la ${realOwnerName})`;
+        issues.push(`• <b>${loc.displayName || locKey}:</b> <b>EROARE GRAVĂ CONFIGURARE .ENV!</b> PC-ul fizic (<code>${actualHost}</code>) aparține locației <b>${realOwnerName}</b>, dar în fișierul .env este setat <code>${locKey}</code>! Comenzile vor fi direcționate eronat!`);
       }
     } else if (actualHost) {
       hardwareDetail = `PC: <code>${actualHost}</code>`;
@@ -1640,7 +1737,7 @@ async function runMorningPreflightCheck(targetChatId = null, isManual = false) {
       failedLocationKeys.push(locKey);
     }
 
-    const dot = is100Ready ? '🟢' : ((isBridgeAlive || isKioskAlive) ? '🟡' : '🔴');
+    const dot = is100Ready ? '🟢' : ((isBridgeAlive || isKioskAlive) ? '🟡' : '');
     lines.push(`${dot} <b>${loc.displayName || getLocationDisplayName(locKey)}</b>`);
 
     // Ecran Kiosk
@@ -1650,19 +1747,19 @@ async function runMorningPreflightCheck(targetChatId = null, isManual = false) {
       const screenStr = kData.screen ? ` • Ecran: ${kData.screen}` : '';
       const isVis = typeof kData.isVisible !== 'undefined' ? Boolean(kData.isVisible) : true;
       if (isVis) {
-        lines.push(`   ├ 🖥️ <b>Ecran Kiosk:</b> Conectat (${verStr}${screenStr})`);
+        lines.push(`   ├ <b>Ecran Kiosk:</b> Conectat (${verStr}${screenStr})`);
       } else {
-        lines.push(`   ├ 🖥️ <b>Ecran Kiosk:</b> ⚠️ MINIMIZAT ÎN BARĂ! (${verStr}${screenStr})`);
-        issues.push(`• <b>${loc.displayName || locKey}:</b> ⚠️ Fereastra Kiosk este minimizată în bară! Nu se vede pe ecran.`);
+        lines.push(`   ├ <b>Ecran Kiosk:</b> MINIMIZAT ÎN BARĂ! (${verStr}${screenStr})`);
+        issues.push(`• <b>${loc.displayName || locKey}:</b> Fereastra Kiosk este minimizată în bară! Nu se vede pe ecran.`);
       }
     } else {
-      lines.push(`   ├ 🖥️ <b>Ecran Kiosk:</b> 🔴 Oprit / Deconectat`);
+      lines.push(`   ├ <b>Ecran Kiosk:</b> Oprit / Deconectat`);
       issues.push(`• <b>${loc.displayName || locKey}:</b> Ecranul Kiosk este oprit.`);
     }
 
     // Terminal POS & Semnal
     if (!isPosEnabled) {
-      lines.push(`   ├ 💳 <b>POS:</b> Inactiv din setări Kiosk (Plată doar Cash / Numerar 💵)`);
+      lines.push(`   ├ <b>POS:</b> Inactiv din setări Kiosk (Plată doar Cash / Numerar )`);
     } else if (isBridgeAlive) {
       const portName = loc.port && loc.port !== 'N/A' ? loc.port : (b?.port || 'COM');
       const gatewayName = (loc.gateway || 'raiffeisen').toUpperCase();
@@ -1671,12 +1768,12 @@ async function runMorningPreflightCheck(targetChatId = null, isManual = false) {
         if (b.posSignal.success) {
           signalText = `${b.posSignal.latencyMs}ms (activ)`;
         } else {
-          signalText = `⚠️ ${b.posSignal.message || 'fără răspuns'}`;
+          signalText = `${b.posSignal.message || 'fără răspuns'}`;
         }
       }
-      lines.push(`   ├ 💳 <b>POS (${gatewayName}):</b> Conectat pe ${portName} • Semnal: <b>${signalText}</b>`);
+      lines.push(`   ├ <b>POS (${gatewayName}):</b> Conectat pe ${portName} • Semnal: <b>${signalText}</b>`);
     } else {
-      lines.push(`   ├ 💳 <b>POS:</b> 🔴 Bridge / PC Deconectat`);
+      lines.push(`   ├ <b>POS:</b> Bridge / PC Deconectat`);
       issues.push(`• <b>${loc.displayName || locKey}:</b> POS Bridge este oprit (start-windows.bat nu rulează).`);
     }
 
@@ -1684,52 +1781,52 @@ async function runMorningPreflightCheck(targetChatId = null, isManual = false) {
     const printer = (loc.printerName && loc.printerName !== 'N/A' && loc.printerName !== 'Nedetectată')
       ? loc.printerName
       : (isBridgeAlive ? 'Nedetectată' : 'Offline');
-    lines.push(`   ├ 🖨️ <b>Imprimantă:</b> ${printer}`);
+    lines.push(`   ├ <b>Imprimantă:</b> ${printer}`);
 
     // Verificare .env & Procese duplicate & Versiune Soft
     const sysChecks = [];
     sysChecks.push('Server: <code>ttut.onrender.com</code>');
     if (loc.bridgeVersion) {
-      sysChecks.push(`Soft: <code>v${loc.bridgeVersion}</code> ${loc.isBridgeUpToDate ? '✅' : '⚠️'}`);
+      sysChecks.push(`Soft: <code>v${loc.bridgeVersion}</code> ${loc.isBridgeUpToDate ? '' : ''}`);
     }
     if (hardwareDetail) {
       sysChecks.push(hardwareDetail);
     }
 
     if (bridgeCount > 1) {
-      sysChecks.push(`⚠️ <b>${bridgeCount} procese Bridge duplicate!</b>`);
+      sysChecks.push(`<b>${bridgeCount} procese Bridge duplicate!</b>`);
       issues.push(`• <b>${loc.displayName || locKey}:</b> Rulează ${bridgeCount} procese Bridge simultan! Necesită restart.`);
     } else if (bridgeCount === 1) {
-      sysChecks.push('Proces unic ✅');
+      sysChecks.push('Proces unic ');
     }
 
     if (kioskAnalysis.hasLocalDuplicate) {
-      sysChecks.push(`⚠️ <b>${kioskAnalysis.maxOnSameIp} ferestre Kiosk deschise pe același PC!</b>`);
+      sysChecks.push(`<b>${kioskAnalysis.maxOnSameIp} ferestre Kiosk deschise pe același PC!</b>`);
       issues.push(`• <b>${loc.displayName || locKey}:</b> Sunt deschise ${kioskAnalysis.maxOnSameIp} ferestre Kiosk pe același PC (${kioskAnalysis.duplicateIp}).`);
     } else if (kioskAnalysis.hasExternalSessions) {
-      sysChecks.push(`Ecran restaurant unic ✅ <i>(${kioskCount} conexiuni din ${kioskAnalysis.uniqueIps.length} rețele)</i>`);
+      sysChecks.push(`Ecran restaurant unic <i>(${kioskCount} conexiuni din ${kioskAnalysis.uniqueIps.length} rețele)</i>`);
     } else if (kioskCount === 1) {
-      sysChecks.push('Ecran unic ✅');
+      sysChecks.push('Ecran unic ');
     }
 
-    lines.push(`   └ 🛡️ <b>Sistem & .env:</b> ${sysChecks.join(' • ')}`);
+    lines.push(`   └ <b>Sistem & .env:</b> ${sysChecks.join(' • ')}`);
     lines.push(``);
   }
 
   // Rezumat final
   lines.push(`━━━━━━━━━━━━━━━━━━━━━`);
-  lines.push(`📊 <b>Status General:</b> <b>${readyCount} din ${targetLocations.length}</b> locații pregătite 100%`);
+  lines.push(`<b>Status General:</b> <b>${readyCount} din ${targetLocations.length}</b> locații pregătite 100%`);
 
   if (issues.length > 0) {
     lines.push(``);
-    lines.push(`🚨 <b>ACȚIUNI NECESARE:</b>`);
+    lines.push(`<b>ACȚIUNI NECESARE:</b>`);
     issues.forEach(iss => lines.push(iss));
     if (!isManual && failedLocationKeys.length > 0 && minute < 20) {
       lines.push(``);
-      lines.push(`🔁 <i>Sistemul va repeta verificarea automat la ora 10:20 pentru toate locațiile.</i>`);
+      lines.push(`<i>Sistemul va repeta verificarea automat la ora 10:20 pentru toate locațiile.</i>`);
     }
   } else {
-    lines.push(`🎉 <b>Toate sistemele sunt funcționale!</b>`);
+    lines.push(`<b>Toate sistemele sunt funcționale!</b>`);
   }
 
   const reportText = lines.join('\n');
@@ -1745,7 +1842,7 @@ async function runMorningRetryCheck(failedKeys, destinationChat) {
   if (!failedKeys || failedKeys.length === 0) return;
   const { dateStr, hour, minute } = getBucharestTime();
   const timeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-  console.log(`[MorningCheck] 🔁 Rulare re-verificare pentru: ${failedKeys.join(', ')} la ${timeStr}...`);
+  console.log(`[MorningCheck] Rulare re-verificare pentru: ${failedKeys.join(', ')} la ${timeStr}...`);
 
   const dbLocs = await getDbLocationsList();
 
@@ -1826,32 +1923,32 @@ async function runMorningRetryCheck(failedKeys, destinationChat) {
     const is100Ready = isKioskAlive && isPosReady && bridgeCount <= 1 && !kioskAnalysis.hasLocalDuplicate && !hardwareMismatch;
 
     if (is100Ready) {
-      const hostStr = actualHost ? ` • PC: <code>${actualHost}</code> ✅` : '';
-      const posStr = isPosEnabled ? `💳 POS: Activ pe ${loc.port || 'COM'}` : '💳 POS: Inactiv din setări (Mod: Doar Numerar 💵)';
+      const hostStr = actualHost ? ` • PC: <code>${actualHost}</code> ` : '';
+      const posStr = isPosEnabled ? `POS: Activ pe ${loc.port || 'COM'}` : 'POS: Inactiv din setări (Mod: Doar Numerar )';
       lines.push(`🟢 <b>${loc.displayName || getLocationDisplayName(locKey)}</b>: S-a conectat cu succes!`);
-      lines.push(`   └ ${posStr} • 🖥️ Ecran Kiosk: Activ${hostStr}`);
+      lines.push(`   └ ${posStr} • Ecran Kiosk: Activ${hostStr}`);
     } else {
       stillFailedCount++;
       if (hardwareMismatch) {
-        lines.push(`🚨 <b>${loc.displayName || getLocationDisplayName(locKey)}</b>: Conectat dar cu .ENV GREȘIT! PC fizic necorespunzător.`);
+        lines.push(`<b>${loc.displayName || getLocationDisplayName(locKey)}</b>: Conectat dar cu .ENV GREȘIT! PC fizic necorespunzător.`);
       } else {
-        lines.push(`🔴 <b>${loc.displayName || getLocationDisplayName(locKey)}</b>: În continuare DECONECTAT!`);
+        lines.push(`<b>${loc.displayName || getLocationDisplayName(locKey)}</b>: În continuare DECONECTAT!`);
       }
       if (!isBridgeAlive && !isKioskAlive) {
-        lines.push(`   └ ⚠️ PC-ul este oprit complet sau nu are internet.`);
+        lines.push(`   └ PC-ul este oprit complet sau nu are internet.`);
       } else if (isPosEnabled && !isBridgeAlive) {
-        lines.push(`   └ ⚠️ POS Bridge este oprit (start-windows.bat).`);
+        lines.push(`   └ POS Bridge este oprit (start-windows.bat).`);
       } else if (!isKioskAlive) {
-        lines.push(`   └ ⚠️ Ecranul Kiosk este închis.`);
+        lines.push(`   └ Ecranul Kiosk este închis.`);
       }
     }
     lines.push(``);
   }
 
   if (stillFailedCount > 0) {
-    lines.push(`🚨 <b>Atenție:</b> ${stillFailedCount} locație(i) nu au pornit chioșcul. Contactați personalul din restaurant!`);
+    lines.push(`<b>Atenție:</b> ${stillFailedCount} locație(i) nu au pornit chioșcul. Contactați personalul din restaurant!`);
   } else {
-    lines.push(`🎉 <b>Excelent! Toate locațiile sunt acum 100% active și funcționale!</b>`);
+    lines.push(`<b>Excelent! Toate locațiile sunt acum 100% active și funcționale!</b>`);
   }
 
   await sendTelegramMessage(lines.join('\n'), null, destinationChat, QUICK_ALERT_KEYBOARD);
@@ -2069,7 +2166,7 @@ async function formatStatusSummaryForTelegram() {
   const dbLocs = await getDbLocationsList();
 
   const lines = [
-    `📊 <b>[STATUS SISTEM SMART KIOSK]</b>`,
+    `<b>[STATUS SISTEM SMART KIOSK]</b>`,
     `Timp: ${timeStr}`,
     ``
   ];
@@ -2094,9 +2191,9 @@ async function formatStatusSummaryForTelegram() {
 
     let dot = '🟢';
     if (!isPosEnabled) {
-      dot = loc.isKioskOnline ? '🟢' : '🔴';
+      dot = loc.isKioskOnline ? '🟢' : '';
     } else if (!loc.isBridgeOnline && !loc.isKioskOnline) {
-      dot = '🔴';
+      dot = '';
     } else if (!loc.isBridgeOnline || !loc.isKioskOnline) {
       dot = '🟡';
     }
@@ -2104,7 +2201,7 @@ async function formatStatusSummaryForTelegram() {
     // POS details: Port, Gateway, Semnal / Latență
     let posDetail = '';
     if (!isPosEnabled) {
-      posDetail = 'Dezactivat din setări (Mod: Doar Numerar 💵)';
+      posDetail = 'Dezactivat din setări (Mod: Doar Numerar )';
     } else if (loc.isBridgeOnline) {
       const portName = loc.port && loc.port !== 'N/A' ? loc.port : 'COM';
       const gatewayName = loc.gateway ? loc.gateway.toUpperCase() : 'RAIFFEISEN';
@@ -2113,7 +2210,7 @@ async function formatStatusSummaryForTelegram() {
         if (loc.posSignal.success) {
           signalStr = loc.posSignal.latencyMs !== null ? `${loc.posSignal.latencyMs}ms (activ)` : 'activ';
         } else {
-          signalStr = `⚠️ Eșuat (${loc.posSignal.message || 'Timeout'})`;
+          signalStr = `Eșuat (${loc.posSignal.message || 'Timeout'})`;
         }
       }
       posDetail = `${portName} (${gatewayName}) • Semnal: ${signalStr}`;
@@ -2155,12 +2252,12 @@ async function formatStatusSummaryForTelegram() {
     }
 
     lines.push(`${dot} <b>${loc.displayName}</b>`);
-    lines.push(`   ├ 💳 <b>POS:</b> ${posDetail}`);
-    lines.push(`   ├ ⚡ <b>Trezire Standby:</b> ${wakeStr}`);
-    lines.push(`   ├ 🔐 <b>PIN Manager:</b> ${pinStr}`);
-    lines.push(`   ├ 🕒 <b>Blocare Program:</b> ${lockStr}`);
-    lines.push(`   ├ 🖨️ <b>Imprimantă:</b> ${printerStr}`);
-    lines.push(`   └ 🖥️ <b>Kiosk:</b> ${kioskStr}${uptimeStr}`);
+    lines.push(`   ├ <b>POS:</b> ${posDetail}`);
+    lines.push(`   ├ <b>Trezire Standby:</b> ${wakeStr}`);
+    lines.push(`   ├ <b>PIN Manager:</b> ${pinStr}`);
+    lines.push(`   ├ <b>Blocare Program:</b> ${lockStr}`);
+    lines.push(`   ├ <b>Imprimantă:</b> ${printerStr}`);
+    lines.push(`   └ <b>Kiosk:</b> ${kioskStr}${uptimeStr}`);
     lines.push(``);
   }
 
@@ -2182,7 +2279,7 @@ async function formatPinSummaryForTelegram() {
   };
 
   const lines = [
-    `🔐 <b>[CODURI PIN & PROGRAM BLOCARE KIOSK]</b>`,
+    `<b>[CODURI PIN & PROGRAM BLOCARE KIOSK]</b>`,
     ``
   ];
 
@@ -2207,13 +2304,13 @@ async function formatPinSummaryForTelegram() {
       lockStr = `Activă (${s} - ${e})`;
     }
 
-    lines.push(`📍 <b>${name}</b>`);
+    lines.push(`<b>${name}</b>`);
     lines.push(`   • PIN: ${pin}${vendorPin}`);
     lines.push(`   • Blocare Program: ${lockStr}`);
     lines.push(``);
   }
 
-  lines.push(`<i>💡 Apasă pe codul PIN pentru a-l copia direct.</i>`);
+  lines.push(`<i>Apasă pe codul PIN pentru a-l copia direct.</i>`);
   return lines.join('\n');
 }
 
@@ -2244,8 +2341,8 @@ async function formatPosSignalSummaryForTelegram() {
   // 3. Compilăm raportul
   const summary = getStatusSummary();
   const lines = [
-    `💳 <b>[VERIFICARE SEMNAL POS — LĂȚENȚĂ UART]</b>`,
-    `📅 <b>Data:</b> ${dateStr} | 🕒 <b>Ora:</b> ${timeStr}`,
+    `<b>[VERIFICARE SEMNAL POS — LĂȚENȚĂ UART]</b>`,
+    `<b>Data:</b> ${dateStr} | <b>Ora:</b> ${timeStr}`,
     ``
   ];
 
@@ -2275,8 +2372,8 @@ async function formatPosSignalSummaryForTelegram() {
     );
 
     if (!isPosEnabled) {
-      lines.push(`⚪ <b>${loc.displayName || getLocationDisplayName(locKey)}</b>`);
-      lines.push(`   └ 💳 <b>POS:</b> Inactiv din setări (Mod: Doar Cash / Numerar 💵)`);
+      lines.push(`<b>${loc.displayName || getLocationDisplayName(locKey)}</b>`);
+      lines.push(`   └ <b>POS:</b> Inactiv din setări (Mod: Doar Cash / Numerar )`);
       lines.push(``);
       continue;
     }
@@ -2286,7 +2383,7 @@ async function formatPosSignalSummaryForTelegram() {
     const gatewayName = (loc.gateway || 'raiffeisen').toUpperCase();
     const hostName = b?.hostname || loc.hostname || 'PC Locație';
 
-    let dot = '🔴';
+    let dot = '';
     let latencyText = 'Deconectat / Fără răspuns';
 
     if (isBridgeAlive) {
@@ -2294,13 +2391,13 @@ async function formatPosSignalSummaryForTelegram() {
         dot = '🟢';
         activeCount++;
         const lat = b.posSignal.latencyMs;
-        let quality = 'Excelent ✅';
-        if (lat > 500) quality = 'Acceptabil ⚠️';
+        let quality = 'Excelent ';
+        if (lat > 500) quality = 'Acceptabil ';
         if (lat > 1500) quality = 'Lent ⏱️';
         latencyText = `<b>${lat}ms</b> (${quality})`;
       } else if (b?.posSignal && !b.posSignal.success) {
         dot = '🟡';
-        latencyText = `⚠️ <b>${b.posSignal.message || 'Eroare comunicare UART'}</b>`;
+        latencyText = `<b>${b.posSignal.message || 'Eroare comunicare UART'}</b>`;
       } else {
         dot = '🟡';
         latencyText = `⏳ Semnal în curs de verificare...`;
@@ -2308,16 +2405,16 @@ async function formatPosSignalSummaryForTelegram() {
     }
 
     lines.push(`${dot} <b>${loc.displayName || getLocationDisplayName(locKey)}</b>`);
-    lines.push(`   ├ 💳 <b>POS (${gatewayName}):</b> Port ${portName}`);
-    lines.push(`   ├ ⚡ <b>Răspuns UART:</b> ${latencyText}`);
-    lines.push(`   └ 💻 <b>PC Fizic:</b> <code>${hostName}</code>`);
+    lines.push(`   ├ <b>POS (${gatewayName}):</b> Port ${portName}`);
+    lines.push(`   ├ <b>Răspuns UART:</b> ${latencyText}`);
+    lines.push(`   └ <b>PC Fizic:</b> <code>${hostName}</code>`);
     lines.push(``);
   }
 
   lines.push(`━━━━━━━━━━━━━━━━━━━━━`);
-  lines.push(`📊 <b>Rezultat:</b> <b>${activeCount} din ${totalEnabled}</b> terminale POS răspund activ.`);
+  lines.push(`<b>Rezultat:</b> <b>${activeCount} din ${totalEnabled}</b> terminale POS răspund activ.`);
   if (activeCount === totalEnabled && totalEnabled > 0) {
-    lines.push(`🎉 <i>Toate terminalele POS comunică la latență optimă (sub 150ms).</i>`);
+    lines.push(`<i>Toate terminalele POS comunică la latență optimă (sub 150ms).</i>`);
   }
 
   return lines.join('\n');
@@ -2438,7 +2535,7 @@ async function resolveDuplicateInstances(locationId) {
       if (roomSockets.length > 1) {
         for (const s of roomSockets) {
           if (s.id !== b?.socketId) {
-            console.log(`[BridgeMonitor] 🛑 Trimit duplicate_instance_shutdown către socket secundar ${s.id} la ${locKey}`);
+            console.log(`[BridgeMonitor] Trimit duplicate_instance_shutdown către socket secundar ${s.id} la ${locKey}`);
             s.emit('duplicate_instance_shutdown', {
               reason: 'Comandă din Admin: oprire instanțe duplicate.',
             });
@@ -2470,7 +2567,7 @@ async function resolveDuplicateInstances(locationId) {
 
   if (telegramConfig.enabled) {
     const resMsg = [
-      `✅ <b>[SMART KIOSK - DUPLICAT REZOLVAT]</b>`,
+      `<b>[SMART KIOSK - DUPLICAT REZOLVAT]</b>`,
       `Locație: <b>${getLocationDisplayName(locKey)}</b>`,
       `Acțiune: <b>Situația instanțelor duplicate a fost rezolvată!</b>`,
       `Detalii: ${killedCount > 0 ? `Au fost oprite ${killedCount} procese duplicat/fantomă.` : 'Toate instanțele secundare au fost curățate.'}`,
@@ -2552,18 +2649,18 @@ async function formatOrdersSummaryForTelegram(options = {}) {
       const tipCmd = canonTarget ? `/comenzi_${canonTarget}_ieri` : `/comenzi_ieri`;
       let tipText = '';
       if (targetDate) {
-        tipText = `\n\n💡 <i>Verifică dacă pe data de <b>${reportDateStr}</b> au existat comenzi sau dacă data a fost introdusă corect.</i>`;
+        tipText = `\n\n<i>Verifică dacă pe data de <b>${reportDateStr}</b> au existat comenzi sau dacă data a fost introdusă corect.</i>`;
       } else if (!isYesterday) {
-        tipText = `\n\n💡 <i>Trimite <b>${tipCmd}</b> pentru a vedea vânzările de ieri.</i>`;
+        tipText = `\n\n<i>Trimite <b>${tipCmd}</b> pentru a vedea vânzările de ieri.</i>`;
       }
 
       return [
-        `🛍️ <b>[${titleLabel}]</b>`,
-        `🕒 <b>Ora raport:</b> ${timeStr}`,
+        `<b>[${titleLabel}]</b>`,
+        `<b>Ora raport:</b> ${timeStr}`,
         ``,
         `ℹ️ <i>Nu s-a înregistrat nicio comandă pe data de <b>${reportDateStr}</b>${targetLocName ? ` pentru <b>${targetLocName}</b>` : ''}.</i>${tipText}`,
         ``,
-        `🔗 <i>Comenzi rapide:</i>`,
+        `<i>Comenzi rapide:</i>`,
         `• /comenzi — Comenzile de astăzi`,
         `• /comenzi_ieri — Comenzile de ieri`,
         `• /comenzi_cluj1 — Cluj 1 astăzi`,
@@ -2635,20 +2732,20 @@ async function formatOrdersSummaryForTelegram(options = {}) {
       // Tip comanda (La masă vs La pachet)
       let typeLabel = '';
       if (isDineIn) {
-        typeLabel = o.tableNumber ? `La masă (Masa #${o.tableNumber}) 🍽️` : `La masă 🍽️`;
+        typeLabel = o.tableNumber ? `La masă (Masa #${o.tableNumber}) ` : `La masă `;
       } else {
-        typeLabel = `La pachet 🥡`;
+        typeLabel = `La pachet `;
       }
 
       // Metoda plata (Card vs Cash)
-      const payLabel = isCard ? `Card POS 💳` : `Cash (Numerar) 💵`;
+      const payLabel = isCard ? `Card POS ` : `Cash (Numerar) `;
 
       // Status
-      let statusLabel = 'Confirmată ✅';
-      if (rawStatus === 'completed') statusLabel = 'Finalizată ✅';
+      let statusLabel = 'Confirmată ';
+      if (rawStatus === 'completed') statusLabel = 'Finalizată ';
       else if (rawStatus === 'awaiting_payment') statusLabel = 'Așteaptă plata cash ⏳';
-      else if (rawStatus === 'pending') statusLabel = 'În preparare 🍳';
-      else if (rawStatus === 'cancelled') statusLabel = 'Anulată ❌';
+      else if (rawStatus === 'pending') statusLabel = 'În preparare ';
+      else if (rawStatus === 'cancelled') statusLabel = 'Anulată ';
 
       // Sumar produse (ex: 2x Burger Smash, 1x Cartofi...)
       let itemsSummary = '';
@@ -2675,23 +2772,23 @@ async function formatOrdersSummaryForTelegram(options = {}) {
     }
 
     const lines = [
-      `🛍️ <b>[${titleLabel}]</b>`,
-      `🕒 <b>Ora raport:</b> ${timeStr}`,
-      `📊 <b>Total comenzi:</b> <b>${filteredRows.length}</b> • <b>Încasări:</b> <b>${totalSum.toFixed(2)} RON</b>`,
-      `💳 <b>Card:</b> ${cardCount} (${cardSum.toFixed(2)} RON) • 💵 <b>Cash:</b> ${cashCount} (${cashSum.toFixed(2)} RON)`,
-      `🍽️ <b>La masă:</b> ${dineInCount} • 🥡 <b>La pachet:</b> ${takeawayCount}`,
+      `<b>[${titleLabel}]</b>`,
+      `<b>Ora raport:</b> ${timeStr}`,
+      `<b>Total comenzi:</b> <b>${filteredRows.length}</b> • <b>Încasări:</b> <b>${totalSum.toFixed(2)} RON</b>`,
+      `<b>Card:</b> ${cardCount} (${cardSum.toFixed(2)} RON) • <b>Cash:</b> ${cashCount} (${cashSum.toFixed(2)} RON)`,
+      `<b>La masă:</b> ${dineInCount} • <b>La pachet:</b> ${takeawayCount}`,
     ];
 
     if (!canonTarget) {
       lines.push(``);
-      lines.push(`📍 <b>Vânzări pe locații:</b>`);
+      lines.push(`<b>Vânzări pe locații:</b>`);
       for (const [lKey, st] of Object.entries(locStats)) {
-        lines.push(`• <b>${getLocationDisplayName(lKey)}:</b> ${st.count} comenzi • <b>${st.sum.toFixed(2)} RON</b> (💳 ${st.cardCount} card / 💵 ${st.cashCount} cash)`);
+        lines.push(`• <b>${getLocationDisplayName(lKey)}:</b> ${st.count} comenzi • <b>${st.sum.toFixed(2)} RON</b> (${st.cardCount} card / ${st.cashCount} cash)`);
       }
     }
 
     lines.push(``);
-    lines.push(`📋 <b>Comenzi recente detaliate:</b>`);
+    lines.push(`<b>Comenzi recente detaliate:</b>`);
 
     // Afișăm ultimele comenzi (până la 15 pentru global, până la 20 pentru locație specifică)
     const maxShow = canonTarget ? 20 : 15;
@@ -2700,14 +2797,14 @@ async function formatOrdersSummaryForTelegram(options = {}) {
       const fo = formattedOrders[i];
       lines.push(`<b>#${fo.num}</b> (${fo.time}) • <b>${fo.amount} RON</b>`);
       if (!canonTarget) {
-        lines.push(`   ├ 📍 ${fo.loc}`);
+        lines.push(`   ├ ${fo.loc}`);
       }
-      lines.push(`   ├ 🍽️ <b>Tip:</b> ${fo.type}`);
-      lines.push(`   ├ 💳 <b>Plată:</b> ${fo.pay}`);
+      lines.push(`   ├ <b>Tip:</b> ${fo.type}`);
+      lines.push(`   ├ <b>Plată:</b> ${fo.pay}`);
       if (fo.items) {
-        lines.push(`   ├ 📦 <b>Produse:</b> ${fo.items}`);
+        lines.push(`   ├ <b>Produse:</b> ${fo.items}`);
       }
-      lines.push(`   └ ⚙️ <b>Status:</b> ${fo.status}`);
+      lines.push(`   └ <b>Status:</b> ${fo.status}`);
       lines.push(``);
     }
 
@@ -2716,7 +2813,7 @@ async function formatOrdersSummaryForTelegram(options = {}) {
     }
 
     // Comenzi rapide clickable (Telegram links fără spații)
-    lines.push(`🔗 <b>Comenzi rapide (click pentru filtrare):</b>`);
+    lines.push(`<b>Comenzi rapide (click pentru filtrare):</b>`);
     if (canonTarget) {
       lines.push(`• /comenzi — Toate locațiile (astăzi)`);
       if (!isYesterday && !targetDate) {
@@ -2735,7 +2832,7 @@ async function formatOrdersSummaryForTelegram(options = {}) {
     return lines.join('\n');
   } catch (err) {
     console.error('[BridgeMonitor] Eroare formatare comenzi Telegram:', err.message);
-    return `⚠️ <i>Eroare la extragerea comenzilor: ${err.message}</i>`;
+    return `<i>Eroare la extragerea comenzilor: ${err.message}</i>`;
   }
 }
 
@@ -2771,10 +2868,12 @@ module.exports = {
   updateLocationConfig,
   updateBridgeHardware,
   startRestartRequest,
+  restartBridgeFromTelegram,
   getRestartLog,
   getRestartRequest,
   resolveDuplicateInstances,
   QUICK_ALERT_KEYBOARD,
+  RESTART_KEYBOARD,
   ORDERS_KEYBOARD,
   STATUS_KEYBOARD,
   answerTelegramCallbackQuery,

@@ -1983,6 +1983,213 @@ async function start() {
     log('📡 [POS Signal] Primită solicitare directă test semnal POS.');
     testPosSignal();
   });
+
+  // ─── Paravan Invizibil AnyDesk (Windows SetWindowDisplayAffinity 0x11 — FĂRĂ DRIVERE, 100% SAFE) ───
+  let privacyShieldProc = null;
+  function setWindowsPrivacyShield(enable) {
+    if (process.platform !== 'win32') return;
+    try {
+      if (!enable) {
+        if (privacyShieldProc) {
+          try { privacyShieldProc.kill(); } catch (_) {}
+          privacyShieldProc = null;
+        }
+        const { exec } = require('child_process');
+        exec('powershell -NoProfile -WindowStyle Hidden -Command "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like \'*privacy_shield.ps1*\' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"', { windowsHide: true }, () => {});
+        log('[Privacy Shield] Paravanul fizic pentru AnyDesk a fost OPRIT.');
+        return;
+      }
+
+      const psPath = pathMod.join(__dirname, 'privacy_shield.ps1');
+      const psScript = [
+        'Add-Type -AssemblyName System.Windows.Forms',
+        'Add-Type -AssemblyName System.Drawing',
+        '$code = @"',
+        'using System;',
+        'using System.Runtime.InteropServices;',
+        'public class Win32Shield {',
+        '  [DllImport("user32.dll")] public static extern bool SetWindowDisplayAffinity(IntPtr hWnd, uint dwAffinity);',
+        '  [DllImport("user32.dll")] public static extern int GetWindowLong(IntPtr hWnd, int nIndex);',
+        '  [DllImport("user32.dll")] public static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);',
+        '}',
+        '"@',
+        'Add-Type -TypeDefinition $code',
+        '$form = New-Object System.Windows.Forms.Form',
+        '$form.Text = "SmartKiosk Privacy Shield"',
+        '$form.FormBorderStyle = "None"',
+        '$form.WindowState = "Maximized"',
+        '$form.TopMost = $true',
+        '$form.ShowInTaskbar = $false',
+        '$form.BackColor = [System.Drawing.Color]::FromArgb(7, 11, 20)',
+        '$lbl = New-Object System.Windows.Forms.Label',
+        '$lbl.Text = "KIOSK IN MENTENANTA`r`n`r`nRevenim in cateva momente!"',
+        '$lbl.ForeColor = [System.Drawing.Color]::White',
+        '$lbl.Font = New-Object System.Drawing.Font("Segoe UI", 28, [System.Drawing.FontStyle]::Bold)',
+        '$lbl.AutoSize = $false',
+        '$lbl.Dock = "Fill"',
+        '$lbl.TextAlign = "MiddleCenter"',
+        '$form.Controls.Add($lbl)',
+        '$form.Add_Shown({',
+        '  # 0x00000011 = WDA_EXCLUDEFROMCAPTURE: Vizibil pe ecranul fizic din restaurant, INVIZIBIL in AnyDesk!',
+        '  [Win32Shield]::SetWindowDisplayAffinity($form.Handle, 0x00000011) | Out-Null',
+        '  # WS_EX_LAYERED (0x80000) | WS_EX_TRANSPARENT (0x20): Click-urile din AnyDesk trec direct prin paravan!',
+        '  $ex = [Win32Shield]::GetWindowLong($form.Handle, -20)',
+        '  [Win32Shield]::SetWindowLong($form.Handle, -20, ($ex -bor 0x80000 -bor 0x20)) | Out-Null',
+        '})',
+        '# Safety auto-close dupa 30 minute ca sa nu ramana niciodata blocat',
+        '$timer = New-Object System.Windows.Forms.Timer',
+        '$timer.Interval = 1800000',
+        '$timer.Add_Tick({ $form.Close() })',
+        '$timer.Start()',
+        '[System.Windows.Forms.Application]::Run($form)'
+      ].join('\r\n');
+
+      fs.writeFileSync(psPath, psScript, 'utf8');
+      const { spawn } = require('child_process');
+      privacyShieldProc = spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', psPath], {
+        cwd: __dirname,
+        windowsHide: true,
+        detached: false
+      });
+      log('[Privacy Shield] Paravan AnyDesk (WDA_EXCLUDEFROMCAPTURE) ACTIVAT: ecranul fizic afișează Mentenanță, iar în AnyDesk se vede desktopul Windows!');
+    } catch (e) {
+      log(`[Privacy Shield] Eroare: ${e.message}`);
+    }
+  }
+
+  const handlePcRemoteRequest = async (req = {}) => {
+    const { requestId, action, locationId: targetLoc, fileName, content, cmd, restartAfter } = req;
+    if (targetLoc && targetLoc !== LOCATION_ID && !isMyLocation(targetLoc)) return;
+    const reply = (payload) => {
+      socket.emit('pc_remote_response', {
+        requestId,
+        locationId: LOCATION_ID,
+        hostname: require('os').hostname(),
+        timestamp: Date.now(),
+        ...payload
+      });
+    };
+
+    try {
+      if (action === 'list_files') {
+        const entries = fs.readdirSync(__dirname, { withFileTypes: true });
+        const files = entries.map(e => {
+          let size = 0;
+          let mtime = null;
+          try {
+            const st = fs.statSync(pathMod.join(__dirname, e.name));
+            size = st.size;
+            mtime = st.mtime;
+          } catch (_) {}
+          return { name: e.name, isDir: e.isDirectory(), size, mtime };
+        });
+        const startupDir = 'C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Startup';
+        let startupFiles = [];
+        try {
+          if (fs.existsSync(startupDir)) {
+            startupFiles = fs.readdirSync(startupDir).map(name => ({ name, isDir: false }));
+          }
+        } catch (_) {}
+        let envContent = '';
+        try {
+          if (fs.existsSync(pathMod.join(__dirname, '.env'))) {
+            envContent = fs.readFileSync(pathMod.join(__dirname, '.env'), 'utf8');
+          }
+        } catch (_) {}
+        let logContent = '';
+        try {
+          if (fs.existsSync(LOG_FILE)) {
+            const rawLog = fs.readFileSync(LOG_FILE, 'utf8');
+            logContent = rawLog.split('\n').slice(-120).join('\n');
+          }
+        } catch (_) {}
+        return reply({ ok: true, action, dir: __dirname, files, startupFiles, envContent, logContent });
+      }
+
+      if (action === 'read_file') {
+        const safeName = pathMod.basename(String(fileName || '.env'));
+        const fullPath = pathMod.join(__dirname, safeName);
+        if (!fs.existsSync(fullPath)) {
+          return reply({ ok: false, action, error: `Fișierul ${safeName} nu există în ${__dirname}` });
+        }
+        const text = fs.readFileSync(fullPath, 'utf8');
+        return reply({ ok: true, action, fileName: safeName, content: text });
+      }
+
+      if (action === 'write_file') {
+        const safeName = pathMod.basename(String(fileName || '.env'));
+        const allowedExt = ['.env', '.bat', '.vbs', '.json', '.txt', '.ps1', '.js'];
+        if (!allowedExt.some(ext => safeName.toLowerCase().endsWith(ext))) {
+          return reply({ ok: false, action, error: `Extensie nepermisă pentru editare: ${safeName}` });
+        }
+        const fullPath = pathMod.join(__dirname, safeName);
+        fs.writeFileSync(fullPath, String(content ?? ''), 'utf8');
+        log(`[Remote PC] Fișierul ${safeName} a fost actualizat din Admin.`);
+        reply({ ok: true, action, fileName: safeName, message: `Fișierul ${safeName} a fost salvat în C:\\SmartKiosk!` });
+        if (restartAfter) {
+          setTimeout(() => process.exit(0), 600);
+        }
+        return;
+      }
+
+      if (action === 'fix_startup') {
+        const vbsContent = `Set WshShell = CreateObject("WScript.Shell")\r\nWshShell.CurrentDirectory = "${__dirname}"\r\nWshShell.Run "cmd /c start-windows.bat", 0, False\r\n`;
+        const userStartup = pathMod.join(process.env.APPDATA || '', 'Microsoft\\Windows\\Start Menu\\Programs\\Startup');
+        const commonStartup = 'C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Startup';
+        const written = [];
+        for (const dir of [userStartup, commonStartup]) {
+          try {
+            if (dir && fs.existsSync(dir)) {
+              const target = pathMod.join(dir, 'SmartKiosk_Autostart.vbs');
+              fs.writeFileSync(target, vbsContent, 'utf8');
+              written.push(target);
+            }
+          } catch (_) {}
+        }
+        try {
+          const { execSync } = require('child_process');
+          execSync(`reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "SmartKioskBridge" /t REG_SZ /d "wscript.exe \\"${pathMod.join(__dirname, 'run-hidden.vbs')}\\"" /f`, { windowsHide: true });
+          written.push('HKCU\\...\\Run\\SmartKioskBridge');
+        } catch (_) {}
+        log(`[Remote PC] Autostart reparat: ${written.join(', ')}`);
+        return reply({ ok: true, action, written, message: `Autostart instalat în: ${written.join(', ') || 'Registrul Windows'}` });
+      }
+
+      if (action === 'toggle_privacy_shield') {
+        const enable = Boolean(req.enable);
+        setWindowsPrivacyShield(enable);
+        return reply({
+          ok: true,
+          action,
+          enable,
+          message: enable
+            ? 'Paravanul AnyDesk a fost ACTIVAT! Pe ecranul din locație se vede doar Mentenanța, iar tu în AnyDesk vezi desktopul Windows prin el!'
+            : 'Paravanul AnyDesk a fost OPRIT!'
+        });
+      }
+
+      if (action === 'exec_cmd') {
+        const { exec } = require('child_process');
+        exec(String(cmd || 'dir'), { cwd: __dirname, windowsHide: true, timeout: 15000 }, (err, stdout, stderr) => {
+          reply({
+            ok: !err,
+            action,
+            cmd,
+            stdout: String(stdout || ''),
+            stderr: String(stderr || (err ? err.message : ''))
+          });
+        });
+        return;
+      }
+
+      reply({ ok: false, action, error: `Acțiune necunoscută: ${action}` });
+    } catch (e) {
+      reply({ ok: false, action, error: e.message });
+    }
+  };
+
+  socket.on('pc_remote_request', handlePcRemoteRequest);
+  socket.on(`pc_remote_request_${LOCATION_ID}`, handlePcRemoteRequest);
 }
 
 process.on('uncaughtException', (err) => {

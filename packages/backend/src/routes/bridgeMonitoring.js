@@ -147,6 +147,23 @@ router.post('/telegram-webhook', async (req, res) => {
       } else if (data === 'cmd_ajutor' || data === 'cmd_comenzi_rapide' || data === 'cmd_meniu') {
         const helpText = bridgeMonitoringService.getQuickCommandsMenuText();
         await bridgeMonitoringService.sendTelegramMessage(helpText, null, chatId, bridgeMonitoringService.QUICK_ALERT_KEYBOARD);
+      } else if (data === 'cmd_restart_menu') {
+        const restartMenuText = [
+          `<b>[🔄 RESTART POS BRIDGE — SELECTEAZĂ LOCAȚIA]</b>`,
+          `Apasă pe locația unde vrei să repornești POS Bridge-ul (eliberează portul USB serial și descarcă ultimele actualizări):`
+        ].join('\n');
+        await bridgeMonitoringService.sendTelegramMessage(restartMenuText, null, chatId, bridgeMonitoringService.RESTART_KEYBOARD);
+      } else if (data.startsWith('cmd_restart_')) {
+        const rawTarget = data.replace('cmd_restart_', '').trim();
+        let targetLoc = rawTarget;
+        if (rawTarget === 'brasov' || rawTarget === 'sm-brasov') targetLoc = 'sm-brasov';
+        else if (rawTarget === 'cluj1' || rawTarget === 'smashme-main') targetLoc = 'cluj1';
+        else if (rawTarget === 'cluj2') targetLoc = 'cluj2';
+        else if (rawTarget === 'constanta1') targetLoc = 'constanta1';
+        else if (rawTarget === 'all') targetLoc = 'all';
+
+        const senderName = cb.from?.username ? `@${cb.from.username}` : (cb.from?.first_name || 'Telegram');
+        await bridgeMonitoringService.restartBridgeFromTelegram(targetLoc, chatId, senderName);
       } else if (data.startsWith('cmd_comenzi')) {
         const isYesterday = data.includes('ieri');
         let targetLocation = null;
@@ -228,12 +245,27 @@ router.post('/telegram-webhook', async (req, res) => {
       );
       const ordersText = await bridgeMonitoringService.formatOrdersSummaryForTelegram({ isYesterday, targetLocation, targetDate });
       await bridgeMonitoringService.sendTelegramMessage(ordersText, null, chatId, bridgeMonitoringService.ORDERS_KEYBOARD);
+    } else if (cleanText.startsWith('/restart') || cleanText.startsWith('restart')) {
+      const targetLocation = bridgeMonitoringService.detectLocationFromText(rawText);
+      const isAll = cleanText.includes('toate') || cleanText.includes('all');
+      const senderName = message.from?.username ? `@${message.from.username}` : (message.from?.first_name || 'Telegram');
+      if (targetLocation) {
+        await bridgeMonitoringService.restartBridgeFromTelegram(targetLocation, chatId, senderName);
+      } else if (isAll) {
+        await bridgeMonitoringService.restartBridgeFromTelegram('all', chatId, senderName);
+      } else {
+        const restartMenuText = [
+          `<b>[🔄 RESTART POS BRIDGE — SELECTEAZĂ LOCAȚIA]</b>`,
+          `Apasă pe butonul locației pe care vrei să o repornești:`
+        ].join('\n');
+        await bridgeMonitoringService.sendTelegramMessage(restartMenuText, null, chatId, bridgeMonitoringService.RESTART_KEYBOARD);
+      }
     } else if (cleanText.startsWith('/verificare') || cleanText === 'verificare' || cleanText.startsWith('/check') || cleanText.startsWith('/dimineata') || cleanText.startsWith('/0955') || cleanText.startsWith('/preflight')) {
       await bridgeMonitoringService.sendTelegramMessage('⏳ <i>Se efectuează verificarea matinală a echipamentelor (test semnal POS, ecran, .env, procese duplicate)...</i>', null, chatId);
       await bridgeMonitoringService.runMorningPreflightCheck(chatId, true);
     } else if (cleanText.startsWith('/ajutor') || cleanText.startsWith('/help') || cleanText.startsWith('/start')) {
       const helpText = [
-        `🤖 <b>[SMART KIOSK BOT]</b>`,
+        `<b>[SMART KIOSK BOT]</b>`,
         `Apasă direct pe butoanele de mai jos sau folosește comenzile text:`,
         `• <b>/comenzi</b> — Toate comenzile de astăzi (masă/pachet, card/cash, produse, încasări)`,
         `• <b>/comenzi 21.10.2026</b> — Comenzi pentru orice dată specifică`,
@@ -242,6 +274,10 @@ router.post('/telegram-webhook', async (req, res) => {
         `• <b>/comenzi_brasov</b> — Brașov (RollMaster)`,
         `• <b>/comenzi_constanta1</b> — Constanța 1 (SmashMe)`,
         `• <b>/comenzi_ieri</b> — Toate comenzile de ieri`,
+        `• <b>/restart_cluj1</b> — Restart POS Bridge Cluj 1`,
+        `• <b>/restart_cluj2</b> — Restart POS Bridge Cluj 2`,
+        `• <b>/restart_brasov</b> — Restart POS Bridge Brașov`,
+        `• <b>/restart_constanta1</b> — Restart POS Bridge Constanța 1`,
         `• <b>/pos</b> — Latență UART către terminalele POS (ms)`,
         `• <b>/status</b> — Starea kiosk-urilor, POS, imprimante`,
         `• <b>/pin</b> — PIN-uri deblocare ecran și orar`,
@@ -483,7 +519,7 @@ router.post('/:locationId/set-wake-config', async (req, res) => {
         io.to(`pos-bridge-${tid}`).emit('location_updated', updatedLoc);
         io.emit(`location_updated_${tid}`, updatedLoc);
       }
-      console.log(`[BridgeMonitoring] ⚡ Trimis location_updated (Wake: ${updatedLoc.posWakeStandby}, ${updatedLoc.posWakeIntervalMinutes}m) către: ${[...targets].join(', ')}`);
+      console.log(`[BridgeMonitoring] Trimis location_updated (Wake: ${updatedLoc.posWakeStandby}, ${updatedLoc.posWakeIntervalMinutes}m) către: ${[...targets].join(', ')}`);
     }
 
     try {
@@ -676,7 +712,7 @@ router.post('/:locationId/fullscreen-kiosk', (req, res) => {
     if (locationId === 'all') {
       if (io) {
         io.emit('kiosk_force_fullscreen', { locationId: 'all' });
-        console.log('[BridgeMonitor] 🖥️ Comandă globală Fullscreen trimisă către TOATE Kiosk-urile și PC-urile!');
+        console.log('[BridgeMonitor] Comandă globală Fullscreen trimisă către TOATE Kiosk-urile și PC-urile!');
         return res.json({ success: true, message: 'Comanda Fullscreen a fost trimisă către TOATE Kiosk-urile!' });
       } else {
         return res.status(500).json({ error: 'Socket.io nu este inițializat pe server' });
@@ -695,7 +731,7 @@ router.post('/:locationId/fullscreen-kiosk', (req, res) => {
         // 2. Către POS Bridge pe PC (Windows F11 nativ)
         io.to(`pos-bridge-${tid}`).emit('kiosk_force_fullscreen', { locationId: tid });
       }
-      console.log(`[BridgeMonitor] 🖥️ Comandă Fullscreen trimisă către kiosk & bridge: ${[...targets].join(', ')}`);
+      console.log(`[BridgeMonitor] Comandă Fullscreen trimisă către kiosk & bridge: ${[...targets].join(', ')}`);
       res.json({ success: true, message: `Comanda Fullscreen a fost trimisă către Kiosk (${locationId})` });
     } else {
       res.status(500).json({ error: 'Socket.io nu este inițializat pe server' });

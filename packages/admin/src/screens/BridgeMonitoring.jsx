@@ -55,21 +55,37 @@ function formatDateTime(val) {
 }
 
 export default function BridgeMonitoring({ backend = '', socket = null, kiosksLiveStatus = {} }) {
-  const [data, setData] = useState({
-    locations: {},
-    totalOnline: 0,
-    totalOffline: 0,
-    telegramConfig: {
-      enabled: false,
-      botTokenConfigured: false,
-      botTokenMasked: '',
-      chatId: '',
-      alertCooldownMinutes: 10,
-    },
-    recentEvents: [],
+  const [data, setData] = useState(() => {
+    const fallback = {
+      locations: {},
+      totalOnline: 0,
+      totalOffline: 0,
+      telegramConfig: {
+        enabled: false,
+        botTokenConfigured: false,
+        botTokenMasked: '',
+        chatId: '',
+        alertCooldownMinutes: 10,
+      },
+      recentEvents: [],
+    };
+    try {
+      const cached = localStorage.getItem('admin_cached_bridge_summary');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && parsed.locations) return { ...fallback, ...parsed };
+      }
+    } catch {}
+    return fallback;
   });
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => {
+    try {
+      return !localStorage.getItem('admin_cached_bridge_summary');
+    } catch {
+      return true;
+    }
+  });
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState(null);
   const [copiedCommand, setCopiedCommand] = useState(false);
@@ -353,12 +369,12 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
       await confirm(
         <div className="text-left space-y-3 text-sm">
           <p className="text-amber-600 dark:text-amber-400 font-bold">
-            ⚠️ Bridge-ul {displayName} este în prezent OFFLINE (deconectat).
+            Bridge-ul {displayName} este în prezent OFFLINE (deconectat).
           </p>
           <p className="text-xs text-slate-600 dark:text-slate-300">
             Comanda de restart prin internet nu poate ajunge la calculator deoarece procesul local nu este conectat la server.
           </p>
-          <div className="p-2.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono break-all select-all">
+          <div className="p-2.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs tabular-nums break-all select-all">
             {startCmd}
           </div>
           <p className="text-xs text-slate-500">
@@ -528,7 +544,14 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
   const [savingTelegram, setSavingTelegram] = useState(false);
   const [telegramStatusMsg, setTelegramStatusMsg] = useState(null);
   const [testingTelegram, setTestingTelegram] = useState(false);
-  const [internalKiosksLive, setInternalKiosksLive] = useState({});
+  const [internalKiosksLive, setInternalKiosksLive] = useState(() => {
+    try {
+      const cached = localStorage.getItem('admin_cached_kiosks_live_status');
+      return cached ? JSON.parse(cached) : {};
+    } catch {
+      return {};
+    }
+  });
   const [currentTime, setCurrentTime] = useState(Date.now());
   const [dataReceivedAt, setDataReceivedAt] = useState(Date.now());
 
@@ -635,6 +658,11 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
       merged.totalOffline = totalOff;
 
       setData(merged);
+      try {
+        if (merged?.locations && Object.keys(merged.locations).length > 0) {
+          localStorage.setItem('admin_cached_bridge_summary', JSON.stringify(merged));
+        }
+      } catch (_) {}
       setDataReceivedAt(Date.now());
       if (merged.telegramConfig) {
         setTelegramForm(prev => ({
@@ -698,14 +726,35 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
     const activeSocket = internalSocket || socket;
     if (activeSocket) {
       const onBridgeUpdate = (updatedSummary) => {
-        if (updatedSummary) {
-          setData(updatedSummary);
+        if (updatedSummary?.locations) {
+          setData(prev => {
+            if (!prev?.locations) return updatedSummary;
+            const mergedLocs = { ...prev.locations };
+            for (const [k, loc] of Object.entries(updatedSummary.locations)) {
+              const incomingOnline = Boolean(loc?.isBridgeOnline || loc?.status === 'online');
+              const prevOnline = Boolean(mergedLocs[k]?.isBridgeOnline || mergedLocs[k]?.status === 'online');
+              if (incomingOnline || !prevOnline) {
+                mergedLocs[k] = { ...(mergedLocs[k] || {}), ...loc };
+              }
+            }
+            return { ...prev, ...updatedSummary, locations: mergedLocs };
+          });
           setLastRefreshed(new Date());
         }
       };
       const onKiosksLive = (statusMap) => {
         if (statusMap) {
-          setInternalKiosksLive(statusMap);
+          setInternalKiosksLive(prev => {
+            const next = { ...prev };
+            for (const [k, val] of Object.entries(statusMap)) {
+              const incomingOnline = Boolean(val?.isLive || val?.online || (val?.onlineCount > 0));
+              const prevOnline = Boolean(next[k]?.isLive || next[k]?.online || (next[k]?.onlineCount > 0));
+              if (incomingOnline || !prevOnline) {
+                next[k] = val;
+              }
+            }
+            return next;
+          });
         }
       };
 
@@ -1327,7 +1376,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                         </span>
                       ) : (loc.isCashOnly || loc.isPosEnabled === false) ? (
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/60">
-                          Inactiv (Doar Cash 💵)
+                          Inactiv (Doar Cash )
                         </span>
                       ) : loc.posSignal ? (
                         <button
@@ -1342,7 +1391,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                               : 'bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 hover:bg-rose-200 dark:hover:bg-rose-900'
                           }`}
                         >
-                          <span>{loc.posSignal.success ? `🟢 ${loc.posSignal.latencyMs}ms (activ)` : `🔴 ${loc.posSignal.message || 'Eroare'}`}</span>
+                          <span>{loc.posSignal.success ? `🟢 ${loc.posSignal.latencyMs}ms (activ)` : `${loc.posSignal.message || 'Eroare'}`}</span>
                           <span className="text-[9px] opacity-70 underline decoration-dotted font-semibold">istoric</span>
                         </button>
                       ) : (
@@ -1386,8 +1435,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                       {loc.duplicateDetected ? (
                         <div className="flex items-center gap-1.5">
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-300 dark:border-rose-700 animate-pulse">
-                            DA ⚠️
-                          </span>
+                            DA </span>
                           <button
                             type="button"
                             onClick={() => handleResolveDuplicate(locKey, loc.displayName)}
@@ -1498,7 +1546,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                   <div className="p-2.5 rounded-xl bg-rose-50/90 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-[11px] text-rose-800 dark:text-rose-300 leading-tight flex items-center justify-between gap-2 shadow-xs">
                     <div className="flex items-center gap-1.5 font-medium">
                       <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-                      <span>⚠️ <b>Atenție:</b> A fost detectată o instanță clonă/fantomă în fundal! Rata de succes POS poate fi degradată.</span>
+                      <span><b>Atenție:</b> A fost detectată o instanță clonă/fantomă în fundal! Rata de succes POS poate fi degradată.</span>
                     </div>
                     <button
                       type="button"
@@ -1687,7 +1735,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
           </button>
         </div>
 
-        <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/60 rounded-2xl p-3.5 font-mono text-[11px] text-slate-700 dark:text-slate-300 select-all break-all overflow-hidden leading-relaxed">
+        <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/60 rounded-2xl p-3.5 tabular-nums text-[11px] text-slate-700 dark:text-slate-300 select-all break-all overflow-hidden leading-relaxed">
           <code>{UNIVERSAL_COMMAND}</code>
         </div>
       </div>
@@ -1784,7 +1832,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                 className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <p className="text-[11px] text-slate-400 mt-1">
-                Plăți POS live (🟢 Aprobate vs 🔴 Respinse cu motiv detaliat în română).
+                Plăți POS live (🟢 Aprobate vs Respinse cu motiv detaliat în română).
               </p>
             </div>
 
@@ -1833,10 +1881,10 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
               </p>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { id: 'all', label: '🟢+🔴 Toate', desc: 'Aprobate + Respinse' },
+                  { id: 'all', label: '🟢+Toate', desc: 'Aprobate + Respinse' },
                   { id: 'approved_only', label: '🟢 Doar Aprobate', desc: 'Fără refuzuri' },
-                  { id: 'rejected_only', label: '🔴 Doar Respinse', desc: 'Fără aprobate' },
-                  { id: 'none', label: '⚪ Oprite (Nu)', desc: 'Niciun mesaj POS' },
+                  { id: 'rejected_only', label: 'Doar Respinse', desc: 'Fără aprobate' },
+                  { id: 'none', label: 'Oprite (Nu)', desc: 'Niciun mesaj POS' },
                 ].map(opt => {
                   const isChecked = (telegramForm.posAlertsFilter || 'all') === opt.id;
                   return (
@@ -1883,7 +1931,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                   },
                   {
                     id: 'ignore',
-                    label: '🚫 Opțiunea A: Fără Mesaj (În timp)',
+                    label: 'Opțiunea A: Fără Mesaj (În timp)',
                     desc: 'Nu trimite deloc pe Telegram când clientul apasă Anulează',
                   },
                 ].map(opt => {
@@ -1928,7 +1976,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
 
               <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
                 <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  {telegramForm.ordersAlertsEnabled !== false ? '✅ Comenzi active pe Telegram' : '❌ Notificări comenzi oprite'}
+                  {telegramForm.ordersAlertsEnabled !== false ? 'Comenzi active pe Telegram' : 'Notificări comenzi oprite'}
                 </span>
                 <button
                   type="button"
@@ -1987,10 +2035,10 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
         const locOptions = Array.from(new Set([...Object.keys(computedLocations || {}), ...restartLogs.map(r => r.locationId)]));
         const isManual = (s) => typeof s === 'string' && s.startsWith('admin');
         const statusBadge = (st) => {
-          if (st === 'completed') return { cls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300', txt: '✅ Repornit' };
+          if (st === 'completed') return { cls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300', txt: 'Repornit' };
           if (st === 'pending') return { cls: 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300', txt: '⏳ În curs' };
-          if (st === 'timeout') return { cls: 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300', txt: '❌ Nu a revenit' };
-          if (st === 'failed') return { cls: 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300', txt: '❌ Nelivrat (offline)' };
+          if (st === 'timeout') return { cls: 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300', txt: 'Nu a revenit' };
+          if (st === 'failed') return { cls: 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300', txt: 'Nelivrat (offline)' };
           return { cls: 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300', txt: st || '—' };
         };
         return (
@@ -2042,7 +2090,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                             <td className="py-2.5 px-3 font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">{r.displayName || r.locationId}</td>
                             <td className="py-2.5 px-3 whitespace-nowrap">
                               <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-bold ${manual ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'}`}>
-                                {manual ? '👤 Manual (Admin)' : '🤖 Automat / din locație'}
+                                {manual ? 'Manual (Admin)' : 'Automat / din locație'}
                               </span>
                               {manual && r.sourceLabel && <div className="text-[10px] text-slate-500 mt-0.5">{r.sourceLabel}</div>}
                             </td>
