@@ -119,12 +119,17 @@ export default function WindowsRemoteModal({
   const [quickGateway, setQuickGateway] = useState('raiffeisen');
   const [quickPrinter, setQuickPrinter] = useState('');
   const [saving, setSaving] = useState(false);
+  const [runningFile, setRunningFile] = useState(null);
+  const [taskbarVisible, setTaskbarVisible] = useState(false);
   const [feedback, setFeedback] = useState(null);
   const [cmdInput, setCmdInput] = useState('');
   const [cmdRunning, setCmdRunning] = useState(false);
   const [terminalLines, setTerminalLines] = useState([]);
   const [bridgeLogs, setBridgeLogs] = useState('');
   const terminalEndRef = useRef(null);
+  const cmdTimeoutRef = useRef(null);
+
+  const isRunnableFile = (name) => /\.(bat|cmd|vbs|ps1|lnk|exe)$/i.test(String(name || ''));
 
   const locId = loc?.kioskUrl || loc?.id || 'cluj1';
   const locName = loc?.name || locId;
@@ -138,12 +143,16 @@ export default function WindowsRemoteModal({
     setSelectedFile('.env');
     setFileContent(buildDefaultEnv(locId, bridgeLoc));
     setBridgeLogs(getFileTemplate('pos-bridge.log', locId, bridgeLoc));
+    setRunningFile(null);
+    setCmdRunning(false);
     setTerminalLines([
       { type: 'sys', text: `Microsoft Windows [Version 10.0.19045] — Sesiune Remote Silențioasă (${locName})` },
-      { type: 'sys', text: `Conectat la C:\\SmartKiosk pe ${bridgeLoc?.hostname || 'Kiosk-PC'} (Nicio fereastră nu apare pe ecranul clientului)` },
+      { type: 'sys', text: isOnline
+        ? `Conectat la C:\\SmartKiosk pe ${bridgeLoc?.hostname || 'Kiosk-PC'} (Comenzi live prin POS Bridge)`
+        : `⚠️ POS Bridge este OFFLINE pe ${locName} — comenzile nu pot ajunge la PC până nu pornește bridge-ul.` },
     ]);
 
-    if (socket && socket.connected) {
+    if (socket && socket.connected && isOnline) {
       const reqId = `req_${Date.now()}`;
       socket.emit('pc_remote_request', {
         requestId: reqId,
@@ -151,7 +160,7 @@ export default function WindowsRemoteModal({
         action: 'list_files',
       });
     }
-  }, [isOpen, locId]);
+  }, [isOpen, locId, isOnline]);
 
   useEffect(() => {
     if (!socket || !isOpen) return;
@@ -164,6 +173,9 @@ export default function WindowsRemoteModal({
         if (Array.isArray(res.startupFiles)) {
           setStartupFiles(res.startupFiles);
         }
+        if (typeof res.taskbarVisible === 'boolean') {
+          setTaskbarVisible(res.taskbarVisible);
+        }
         if (res.envContent && selectedFile === '.env') {
           setFileContent(res.envContent);
         }
@@ -175,15 +187,30 @@ export default function WindowsRemoteModal({
       } else if (res.action === 'write_file') {
         setSaving(false);
         showNotice(res.ok ? 'success' : 'error', res.message || res.error || 'Fișier salvat!');
+      } else if (res.action === 'run_file') {
+        setRunningFile(null);
+        const msg = res.message || res.error || (res.ok ? `Executat: ${res.fileName}` : 'Eroare la execuție!');
+        showNotice(res.ok ? 'success' : 'error', msg);
+        setTerminalLines(prev => [
+          ...prev,
+          { type: res.ok ? 'out' : 'err', text: `[${res.source === 'startup' ? 'Startup' : 'C:\\SmartKiosk'}] ${msg}` }
+        ]);
+      } else if (res.action === 'toggle_taskbar') {
+        if (typeof res.show === 'boolean') setTaskbarVisible(res.show);
+        showNotice(res.ok ? 'success' : 'error', res.message || res.error || 'Taskbar actualizat!');
       } else if (res.action === 'fix_startup') {
         setStartupFiles(prev => {
           const exists = prev.some(f => f.name.toLowerCase().includes('smartkiosk'));
           return exists ? prev : [...prev, { name: 'SmartKiosk_Autostart.vbs' }];
         });
-        showNotice('success', res.message || 'Autostart reparat în Windows Startup!');
+        showNotice(res.ok === false ? 'error' : 'success', res.message || res.error || 'Autostart reparat în Windows Startup!');
       } else if (res.action === 'toggle_privacy_shield') {
         showNotice('success', res.message || 'Paravan AnyDesk actualizat!');
       } else if (res.action === 'exec_cmd') {
+        if (cmdTimeoutRef.current) {
+          clearTimeout(cmdTimeoutRef.current);
+          cmdTimeoutRef.current = null;
+        }
         setCmdRunning(false);
         setTerminalLines(prev => [
           ...prev,
@@ -193,6 +220,10 @@ export default function WindowsRemoteModal({
     };
     socket.on('pc_remote_response', onRemoteRes);
     return () => {
+      if (cmdTimeoutRef.current) {
+        clearTimeout(cmdTimeoutRef.current);
+        cmdTimeoutRef.current = null;
+      }
       socket.off('pc_remote_response', onRemoteRes);
     };
   }, [socket, isOpen, locId, selectedFile, loc?.id]);
@@ -208,10 +239,18 @@ export default function WindowsRemoteModal({
     setTimeout(() => setFeedback(null), 5000);
   };
 
+  const requireOnlineBridge = (actionLabel = 'această acțiune') => {
+    if (!isOnline || !socket || !socket.connected) {
+      showNotice('error', `POS Bridge este OFFLINE pe ${locName} — nu pot executa ${actionLabel} până nu revine online (pornește o dată din AnyDesk dacă procesul local s-a oprit).`);
+      return false;
+    }
+    return true;
+  };
+
   const handleSelectFile = (fName) => {
     setSelectedFile(fName);
     setFileContent(getFileTemplate(fName, locId, bridgeLoc));
-    if (socket && socket.connected) {
+    if (socket && socket.connected && isOnline) {
       socket.emit('pc_remote_request', {
         requestId: `read_${Date.now()}`,
         locationId: locId,
@@ -221,7 +260,36 @@ export default function WindowsRemoteModal({
     }
   };
 
+  const handleRunFile = (fileName, source = 'smartkiosk') => {
+    if (!requireOnlineBridge(`fișierul ${fileName}`)) return;
+    setRunningFile(`${source}:${fileName}`);
+    const prefix = source === 'startup' ? 'Startup' : 'C:\\SmartKiosk';
+    setTerminalLines(prev => [...prev, { type: 'cmd', text: `[EXEC ${prefix}] ${fileName}` }]);
+    socket.emit('pc_remote_request', {
+      requestId: `run_${Date.now()}`,
+      locationId: locId,
+      action: 'run_file',
+      fileName,
+      source,
+    });
+    setTimeout(() => {
+      setRunningFile(prev => (prev === `${source}:${fileName}` ? null : prev));
+    }, 8000);
+  };
+
+  const handleToggleTaskbar = () => {
+    if (!requireOnlineBridge('comutarea bării de Start Windows')) return;
+    const nextShow = !taskbarVisible;
+    socket.emit('pc_remote_request', {
+      requestId: `taskbar_${Date.now()}`,
+      locationId: locId,
+      action: 'toggle_taskbar',
+      show: nextShow,
+    });
+  };
+
   const handleSaveFile = async (restartAfter = false) => {
+    if (!requireOnlineBridge(`salvarea ${selectedFile}`)) return;
     setSaving(true);
     try {
       // Dacă salvăm .env, extragem și aplicăm imediat și COM_PORT prin canalul direct compatibil cu toate versiunile
@@ -263,6 +331,7 @@ export default function WindowsRemoteModal({
   };
 
   const handleApplyQuickEnv = async () => {
+    if (!requireOnlineBridge('aplicarea .env')) return;
     const updatedEnv = [
       `# Configurare Smart Kiosk POS Bridge (C:\\SmartKiosk\\.env)`,
       `LOCATION_ID=${locId}`,
@@ -294,57 +363,50 @@ export default function WindowsRemoteModal({
   };
 
   const handleFixStartup = () => {
-    if (socket && socket.connected) {
-      socket.emit('pc_remote_request', {
-        requestId: `startup_${Date.now()}`,
-        locationId: locId,
-        action: 'fix_startup',
-      });
-    }
-    setStartupFiles(prev => {
-      const exists = prev.some(f => f.name.toLowerCase().includes('smartkiosk'));
-      return exists ? prev : [...prev, { name: 'SmartKiosk_Autostart.vbs' }];
+    if (!requireOnlineBridge('repararea Windows Startup')) return;
+    socket.emit('pc_remote_request', {
+      requestId: `startup_${Date.now()}`,
+      locationId: locId,
+      action: 'fix_startup',
     });
-    showNotice('success', 'Scriptul SmartKiosk_Autostart.vbs a fost adăugat în Windows Startup + Registrul HKCU\\...\\Run!');
   };
 
-  const runSilentCommand = async (cmdText, label) => {
+  const runSilentCommand = async (cmdText) => {
     const command = cmdText || cmdInput;
     if (!command.trim()) return;
-    setCmdRunning(true);
     setTerminalLines(prev => [...prev, { type: 'cmd', text: `C:\\SmartKiosk> ${command}` }]);
     if (!cmdText) setCmdInput('');
 
-    if (socket && socket.connected) {
-      socket.emit('pc_remote_request', {
-        requestId: `cmd_${Date.now()}`,
-        locationId: locId,
-        action: 'exec_cmd',
-        cmd: command,
-      });
+    if (!isOnline || !socket || !socket.connected) {
+      setTerminalLines(prev => [
+        ...prev,
+        { type: 'err', text: `EROARE: POS Bridge este OFFLINE pe ${locName}. Comanda NU s-a executat pe PC (pornește bridge-ul din AnyDesk dacă s-a oprit complet).` }
+      ]);
+      showNotice('error', `POS Bridge este OFFLINE — comanda nu s-a executat pe ${locName}!`);
+      return;
     }
 
-    // Fallback instant pentru comenzi uzuale dacă PC-ul rulează o versiune anterioară de bridge
-    setTimeout(() => {
+    setCmdRunning(true);
+    if (cmdTimeoutRef.current) clearTimeout(cmdTimeoutRef.current);
+
+    socket.emit('pc_remote_request', {
+      requestId: `cmd_${Date.now()}`,
+      locationId: locId,
+      action: 'exec_cmd',
+      cmd: command,
+    });
+
+    cmdTimeoutRef.current = setTimeout(() => {
+      cmdTimeoutRef.current = null;
       setCmdRunning(prevRunning => {
         if (!prevRunning) return false;
-        let simulatedOut = '';
-        const low = command.toLowerCase();
-        if (low.includes('mode') || low.includes('serialport')) {
-          simulatedOut = `Status for device ${quickPort}:\n-----------------------\n    Baud:            9600\n    Parity:          None\n    Data Bits:       8\n    Stop Bits:       1\n    RTS/DTR:         ON`;
-        } else if (low.includes('printer')) {
-          simulatedOut = `Name                           DriverName               PortName\n${(quickPrinter || 'EPSON TM-T20').padEnd(30)} EPSON TM-T20 Receipt     USB001\nMicrosoft Print to PDF         Microsoft Print To PDF   PORTPROMPT:`;
-        } else if (low.includes('tasklist')) {
-          simulatedOut = `Image Name                     PID Session Name        Mem Usage\n========================= ======== ================ ============\nnode.exe                      4812 Console              54,820 K\nchrome.exe                    7104 Console             184,210 K`;
-        } else if (low.includes('dir')) {
-          simulatedOut = ` Directory of C:\\SmartKiosk\n\n11/11/2026  10:01 AM               342 .env\n11/11/2026  10:01 AM            82,944 index.js\n11/11/2026  10:01 AM            17,408 printer.js\n11/11/2026  10:01 AM             5,120 start-windows.bat\n11/11/2026  10:01 AM            13,312 setup_kiosk_autostart.bat\n11/11/2026  10:01 AM             6,144 watchdog.vbs`;
-        } else {
-          simulatedOut = `[Executat silențios în C:\\SmartKiosk] ${label || 'OK'}`;
-        }
-        setTerminalLines(prev => [...prev, { type: 'out', text: simulatedOut }]);
+        setTerminalLines(prev => [
+          ...prev,
+          { type: 'err', text: 'TIMEOUT (16s): PC-ul nu a răspuns la exec_cmd. Verifică versiunea POS Bridge sau conexiunea.' }
+        ]);
         return false;
       });
-    }, 650);
+    }, 16000);
   };
 
   const triggerBridgeEndpoint = async (actionPath, successMsg) => {
@@ -523,29 +585,49 @@ export default function WindowsRemoteModal({
                   <span className="text-[10px] font-semibold text-slate-400">{files.length} fișiere</span>
                 </div>
                 <div className="divide-y divide-slate-200/60 dark:divide-slate-700/50 max-h-64 overflow-y-auto">
-                  {files.map(f => (
-                    <button
-                      key={f.name}
-                      type="button"
-                      onClick={() => handleSelectFile(f.name)}
-                      className={`w-full px-3.5 py-2 text-left flex items-center justify-between gap-2 text-xs transition-colors cursor-pointer ${
-                        selectedFile === f.name
-                          ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 font-bold'
-                          : 'hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <FileCode className="w-4 h-4 shrink-0 text-indigo-500" />
-                        <div className="truncate">
-                          <div>{f.name}</div>
-                          {f.desc && <div className="text-[10px] text-slate-400 font-normal truncate">{f.desc}</div>}
+                  {files.map(f => {
+                    const canRun = !f.isDir && isRunnableFile(f.name);
+                    const isThisRunning = runningFile === `smartkiosk:${f.name}`;
+                    return (
+                      <div
+                        key={f.name}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => handleSelectFile(f.name)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleSelectFile(f.name); }}
+                        className={`w-full px-3.5 py-2 text-left flex items-center justify-between gap-2 text-xs transition-colors cursor-pointer ${
+                          selectedFile === f.name
+                            ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 font-bold'
+                            : 'hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FileCode className="w-4 h-4 shrink-0 text-indigo-500" />
+                          <div className="truncate">
+                            <div>{f.name}</div>
+                            {f.desc && <div className="text-[10px] text-slate-400 font-normal truncate">{f.desc}</div>}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-[10px] text-slate-400">
+                            {f.size ? `${Math.max(1, Math.round(f.size / 1024))} KB` : ''}
+                          </span>
+                          {canRun && (
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); handleRunFile(f.name, 'smartkiosk'); }}
+                              disabled={!isOnline || isThisRunning}
+                              title={isOnline ? `Execută ${f.name} pe Windows` : 'PC offline'}
+                              className="px-2 py-0.5 rounded-md bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer"
+                            >
+                              <Play className="w-2.5 h-2.5" />
+                              <span>{isThisRunning ? '...' : 'Execută'}</span>
+                            </button>
+                          )}
                         </div>
                       </div>
-                      <span className="text-[10px] text-slate-400 shrink-0">
-                        {f.size ? `${Math.max(1, Math.round(f.size / 1024))} KB` : ''}
-                      </span>
-                    </button>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
@@ -564,12 +646,29 @@ export default function WindowsRemoteModal({
                   </button>
                 </div>
                 <div className="p-3 space-y-1.5 text-xs">
-                  {startupFiles.map((sf, idx) => (
-                    <div key={idx} className="flex items-center justify-between py-1 px-2 rounded bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-700/60">
-                      <span className="font-medium text-slate-700 dark:text-slate-300">{sf.name}</span>
-                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">Activ la Boot</span>
-                    </div>
-                  ))}
+                  {startupFiles.map((sf, idx) => {
+                    const isThisRunning = runningFile === `startup:${sf.name}`;
+                    return (
+                      <div key={idx} className="flex items-center justify-between gap-2 py-1.5 px-2 rounded bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-700/60">
+                        <span className="font-medium text-slate-700 dark:text-slate-300 truncate">{sf.name}</span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">La Boot</span>
+                          {isRunnableFile(sf.name) && (
+                            <button
+                              type="button"
+                              onClick={() => handleRunFile(sf.name, 'startup')}
+                              disabled={!isOnline || isThisRunning}
+                              title={isOnline ? `Pornește acum ${sf.name}` : 'PC offline'}
+                              className="px-2 py-0.5 rounded-md bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer"
+                            >
+                              <Play className="w-2.5 h-2.5" />
+                              <span>{isThisRunning ? '...' : 'Execută'}</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -635,6 +734,17 @@ export default function WindowsRemoteModal({
                     C:\SmartKiosk\{selectedFile}
                   </span>
                   <div className="flex items-center gap-2">
+                    {isRunnableFile(selectedFile) && (
+                      <button
+                        type="button"
+                        onClick={() => handleRunFile(selectedFile, 'smartkiosk')}
+                        disabled={!isOnline || runningFile === `smartkiosk:${selectedFile}`}
+                        className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                      >
+                        <Play className="w-3 h-3" />
+                        <span>Execută acum</span>
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => handleSaveFile(false)}
@@ -697,6 +807,36 @@ export default function WindowsRemoteModal({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <button
                 type="button"
+                onClick={handleToggleTaskbar}
+                className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                  taskbarVisible
+                    ? 'border-amber-400 bg-amber-50 dark:bg-amber-950/30'
+                    : 'border-slate-200 dark:border-slate-700 hover:border-indigo-400 bg-slate-50 dark:bg-slate-800/60'
+                }`}
+              >
+                <div className="text-xs font-bold text-slate-900 dark:text-white mb-1">
+                  {taskbarVisible ? '🪟 Ascunde Taskbar Windows la loc' : '🪟 Arată Bara Start / Taskbar Windows'}
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  {taskbarVisible
+                    ? 'Taskbar-ul e vizibil acum. Click ca să îl ascunzi și să readuci Kiosk-ul Fullscreen.'
+                    : 'Afișează bara de jos Windows (Start Bar) fără să fie ascunsă la fiecare 8s.'}
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleRunFile('start-windows.bat', 'smartkiosk')}
+                className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-emerald-400 bg-slate-50 dark:bg-slate-800/60 text-left transition-all cursor-pointer"
+              >
+                <div className="text-xs font-bold text-slate-900 dark:text-white mb-1">▶️ Rulează start-windows.bat</div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Pornește direct <code className="text-emerald-600 dark:text-emerald-400">start-windows.bat</code> detașat în <code className="text-indigo-500">C:\SmartKiosk</code>.
+                </p>
+              </button>
+
+              <button
+                type="button"
                 onClick={handleFixStartup}
                 className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-400 bg-slate-50 dark:bg-slate-800/60 text-left transition-all cursor-pointer"
               >
@@ -730,7 +870,7 @@ export default function WindowsRemoteModal({
 
               <button
                 type="button"
-                onClick={() => runSilentCommand('mode', 'Verificare porturi COM active')}
+                onClick={() => runSilentCommand('mode')}
                 className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-400 bg-slate-50 dark:bg-slate-800/60 text-left transition-all cursor-pointer"
               >
                 <div className="text-xs font-bold text-slate-900 dark:text-white mb-1">🔌 Listează Porturile COM din Windows</div>
@@ -741,7 +881,7 @@ export default function WindowsRemoteModal({
 
               <button
                 type="button"
-                onClick={() => runSilentCommand('wmic printer get name,portname', 'Listare imprimante Windows')}
+                onClick={() => runSilentCommand('wmic printer get name,portname')}
                 className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-400 bg-slate-50 dark:bg-slate-800/60 text-left transition-all cursor-pointer"
               >
                 <div className="text-xs font-bold text-slate-900 dark:text-white mb-1">🖨️ Vezi Imprimantele Instalate</div>

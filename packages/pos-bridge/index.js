@@ -1,4 +1,4 @@
-const BRIDGE_VERSION = '3.5.6';
+const BRIDGE_VERSION = '3.5.7';
 const PROCESS_BOOT_TIME = Date.now();
 let globalSocket = null;
 
@@ -120,8 +120,25 @@ function getKioskTargetUrl() {
   return `https://kiosk-smashme.netlify.app/?loc=${loc}&universal=true`;
 }
 
-function enforceKioskTaskbar() {
+let taskbarOverrideVisible = false;
+
+function setWindowsTaskbarVisible(show) {
+  taskbarOverrideVisible = Boolean(show);
   if (process.platform !== 'win32') return;
+  try {
+    const swFlag = taskbarOverrideVisible ? 5 : 0; // 5 = SW_SHOW, 0 = SW_HIDE
+    const psCmd = `powershell -NoProfile -WindowStyle Hidden -Command "$c='[DllImport(\\"user32.dll\\")] public static extern IntPtr FindWindow(string c, string n); [DllImport(\\"user32.dll\\")] public static extern bool ShowWindow(IntPtr h, int s);'; $t=Add-Type -MemberDefinition $c -Name WTask -Namespace Sk -PassThru; $h=$t::FindWindow('Shell_TrayWnd',$null); if($h -ne [IntPtr]::Zero){[void]$t::ShowWindow($h,${swFlag})}; $h2=$t::FindWindow('Shell_SecondaryTrayWnd',$null); if($h2 -ne [IntPtr]::Zero){[void]$t::ShowWindow($h2,${swFlag})}"`;
+    exec(psCmd, { windowsHide: true }, () => {});
+    if (!taskbarOverrideVisible) {
+      setTimeout(enforceKioskTaskbar, 250);
+    }
+  } catch (err) {
+    log(`⚠️ [SYSTEM] Eroare setWindowsTaskbarVisible: ${err.message}`);
+  }
+}
+
+function enforceKioskTaskbar() {
+  if (process.platform !== 'win32' || taskbarOverrideVisible) return;
   try {
     const kUrl = getKioskTargetUrl();
     const psCmd = `powershell -NoProfile -WindowStyle Hidden -Command "$c=@'
@@ -366,6 +383,7 @@ function resetPosLine(reason = 'Reset') {
   rxBuf = Buffer.alloc(0);
 }
 
+let paymentInProgress = false;
 let isReopeningPort = false;
 
 function forceReopenPort(reason = 'Force Reset') {
@@ -1616,8 +1634,6 @@ async function start() {
     });
   } // sfarsit bloc raiffeisen serial
 
-  let paymentInProgress = false;
-
   socket.on('pos_payment_request', async (data) => {
     const { orderId, amount, locationId: lid, kioskId } = data || {};
     
@@ -2090,42 +2106,49 @@ async function start() {
     testPosSignal();
   });
 
-  // ─── Paravan Invizibil AnyDesk (Windows SetWindowDisplayAffinity 0x11 — FĂRĂ DRIVERE, 100% SAFE) ───
+  // ─── Paravan Invizibil AnyDesk / Desktop Live (Windows SetWindowDisplayAffinity 0x11 — FĂRĂ DRIVERE, 100% SAFE) ───
   let privacyShieldProc = null;
   function setWindowsPrivacyShield(enable) {
     if (process.platform !== 'win32') return;
     try {
+      if (privacyShieldProc) {
+        try { privacyShieldProc.kill(); } catch (_) {}
+        privacyShieldProc = null;
+      }
       if (!enable) {
-        if (privacyShieldProc) {
-          try { privacyShieldProc.kill(); } catch (_) {}
-          privacyShieldProc = null;
-        }
         const { exec } = require('child_process');
         exec('powershell -NoProfile -WindowStyle Hidden -Command "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like \'*privacy_shield.ps1*\' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"', { windowsHide: true }, () => {});
-        log('[Privacy Shield] Paravanul fizic pentru AnyDesk a fost OPRIT.');
+        log('[Privacy Shield] Paravanul fizic pentru mentenanță a fost OPRIT.');
         return;
       }
 
       const psPath = pathMod.join(__dirname, 'privacy_shield.ps1');
       const psScript = [
+        'Get-CimInstance Win32_Process | Where-Object { $_.ProcessId -ne $PID -and $_.CommandLine -like "*privacy_shield.ps1*" } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }',
         'Add-Type -AssemblyName System.Windows.Forms',
         'Add-Type -AssemblyName System.Drawing',
         '$code = @"',
         'using System;',
         'using System.Runtime.InteropServices;',
         'public class Win32Shield {',
-        '  [DllImport("user32.dll")] public static extern bool SetWindowDisplayAffinity(IntPtr hWnd, uint dwAffinity);',
-        '  [DllImport("user32.dll")] public static extern int GetWindowLong(IntPtr hWnd, int nIndex);',
-        '  [DllImport("user32.dll")] public static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);',
+        '  [DllImport("user32.dll", SetLastError = true)] public static extern bool SetWindowDisplayAffinity(IntPtr hWnd, uint dwAffinity);',
+        '  [DllImport("user32.dll", SetLastError = true)] public static extern int GetWindowLong(IntPtr hWnd, int nIndex);',
+        '  [DllImport("user32.dll", SetLastError = true)] public static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);',
+        '  [DllImport("user32.dll", SetLastError = true)] public static extern bool SetLayeredWindowAttributes(IntPtr hwnd, uint crKey, byte bAlpha, uint dwFlags);',
+        '  [DllImport("user32.dll", SetLastError = true)] public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);',
         '}',
         '"@',
         'Add-Type -TypeDefinition $code',
+        '$vs = [System.Windows.Forms.SystemInformation]::VirtualScreen',
         '$form = New-Object System.Windows.Forms.Form',
         '$form.Text = "SmartKiosk Privacy Shield"',
         '$form.FormBorderStyle = "None"',
-        '$form.WindowState = "Maximized"',
+        '$form.StartPosition = "Manual"',
+        '$form.Bounds = $vs',
         '$form.TopMost = $true',
         '$form.ShowInTaskbar = $false',
+        '# Inițializăm WS_EX_LAYERED din WinForms ca să nu devină transparent (alpha=0) când adăugăm WS_EX_TRANSPARENT',
+        '$form.Opacity = 0.996',
         '$form.BackColor = [System.Drawing.Color]::FromArgb(7, 11, 20)',
         '$lbl = New-Object System.Windows.Forms.Label',
         '$lbl.Text = "KIOSK IN MENTENANTA`r`n`r`nRevenim in cateva momente!"',
@@ -2135,29 +2158,60 @@ async function start() {
         '$lbl.Dock = "Fill"',
         '$lbl.TextAlign = "MiddleCenter"',
         '$form.Controls.Add($lbl)',
-        '$form.Add_Shown({',
-        '  # 0x00000011 = WDA_EXCLUDEFROMCAPTURE: Vizibil pe ecranul fizic din restaurant, INVIZIBIL in AnyDesk!',
-        '  [Win32Shield]::SetWindowDisplayAffinity($form.Handle, 0x00000011) | Out-Null',
-        '  # WS_EX_LAYERED (0x80000) | WS_EX_TRANSPARENT (0x20): Click-urile din AnyDesk trec direct prin paravan!',
+        '$applyShieldFlags = {',
+        '  $curVs = [System.Windows.Forms.SystemInformation]::VirtualScreen',
+        '  if ($form.WindowState -ne "Normal") { $form.WindowState = "Normal" }',
+        '  # WS_EX_LAYERED (0x80000) | WS_EX_TRANSPARENT (0x20) | WS_EX_TOOLWINDOW (0x80) | WS_EX_NOACTIVATE (0x08000000)',
         '  $ex = [Win32Shield]::GetWindowLong($form.Handle, -20)',
-        '  [Win32Shield]::SetWindowLong($form.Handle, -20, ($ex -bor 0x80000 -bor 0x20)) | Out-Null',
+        '  [Win32Shield]::SetWindowLong($form.Handle, -20, ($ex -bor 0x80000 -bor 0x20 -bor 0x80 -bor 0x08000000)) | Out-Null',
+        '  # LWA_ALPHA = 2, alpha = 255 (100% opac pe monitorul fizic; fără acest apel Windows îl face invizibil!)',
+        '  [Win32Shield]::SetLayeredWindowAttributes($form.Handle, 0, 255, 2) | Out-Null',
+        '  # 0x00000011 = WDA_EXCLUDEFROMCAPTURE: opac pe monitorul fizic din restaurant, invizibil în Desktop Live / AnyDesk',
+        '  $okAff = [Win32Shield]::SetWindowDisplayAffinity($form.Handle, 0x00000011)',
+        '  # HWND_TOPMOST = -1, SWP_NOACTIVATE (0x10) | SWP_SHOWWINDOW (0x40)',
+        '  [Win32Shield]::SetWindowPos($form.Handle, [IntPtr](-1), $curVs.X, $curVs.Y, $curVs.Width, $curVs.Height, 0x0050) | Out-Null',
+        '  return $okAff',
+        '}',
+        '$form.Add_Shown({',
+        '  $okAff = & $applyShieldFlags',
+        '  $form.Invalidate($true)',
+        '  $form.Refresh()',
+        '  Write-Output ("SHIELD_ACTIVE:affinity=" + $okAff + ":os=" + [System.Environment]::OSVersion.Version.ToString())',
         '})',
+        '# Re-ancorare ușoară TopMost la fiecare 1.5s ca nici Win+D să nu ascundă paravanul de pe monitorul fizic',
+        '$keepTopTimer = New-Object System.Windows.Forms.Timer',
+        '$keepTopTimer.Interval = 1500',
+        '$keepTopTimer.Add_Tick({ & $applyShieldFlags | Out-Null })',
+        '$keepTopTimer.Start()',
         '# Safety auto-close dupa 30 minute ca sa nu ramana niciodata blocat',
         '$timer = New-Object System.Windows.Forms.Timer',
         '$timer.Interval = 1800000',
-        '$timer.Add_Tick({ $form.Close() })',
+        '$timer.Add_Tick({ $keepTopTimer.Stop(); $form.Close() })',
         '$timer.Start()',
         '[System.Windows.Forms.Application]::Run($form)'
       ].join('\r\n');
 
       fs.writeFileSync(psPath, psScript, 'utf8');
       const { spawn } = require('child_process');
-      privacyShieldProc = spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', psPath], {
+      const child = spawn('powershell.exe', ['-NoProfile', '-STA', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', psPath], {
         cwd: __dirname,
         windowsHide: true,
         detached: false
       });
-      log('[Privacy Shield] Paravan AnyDesk (WDA_EXCLUDEFROMCAPTURE) ACTIVAT: ecranul fizic afișează Mentenanță, iar în AnyDesk se vede desktopul Windows!');
+      privacyShieldProc = child;
+      child.stdout.on('data', (d) => {
+        const txt = String(d || '').trim();
+        if (txt) log(`[Privacy Shield] ${txt}`);
+      });
+      child.stderr.on('data', (d) => {
+        const txt = String(d || '').trim();
+        if (txt) log(`⚠️ [Privacy Shield stderr] ${txt}`);
+      });
+      child.on('exit', (code) => {
+        if (privacyShieldProc === child) privacyShieldProc = null;
+        log(`[Privacy Shield] Proces oprit (exit=${code}).`);
+      });
+      log('[Privacy Shield] Paravan Mentenanță (WDA_EXCLUDEFROMCAPTURE + SetLayeredWindowAttributes 255) pornit: monitorul fizic afișează Mentenanță opac, iar în Desktop Live / AnyDesk lucrezi transparent.');
     } catch (e) {
       log(`[Privacy Shield] Eroare: ${e.message}`);
     }
@@ -2209,7 +2263,7 @@ async function start() {
             logContent = rawLog.split('\n').slice(-120).join('\n');
           }
         } catch (_) {}
-        return reply({ ok: true, action, dir: __dirname, files, startupFiles, envContent, logContent });
+        return reply({ ok: true, action, dir: __dirname, files, startupFiles, envContent, logContent, taskbarVisible: taskbarOverrideVisible });
       }
 
       if (action === 'read_file') {
@@ -2271,6 +2325,71 @@ async function start() {
           message: enable
             ? 'Paravanul AnyDesk a fost ACTIVAT! Pe ecranul din locație se vede doar Mentenanța, iar tu în AnyDesk vezi desktopul Windows prin el!'
             : 'Paravanul AnyDesk a fost OPRIT!'
+        });
+      }
+
+      if (action === 'toggle_taskbar') {
+        const show = req.show !== undefined ? Boolean(req.show) : !taskbarOverrideVisible;
+        setWindowsTaskbarVisible(show);
+        log(`[Remote PC] Bara Start / Taskbar Windows a fost ${show ? 'AFIȘATĂ' : 'ASCUNSĂ'}.`);
+        return reply({
+          ok: true,
+          action,
+          show,
+          message: show
+            ? 'Bara Start / Taskbar Windows este acum VIZIBILĂ!'
+            : 'Bara Start / Taskbar Windows a fost ASCUNSĂ la loc și Kiosk-ul readus Fullscreen!'
+        });
+      }
+
+      if (action === 'run_file') {
+        const safeName = pathMod.basename(String(req.fileName || '').trim());
+        const source = req.source === 'startup' ? 'startup' : 'smartkiosk';
+        const allowedExt = ['.bat', '.cmd', '.vbs', '.ps1', '.lnk', '.exe'];
+        const ext = pathMod.extname(safeName).toLowerCase();
+        if (!safeName || !allowedExt.includes(ext)) {
+          return reply({ ok: false, action, fileName: safeName, source, error: `Tip de fișier neexecutabil sau nepermis: ${safeName}` });
+        }
+
+        let targetDir = __dirname;
+        let fullPath = pathMod.join(__dirname, safeName);
+        if (source === 'startup') {
+          const commonStartup = 'C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Startup';
+          const userStartup = pathMod.join(process.env.APPDATA || '', 'Microsoft\\Windows\\Start Menu\\Programs\\Startup');
+          const hitDir = [commonStartup, userStartup].find(d => d && fs.existsSync(pathMod.join(d, safeName)));
+          if (!hitDir) {
+            return reply({ ok: false, action, fileName: safeName, source, error: `Fișierul ${safeName} nu a fost găsit în folderele Startup.` });
+          }
+          targetDir = hitDir;
+          fullPath = pathMod.join(hitDir, safeName);
+        } else if (!fs.existsSync(fullPath)) {
+          return reply({ ok: false, action, fileName: safeName, source, error: `Fișierul ${safeName} nu există în ${__dirname}.` });
+        }
+
+        if (process.platform !== 'win32') {
+          return reply({ ok: false, action, fileName: safeName, source, error: 'Execuția fișierelor Windows este disponibilă doar pe PC Windows.' });
+        }
+
+        const { spawn } = require('child_process');
+        const spawnOpts = { cwd: targetDir, detached: true, windowsHide: true, stdio: 'ignore' };
+        let child;
+        if (ext === '.vbs') {
+          child = spawn('wscript.exe', [fullPath], spawnOpts);
+        } else if (ext === '.ps1') {
+          child = spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', fullPath], spawnOpts);
+        } else if (ext === '.lnk' || ext === '.exe') {
+          child = spawn('cmd.exe', ['/c', 'start', '""', fullPath], spawnOpts);
+        } else {
+          child = spawn('cmd.exe', ['/c', fullPath], spawnOpts);
+        }
+        child.unref();
+        log(`[Remote PC] Executat detașat (${source}): ${safeName}`);
+        return reply({
+          ok: true,
+          action,
+          fileName: safeName,
+          source,
+          message: `Scriptul/fișierul „${safeName}” a fost pornit în fundal pe Windows!`
         });
       }
 
@@ -2503,7 +2622,7 @@ async function start() {
     '        while (_running) {',
     '          var sw = System.Diagnostics.Stopwatch.StartNew();',
     '          try {',
-    '            if (new TimeSpan(DateTime.UtcNow.Ticks - Interlocked.Read(ref _lastCmdTicks)).TotalSeconds > 25) { _running = false; break; }',
+    '            if (new TimeSpan(DateTime.UtcNow.Ticks - Interlocked.Read(ref _lastCmdTicks)).TotalSeconds > 50) { _running = false; break; }',
     '            var b = Screen.PrimaryScreen.Bounds;',
     '            using (var src = new Bitmap(b.Width, b.Height, PixelFormat.Format24bppRgb)) {',
     '              using (var gSrc = Graphics.FromImage(src)) {',
@@ -2522,10 +2641,12 @@ async function start() {
     '                  finally { gSrc.ReleaseHdc(hdc); }',
     '                }',
     '              }',
-    '              int targetW = Math.Min(_maxWidth, b.Width);',
-    '              int targetH = (int)Math.Round(b.Height * ((double)targetW / b.Width));',
+    '              int maxSide = Math.Max(b.Width, b.Height);',
+    '              double scale = maxSide > _maxWidth ? ((double)_maxWidth / maxSide) : 1.0;',
+    '              int targetW = Math.Max(1, (int)Math.Round(b.Width * scale));',
+    '              int targetH = Math.Max(1, (int)Math.Round(b.Height * scale));',
     '              Bitmap outBmp = src;',
-    '              if (targetW < b.Width) {',
+    '              if (scale < 0.999) {',
     '                outBmp = new Bitmap(targetW, targetH, PixelFormat.Format24bppRgb);',
     '                using (var gOut = Graphics.FromImage(outBmp)) {',
     '                  gOut.InterpolationMode = InterpolationMode.Bilinear;',
@@ -2601,6 +2722,7 @@ async function start() {
       rdAgentProc = proc;
       rdLastClientPing = Date.now();
 
+      let lastCongestedKfAt = 0;
       const rl = readline.createInterface({ input: proc.stdout, crlfDelay: Infinity });
       rl.on('line', (line) => {
         if (!line || proc !== rdAgentProc) return;
@@ -2617,7 +2739,7 @@ async function start() {
             const w = Number(line.slice(6, firstSep)) || 1920;
             const h = Number(line.slice(firstSep + 1, secondSep)) || 1080;
             const b64 = line.slice(secondSep + 1);
-            // Skip frame silently if Socket.IO write buffer backs up on slow connections
+            // Skip frame if Socket.IO write buffer backs up, but request keyframe so next un-congested tick resends latest screen
             const wbLen = socket.io?.engine?.writeBuffer?.length || 0;
             if (wbLen <= 2) {
               socket.emit('rd_frame', {
@@ -2627,6 +2749,11 @@ async function start() {
                 data: b64,
                 ts: Date.now(),
               });
+            } else if (Date.now() - lastCongestedKfAt > 700) {
+              lastCongestedKfAt = Date.now();
+              try {
+                if (proc.stdin && proc.stdin.writable) proc.stdin.write('KF\n');
+              } catch (_) {}
             }
           }
         }
@@ -2652,10 +2779,10 @@ async function start() {
       });
 
       rdWatchdogTimer = setInterval(() => {
-        if (Date.now() - rdLastClientPing > 22000) {
+        if (Date.now() - rdLastClientPing > 45000) {
           stopRemoteDesktopAgent('viewer_timeout');
         }
-      }, 4000);
+      }, 5000);
     } catch (e) {
       log(`[Remote Desktop] Eroare pornire agent: ${e.message}`);
       sendRdStatus({ active: false, error: e.message });

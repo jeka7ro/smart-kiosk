@@ -1473,9 +1473,10 @@ function handleBridgeDisconnect(socketId) {
       }, 60000);
 
       pendingDisconnectTimers.set(locKey, timer);
-      break;
+      return locKey;
     }
   }
+  return null;
 }
 
 /**

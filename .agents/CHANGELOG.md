@@ -1,5 +1,36 @@
 # Jurnal de modificări — Smart Kiosk (Antigravity ↔ Paperclip)
 
+### 2026-11-13 11:12 — Hotfix Critic v3.5.7 (Crash `paymentInProgress` în v3.5.6 + Desktop Live + Execuție Startup/Taskbar)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. Identificat și reparat în `packages/pos-bridge/index.js` crash-ul critic din `v3.5.6` (`ReferenceError: paymentInProgress is not defined` aruncat la nivel global în `wakePosKeepAlive()` și `testPosSignal()` deoarece `let paymentInProgress = false` fusese declarat doar local în `start()`). Mutat `let paymentInProgress = false` la nivel de modul și eliminat declarația locală duplicată din `start()`.
+  2. Îmbunătățit Desktop Live (`SkRdHost` în `packages/pos-bridge/index.js` și `packages/admin/src/components/RemoteDesktopViewer.jsx`): scalare proporțională pe latura maximă (`Math.Max(b.Width, b.Height)`) pentru monitoare portret `1080×1920`, solicitare automată `KF` când buffer-ul Socket.IO (`wbLen > 2`) sare cadre la tranziții UI, timeout watchdog mărit la `45s` (`50s` în C#), reconectare automată + ping/keyframe la `visibilitychange`/`focus`, detectare stare înghețată (`>6s` fără cadre -> `Semnal înghețat...`), și oprire imediată a stării „Live” în Admin când PC-ul devine offline sau când `socketService.js` raportează `bridge_disconnected`/`agent_exit`.
+  3. Corectat `packages/backend/src/services/socketService.js` și `packages/backend/src/services/bridgeMonitoringService.js`: inclus `codeHash` în evenimentul `pos_bridge_register` (elimină starea falsă „necesită update” în primele 20s după conectare) și notificat viewerii `rd-viewer-*` imediat ce socket-ul activ al bridge-ului se deconectează.
+  4. Adăugat execuție reală din interfața Admin (`packages/admin/src/components/WindowsRemoteModal.jsx` + `packages/pos-bridge/index.js`): butoane **▶ Execută** pe scripturile `.bat`/`.cmd`/`.vbs`/`.ps1`/`.lnk`/`.exe` din `C:\SmartKiosk` și din **Windows Startup**, buton **Arată / Ascunde Bara Start / Taskbar Windows** (`setWindowsTaskbarVisible` + pauză `enforceKioskTaskbar`), buton **Rulează `start-windows.bat`** și eliminarea fallback-ului fals din terminal când bridge-ul este offline.
+  5. Incrementat versiunea la `v3.5.7` (`packages/pos-bridge/index.js`, `packages/pos-bridge/package.json`) și adăugat Release Notes pentru `v3.5.7` (`packages/admin/src/data/bridgeReleaseNotes.js`, `packages/backend/src/data/bridgeReleaseNotes.js`), incluzând și fix-ul `Paravan Mentenanță`.
+- **Fișiere:**
+  - `packages/pos-bridge/index.js`
+  - `packages/pos-bridge/package.json`
+  - `packages/backend/src/services/socketService.js`
+  - `packages/backend/src/services/bridgeMonitoringService.js`
+  - `packages/admin/src/components/RemoteDesktopViewer.jsx`
+  - `packages/admin/src/components/WindowsRemoteModal.jsx`
+  - `packages/admin/src/data/bridgeReleaseNotes.js`
+  - `packages/backend/src/data/bridgeReleaseNotes.js`
+  - `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (`v3.5.7`, push confirmat de utilizator)
+- **Build / Teste:** `npx eslint --no-config-lookup --rule '{"no-undef":"error"}'` (0 erori pe `packages/pos-bridge/index.js`, `socketService.js`, `bridgeMonitoringService.js`, `bridgeReleaseNotes.js`), `node --check` OK pe toate fișierele JS; `npm --prefix packages/admin run build` OK (`vite build`, 1843 module, `1.84s`, 0 erori); test izolat `ALL_V357_FINAL_TESTS_PASSED`.
+
+### 2026-11-13 10:41 — Fix Paravan Mentenanță Windows (`SetLayeredWindowAttributes` + re-ancorare TopMost)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. Corectat în `packages/pos-bridge/index.js` (`setWindowsPrivacyShield`) bug-ul Win32 unde fereastra `privacy_shield.ps1` primea `WS_EX_LAYERED | WS_EX_TRANSPARENT` (`0x80000 | 0x20`) fără `SetLayeredWindowAttributes(..., 0, 255, 2)` și rămânea transparentă (`alpha = 0`) pe monitorul fizic.
+  2. Setat `$form.Opacity = 0.996` + `SetLayeredWindowAttributes($form.Handle, 0, 255, 2)` (100% opac pe monitorul fizic din restaurant), acoperire pe tot `VirtualScreen`, stiluri `WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE` + timer `1.5s` cu `SetWindowPos(HWND_TOPMOST, ...)` anti-`Win+D`, `WDA_EXCLUDEFROMCAPTURE` (`0x11`) pentru Desktop Live/AnyDesk, pornire cu `-STA`, curățare procese vechi fără race (`$_.ProcessId -ne $PID`) și logare `stdout`/`stderr` în `bridge.log`.
+- **Fișiere:**
+  - `packages/pos-bridge/index.js`
+- **Ramură / Commit:** `main` (necomis / fără push, la cererea explicită a utilizatorului)
+- **Build / Teste:** `node --check packages/pos-bridge/index.js` OK, verificare generare & sintaxă `privacy_shield.ps1` (`PRIVACY_SHIELD_VERIFICATION_PASSED`, 65 linii, 8 perechi `{}`); execuția vizuală reală pe monitorul fizic Windows se va vedea după deploy/push.
+
 ### 2026-11-13 10:30 — Fix coliziune UART Wake/Test Semnal + v3.5.6
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

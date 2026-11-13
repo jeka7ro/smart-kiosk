@@ -79,6 +79,7 @@ export default function RemoteDesktopViewer({
   const [nativeRes, setNativeRes] = useState({ w: 1920, h: 1080 });
   const [stats, setStats] = useState({ fps: 0, kb: 0 });
   const [statusError, setStatusError] = useState(null);
+  const [streamStale, setStreamStale] = useState(false);
   const [keyboardFocused, setKeyboardFocused] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [pasteText, setPasteText] = useState('');
@@ -90,6 +91,10 @@ export default function RemoteDesktopViewer({
   const lastMoveSentRef = useRef(0);
   const nativeResRef = useRef({ w: 1920, h: 1080 });
   const streamingRef = useRef(false);
+  const lastFrameAtRef = useRef(0);
+  const lastKfReqRef = useRef(0);
+  const presetKeyRef = useRef(presetKey);
+  presetKeyRef.current = presetKey;
 
   const emitRd = useCallback((payload) => {
     if (!socket || !socket.connected || !locId) return;
@@ -100,6 +105,8 @@ export default function RemoteDesktopViewer({
     const key = overridePresetKey || presetKey;
     const preset = QUALITY_PRESETS[key] || QUALITY_PRESETS.normal;
     setStatusError(null);
+    setStreamStale(false);
+    lastFrameAtRef.current = 0;
     setStreaming(true);
     streamingRef.current = true;
     socket?.emit('rd_join', { locationId: locId });
@@ -115,6 +122,7 @@ export default function RemoteDesktopViewer({
   const stopStream = useCallback(() => {
     setStreaming(false);
     streamingRef.current = false;
+    setStreamStale(false);
     setKeyboardFocused(false);
     emitRd({ action: 'stop' });
     socket?.emit('rd_leave', { locationId: locId });
@@ -125,9 +133,25 @@ export default function RemoteDesktopViewer({
     setStreaming(false);
     streamingRef.current = false;
     setHasFrame(false);
+    setStreamStale(false);
+    lastFrameAtRef.current = 0;
     setStatusError(null);
     if (imgRef.current) imgRef.current.removeAttribute('src');
     socket.emit('rd_join', { locationId: locId });
+
+    const onSocketConnect = () => {
+      socket.emit('rd_join', { locationId: locId });
+      if (streamingRef.current) {
+        const preset = QUALITY_PRESETS[presetKeyRef.current] || QUALITY_PRESETS.normal;
+        socket.emit('rd_control', {
+          locationId: locId,
+          action: 'start',
+          maxWidth: preset.maxWidth,
+          quality: preset.quality,
+          fps: preset.fps,
+        });
+      }
+    };
 
     const onFrame = (frame) => {
       if (!frame?.data) return;
@@ -138,27 +162,40 @@ export default function RemoteDesktopViewer({
       if (imgRef.current) {
         imgRef.current.src = `data:image/jpeg;base64,${frame.data}`;
       }
+      lastFrameAtRef.current = Date.now();
       frameCountRef.current += 1;
       lastBytesRef.current = Math.round((frame.data.length * 0.75) / 1024);
       setHasFrame(true);
+      setStreamStale(false);
       setStatusError(null);
     };
 
     const onStatus = (st) => {
       if (!st) return;
+      if (st.width && st.height) {
+        nativeResRef.current = { w: st.width, h: st.height };
+        setNativeRes({ w: st.width, h: st.height });
+      }
       if (st.error) {
         setStatusError(st.error);
         setStreaming(false);
         streamingRef.current = false;
-      } else if (st.width && st.height) {
-        nativeResRef.current = { w: st.width, h: st.height };
-        setNativeRes({ w: st.width, h: st.height });
-      } else if (st.active === false && st.reason === 'viewer_timeout' && streamingRef.current) {
+        setStreamStale(false);
+        return;
+      }
+      if (st.active === false) {
         setStreaming(false);
         streamingRef.current = false;
+        setStreamStale(false);
+        if (st.reason === 'viewer_timeout') {
+          setStatusError('Sesiunea Desktop Live s-a închis automat din lipsă de activitate.');
+        } else if (st.reason === 'bridge_disconnected' || st.reason === 'socket_disconnect' || st.reason === 'agent_exit') {
+          setStatusError('Conexiunea Desktop Live s-a întrerupt (POS Bridge offline sau agent oprit).');
+        }
       }
     };
 
+    socket.on('connect', onSocketConnect);
     socket.on('rd_frame', onFrame);
     socket.on('rd_status', onStatus);
 
@@ -170,6 +207,7 @@ export default function RemoteDesktopViewer({
 
     return () => {
       clearInterval(statsTimer);
+      socket.off('connect', onSocketConnect);
       socket.off('rd_frame', onFrame);
       socket.off('rd_status', onStatus);
       if (streamingRef.current) {
@@ -179,20 +217,50 @@ export default function RemoteDesktopViewer({
     };
   }, [socket, locId]);
 
-  // Keepalive + warning dacă bridge-ul de pe PC încă nu are codul nou cu Remote Desktop
+  useEffect(() => {
+    if (!isOnline && streamingRef.current) {
+      setStreaming(false);
+      streamingRef.current = false;
+      setStreamStale(false);
+      setStatusError('PC-ul a devenit offline — fluxul Desktop Live s-a oprit.');
+    }
+  }, [isOnline]);
+
+  // Keepalive + detectare îngheț + anti-throttling la schimbare tab / fereastră
   useEffect(() => {
     if (!streaming) return;
+    const sendAlive = (withKf = false) => {
+      emitRd({ action: 'ping' });
+      if (withKf) emitRd({ action: 'keyframe' });
+    };
     const pingTimer = setInterval(() => {
       emitRd({ action: 'ping' });
-    }, 7000);
+      const lastTs = lastFrameAtRef.current;
+      const now = Date.now();
+      if (lastTs > 0 && now - lastTs > 6000) {
+        setStreamStale(true);
+        if (now - lastKfReqRef.current > 6000) {
+          lastKfReqRef.current = now;
+          emitRd({ action: 'keyframe' });
+        }
+      }
+    }, 5000);
     const noFrameTimer = setTimeout(() => {
       if (!imgRef.current?.getAttribute('src')) {
         setStatusError('Nu a sosit încă niciun cadru. Asigură-te că PC-ul este online și are ultimul update POS Bridge (butonul „Update cod”).');
       }
     }, 5500);
+    const onVisibility = () => {
+      if (!document.hidden) sendAlive(true);
+    };
+    const onFocus = () => sendAlive(true);
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('focus', onFocus);
     return () => {
       clearInterval(pingTimer);
       clearTimeout(noFrameTimer);
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('focus', onFocus);
     };
   }, [streaming, emitRd]);
 
@@ -416,9 +484,13 @@ export default function RemoteDesktopViewer({
 
         <div className="flex items-center gap-2.5 text-[11px] font-medium">
           {streaming && (
-            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold">
+            <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md font-bold ${
+              streamStale
+                ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
+                : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+            }`}>
               <Wifi className="w-3 h-3" />
-              {nativeRes.w}×{nativeRes.h} · {stats.fps} FPS · {stats.kb} KB
+              {nativeRes.w}×{nativeRes.h} · {streamStale ? 'Semnal înghețat...' : `${stats.fps} FPS · ${stats.kb} KB`}
             </span>
           )}
           {streaming && (

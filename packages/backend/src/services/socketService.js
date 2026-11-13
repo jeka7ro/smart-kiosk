@@ -421,7 +421,7 @@ function initSocket(io) {
     });
 
     // Salvăm locationId pe socket la register și notificăm bridgeMonitoringService
-    socket.on('pos_bridge_register', async ({ locationId, instanceId, version, port, posGateway, printerName, hostname, posWakeStandby, posWakeIntervalMinutes }) => {
+    socket.on('pos_bridge_register', async ({ locationId, instanceId, version, codeHash, port, posGateway, printerName, hostname, posWakeStandby, posWakeIntervalMinutes }) => {
       // Auto-correct: if POS Bridge connects on COM5/COM1 or with TM-T20III or DESKTOP-VNTDBO0 (Cluj 2 hardware) but defaulted to sm-brasov
       if ((locationId === 'sm-brasov' || !locationId) && (port === 'COM5' || port === 'COM1' || String(printerName).includes('TM-T20III') || hostname === 'DESKTOP-VNTDBO0')) {
         console.log(`[Socket] Auto-remap bridge to cluj2 based on hardware fingerprint (host=${hostname}, port=${port}, printer=${printerName})`);
@@ -434,7 +434,7 @@ function initSocket(io) {
       let regResult = null;
       try {
         const bridgeMonitoringService = require('./bridgeMonitoringService');
-        regResult = bridgeMonitoringService.handleBridgeConnect(socket, { locationId, instanceId, version, port, posGateway, printerName, hostname, posWakeStandby, posWakeIntervalMinutes });
+        regResult = bridgeMonitoringService.handleBridgeConnect(socket, { locationId, instanceId, version, codeHash, port, posGateway, printerName, hostname, posWakeStandby, posWakeIntervalMinutes });
       } catch (e) {
         console.error('[BridgeMonitor] Register error:', e.message);
       }
@@ -624,7 +624,15 @@ function initSocket(io) {
 
       try {
         const bridgeMonitoringService = require('./bridgeMonitoringService');
-        bridgeMonitoringService.handleBridgeDisconnect(socket.id);
+        const disconnectedLocKey = bridgeMonitoringService.handleBridgeDisconnect(socket.id);
+        if (disconnectedLocKey) {
+          io.to(`rd-viewer-${disconnectedLocKey}`).emit('rd_status', {
+            locationId: disconnectedLocKey,
+            active: false,
+            reason: 'bridge_disconnected',
+            error: 'Conexiunea cu POS Bridge s-a întrerupt. Stream-ul Desktop Live a fost oprit.',
+          });
+        }
       } catch (e) {
         console.error('[BridgeMonitor] Disconnect error:', e.message);
       }

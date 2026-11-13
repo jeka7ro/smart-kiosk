@@ -4,9 +4,49 @@
 
 const BRIDGE_RELEASE_NOTES = [
   {
-    version: '3.5.6',
+    version: '3.5.7',
     releaseDate: '13 Noiembrie 2026',
     isLatest: true,
+    tag: 'Hotfix Critic Stabilitate + Paravan & Desktop Live',
+    title: 'Reparare Crash v3.5.6 (paymentInProgress), Paravan Mentenanță Opac și Desktop Live Stabil',
+    summary: 'Corectează eroarea critică „ReferenceError: paymentInProgress is not defined” introdusă în v3.5.6 care oprea bridge-ul la impulsul de trezire POS. Repară paravanul de mentenanță să fie complet opac pe ecranul Kiosk și invizibil în AnyDesk (WDA_EXCLUDEFROMCAPTURE) și previne înghețarea Desktop Live.',
+    categories: [
+      {
+        title: 'Stabilitate Critică POS Bridge',
+        badge: 'Critic',
+        badgeColor: 'rose',
+        items: [
+          {
+            title: 'Eliminare Crash „paymentInProgress is not defined” la Wake / Test Semnal',
+            desc: 'Variabila de blocare a tranzacțiilor a fost mutată la nivel de modul astfel încât wakePosKeepAlive() și testPosSignal() să nu mai arunce ReferenceError la fiecare impuls periodic.'
+          },
+          {
+            title: 'Sincronizare Hash SHA-256 Imediată la Conectare',
+            desc: 'Backend-ul preia amprenta codeHash încă din pachetul pos_bridge_register, eliminând marcarea falsă „actualizare necesară” în primele 20s.'
+          }
+        ]
+      },
+      {
+        title: 'Desktop Live & Paravan Mentenanță',
+        badge: 'Îmbunătățire',
+        badgeColor: 'blue',
+        items: [
+          {
+            title: 'Paravan Mentenanță Complet Opac & Anti-Coliziune',
+            desc: 'Setează SetLayeredWindowAttributes(alpha=255), dimensiune pe întregul VirtualScreen, pornit cu -STA și top-most la 1.5s, cu închidere sigură a proceselor vechi fără a-și opri propriul proces.'
+          },
+          {
+            title: 'Escaladare Rezoluție Portret 1080×1920 & Anti-Îngheț Stream',
+            desc: 'Scalare proporțională după latura maximă, retrimitere keyframe la congestia bufferului Socket.IO și detectare automată a deconectării sau înghețului în Admin.'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    version: '3.5.6',
+    releaseDate: '13 Noiembrie 2026',
+    isLatest: false,
     tag: 'Desktop Live (AnyDesk Intern) & Cooldown UART Anti-Coliziune',
     title: 'Desktop Live în Admin, Verificare Hash SHA-256 și Protecție Wake/Semnal POS',
     summary: 'Elimină coliziunile de 2–4 secunde între testul de semnal POS (10:10 / 10:20) și timerul de trezire periodică printr-un cooldown de 10s + reîncercare discretă la auto-wake. Include streaming Desktop Live nativ Windows în Admin și verificarea reală prin amprentă SHA-256 a codului.',
