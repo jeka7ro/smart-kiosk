@@ -1,5 +1,21 @@
 # Jurnal de modificări — Smart Kiosk (Antigravity ↔ Paperclip)
 
+### 2026-11-13 10:30 — Fix coliziune UART Wake/Test Semnal + v3.5.6
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. Adăugat în `packages/pos-bridge/index.js` cooldown comun `POS_ENQ_PROBE_COOLDOWN_MS = 10000` (`lastPosEnqProbeOkAt` + actualizare `lastActivityTime` în `testPosSignal`, `pos_prewake` și `wakePosKeepAlive`) astfel încât un impuls de wake și un test de semnal (`10:10`/`10:20` sau manual) să nu mai lovească terminalul Verifone la 2–4 secunde distanță.
+  2. Adăugat în `wakePosKeepAlive()` o reîncercare discretă după `5s` la un singur timeout izolat în fundal înainte de a raporta roșu `POS în standby (fără răspuns la wake în 3000ms)` în Admin, plus `cancelBackgroundPosProbes()` apelat imediat la `processPrintecPayment`, `forceReopenPort`, `close` și `cancel_pos_payment` (fluxul de plată `SALE` / `ecrSend` a rămas neatins).
+  3. Corectat în `packages/admin/src/screens/BridgeMonitoring.jsx` cardul `Ultimul Semnal` din modalul `Istoric Semnal POS & Latență UART` să afișeze `Timeout / Fără răspuns` cu roșu când `lastSuccess === false` în loc de `Normal` cu verde.
+  4. Incrementat versiunea POS Bridge de la `3.5.5` la `3.5.6` și adăugat Release Notes pentru `v3.5.6`.
+- **Fișiere:**
+  - `packages/pos-bridge/index.js`
+  - `packages/pos-bridge/package.json`
+  - `packages/admin/src/screens/BridgeMonitoring.jsx`
+  - `packages/admin/src/data/bridgeReleaseNotes.js`
+  - `packages/backend/src/data/bridgeReleaseNotes.js`
+- **Ramură / Commit:** `main` (`v3.5.6`)
+- **Build / Teste:** `node --check` OK (`packages/pos-bridge/index.js`, `packages/backend/src/data/bridgeReleaseNotes.js`, `packages/backend/src/services/bridgeMonitoringService.js`), `npm --prefix packages/admin run build` (`vite build`, 1843 module, `2.98s`, 0 erori), test izolat `ALL_COOLDOWN_AND_VERSION_TESTS_PASSED`.
+
 ### 2026-11-13 10:01 — Desktop Live (clonă AnyDesk nativă integrată în Admin)
 - **Autor:** Antigravity
 - **Ce s-a făcut:**
@@ -12,7 +28,7 @@
   - `packages/backend/src/services/socketService.js`
   - `packages/admin/src/components/RemoteDesktopViewer.jsx`
   - `packages/admin/src/components/WindowsRemoteModal.jsx`
-- **Ramură / Commit:** `main` (necomis / fără push, așteaptă acordul utilizatorului)
+- **Ramură / Commit:** `main` (`v3.5.6`)
 - **Build / Teste:** `node --check` pe fișierele backend/bridge OK, `npm --prefix packages/admin run build` (`vite build`, 1843 module, 0 erori), verificare balansare sintaxă C# (217 linii) și test relay Socket.IO (`REMOTE_DESKTOP_VERIFICATION_PASSED`); execuția reală Windows PowerShell se verifică live pe PC după deploy.
 
 ### 2026-11-13 09:50 — Verificare amprentă cod real (SHA-256) + Auto-update & restart zilnic POS Bridge la 09:00

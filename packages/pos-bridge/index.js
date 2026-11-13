@@ -1,4 +1,4 @@
-const BRIDGE_VERSION = '3.5.5';
+const BRIDGE_VERSION = '3.5.6';
 const PROCESS_BOOT_TIME = Date.now();
 let globalSocket = null;
 
@@ -371,6 +371,7 @@ let isReopeningPort = false;
 function forceReopenPort(reason = 'Force Reset') {
   return new Promise((resolve) => {
     if (!globalPort) return resolve();
+    cancelBackgroundPosProbes();
     log(`🔄 Re-ciclare port serial POS (${reason})...`);
     isReopeningPort = true;
     posLoggedIn = false;
@@ -430,6 +431,20 @@ let wakeStartTime = 0;
 let wakeRecoveryTimer = null;
 let posSignalTestStartTime = 0;
 
+const POS_ENQ_PROBE_COOLDOWN_MS = 10000;
+let lastPosEnqProbeOkAt = 0;
+let wakeRetryTimer = null;
+let delayedSignalTestTimer = null;
+
+function cancelBackgroundPosProbes() {
+  clearTimeout(wakeRecoveryTimer);
+  wakeRecoveryTimer = null;
+  clearTimeout(wakeRetryTimer);
+  wakeRetryTimer = null;
+  clearTimeout(delayedSignalTestTimer);
+  delayedSignalTestTimer = null;
+}
+
 function isWithinWorkingHours() {
   const now = new Date();
   const currentHour = now.getHours(); // 0 - 23
@@ -450,20 +465,31 @@ function noteActivity(source = 'general') {
   }
 }
 
-function wakePosKeepAlive() {
+function wakePosKeepAlive(isRetry = false) {
   if (!posWakeStandbyEnabled) return;
   if (!isWithinWorkingHours()) {
     log('[POS Wake] 🌙 În afara programului de lucru (10:00 - 22:00, restaurant închis). Omit impulsul de trezire.');
     return;
   }
-  if (!globalPort || !globalPort.isOpen || state !== 'IDLE' || currentTransactionResolve || isReopeningPort) {
+  if (!globalPort || !globalPort.isOpen || state !== 'IDLE' || paymentInProgress || currentTransactionResolve || isReopeningPort) {
     log(`[POS Wake] ⏭️ Omit impuls trezire (port ocupat sau tranzacție activă, stare=${state})`);
     return;
   }
-  log(`⚡ [POS Wake] Inactivitate de ${posWakeIntervalMinutes} minute în timpul programului (10:00 - 22:00). Trimit ENQ discret pentru trezire/prevenire sleep USB...`);
-  
+  const sinceLastProbeOk = lastPosEnqProbeOkAt ? (Date.now() - lastPosEnqProbeOkAt) : Infinity;
+  if (sinceLastProbeOk < POS_ENQ_PROBE_COOLDOWN_MS) {
+    log(`[POS Wake] ⏭️ POS verificat cu succes acum ${Math.round(sinceLastProbeOk / 1000)}s (< ${POS_ENQ_PROBE_COOLDOWN_MS / 1000}s). Omit impulsul redundant.`);
+    return;
+  }
+
+  log(`⚡ [POS Wake] ${isRetry ? 'Reîncercare discretă trezire POS...' : `Inactivitate de ${posWakeIntervalMinutes} minute în timpul programului (10:00 - 22:00). Trimit ENQ discret pentru trezire/prevenire sleep USB...`}`);
+
   clearTimeout(wakeRecoveryTimer);
   wakeRecoveryTimer = null;
+  if (!isRetry) {
+    clearTimeout(wakeRetryTimer);
+    wakeRetryTimer = null;
+  }
+  noteActivity(isRetry ? 'wake_retry' : 'wake_keepalive');
   wakeStartTime = Date.now();
   state = 'WAIT_ENQ_ACK__WAKE';
   currentOperation = 'WAKE';
@@ -471,10 +497,23 @@ function wakePosKeepAlive() {
 
   clearTimeout(currentTransactionTimer);
   currentTransactionTimer = setTimeout(() => {
-    log('⚠️ [POS Wake] POS nu a răspuns la impulsul de trezire în 3000ms. Închei sesiunea WAKE conform protocol.');
     try { globalPort.write(Buffer.from([EOT])); } catch (_) {}
     state = 'IDLE';
     currentOperation = null;
+
+    // Un singur pachet auto-wake ratat în fundal reîncearcă discret o dată după 5s
+    // înainte de a raporta eroare în Admin, evitând alarmele roșii false.
+    if (!isRetry) {
+      log('⏳ [POS Wake] POS nu a răspuns la primul impuls în 3000ms. Programez o reîncercare discretă în 5s (fără alarmă falsă)...');
+      clearTimeout(wakeRetryTimer);
+      wakeRetryTimer = setTimeout(() => {
+        wakeRetryTimer = null;
+        wakePosKeepAlive(true);
+      }, 5000);
+      return;
+    }
+
+    log('⚠️ [POS Wake] POS nu a răspuns nici la reîncercare în 3000ms. Închei sesiunea WAKE conform protocol.');
     if (globalSocket) {
       globalSocket.emit('pos_signal_result', {
         locationId: LOCATION_ID,
@@ -491,7 +530,7 @@ function wakePosKeepAlive() {
   globalPort.write(Buffer.from([ENQ]));
 }
 
-function testPosSignal() {
+function testPosSignal(allowDelay = true) {
   if (POS_GATEWAY === 'viva_pos') {
     const net = require('net');
     const startT = Date.now();
@@ -548,12 +587,31 @@ function testPosSignal() {
     return;
   }
 
-  if (state === 'WAIT_ENQ_ACK__TEST_SIGNAL' || (posSignalTestStartTime && Date.now() - posSignalTestStartTime < 2000)) {
-    log('📡 [POS Signal] Test semnal deja în curs sau executat recent. Ignor apelul duplicat.');
+  clearTimeout(wakeRetryTimer);
+  wakeRetryTimer = null;
+
+  if (state === 'WAIT_ENQ_ACK__TEST_SIGNAL' || delayedSignalTestTimer || (posSignalTestStartTime && Date.now() - posSignalTestStartTime < 2000)) {
+    log('📡 [POS Signal] Test semnal deja în curs, programat sau executat recent. Ignor apelul duplicat.');
     return;
   }
 
-  if (state !== 'IDLE' || currentTransactionResolve) {
+  const sinceLastProbeOk = lastPosEnqProbeOkAt ? (Date.now() - lastPosEnqProbeOkAt) : Infinity;
+  if (state === 'WAIT_ENQ_ACK__WAKE' || (allowDelay && sinceLastProbeOk < POS_ENQ_PROBE_COOLDOWN_MS)) {
+    const waitMs = state === 'WAIT_ENQ_ACK__WAKE'
+      ? POS_ENQ_PROBE_COOLDOWN_MS
+      : Math.max(1000, POS_ENQ_PROBE_COOLDOWN_MS - sinceLastProbeOk + 200);
+    log(`⏳ [POS Signal] Impuls anterior activ/recent (stare=${state}, acum ${Number.isFinite(sinceLastProbeOk) ? Math.round(sinceLastProbeOk / 1000) : 0}s). Amân testul cu ${Math.round(waitMs / 1000)}s pentru protecție Verifone...`);
+    delayedSignalTestTimer = setTimeout(() => {
+      delayedSignalTestTimer = null;
+      if (!globalPort || !globalPort.isOpen || paymentInProgress || currentTransactionResolve || isReopeningPort) {
+        return;
+      }
+      testPosSignal(false);
+    }, waitMs);
+    return;
+  }
+
+  if (state !== 'IDLE' || paymentInProgress || currentTransactionResolve || isReopeningPort) {
     const msg = `POS ocupat în starea ${state}`;
     log(`📡 [POS Signal] ⚠️ ${msg}`);
     if (globalSocket) {
@@ -567,6 +625,7 @@ function testPosSignal() {
     return;
   }
 
+  noteActivity('test_pos_signal');
   log('📡 [POS Signal] Se testează semnalul și latența liniei seriale cu POS...');
   posSignalTestStartTime = Date.now();
   state = 'WAIT_ENQ_ACK__TEST_SIGNAL';
@@ -799,8 +858,7 @@ function ensurePosLogin() {
 function processPrintecPayment(amount, onStatus) {
   return new Promise(async (resolve) => {
     // 🛡️ Prioritate Absolută Plată: Anulăm orice impuls de pre-wake / auto-wake sau timer de recuperare
-    clearTimeout(wakeRecoveryTimer);
-    wakeRecoveryTimer = null;
+    cancelBackgroundPosProbes();
 
     if (state === 'WAIT_ENQ_ACK__WAKE' || currentOperation === 'WAKE' || state === 'WAIT_ENQ_ACK__TEST_SIGNAL' || currentOperation === 'TEST_SIGNAL') {
       log('⏳ [POS Bridge] Impuls de wake/test activ pe magistrală — aștept finalizarea normală (sub 300ms) înainte de SALE...');
@@ -1116,6 +1174,7 @@ async function start() {
     });
 
     globalPort.on('close', () => {
+      cancelBackgroundPosProbes();
       if (isReopeningPort) {
         log(`ℹ️ [Port] Închidere controlată în curs (isReopeningPort=true) — omit reconectarea concurentă.`);
         return;
@@ -1205,10 +1264,14 @@ async function start() {
             const latencyMs = Math.max(1, Date.now() - (wakeStartTime || Date.now()));
             log(`✅ [POS Wake] ACK primit de la POS (${latencyMs}ms)! Trimit EOT pentru a lăsa magistrala liberă.`);
             try { globalPort.write(Buffer.from([EOT])); } catch (_) {}
+            lastPosEnqProbeOkAt = Date.now();
+            noteActivity('wake_ack');
             state = 'IDLE';
             currentOperation = null;
             clearTimeout(wakeRecoveryTimer);
             wakeRecoveryTimer = null;
+            clearTimeout(wakeRetryTimer);
+            wakeRetryTimer = null;
             if (globalSocket) {
               globalSocket.emit('pos_signal_result', {
                 locationId: LOCATION_ID,
@@ -1224,6 +1287,8 @@ async function start() {
             const latencyMs = Math.max(1, Date.now() - (posSignalTestStartTime || Date.now()));
             log(`✅ [POS Signal] Răspuns primit în ${latencyMs}ms! Trimit EOT.`);
             try { globalPort.write(Buffer.from([EOT])); } catch (_) {}
+            lastPosEnqProbeOkAt = Date.now();
+            noteActivity('test_signal_ack');
             state = 'IDLE';
             currentOperation = null;
             if (globalSocket) {
@@ -1626,8 +1691,7 @@ async function start() {
     const { locationId: lid, kioskId } = data || {};
     if (!isMyLocation(lid, kioskId)) return;
     
-    clearTimeout(wakeRecoveryTimer);
-    wakeRecoveryTimer = null;
+    cancelBackgroundPosProbes();
 
     if (state === 'WAIT_ENQ_ACK__WAKE' || currentOperation === 'WAKE' || state === 'WAIT_ENQ_ACK__TEST_SIGNAL' || currentOperation === 'TEST_SIGNAL') {
       clearTimeout(currentTransactionTimer);
@@ -1974,6 +2038,7 @@ async function start() {
         const idleMs = now - lastActivityTime;
         if (idleMs > 30000) {
           log('⚡ [Pre-Wake] Client activ la Kiosk (atingere/checkout). Trimit impuls ENQ discret pentru trezire din timp a terminalului...');
+          noteActivity('pos_prewake');
           wakePosKeepAlive();
         }
       }

@@ -4,9 +4,49 @@
 
 const BRIDGE_RELEASE_NOTES = [
   {
+    version: '3.5.6',
+    releaseDate: '13 Noiembrie 2026',
+    isLatest: true,
+    tag: 'Desktop Live (AnyDesk Intern) & Cooldown UART Anti-Coliziune',
+    title: 'Desktop Live în Admin, Verificare Hash SHA-256 și Protecție Wake/Semnal POS',
+    summary: 'Elimină coliziunile de 2–4 secunde între testul de semnal POS (10:10 / 10:20) și timerul de trezire periodică printr-un cooldown de 10s + reîncercare discretă la auto-wake. Include streaming Desktop Live nativ Windows în Admin și verificarea reală prin amprentă SHA-256 a codului.',
+    categories: [
+      {
+        title: 'Stabilitate UART & Semnal POS',
+        badge: 'Critic',
+        badgeColor: 'emerald',
+        items: [
+          {
+            title: 'Cooldown Comun 10s între Ping-uri ENQ (Wake ↔ Test Semnal)',
+            desc: 'După orice răspuns ACK de la terminalul Verifone, bridge-ul păstrează minim 10s până la următorul impuls de fundal și amână automat testele suprapuse, eliminând alarmele false „POS în standby (3000ms)”.'
+          },
+          {
+            title: 'Reîncercare Discretă la Auto-Wake',
+            desc: 'Un pachet de keep-alive ratat izolat în fundal reîncearcă o dată după 5s înainte de a semnala eroare în Admin.'
+          }
+        ]
+      },
+      {
+        title: 'Desktop Live & Update Automat',
+        badge: 'Nou',
+        badgeColor: 'blue',
+        items: [
+          {
+            title: 'Desktop Live Nativ din Browser (Stil AnyDesk)',
+            desc: 'Captură nativă Windows a ecranului și control complet mouse, scroll și tastatură direct din panoul Admin, fără aplicații terțe.'
+          },
+          {
+            title: 'Verificare SHA-256 & Auto-Update 09:00',
+            desc: 'Confirmare cryptographică a versiunii exacte de pe fiecare PC și actualizare automată zilnică la 09:00 doar când Kiosk-ul e inactiv.'
+          }
+        ]
+      }
+    ]
+  },
+  {
     version: '3.5.5',
     releaseDate: '1 Noiembrie 2026',
-    isLatest: true,
+    isLatest: false,
     tag: 'Stabilitate Totală Standby & Protocol Printec v3.9.3',
     title: 'Eliminare Reset Port la Wake & Curățare Stare la Anulare Kiosk',
     summary: 'Respectă cu strictețe Regula 6 a protocolului Printec v3.9.3: elimină definitiv ciclarea portului COM la timeout de wake în standby, prevenind oprirea procesului Node.js pe Windows. Curățare imediată de buffer și forțare stare IDLE la comanda explicită de anulare a clientului din Kiosk.',

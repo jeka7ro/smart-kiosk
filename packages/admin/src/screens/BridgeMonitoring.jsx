@@ -505,7 +505,7 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
 
   const signalStats = useMemo(() => {
     if (!signalLogs || signalLogs.length === 0) {
-      return { total: 0, avgLatency: null, successRate: null, lastLatency: null };
+      return { total: 0, avgLatency: null, successRate: null, lastLatency: null, lastSuccess: null };
     }
     const total = signalLogs.length;
     const successes = signalLogs.filter(l => l.success);
@@ -513,7 +513,8 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
     const latencies = successes.map(l => l.latency_ms).filter(n => typeof n === 'number' && !isNaN(n));
     const avgLatency = latencies.length > 0 ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length) : null;
     const lastLatency = signalLogs[0]?.latency_ms ?? null;
-    return { total, avgLatency, successRate, lastLatency };
+    const lastSuccess = signalLogs[0] ? !!signalLogs[0].success : null;
+    return { total, avgLatency, successRate, lastLatency, lastSuccess };
   }, [signalLogs]);
 
   useEffect(() => {
@@ -2232,8 +2233,14 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                 <span className="text-base font-bold text-slate-900 dark:text-white mt-1 block">
                   {signalStats.lastLatency !== null ? `${signalStats.lastLatency}ms` : '—'}
                 </span>
-                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
-                  {signalStats.lastLatency !== null && signalStats.lastLatency < 100 ? 'Excelent' : (signalStats.lastLatency !== null ? 'Normal' : 'Netestat')}
+                <span className={`text-[10px] font-semibold ${
+                  signalStats.lastSuccess === false
+                    ? 'text-red-600 dark:text-red-400'
+                    : 'text-emerald-600 dark:text-emerald-400'
+                }`}>
+                  {signalStats.lastSuccess === false
+                    ? 'Timeout / Fără răspuns'
+                    : (signalStats.lastLatency !== null && signalStats.lastLatency < 100 ? 'Excelent' : (signalStats.lastLatency !== null ? 'Normal' : 'Netestat'))}
                 </span>
               </div>
 
