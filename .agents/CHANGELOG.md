@@ -1,5 +1,22 @@
 # Jurnal de modificări — Smart Kiosk (Antigravity ↔ Paperclip)
 
+### 2026-11-13 09:50 — Verificare amprentă cod real (SHA-256) + Auto-update & restart zilnic POS Bridge la 09:00
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. Adăugat `computeLocalBridgeCodeHash()` în `packages/pos-bridge/index.js` (amprentă SHA-256 pe 12 caractere calculată cu normalizare LF/CRLF și BOM din `index.js`, `printer.js`, `watchdog.vbs`), transmisă în `pos_bridge_register` și `pos_bridge_heartbeat`, plus protecție `onlyIfIdle` pe `remote_restart` pentru a nu întrerupe nicio plată activă.
+  2. Implementat în `packages/backend/src/services/bridgeMonitoringService.js`:
+     - `fetchExpectedBridgeHash()` care preia amprenta oficială din GitHub `main` (cu cache-busting, reîmprospătare la pornire, după 3 min și la fiecare 30 min, plus fallback local dev).
+     - `evaluateBridgeFreshness()` folosit în `getStatusSummary()` astfel încât un bridge online cu cod vechi (`codeHash` lipsă sau diferit de cel oficial) să fie marcat exact cu `isBridgeUpToDate: false`, chiar dacă stringul `v3.5.5` este identic.
+     - Scheduler zilnic la **09:00 (`Europe/Bucharest`)** (`runDailyBridgeAutoUpdateCheck()`) cu cooldown de 10 minute anti-loop: actualizează și repornește automat (`onlyIfIdle: true`) bridge-urile online rămase în urmă și trimite raportul sumar pe Telegram; actualizat și `/status` + raportul matinal de la `10:10`.
+  3. Actualizat `packages/admin/src/screens/BridgeMonitoring.jsx` și `packages/backend/src/routes/bridgeMonitoring.js` ca Admin-ul să afișeze explicit **„Cod vechi”** / **„Update cod”** cu tooltip comparativ `#hashLocal` vs `#hashOficial` în loc de „Soft la zi” fals.
+- **Fișiere:**
+  - `packages/pos-bridge/index.js`
+  - `packages/backend/src/services/bridgeMonitoringService.js`
+  - `packages/backend/src/routes/bridgeMonitoring.js`
+  - `packages/admin/src/screens/BridgeMonitoring.jsx`
+- **Ramură / Commit:** `main` (necomis / fără push, conform regulii; așteaptă acordul utilizatorului)
+- **Build / Teste:** `node --check` pe fișierele modificate OK, `npm --prefix packages/admin run build` (`vite build`) — 0 erori, plus test funcțional Node (`ALL_VERIFICATIONS_PASSED`) pentru paritate CRLF/LF, detecție hash vechi, `onlyIfIdle` și cooldown anti-loop.
+
 ### 2026-11-12 09:56 — Butoane & comenzi Restart POS Bridge direct în Telegram Bot + confirmare automată la reconectare
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

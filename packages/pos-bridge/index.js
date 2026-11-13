@@ -71,7 +71,36 @@ const { io: ioClient } = require('socket.io-client');
 const { SerialPort }   = require('serialport');
 const fs               = require('fs');
 const pathMod          = require('path');
+const crypto           = require('crypto');
 const { exec }         = require('child_process');
+
+const BRIDGE_HASH_FILES = ['index.js', 'printer.js', 'watchdog.vbs'];
+
+/**
+ * Compute deterministic SHA-256 short fingerprint of core local bridge scripts (LF-normalized).
+ * Ensures Windows CRLF and GitHub LF line endings always yield the exact same hash.
+ */
+function computeLocalBridgeCodeHash() {
+  try {
+    const hash = crypto.createHash('sha256');
+    for (const filename of BRIDGE_HASH_FILES) {
+      const fullPath = pathMod.join(__dirname, filename);
+      if (fs.existsSync(fullPath)) {
+        const normalized = fs.readFileSync(fullPath, 'utf8')
+          .replace(/^\uFEFF/, '')
+          .replace(/\r\n/g, '\n');
+        hash.update(`${filename}:${normalized.length}:${normalized}\n`);
+      } else {
+        hash.update(`${filename}:missing\n`);
+      }
+    }
+    return hash.digest('hex').slice(0, 12);
+  } catch (_) {
+    return null;
+  }
+}
+
+const BRIDGE_CODE_HASH = computeLocalBridgeCodeHash();
 
 
 const INSTANCE_ID = `${require('os').hostname()}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
@@ -915,11 +944,12 @@ async function start() {
   });
 
   socket.on('connect', async () => {
-    log(`✅ Conectat la Render (${socket.id}) [instance: ${INSTANCE_ID}, soft: v${BRIDGE_VERSION}]`);
+    log(`✅ Conectat la Render (${socket.id}) [instance: ${INSTANCE_ID}, soft: v${BRIDGE_VERSION}, hash: #${BRIDGE_CODE_HASH || '?'}]`);
     socket.emit('pos_bridge_register', { 
       locationId: LOCATION_ID, 
       instanceId: INSTANCE_ID,
       version: BRIDGE_VERSION,
+      codeHash: BRIDGE_CODE_HASH,
       port: portPath || `VIVA_${VIVA_POS_IP}`,
       posGateway: POS_GATEWAY,
       posWakeStandby: posWakeStandbyEnabled,
@@ -1026,6 +1056,7 @@ async function start() {
           socket.emit('pos_bridge_heartbeat', {
             locationId: LOCATION_ID,
             version: BRIDGE_VERSION,
+            codeHash: BRIDGE_CODE_HASH,
             port: portPath || `VIVA_${VIVA_POS_IP}`,
             printerName: printer,
             posGateway: POS_GATEWAY,
@@ -1836,13 +1867,23 @@ async function start() {
     process.exit(0);
   }
 
+  const shouldDeferAutoRestart = (data) => {
+    if (data?.onlyIfIdle && (paymentInProgress || currentTransactionResolve || state !== 'IDLE')) {
+      log(`⏸️ Auto-actualizare amânată — plată/tranzacție activă pe POS (${state}). Nu întrerup clientul!`);
+      return true;
+    }
+    return false;
+  };
+
   socket.on('remote_restart', (data) => {
     if (!data || !data.locationId || data.locationId === 'all' || data.locationId === LOCATION_ID || isMyLocation(data.locationId)) {
+      if (shouldDeferAutoRestart(data)) return;
       downloadUpdateAndRestart();
     }
   });
 
-  socket.on(`remote_restart_${LOCATION_ID}`, () => {
+  socket.on(`remote_restart_${LOCATION_ID}`, (data) => {
+    if (shouldDeferAutoRestart(data)) return;
     downloadUpdateAndRestart();
   });
 

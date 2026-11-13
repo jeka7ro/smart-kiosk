@@ -608,6 +608,10 @@ router.post('/update-all-bridges', (req, res) => {
     const io = req.app.get('io');
     if (!io) return res.status(500).json({ error: 'Socket.io nu este inițializat pe server' });
 
+    if (typeof bridgeMonitoringService.fetchExpectedBridgeHash === 'function') {
+      bridgeMonitoringService.fetchExpectedBridgeHash(true).catch(() => {});
+    }
+
     const requested = req.body?.locations || (req.body?.locationId ? [req.body.locationId] : null);
     const isTargeted = Array.isArray(requested) && requested.length > 0;
     const locations = isTargeted ? requested : ['cluj1', 'cluj2', 'sm-brasov', 'constanta1'];

@@ -985,10 +985,14 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
       const latestScriptVer = liveKiosk?.latestScriptVersion || '2.4.0';
       const isScriptUpToDate = Boolean(kioskScriptVer && kioskScriptVer === latestScriptVer);
 
+      const bridgeOnlineNow = Boolean(loc.status === 'online' || loc.isBridgeOnline);
       const rawBridgeVersion = loc.bridgeVersion || loc.version || null;
       const latestBridgeVer = BRIDGE_RELEASE_NOTES[0]?.version || loc.latestBridgeVersion || '3.5.4';
       const bridgeVersion = (rawBridgeVersion && rawBridgeVersion !== '1.0.0') ? rawBridgeVersion : latestBridgeVer;
-      const isBridgeUpToDate = Boolean(rawBridgeVersion && bridgeVersion === latestBridgeVer);
+      const backendUpToDate = loc.isBridgeUpToDate !== false && loc.isCodeHashUpToDate !== false;
+      const isBridgeUpToDate = bridgeOnlineNow
+        ? Boolean(rawBridgeVersion && bridgeVersion === latestBridgeVer && backendUpToDate)
+        : true;
 
       const cleanKioskName = friendlyNames[locKey] || (loc.displayName ? loc.displayName.replace(/\s*\([^)]*\)/g, '').trim() : locKey);
       const brandId = loc.brand || loc.brandId || brandMap[locKey] || (locKey.includes('brasov') ? 'rollmaster' : 'smashme');
@@ -1019,6 +1023,9 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
         isScriptUpToDate,
         bridgeVersion,
         latestBridgeVer,
+        codeHash: loc.codeHash || null,
+        expectedCodeHash: loc.expectedCodeHash || null,
+        isCodeHashUpToDate: loc.isCodeHashUpToDate !== false,
         isBridgeUpToDate,
         hasRecentConnection,
         uptimeSeconds: effectiveUptime,
@@ -1497,14 +1504,22 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                                 setReleaseNotesTargetLoc(locKey);
                                 setIsReleaseNotesOpen(true);
                               }}
-                              title={loc.isBridgeUpToDate ? "Soft la zi" : `Actualizare disponibilă la v${loc.latestBridgeVer}. Click pentru noutăți și instalare pe acest aparat.`}
+                              title={
+                                loc.isBridgeUpToDate
+                                  ? `Soft la zi${loc.codeHash ? ` (amprentă #${loc.codeHash})` : ''}`
+                                  : (loc.bridgeVersion === loc.latestBridgeVer
+                                      ? `Cod vechi (${loc.codeHash ? `#${loc.codeHash}` : 'fără amprentă'} ≠ oficial #${loc.expectedCodeHash || '?'}). Click pentru actualizare & restart.`
+                                      : `Actualizare disponibilă la v${loc.latestBridgeVer}. Click pentru noutăți și instalare pe acest aparat.`)
+                              }
                               className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold whitespace-nowrap cursor-pointer transition-all hover:scale-105 active:scale-95 ${
                                 loc.isBridgeUpToDate
                                   ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
                                   : 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900 ring-1 ring-amber-300 dark:ring-amber-700/60'
                               }`}
                             >
-                              {loc.isBridgeUpToDate ? 'La zi' : `Nou: v${loc.latestBridgeVer}`}
+                              {loc.isBridgeUpToDate
+                                ? 'La zi'
+                                : (loc.bridgeVersion === loc.latestBridgeVer ? 'Cod vechi' : `Nou: v${loc.latestBridgeVer}`)}
                             </button>
                           </>
                         ) : (
@@ -1631,11 +1646,15 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                           setIsReleaseNotesOpen(true);
                         }}
                         disabled={actionLoading === `${locKey}-restart-bridge` || restartProgress[locKey]?.status === 'pending'}
-                        title={`Actualizează POS Bridge la v${loc.latestBridgeVer} pe acest aparat`}
+                        title={
+                          loc.bridgeVersion === loc.latestBridgeVer
+                            ? `Actualizează codul POS Bridge (${loc.codeHash ? `#${loc.codeHash}` : 'fără amprentă'} → #${loc.expectedCodeHash || 'oficial'})`
+                            : `Actualizează POS Bridge la v${loc.latestBridgeVer} pe acest aparat`
+                        }
                         className="flex items-center justify-center gap-1.5 py-2 px-1.5 sm:px-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-50 cursor-pointer shadow-xs whitespace-nowrap active:scale-95"
                       >
                         <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${actionLoading === `${locKey}-restart-bridge` ? 'animate-spin' : ''}`} />
-                        <span>Update v{loc.latestBridgeVer}</span>
+                        <span>{loc.bridgeVersion === loc.latestBridgeVer ? 'Update cod' : `Update v${loc.latestBridgeVer}`}</span>
                       </button>
                     ) : (
                       <button

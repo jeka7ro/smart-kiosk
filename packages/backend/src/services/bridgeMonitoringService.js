@@ -31,6 +31,128 @@ let telegramConfig = {
 const { BRIDGE_RELEASE_NOTES } = require('../data/bridgeReleaseNotes');
 const LATEST_BRIDGE_VERSION = BRIDGE_RELEASE_NOTES[0]?.version || '3.5.5';
 
+const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
+const https = require('https');
+
+const BRIDGE_HASH_FILES = ['index.js', 'printer.js', 'watchdog.vbs'];
+const BRIDGE_GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/jeka7ro/smart-kiosk/main/packages/pos-bridge';
+
+let expectedCodeHash = null;
+let expectedCodeHashCheckedAt = null;
+let expectedCodeHashSource = null;
+
+function computeBridgeFilesHash(contentsByFile) {
+  const hash = crypto.createHash('sha256');
+  for (const filename of BRIDGE_HASH_FILES) {
+    const raw = contentsByFile[filename];
+    if (typeof raw === 'string') {
+      const normalized = raw.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n');
+      hash.update(`${filename}:${normalized.length}:${normalized}\n`);
+    } else {
+      hash.update(`${filename}:missing\n`);
+    }
+  }
+  return hash.digest('hex').slice(0, 12);
+}
+
+function fetchHttpsText(url, timeoutMs = 10000) {
+  return new Promise((resolve, reject) => {
+    const req = https.get(url, {
+      headers: {
+        'Cache-Control': 'no-cache',
+        'User-Agent': 'SmartKiosk-BridgeMonitor/1.0',
+      },
+    }, (res) => {
+      if (res.statusCode !== 200) {
+        res.resume();
+        return reject(new Error(`HTTP ${res.statusCode} for ${url}`));
+      }
+      let data = '';
+      res.setEncoding('utf8');
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => resolve(data));
+    });
+    req.setTimeout(timeoutMs, () => {
+      req.destroy(new Error(`Timeout after ${timeoutMs}ms for ${url}`));
+    });
+    req.on('error', reject);
+  });
+}
+
+async function fetchExpectedBridgeHash(forceRefresh = false) {
+  if (!forceRefresh && expectedCodeHash && expectedCodeHashCheckedAt && (Date.now() - expectedCodeHashCheckedAt < 60000)) {
+    return expectedCodeHash;
+  }
+
+  try {
+    const contents = {};
+    await Promise.all(BRIDGE_HASH_FILES.map(async (filename) => {
+      try {
+        contents[filename] = await fetchHttpsText(`${BRIDGE_GITHUB_RAW_BASE}/${filename}?ts=${Date.now()}`);
+      } catch (fileErr) {
+        if (filename === 'index.js') throw fileErr;
+        contents[filename] = null;
+      }
+    }));
+    expectedCodeHash = computeBridgeFilesHash(contents);
+    expectedCodeHashCheckedAt = Date.now();
+    expectedCodeHashSource = 'github_main';
+    console.log(`[BridgeMonitor] 📦 Amprentă oficială cod POS Bridge (GitHub main): #${expectedCodeHash}`);
+    return expectedCodeHash;
+  } catch (err) {
+    try {
+      const localDir = path.resolve(__dirname, '../../../pos-bridge');
+      if (fs.existsSync(path.join(localDir, 'index.js'))) {
+        const contents = {};
+        for (const filename of BRIDGE_HASH_FILES) {
+          const p = path.join(localDir, filename);
+          contents[filename] = fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : null;
+        }
+        expectedCodeHash = computeBridgeFilesHash(contents);
+        expectedCodeHashCheckedAt = Date.now();
+        expectedCodeHashSource = 'local_disk';
+        console.log(`[BridgeMonitor] 📦 Amprentă cod POS Bridge (disk local): #${expectedCodeHash}`);
+        return expectedCodeHash;
+      }
+    } catch (_) {}
+    console.warn('[BridgeMonitor] ⚠️ Nu am putut reîmprospăta amprenta oficială GitHub:', err.message);
+    return expectedCodeHash;
+  }
+}
+
+function evaluateBridgeFreshness(bridgeEntry, isOnlineOverride) {
+  const isOnline = isOnlineOverride !== undefined ? Boolean(isOnlineOverride) : (bridgeEntry?.status === 'online');
+  const rawVersion = bridgeEntry?.version && bridgeEntry.version !== '1.0.0' ? bridgeEntry.version : null;
+  const displayVersion = rawVersion || LATEST_BRIDGE_VERSION;
+  const versionMatches = rawVersion ? rawVersion === LATEST_BRIDGE_VERSION : true;
+  const reportedCodeHash = bridgeEntry?.codeHash || null;
+
+  // Pentru bridge-uri offline / neconectate încă, nu afișăm fals necesitate update manual;
+  // pentru orice bridge online, verificăm strict și versiunea și amprenta SHA-256 dacă este cunoscută.
+  let isCodeHashUpToDate = true;
+  if (isOnline && expectedCodeHash) {
+    isCodeHashUpToDate = Boolean(reportedCodeHash && reportedCodeHash === expectedCodeHash);
+  }
+
+  return {
+    version: displayVersion,
+    bridgeVersion: displayVersion,
+    latestBridgeVersion: LATEST_BRIDGE_VERSION,
+    codeHash: reportedCodeHash,
+    expectedCodeHash,
+    isCodeHashUpToDate,
+    isBridgeUpToDate: isOnline ? (versionMatches && isCodeHashUpToDate) : true,
+  };
+}
+
+// Calculează amprenta oficială imediat la pornirea serverului (+ reîmprospătare după 3 min pentru CDN GitHub)
+fetchExpectedBridgeHash(true).catch(() => {});
+setTimeout(() => {
+  fetchExpectedBridgeHash(true).catch(() => {});
+}, 3 * 60 * 1000).unref?.();
+
 // Cooldown tracking to prevent Telegram alert spam: locationKey -> lastAlertTimestamp
 const lastAlertSent = new Map();
 const duplicateAlertCooldowns = new Map();
@@ -661,6 +783,7 @@ const RESTART_SOURCE_LABELS = {
   admin_ecran: 'Din Admin (buton Ecran) — a repornit și bridge-ul',
   admin_locatii: 'Din Admin (Restart locație)',
   telegram: 'Manual din Telegram Bot (buton / comandă)',
+  auto_update_09: 'Actualizare automată programată (09:00)',
   auto: 'Automat din locație (watchdog / crash / repornire PC / actualizare)',
 };
 const restartLog = [];              // cache în memorie (ultimele 300)
@@ -1023,7 +1146,7 @@ function isPosEnabled(locKey) {
 /**
  * Called when a POS Bridge connects and registers
  */
-function handleBridgeConnect(socket, { locationId, instanceId, version, port, posGateway, printerName, hostname, posWakeStandby, posWakeIntervalMinutes }) {
+function handleBridgeConnect(socket, { locationId, instanceId, version, codeHash, port, posGateway, printerName, hostname, posWakeStandby, posWakeIntervalMinutes }) {
   if ((locationId === 'sm-brasov' || !locationId) && (port === 'COM5' || port === 'COM1' || String(printerName).includes('TM-T20III') || hostname === 'DESKTOP-VNTDBO0')) {
     locationId = 'cluj2';
   }
@@ -1117,6 +1240,7 @@ function handleBridgeConnect(socket, { locationId, instanceId, version, port, po
     instanceId: instanceId || prev?.instanceId || null,
     displayName: getLocationDisplayName(locKey),
     version: version || prev?.version || null,
+    codeHash: codeHash || null,
     port: port || prev?.port || '?',
     gateway: posGateway || prev?.gateway || 'raiffeisen',
     printerName: printerName || prev?.printerName || '',
@@ -1205,6 +1329,7 @@ function handleBridgeHeartbeat(socket, data) {
     entry.lastPing = now;
     entry.status = 'online';
     if (data?.version) entry.version = data.version;
+    if (data?.codeHash) entry.codeHash = data.codeHash;
     if (data?.port) entry.port = data.port;
     if (data?.printerName) entry.printerName = data.printerName;
     if (data?.posGateway) entry.gateway = data.posGateway;
@@ -1623,6 +1748,8 @@ async function runMorningPreflightCheck(targetChatId = null, isManual = false) {
   const timeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
   console.log(`[MorningCheck] Rulare verificare matinală la ${timeStr} (data: ${dateStr}, manual: ${isManual})...`);
 
+  await fetchExpectedBridgeHash(true).catch(() => {});
+
   const targetLocations = ['cluj1', 'cluj2', 'sm-brasov', 'constanta1'];
 
   const dbLocs = await getDbLocationsList();
@@ -1787,7 +1914,16 @@ async function runMorningPreflightCheck(targetChatId = null, isManual = false) {
     const sysChecks = [];
     sysChecks.push('Server: <code>ttut.onrender.com</code>');
     if (loc.bridgeVersion) {
-      sysChecks.push(`Soft: <code>v${loc.bridgeVersion}</code> ${loc.isBridgeUpToDate ? '' : ''}`);
+      const hashTag = loc.codeHash ? ` #${loc.codeHash}` : (isBridgeAlive && loc.expectedCodeHash ? ' (fără hash)' : '');
+      const statusSuffix = !isBridgeAlive
+        ? ''
+        : (loc.isBridgeUpToDate
+            ? ' ✅'
+            : ` ⚠️ <b>Cod vechi</b> (oficial: #${loc.expectedCodeHash || '?'})`);
+      sysChecks.push(`Soft: <code>v${loc.bridgeVersion}${hashTag}</code>${statusSuffix}`);
+      if (isBridgeAlive && !loc.isBridgeUpToDate) {
+        issues.push(`• <b>${loc.displayName || locKey}:</b> Rulează cod vechi POS Bridge (${loc.codeHash ? '#' + loc.codeHash : 'fără hash'} vs oficial #${loc.expectedCodeHash || '?'})! Necesită actualizare / restart.`);
+      }
     }
     if (hardwareDetail) {
       sysChecks.push(hardwareDetail);
@@ -1954,9 +2090,189 @@ async function runMorningRetryCheck(failedKeys, destinationChat) {
   await sendTelegramMessage(lines.join('\n'), null, destinationChat, QUICK_ALERT_KEYBOARD);
 }
 
-// Verificare automata orar zilnic la 10:10 (la 10 min dupa deschidere) si re-verificare la 10:20 Europe/Bucharest
+let lastAutoUpdate0900Date = null;
+let lastPeriodicHashRefreshAt = Date.now();
+const lastAutoUpdateAttemptByLoc = new Map();
+const AUTO_UPDATE_COOLDOWN_MS = 10 * 60 * 1000;
+
+/**
+ * Verificare zilnică automată (09:00 Europe/Bucharest) a amprentei reale de cod (SHA-256)
+ * pentru toate POS Bridge-urile: dacă vreun PC online rulează cod vechi, trimite automat
+ * remote_restart (doar dacă POS-ul este IDLE, fără plată activă) și raportează pe Telegram.
+ */
+async function runDailyBridgeAutoUpdateCheck(targetChatId = null, isManual = false, options = {}) {
+  const destinationChat = targetChatId || telegramConfig.chatId;
+  const { dateStr, hour, minute } = getBucharestTime();
+  const timeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+  const waitMs = Number.isFinite(options?.waitMs) ? options.waitMs : 15000;
+
+  const canonicalHash = await fetchExpectedBridgeHash(true);
+  if (!canonicalHash) {
+    console.warn('[AutoUpdate 09:00] ⚠️ Amprenta oficială GitHub nu a putut fi obținută; omit auto-actualizarea.');
+    if ((isManual || telegramConfig.enabled) && destinationChat) {
+      await sendTelegramMessage(
+        `⚠️ <b>Verificare automată cod (${timeStr})</b>\nNu am putut obține amprenta oficială GitHub <code>main</code>. Niciun bridge nu a fost repornit.`,
+        null,
+        destinationChat
+      ).catch(() => {});
+    }
+    return { ok: false, error: 'Nu s-a putut obține amprenta oficială GitHub' };
+  }
+
+  const summary = getStatusSummary();
+  const locKeys = Object.keys(summary.locations || {});
+  const alreadyUpToDate = [];
+  const offlineLocs = [];
+  const triggered = [];
+  const skippedCooldown = [];
+
+  const { getLocationAliases } = require('../utils/locations');
+  const now = Date.now();
+
+  for (const locKey of locKeys) {
+    const loc = summary.locations[locKey];
+    if (!loc) continue;
+    if (!loc.isBridgeOnline) {
+      offlineLocs.push({ locKey, name: loc.displayName || locKey });
+      continue;
+    }
+    if (loc.isBridgeUpToDate) {
+      alreadyUpToDate.push({ locKey, name: loc.displayName || locKey, codeHash: loc.codeHash });
+      continue;
+    }
+
+    const prevAttempt = lastAutoUpdateAttemptByLoc.get(locKey);
+    if (!isManual && prevAttempt && prevAttempt.targetHash === canonicalHash && (now - prevAttempt.timestamp < AUTO_UPDATE_COOLDOWN_MS)) {
+      skippedCooldown.push({ locKey, name: loc.displayName || locKey, oldHash: loc.codeHash });
+      continue;
+    }
+
+    lastAutoUpdateAttemptByLoc.set(locKey, { timestamp: now, targetHash: canonicalHash });
+    const aliases = getLocationAliases ? getLocationAliases(locKey) : [locKey];
+    const targets = new Set([locKey, ...aliases].filter(Boolean));
+
+    startRestartRequest(locKey, {
+      source: isManual ? 'telegram' : 'auto_update_09',
+      requestedBy: isManual ? 'manual-check' : 'scheduler-09:00',
+    });
+
+    if (_io) {
+      for (const tid of targets) {
+        _io.to(`pos-bridge-${tid}`).emit('remote_restart', { locationId: tid, onlyIfIdle: true });
+        _io.emit(`remote_restart_${tid}`, { locationId: tid, onlyIfIdle: true });
+      }
+    }
+
+    triggered.push({
+      locKey,
+      name: loc.displayName || locKey,
+      oldHash: loc.codeHash || null,
+      oldVersion: loc.bridgeVersion || null,
+    });
+  }
+
+  const updatedOk = [];
+  const stillOutdated = [];
+  const reconnecting = [];
+
+  if (triggered.length > 0 && _io) {
+    console.log(`[AutoUpdate ${timeStr}] 🔄 Trimis auto-actualizare către ${triggered.map(t => t.locKey).join(', ')} (țintă: #${canonicalHash}). Aștept ${waitMs}ms...`);
+    if (waitMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
+    }
+    const afterSummary = getStatusSummary();
+    for (const item of triggered) {
+      const after = afterSummary.locations?.[item.locKey];
+      if (after?.isBridgeOnline && after?.isBridgeUpToDate) {
+        updatedOk.push({ ...item, newHash: after.codeHash });
+      } else if (after?.isBridgeOnline) {
+        stillOutdated.push({ ...item, newHash: after.codeHash });
+      } else {
+        reconnecting.push(item);
+      }
+    }
+    _io.to('admin').emit('bridge_status_update', afterSummary);
+  } else if (_io) {
+    _io.to('admin').emit('bridge_status_update', getStatusSummary());
+  }
+
+  const reportLines = [
+    `🔄 <b>Verificare & Actualizare Zilnică POS Bridge (${timeStr})</b>`,
+    `📦 <b>Versiune oficială:</b> <code>v${LATEST_BRIDGE_VERSION}</code> • amprentă <code>#${canonicalHash}</code>`,
+    ``,
+  ];
+
+  if (updatedOk.length > 0) {
+    reportLines.push(`✅ <b>Actualizate automat acum (${updatedOk.length}):</b>`);
+    for (const u of updatedOk) {
+      const prevStr = u.oldHash ? `#${u.oldHash}` : 'fără amprentă';
+      reportLines.push(`   • <b>${u.name}</b> — ${prevStr} ➔ <code>#${u.newHash}</code>`);
+    }
+    reportLines.push(``);
+  }
+  if (alreadyUpToDate.length > 0) {
+    reportLines.push(`🟢 <b>Deja la zi (${alreadyUpToDate.length}):</b>`);
+    for (const okLoc of alreadyUpToDate) {
+      reportLines.push(`   • <b>${okLoc.name}</b> (<code>#${okLoc.codeHash || canonicalHash}</code>)`);
+    }
+    reportLines.push(``);
+  }
+  if (stillOutdated.length > 0) {
+    reportLines.push(`⚠️ <b>Au rămas pe cod vechi (${stillOutdated.length}):</b>`);
+    for (const st of stillOutdated) {
+      reportLines.push(`   • <b>${st.name}</b> — activ pe <code>#${st.newHash || 'vechi'}</code> (posibil plată activă / cache GitHub)`);
+    }
+    reportLines.push(``);
+  }
+  if (reconnecting.length > 0) {
+    reportLines.push(`⏳ <b>În curs de repornire (${reconnecting.length}):</b>`);
+    for (const r of reconnecting) {
+      reportLines.push(`   • <b>${r.name}</b> — se reconectează după descărcare`);
+    }
+    reportLines.push(``);
+  }
+  if (skippedCooldown.length > 0) {
+    reportLines.push(`⏸️ <b>Omitere (încercare recentă):</b> ${skippedCooldown.map(s => s.name).join(', ')}`);
+    reportLines.push(``);
+  }
+  if (offlineLocs.length > 0) {
+    reportLines.push(`📴 <b>Offline acum (${offlineLocs.length}):</b> ${offlineLocs.map(o => o.name).join(', ')} <i>(se actualizează automat la pornire PC)</i>`);
+  }
+
+  const report = reportLines.join('\n').trim();
+  if ((isManual || telegramConfig.enabled) && destinationChat) {
+    await sendTelegramMessage(report, null, destinationChat).catch(() => {});
+  }
+
+  console.log(`[AutoUpdate ${timeStr}] Finalizat (${dateStr}): laZi=${alreadyUpToDate.length}, actualizate=${updatedOk.length}, rămaseVechi=${stillOutdated.length}, repornire=${reconnecting.length}, offline=${offlineLocs.length}`);
+
+  return {
+    ok: true,
+    expectedCodeHash: canonicalHash,
+    alreadyUpToDate,
+    updatedOk,
+    stillOutdated,
+    reconnecting,
+    offlineLocs,
+  };
+}
+
+// Verificare automata orar zilnic la 09:00 (auto-update cod) si la 10:10 / 10:20 Europe/Bucharest
 setInterval(() => {
+  const nowMs = Date.now();
+  if (nowMs - lastPeriodicHashRefreshAt > 30 * 60 * 1000) {
+    lastPeriodicHashRefreshAt = nowMs;
+    fetchExpectedBridgeHash(true).catch(() => {});
+  }
+
   const { hour, minute, dateStr } = getBucharestTime();
+  if (hour === 9 && minute === 0) {
+    if (lastAutoUpdate0900Date !== dateStr) {
+      lastAutoUpdate0900Date = dateStr;
+      console.log('[BridgeMonitor] 🕘 Este 09:00 Europe/Bucharest! Declanșez verificarea și auto-actualizarea POS Bridge...');
+      runDailyBridgeAutoUpdateCheck().catch(e => console.error('[AutoUpdate 09:00] Eroare:', e.message));
+    }
+  }
   if (hour === 10 && minute === 10) {
     if (lastCheck1000Date !== dateStr) {
       lastCheck1000Date = dateStr;
@@ -2022,6 +2338,9 @@ function getStatusSummary() {
   const summary = {
     timestamp: now,
     latestBridgeVersion: LATEST_BRIDGE_VERSION,
+    expectedCodeHash,
+    expectedCodeHashCheckedAt,
+    expectedCodeHashSource,
     releaseNotes: BRIDGE_RELEASE_NOTES,
     locations: {},
     totalOnline: 0,
@@ -2131,10 +2450,7 @@ function getStatusSummary() {
         isCashOnly: !isPosEnabled(locKey),
         duplicateDetected: !!b?.duplicateDetected,
         duplicateInfo: b?.duplicateInfo || null,
-        version: (b?.version && b.version !== '1.0.0') ? b.version : LATEST_BRIDGE_VERSION,
-        bridgeVersion: (b?.version && b.version !== '1.0.0') ? b.version : LATEST_BRIDGE_VERSION,
-        latestBridgeVersion: LATEST_BRIDGE_VERSION,
-        isBridgeUpToDate: ((b?.version && b.version !== '1.0.0') ? b.version : LATEST_BRIDGE_VERSION) === LATEST_BRIDGE_VERSION,
+        ...evaluateBridgeFreshness(b, isOnline),
       };
     });
 
@@ -2161,6 +2477,9 @@ async function getDbLocationsList() {
  * Format clean summary for /status command reply in Telegram (including POS, PINs, and Lock Schedule)
  */
 async function formatStatusSummaryForTelegram() {
+  if (!expectedCodeHash) {
+    await fetchExpectedBridgeHash().catch(() => {});
+  }
   const summary = getStatusSummary();
   const timeStr = formatDateTime();
   const dbLocs = await getDbLocationsList();
@@ -2251,17 +2570,28 @@ async function formatStatusSummaryForTelegram() {
       uptimeStr = hrs > 0 ? ` • Uptime: ${hrs}h ${mins}m` : ` • Uptime: ${mins}m`;
     }
 
+    let softStr = '';
+    if (loc.isBridgeOnline) {
+      const hashLabel = loc.codeHash ? `#${loc.codeHash}` : 'fără amprentă';
+      softStr = loc.isBridgeUpToDate
+        ? `v${loc.bridgeVersion} (<code>${hashLabel}</code> ✅)`
+        : `v${loc.bridgeVersion} (<code>${hashLabel}</code> ⚠️ <b>COD VECHI</b> — oficial <code>#${loc.expectedCodeHash || '?'}</code>)`;
+    }
+
     lines.push(`${dot} <b>${loc.displayName}</b>`);
     lines.push(`   ├ <b>POS:</b> ${posDetail}`);
     lines.push(`   ├ <b>Trezire Standby:</b> ${wakeStr}`);
     lines.push(`   ├ <b>PIN Manager:</b> ${pinStr}`);
     lines.push(`   ├ <b>Blocare Program:</b> ${lockStr}`);
     lines.push(`   ├ <b>Imprimantă:</b> ${printerStr}`);
+    if (softStr) {
+      lines.push(`   ├ <b>Soft Bridge:</b> ${softStr}`);
+    }
     lines.push(`   └ <b>Kiosk:</b> ${kioskStr}${uptimeStr}`);
     lines.push(``);
   }
 
-  lines.push(`Total: <b>${summary.totalOnline}</b> active / <b>${summary.totalOffline}</b> offline`);
+  lines.push(`Total: <b>${summary.totalOnline}</b> active / <b>${summary.totalOffline}</b> offline${summary.expectedCodeHash ? ` • Cod oficial: <code>#${summary.expectedCodeHash}</code>` : ''}`);
   return lines.join('\n');
 }
 
@@ -2864,6 +3194,9 @@ module.exports = {
   getLocationDisplayName,
   normalizeLocationKey,
   runMorningPreflightCheck,
+  runDailyBridgeAutoUpdateCheck,
+  fetchExpectedBridgeHash,
+  computeBridgeFilesHash,
   registerTelegramWebhook,
   updateLocationConfig,
   updateBridgeHardware,
