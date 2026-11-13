@@ -21,8 +21,10 @@ import {
   Maximize2,
   RotateCcw,
   Zap,
-  Server
+  Server,
+  Monitor
 } from 'lucide-react';
+import RemoteDesktopViewer from './RemoteDesktopViewer';
 
 const DEFAULT_SMARTKIOSK_FILES = [
   { name: '.env', isDir: false, size: 342, type: 'env', desc: 'Configurare locație, port COM POS & imprimantă' },
@@ -358,6 +360,27 @@ export default function WindowsRemoteModal({
     }
   };
 
+  const handleTogglePrivacyShield = (e, withFeedback = false) => {
+    const nextState = !isMaintenance;
+    if (socket && socket.connected) {
+      socket.emit('pc_remote_request', {
+        requestId: `shield_${Date.now()}`,
+        locationId: locId,
+        action: 'toggle_privacy_shield',
+        enable: nextState,
+      });
+    }
+    if (onToggleMaintenance) onToggleMaintenance(loc, e);
+    if (withFeedback) {
+      showNotice(
+        'success',
+        nextState
+          ? 'Paravanul invizibil a fost ACTIVAT! Pe ecranul fizic apare Mentenanță, iar tu lucrezi transparent peste desktop!'
+          : 'Paravanul de mentenanță a fost OPRIT!'
+      );
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-xs p-3 sm:p-6 animate-in fade-in duration-150"
@@ -394,24 +417,13 @@ export default function WindowsRemoteModal({
           <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
-              onClick={(e) => {
-                const nextState = !isMaintenance;
-                if (socket && socket.connected) {
-                  socket.emit('pc_remote_request', {
-                    requestId: `shield_${Date.now()}`,
-                    locationId: locId,
-                    action: 'toggle_privacy_shield',
-                    enable: nextState,
-                  });
-                }
-                if (onToggleMaintenance) onToggleMaintenance(loc, e);
-              }}
+              onClick={(e) => handleTogglePrivacyShield(e, false)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 whitespace-nowrap ${
                 isMaintenance
                   ? 'bg-amber-500 text-slate-950 shadow-sm ring-2 ring-amber-400/40'
                   : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
               }`}
-              title="Pune sau scoate paravanul animat „Kiosk în mentenanță” pe ecranul din restaurant + Paravanul Invizibil în AnyDesk"
+              title="Pune sau scoate paravanul animat „Kiosk în mentenanță” pe ecranul din restaurant + Paravanul Invizibil"
             >
               <Sliders className="w-3.5 h-3.5 shrink-0" />
               <span>{isMaintenance ? 'Mentenanță: ACTIV' : 'Mod Mentenanță'}</span>
@@ -446,6 +458,7 @@ export default function WindowsRemoteModal({
         <div className="px-5 pt-2.5 bg-slate-100 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-1">
             {[
+              { id: 'desktop', label: '🖥️ Desktop Live (AnyDesk)', icon: Monitor },
               { id: 'explorer', label: '📁 Fișiere C:\\SmartKiosk & .env', icon: FolderOpen },
               { id: 'terminal', label: '⚡ Comenzi Windows & Startup', icon: Terminal },
               { id: 'logs', label: '📟 Fereastra POS Bridge (Live)', icon: Cpu },
@@ -482,6 +495,18 @@ export default function WindowsRemoteModal({
             <span>{feedback.text}</span>
             <button onClick={() => setFeedback(null)} className="text-xs opacity-70 hover:opacity-100 cursor-pointer">✕</button>
           </div>
+        )}
+
+        {/* ─── TAB 0: DESKTOP LIVE (ANYDESK NATIV IN ADMIN) ─── */}
+        {activeTab === 'desktop' && (
+          <RemoteDesktopViewer
+            socket={socket}
+            locId={locId}
+            locName={locName}
+            isOnline={isOnline}
+            isMaintenance={isMaintenance}
+            onToggleShield={(e) => handleTogglePrivacyShield(e, true)}
+          />
         )}
 
         {/* ─── TAB 1: EXPLORER C:\SmartKiosk & EDITOR .ENV ─── */}
@@ -658,24 +683,7 @@ export default function WindowsRemoteModal({
               </div>
               <button
                 type="button"
-                onClick={(e) => {
-                  const nextState = !isMaintenance;
-                  if (socket && socket.connected) {
-                    socket.emit('pc_remote_request', {
-                      requestId: `shield_${Date.now()}`,
-                      locationId: locId,
-                      action: 'toggle_privacy_shield',
-                      enable: nextState,
-                    });
-                  }
-                  if (onToggleMaintenance) onToggleMaintenance(loc, e);
-                  showNotice(
-                    'success',
-                    nextState
-                      ? 'Paravanul AnyDesk a fost ACTIVAT! Pe ecranul fizic apare Mentenanță, iar tu în AnyDesk vezi desktopul Windows!'
-                      : 'Paravanul AnyDesk a fost OPRIT!'
-                  );
-                }}
+                onClick={(e) => handleTogglePrivacyShield(e, true)}
                 className={`px-4 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all active:scale-95 shrink-0 ${
                   isMaintenance
                     ? 'bg-emerald-600 hover:bg-emerald-700 text-white'

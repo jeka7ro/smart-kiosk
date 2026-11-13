@@ -56,6 +56,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // ─── SOCKET.IO ──────────────────────────────────────────────────────────────
 const io = new Server(server, {
+  maxHttpBufferSize: 4 * 1024 * 1024, // 4MB pentru frame-uri Remote Desktop live fără deconectări
   cors: {
     origin: (origin, cb) => {
       if (!origin 
@@ -224,7 +225,7 @@ async function start() {
 
   const PORT = process.env.PORT || 4000;
   server.listen(PORT, () => {
-    console.log(`\n🚀 Smart Kiosk API — http://localhost:${PORT}`);
+    console.log(`\nSmart Kiosk API — http://localhost:${PORT}`);
     console.log(`   Health: http://localhost:${PORT}/health`);
     console.log(`   Orders: POST http://localhost:${PORT}/api/orders`);
     console.log(`   QR gen: GET  http://localhost:${PORT}/api/qr/generate?brand=smashme&table=5&loc=1\n`);
@@ -249,7 +250,7 @@ async function start() {
   // Cron: POS Settlement (Închidere de Zi automată) în fiecare seară la 23:55
   const { triggerPosSettlement } = require('./services/socketService');
   cron.schedule('55 23 * * *', () => {
-    console.log('[CRON] 🌙 Rulare automată Închidere de Zi POS (Settlement) la 23:55...');
+    console.log('[CRON] Rulare automată Închidere de Zi POS (Settlement) la 23:55...');
     try {
       triggerPosSettlement(); // declanșează settlement pe toate terminalele active
     } catch (e) {

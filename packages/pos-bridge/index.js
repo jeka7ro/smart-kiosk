@@ -2231,6 +2231,435 @@ async function start() {
 
   socket.on('pc_remote_request', handlePcRemoteRequest);
   socket.on(`pc_remote_request_${LOCATION_ID}`, handlePcRemoteRequest);
+
+  // ─── Remote Desktop Live Streaming & Control (AnyDesk-style în Admin) ────────
+  let rdAgentProc = null;
+  let rdWatchdogTimer = null;
+  let rdLastClientPing = 0;
+
+  const sendRdStatus = (payload = {}) => {
+    try {
+      if (socket && socket.connected) {
+        socket.emit('rd_status', {
+          locationId: LOCATION_ID,
+          hostname: require('os').hostname(),
+          timestamp: Date.now(),
+          ...payload,
+        });
+      }
+    } catch (_) {}
+  };
+
+  const stopRemoteDesktopAgent = (reason = 'stopped') => {
+    if (rdWatchdogTimer) {
+      clearInterval(rdWatchdogTimer);
+      rdWatchdogTimer = null;
+    }
+    if (rdAgentProc) {
+      const proc = rdAgentProc;
+      rdAgentProc = null;
+      try {
+        if (proc.stdin && proc.stdin.writable) proc.stdin.write('STOP\n');
+      } catch (_) {}
+      setTimeout(() => {
+        try { if (!proc.killed) proc.kill(); } catch (_) {}
+      }, 250);
+      log(`[Remote Desktop] Sesiune oprită (${reason}).`);
+    }
+    sendRdStatus({ active: false, reason });
+  };
+
+  const sendRdStdin = (line) => {
+    rdLastClientPing = Date.now();
+    try {
+      if (rdAgentProc && !rdAgentProc.killed && rdAgentProc.stdin && rdAgentProc.stdin.writable) {
+        rdAgentProc.stdin.write(`${line}\n`);
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  };
+
+  const buildRemoteDesktopPsScript = () => [
+    'Add-Type -ReferencedAssemblies System.Drawing,System.Windows.Forms -TypeDefinition @"',
+    'using System;',
+    'using System.Drawing;',
+    'using System.Drawing.Drawing2D;',
+    'using System.Drawing.Imaging;',
+    'using System.IO;',
+    'using System.Runtime.InteropServices;',
+    'using System.Security.Cryptography;',
+    'using System.Text;',
+    'using System.Threading;',
+    'using System.Windows.Forms;',
+    'public class SkRdHost {',
+    '  [DllImport("user32.dll")] public static extern bool SetProcessDPIAware();',
+    '  [DllImport("user32.dll")] public static extern bool SetCursorPos(int X, int Y);',
+    '  [DllImport("user32.dll")] public static extern void mouse_event(uint dwFlags, int dx, int dy, uint dwData, UIntPtr dwExtraInfo);',
+    '  [DllImport("user32.dll")] public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);',
+    '  [DllImport("user32.dll")] public static extern uint MapVirtualKey(uint uCode, uint uMapType);',
+    '  [DllImport("user32.dll")] public static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);',
+    '  [DllImport("user32.dll")] public static extern bool GetCursorInfo(ref CURSORINFO pci);',
+    '  [DllImport("user32.dll")] public static extern bool DrawIconEx(IntPtr hdc, int xLeft, int yTop, IntPtr hIcon, int cxWidth, int cyWidth, uint istepIfAniCur, IntPtr hbrFlickerFreeDraw, uint diFlags);',
+    '  [DllImport("user32.dll")] public static extern bool GetIconInfo(IntPtr hIcon, out ICONINFO piconinfo);',
+    '  [DllImport("gdi32.dll")] public static extern bool DeleteObject(IntPtr hObject);',
+    '  [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X; public int Y; }',
+    '  [StructLayout(LayoutKind.Sequential)] public struct CURSORINFO { public int cbSize; public int flags; public IntPtr hCursor; public POINT ptScreenPos; }',
+    '  [StructLayout(LayoutKind.Sequential)] public struct ICONINFO { public bool fIcon; public int xHotspot; public int yHotspot; public IntPtr hbmMask; public IntPtr hbmColor; }',
+    '  [StructLayout(LayoutKind.Sequential)] public struct MOUSEINPUT { public int dx; public int dy; public uint mouseData; public uint dwFlags; public uint time; public IntPtr dwExtraInfo; }',
+    '  [StructLayout(LayoutKind.Sequential)] public struct KEYBDINPUT { public ushort wVk; public ushort wScan; public uint dwFlags; public uint time; public IntPtr dwExtraInfo; }',
+    '  [StructLayout(LayoutKind.Sequential)] public struct HARDWAREINPUT { public uint uMsg; public ushort wParamL; public ushort wParamH; }',
+    '  [StructLayout(LayoutKind.Explicit)] public struct INPUT_UNION { [FieldOffset(0)] public MOUSEINPUT mi; [FieldOffset(0)] public KEYBDINPUT ki; [FieldOffset(0)] public HARDWAREINPUT hi; }',
+    '  [StructLayout(LayoutKind.Sequential)] public struct INPUT { public uint type; public INPUT_UNION U; }',
+    '  private static volatile bool _running = true;',
+    '  private static volatile bool _forceKeyframe = true;',
+    '  private static volatile int _maxWidth = 1280;',
+    '  private static volatile int _quality = 55;',
+    '  private static volatile int _fps = 7;',
+    '  private static long _lastCmdTicks = DateTime.UtcNow.Ticks;',
+    '  private static readonly object _outLock = new object();',
+    '  private static ImageCodecInfo GetJpegEncoder() {',
+    '    var codecs = ImageCodecInfo.GetImageEncoders();',
+    '    for (int i = 0; i < codecs.Length; i++) { if (codecs[i].FormatID == ImageFormat.Jpeg.Guid) return codecs[i]; }',
+    '    return null;',
+    '  }',
+    '  private static Point MapNorm(double nx, double ny) {',
+    '    var b = Screen.PrimaryScreen.Bounds;',
+    '    if (nx < 0) nx = 0; if (nx > 1) nx = 1;',
+    '    if (ny < 0) ny = 0; if (ny > 1) ny = 1;',
+    '    int x = b.X + (int)Math.Round(nx * Math.Max(1, b.Width - 1));',
+    '    int y = b.Y + (int)Math.Round(ny * Math.Max(1, b.Height - 1));',
+    '    return new Point(x, y);',
+    '  }',
+    '  private static bool IsExtendedVk(byte vk) {',
+    '    return (vk >= 0x21 && vk <= 0x2E) || vk == 0x5B || vk == 0x5C || vk == 0x6F || vk == 0x90;',
+    '  }',
+    '  private static void SendKeyVk(byte vk, bool down, bool extFlag) {',
+    '    uint flags = (extFlag || IsExtendedVk(vk)) ? 0x0001u : 0u;',
+    '    if (!down) flags |= 0x0002u;',
+    '    keybd_event(vk, (byte)MapVirtualKey(vk, 0), flags, UIntPtr.Zero);',
+    '  }',
+    '  private static void SendUnicodeString(string s) {',
+    '    if (string.IsNullOrEmpty(s)) return;',
+    '    for (int i = 0; i < s.Length; i++) {',
+    '      char ch = s[i];',
+    '      if (ch == \'\\r\') continue;',
+    '      if (ch == \'\\n\') {',
+    '        SendKeyVk(0x0D, true, false); Thread.Sleep(5); SendKeyVk(0x0D, false, false);',
+    '        continue;',
+    '      }',
+    '      var inputs = new INPUT[2];',
+    '      inputs[0] = new INPUT { type = 1, U = new INPUT_UNION { ki = new KEYBDINPUT { wVk = 0, wScan = (ushort)ch, dwFlags = 0x0004 } } };',
+    '      inputs[1] = new INPUT { type = 1, U = new INPUT_UNION { ki = new KEYBDINPUT { wVk = 0, wScan = (ushort)ch, dwFlags = 0x0004 | 0x0002 } } };',
+    '      SendInput(2, inputs, Marshal.SizeOf(typeof(INPUT)));',
+    '    }',
+    '  }',
+    '  private static void HandleLine(string line) {',
+    '    Interlocked.Exchange(ref _lastCmdTicks, DateTime.UtcNow.Ticks);',
+    '    if (string.IsNullOrEmpty(line)) return;',
+    '    var parts = line.Split(\'|\');',
+    '    var op = parts[0];',
+    '    if (op == "STOP") { _running = false; return; }',
+    '    if (op == "PING") return;',
+    '    if (op == "KF") { _forceKeyframe = true; return; }',
+    '    if (op == "CFG" && parts.Length >= 4) {',
+    '      int mw, q, f;',
+    '      if (int.TryParse(parts[1], out mw)) _maxWidth = Math.Max(640, Math.Min(1920, mw));',
+    '      if (int.TryParse(parts[2], out q)) _quality = Math.Max(25, Math.Min(85, q));',
+    '      if (int.TryParse(parts[3], out f)) _fps = Math.Max(2, Math.Min(15, f));',
+    '      _forceKeyframe = true; return;',
+    '    }',
+    '    if (op == "MV" && parts.Length >= 3) {',
+    '      double nx, ny; if (double.TryParse(parts[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out nx) && double.TryParse(parts[2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out ny)) {',
+    '        var pt = MapNorm(nx, ny); SetCursorPos(pt.X, pt.Y);',
+    '      }',
+    '      return;',
+    '    }',
+    '    if ((op == "DN" || op == "UP" || op == "CLK") && parts.Length >= 4) {',
+    '      double nx, ny;',
+    '      if (double.TryParse(parts[2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out nx) && double.TryParse(parts[3], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out ny)) {',
+    '        var pt = MapNorm(nx, ny); SetCursorPos(pt.X, pt.Y);',
+    '        uint dn = parts[1] == "right" ? 0x0008u : (parts[1] == "middle" ? 0x0020u : 0x0002u);',
+    '        uint up = parts[1] == "right" ? 0x0010u : (parts[1] == "middle" ? 0x0040u : 0x0004u);',
+    '        if (op == "DN") mouse_event(dn, 0, 0, 0, UIntPtr.Zero);',
+    '        else if (op == "UP") mouse_event(up, 0, 0, 0, UIntPtr.Zero);',
+    '        else { mouse_event(dn, 0, 0, 0, UIntPtr.Zero); Thread.Sleep(15); mouse_event(up, 0, 0, 0, UIntPtr.Zero); }',
+    '      }',
+    '      return;',
+    '    }',
+    '    if (op == "DBL" && parts.Length >= 3) {',
+    '      double nx, ny;',
+    '      if (double.TryParse(parts[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out nx) && double.TryParse(parts[2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out ny)) {',
+    '        var pt = MapNorm(nx, ny); SetCursorPos(pt.X, pt.Y);',
+    '        mouse_event(0x0002u, 0, 0, 0, UIntPtr.Zero); Thread.Sleep(12); mouse_event(0x0004u, 0, 0, 0, UIntPtr.Zero);',
+    '        Thread.Sleep(45);',
+    '        mouse_event(0x0002u, 0, 0, 0, UIntPtr.Zero); Thread.Sleep(12); mouse_event(0x0004u, 0, 0, 0, UIntPtr.Zero);',
+    '      }',
+    '      return;',
+    '    }',
+    '    if (op == "WH" && parts.Length >= 4) {',
+    '      int delta; double nx, ny;',
+    '      if (int.TryParse(parts[1], out delta) && double.TryParse(parts[2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out nx) && double.TryParse(parts[3], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out ny)) {',
+    '        var pt = MapNorm(nx, ny); SetCursorPos(pt.X, pt.Y);',
+    '        mouse_event(0x0800u, 0, 0, unchecked((uint)delta), UIntPtr.Zero);',
+    '      }',
+    '      return;',
+    '    }',
+    '    if (op == "KEY" && parts.Length >= 4) {',
+    '      int vk; if (int.TryParse(parts[1], out vk)) SendKeyVk((byte)vk, parts[2] == "1", parts[3] == "1");',
+    '      return;',
+    '    }',
+    '    if (op == "HOTKEY" && parts.Length >= 2) {',
+    '      var tokens = parts[1].Split(\',\');',
+    '      var vks = new byte[tokens.Length]; int count = 0;',
+    '      for (int i = 0; i < tokens.Length; i++) { int v; if (int.TryParse(tokens[i], out v)) vks[count++] = (byte)v; }',
+    '      for (int i = 0; i < count; i++) { SendKeyVk(vks[i], true, false); Thread.Sleep(10); }',
+    '      Thread.Sleep(25);',
+    '      for (int i = count - 1; i >= 0; i--) { SendKeyVk(vks[i], false, false); Thread.Sleep(10); }',
+    '      return;',
+    '    }',
+    '    if (op == "TXT" && parts.Length >= 2) {',
+    '      try { SendUnicodeString(Encoding.UTF8.GetString(Convert.FromBase64String(parts[1]))); } catch {}',
+    '      return;',
+    '    }',
+    '  }',
+    '  public static void Run(int maxWidth, int quality, int fps) {',
+    '    SetProcessDPIAware();',
+    '    _maxWidth = Math.Max(640, Math.Min(1920, maxWidth));',
+    '    _quality = Math.Max(25, Math.Min(85, quality));',
+    '    _fps = Math.Max(2, Math.Min(15, fps));',
+    '    var encoder = GetJpegEncoder();',
+    '    var bounds0 = Screen.PrimaryScreen.Bounds;',
+    '    lock (_outLock) { Console.WriteLine("READY|" + bounds0.Width + "|" + bounds0.Height); Console.Out.Flush(); }',
+    '    var capThread = new Thread(() => {',
+    '      string lastHash = "";',
+    '      DateTime lastSent = DateTime.MinValue;',
+    '      using (var md5 = MD5.Create()) {',
+    '        while (_running) {',
+    '          var sw = System.Diagnostics.Stopwatch.StartNew();',
+    '          try {',
+    '            if (new TimeSpan(DateTime.UtcNow.Ticks - Interlocked.Read(ref _lastCmdTicks)).TotalSeconds > 25) { _running = false; break; }',
+    '            var b = Screen.PrimaryScreen.Bounds;',
+    '            using (var src = new Bitmap(b.Width, b.Height, PixelFormat.Format24bppRgb)) {',
+    '              using (var gSrc = Graphics.FromImage(src)) {',
+    '                gSrc.CopyFromScreen(b.X, b.Y, 0, 0, b.Size, CopyPixelOperation.SourceCopy);',
+    '                CURSORINFO ci = new CURSORINFO(); ci.cbSize = Marshal.SizeOf(typeof(CURSORINFO));',
+    '                if (GetCursorInfo(ref ci) && (ci.flags & 1) != 0 && ci.hCursor != IntPtr.Zero) {',
+    '                  int cx = ci.ptScreenPos.X - b.X; int cy = ci.ptScreenPos.Y - b.Y;',
+    '                  ICONINFO ii;',
+    '                  if (GetIconInfo(ci.hCursor, out ii)) {',
+    '                    cx -= ii.xHotspot; cy -= ii.yHotspot;',
+    '                    if (ii.hbmMask != IntPtr.Zero) DeleteObject(ii.hbmMask);',
+    '                    if (ii.hbmColor != IntPtr.Zero) DeleteObject(ii.hbmColor);',
+    '                  }',
+    '                  IntPtr hdc = gSrc.GetHdc();',
+    '                  try { DrawIconEx(hdc, cx, cy, ci.hCursor, 0, 0, 0, IntPtr.Zero, 3); }',
+    '                  finally { gSrc.ReleaseHdc(hdc); }',
+    '                }',
+    '              }',
+    '              int targetW = Math.Min(_maxWidth, b.Width);',
+    '              int targetH = (int)Math.Round(b.Height * ((double)targetW / b.Width));',
+    '              Bitmap outBmp = src;',
+    '              if (targetW < b.Width) {',
+    '                outBmp = new Bitmap(targetW, targetH, PixelFormat.Format24bppRgb);',
+    '                using (var gOut = Graphics.FromImage(outBmp)) {',
+    '                  gOut.InterpolationMode = InterpolationMode.Bilinear;',
+    '                  gOut.DrawImage(src, 0, 0, targetW, targetH);',
+    '                }',
+    '              }',
+    '              try {',
+    '                using (var ms = new MemoryStream())',
+    '                using (var ep = new EncoderParameters(1)) {',
+    '                  ep.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, (long)_quality);',
+    '                  outBmp.Save(ms, encoder, ep);',
+    '                  byte[] jpg = ms.ToArray();',
+    '                  string hash = Convert.ToBase64String(md5.ComputeHash(jpg));',
+    '                  bool needSend = _forceKeyframe || hash != lastHash || (DateTime.UtcNow - lastSent).TotalMilliseconds > 2800;',
+    '                  if (needSend) {',
+    '                    _forceKeyframe = false; lastHash = hash; lastSent = DateTime.UtcNow;',
+    '                    string b64 = Convert.ToBase64String(jpg);',
+    '                    lock (_outLock) { Console.WriteLine("FRAME|" + b.Width + "|" + b.Height + "|" + b64); Console.Out.Flush(); }',
+    '                  }',
+    '                }',
+    '              } finally { if (outBmp != src) outBmp.Dispose(); }',
+    '            }',
+    '          } catch {}',
+    '          int waitMs = Math.Max(15, (1000 / Math.Max(2, _fps)) - (int)sw.ElapsedMilliseconds);',
+    '          Thread.Sleep(waitMs);',
+    '        }',
+    '      }',
+    '    });',
+    '    capThread.IsBackground = true;',
+    '    capThread.Start();',
+    '    try {',
+    '      string line;',
+    '      while (_running && (line = Console.ReadLine()) != null) { HandleLine(line); }',
+    '    } catch {}',
+    '    _running = false;',
+    '    try { capThread.Join(500); } catch {}',
+    '  }',
+    '}',
+    '"@',
+    '$mw = if ($env:SK_RD_WIDTH) { [int]$env:SK_RD_WIDTH } else { 1280 }',
+    '$q = if ($env:SK_RD_QUALITY) { [int]$env:SK_RD_QUALITY } else { 55 }',
+    '$f = if ($env:SK_RD_FPS) { [int]$env:SK_RD_FPS } else { 7 }',
+    '[SkRdHost]::Run($mw, $q, $f)'
+  ].join('\r\n');
+
+  const startRemoteDesktopAgent = (opts = {}) => {
+    if (process.platform !== 'win32') {
+      sendRdStatus({ active: false, error: 'Desktop Live funcționează doar pe PC Windows.' });
+      return;
+    }
+    const maxWidth = Number(opts.maxWidth) || 1280;
+    const quality = Number(opts.quality) || 55;
+    const fps = Number(opts.fps) || 7;
+
+    if (rdAgentProc && !rdAgentProc.killed) {
+      sendRdStdin(`CFG|${maxWidth}|${quality}|${fps}`);
+      sendRdStdin('KF');
+      sendRdStatus({ active: true, reconfigured: true });
+      return;
+    }
+
+    try {
+      const scriptPath = pathMod.join(__dirname, '.rd-agent.ps1');
+      fs.writeFileSync(scriptPath, buildRemoteDesktopPsScript(), 'utf8');
+      const { spawn } = require('child_process');
+      const readline = require('readline');
+
+      const proc = spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', scriptPath], {
+        cwd: __dirname,
+        windowsHide: true,
+        env: { ...process.env, SK_RD_WIDTH: String(maxWidth), SK_RD_QUALITY: String(quality), SK_RD_FPS: String(fps) },
+      });
+      rdAgentProc = proc;
+      rdLastClientPing = Date.now();
+
+      const rl = readline.createInterface({ input: proc.stdout, crlfDelay: Infinity });
+      rl.on('line', (line) => {
+        if (!line || proc !== rdAgentProc) return;
+        if (line.startsWith('READY|')) {
+          const [, wStr, hStr] = line.split('|');
+          log(`[Remote Desktop] Pornit (${wStr}x${hStr}, maxW=${maxWidth}, Q=${quality}, FPS=${fps})`);
+          sendRdStatus({ active: true, width: Number(wStr) || 1920, height: Number(hStr) || 1080 });
+          return;
+        }
+        if (line.startsWith('FRAME|')) {
+          const firstSep = line.indexOf('|', 6);
+          const secondSep = firstSep > -1 ? line.indexOf('|', firstSep + 1) : -1;
+          if (secondSep > -1 && socket && socket.connected) {
+            const w = Number(line.slice(6, firstSep)) || 1920;
+            const h = Number(line.slice(firstSep + 1, secondSep)) || 1080;
+            const b64 = line.slice(secondSep + 1);
+            // Skip frame silently if Socket.IO write buffer backs up on slow connections
+            const wbLen = socket.io?.engine?.writeBuffer?.length || 0;
+            if (wbLen <= 2) {
+              socket.emit('rd_frame', {
+                locationId: LOCATION_ID,
+                w,
+                h,
+                data: b64,
+                ts: Date.now(),
+              });
+            }
+          }
+        }
+      });
+
+      let errBuf = '';
+      proc.stderr.on('data', (chunk) => {
+        errBuf = (errBuf + String(chunk)).slice(-400);
+      });
+
+      proc.on('exit', (code) => {
+        try { rl.close(); } catch (_) {}
+        if (rdAgentProc === proc) {
+          rdAgentProc = null;
+          if (rdWatchdogTimer) { clearInterval(rdWatchdogTimer); rdWatchdogTimer = null; }
+          if (code && code !== 0 && errBuf) {
+            log(`[Remote Desktop] Agent ieșit cu cod ${code}: ${errBuf.trim()}`);
+            sendRdStatus({ active: false, error: errBuf.trim() });
+          } else {
+            sendRdStatus({ active: false, reason: 'agent_exit' });
+          }
+        }
+      });
+
+      rdWatchdogTimer = setInterval(() => {
+        if (Date.now() - rdLastClientPing > 22000) {
+          stopRemoteDesktopAgent('viewer_timeout');
+        }
+      }, 4000);
+    } catch (e) {
+      log(`[Remote Desktop] Eroare pornire agent: ${e.message}`);
+      sendRdStatus({ active: false, error: e.message });
+    }
+  };
+
+  const handleRdControl = (data = {}) => {
+    if (data.locationId && data.locationId !== LOCATION_ID && !isMyLocation(data.locationId)) return;
+    const action = data.action;
+    if (!action) return;
+
+    if (action === 'start') {
+      startRemoteDesktopAgent(data);
+      return;
+    }
+    if (action === 'stop') {
+      stopRemoteDesktopAgent('admin_stop');
+      return;
+    }
+    if (action === 'ping' || action === 'heartbeat') {
+      sendRdStdin('PING');
+      return;
+    }
+    if (action === 'config') {
+      if (!rdAgentProc) {
+        startRemoteDesktopAgent(data);
+      } else {
+        sendRdStdin(`CFG|${Number(data.maxWidth) || 1280}|${Number(data.quality) || 55}|${Number(data.fps) || 7}`);
+      }
+      return;
+    }
+    if (action === 'keyframe') {
+      sendRdStdin('KF');
+      return;
+    }
+    if (!rdAgentProc) return;
+
+    if (action === 'mouse') {
+      const { type, button = 'left', nx = 0, ny = 0, delta = 0 } = data;
+      const fx = Number(nx).toFixed(5);
+      const fy = Number(ny).toFixed(5);
+      if (type === 'move') sendRdStdin(`MV|${fx}|${fy}`);
+      else if (type === 'down') sendRdStdin(`DN|${button}|${fx}|${fy}`);
+      else if (type === 'up') sendRdStdin(`UP|${button}|${fx}|${fy}`);
+      else if (type === 'click') sendRdStdin(`CLK|${button}|${fx}|${fy}`);
+      else if (type === 'dblclick') sendRdStdin(`DBL|${fx}|${fy}`);
+      else if (type === 'wheel') sendRdStdin(`WH|${Math.round(Number(delta) || 0)}|${fx}|${fy}`);
+      return;
+    }
+    if (action === 'key') {
+      const vk = Number(data.vk) || 0;
+      if (vk > 0) sendRdStdin(`KEY|${vk}|${data.down ? '1' : '0'}|${data.ext ? '1' : '0'}`);
+      return;
+    }
+    if (action === 'text' && typeof data.text === 'string' && data.text.length > 0) {
+      const b64 = Buffer.from(data.text, 'utf8').toString('base64');
+      sendRdStdin(`TXT|${b64}`);
+      return;
+    }
+    if (action === 'hotkey' && Array.isArray(data.vks) && data.vks.length > 0) {
+      sendRdStdin(`HOTKEY|${data.vks.map(n => Number(n) || 0).filter(Boolean).join(',')}`);
+    }
+  };
+
+  socket.on('rd_control', handleRdControl);
+  socket.on(`rd_control_${LOCATION_ID}`, handleRdControl);
+  socket.on('disconnect', () => {
+    if (rdAgentProc) stopRemoteDesktopAgent('socket_disconnect');
+  });
 }
 
 process.on('uncaughtException', (err) => {

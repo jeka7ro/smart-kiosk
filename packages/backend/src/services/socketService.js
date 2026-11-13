@@ -531,39 +531,97 @@ function initSocket(io) {
       io.to('admin').emit('pos_signal_result', data);
     });
 
+    const relayToPosBridge = (locId, eventName, payload) => {
+      if (!locId) {
+        io.emit(eventName, payload);
+        return;
+      }
+      const { getLocationAliases } = require('../utils/locations');
+      const aliases = getLocationAliases ? getLocationAliases(locId) : [locId];
+      const targets = new Set([locId, ...aliases].filter(Boolean));
+      for (const tid of targets) {
+        io.to(`pos-bridge-${tid}`).emit(eventName, payload);
+        io.emit(`${eventName}_${tid}`, payload);
+      }
+    };
+
+    const resolveRdLocKey = (locId) => {
+      try {
+        const bridgeMonitoringService = require('./bridgeMonitoringService');
+        if (typeof bridgeMonitoringService.normalizeLocationKey === 'function') {
+          return bridgeMonitoringService.normalizeLocationKey(locId);
+        }
+      } catch (_) {}
+      return String(locId || 'unknown').toLowerCase().trim();
+    };
+
+    const stopRdStreamIfNoViewers = (locKey) => {
+      if (!locKey) return;
+      const room = io.sockets?.adapter?.rooms?.get(`rd-viewer-${locKey}`);
+      if (!room || room.size === 0) {
+        relayToPosBridge(locKey, 'rd_control', { locationId: locKey, action: 'stop' });
+      }
+    };
+
     // ─── Control PC Windows Remote (Admin <-> POS Bridge) ─────────────────
     socket.on('pc_remote_request', (data = {}) => {
-      const locId = data.locationId;
-      if (locId) {
-        const { getLocationAliases } = require('../utils/locations');
-        const aliases = getLocationAliases ? getLocationAliases(locId) : [locId];
-        const targets = new Set([locId, ...aliases].filter(Boolean));
-        for (const tid of targets) {
-          io.to(`pos-bridge-${tid}`).emit('pc_remote_request', data);
-          io.emit(`pc_remote_request_${tid}`, data);
-        }
-      } else {
-        io.emit('pc_remote_request', data);
-      }
+      relayToPosBridge(data.locationId, 'pc_remote_request', data);
     });
 
     socket.on('pc_remote_response', (data = {}) => {
       io.to('admin').emit('pc_remote_response', data);
     });
 
-    socket.on('set_pos_port', (data = {}) => {
-      const locId = data.locationId;
-      if (locId) {
-        const { getLocationAliases } = require('../utils/locations');
-        const aliases = getLocationAliases ? getLocationAliases(locId) : [locId];
-        for (const tid of new Set([locId, ...aliases].filter(Boolean))) {
-          io.to(`pos-bridge-${tid}`).emit('set_pos_port', data);
-          io.emit(`set_pos_port_${tid}`, data);
-        }
+    // ─── Remote Desktop Live Streaming (AnyDesk-style în Admin) ───────────
+    socket.on('rd_join', (data = {}) => {
+      if (!data.locationId) return;
+      const locKey = resolveRdLocKey(data.locationId);
+      socket.join(`rd-viewer-${locKey}`);
+      if (!socket._rdViewerLocs) socket._rdViewerLocs = new Set();
+      socket._rdViewerLocs.add(locKey);
+    });
+
+    socket.on('rd_leave', (data = {}) => {
+      if (!data.locationId) return;
+      const locKey = resolveRdLocKey(data.locationId);
+      socket.leave(`rd-viewer-${locKey}`);
+      socket._rdViewerLocs?.delete(locKey);
+      stopRdStreamIfNoViewers(locKey);
+    });
+
+    socket.on('rd_control', (data = {}) => {
+      if (!data?.locationId) return;
+      const locKey = resolveRdLocKey(data.locationId);
+      if (data.action === 'start') {
+        socket.join(`rd-viewer-${locKey}`);
+        if (!socket._rdViewerLocs) socket._rdViewerLocs = new Set();
+        socket._rdViewerLocs.add(locKey);
       }
+      relayToPosBridge(data.locationId, 'rd_control', { ...data, locationId: locKey });
+    });
+
+    socket.on('rd_frame', (data = {}) => {
+      const locKey = resolveRdLocKey(data.locationId);
+      io.to(`rd-viewer-${locKey}`).emit('rd_frame', { ...data, locationId: locKey });
+    });
+
+    socket.on('rd_status', (data = {}) => {
+      const locKey = resolveRdLocKey(data.locationId);
+      io.to(`rd-viewer-${locKey}`).emit('rd_status', { ...data, locationId: locKey });
+    });
+
+    socket.on('set_pos_port', (data = {}) => {
+      if (data.locationId) relayToPosBridge(data.locationId, 'set_pos_port', data);
     });
 
     socket.on('disconnect', () => {
+      if (socket._rdViewerLocs && socket._rdViewerLocs.size > 0) {
+        for (const locKey of socket._rdViewerLocs) {
+          stopRdStreamIfNoViewers(locKey);
+        }
+        socket._rdViewerLocs.clear();
+      }
+
       try {
         const bridgeMonitoringService = require('./bridgeMonitoringService');
         bridgeMonitoringService.handleBridgeDisconnect(socket.id);

@@ -1,5 +1,20 @@
 # Jurnal de modificări — Smart Kiosk (Antigravity ↔ Paperclip)
 
+### 2026-11-13 10:01 — Desktop Live (clonă AnyDesk nativă integrată în Admin)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. Implementat în `packages/pos-bridge/index.js` agentul nativ Windows `.rd-agent.ps1` (C# compilat în memorie via PowerShell cu `SetProcessDPIAware()`, captură desktop + cursor real Windows, skip automat cadre identice prin MD5, backpressure pe socket, control complet mouse click stânga/dreapta/mijloc/drag/scroll și tastatură `keybd_event` + `SendInput` Unicode, plus auto-oprire la 22–25s fără viewer activ).
+  2. Adăugat în `packages/backend/src/index.js` (`maxHttpBufferSize: 4MB`) și `packages/backend/src/services/socketService.js` camere dedicate `rd-viewer-<locKey>` (`rd_join`, `rd_leave`, `rd_control`, `rd_frame`, `rd_status`) + oprire automată la disconnect, ca traficul video să meargă strict către browserul Admin care privește sesiunea.
+  3. Creat componenta `packages/admin/src/components/RemoteDesktopViewer.jsx` și integrat tab-ul **`🖥️ Desktop Live (AnyDesk)`** în `packages/admin/src/components/WindowsRemoteModal.jsx` (preseturi calitate, hotkey-uri `Win+D`, `Alt+Tab`, `TaskMgr`, `Alt+F4`, mapare Mac `Cmd → Ctrl`, trimitere text/parole Unicode, mod fullscreen și Paravan Mentenanță).
+- **Fișiere:**
+  - `packages/pos-bridge/index.js`
+  - `packages/backend/src/index.js`
+  - `packages/backend/src/services/socketService.js`
+  - `packages/admin/src/components/RemoteDesktopViewer.jsx`
+  - `packages/admin/src/components/WindowsRemoteModal.jsx`
+- **Ramură / Commit:** `main` (necomis / fără push, așteaptă acordul utilizatorului)
+- **Build / Teste:** `node --check` pe fișierele backend/bridge OK, `npm --prefix packages/admin run build` (`vite build`, 1843 module, 0 erori), verificare balansare sintaxă C# (217 linii) și test relay Socket.IO (`REMOTE_DESKTOP_VERIFICATION_PASSED`); execuția reală Windows PowerShell se verifică live pe PC după deploy.
+
 ### 2026-11-13 09:50 — Verificare amprentă cod real (SHA-256) + Auto-update & restart zilnic POS Bridge la 09:00
 - **Autor:** Antigravity
 - **Ce s-a făcut:**
