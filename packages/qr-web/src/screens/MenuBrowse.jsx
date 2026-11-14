@@ -6,11 +6,11 @@ const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.on
 
 // Mock sushi data for brands without Syrve org
 const SUSHI_CATS = [
-  { id: 'sm-rolls',  name: 'Rulouri',   emoji: '🌀' },
-  { id: 'sm-sets',   name: 'Seturi',    emoji: '🎁' },
-  { id: 'sm-nigiri', name: 'Nigiri',    emoji: '🍣' },
-  { id: 'sm-supe',   name: 'Supe',      emoji: '🍜' },
-  { id: 'sm-bauturi',name: 'Băuturi',   emoji: '🍵' },
+  { id: 'sm-rolls',  name: 'Rulouri',   emoji: '' },
+  { id: 'sm-sets',   name: 'Seturi',    emoji: '' },
+  { id: 'sm-nigiri', name: 'Nigiri',    emoji: '' },
+  { id: 'sm-supe',   name: 'Supe',      emoji: '' },
+  { id: 'sm-bauturi',name: 'Băuturi',   emoji: '' },
 ];
 const SUSHI_PRODUCTS = [
   { id:'su1', categoryId:'sm-rolls',  name:'California Roll',   price:38, description:'8 buc — Surimi, avocado, castravete, tobiko', image:'' },
@@ -95,7 +95,7 @@ export default function MenuBrowse({ brand }) {
             : <span>{brand.emoji} {brand.name}</span>
           }
         </div>
-        <span className="mb-table">🪑 Masa {tableNum}</span>
+        <span className="mb-table">Masa {tableNum}</span>
       </header>
 
       {/* Category pills */}
@@ -107,7 +107,7 @@ export default function MenuBrowse({ brand }) {
               className={`mb-cat-pill ${activecat === cat.id ? 'active' : ''}`}
               onClick={() => setActivecat(cat.id)}
             >
-              {cat.emoji || '🍽️'} {cat.name}
+              {cat.emoji || ''} {cat.name}
             </button>
           ))}
         </nav>
@@ -124,7 +124,7 @@ export default function MenuBrowse({ brand }) {
       {/* Error */}
       {error && (
         <div style={{ textAlign:'center', padding:'40px 20px' }}>
-          <p>⚠️ {error}</p>
+          <p>{error}</p>
           <button className="btn btn-primary" style={{ marginTop:16 }} onClick={() => window.location.reload()}>Reîncearcă</button>
         </div>
       )}
@@ -155,7 +155,7 @@ export default function MenuBrowse({ brand }) {
                   {p.image && !imgErrors[p.id] ? (
                     <img src={p.image} alt={p.name} onError={() => setImgErrors(e => ({...e, [p.id]: true}))} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
-                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.1, fontSize: '3rem' }}>{p.categoryEmoji || '🍽️'}</div>
+                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.1, fontSize: '3rem' }}>{p.categoryEmoji || ''}</div>
                   )}
                 </div>
                 {p.description && (
@@ -191,7 +191,7 @@ export default function MenuBrowse({ brand }) {
           })}
           {filtered.length === 0 && !loading && (
             <div style={{ textAlign:'center', padding:'40px 20px', color:'var(--text-muted)' }}>
-              <p>🍽️ Niciun produs în această categorie</p>
+              <p>Niciun produs în această categorie</p>
             </div>
           )}
         </main>

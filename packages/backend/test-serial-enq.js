@@ -49,11 +49,11 @@ const TIMEOUT = setTimeout(() => {
 }, 60000);
 
 port.open(err => {
-  if (err) { console.error('❌', err.message); process.exit(1); }
-  log(`✅ Port deschis ${SERIAL_PORT} @ ${BAUD_RATE}`);
+  if (err) { console.error('', err.message); process.exit(1); }
+  log(`Port deschis ${SERIAL_PORT} @ ${BAUD_RATE}`);
   
   // PASUL 1: Trimite ENQ
-  log('📤 Trimit ENQ (0x05) — "ești gata?"');
+  log('Trimit ENQ (0x05) — "ești gata?"');
   port.write(Buffer.from([ENQ]));
   step = 0;
 });
@@ -62,7 +62,7 @@ port.on('data', chunk => {
   rxBuffer = Buffer.concat([rxBuffer, chunk]);
   const interp = [...chunk].map(interpretByte).join(' ');
   const hex = [...chunk].map(b => b.toString(16).padStart(2,'0').toUpperCase()).join(' ');
-  log(`📥 Primit: ${hex}  →  ${interp}`);
+  log(`Primit: ${hex}  →  ${interp}`);
 
   // Procesăm byte cu byte
   for (const byte of chunk) {
@@ -70,24 +70,24 @@ port.on('data', chunk => {
     if (step === 0) {
       // Aşteptăm răspuns la ENQ
       if (byte === ACK) {
-        log('✅ POS răspuns ACK la ENQ — gata de tranzacție!');
-        log('📤 Trimit MOL10 (1.00 RON)...');
+        log('POS răspuns ACK la ENQ — gata de tranzacție!');
+        log('Trimit MOL10 (1.00 RON)...');
         const mol10 = buildMOL10(1.00);
         port.write(mol10);
         step = 1;
       } else if (byte === EOT) {
-        log('⚠️  POS răspuns EOT la ENQ — terminal nu e gata / modul ECR nu e activ');
+        log('POS răspuns EOT la ENQ — terminal nu e gata / modul ECR nu e activ');
         log('    → Încearcă să activezi ECR pe terminal: Menu → Setup → ECR → RS232 → Enable');
         log('    → Sau trimitem MOL10 direct fără ENQ (testăm acum)...');
         // Totuși încearcă MOL10 direct
         setTimeout(() => {
-          log('📤 Trimit MOL10 direct (fără ENQ)...');
+          log('Trimit MOL10 direct (fără ENQ)...');
           const mol10 = buildMOL10(1.00);
           port.write(mol10);
           step = 1;
         }, 1000);
       } else if (byte === NAK) {
-        log('⚠️  POS răspuns NAK la ENQ');
+        log('POS răspuns NAK la ENQ');
       } else {
         log(`   Byte necunoscut la ENQ: 0x${byte.toString(16).toUpperCase()}`);
       }
@@ -96,29 +96,29 @@ port.on('data', chunk => {
     else if (step === 1) {
       // Aşteptăm răspuns la MOL10
       if (byte === ACK) {
-        log('✅ POS ACK la MOL10 — tranzacție inițiată! Aştept MOL11...');
+        log('POS ACK la MOL10 — tranzacție inițiată! Aştept MOL11...');
         step = 2;
       } else if (byte === NAK) {
-        log('⚠️  POS NAK la MOL10 — LRC greșit sau format invalid');
+        log('POS NAK la MOL10 — LRC greșit sau format invalid');
       } else if (byte === EOT) {
-        log('⚠️  POS EOT la MOL10 — terminal refuză / nu e în mod ECR');
+        log('POS EOT la MOL10 — terminal refuză / nu e în mod ECR');
       }
     }
 
     else if (step === 2) {
       // Aşteptăm MOL11 (frame complet)
       if (byte === STX) {
-        log('📦 Frame STX detectat — aştept ETX...');
+        log('Frame STX detectat — aştept ETX...');
       } else if (byte === ETX) {
         const stxIdx = rxBuffer.lastIndexOf(STX);
         if (stxIdx >= 0) {
           const etxIdx = rxBuffer.indexOf(ETX, stxIdx);
           const payload = rxBuffer.subarray(stxIdx + 1, etxIdx).toString('ascii');
-          log(`📦 Frame: "${payload}"`);
+          log(`Frame: "${payload}"`);
           if (payload.startsWith('MOL11')) {
-            log('🎉 MOL11 primit — POS activ, aşteaptă card!');
+            log('MOL11 primit — POS activ, aşteaptă card!');
             port.write(Buffer.from([ACK]));
-            log('📤 Trimis ACK pentru MOL11');
+            log('Trimis ACK pentru MOL11');
           }
         }
       }
@@ -126,5 +126,5 @@ port.on('data', chunk => {
   }
 });
 
-port.on('error', err => { log(`❌ Eroare: ${err.message}`); clearTimeout(TIMEOUT); });
+port.on('error', err => { log(`Eroare: ${err.message}`); clearTimeout(TIMEOUT); });
 port.on('close', () => { log('Port închis.'); clearTimeout(TIMEOUT); });

@@ -31,8 +31,8 @@ export default function ProductPage({ brand }) {
   const allRequired = modifiers.filter(m => m.required).every(m => selected[m.id]);
 
   const catEmojis = {
-    'smash-burgers':'🍔','pizza':'🍕','salate':'🥗','deserturi':'🍰','bauturi':'🥤',
-    'sm-rolls':'🌀','sm-sets':'🎁','sm-nigiri':'🍣','sm-supe':'🍜','sm-deserturi':'🍡','sm-bauturi':'🍵',
+    'smash-burgers':'','pizza':'','salate':'','deserturi':'','bauturi':'',
+    'sm-rolls':'','sm-sets':'','sm-nigiri':'','sm-supe':'','sm-deserturi':'','sm-bauturi':'',
   };
 
   return (
@@ -49,7 +49,7 @@ export default function ProductPage({ brand }) {
         {product.image && !imgFailed
           ? <img src={product.image} alt={product.name} className="pp-img"
               onError={() => setImgFailed(true)} />
-          : <span className="pp-emoji">{catEmojis[product.categoryId] || '🍽️'}</span>
+          : <span className="pp-emoji">{catEmojis[product.categoryId] || ''}</span>
         }
       </div>
 
@@ -58,7 +58,7 @@ export default function ProductPage({ brand }) {
         {product.badge && <span className="pp-badge">{product.badge}</span>}
         <h1 className="pp-name">{product.name}</h1>
         <p className="pp-desc">{product.description}</p>
-        {product.weight && <p className="pp-weight">⚖️ {product.weight}g</p>}
+        {product.weight && <p className="pp-weight">{product.weight}g</p>}
 
         {/* Modifiers */}
         {modifiers.map(mod => (
@@ -81,7 +81,7 @@ export default function ProductPage({ brand }) {
                       {opt.priceDiff ?? opt.price} lei
                     </span>
                   )}
-                  {selected[mod.id] === opt.id && <span className="pp-check">✓</span>}
+                  {selected[mod.id] === opt.id && <span className="pp-check"></span>}
                 </button>
               ))}
             </div>

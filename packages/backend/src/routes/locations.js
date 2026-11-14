@@ -394,6 +394,109 @@ router.post('/:id/restart', requireApiKey, async (req, res) => {
   }
 });
 
+// POST /api/locations/:id/lock — manual lock ("Blochează acum") or PIN unlock from Kiosk
+router.post('/:id/lock', async (req, res) => {
+  const { findLocation, getLocationAliases } = require('../utils/locations');
+  try {
+    const locId = req.params.id;
+    const shouldLock = req.body?.locked !== undefined ? Boolean(req.body.locked) : true;
+    const unlockedBy = req.body?.unlockedBy || req.body?.role || null;
+    const nowIso = new Date().toISOString();
+
+    let updatedLoc = null;
+
+    if (hasDb) {
+      let existing = await pool.query('SELECT * FROM locations WHERE id = $1 OR data->>\'kioskUrl\' = $1', [locId]);
+      if (!existing.rows.length) {
+        const fl = findLocation(locId);
+        if (fl && fl.id) {
+          existing = await pool.query('SELECT * FROM locations WHERE id = $1 OR data->>\'kioskUrl\' = $1', [fl.id]);
+        }
+      }
+      if (existing.rows.length) {
+        const current = existing.rows[0];
+        const merged = {
+          ...(current.data || {}),
+          forceLocked: shouldLock,
+          forceLockedAt: shouldLock ? nowIso : null,
+          ...(!shouldLock ? { lastUnlockedAt: nowIso, lastUnlockedBy: unlockedBy || 'pin' } : {})
+        };
+        const { rows } = await pool.query(
+          `UPDATE locations SET data = $1, updated_at = NOW() WHERE id = $2 RETURNING *`,
+          [JSON.stringify(merged), current.id]
+        );
+        if (rows[0]) updatedLoc = rowToLoc(rows[0]);
+      }
+    }
+
+    // Update JSON fallback as well
+    try {
+      const locs = readLocFile();
+      let idx = locs.findIndex(l => l.id === locId || l.kioskUrl === locId || (l.aliases && l.aliases.includes(locId)));
+      if (idx === -1) {
+        const found = findLocation(locId);
+        if (found) idx = locs.findIndex(l => l.id === found.id || l.name === found.name);
+      }
+      if (idx !== -1) {
+        locs[idx] = {
+          ...locs[idx],
+          forceLocked: shouldLock,
+          forceLockedAt: shouldLock ? nowIso : null,
+          ...(!shouldLock ? { lastUnlockedAt: nowIso, lastUnlockedBy: unlockedBy || 'pin' } : {})
+        };
+        writeLocFile(locs);
+        if (!updatedLoc) updatedLoc = locs[idx];
+      }
+    } catch (_) {}
+
+    if (!updatedLoc) {
+      const fallbackLoc = findLocation(locId);
+      if (!fallbackLoc) return res.status(404).json({ error: 'Location not found' });
+      updatedLoc = { ...fallbackLoc, forceLocked: shouldLock, forceLockedAt: shouldLock ? nowIso : null };
+    }
+
+    const aliases = getLocationAliases ? getLocationAliases(updatedLoc.id || locId) : [];
+    const locationIdsToNotify = Array.from(new Set([
+      locId,
+      updatedLoc?.id,
+      updatedLoc?.kioskUrl,
+      ...(updatedLoc?.aliases || []),
+      ...(aliases || [])
+    ].filter(Boolean)));
+
+    const io = req.app.get('io');
+    if (io) {
+      const lockPayload = {
+        locationId: updatedLoc.id || locId,
+        kioskUrl: updatedLoc.kioskUrl || locId,
+        locked: shouldLock,
+        forceLocked: shouldLock,
+        forceLockedAt: shouldLock ? nowIso : null,
+        unlockedBy
+      };
+      for (const lid of locationIdsToNotify) {
+        io.to(`kiosk-${lid}`).emit('kiosk_lock_control', { ...lockPayload, locationId: lid });
+        io.to(`kiosk-${lid}`).emit('location_updated', updatedLoc);
+        io.emit(`kiosk_lock_control_${lid}`, { ...lockPayload, locationId: lid });
+      }
+      io.to('admin').emit('location_updated', updatedLoc);
+    }
+
+    try {
+      const { setLocationLockState } = require('../services/socketService');
+      if (typeof setLocationLockState === 'function') {
+        setLocationLockState(locationIdsToNotify, shouldLock);
+      }
+    } catch (_) {}
+
+    console.log(`[Locations LOCK] Location ${locId} -> forceLocked=${shouldLock} (${unlockedBy || 'admin'})`);
+    return res.json({ ok: true, locked: shouldLock, forceLocked: shouldLock, location: updatedLoc });
+  } catch (e) {
+    console.error('[Locations LOCK]', e.message);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
 // POST /api/locations/:id/ping — send real-time ping to tablet and measure latency
 router.post('/:id/ping', protect, async (req, res) => {
   try {

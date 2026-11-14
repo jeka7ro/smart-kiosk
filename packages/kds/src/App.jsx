@@ -6,8 +6,8 @@ const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 
 const STATUS_CONFIG = {
   pending:    { label: 'Nou',         color: '#f59e0b', next: 'preparing', nextLabel: '▶ Începe' },
-  preparing:  { label: 'Pregătire',   color: '#4f8ef7', next: 'ready',    nextLabel: '✅ Gata'  },
-  ready:      { label: 'Gata',        color: '#22c55e', next: 'delivered', nextLabel: '🍽 Livrat' },
+  preparing:  { label: 'Pregătire',   color: '#4f8ef7', next: 'ready',    nextLabel: 'Gata'  },
+  ready:      { label: 'Gata',        color: '#22c55e', next: 'delivered', nextLabel: 'Livrat' },
   delivered:  { label: 'Livrat',      color: '#a855f7', next: null,        nextLabel: null },
   completed:  { label: 'Finalizat',   color: '#6b7280', next: null,        nextLabel: null },
   cancelled:  { label: 'Anulat',      color: '#ef4444', next: null,        nextLabel: null },
@@ -130,7 +130,7 @@ export default function App() {
       {/* ─── Header ─── */}
       <header className="kds-header">
         <div className="kds-logo">
-          <span className="kds-logo-icon">🍽</span>
+          <span className="kds-logo-icon"></span>
           <span className="kds-logo-text">Kitchen Display</span>
         </div>
 
@@ -212,7 +212,7 @@ export default function App() {
       <main className="kds-grid">
         {filteredOrders.length === 0 && (
           <div className="kds-empty">
-            <span style={{ fontSize: '4rem' }}>🍳</span>
+            <span style={{ fontSize: '4rem' }}></span>
             <p>Nicio comandă momentan</p>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Comenzile apar automat când sunt plasate</p>
           </div>
@@ -245,7 +245,7 @@ export default function App() {
                 <button onClick={() => setSelectedItemDetail(null)} style={{
                   background: 'var(--bg)', border: 'none', color: 'var(--text-muted)', fontSize: '1.2rem',
                   width: '40px', height: '40px', borderRadius: '9999px', cursor: 'pointer'
-                }}>✕</button>
+                }}></button>
               </div>
               
               <div style={{ display: 'flex', flex: 1, overflow: 'hidden', flexDirection: window.innerWidth < 768 ? 'column' : 'row' }}>
@@ -265,7 +265,7 @@ export default function App() {
                     }
                     return (
                       <div style={{ width: '100%', maxWidth: '250px', aspectRatio: '1/1', borderRadius: '32px', background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)' }}>
-                        <span style={{ fontSize: '5rem' }}>🍽️</span>
+                        <span style={{ fontSize: '5rem' }}></span>
                       </div>
                     );
                   })()}
@@ -312,8 +312,8 @@ function OrderCard({ order, onStatusChange, menuProducts, onProductClick }) {
         <div className="oc-num">#{order.orderNumber || order._id?.slice(-4) || '????'}</div>
         <div className="oc-badges">
           {order.orderType === 'dine-in'
-            ? <span className="oc-badge oc-badge--table">🪑 Masa {order.tableNumber}</span>
-            : <span className="oc-badge oc-badge--takeaway">🛍 La pachet</span>
+            ? <span className="oc-badge oc-badge--table">Masa {order.tableNumber}</span>
+            : <span className="oc-badge oc-badge--takeaway">La pachet</span>
           }
           {order.brand && <span className="oc-badge oc-badge--brand">{order.brand}</span>}
         </div>
@@ -367,10 +367,10 @@ function OrderCard({ order, onStatusChange, menuProducts, onProductClick }) {
           </button>
         )}
         {order.status === 'delivered' && (
-          <span className="oc-done">✓ Livrat</span>
+          <span className="oc-done">Livrat</span>
         )}
         {isCancelled && (
-          <span style={{ color: '#ef4444', fontWeight: 700, fontSize: '0.9rem' }}>❌ ANULAT</span>
+          <span style={{ color: '#ef4444', fontWeight: 700, fontSize: '0.9rem' }}>ANULAT</span>
         )}
       </div>
     </div>

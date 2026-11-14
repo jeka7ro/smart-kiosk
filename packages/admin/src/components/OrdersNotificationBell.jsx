@@ -2,22 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Bell, CheckCircle2, XCircle, CreditCard, Banknote, Sparkles, ChevronRight, ExternalLink, Clock } from 'lucide-react';
 import BrandLogo from './BrandLogo.jsx';
 import { formatThousands } from '../utils/formatters';
-
-const BRAND_COLORS = {
-  smashme: '#ef4444',
-  crunch: '#eab308',
-  rollmaster: '#e31e24',
-  lovesushi: '#ec4899',
-  pokiwoki: '#f97316'
-};
-
-const BRAND_NAMES = {
-  smashme: 'SmashMe',
-  crunch: 'Crunch',
-  rollmaster: 'RollMaster',
-  lovesushi: 'LoveSushi',
-  pokiwoki: 'PokiWoki'
-};
+import { ALL_BRAND_COLORS as BRAND_COLORS, ALL_BRAND_LABELS as BRAND_NAMES } from '../utils/brandTheme';
 
 function formatRelativeTime(dateStr) {
   if (!dateStr) return '';

@@ -53,7 +53,7 @@ function useKeepAlive() {
   }, []);
 }
 
-const BRAND_COLORS = { smashme: '#ef4444', crunch: '#eab308', rollmaster: '#e31e24', lovesushi: '#ec4899', pokiwoki: '#f97316' };
+import { BRAND_COLORS, BRAND_LABELS, getBrandColor, getBrandLabel } from './utils/brandTheme';
 
 const STATUS_LABELS = {
   pending:          { label: 'Achitată',     color: '#059669' },
@@ -2115,7 +2115,7 @@ export default function AdminApp() {
           <div className="p-6 space-y-4 overflow-y-auto">
             <div className="flex items-center gap-3">
               <BrandLogo brandId={selectedOrder.brand} size={24} />
-              <span className="font-bold" style={{ color: BRAND_COLORS[selectedOrder.brand] }}>{selectedOrder.brand}</span>
+              <span className="font-bold" style={{ color: getBrandColor(selectedOrder.brand) }}>{getBrandLabel(selectedOrder.brand)}</span>
               {(() => {
                 const sc = getOrderStatus(selectedOrder);
                 return (
@@ -2598,8 +2598,8 @@ function OrdersTable({ orders, full, onRowClick, onOpenThermalReceipt, selectedI
                   <td className="px-5 py-3.5 whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <BrandLogo brandId={o.brand} size={24} className="shadow-2xs shrink-0" />
-                      <span style={{ color: BRAND_COLORS[o.brand] }} className="text-xs font-bold">
-                        {o.brand}
+                      <span style={{ color: getBrandColor(o.brand) }} className="text-xs font-bold">
+                        {getBrandLabel(o.brand)}
                       </span>
                     </div>
                   </td>
@@ -3230,12 +3230,12 @@ function KiosksManager({ backend, kiosksLiveStatus = {}, bridgeSummary = null, s
   }
 
   const brandMeta = {
-    smashme:     { name: 'SmashMe',     color: '#ef4444' },
-    crunch:      { name: 'Crunch',      color: '#eab308' },
-    rollmaster:  { name: 'Roll Master', color: '#e31e24' },
-    lovesushi:   { name: 'Love Sushi',  color: '#ec4899' },
-    pokiwoki:    { name: 'Poki-Woki',   color: '#f97316' },
-    welovesushi: { name: 'WeLoveSushi', color: '#6366f1' },
+    smashme:     { name: 'SmashMe',     color: BRAND_COLORS.smashme },
+    crunch:      { name: 'Crunch',      color: BRAND_COLORS.crunch },
+    rollmaster:  { name: 'Roll Master', color: BRAND_COLORS.rollmaster },
+    lovesushi:   { name: 'Love Sushi',  color: BRAND_COLORS.lovesushi },
+    pokiwoki:    { name: 'Poki-Woki',   color: BRAND_COLORS.pokiwoki },
+    welovesushi: { name: 'WeLoveSushi', color: BRAND_COLORS.lovesushi },
   };
 
   const allBrandIds = new Set();
@@ -6867,8 +6867,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
 }
 
 /* ─── LOCATIONS MANAGER ──────────────────────────────────── */
-const BRAND_LABELS = { smashme: 'SmashMe', crunch: 'Crunch', rollmaster: 'Roll Master', lovesushi: 'Love Sushi', pokiwoki: 'Poki-Woki' };
-const BRAND_PILL_COLORS = { smashme: '#ef4444', crunch: '#eab308', rollmaster: '#3b82f6', lovesushi: '#ec4899', pokiwoki: '#f97316' };
+const BRAND_PILL_COLORS = BRAND_COLORS;
 
 function LocationsManager({ backend, kiosksLiveStatus = {} }) { 
   const { fetchWithAuth } = useAuth();
@@ -7272,9 +7271,7 @@ function BrandsManager({ backend }) {
     setUploadingId(null);
   };
 
-  const BRAND_DEFAULT_COLORS = {
-    smashme: '#ef4444', crunch: '#eab308', rollmaster: '#3b82f6', lovesushi: '#ec4899', pokiwoki: '#f97316',
-  };
+  const BRAND_DEFAULT_COLORS = BRAND_COLORS;
 
   if (loading) return <p className="loading-text">Se încarcă brandurile...</p>;
 

@@ -31,9 +31,9 @@ export default function TableLanding({ brand }) {
       {/* Features */}
       <div className="tl-features fade-up">
         {[
-          { icon: '📱', text: 'Comandă de pe telefon' },
-          { icon: '💳', text: 'Plată online securizată' },
-          { icon: '⚡', text: 'Livrare directă la masă' },
+          { icon: '', text: 'Comandă de pe telefon' },
+          { icon: '', text: 'Plată online securizată' },
+          { icon: '', text: 'Livrare directă la masă' },
         ].map((f, i) => (
           <div key={i} className="tl-feature" style={{ animationDelay: `${i * 0.1}s` }}>
             <span className="tl-f-icon">{f.icon}</span>

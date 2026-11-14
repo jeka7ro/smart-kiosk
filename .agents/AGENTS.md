@@ -45,4 +45,27 @@ Orice modificare a codului POS Bridge (`packages/pos-bridge/index.js`) sau a ser
    - Nu reduceți timeout-ul sub 3000ms și nu resetați forțat portul serial în timpul încercărilor de ENQ, deoarece provoacă coliziuni UART și desincronizări ale terminalului.
    - Resetarea hardware controlată a portului (`forceReopenPort` 300ms) se execută strict la comanda explicită de anulare (`cancel_pos_payment`) a unei plăți în curs.
 
+---
+trigger: always_on
+---
+# Sincronizare continuă Antigravity ↔ Paperclip (Smart Kiosk)
+
+Acest proiect este lucrat atât din Antigravity (pe Mac), cât și de la distanță prin agentul Paperclip `Dev Smart Kiosk`.
+
+## La începutul fiecărei sesiuni (obligatoriu)
+1. Citește `.agents/CHANGELOG.md` (ultimele 10 intrări).
+2. Rulează `git status --short` și `git log -5 --oneline`.
+3. Dacă există modificări făcute de `Agent Paperclip: Dev Smart Kiosk` sau commit-uri noi de la ultima ta intrare, rezumă-le utilizatorului în 2–3 rânduri înainte să faci orice altceva.
+4. Nu suprascrie și nu șterge modificări făcute din Paperclip fără să întrebi utilizatorul.
+
+## După fiecare modificare aplicată în Antigravity (obligatoriu)
+Adaugă o intrare nouă DEASUPRA celor existente în `.agents/CHANGELOG.md` în formatul:
+### YYYY-MM-DD HH:MM — <titlu scurt>
+- **Autor:** Antigravity
+- **Ce s-a făcut:** <descriere scurtă>
+- **Fișiere:** <lista fișierelor modificate>
+- **Ramură / Commit:** <numele ramurii și hash-ul, dacă s-a făcut commit>
+- **Build / Teste:** <rezultat>
+
+
 

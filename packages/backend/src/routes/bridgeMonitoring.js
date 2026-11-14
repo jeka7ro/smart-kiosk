@@ -715,7 +715,7 @@ router.post('/:locationId/fullscreen-kiosk', (req, res) => {
 
     if (locationId === 'all') {
       if (io) {
-        io.emit('kiosk_force_fullscreen', { locationId: 'all' });
+        io.emit('kiosk_force_fullscreen', { locationId: 'all', manual: true });
         console.log('[BridgeMonitor] Comandă globală Fullscreen trimisă către TOATE Kiosk-urile și PC-urile!');
         return res.json({ success: true, message: 'Comanda Fullscreen a fost trimisă către TOATE Kiosk-urile!' });
       } else {
@@ -730,10 +730,10 @@ router.post('/:locationId/fullscreen-kiosk', (req, res) => {
     if (io) {
       for (const tid of targets) {
         // 1. Către aplicația Web Kiosk (requestFullscreen)
-        io.to(`kiosk-${tid}`).emit('kiosk_force_fullscreen', { locationId: tid });
-        io.emit(`kiosk_force_fullscreen_${tid}`, { locationId: tid });
+        io.to(`kiosk-${tid}`).emit('kiosk_force_fullscreen', { locationId: tid, manual: true });
+        io.emit(`kiosk_force_fullscreen_${tid}`, { locationId: tid, manual: true });
         // 2. Către POS Bridge pe PC (Windows F11 nativ)
-        io.to(`pos-bridge-${tid}`).emit('kiosk_force_fullscreen', { locationId: tid });
+        io.to(`pos-bridge-${tid}`).emit('kiosk_force_fullscreen', { locationId: tid, manual: true });
       }
       console.log(`[BridgeMonitor] Comandă Fullscreen trimisă către kiosk & bridge: ${[...targets].join(', ')}`);
       res.json({ success: true, message: `Comanda Fullscreen a fost trimisă către Kiosk (${locationId})` });
@@ -742,6 +742,46 @@ router.post('/:locationId/fullscreen-kiosk', (req, res) => {
     }
   } catch (err) {
     console.error('[BridgeMonitor] Eroare fullscreen kiosk:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /api/bridge-monitoring/:locationId/reboot-pc
+ * Remotely reboots the Windows PC (shutdown /r /t 2 /f) via POS Bridge
+ */
+router.post('/:locationId/reboot-pc', (req, res) => {
+  try {
+    const io = req.app.get('io');
+    const { locationId } = req.params;
+    if (!io) return res.status(500).json({ error: 'Socket.io nu este inițializat pe server' });
+
+    const { getLocationAliases } = require('../utils/locations');
+    const aliases = getLocationAliases ? getLocationAliases(locationId) : [locationId];
+    const targets = new Set([locationId, ...aliases].filter(Boolean));
+
+    const requestId = `reboot_${Date.now()}`;
+    for (const tid of targets) {
+      io.to(`pos-bridge-${tid}`).emit('pc_remote_request', {
+        requestId,
+        locationId: tid,
+        action: 'reboot_pc',
+      });
+      io.emit(`pc_remote_request_${tid}`, {
+        requestId,
+        locationId: tid,
+        action: 'reboot_pc',
+      });
+    }
+
+    console.log(`[BridgeMonitor] Comandă REBOOT PC Windows (shutdown /r /t 2 /f) trimisă către: ${[...targets].join(', ')}`);
+    res.json({
+      success: true,
+      requestId,
+      message: `Comanda de Restart PC Windows a fost trimisă către ${locationId}! Calculatorul va reporni în câteva secunde.`,
+    });
+  } catch (err) {
+    console.error('[BridgeMonitor] Eroare reboot-pc:', err.message);
     res.status(500).json({ error: err.message });
   }
 });

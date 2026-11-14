@@ -624,7 +624,7 @@ export default function ManagerPortalModal({ locationData, onClose, isStandalone
     if (isCancelled) {
       return (
         <span className="mgr-badge mgr-badge-error">
-          ✕ Refuz POS
+          Refuz POS
         </span>
       );
     }
@@ -633,7 +633,7 @@ export default function ManagerPortalModal({ locationData, onClose, isStandalone
     if (o.paymentRef?.authCode || o.paymentRef?.receiptNo || o.status === 'paid' || o.syrveOrderId) {
       return (
         <span className="mgr-badge mgr-badge-success">
-          ✓ Card OK
+          Card OK
         </span>
       );
     }
@@ -650,14 +650,14 @@ export default function ManagerPortalModal({ locationData, onClose, isStandalone
     if (o.syrveOrderId) {
       return (
         <span className="mgr-badge mgr-badge-success">
-          ✓ iiko OK
+          iiko OK
         </span>
       );
     }
 
     return (
       <span className="mgr-badge mgr-badge-error">
-        ✕ Eroare iiko
+        Eroare iiko
       </span>
     );
   };
@@ -806,7 +806,7 @@ const KIOSK_EVENT_META = {
       <div className={`mgr-modal-backdrop mgr-pin-backdrop ${isStandalone ? 'mgr-standalone' : ''}`} onClick={isStandalone ? undefined : onClose}>
         <div className="ios-pin-card mgr-pin-ios-card" onClick={e => e.stopPropagation()}>
           {!isStandalone ? (
-            <button className="ios-pin-close-btn" onClick={onClose} aria-label="Închide">✕</button>
+            <button className="ios-pin-close-btn" onClick={onClose} aria-label="Închide"></button>
           ) : (
             <button 
               className="ios-pin-close-btn" 
@@ -1005,8 +1005,7 @@ const KIOSK_EVENT_META = {
                 className="mgr-btn-close"
                 title="Închide panoul"
               >
-                ✕
-              </button>
+                </button>
             )}
           </div>
         </div>
@@ -1160,14 +1159,14 @@ const KIOSK_EVENT_META = {
                 onClick={() => { setStatusFilter('success'); setCurrentPage(1); }}
                 className={`mgr-pill-btn ${statusFilter === 'success' ? 'active' : ''}`}
               >
-                ✓ Succes
+                Succes
               </button>
               <button
                 type="button"
                 onClick={() => { setStatusFilter('error'); setCurrentPage(1); }}
                 className={`mgr-pill-btn ${statusFilter === 'error' ? 'active' : ''}`}
               >
-                ✕ Erori
+                Erori
               </button>
             </div>
 
@@ -1285,7 +1284,7 @@ const KIOSK_EVENT_META = {
               onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
             />
             {search && (
-              <button className="mgr-search-clear-btn" onClick={() => setSearch('')}>✕</button>
+              <button className="mgr-search-clear-btn" onClick={() => setSearch('')}></button>
             )}
           </div>
         </div>
@@ -1718,7 +1717,7 @@ const KIOSK_EVENT_META = {
                   </div>
                   <div className="mgr-status-row">
                     <span className="mgr-status-label">Identificator URL:</span>
-                    <span className="mgr-status-val font-mono">{locationData?.kioskUrl || locationData?.id || '-'}</span>
+                    <span className="mgr-status-val tabular-nums">{locationData?.kioskUrl || locationData?.id || '-'}</span>
                   </div>
                   <div className="mgr-status-row">
                     <span className="mgr-status-label">Stare Conexiune:</span>
@@ -1752,7 +1751,7 @@ const KIOSK_EVENT_META = {
                     <>
                       <div className="mgr-status-row">
                         <span className="mgr-status-label">Interval Blocare:</span>
-                        <span className="mgr-status-val font-mono">
+                        <span className="mgr-status-val tabular-nums">
                           <strong>{locationData.lockStartTime || '22:00'}</strong> — <strong>{locationData.lockEndTime || '09:00'}</strong>
                         </span>
                       </div>
@@ -1920,8 +1919,7 @@ const KIOSK_EVENT_META = {
                   onClick={() => setSelectedOrder(null)}
                   className="mgr-detail-close-btn"
                 >
-                  ✕
-                </button>
+                  </button>
               </div>
             </div>
 
@@ -1940,7 +1938,7 @@ const KIOSK_EVENT_META = {
                     <strong>Plată:</strong>
                     <span className="mgr-pay-type">{selectedOrder.paymentMethod === 'cash' ? 'CASH' : 'CARD'}</span>
                     {selectedOrder.paymentMethod === 'card' ? (
-                      <span className="mgr-badge mgr-badge-success">✓ Aprobat POS</span>
+                      <span className="mgr-badge mgr-badge-success">Aprobat POS</span>
                     ) : (
                       <span className="mgr-badge mgr-badge-warning">La Casă</span>
                     )}
@@ -2010,7 +2008,7 @@ const KIOSK_EVENT_META = {
                         onClick={(e) => handleCancelOrder(selectedOrder, e)}
                         className="mgr-btn-danger"
                       >
-                        ✕ Anulează Comanda (Refuz POS)
+                        Anulează Comanda (Refuz POS)
                       </button>
                     )}
                   </div>

@@ -8,15 +8,19 @@ import {
   Send,
   Keyboard,
   ShieldCheck,
+  FolderOpen,
   RefreshCw,
   Wifi,
-  AlertTriangle
+  AlertTriangle,
+  Eye,
+  Wrench,
+  RotateCcw
 } from 'lucide-react';
 
 const QUALITY_PRESETS = {
-  fast: { label: 'Rapid (960px)', maxWidth: 960, quality: 45, fps: 7 },
-  normal: { label: 'Normal (1280px)', maxWidth: 1280, quality: 58, fps: 8 },
-  hd: { label: 'Clar Full HD', maxWidth: 1920, quality: 74, fps: 6 },
+  fast: { label: 'Fluid (18 FPS)', maxWidth: 960, quality: 48, fps: 18 },
+  normal: { label: 'Normal (14 FPS)', maxWidth: 1152, quality: 58, fps: 14 },
+  hd: { label: 'Clar HD (10 FPS)', maxWidth: 1600, quality: 75, fps: 10 },
 };
 
 const IS_MAC = typeof navigator !== 'undefined' && /Mac/i.test(navigator.platform || navigator.userAgent || '');
@@ -72,6 +76,8 @@ export default function RemoteDesktopViewer({
   isOnline,
   isMaintenance,
   onToggleShield,
+  onOpenDesktopFolder,
+  onRebootPc,
 }) {
   const [presetKey, setPresetKey] = useState('normal');
   const [streaming, setStreaming] = useState(false);
@@ -83,6 +89,7 @@ export default function RemoteDesktopViewer({
   const [keyboardFocused, setKeyboardFocused] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [pasteText, setPasteText] = useState('');
+  const [viewTarget, setViewTarget] = useState('admin'); // 'admin' = Desktop & Foldere (prin paravan) | 'client' = Ce vede Clientul (ecran fizic)
 
   const imgRef = useRef(null);
   const stageRef = useRef(null);
@@ -115,9 +122,10 @@ export default function RemoteDesktopViewer({
       maxWidth: preset.maxWidth,
       quality: preset.quality,
       fps: preset.fps,
+      shield: Boolean(isMaintenance),
     });
     setTimeout(() => stageRef.current?.focus(), 60);
-  }, [presetKey, socket, locId, emitRd]);
+  }, [presetKey, socket, locId, emitRd, isMaintenance]);
 
   const stopStream = useCallback(() => {
     setStreaming(false);
@@ -336,11 +344,18 @@ export default function RemoteDesktopViewer({
   const handlePointerMove = (e) => {
     if (!streaming) return;
     const now = Date.now();
-    const minInterval = e.buttons > 0 ? 35 : 65;
+    const minInterval = e.buttons > 0 ? 25 : 45;
     if (now - lastMoveSentRef.current < minInterval) return;
     lastMoveSentRef.current = now;
     const { nx, ny } = getNormCoords(e.clientX, e.clientY);
     emitRd({ action: 'mouse', type: 'move', nx, ny });
+  };
+
+  const handleDoubleClick = (e) => {
+    if (!streaming) return;
+    e.preventDefault();
+    const { nx, ny } = getNormCoords(e.clientX, e.clientY);
+    emitRd({ action: 'mouse', type: 'dblclick', nx, ny });
   };
 
   const handleKeyDown = (e) => {
@@ -390,6 +405,19 @@ export default function RemoteDesktopViewer({
     setPasteText('');
     stageRef.current?.focus();
   };
+
+  const handleSwitchViewTarget = (nextView) => {
+    const mode = nextView === 'client' ? 'client' : 'admin';
+    setViewTarget(mode);
+    emitRd({ action: 'shield_view', view: mode });
+    stageRef.current?.focus();
+  };
+
+  useEffect(() => {
+    if (isMaintenance) {
+      setViewTarget('admin');
+    }
+  }, [isMaintenance]);
 
   const containerCls = isExpanded
     ? 'fixed inset-3 z-[70] bg-slate-950 rounded-2xl border border-slate-700 shadow-2xl flex flex-col overflow-hidden p-3 space-y-2.5'
@@ -443,11 +471,72 @@ export default function RemoteDesktopViewer({
                 ? 'bg-amber-500 text-slate-950'
                 : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 hover:bg-slate-50'
             }`}
-            title="Pune paravanul KIOSK ÎN MENTENANȚĂ pe ecranul fizic din restaurant; tu lucrezi transparent prin el!"
+            title="Pune paravanul KIOSK ÎN MENTENANȚĂ pe ecranul fizic din restaurant; minimizează automat Chrome și îți afișează Desktopul Windows + C:\SmartKiosk!"
           >
             <ShieldCheck className="w-3.5 h-3.5" />
             <span>{isMaintenance ? 'Paravan: ACTIV' : 'Paravan Mentenanță'}</span>
           </button>
+
+          {/* Comutator live: Ce lucrez eu (Desktop sub Paravan) vs Ce vede Clientul (Ecranul fizic din locație) */}
+          <div
+            className="inline-flex items-center p-0.5 rounded-lg bg-slate-200/80 dark:bg-slate-900 border border-slate-300 dark:border-slate-600"
+            title="Comută instant între ce lucrezi tu pe Desktop (sub paravan) și ce vede clientul pe ecranul fizic din restaurant"
+          >
+            <button
+              type="button"
+              disabled={!isOnline}
+              onClick={() => handleSwitchViewTarget('admin')}
+              className={`px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
+                viewTarget === 'admin'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+              }`}
+              title="Vezi prin paravan direct în Windows Desktop & C:\SmartKiosk ca să lucrezi fără ca clientul să vadă"
+            >
+              <Wrench className="w-3.5 h-3.5" />
+              <span>Eu (Desktop)</span>
+            </button>
+            <button
+              type="button"
+              disabled={!isOnline}
+              onClick={() => handleSwitchViewTarget('client')}
+              className={`px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
+                viewTarget === 'client'
+                  ? 'bg-amber-500 text-slate-950 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+              }`}
+              title="Vezi exact ce este afișat acum pe monitorul fizic în fața clientului (paravanul de mentenanță sau Kiosk-ul)"
+            >
+              <Eye className="w-3.5 h-3.5" />
+              <span>Ce vede Clientul</span>
+            </button>
+          </div>
+
+          {onOpenDesktopFolder && (
+            <button
+              type="button"
+              onClick={onOpenDesktopFolder}
+              disabled={!isOnline}
+              className="px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-45 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all"
+              title="Minimizează Chrome, afișează bara Windows și deschide folderul C:\SmartKiosk pe Desktop"
+            >
+              <FolderOpen className="w-3.5 h-3.5" />
+              <span>Desktop & C:\SmartKiosk</span>
+            </button>
+          )}
+
+          {onRebootPc && (
+            <button
+              type="button"
+              onClick={onRebootPc}
+              disabled={!isOnline}
+              className="px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 disabled:opacity-45 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all"
+              title="Dă Restart complet la calculatorul Windows din locație (shutdown /r /t 2 /f)"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Restart PC</span>
+            </button>
+          )}
 
           {streaming && (
             <div className="flex items-center gap-1 flex-wrap">
@@ -531,6 +620,7 @@ export default function RemoteDesktopViewer({
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
         onPointerMove={handlePointerMove}
+        onDoubleClick={handleDoubleClick}
         onKeyDown={handleKeyDown}
         onKeyUp={handleKeyUp}
         onContextMenu={(e) => e.preventDefault()}

@@ -6,11 +6,11 @@ const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 
 const BRANDS = [
   { id: 'smashme',     label: 'SmashMe',     color: '#ef4444' },
-  { id: 'rollmaster', label: 'Roll Master', color: '#e31e24' },
-  { id: 'lovesushi', label: 'Love Sushi', color: '#ec4899' },
-  { id: 'pokiwoki', label: 'Poki-Woki', color: '#f97316' },
-  { id: 'crunch', label: 'Crunch', color: '#eab308' },
-  { id: 'welovesushi', label: 'WeLoveSushi', color: '#f59e0b' }
+  { id: 'rollmaster', label: 'Roll Master', color: '#dc2626' },
+  { id: 'lovesushi', label: 'Love Sushi', color: '#f97316' },
+  { id: 'pokiwoki', label: 'Poki-Woki', color: '#65a30d' },
+  { id: 'crunch', label: 'Crunch', color: '#d97706' },
+  { id: 'welovesushi', label: 'WeLoveSushi', color: '#f97316' }
 ];
 
 const EMPTY_SLICE = { id: '', name: '', type: 'nada', probability: 10, bg: '#f1f5f9', image: '', productId: '' };
@@ -119,7 +119,7 @@ export default function Promotions() {
   };
 
   const deleteSlice = async (id) => {
-    const ok = await confirm('Ștergi această felie?', { icon: '🔥', okLabel: 'Șterge', danger: true });
+    const ok = await confirm('Ștergi această felie?', { icon: '', okLabel: 'Șterge', danger: true });
     if (!ok) return;
     setLocalConfig({ ...localConfig, slices: localConfig.slices.filter(s => s.id !== id) });
   };

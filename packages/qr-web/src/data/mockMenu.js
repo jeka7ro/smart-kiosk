@@ -1,10 +1,10 @@
 // Mock menu data — SmashMe brand (burgeri reali de pe smashme.ro)
 export const SMASHME_CATEGORIES = [
-  { id: 'smash-burgers',  name: 'Smash Burgers',  icon: '🍔', color: '#EE3B24' },
-  { id: 'pizza',          name: 'Pizza',           icon: '🍕', color: '#FF8C00' },
-  { id: 'salate',         name: 'Salate',          icon: '🥗', color: '#2E7D32' },
-  { id: 'deserturi',      name: 'Deserturi',       icon: '🍰', color: '#E91E8C' },
-  { id: 'bauturi',        name: 'Băuturi',         icon: '🥤', color: '#1565C0' },
+  { id: 'smash-burgers',  name: 'Smash Burgers',  icon: '', color: '#EE3B24' },
+  { id: 'pizza',          name: 'Pizza',           icon: '', color: '#FF8C00' },
+  { id: 'salate',         name: 'Salate',          icon: '', color: '#2E7D32' },
+  { id: 'deserturi',      name: 'Deserturi',       icon: '', color: '#E91E8C' },
+  { id: 'bauturi',        name: 'Băuturi',         icon: '', color: '#1565C0' },
 ];
 
 export const SMASHME_PRODUCTS = [];
@@ -12,12 +12,12 @@ export const SMASHME_PRODUCTS = [];
 // ─── SUSHI MASTER ────────────────────────────────────────────────────────────
 
 export const SUSHIMASTER_CATEGORIES = [
-  { id: 'sm-rolls',   name: 'Rulouri',     icon: '🌀', color: '#E31E24' },
-  { id: 'sm-sets',    name: 'Seturi',      icon: '🎁', color: '#D4AF37' },
-  { id: 'sm-nigiri',  name: 'Nigiri',      icon: '🍣', color: '#FF8C00' },
-  { id: 'sm-supe',    name: 'Supe',        icon: '🍜', color: '#1565C0' },
-  { id: 'sm-deserturi',name: 'Deserturi',  icon: '🍡', color: '#E91E8C' },
-  { id: 'sm-bauturi', name: 'Băuturi',     icon: '🍵', color: '#2E7D32' },
+  { id: 'sm-rolls',   name: 'Rulouri',     icon: '', color: '#E31E24' },
+  { id: 'sm-sets',    name: 'Seturi',      icon: '', color: '#D4AF37' },
+  { id: 'sm-nigiri',  name: 'Nigiri',      icon: '', color: '#FF8C00' },
+  { id: 'sm-supe',    name: 'Supe',        icon: '', color: '#1565C0' },
+  { id: 'sm-deserturi',name: 'Deserturi',  icon: '', color: '#E91E8C' },
+  { id: 'sm-bauturi', name: 'Băuturi',     icon: '', color: '#2E7D32' },
 ];
 
 export const SUSHIMASTER_PRODUCTS = [
@@ -67,7 +67,7 @@ export const SUSHIMASTER_PRODUCTS = [
     price: 48,
     description: '8 buc — Ton proaspăt, sos picant sriracha, avocado, sesam',
     image: '',
-    badge: 'Hot 🌶',
+    badge: 'Hot ',
     allergens: ['pește', 'soia', 'sesam'],
     modifiers: [
       { id: 'spice', name: 'Nivel picant', required: false, options: [

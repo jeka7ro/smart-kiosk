@@ -17,8 +17,8 @@ const BRAND_LABELS = {
 };
 
 const STATUS_CONFIG = {
-  success: { label: 'Succes', color: '#ffffff', bg: '#059669', icon: '✓' },
-  error:   { label: 'Eroare', color: '#ef4444', bg: '#ef444420', icon: '✕' },
+  success: { label: 'Succes', color: '#ffffff', bg: '#059669', icon: '' },
+  error:   { label: 'Eroare', color: '#ef4444', bg: '#ef444420', icon: '' },
 };
 
 function getLogAmount(log) {
@@ -597,8 +597,8 @@ export default function IikoLogs() {
         <div className="flex items-center gap-1.5 shrink-0">
           {[
             { id: 'all',     label: 'Toate' },
-            { id: 'success', label: '✓ Succes' },
-            { id: 'error',   label: '✕ Erori' },
+            { id: 'success', label: 'Succes' },
+            { id: 'error',   label: 'Erori' },
           ].map(f => {
             const isSelected = filter === f.id;
             return (
@@ -733,7 +733,7 @@ export default function IikoLogs() {
                     className={`border-b border-slate-100 dark:border-slate-800/50 transition-colors cursor-pointer ${isExpanded ? 'bg-blue-50/50 dark:bg-blue-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/30'}`}
                     onClick={() => setExpandedId(isExpanded ? null : logKey)}
                   >
-                    <td className="px-4 py-3 text-center text-slate-400 text-xs font-mono">
+                    <td className="px-4 py-3 text-center text-slate-400 text-xs tabular-nums">
                       {(currentPage - 1) * itemsPerPage + idx + 1}
                     </td>
                     <td className="px-4 py-3 text-xs whitespace-nowrap">
@@ -898,7 +898,7 @@ export default function IikoLogs() {
                                     Bon Fiscal cu CUI: <span className="text-slate-800 dark:text-slate-100 font-semibold">{details.fiscal.name || '—'}</span>
                                   </div>
                                   <div className="text-slate-600 dark:text-slate-400 mt-0.5">
-                                    CUI: <strong className="font-mono text-indigo-600 dark:text-indigo-400">{details.fiscal.rawCui || details.fiscal.cui}</strong>
+                                    CUI: <strong className="tabular-nums text-indigo-600 dark:text-indigo-400">{details.fiscal.rawCui || details.fiscal.cui}</strong>
                                     {details.fiscal.regCom && <> • Reg.Com: {details.fiscal.regCom}</>}
                                     {details.fiscal.isVatPayer && <span className="ml-2 px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold">Plătitor TVA</span>}
                                   </div>
@@ -914,7 +914,7 @@ export default function IikoLogs() {
                               <div className="mt-3 p-2.5 bg-emerald-50/80 dark:bg-emerald-950/30 rounded-xl border border-emerald-200 dark:border-emerald-800/50 flex items-center justify-between text-xs">
                                 <div className="flex items-center gap-2">
                                   <span className="font-bold text-emerald-800 dark:text-emerald-300">ID Syrve / iiko:</span>
-                                  <span className="font-mono text-emerald-900 dark:text-emerald-200 font-bold select-all">{details.syrveOrderId}</span>
+                                  <span className="tabular-nums text-emerald-900 dark:text-emerald-200 font-bold select-all">{details.syrveOrderId}</span>
                                 </div>
                                 <button
                                   onClick={(e) => {
@@ -991,7 +991,7 @@ export default function IikoLogs() {
                                 <div className="mt-2.5 pt-2 border-t border-slate-200/60 dark:border-slate-700/50 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
                                   <span className="font-semibold text-slate-600 dark:text-slate-400">Detalii reducere Syrve:</span>
                                   {audit.discounts.map((d, dIdx) => (
-                                    <span key={dIdx} className="font-mono px-2 py-0.5 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
+                                    <span key={dIdx} className="tabular-nums px-2 py-0.5 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
                                       {d.type || 'RMS'} | ID: {d.discountTypeId || '—'} | Suma: -{formatThousands(d.sum || 0)} lei
                                     </span>
                                   ))}
@@ -1090,7 +1090,7 @@ export default function IikoLogs() {
                                 </button>
                               </div>
                               <div className="bg-slate-900 rounded-xl p-4 overflow-x-auto border border-slate-700 max-h-80">
-                                <pre className="text-xs text-blue-300 font-mono" style={{ margin: 0 }}>
+                                <pre className="text-xs text-blue-300 tabular-nums" style={{ margin: 0 }}>
                                   {JSON.stringify(log.payload, null, 2)}
                                 </pre>
                               </div>
@@ -1118,7 +1118,7 @@ export default function IikoLogs() {
                                 </button>
                               </div>
                               <div className="bg-slate-900 rounded-xl p-4 overflow-x-auto border border-slate-700 max-h-80">
-                                <pre className="text-xs font-mono" style={{ margin: 0, color: log.status === 'error' ? '#fca5a5' : '#86efac' }}>
+                                <pre className="text-xs tabular-nums" style={{ margin: 0, color: log.status === 'error' ? '#fca5a5' : '#86efac' }}>
                                   {JSON.stringify(log.response, null, 2)}
                                 </pre>
                               </div>
@@ -1333,7 +1333,7 @@ export default function IikoLogs() {
                           const logKey = l._id || `${l.id || l.order_id || ''}-${l.timestamp || l.created_at || ''}-${idx}`;
                           return (
                             <tr key={logKey} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                              <td className="px-3 py-2 text-slate-400 font-mono text-[11px]">{idx + 1}</td>
+                              <td className="px-3 py-2 text-slate-400 tabular-nums text-[11px]">{idx + 1}</td>
                               <td className="px-3 py-2 whitespace-nowrap">
                                 <div className="font-semibold text-slate-700 dark:text-slate-300">
                                   {l.timestamp ? new Date(l.timestamp).toLocaleDateString('ro-RO') : '—'}

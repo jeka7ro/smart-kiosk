@@ -68,7 +68,7 @@ console.log('══════════════════════�
 
 // Listăm porturile disponibile mai întâi
 SerialPort.list().then(ports => {
-  console.log('📋 Porturi seriale detectate:');
+  console.log('Porturi seriale detectate:');
   ports.forEach(p => {
     const isCurrent = p.path === SERIAL_PORT;
     console.log(`  ${isCurrent ? '→' : ' '} ${p.path} ${p.manufacturer ? '| ' + p.manufacturer : ''} ${p.serialNumber ? '| SN:' + p.serialNumber : ''}`);
@@ -104,26 +104,26 @@ function startTest() {
 
   port.open((err) => {
     if (err) {
-      console.error(`❌ Nu pot deschide portul: ${err.message}`);
+      console.error(`Nu pot deschide portul: ${err.message}`);
       clearTimeout(timeout);
       process.exit(1);
     }
 
-    console.log(`✅ Port deschis: ${SERIAL_PORT} @ ${BAUD_RATE} baud\n`);
+    console.log(`Port deschis: ${SERIAL_PORT} @ ${BAUD_RATE} baud\n`);
 
     const frame = buildMOL10(AMOUNT_RON);
-    console.log('📤 Trimit MOL10 (Payment Request):');
+    console.log('Trimit MOL10 (Payment Request):');
     console.log(hexDump(frame));
     console.log(`   Payload: MOL10.${String(Math.round(AMOUNT_RON * 100)).padStart(12,'0')}`);
     console.log('');
 
     port.write(frame, (writeErr) => {
       if (writeErr) {
-        console.error(`❌ Eroare scriere: ${writeErr.message}`);
+        console.error(`Eroare scriere: ${writeErr.message}`);
       } else {
-        console.log('✅ Frame trimis! Aştept răspuns POS...\n');
+        console.log('Frame trimis! Aştept răspuns POS...\n');
         console.log('─────────────────────────────────────────────────────');
-        console.log('📥 DATE PRIMITE DE LA POS:');
+        console.log('DATE PRIMITE DE LA POS:');
         console.log('─────────────────────────────────────────────────────');
       }
     });
@@ -145,11 +145,11 @@ function startTest() {
     const hasETX = rxBuffer.indexOf(ETX) > rxBuffer.indexOf(STX);
 
     if (hasNAK) {
-      console.log('\n⚠️  POS a răspuns cu NAK — LRC greșit sau mesaj refuzat');
+      console.log('\nPOS a răspuns cu NAK — LRC greșit sau mesaj refuzat');
     }
 
     if (hasACK) {
-      console.log('\n✅ POS a trimis ACK — mesajul MOL10 a fost acceptat!');
+      console.log('\nPOS a trimis ACK — mesajul MOL10 a fost acceptat!');
       // Trimite ACK înapoi dacă POS-ul trimite un frame
     }
 
@@ -159,7 +159,7 @@ function startTest() {
       if (etxIdx > stxIdx) {
         const payload = rxBuffer.subarray(stxIdx + 1, etxIdx).toString('ascii');
         const lrc = rxBuffer[etxIdx + 1];
-        console.log(`\n📦 Frame complet detectat:`);
+        console.log(`\nFrame complet detectat:`);
         console.log(`   Payload: "${payload}"`);
         console.log(`   LRC: 0x${lrc ? lrc.toString(16).toUpperCase() : 'N/A'}`);
         
@@ -178,7 +178,7 @@ function startTest() {
         
         setTimeout(() => {
           console.log('\n─────────────────────────────────────────────────────');
-          console.log('📊 BUFFER TOTAL PRIMIT:');
+          console.log('BUFFER TOTAL PRIMIT:');
           console.log(hexDump(rxBuffer));
           port.close();
           process.exit(0);
@@ -188,7 +188,7 @@ function startTest() {
   });
 
   port.on('error', (err) => {
-    console.error(`❌ Eroare port serial: ${err.message}`);
+    console.error(`Eroare port serial: ${err.message}`);
     clearTimeout(timeout);
   });
 

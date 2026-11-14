@@ -994,7 +994,7 @@ export default function ProductScreen() {
                   <h3 className="ps-mod-title">{groupLabel}</h3>
                   {reqBadge && (
                     <span className={`ps-req-badge ${isGroupValid ? 'ps-req-badge--done' : ''}`}>
-                      {reqBadge}{isMulti ? ` (${groupTotal}/${max})` : (isGroupValid ? ' ✓' : '')}
+                      {reqBadge}{isMulti ? ` (${groupTotal}/${max})` : (isGroupValid ? ' ' : '')}
                     </span>
                   )}
                 </div>

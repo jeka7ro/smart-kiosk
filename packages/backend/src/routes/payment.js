@@ -130,11 +130,11 @@ router.post('/initiate', async (req, res) => {
     try {
       const io = req.app.get('io');
       if (!io) {
-        console.log(`[Payment] ❌ Socket.IO indisponibil!`);
+        console.log(`[Payment] Socket.IO indisponibil!`);
         return res.status(500).json({ success: false, error: 'Socket.IO indisponibil' });
       }
 
-      console.log(`[Payment] 📡 Trimit pos_payment_request (${gatewayToUse}) la POS Bridge...`);
+      console.log(`[Payment] Trimit pos_payment_request (${gatewayToUse}) la POS Bridge...`);
       // Trimite cererea de plată spre POS Bridge-ul din locație (izolat per cameră socket)
       const locId = req.body.locationId || '';
       const kId = req.body.kioskId || (req.body.orderPayload && req.body.orderPayload.kioskId) || '';
@@ -153,7 +153,7 @@ router.post('/initiate', async (req, res) => {
         kioskId: kId,
         paymentGateway: gatewayToUse,
       });
-      console.log(`[Payment] ✅ Cerere emise via socket (${bridgeAliases.length ? bridgeAliases.join(',') : 'all'}) — aştept răspuns de la Bridge`);
+      console.log(`[Payment] Cerere emise via socket (${bridgeAliases.length ? bridgeAliases.join(',') : 'all'}) — aştept răspuns de la Bridge`);
 
       // Timeout 3 minute — dacă Bridge-ul nu răspunde
       setTimeout(() => {
@@ -266,7 +266,7 @@ router.post('/qr-link', async (req, res) => {
 router.post('/cancel', (req, res) => {
   const { orderId, locationId, kioskId } = req.body || {};
   const io = req.app.get('io');
-  console.log(`[Payment] 🛑 Cerere HTTP anulare plată POS: order=${orderId || '?'}, loc=${locationId || '?'}, kiosk=${kioskId || '?'}`);
+  console.log(`[Payment] Cerere HTTP anulare plată POS: order=${orderId || '?'}, loc=${locationId || '?'}, kiosk=${kioskId || '?'}`);
   if (io) {
     const { getLocationAliases } = require('../utils/locations');
     const bridgeAliases = locationId ? getLocationAliases(locationId) : [];

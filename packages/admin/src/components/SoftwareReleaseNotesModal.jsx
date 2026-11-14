@@ -278,7 +278,7 @@ export default function SoftwareReleaseNotesModal({
                 <span className="text-slate-800 dark:text-slate-200 font-medium truncate pr-2">
                   {phaseMessage}
                 </span>
-                <span className="text-blue-600 dark:text-blue-400 font-mono font-bold text-sm shrink-0">
+                <span className="text-blue-600 dark:text-blue-400 tabular-nums font-bold text-sm shrink-0">
                   {progressPercent}%
                 </span>
               </div>

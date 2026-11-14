@@ -2,8 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthProvider';
 import BrandLogo from '../components/BrandLogo';
 import { Folder, Search, X, ChevronDown, ChevronUp, EyeOff, RotateCcw, Plus, Edit3 } from 'lucide-react';
-
-const BRAND_COLORS = { smashme: '#ef4444', crunch: '#eab308', rollmaster: '#e31e24', lovesushi: '#ec4899', pokiwoki: '#f97316' };
+import { ALL_BRAND_COLORS as BRAND_COLORS } from '../utils/brandTheme';
 
 export default function MenuManager({ backend }) {
   const { fetchWithAuth } = useAuth();
@@ -684,7 +683,7 @@ export function MenuProfileEditorModal({
                 )}
               </div>
               <p className="m-0 text-slate-500 text-sm leading-relaxed max-w-3xl">
-                ⚠️ <strong className="text-slate-700 dark:text-slate-200">Atenție:</strong> Lăsați <strong>gol</strong> pentru a afișa întregul meniu normal. Dacă selectați o categorie aici, Kiosk-ul va afișa <span className="text-amber-600 font-bold">DOAR acea categorie</span> și va ascunde tot restul restaurantului. Pentru a ascunde doar un desert sau alt produs, lăsați câmpul pe „-- Întreg Meniul --” și folosiți butoanele de ochi (Ascunde) de mai jos.
+                <strong className="text-slate-700 dark:text-slate-200">Atenție:</strong> Lăsați <strong>gol</strong> pentru a afișa întregul meniu normal. Dacă selectați o categorie aici, Kiosk-ul va afișa <span className="text-amber-600 font-bold">DOAR acea categorie</span> și va ascunde tot restul restaurantului. Pentru a ascunde doar un desert sau alt produs, lăsați câmpul pe „-- Întreg Meniul --” și folosiți butoanele de ochi (Ascunde) de mai jos.
               </p>
               <select className="mt-2 w-full max-w-md px-4 h-11 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium" value={rootFolderId || ''} onChange={e => { setRootFolderId(e.target.value); setActiveTab(null); }}>
                 <option value="">-- Întreg Meniul (Recomandat - Fără restricție) --</option>
@@ -692,7 +691,7 @@ export function MenuProfileEditorModal({
               </select>
               {rootFolderId && (
                 <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-900 dark:text-amber-200 text-xs flex items-center gap-2">
-                  <span>⚠️</span>
+                  <span></span>
                   <span>Este selectată mapa <strong>{menu.categories.find(c => c.id === rootFolderId)?.name || rootFolderId}</strong>. Kiosk-ul va extrage exclusiv acest dosar.</span>
                 </div>
               )}
@@ -787,8 +786,7 @@ export function MenuProfileEditorModal({
                             />
                           ) : (
                             <div className="w-11 h-11 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center shrink-0 text-slate-400 text-xs font-bold">
-                              🍽️
-                            </div>
+                              </div>
                           )}
                           <div className="flex flex-col min-w-0 pr-2">
                             <span className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate" title={p.name}>
@@ -797,7 +795,7 @@ export function MenuProfileEditorModal({
                             <div className="flex items-center gap-2 mt-0.5">
                               {cat && (
                                 <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700/60 px-2 py-0.5 rounded-md truncate">
-                                  📁 {cat.name}
+                                  {cat.name}
                                 </span>
                               )}
                               {p.price > 0 && (

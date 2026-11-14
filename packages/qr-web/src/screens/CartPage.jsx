@@ -25,7 +25,7 @@ export default function CartPage({ brand }) {
       <div className="cp-items">
         {items.length === 0 ? (
           <div className="cp-empty">
-            <span>🛒</span>
+            <span></span>
             <p>Coșul este gol</p>
             <button className="btn btn-secondary" onClick={() => goTo('menu')}>Adaugă produse</button>
           </div>
@@ -36,7 +36,7 @@ export default function CartPage({ brand }) {
               {item.image && !imgErrors[item.id]
                 ? <img src={item.image} alt={item.name}
                     onError={() => setImgErrors(e => ({ ...e, [item.id]: true }))} />
-                : <span>🍽️</span>
+                : <span></span>
               }
             </div>
             <div className="cp-item-info">
@@ -53,7 +53,7 @@ export default function CartPage({ brand }) {
                 <button onClick={() => update(item.id, item.quantity + 1)}>+</button>
               </div>
               <span className="cp-item-total price price-md">{item.totalPrice.toFixed(0)} lei</span>
-              <button className="cp-remove" onClick={() => remove(item.id)}>✕</button>
+              <button className="cp-remove" onClick={() => remove(item.id)}></button>
             </div>
           </div>
         ))}

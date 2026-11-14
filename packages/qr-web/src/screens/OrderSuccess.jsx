@@ -23,7 +23,7 @@ export default function OrderSuccess({ brand }) {
       <div className="os-content fade-up">
         {/* Check circle */}
         <div className="os-circle">
-          <span className="os-check">✓</span>
+          <span className="os-check"></span>
         </div>
 
         <h1 className="os-title">Comandă plasată!</h1>
@@ -39,9 +39,9 @@ export default function OrderSuccess({ brand }) {
         {/* Steps */}
         <div className="os-steps">
           {[
-            { icon: '✅', text: 'Comandă înregistrată' },
-            { icon: '👨‍🍳', text: 'Bucătăria pregătește comanda' },
-            { icon: '🚀', text: 'Livrare la masa ta' },
+            { icon: '', text: 'Comandă înregistrată' },
+            { icon: '‍', text: 'Bucătăria pregătește comanda' },
+            { icon: '', text: 'Livrare la masa ta' },
           ].map((s, i) => (
             <div key={i} className="os-step" style={{ animationDelay: `${0.2 + i * 0.15}s` }}>
               <span>{s.icon}</span><span>{s.text}</span>

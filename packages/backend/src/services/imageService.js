@@ -89,7 +89,7 @@ async function syncProductImages(menuProducts, brandId) {
     }
 
     if (downloadedCount > 0) {
-      console.log(`[ImageService] ✅ Downloaded ${downloadedCount} new images for brand ${brandId}`);
+      console.log(`[ImageService] Downloaded ${downloadedCount} new images for brand ${brandId}`);
     } else {
       console.log(`[ImageService] All images up to date for brand ${brandId}`);
     }

@@ -65,7 +65,7 @@ const modalCode = \`
               <button onClick={() => setSelectedItemDetail(null)} style={{
                 background: 'var(--bg)', border: 'none', color: 'var(--text-muted)', fontSize: '1.2rem',
                 width: '40px', height: '40px', borderRadius: '9999px', cursor: 'pointer'
-              }}>✕</button>
+              }}></button>
             </div>
             
             <div style={{ display: 'flex', flex: 1, overflow: 'hidden', flexDirection: window.innerWidth < 768 ? 'column' : 'row' }}>
@@ -85,7 +85,7 @@ const modalCode = \`
                   }
                   return (
                     <div style={{ width: '100%', maxWidth: '250px', aspectRatio: '1/1', borderRadius: '32px', background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)' }}>
-                      <span style={{ fontSize: '5rem' }}>🍽️</span>
+                      <span style={{ fontSize: '5rem' }}></span>
                     </div>
                   );
                 })()}

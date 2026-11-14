@@ -5,9 +5,45 @@
 
 export const BRIDGE_RELEASE_NOTES = [
   {
-    version: '3.5.7',
+    version: '3.5.8',
     releaseDate: '13 Noiembrie 2026',
     isLatest: true,
+    tag: 'Desktop Live Fluid 18 FPS + Paravan Mentenanță cu Desktop & C:\\SmartKiosk în Admin',
+    title: 'Paravan Mentenanță Invizibil în Admin (Vezi Direct Desktopul și Folderele) + Desktop Live Ultra-Fluid',
+    summary: 'Când activezi Paravanul de Mentenanță în Admin, pe ecranul fizic din restaurant rămâne paravanul „KIOSK ÎN MENTENANȚĂ”, iar în fereastra Desktop Live din Admin se minimizează automat Chrome și se deschide direct Desktopul Windows + folderul C:\\SmartKiosk. Motorul SkRdHost a fost optimizat pentru 14–18 FPS fără latență la click sau dublu-click.',
+    categories: [
+      {
+        title: 'Paravan Mentenanță & Vizibilitate Desktop în Admin',
+        badge: 'Major',
+        badgeColor: 'emerald',
+        items: [
+          {
+            title: 'Minimizare Automată Chrome & Deschidere C:\\SmartKiosk sub Paravan',
+            desc: 'Activarea Paravanului Mentenanță (WDA_EXCLUDEFROMCAPTURE) minimizează fereastra Chrome de sub paravan, afișează bara de Start Windows și deschide Explorer în C:\\SmartKiosk, astfel încât în Admin (Desktop Live) vezi direct Windows-ul și folderele în timp ce clienții văd doar ecranul de Mentenanță.'
+          },
+          {
+            title: 'Suspendare Auto-Recover Fullscreen în Timpul Lucrului din Admin',
+            desc: 'Când Paravanul sau Desktop Live este activ în Admin, bucla de auto-recovery nu mai forțează Chrome peste fereastra de Explorer când dai Win+D sau deschizi foldere. La oprirea Paravanului, Kiosk-ul revine automat în Fullscreen.'
+          }
+        ]
+      },
+      {
+        title: 'Performanță Desktop Live (SkRdHost)',
+        badge: 'Performanță',
+        badgeColor: 'blue',
+        items: [
+          {
+            title: 'Reutilizare Bitmap 32bpp & Trezire Instantanee la Click/Taste',
+            desc: 'Elimină alocarea repetată de memorie la fiecare cadru, folosește scalare rapidă GDI+ și semnalizare AutoResetEvent la fiecare click, dublu-click sau tastă pentru răspuns instantaneu la 14–18 FPS.'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    version: '3.5.7',
+    releaseDate: '13 Noiembrie 2026',
+    isLatest: false,
     tag: 'Hotfix Critic Stabilitate + Paravan & Desktop Live',
     title: 'Reparare Crash v3.5.6 (paymentInProgress), Paravan Mentenanță Opac și Desktop Live Stabil',
     summary: 'Corectează eroarea critică „ReferenceError: paymentInProgress is not defined” introdusă în v3.5.6 care oprea bridge-ul la impulsul de trezire POS. Repară paravanul de mentenanță să fie complet opac pe ecranul Kiosk și invizibil în AnyDesk (WDA_EXCLUDEFROMCAPTURE) și previne înghețarea Desktop Live.',

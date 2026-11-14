@@ -273,8 +273,7 @@ export default function FortuneWheel({ config, onClose, onWin }) {
         onClick={onClose}
         style={{ position: 'absolute', top: 30, right: 30, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', width: 64, height: 64, borderRadius: '50%', fontSize: '1.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       >
-        ✕
-      </button>
+        </button>
 
       {/* Win Modal Glass Overlay */}
       {showWinModal && winningSlice && (

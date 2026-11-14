@@ -12,6 +12,7 @@ import BrandLogo from '../components/BrandLogo.jsx';
 import BankLogo from '../components/BankLogo.jsx';
 import { formatThousands } from '../utils/formatters';
 import { detectCardBrand, detectCardBank, BANK_CONFIG } from '../utils/cardUtils';
+import { getBrandColor, getBrandLabel } from '../utils/brandTheme';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
 
@@ -1173,8 +1174,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                   onClick={() => { setBankFilter('all'); setCurrentPage(1); }}
                   className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
-                  Resetează filtru ✕
-                </button>
+                  Resetează filtru </button>
               </div>
             </div>
           )}
@@ -1237,7 +1237,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                         return effectiveBrand ? (
                           <div className="flex items-center gap-2">
                             <BrandLogo brandId={effectiveBrand} size={20} />
-                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300 capitalize">{effectiveBrand}</span>
+                            <span style={{ color: getBrandColor(effectiveBrand) }} className="text-xs font-bold">{getBrandLabel(effectiveBrand)}</span>
                           </div>
                         ) : <span className="text-slate-400">—</span>;
                       })()}

@@ -203,8 +203,21 @@ function initSocket(io) {
         socket._kioskInfo = k;
         console.log(`[Socket] Kiosk visibility changed: loc=${k.locationId} isVisible=${k.isVisible}`);
         if (k.isVisible === false && k.locationId) {
-          // Notifică instant POS Bridge-ul de pe acel PC să readucă Kiosk-ul pe tot ecranul
-          io.to(`pos-bridge-${k.locationId}`).emit('kiosk_force_fullscreen', { locationId: k.locationId });
+          let rdActive = false;
+          try {
+            const bridgeMonitoringService = require('./bridgeMonitoringService');
+            const normKey = typeof bridgeMonitoringService.normalizeLocationKey === 'function'
+              ? bridgeMonitoringService.normalizeLocationKey(k.locationId)
+              : String(k.locationId).toLowerCase().trim();
+            const rdRoom = io.sockets?.adapter?.rooms?.get(`rd-viewer-${normKey}`);
+            if (rdRoom && rdRoom.size > 0) rdActive = true;
+          } catch (_) {}
+          if (!rdActive) {
+            // Notifică instant POS Bridge-ul de pe acel PC să readucă Kiosk-ul pe tot ecranul (doar când nu e deschis Desktop Live în Admin)
+            io.to(`pos-bridge-${k.locationId}`).emit('kiosk_force_fullscreen', { locationId: k.locationId, autoRecover: true });
+          } else {
+            console.log(`[Socket] Skip auto-recover fullscreen for ${k.locationId} (Admin Desktop Live viewer active)`);
+          }
         }
         broadcastLiveKiosks();
       }

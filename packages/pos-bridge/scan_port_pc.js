@@ -91,7 +91,7 @@ async function scanPortsPc() {
 
     console.log(`[Scan] Imprimante instalate: ${result.printers.length}`);
     result.printers.forEach(p => {
-      console.log(`  🖨️  ${p.name} | Driver: ${p.driver} | Port: ${p.port}`);
+      console.log(`  ${p.name} | Driver: ${p.driver} | Port: ${p.port}`);
     });
   } catch (e) {
     console.error(`[Scan] Eroare la scanare imprimante:`, e.message);
@@ -105,7 +105,7 @@ async function scanPortsPc() {
       try {
         const qParsed = JSON.parse(qRaw);
         result.printJobs = Array.isArray(qParsed) ? qParsed : [qParsed];
-        console.log(`[Scan] ⚠️ Joburi blocate în coada Windows: ${result.printJobs.length}`);
+        console.log(`[Scan] Joburi blocate în coada Windows: ${result.printJobs.length}`);
         result.printJobs.forEach(j => {
           console.log(`   → Job #${j.Id} pe "${j.PrinterName}": status="${j.JobStatus}", doc="${j.DocumentName}"`);
         });
@@ -114,7 +114,7 @@ async function scanPortsPc() {
       }
     } else {
       result.printJobs = [];
-      console.log('[Scan] ✅ Coada Windows este liberă (0 joburi blocate).');
+      console.log('[Scan] Coada Windows este liberă (0 joburi blocate).');
     }
   } catch (_) {
     result.printJobs = [];

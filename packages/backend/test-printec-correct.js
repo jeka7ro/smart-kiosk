@@ -126,7 +126,7 @@ function cleanup(success) {
   done = true;
   clearTimeout(stateTimer);
   setTimeout(() => { if (port.isOpen) port.close(); }, 300);
-  if (success) log('\n🎉 Tranzacție completă!');
+  if (success) log('\nTranzacție completă!');
 }
 
 function timeout(msg, ms = 5000) {
@@ -142,7 +142,7 @@ function timeout(msg, ms = 5000) {
 
 /** ECR inițiază un schimb: ENQ → aștept ACK → trimit frame → ACK → EOT */
 function ecrInitiate(frameToSend, nextState, label) {
-  log(`\n📤 [ECR→POS] ENQ (inițiere: ${label})`);
+  log(`\n[ECR→POS] ENQ (inițiere: ${label})`);
   port.write(Buffer.from([ENQ]));
   setState(`WAIT_ACK_FOR_ENQ_${nextState}`);
   timeout(`ACK la ENQ (${label})`, 2000);
@@ -154,7 +154,7 @@ function ecrInitiate(frameToSend, nextState, label) {
 
 /** ECR răspunde la ENQ primit de la POS */
 function ecrRespondToENQ() {
-  log(`📤 [ECR→POS] ACK (răspuns la ENQ de la POS)`);
+  log(`[ECR→POS] ACK (răspuns la ENQ de la POS)`);
   port.write(Buffer.from([ACK]));
 }
 
@@ -173,8 +173,8 @@ log(`  SALE:   ${hexLine(saleFrame)}`);
 log('');
 
 port.open(err => {
-  if (err) { console.error('❌', err.message); process.exit(1); }
-  log(`✅ Port deschis: ${PORT} @ ${BAUD} 8N1\n`);
+  if (err) { console.error('', err.message); process.exit(1); }
+  log(`Port deschis: ${PORT} @ ${BAUD} 8N1\n`);
 
   // PASUL 1: Trimitere LOGIN
   ecrInitiate(LOGIN_FRAME, 'LOGIN', 'LOGIN');
@@ -183,7 +183,7 @@ port.open(err => {
 port.on('data', chunk => {
   if (done) return;
   rxBuf = Buffer.concat([rxBuf, chunk]);
-  log(`📥 ${hexLine(chunk)}`);
+  log(`${hexLine(chunk)}`);
 
   // Procesăm byte cu byte
   while (rxBuf.length > 0 && !done) {
@@ -196,8 +196,8 @@ port.on('data', chunk => {
       const frame = port._pendingFrame;
       const ns    = port._nextState;
       const lbl   = port._label;
-      log(`✅ POS a acceptat ENQ (${lbl}). Trimit frame...`);
-      log(`📤 [ECR→POS] ${hexLine(frame)}`);
+      log(`POS a acceptat ENQ (${lbl}). Trimit frame...`);
+      log(`[ECR→POS] ${hexLine(frame)}`);
       port.write(frame, () => {
         // Aștept ACK la frame
         setState(`WAIT_ACK_FOR_FRAME_${ns}`);
@@ -213,19 +213,19 @@ port.on('data', chunk => {
       const ns = state.replace('WAIT_ACK_FOR_FRAME_', '');
 
       if (ns === 'LOGIN') {
-        log(`✅ POS a confirmat LOGIN frame. Trimit EOT...`);
+        log(`POS a confirmat LOGIN frame. Trimit EOT...`);
         port.write(Buffer.from([EOT]));
         setState('WAIT_LOGIN_RESPONSE_ENQ');
         timeout('ENQ de la POS (răspuns LOGIN)', 10000);
 
       } else if (ns === 'SALE') {
-        log(`✅ POS a confirmat SALE frame. Trimit EOT. Aștept card...`);
+        log(`POS a confirmat SALE frame. Trimit EOT. Aștept card...`);
         port.write(Buffer.from([EOT]));
         setState('WAIT_CARD_OR_RESULT');
         timeout('rezultat tranzacție', 120000); // 2 min pentru card
 
       } else if (ns === 'FINAL_ACK') {
-        log(`✅ ECR a confirmat rezultatul final. Trimit EOT.`);
+        log(`ECR a confirmat rezultatul final. Trimit EOT.`);
         port.write(Buffer.from([EOT]));
         cleanup(true);
       }
@@ -235,14 +235,14 @@ port.on('data', chunk => {
     // ─── NAK ──────────────────────────────────────────────────────────────
     if (b === NAK) {
       rxBuf = rxBuf.subarray(1);
-      log('⚠️ NAK primit — LRC greșit?');
+      log('NAK primit — LRC greșit?');
       break;
     }
 
     // ─── EOT ──────────────────────────────────────────────────────────────
     if (b === EOT) {
       rxBuf = rxBuf.subarray(1);
-      log('📥 EOT de la POS');
+      log('EOT de la POS');
       break;
     }
 
@@ -250,7 +250,7 @@ port.on('data', chunk => {
     if (b === ENQ) {
       rxBuf = rxBuf.subarray(1);
       clearTimeout(stateTimer);
-      log(`📥 [POS→ECR] ENQ (state=${state})`);
+      log(`[POS→ECR] ENQ (state=${state})`);
 
       if (state === 'WAIT_LOGIN_RESPONSE_ENQ') {
         ecrRespondToENQ();
@@ -284,16 +284,16 @@ port.on('data', chunk => {
         const calcedLRC   = calcLRC(cmdBytes);
         rxBuf = rxBuf.subarray(frameEnd + 1);
 
-        log(`📦 Frame primit: CMD=${hexLine(cmdBytes)}`);
-        log(`   LRC primit=0x${receivedLRC.toString(16).toUpperCase()} calc=0x${calcedLRC.toString(16).toUpperCase()} ${receivedLRC===calcedLRC?'✅':'❌ MISMATCH'}`);
+        log(`Frame primit: CMD=${hexLine(cmdBytes)}`);
+        log(`   LRC primit=0x${receivedLRC.toString(16).toUpperCase()} calc=0x${calcedLRC.toString(16).toUpperCase()} ${receivedLRC===calcedLRC?'':'MISMATCH'}`);
 
         // Trimite ACK sau NAK
         if (receivedLRC === calcedLRC) {
           port.write(Buffer.from([ACK]));
-          log('📤 ACK trimis la POS');
+          log('ACK trimis la POS');
         } else {
           port.write(Buffer.from([NAK]));
-          log('📤 NAK trimis (LRC greșit)');
+          log('NAK trimis (LRC greșit)');
           break;
         }
 
@@ -307,7 +307,7 @@ port.on('data', chunk => {
           // Răspuns de la POS
           const aprw = cmdBytes[1];
           const ok   = (klasse === 0x80) || (klasse === 0x84 && aprw === 0x00);
-          log(`  → Răspuns POS: KKRW=0x${klasse.toString(16).toUpperCase()} APRW=0x${aprw.toString(16).toUpperCase()} → ${ok ? '✅ OK' : '❌ EROARE (cod=' + aprw + ')'}`);
+          log(`  → Răspuns POS: KKRW=0x${klasse.toString(16).toUpperCase()} APRW=0x${aprw.toString(16).toUpperCase()} → ${ok ? 'OK' : 'EROARE (cod=' + aprw + ')'}`);
 
           // Dacă suntem în WAIT_POS_FRAME (după SALE) = POS a confirmat SALE, acum aşteaptă cardul
           if (state === 'WAIT_POS_FRAME') {
@@ -321,10 +321,10 @@ port.on('data', chunk => {
           if (state === 'WAIT_LOGIN_RESPONSE_FRAME') {
             port.write(Buffer.from([EOT]));
             if (ok) {
-              log('✅ LOGIN reușit! Inițiez SALE...');
+              log('LOGIN reușit! Inițiez SALE...');
               setTimeout(() => ecrInitiate(saleFrame, 'SALE', 'SALE'), 1000);
             } else {
-              log('❌ LOGIN eșuat!'); cleanup(false);
+              log('LOGIN eșuat!'); cleanup(false);
             }
           }
 
@@ -357,7 +357,7 @@ port.on('data', chunk => {
           log(`  Date/Time:    "${txDate}"`);
           log(`  Amount:       "${amount}" ${currency}`);
           log(`  Auth Code:    "${authCode}"`);
-          log(`  Resp Code:    "${respCode}" → ${respCode.trim() === '0000' ? '✅ APROBAT' : '❌ REFUZAT'}`);
+          log(`  Resp Code:    "${respCode}" → ${respCode.trim() === '0000' ? 'APROBAT' : 'REFUZAT'}`);
           if (varFields[0]) log(`  Resp Text:    "${varFields[0]}"`);
           if (varFields[1]) log(`  Card No:      "${varFields[1]}"`);
           if (varFields[2]) log(`  Cardholder:   "${varFields[2]}"`);
@@ -369,20 +369,20 @@ port.on('data', chunk => {
 
         } else if (klasse === 0x06 && instr === 0x1E) {
           // Refusal
-          log(`❌ REFUZ de la POS (cod eroare: 0x${data[0].toString(16).toUpperCase()})`);
+          log(`REFUZ de la POS (cod eroare: 0x${data[0].toString(16).toUpperCase()})`);
           port.write(Buffer.from([EOT]));
           cleanup(false);
 
         } else if (klasse === 0x05 && instr === 0x01) {
           // PIN Entry notification
-          log('🔒 POS: Client introduce PIN-ul...');
+          log('POS: Client introduce PIN-ul...');
           port.write(Buffer.from([EOT]));
           setState('WAIT_CARD_OR_RESULT');
           timeout('rezultat după PIN', 120000);
 
         } else if (klasse === 0x05 && instr === 0x02) {
           // Begin Auth notification
-          log('🌐 POS: Comunicare cu banca...');
+          log('POS: Comunicare cu banca...');
           port.write(Buffer.from([EOT]));
           setState('WAIT_CARD_OR_RESULT');
           timeout('rezultat după auth', 120000);
@@ -400,7 +400,7 @@ port.on('data', chunk => {
   }
 });
 
-port.on('error', err => { log(`❌ Port error: ${err.message}`); cleanup(false); });
+port.on('error', err => { log(`Port error: ${err.message}`); cleanup(false); });
 port.on('close', () => { log('Port închis.'); clearTimeout(stateTimer); });
 
 // Timeout global 10 minute

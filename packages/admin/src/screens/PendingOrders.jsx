@@ -9,28 +9,9 @@ import BrandLogo from '../components/BrandLogo.jsx';
 import BankLogo from '../components/BankLogo.jsx';
 import { detectCardBank } from '../utils/cardUtils';
 import { formatThousands, formatLocationAndKiosk } from '../utils/formatters';
+import { ALL_BRAND_COLORS as BRAND_COLORS, ALL_BRAND_LABELS as BRAND_LABELS, getBrandColor, getBrandLabel } from '../utils/brandTheme';
 import ThermalReceiptModal from '../components/ThermalReceiptModal.jsx';
 export { formatLocationAndKiosk };
-
-const BRAND_COLORS = {
-  smashme: '#e11d48',
-  crunch: '#d97706',
-  rollmaster: '#059669',
-  lovesushi: '#dc2626',
-  sushimaster: '#dc2626',
-  pokiwoki: '#7c3aed',
-  ikura: '#ea580c',
-};
-
-const BRAND_LABELS = {
-  smashme: 'SmashMe',
-  crunch: 'Crunch',
-  rollmaster: 'Roll Master',
-  lovesushi: 'Love Sushi',
-  sushimaster: 'Sushi Master',
-  pokiwoki: 'Poki Woki',
-  ikura: 'Ikura',
-};
 
 // ─── Standard Status Labels & Helper (Identic cu Gestionare Comenzi / App.jsx) ───
 const STATUS_LABELS = {
@@ -598,8 +579,8 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                           {/* Rând Brand: Logo + Nume */}
                           <div className="flex items-center gap-1.5">
                             <BrandLogo brandId={brand} size={20} className="shadow-2xs shrink-0" />
-                            <span style={{ color: BRAND_COLORS[brand] || '#e11d48' }} className="text-xs font-bold truncate max-w-[100px]">
-                              {BRAND_LABELS[brand] || brand}
+                            <span style={{ color: getBrandColor(brand) }} className="text-xs font-bold truncate max-w-[100px]">
+                              {getBrandLabel(brand)}
                             </span>
                           </div>
 
@@ -783,7 +764,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                                     <div className="space-y-1.5 text-[11px]">
                                       <div className="flex items-center justify-between">
                                         <span className="text-slate-400 font-medium">ID Draft Kiosk:</span>
-                                        <span className="font-bold text-slate-800 dark:text-slate-200 font-mono text-[11px]">
+                                        <span className="font-bold text-slate-800 dark:text-slate-200 tabular-nums text-[11px]">
                                           {item.initialAttempt.order_id || item.initialAttempt.orderId}
                                         </span>
                                       </div>
@@ -907,7 +888,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                                         <span>2. Sincronizare & iiko</span>
                                       </div>
                                       <span className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 whitespace-nowrap">
-                                        ✕ Nefinalizată
+                                        Nefinalizată
                                       </span>
                                     </div>
 
@@ -949,7 +930,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                                           ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
                                           : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
                                       }`}>
-                                        {item.kind === 'finalized_success' ? '✓ Finalizată' : 'Așteaptă Încasare'}
+                                        {item.kind === 'finalized_success' ? 'Finalizată' : 'Așteaptă Încasare'}
                                       </span>
                                     </div>
 
@@ -997,7 +978,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                                           <div className="px-2.5 py-1 bg-slate-50 dark:bg-slate-800/80 rounded-lg border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between gap-1.5 mt-1">
                                             <span className="text-[11px] text-slate-600 dark:text-slate-300 flex items-center gap-1.5 truncate" title={iikoId}>
                                               <span>ID iiko:</span>
-                                              <strong className="font-mono text-emerald-600 dark:text-emerald-400 font-bold" title={iikoId}>
+                                              <strong className="tabular-nums text-emerald-600 dark:text-emerald-400 font-bold" title={iikoId}>
                                                 {shortId}
                                               </strong>
                                             </span>
@@ -1175,7 +1156,7 @@ export default function PendingOrders({ backend, onGoToOrder }) {
                       const mShortId = mIikoId.length > 12 ? `${mIikoId.slice(0, 8)}...` : mIikoId;
                       return (
                         <div className="flex items-center gap-1.5 mt-1">
-                          <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-xs" title={mIikoId}>
+                          <span className="tabular-nums font-bold text-emerald-600 dark:text-emerald-400 text-xs" title={mIikoId}>
                             {mShortId}
                           </span>
                           <CopyIconButton text={mIikoId} title="Copiază ID iiko complet" />

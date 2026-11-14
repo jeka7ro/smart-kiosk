@@ -229,7 +229,7 @@ export default function ModifierModal({ product, onConfirm, onClose, activeBrand
                   <span className="mm-group-name">{gm.name ? gm.name.toUpperCase() : t('options', lang).toUpperCase()}</span>
                   {reqBadge && (
                     <span className={`mm-group-badge ${isGroupValid ? 'mm-group-badge--done' : ''}`}>
-                      {reqBadge}{isMulti ? ` (${groupTotal}/${max})` : (isGroupValid ? ' ✓' : '')}
+                      {reqBadge}{isMulti ? ` (${groupTotal}/${max})` : (isGroupValid ? ' ' : '')}
                     </span>
                   )}
                 </div>
@@ -260,7 +260,7 @@ export default function ModifierModal({ product, onConfirm, onClose, activeBrand
                         </span>
                         {isSelected && (
                           <span className="mm-grid-opt-check">
-                            {isMulti && count > 1 ? `x${count}` : '✓'}
+                            {isMulti && count > 1 ? `x${count}` : ''}
                           </span>
                         )}
                         {isMulti && isSelected && (

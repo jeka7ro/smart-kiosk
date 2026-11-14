@@ -4,50 +4,8 @@ import BankLogo from './BankLogo';
 import { TrendingUp, PieChart, CreditCard, Clock, Banknote, Calendar, Flame, Trophy, Award, ShoppingBag, Utensils, ChevronDown, ChevronUp, Monitor, Sparkles, Layers } from 'lucide-react';
 import { formatThousands, formatLocationAndKiosk } from '../utils/formatters';
 import { detectCardBrand, detectCardBank, BANK_CONFIG } from '../utils/cardUtils';
+import { BRAND_COLORS, BRAND_KIOSK_PALETTES, normalizeBrandKey, getBrandColor, getBrandLabel } from '../utils/brandTheme';
 export { detectCardBrand, detectCardBank, BANK_CONFIG };
-
-const BRAND_COLORS = {
-  smashme: '#ef4444',
-  crunch: '#eab308',
-  rollmaster: '#e31e24',
-  lovesushi: '#ec4899',
-  pokiwoki: '#f97316'
-};
-
-const BRAND_KIOSK_PALETTES = {
-  smashme: [
-    '#ef4444', // Kiosk 1 (Vibrant Red)
-    '#f43f5e', // Kiosk 2 (Rose Coral)
-    '#b91c1c', // Kiosk 3 (Deep Crimson)
-    '#fb7185', // Kiosk 4 (Soft Rose)
-    '#fda4af', // Light Rose
-  ],
-  rollmaster: [
-    '#10b981', // Kiosk 1 (Emerald)
-    '#059669', // Kiosk 2 (Dark Green)
-    '#34d399', // Kiosk 3 (Mint)
-    '#047857', // Deep Forest
-    '#6ee7b7', // Pale Mint
-  ],
-  crunch: [
-    '#f59e0b', // Kiosk 1 (Amber)
-    '#d97706', // Kiosk 2 (Ochre)
-    '#fbbf24', // Kiosk 3 (Gold)
-    '#b45309', // Dark Amber
-  ],
-  lovesushi: [
-    '#ec4899', // Kiosk 1 (Fuchsia)
-    '#db2777', // Kiosk 2 (Deep Pink)
-    '#f472b6', // Kiosk 3 (Light Pink)
-    '#be185d', // Plum
-  ],
-  pokiwoki: [
-    '#f97316', // Kiosk 1 (Orange)
-    '#ea580c', // Kiosk 2 (Rust Orange)
-    '#fb923c', // Kiosk 3 (Light Orange)
-    '#c2410c', // Dark Orange
-  ]
-};
 
 /**
  * 1. GRAFIC 3D: Evoluție Vânzări & Încasări (3D Spline Ribbon with Isometric Depth)
@@ -890,7 +848,7 @@ export function SalesTrendChart3D({
                         }}
                       />
 
-                      {/* Valoare numerică proporțională (FĂRĂ font-mono) */}
+                      {/* Valoare numerică proporțională (FĂRĂ tabular-nums) */}
                       <text
                         x={pt.x}
                         y={pt.y - 16}
@@ -1012,21 +970,21 @@ export function BrandDonutChart3D({
 
   const brandData = React.useMemo(() => {
     const map = {
-      smashme: { id: 'smashme', name: 'SmashMe', color: BRAND_COLORS.smashme || '#ef4444', revenue: 0, count: 0, kiosksMap: {} },
-      crunch: { id: 'crunch', name: 'Crunch', color: BRAND_COLORS.crunch || '#eab308', revenue: 0, count: 0, kiosksMap: {} },
-      rollmaster: { id: 'rollmaster', name: 'Roll Master', color: '#10b981', revenue: 0, count: 0, kiosksMap: {} },
-      lovesushi: { id: 'lovesushi', name: 'Love Sushi', color: BRAND_COLORS.lovesushi || '#ec4899', revenue: 0, count: 0, kiosksMap: {} },
-      pokiwoki: { id: 'pokiwoki', name: 'Poki-Woki', color: BRAND_COLORS.pokiwoki || '#f97316', revenue: 0, count: 0, kiosksMap: {} }
+      smashme: { id: 'smashme', name: 'SmashMe', color: BRAND_COLORS.smashme, revenue: 0, count: 0, kiosksMap: {} },
+      crunch: { id: 'crunch', name: 'Crunch', color: BRAND_COLORS.crunch, revenue: 0, count: 0, kiosksMap: {} },
+      rollmaster: { id: 'rollmaster', name: 'Roll Master', color: BRAND_COLORS.rollmaster, revenue: 0, count: 0, kiosksMap: {} },
+      lovesushi: { id: 'lovesushi', name: 'Love Sushi', color: BRAND_COLORS.lovesushi, revenue: 0, count: 0, kiosksMap: {} },
+      pokiwoki: { id: 'pokiwoki', name: 'Poki-Woki', color: BRAND_COLORS.pokiwoki, revenue: 0, count: 0, kiosksMap: {} }
     };
 
     orders.forEach(o => {
       if (!o.brand || o.status === 'cancelled') return;
-      const bKey = o.brand.toLowerCase();
+      const bKey = normalizeBrandKey(o.brand);
       if (!map[bKey]) {
         map[bKey] = {
           id: bKey,
-          name: o.brand.charAt(0).toUpperCase() + o.brand.slice(1),
-          color: BRAND_COLORS[bKey] || '#64748b',
+          name: getBrandLabel(bKey),
+          color: getBrandColor(bKey),
           revenue: 0,
           count: 0,
           kiosksMap: {}
@@ -1488,7 +1446,10 @@ export function BrandDonutChart3D({
                     <div className="flex items-center gap-2 min-w-0">
                       <div className="w-3.5 h-3.5 rounded-full shrink-0 shadow-sm ring-1 ring-white/60" style={{ backgroundColor: b.color }} />
                       <BrandLogo brandId={b.id} size={16} />
-                      <span className={`text-xs truncate ${isSelected ? 'font-black text-blue-600 dark:text-blue-400' : 'font-bold text-slate-800 dark:text-slate-200'}`}>
+                      <span
+                        style={!isSelected ? { color: b.color } : undefined}
+                        className={`text-xs truncate ${isSelected ? 'font-black text-blue-600 dark:text-blue-400' : 'font-bold'}`}
+                      >
                         {b.name}
                       </span>
                       {isSelected && (
@@ -1857,7 +1818,7 @@ export function PaymentMethodsChart3D({
                 className="w-full flex items-center justify-between py-1.5 px-3 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 hover:bg-slate-100 dark:bg-slate-800/50 dark:hover:bg-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-300 transition-all cursor-pointer group/btn shadow-2xs"
               >
                 <span className="flex items-center gap-1.5">
-                  <span>🏦</span>
+                  <span></span>
                   <span>Bănci Emitente & Rețele</span>
                   <span className="text-[10px] font-semibold text-slate-400">({stats.card.banks.length} bănci • Visa / MC)</span>
                 </span>
@@ -1896,7 +1857,7 @@ export function PaymentMethodsChart3D({
                       : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
-                  🏦 Bănci
+                  Bănci
                 </button>
                 <button
                   type="button"
@@ -1907,7 +1868,7 @@ export function PaymentMethodsChart3D({
                       : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
-                  💳 Rețele
+                  Rețele
                 </button>
               </div>
             </div>
@@ -1988,7 +1949,7 @@ export function PaymentMethodsChart3D({
                 {stats.card.banks.length > 0 && (
                   <div className="mt-1 pt-1.5 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[10px]">
                     <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
-                      🏆 {stats.card.banks[0].name} ({stats.card.banks[0].pctOfCard.toFixed(0)}%)
+                      {stats.card.banks[0].name} ({stats.card.banks[0].pctOfCard.toFixed(0)}%)
                     </span>
                     <span className="text-slate-400 text-[9px] font-medium">
                       Top Carduri

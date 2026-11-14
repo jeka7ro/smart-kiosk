@@ -70,7 +70,7 @@ export default function ConfirmationScreen() {
         {/* Success icon */}
         <div className="confirm-icon">
           <div className="confirm-circle">
-            <span className="confirm-check">✓</span>
+            <span className="confirm-check"></span>
           </div>
         </div>
 

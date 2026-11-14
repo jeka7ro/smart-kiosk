@@ -39,7 +39,7 @@ const modalCode = `
         <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
           <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
             <h2 className="text-xl font-bold text-slate-900 dark:text-white">{selectedItemDetail.name}</h2>
-            <button onClick={() => setSelectedItemDetail(null)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 font-bold">✕</button>
+            <button onClick={() => setSelectedItemDetail(null)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 font-bold"></button>
           </div>
           <div className="flex flex-col md:flex-row overflow-hidden flex-1">
             {/* LEFT: Image */}
@@ -54,7 +54,7 @@ const modalCode = `
                 }
                 return (
                   <div className="w-full max-w-[250px] aspect-square rounded-3xl bg-slate-200 dark:bg-slate-700 flex items-center justify-center border border-slate-300 dark:border-slate-600">
-                    <span className="text-6xl">🍽️</span>
+                    <span className="text-6xl"></span>
                   </div>
                 );
               })()}

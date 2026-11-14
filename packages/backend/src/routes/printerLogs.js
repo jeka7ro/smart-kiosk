@@ -45,9 +45,9 @@ async function addPrinterLog(entry) {
         log.items_count, log.total_amount, log.payment_method, JSON.stringify(log.receipt_content)
       ]
     );
-    console.log(`[Printer Logs] ✅ Saved: ${log.status} | ${log.location_id} | #${log.order_number} | ${log.printer_name} | port: ${log.port}`);
+    console.log(`[Printer Logs] Saved: ${log.status} | ${log.location_id} | #${log.order_number} | ${log.printer_name} | port: ${log.port}`);
   } catch (err) {
-    console.error(`[Printer Logs] ❌ Failed to save log to DB:`, err.message);
+    console.error(`[Printer Logs] Failed to save log to DB:`, err.message);
   }
 
   return {

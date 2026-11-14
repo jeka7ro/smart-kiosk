@@ -71,15 +71,15 @@ const port = new SerialPort({path:PORT,baudRate:BAUD,dataBits:8,parity:'none',st
 let rxBuf=Buffer.alloc(0), state='IDLE', done=false, stateTimer;
 
 const cleanup = () => { clearTimeout(stateTimer); try{if(port.isOpen)port.close();}catch(_){} };
-const fail = (msg) => { if(done)return; done=true; cleanup(); log(`❌ ${msg}`); };
-const succeed = (result) => { if(done)return; done=true; cleanup(); log(`\n🎉 VOID REUȘIT! ${JSON.stringify(result,null,2)}`); };
+const fail = (msg) => { if(done)return; done=true; cleanup(); log(`${msg}`); };
+const succeed = (result) => { if(done)return; done=true; cleanup(); log(`\nVOID REUȘIT! ${JSON.stringify(result,null,2)}`); };
 const setState = (s) => { state=s; log(`  ─ State: ${s}`); };
 const arm = (msg,ms) => { clearTimeout(stateTimer); stateTimer=setTimeout(()=>fail(`Timeout: ${msg}`),ms); };
 
 let pendingFrame, nextLabel, nextState;
 
 const ecrSend = (frame,ns,lbl,ms=3000) => {
-  log(`\n📤 ENQ → (${lbl})`);
+  log(`\nENQ → (${lbl})`);
   port.write(Buffer.from([ENQ]));
   setState(`WAIT_ENQ_ACK__${ns}`);
   pendingFrame=frame; nextLabel=lbl; nextState=ns;
@@ -87,15 +87,15 @@ const ecrSend = (frame,ns,lbl,ms=3000) => {
 };
 
 port.open(err => {
-  if(err){console.error('❌',err.message);process.exit(1);}
-  log(`✅ Port deschis @ ${BAUD} 8N1`);
+  if(err){console.error('',err.message);process.exit(1);}
+  log(`Port deschis @ ${BAUD} 8N1`);
   ecrSend(LOGIN_FRAME,'LOGIN','LOGIN');
 });
 
 port.on('data', chunk => {
   if(done)return;
   rxBuf=Buffer.concat([rxBuf,chunk]);
-  log(`📥 ${hexLine(chunk)}`);
+  log(`${hexLine(chunk)}`);
 
   while(rxBuf.length>0&&!done) {
     const b=rxBuf[0];
@@ -121,7 +121,7 @@ port.on('data', chunk => {
     }
 
     if(b===EOT){rxBuf=rxBuf.subarray(1);log('EOT ←');break;}
-    if(b===NAK){rxBuf=rxBuf.subarray(1);log('⚠ NAK');break;}
+    if(b===NAK){rxBuf=rxBuf.subarray(1);log('NAK');break;}
 
     if(b===ENQ) {
       rxBuf=rxBuf.subarray(1); clearTimeout(stateTimer);
@@ -141,12 +141,12 @@ port.on('data', chunk => {
       if(lrcByte!==calc){port.write(Buffer.from([NAK]));log('NAK → LRC wrong');break;}
       port.write(Buffer.from([ACK]));
       const kl=cmdBytes[0],ins=cmdBytes[1],data=cmdBytes.subarray(3);
-      log(`📦 Frame: ${hexLine(cmdBytes)}`);
+      log(`Frame: ${hexLine(cmdBytes)}`);
 
       // LOGIN response
       if((kl===0x80||kl===0x84)&&state==='WAIT_POS_FRAME__LOGIN_RESP') {
         const ok=kl===0x80||(kl===0x84&&ins===0x00);
-        if(ok){log('✅ LOGIN OK → EOT → VOID');port.write(Buffer.from([EOT]));setTimeout(()=>ecrSend(VOID_FRAME,'VOID','VOID',3000),800);}
+        if(ok){log('LOGIN OK → EOT → VOID');port.write(Buffer.from([EOT]));setTimeout(()=>ecrSend(VOID_FRAME,'VOID','VOID',3000),800);}
         else fail(`LOGIN refuzat: APRW=0x${ins.toString(16)}`);
         break;
       }
@@ -171,13 +171,13 @@ port.on('data', chunk => {
 
       // Refusal (06 1E)
       if(kl===0x06&&ins===0x1E) {
-        log(`❌ VOID REFUZAT de POS, cod=0x${data[0].toString(16).toUpperCase()}`);
+        log(`VOID REFUZAT de POS, cod=0x${data[0].toString(16).toUpperCase()}`);
         port.write(Buffer.from([EOT])); fail('VOID refuzat'); break;
       }
 
       // Interim (05 01 PIN, 05 02 BeginAuth, 80 00 00)
-      if(kl===0x05&&ins===0x01){log('🔒 PIN Entry...');port.write(Buffer.from([EOT]));setState('WAIT_POS_ENQ__RESULT');arm('după PIN',120000);break;}
-      if(kl===0x05&&ins===0x02){log('🌐 Comunicare bancă...');port.write(Buffer.from([EOT]));setState('WAIT_POS_ENQ__RESULT');arm('după auth',120000);break;}
+      if(kl===0x05&&ins===0x01){log('PIN Entry...');port.write(Buffer.from([EOT]));setState('WAIT_POS_ENQ__RESULT');arm('după PIN',120000);break;}
+      if(kl===0x05&&ins===0x02){log('Comunicare bancă...');port.write(Buffer.from([EOT]));setState('WAIT_POS_ENQ__RESULT');arm('după auth',120000);break;}
       if(kl===0x80||kl===0x84){
         log('80/84 intermediar → EOT');
         port.write(Buffer.from([EOT]));

@@ -27,14 +27,14 @@ const BRAND_ORG_MAP = {
 
 // Brand display info for tabs
 const BRAND_TAB_INFO = {
-  smashme:     { label: 'SmashMe',      color: '#EE3B24', emoji: '🍔' },
-  rollmaster:  { label: 'Roll Master',  color: '#E31E24', emoji: '🍣' },
-  sushimaster: { label: 'Roll Master',  color: '#E31E24', emoji: '🍣' },
-  ikura:       { label: 'Roll Master',  color: '#E31E24', emoji: '🍣' },
-  welovesushi: { label: 'WeLoveSushi',  color: '#ec4899', emoji: '🍣' },
-  lovesushi:   { label: 'Love Sushi',   color: '#E31E24', emoji: '🍣' },
-  pokiwoki:    { label: 'Poki-Woki',    color: '#F97316', emoji: '🥗' },
-  crunch:      { label: 'Crunch',       color: '#FFB800', emoji: '🍗' },
+  smashme:     { label: 'SmashMe',      color: '#EE3B24', emoji: '' },
+  rollmaster:  { label: 'Roll Master',  color: '#E31E24', emoji: '' },
+  sushimaster: { label: 'Roll Master',  color: '#E31E24', emoji: '' },
+  ikura:       { label: 'Roll Master',  color: '#E31E24', emoji: '' },
+  welovesushi: { label: 'WeLoveSushi',  color: '#ec4899', emoji: '' },
+  lovesushi:   { label: 'Love Sushi',   color: '#E31E24', emoji: '' },
+  pokiwoki:    { label: 'Poki-Woki',    color: '#F97316', emoji: '' },
+  crunch:      { label: 'Crunch',       color: '#FFB800', emoji: '' },
 };
 
 export default function MenuScreen() {

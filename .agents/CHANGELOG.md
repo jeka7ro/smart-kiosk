@@ -1,5 +1,78 @@
 # Jurnal de modificări — Smart Kiosk (Antigravity ↔ Paperclip)
 
+### 2026-11-14 12:22 — Comutator Live în Desktop Live: „🔧 Eu (Desktop)” vs „👁️ Ce vede Clientul”
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. Adăugat comutatorul dublu **„🔧 Eu (Desktop)” | „👁️ Ce vede Clientul”** direct în bara de sus din `Desktop Live` (`packages/admin/src/components/RemoteDesktopViewer.jsx`).
+  2. În `packages/pos-bridge/index.js` (`privacy_shield.ps1` + `setPrivacyShieldViewMode` + `handleRdControl` `shield_view`):
+     - **🔧 Eu (Desktop):** Setează `SetWindowDisplayAffinity($form.Handle, 0x11)` (`WDA_EXCLUDEFROMCAPTURE`) pe paravanul de mentenanță — pe monitorul din restaurant paravanul rămâne 100% opac, dar în Admin vezi prin el direct Desktopul Windows și folderul `C:\SmartKiosk`.
+     - **👁️ Ce vede Clientul:** Setează `SetWindowDisplayAffinity($form.Handle, 0x00)` (`WDA_NONE`) (sau aduce Chrome Kiosk în față dacă paravanul e oprit) + folosește `CopyPixelOperation.SourceCopy | CopyPixelOperation.CaptureBlt` în `SkRdHost`, astfel încât vezi în `Desktop Live` exact imaginea reală de pe monitorul fizic din fața clientului (inclusiv paravanul „KIOSK ÎN MENTENANȚĂ”).
+- **Fișiere:**
+  - `packages/pos-bridge/index.js`
+  - `packages/admin/src/components/RemoteDesktopViewer.jsx`
+  - `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (local, în așteptarea acordului pentru commit & push)
+- **Build / Teste:** `node --check packages/pos-bridge/index.js` OK, `npm --prefix packages/admin run build` OK (0 erori).
+
+### 2026-11-13 15:37 — Regulă Unică Culori & Denumiri Branduri (din Avatar Logo) + Favicon Online
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. Creat fișierul central `packages/admin/src/utils/brandTheme.js` ca unică sursă de adevăr pentru culori, palete 3D Donut și etichete de brand în toate tabelele și graficele din Admin, extrase fidel din logo-ul (avatarul) fiecărui brand:
+     - **Poki-Woki:** Verde (`#65a30d`, paletă 3D `#65a30d` / `#16a34a` / `#84cc16`) + text `Poki-Woki` (înlocuit portocaliul din 3D Donut/Gestionare Comenzi și movul din Coșuri & Comenzi în Curs).
+     - **SmashMe:** Roșu (`#ef4444`) + text `SmashMe`.
+     - **Roll Master:** Roșu Crimson (`#dc2626`) + text `Roll Master` (înlocuit verdele/albastrul inconsistent).
+     - **Crunch:** Chihlimbar (`#d97706`) + text `Crunch`.
+     - **Love Sushi / WeLoveSushi:** Somon Portocaliu (`#f97316`) + text `Love Sushi`.
+  2. Aplicat regula unică în `DashboardCharts3D.jsx`, `App.jsx` (`Gestionare Comenzi`, modal detalii comandă, Kiosk-uri, Locații, Branduri), `PendingOrders.jsx`, `PosLogs.jsx`, `KioskLogs.jsx`, `OrderToastNotification.jsx`, `OrdersNotificationBell.jsx`, `MenuManager.jsx`, `Promotions.jsx` și `TranslationsScreen.jsx`.
+  3. Identificat de ce favicon-ul se vedea doar local: `packages/admin/public/favicon.png`, `favicon.ico`, `apple-touch-icon.png` și `packages/admin/index.html` erau necomise în Git (`??` / `M`). Actualizat cache-buster-ul la `?v=3` în `packages/admin/index.html`, gata de inclus la următorul commit/push.
+- **Fișiere:**
+  - `packages/admin/src/utils/brandTheme.js`
+  - `packages/admin/src/components/DashboardCharts3D.jsx`
+  - `packages/admin/src/App.jsx`
+  - `packages/admin/src/screens/PendingOrders.jsx`
+  - `packages/admin/src/screens/PosLogs.jsx`
+  - `packages/admin/src/screens/KioskLogs.jsx`
+  - `packages/admin/src/components/OrderToastNotification.jsx`
+  - `packages/admin/src/components/OrdersNotificationBell.jsx`
+  - `packages/admin/src/screens/MenuManager.jsx`
+  - `packages/admin/src/screens/Promotions.jsx`
+  - `packages/admin/src/screens/TranslationsScreen.jsx`
+  - `packages/admin/index.html`
+  - `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (fără push — conform instrucțiunii utilizatorului „inca nu”)
+- **Build / Teste:** `npm --prefix packages/admin run build` OK (1844 module, 0 erori).
+
+### 2026-11-13 15:09 — POS Bridge v3.5.8: Paravan Mentenanță Invizibil în Admin (Vezi Direct Desktopul + C:\SmartKiosk) & Desktop Live Fluid (14–18 FPS)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. Rezolvat problema prin care la activarea Paravanului de Mentenanță în Admin se vedea tot ecranul de mentenanță în `Desktop Live`: deși `privacy_shield.ps1` avea `WDA_EXCLUDEFROMCAPTURE` (`0x11`), fereastra Google Chrome de dedesubt nu era minimizată (și afișa `<MaintenanceScreen />`), iar bucla `enforceKioskTaskbar()` (la 8s) și `kiosk_visibility` din `socketService.js` ridicau Chrome înapoi în Fullscreen imediat ce apăsai `Win+D`.
+  2. Acum în `setWindowsPrivacyShield(true)` (`packages/pos-bridge/index.js`): paravanul rămâne 100% opac și `HWND_TOPMOST` pe ecranul fizic din restaurant, dar fiind invizibil la captură (`WDA_EXCLUDEFROMCAPTURE`), scriptul minimizează automat fereastra Chrome (`SW_MINIMIZE = 6`), afișează bara de Start Windows și deschide automat `explorer.exe C:\SmartKiosk`. Astfel, în Admin (`Desktop Live`) vezi direct Desktopul Windows și folderul `C:\SmartKiosk`, în timp ce pe Kiosk-ul fizic din restaurant clienții văd doar „KIOSK ÎN MENTENANȚĂ”. La oprirea Paravanului, `enforceKioskTaskbar(true)` ascunde bara și readuce Chrome în Fullscreen.
+  3. Suspendat auto-recovery-ul `enforceKioskTaskbar` și `kiosk_force_fullscreen` automat (`socketService.js`) cât timp `privacyShieldActive`, `taskbarOverrideVisible` sau `remoteDesktopActive` este activ, plus adăugat buton dedicat **📁 Desktop & C:\SmartKiosk** în toolbar-ul `Desktop Live` (`RemoteDesktopViewer.jsx`).
+  4. Optimizat motorul `SkRdHost` (`packages/pos-bridge/index.js` & `RemoteDesktopViewer.jsx`) pentru fluiditate fără sacadări: reutilizare persistentă `Bitmap` în format nativ `Format32bppRgb` (fără alocări GC la fiecare cadru), scalare rapidă GDI+ (`InterpolationMode.Low`, `CompositingMode.SourceCopy`), trezire instantanee prin `AutoResetEvent` la fiecare click/dublu-click/tastă/scroll (0ms latență de sleep), handler nativ `onDoubleClick` în viewer și creștere FPS la `14–18 FPS`.
+- **Fișiere:**
+  - `packages/pos-bridge/index.js`
+  - `packages/pos-bridge/package.json`
+  - `packages/backend/src/services/socketService.js`
+  - `packages/backend/src/routes/bridgeMonitoring.js`
+  - `packages/admin/src/components/RemoteDesktopViewer.jsx`
+  - `packages/admin/src/components/WindowsRemoteModal.jsx`
+  - `packages/admin/src/data/bridgeReleaseNotes.js`
+  - `packages/backend/src/data/bridgeReleaseNotes.js`
+  - `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (fără push — așteaptă confirmarea utilizatorului)
+- **Build / Teste:** `node --check` OK pe toate fișierele backend/bridge; `npm --prefix packages/admin run build` OK (0 erori).
+
+### 2026-11-13 12:43 — Adăugare Butoane „Copiază Logurile” în Terminal & Live Logs (Control PC Admin)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. Adăugat buton dedicat cu iconiță de copiere (`Copy` / `Check` din `lucide-react`) în bara de sus a ferestrei de Terminal CMD din `packages/admin/src/components/WindowsRemoteModal.jsx`, permițând copierea instantanee cu un singur click a tuturor liniilor din consolă în clipboard (`navigator.clipboard.writeText`) fără selecție manuală.
+  2. Adăugat buton similar de copiere rapidă și pe tab-ul de jurnal live POS Bridge (`Fereastra POS Bridge (Live)`).
+- **Fișiere:**
+  - `packages/admin/src/components/WindowsRemoteModal.jsx`
+  - `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (nemodificat / fără push)
+- **Build / Teste:** `npm --prefix packages/admin run build` OK (1843 module, 0 erori).
+
 ### 2026-11-13 11:12 — Hotfix Critic v3.5.7 (Crash `paymentInProgress` în v3.5.6 + Desktop Live + Execuție Startup/Taskbar)
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

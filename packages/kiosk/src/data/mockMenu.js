@@ -1,10 +1,10 @@
 // Mock menu data — SmashMe brand (burgeri reali de pe smashme.ro)
 export const SMASHME_CATEGORIES = [
-  { id: 'smash-burgers',  name: 'Smash Burgers',  icon: '🍔', color: '#EE3B24' },
-  { id: 'pizza',          name: 'Pizza',           icon: '🍕', color: '#FF8C00' },
-  { id: 'salate',         name: 'Salate',          icon: '🥗', color: '#2E7D32' },
-  { id: 'deserturi',      name: 'Deserturi',       icon: '🍰', color: '#E91E8C' },
-  { id: 'bauturi',        name: 'Băuturi',         icon: '🥤', color: '#1565C0' },
+  { id: 'smash-burgers',  name: 'Smash Burgers',  icon: '', color: '#EE3B24' },
+  { id: 'pizza',          name: 'Pizza',           icon: '', color: '#FF8C00' },
+  { id: 'salate',         name: 'Salate',          icon: '', color: '#2E7D32' },
+  { id: 'deserturi',      name: 'Deserturi',       icon: '', color: '#E91E8C' },
+  { id: 'bauturi',        name: 'Băuturi',         icon: '', color: '#1565C0' },
 ];
 
 export const SMASHME_PRODUCTS = [];
@@ -15,37 +15,37 @@ export const SUSHIMASTER_CATEGORIES = [
   {
     "id": "b47b4c09-862a-47e6-a70c-5c35b84ec7b0",
     "name": "Set By Master",
-    "emoji": "🍽️",
+    "emoji": "",
     "parentGroupId": "d3e3c5f2-5e15-400b-8197-d58fa63ed718"
   },
   {
     "id": "44dc2a71-657b-4a96-b7a9-dafe2d6ebc98",
     "name": "Fantasy By Master",
-    "emoji": "🍽️",
+    "emoji": "",
     "parentGroupId": "d3e3c5f2-5e15-400b-8197-d58fa63ed718"
   },
   {
     "id": "749f5073-14dd-46d9-96c3-df04aa5c6dbf",
     "name": "Double Maki Rolls",
-    "emoji": "🍣",
+    "emoji": "",
     "parentGroupId": "d3e3c5f2-5e15-400b-8197-d58fa63ed718"
   },
   {
     "id": "cac42b5e-a3d6-485c-9e3a-3c688c7576bc",
     "name": "Maki Rolls",
-    "emoji": "🍣",
+    "emoji": "",
     "parentGroupId": "d3e3c5f2-5e15-400b-8197-d58fa63ed718"
   },
   {
     "id": "d9a2fa14-889e-48f0-a6d8-d5d39a85d5c7",
     "name": "Tempura",
-    "emoji": "🍽️",
+    "emoji": "",
     "parentGroupId": "d3e3c5f2-5e15-400b-8197-d58fa63ed718"
   },
   {
     "id": "c80d09d1-975d-4781-ae52-442b11c1d7c9",
     "name": "Tempura & Grilled Rolls",
-    "emoji": "🍣",
+    "emoji": "",
     "parentGroupId": "d3e3c5f2-5e15-400b-8197-d58fa63ed718"
   }
 ];
@@ -353,7 +353,7 @@ export const SUSHIMASTER_PRODUCTS = [
   {
     "id": "acc30b1e-6225-4feb-8094-ed282c67369a",
     "categoryId": "b47b4c09-862a-47e6-a70c-5c35b84ec7b0",
-    "name": "SushiMaster Phi♥LOVE♥delphia",
+    "name": "SushiMaster PhiLOVEdelphia",
     "description": "Philadelphia Classic, Philadelphia Grill, Double Salmon Cheesy Maki, Philadelphia Tempura - 949g. (32 buc.)\nAdițional (porționat): Sos de soia-120ml (Alergen:SOIA), Wasabi-20g (Alergen:MUȘTAR), Ghimbir murat-40g, Bețe sushi-2 buc.\nValori nutritive per 100g: Grăsimi-7,13, Acizi grași-2,83, Proteine-8,28, Carbohidrați-23, Zahăr-1,74, Sare-0,44, Kcal-190,63.\nE-uri: Coloranți-E124; E110Alergeni: Cereale, Pește, Soia, Lapte/Lactoză, Muștar.",
     "price": 182,
     "image": "https://storage.cdneu.syrve.com/nomenclature_images/295833/4dcb55c2-3226-40ee-a2fa-2da7bda91eee.png",

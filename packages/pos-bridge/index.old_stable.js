@@ -70,14 +70,14 @@ function processMolPayment(amount, portPath, onStatus) {
     };
 
     port.open(err => {
-      if (err) { log(`❌ Eroare deschidere port: ${err.message}`); return resolve({success: false, reason: err.message}); }
+      if (err) { log(`Eroare deschidere port: ${err.message}`); return resolve({success: false, reason: err.message}); }
       log(`Port deschis: ${portPath} @ ${BAUD_RATE}`);
       
       const amtCents = Math.round(amount * 100);
       const amtStr = (amtCents / 100).toFixed(2).padStart(8, '0');
       const mol10 = buildMol('MOL', '10', amtStr);
       
-      log(`📤 TX MOL10 (Cerere Plată): ${amtStr} RON`);
+      log(`TX MOL10 (Cerere Plată): ${amtStr} RON`);
       port.write(mol10);
 
       timer = setTimeout(() => {
@@ -93,17 +93,17 @@ function processMolPayment(amount, portPath, onStatus) {
       if (rxBuf[0] === ACK && state === 'WAIT_ACK_MOL10') {
         rxBuf = rxBuf.subarray(1);
         clearTimeout(timer);
-        log('✅ ACK primit pt MOL10. Aștept procesare card...');
+        log('ACK primit pt MOL10. Aștept procesare card...');
         onStatus && onStatus('Apropiați cardul de POS');
         state = 'WAIT_MOL11';
         timer = setTimeout(() => cleanup(false, 'Timeout procesare (2 min)'), 120000);
       }
       else if (rxBuf[0] === NAK) {
-        log('❌ NAK primit (format greșit sau eroare LRC).');
+        log('NAK primit (format greșit sau eroare LRC).');
         cleanup(false, 'POS a respins comanda (NAK)');
       }
       else if (rxBuf[0] === EOT) {
-        log('📥 EOT primit (POS a închis sesiunea / eroare).');
+        log('EOT primit (POS a închis sesiunea / eroare).');
         cleanup(false, 'Tranzacție anulată pe terminal');
       }
 
@@ -117,16 +117,16 @@ function processMolPayment(amount, portPath, onStatus) {
           port.write(Buffer.from([ACK]));
           
           const payload = frame.subarray(1, frame.length - 2).toString('ascii');
-          log(`📥 RX FRAME: ${payload}`);
+          log(`RX FRAME: ${payload}`);
 
           if (payload.startsWith('MOL11')) {
             clearTimeout(timer);
             const approved = payload.includes('000');
-            log(approved ? '✅ Plată APROBATĂ' : '❌ Plată RESPINSĂ');
+            log(approved ? 'Plată APROBATĂ' : 'Plată RESPINSĂ');
             
             setTimeout(() => {
               const mol13 = buildMol('MOL', '13', '');
-              log('📤 TX MOL13 (Confirmare finală)');
+              log('TX MOL13 (Confirmare finală)');
               port.write(mol13);
               setTimeout(() => cleanup({ success: approved, authCode: '123456', code: approved ? '0000' : 'REFUSED', raw: payload }, approved ? null : 'Tranzacție refuzată de terminal'), 500);
             }, 300);
@@ -160,17 +160,17 @@ async function start() {
   });
 
   socket.on('connect', () => {
-    log(`✅ Conectat la server`);
+    log(`Conectat la server`);
     socket.emit('pos_bridge_register', { locationId: LOCATION_ID, port: portPath });
   });
   
   socket.on('disconnect', reason => {
-    log(`⚠️  Deconectat: ${reason} — reconectez...`);
+    log(`Deconectat: ${reason} — reconectez...`);
   });
 
   socket.on('print_ticket', async (order) => {
     if (order && (order.locationId === LOCATION_ID || !order.locationId)) {
-      log(`🖨️  Cerere printare bon pentru comanda #${order.orderNumber}`);
+      log(`Cerere printare bon pentru comanda #${order.orderNumber}`);
       await printTicket(order);
     }
   });
@@ -183,13 +183,13 @@ async function start() {
     if (lid && lid !== LOCATION_ID) return;
 
     if (paymentInProgress) {
-      log(`⚠️ SKIP: o plată e deja în curs`);
+      log(`SKIP: o plată e deja în curs`);
       socket.emit('pos_payment_result', { orderId, paid: false, error: 'Altă plată în curs' });
       return;
     }
 
     paymentInProgress = true;
-    log(`💳 ==== CERERE PLATĂ ====`); 
+    log(`==== CERERE PLATĂ ====`); 
     log(`   orderId: ${orderId}`);
     log(`   amount:  ${amount} RON`);
     
@@ -201,7 +201,7 @@ async function start() {
         socket.emit('pos_bridge_status', { orderId, message: msg });
       });
       
-      log(`✅ REZULTAT: ${res.success ? 'APROBAT' : 'REFUZAT'} auth=${res.authCode}`);
+      log(`REZULTAT: ${res.success ? 'APROBAT' : 'REFUZAT'} auth=${res.authCode}`);
       
       socket.emit('pos_payment_result', { 
         orderId, 
@@ -212,7 +212,7 @@ async function start() {
         error: res.reason || null
       });
     } catch (err) {
-      log(`❌ EROARE: ${err.message}`);
+      log(`EROARE: ${err.message}`);
       socket.emit('pos_payment_result', { orderId, paid: false, error: err.message });
     } finally {
       paymentInProgress = false;
@@ -221,6 +221,6 @@ async function start() {
 }
 
 start().catch(err => {
-  log(`❌ EROARE FATALĂ: ${err.message}`);
+  log(`EROARE FATALĂ: ${err.message}`);
   process.exit(1);
 });

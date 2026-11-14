@@ -492,7 +492,7 @@ function LocationQrForm({ loc, backend, onBack, onRefresh }) {
         {activeTab === 'settings' && (
           <button onClick={saveMobileSettings} disabled={savingMob}
             className={`px-6 py-2.5 rounded-full border-none cursor-pointer font-bold text-sm transition-all shadow-sm ${mobSaved ? 'bg-emerald-500 text-white shadow-emerald-500/20' : 'bg-slate-900 dark:bg-slate-800 text-white hover:bg-slate-800 dark:hover:bg-slate-700'}`}>
-            {mobSaved ? '✓ Salvat!' : savingMob ? 'Se salvează...' : 'Salvează Setările Mobile'}
+            {mobSaved ? 'Salvat!' : savingMob ? 'Se salvează...' : 'Salvează Setările Mobile'}
           </button>
         )}
         {activeTab === 'qr' && savedCount > 0 && (

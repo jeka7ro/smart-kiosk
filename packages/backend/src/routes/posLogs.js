@@ -82,9 +82,9 @@ async function addPosLog(entry) {
         log.error, log.iiko_sent, log.iiko_order_id, log.iiko_error, JSON.stringify(log.raw)
       ]
     );
-    console.log(`[POS Logs] ✅ Saved: ${log.status} | ${log.location_id} | ${log.amount} RON | auth=${log.auth_code}`);
+    console.log(`[POS Logs] Saved: ${log.status} | ${log.location_id} | ${log.amount} RON | auth=${log.auth_code}`);
   } catch (err) {
-    console.error(`[POS Logs] ❌ Failed to save log to DB:`, err.message);
+    console.error(`[POS Logs] Failed to save log to DB:`, err.message);
   }
   
   // Return in camelCase for backwards compatibility with any calling code

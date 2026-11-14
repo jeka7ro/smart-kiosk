@@ -1,4 +1,4 @@
-const BRIDGE_VERSION = '3.5.7';
+const BRIDGE_VERSION = '3.5.8';
 const PROCESS_BOOT_TIME = Date.now();
 let globalSocket = null;
 
@@ -121,6 +121,8 @@ function getKioskTargetUrl() {
 }
 
 let taskbarOverrideVisible = false;
+let privacyShieldActive = false;
+let remoteDesktopActive = false;
 
 function setWindowsTaskbarVisible(show) {
   taskbarOverrideVisible = Boolean(show);
@@ -129,16 +131,17 @@ function setWindowsTaskbarVisible(show) {
     const swFlag = taskbarOverrideVisible ? 5 : 0; // 5 = SW_SHOW, 0 = SW_HIDE
     const psCmd = `powershell -NoProfile -WindowStyle Hidden -Command "$c='[DllImport(\\"user32.dll\\")] public static extern IntPtr FindWindow(string c, string n); [DllImport(\\"user32.dll\\")] public static extern bool ShowWindow(IntPtr h, int s);'; $t=Add-Type -MemberDefinition $c -Name WTask -Namespace Sk -PassThru; $h=$t::FindWindow('Shell_TrayWnd',$null); if($h -ne [IntPtr]::Zero){[void]$t::ShowWindow($h,${swFlag})}; $h2=$t::FindWindow('Shell_SecondaryTrayWnd',$null); if($h2 -ne [IntPtr]::Zero){[void]$t::ShowWindow($h2,${swFlag})}"`;
     exec(psCmd, { windowsHide: true }, () => {});
-    if (!taskbarOverrideVisible) {
-      setTimeout(enforceKioskTaskbar, 250);
+    if (!taskbarOverrideVisible && !privacyShieldActive) {
+      setTimeout(() => enforceKioskTaskbar(true), 250);
     }
   } catch (err) {
     log(`⚠️ [SYSTEM] Eroare setWindowsTaskbarVisible: ${err.message}`);
   }
 }
 
-function enforceKioskTaskbar() {
-  if (process.platform !== 'win32' || taskbarOverrideVisible) return;
+function enforceKioskTaskbar(forceNow = false) {
+  if (process.platform !== 'win32') return;
+  if (!forceNow && (taskbarOverrideVisible || privacyShieldActive || remoteDesktopActive)) return;
   try {
     const kUrl = getKioskTargetUrl();
     const psCmd = `powershell -NoProfile -WindowStyle Hidden -Command "$c=@'
@@ -157,16 +160,20 @@ $t=[KioskWin]::FindWindow('Shell_TrayWnd',$null); if($t -ne [IntPtr]::Zero){ [Ki
 $s=[KioskWin]::FindWindow('Shell_SecondaryTrayWnd',$null); if($s -ne [IntPtr]::Zero){ [KioskWin]::ShowWindow($s,0) };
 # 2. Opreste orice proces concurent / de la alta companie
 Get-Process -Name 'iiko*','Syrve*','Resto*','TapX*','Ordero*','SmartTouch*','PosSector*' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue;
-# 3. Verifica fereastra Chrome/Edge Kiosk
+# 3. Verifica fereastra Chrome/Edge Kiosk (SW_RESTORE=9 pastreaza modul --kiosk peste taskbar pe Windows 10/11)
+Get-Process -Name chrome,msedge -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 } | ForEach-Object {
+    if([KioskWin]::IsIconic($_.MainWindowHandle)){ [KioskWin]::ShowWindow($_.MainWindowHandle, 9) | Out-Null };
+    [KioskWin]::SetForegroundWindow($_.MainWindowHandle) | Out-Null;
+};
 $w=[KioskWin]::FindWindow('Chrome_WidgetWin_1',$null);
 if($w -ne [IntPtr]::Zero){
     if([KioskWin]::IsIconic($w)){
-        [KioskWin]::ShowWindow($w, 3);
+        [KioskWin]::ShowWindow($w, 9);
         [KioskWin]::SetForegroundWindow($w);
     } else {
         $fg=[KioskWin]::GetForegroundWindow();
         if($fg -ne $w -and $fg -ne [IntPtr]::Zero){
-            [KioskWin]::ShowWindow($w, 3);
+            [KioskWin]::ShowWindow($w, 9);
             [KioskWin]::SetForegroundWindow($w);
         }
     }
@@ -174,9 +181,10 @@ if($w -ne [IntPtr]::Zero){
     # Daca ecranul Kiosk este inchis, il redeschide automat pe tot ecranul
     $b='C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
     if(!(Test-Path $b)){ $b='C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe' };
+    if(!(Test-Path $b)){ $b=Join-Path $env:LocalAppData 'Google\\Chrome\\Application\\chrome.exe' };
     if(!(Test-Path $b)){ $b='C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe' };
     if(Test-Path $b){
-        Start-Process $b -ArgumentList '--kiosk \\\"${kUrl}\\\" --start-fullscreen --start-maximized --window-position=0,0 --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble';
+        Start-Process $b -ArgumentList '--kiosk \\\"${kUrl}\\\" --start-fullscreen --window-position=0,0 --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble';
     }
 }
 $p='HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StuckRects3'; if(Test-Path $p){ $v=(Get-ItemProperty $p).Settings; if($v -and $v.Length -gt 8 -and $v[8] -ne 3){ $v[8]=3; Set-ItemProperty $p Settings $v -Force -ErrorAction SilentlyContinue } }"`;
@@ -191,8 +199,8 @@ $p='HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StuckRects3';
 }
 
 // Menține Kiosk-ul activ pe tot ecranul garantat la fiecare 8 secunde
-setTimeout(enforceKioskTaskbar, 1500);
-setInterval(enforceKioskTaskbar, 8000);
+setTimeout(() => enforceKioskTaskbar(false), 1500);
+setInterval(() => enforceKioskTaskbar(false), 8000);
 
 function ensureKioskAutoStartAndProtection() {
   if (process.platform !== 'win32') return;
@@ -1970,8 +1978,15 @@ async function start() {
   // ─── Comandă Remote Fullscreen (fără restart, fără întrerupere comenzi) ───
   socket.on('kiosk_force_fullscreen', (data) => {
     if (!data || !data.locationId || data.locationId === 'all' || data.locationId === LOCATION_ID || isMyLocation(data.locationId)) {
-      log('🖥️ Comandă Remote Fullscreen / Auto-Recover primită! Readuc forțat fereastra Kiosk pe tot ecranul...');
-      enforceKioskTaskbar();
+      const isManual = Boolean(data?.manual);
+      if (!isManual && (privacyShieldActive || taskbarOverrideVisible || remoteDesktopActive)) {
+        log('🛡️ [Auto-Recover Ignorat] Paravanul Mentenanță sau Desktop Live este activ — păstrez Desktopul și folderele vizibile în Admin!');
+        return;
+      }
+      log('🖥️ Comandă Remote Fullscreen primită! Readuc forțat fereastra Kiosk pe tot ecranul...');
+      taskbarOverrideVisible = false;
+      enforceKioskTaskbar(true);
+      setTimeout(() => { try { sendRdStdin('KF'); } catch (_) {} }, 350);
     }
   });
 
@@ -2106,8 +2121,25 @@ async function start() {
     testPosSignal();
   });
 
-  // ─── Paravan Invizibil AnyDesk / Desktop Live (Windows SetWindowDisplayAffinity 0x11 — FĂRĂ DRIVERE, 100% SAFE) ───
+  // ─── Paravan Invizibil Desktop Live / Admin (Windows SetWindowDisplayAffinity 0x11 — FĂRĂ DRIVERE, 100% SAFE) ───
   let privacyShieldProc = null;
+  let privacyShieldViewMode = 'admin'; // 'admin' (vezi Desktopul sub paravan) | 'client' (vezi paravanul pe care îl vede clientul)
+  const peekFilePath = pathMod.join(__dirname, '.shield_peek');
+
+  function setPrivacyShieldViewMode(mode = 'admin') {
+    privacyShieldViewMode = mode === 'client' ? 'client' : 'admin';
+    try {
+      if (privacyShieldViewMode === 'client') {
+        fs.writeFileSync(peekFilePath, 'client', 'utf8');
+      } else if (fs.existsSync(peekFilePath)) {
+        fs.unlinkSync(peekFilePath);
+      }
+    } catch (_) {}
+    setTimeout(() => { try { sendRdStdin('KF'); } catch (_) {} }, 250);
+    setTimeout(() => { try { sendRdStdin('KF'); } catch (_) {} }, 650);
+    sendRdStatus({ active: Boolean(rdAgentProc), shieldActive: privacyShieldActive, shieldView: privacyShieldViewMode });
+  }
+
   function setWindowsPrivacyShield(enable) {
     if (process.platform !== 'win32') return;
     try {
@@ -2115,13 +2147,23 @@ async function start() {
         try { privacyShieldProc.kill(); } catch (_) {}
         privacyShieldProc = null;
       }
+      try { if (fs.existsSync(peekFilePath)) fs.unlinkSync(peekFilePath); } catch (_) {}
+      privacyShieldViewMode = 'admin';
+
       if (!enable) {
+        privacyShieldActive = false;
         const { exec } = require('child_process');
         exec('powershell -NoProfile -WindowStyle Hidden -Command "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like \'*privacy_shield.ps1*\' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"', { windowsHide: true }, () => {});
-        log('[Privacy Shield] Paravanul fizic pentru mentenanță a fost OPRIT.');
+        log('[Privacy Shield] Paravanul fizic pentru mentenanță a fost OPRIT. Readuc Chrome Kiosk pe tot ecranul...');
+        sendRdStatus({ active: Boolean(rdAgentProc), shieldActive: false, shieldView: 'client' });
+        setTimeout(() => {
+          enforceKioskTaskbar(true);
+          setTimeout(() => { try { sendRdStdin('KF'); } catch (_) {} }, 350);
+        }, 250);
         return;
       }
 
+      privacyShieldActive = true;
       const psPath = pathMod.join(__dirname, 'privacy_shield.ps1');
       const psScript = [
         'Get-CimInstance Win32_Process | Where-Object { $_.ProcessId -ne $PID -and $_.CommandLine -like "*privacy_shield.ps1*" } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }',
@@ -2132,13 +2174,19 @@ async function start() {
         'using System.Runtime.InteropServices;',
         'public class Win32Shield {',
         '  [DllImport("user32.dll", SetLastError = true)] public static extern bool SetWindowDisplayAffinity(IntPtr hWnd, uint dwAffinity);',
+        '  [DllImport("user32.dll", SetLastError = true)] public static extern bool GetWindowDisplayAffinity(IntPtr hWnd, out uint dwAffinity);',
         '  [DllImport("user32.dll", SetLastError = true)] public static extern int GetWindowLong(IntPtr hWnd, int nIndex);',
         '  [DllImport("user32.dll", SetLastError = true)] public static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);',
         '  [DllImport("user32.dll", SetLastError = true)] public static extern bool SetLayeredWindowAttributes(IntPtr hwnd, uint crKey, byte bAlpha, uint dwFlags);',
         '  [DllImport("user32.dll", SetLastError = true)] public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);',
+        '  [DllImport("user32.dll")] public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);',
+        '  [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);',
+        '  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);',
         '}',
         '"@',
         'Add-Type -TypeDefinition $code',
+        '$peekFile = Join-Path $PSScriptRoot ".shield_peek"',
+        '$script:lastPeek = $null',
         '$vs = [System.Windows.Forms.SystemInformation]::VirtualScreen',
         '$form = New-Object System.Windows.Forms.Form',
         '$form.Text = "SmartKiosk Privacy Shield"',
@@ -2158,30 +2206,71 @@ async function start() {
         '$lbl.Dock = "Fill"',
         '$lbl.TextAlign = "MiddleCenter"',
         '$form.Controls.Add($lbl)',
-        '$applyShieldFlags = {',
+        '$applyViewMode = {',
+        '  param([bool]$peekClient)',
         '  $curVs = [System.Windows.Forms.SystemInformation]::VirtualScreen',
-        '  if ($form.WindowState -ne "Normal") { $form.WindowState = "Normal" }',
-        '  # WS_EX_LAYERED (0x80000) | WS_EX_TRANSPARENT (0x20) | WS_EX_TOOLWINDOW (0x80) | WS_EX_NOACTIVATE (0x08000000)',
         '  $ex = [Win32Shield]::GetWindowLong($form.Handle, -20)',
-        '  [Win32Shield]::SetWindowLong($form.Handle, -20, ($ex -bor 0x80000 -bor 0x20 -bor 0x80 -bor 0x08000000)) | Out-Null',
-        '  # LWA_ALPHA = 2, alpha = 255 (100% opac pe monitorul fizic; fără acest apel Windows îl face invizibil!)',
-        '  [Win32Shield]::SetLayeredWindowAttributes($form.Handle, 0, 255, 2) | Out-Null',
-        '  # 0x00000011 = WDA_EXCLUDEFROMCAPTURE: opac pe monitorul fizic din restaurant, invizibil în Desktop Live / AnyDesk',
-        '  $okAff = [Win32Shield]::SetWindowDisplayAffinity($form.Handle, 0x00000011)',
-        '  # HWND_TOPMOST = -1, SWP_NOACTIVATE (0x10) | SWP_SHOWWINDOW (0x40)',
+        '  if ($peekClient) {',
+        '    # Mod Verificare Client: Paravanul devine vizibil și în captura Desktop Live din Admin (affinity = 0)',
+        '    $newEx = ($ex -bor 0x80000 -bor 0x80 -bor 0x08000000) -band (-bnot 0x20)',
+        '    [Win32Shield]::SetWindowLong($form.Handle, -20, $newEx) | Out-Null',
+        '    [Win32Shield]::SetLayeredWindowAttributes($form.Handle, 0, 255, 2) | Out-Null',
+        '    $okAff = [Win32Shield]::SetWindowDisplayAffinity($form.Handle, 0x00000000)',
+        '  } else {',
+        '    # Mod Lucru Admin: Paravanul rămâne 100% opac pe monitorul fizic, dar INVIZIBIL și click-through în Admin (0x11)',
+        '    $newEx = ($ex -bor 0x80000 -bor 0x20 -bor 0x80 -bor 0x08000000)',
+        '    [Win32Shield]::SetWindowLong($form.Handle, -20, $newEx) | Out-Null',
+        '    [Win32Shield]::SetLayeredWindowAttributes($form.Handle, 0, 255, 2) | Out-Null',
+        '    $okAff = [Win32Shield]::SetWindowDisplayAffinity($form.Handle, 0x00000011)',
+        '  }',
         '  [Win32Shield]::SetWindowPos($form.Handle, [IntPtr](-1), $curVs.X, $curVs.Y, $curVs.Width, $curVs.Height, 0x0050) | Out-Null',
+        '  $form.Invalidate($true)',
+        '  $form.Refresh()',
         '  return $okAff',
         '}',
         '$form.Add_Shown({',
-        '  $okAff = & $applyShieldFlags',
-        '  $form.Invalidate($true)',
-        '  $form.Refresh()',
+        '  $curVs = [System.Windows.Forms.SystemInformation]::VirtualScreen',
+        '  $okAff = & $applyViewMode $false',
+        '  $script:lastPeek = $false',
+        '  # 2. Afișăm bara de jos Windows (Taskbar) și MINIMIZĂM Chrome/Edge (SW_MINIMIZE = 6) ca în Desktop Live din Admin să se vadă Desktopul și folderele (nu Chrome!)',
+        '  $tb = [Win32Shield]::FindWindow("Shell_TrayWnd", $null)',
+        '  if ($tb -ne [IntPtr]::Zero) { [Win32Shield]::ShowWindow($tb, 5) | Out-Null }',
+        '  $tb2 = [Win32Shield]::FindWindow("Shell_SecondaryTrayWnd", $null)',
+        '  if ($tb2 -ne [IntPtr]::Zero) { [Win32Shield]::ShowWindow($tb2, 5) | Out-Null }',
+        '  Get-Process -Name "chrome","msedge" -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 } | ForEach-Object {',
+        '    [Win32Shield]::ShowWindow($_.MainWindowHandle, 6) | Out-Null',
+        '  }',
+        '  # 3. Deschidem automat folderul C:\\SmartKiosk pe Desktop ca să fie gata de lucru în Admin Desktop Live',
+        '  $exp = [Win32Shield]::FindWindow("CabinetWClass", $null)',
+        '  if ($exp -eq [IntPtr]::Zero) {',
+        '    Start-Process explorer.exe -ArgumentList "C:\\SmartKiosk" -ErrorAction SilentlyContinue',
+        '  } else {',
+        '    [Win32Shield]::ShowWindow($exp, 9) | Out-Null',
+        '    [Win32Shield]::SetForegroundWindow($exp) | Out-Null',
+        '  }',
+        '  # 4. Re-ancorăm paravanul în vârful Z-order-ului fizic peste Explorer și Taskbar',
+        '  [Win32Shield]::SetWindowPos($form.Handle, [IntPtr](-1), $curVs.X, $curVs.Y, $curVs.Width, $curVs.Height, 0x0050) | Out-Null',
         '  Write-Output ("SHIELD_ACTIVE:affinity=" + $okAff + ":os=" + [System.Environment]::OSVersion.Version.ToString())',
         '})',
-        '# Re-ancorare ușoară TopMost la fiecare 1.5s ca nici Win+D să nu ascundă paravanul de pe monitorul fizic',
+        '# Verificare rapidă (250ms) pentru comutarea instantanee între „Vedere Admin (Sub Paravan)” și „Ce vede Clientul” + ancorare TopMost',
         '$keepTopTimer = New-Object System.Windows.Forms.Timer',
-        '$keepTopTimer.Interval = 1500',
-        '$keepTopTimer.Add_Tick({ & $applyShieldFlags | Out-Null })',
+        '$keepTopTimer.Interval = 250',
+        '$keepTopTimer.Add_Tick({',
+        '  $curVs = [System.Windows.Forms.SystemInformation]::VirtualScreen',
+        '  if ($form.WindowState -ne "Normal") { $form.WindowState = "Normal" }',
+        '  $wantPeek = [System.IO.File]::Exists($peekFile)',
+        '  if ($script:lastPeek -ne $wantPeek) {',
+        '    $script:lastPeek = $wantPeek',
+        '    & $applyViewMode $wantPeek | Out-Null',
+        '    Write-Output ("SHIELD_VIEW:" + $(if ($wantPeek) { "client" } else { "admin" }))',
+        '  } else {',
+        '    [uint32]$curAff = 0',
+        '    [Win32Shield]::GetWindowDisplayAffinity($form.Handle, [ref]$curAff) | Out-Null',
+        '    $expectedAff = if ($wantPeek) { 0 } else { 0x11 }',
+        '    if ($curAff -ne $expectedAff) { [Win32Shield]::SetWindowDisplayAffinity($form.Handle, $expectedAff) | Out-Null }',
+        '    [Win32Shield]::SetWindowPos($form.Handle, [IntPtr](-1), $curVs.X, $curVs.Y, $curVs.Width, $curVs.Height, 0x0050) | Out-Null',
+        '  }',
+        '})',
         '$keepTopTimer.Start()',
         '# Safety auto-close dupa 30 minute ca sa nu ramana niciodata blocat',
         '$timer = New-Object System.Windows.Forms.Timer',
@@ -2208,13 +2297,35 @@ async function start() {
         if (txt) log(`⚠️ [Privacy Shield stderr] ${txt}`);
       });
       child.on('exit', (code) => {
-        if (privacyShieldProc === child) privacyShieldProc = null;
+        if (privacyShieldProc === child) {
+          privacyShieldProc = null;
+          privacyShieldActive = false;
+        }
         log(`[Privacy Shield] Proces oprit (exit=${code}).`);
       });
-      log('[Privacy Shield] Paravan Mentenanță (WDA_EXCLUDEFROMCAPTURE + SetLayeredWindowAttributes 255) pornit: monitorul fizic afișează Mentenanță opac, iar în Desktop Live / AnyDesk lucrezi transparent.');
+      setTimeout(() => { try { sendRdStdin('KF'); } catch (_) {} }, 450);
+      setTimeout(() => { try { sendRdStdin('KF'); } catch (_) {} }, 1200);
+      log('[Privacy Shield] Paravan Mentenanță pornit: pe Kiosk se vede Mentenanță, iar în Admin (Desktop Live) Chrome este minimizat și vezi Desktopul + C:\\SmartKiosk!');
     } catch (e) {
       log(`[Privacy Shield] Eroare: ${e.message}`);
     }
+  }
+
+  function revealDesktopAndSmartKioskFolder() {
+    if (process.platform !== 'win32') return;
+    taskbarOverrideVisible = true;
+    const { exec } = require('child_process');
+    const psCmd = [
+      'Add-Type -TypeDefinition \'using System; using System.Runtime.InteropServices; public class Win32Desk { [DllImport("user32.dll")] public static extern IntPtr FindWindow(string c, string n); [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int s); [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h); }\'',
+      '$tb = [Win32Desk]::FindWindow("Shell_TrayWnd", $null); if ($tb -ne [IntPtr]::Zero) { [Win32Desk]::ShowWindow($tb, 5) | Out-Null }',
+      'Get-Process -Name "chrome","msedge" -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 } | ForEach-Object { [Win32Desk]::ShowWindow($_.MainWindowHandle, 6) | Out-Null }',
+      '$exp = [Win32Desk]::FindWindow("CabinetWClass", $null)',
+      'if ($exp -eq [IntPtr]::Zero) { Start-Process explorer.exe -ArgumentList "C:\\SmartKiosk" } else { [Win32Desk]::ShowWindow($exp, 9) | Out-Null; [Win32Desk]::SetForegroundWindow($exp) | Out-Null }'
+    ].join('; ');
+    exec(`powershell -NoProfile -WindowStyle Hidden -Command "${psCmd.replace(/"/g, '\\"')}"`, { windowsHide: true }, () => {
+      setTimeout(() => { try { sendRdStdin('KF'); } catch (_) {} }, 300);
+      setTimeout(() => { try { sendRdStdin('KF'); } catch (_) {} }, 900);
+    });
   }
 
   const handlePcRemoteRequest = async (req = {}) => {
@@ -2323,14 +2434,44 @@ async function start() {
           action,
           enable,
           message: enable
-            ? 'Paravanul AnyDesk a fost ACTIVAT! Pe ecranul din locație se vede doar Mentenanța, iar tu în AnyDesk vezi desktopul Windows prin el!'
-            : 'Paravanul AnyDesk a fost OPRIT!'
+            ? 'Paravanul Mentenanță a fost ACTIVAT! Pe ecranul din locație se vede doar Mentenanța, iar în Admin (Desktop Live) Chrome a fost minimizat și vezi Desktopul Windows + folderul C:\\SmartKiosk!'
+            : 'Paravanul Mentenanță a fost OPRIT și Kiosk-ul a revenit pe tot ecranul!'
+        });
+      }
+
+      if (action === 'set_shield_view') {
+        const view = req.view === 'client' ? 'client' : 'admin';
+        if (view === 'client' && !privacyShieldActive) {
+          enforceKioskTaskbar(true);
+        } else if (view === 'admin' && !privacyShieldActive) {
+          revealDesktopAndSmartKioskFolder();
+        }
+        setPrivacyShieldViewMode(view);
+        return reply({
+          ok: true,
+          action,
+          view,
+          message: view === 'client'
+            ? 'Vedere comutată pe CE VEDE CLIENTUL (ecranul fizic din restaurant).'
+            : 'Vedere comutată pe DESKTOP ADMIN (vezi prin paravan direct în Windows & C:\\SmartKiosk).'
+        });
+      }
+
+      if (action === 'open_desktop_folder') {
+        revealDesktopAndSmartKioskFolder();
+        log('[Remote PC] Chrome minimizat și folderul C:\\SmartKiosk deschis pe Desktop pentru lucru în Admin (Desktop Live).');
+        return reply({
+          ok: true,
+          action,
+          taskbarVisible: true,
+          message: 'Chrome a fost minimizat în bară și folderul C:\\SmartKiosk a fost deschis pe Desktop!'
         });
       }
 
       if (action === 'toggle_taskbar') {
         const show = req.show !== undefined ? Boolean(req.show) : !taskbarOverrideVisible;
         setWindowsTaskbarVisible(show);
+        setTimeout(() => { try { sendRdStdin('KF'); } catch (_) {} }, 300);
         log(`[Remote PC] Bara Start / Taskbar Windows a fost ${show ? 'AFIȘATĂ' : 'ASCUNSĂ'}.`);
         return reply({
           ok: true,
@@ -2340,6 +2481,32 @@ async function start() {
             ? 'Bara Start / Taskbar Windows este acum VIZIBILĂ!'
             : 'Bara Start / Taskbar Windows a fost ASCUNSĂ la loc și Kiosk-ul readus Fullscreen!'
         });
+      }
+
+      if (action === 'reboot_pc') {
+        if (process.platform !== 'win32') {
+          return reply({ ok: false, action, error: 'Restartul PC este disponibil doar pe Windows.' });
+        }
+        log('[Remote PC] 🔄 Comandă REBOOT PC WINDOWS primită! Calculatorul repornește în 2 secunde (shutdown /r /t 2 /f)...');
+        reply({
+          ok: true,
+          action,
+          message: '🔄 Comanda de RESTART PC Windows a fost lansată! Calculatorul se repornește acum (revine online în ~1 minut)...'
+        });
+        setTimeout(() => {
+          try {
+            const { spawn } = require('child_process');
+            const child = spawn('shutdown.exe', ['/r', '/t', '2', '/f'], {
+              detached: true,
+              windowsHide: true,
+              stdio: 'ignore'
+            });
+            child.unref();
+          } catch (err) {
+            log(`[Remote PC] Eroare la shutdown /r: ${err.message}`);
+          }
+        }, 500);
+        return;
       }
 
       if (action === 'run_file') {
@@ -2416,7 +2583,7 @@ async function start() {
   socket.on('pc_remote_request', handlePcRemoteRequest);
   socket.on(`pc_remote_request_${LOCATION_ID}`, handlePcRemoteRequest);
 
-  // ─── Remote Desktop Live Streaming & Control (AnyDesk-style în Admin) ────────
+  // ─── Remote Desktop Live Streaming & Control (Nativ în Admin) ───────────────
   let rdAgentProc = null;
   let rdWatchdogTimer = null;
   let rdLastClientPing = 0;
@@ -2435,6 +2602,7 @@ async function start() {
   };
 
   const stopRemoteDesktopAgent = (reason = 'stopped') => {
+    remoteDesktopActive = false;
     if (rdWatchdogTimer) {
       clearInterval(rdWatchdogTimer);
       rdWatchdogTimer = null;
@@ -2449,6 +2617,9 @@ async function start() {
         try { if (!proc.killed) proc.kill(); } catch (_) {}
       }, 250);
       log(`[Remote Desktop] Sesiune oprită (${reason}).`);
+    }
+    if (!privacyShieldActive && !taskbarOverrideVisible) {
+      setTimeout(() => enforceKioskTaskbar(true), 300);
     }
     sendRdStatus({ active: false, reason });
   };
@@ -2497,11 +2668,12 @@ async function start() {
     '  [StructLayout(LayoutKind.Sequential)] public struct INPUT { public uint type; public INPUT_UNION U; }',
     '  private static volatile bool _running = true;',
     '  private static volatile bool _forceKeyframe = true;',
-    '  private static volatile int _maxWidth = 1280;',
-    '  private static volatile int _quality = 55;',
-    '  private static volatile int _fps = 7;',
+    '  private static volatile int _maxWidth = 1152;',
+    '  private static volatile int _quality = 58;',
+    '  private static volatile int _fps = 14;',
     '  private static long _lastCmdTicks = DateTime.UtcNow.Ticks;',
     '  private static readonly object _outLock = new object();',
+    '  private static readonly AutoResetEvent _wakeSignal = new AutoResetEvent(false);',
     '  private static ImageCodecInfo GetJpegEncoder() {',
     '    var codecs = ImageCodecInfo.GetImageEncoders();',
     '    for (int i = 0; i < codecs.Length; i++) { if (codecs[i].FormatID == ImageFormat.Jpeg.Guid) return codecs[i]; }',
@@ -2543,15 +2715,15 @@ async function start() {
     '    if (string.IsNullOrEmpty(line)) return;',
     '    var parts = line.Split(\'|\');',
     '    var op = parts[0];',
-    '    if (op == "STOP") { _running = false; return; }',
+    '    if (op == "STOP") { _running = false; _wakeSignal.Set(); return; }',
     '    if (op == "PING") return;',
-    '    if (op == "KF") { _forceKeyframe = true; return; }',
+    '    if (op == "KF") { _forceKeyframe = true; _wakeSignal.Set(); return; }',
     '    if (op == "CFG" && parts.Length >= 4) {',
     '      int mw, q, f;',
     '      if (int.TryParse(parts[1], out mw)) _maxWidth = Math.Max(640, Math.Min(1920, mw));',
     '      if (int.TryParse(parts[2], out q)) _quality = Math.Max(25, Math.Min(85, q));',
-    '      if (int.TryParse(parts[3], out f)) _fps = Math.Max(2, Math.Min(15, f));',
-    '      _forceKeyframe = true; return;',
+    '      if (int.TryParse(parts[3], out f)) _fps = Math.Max(2, Math.Min(25, f));',
+    '      _forceKeyframe = true; _wakeSignal.Set(); return;',
     '    }',
     '    if (op == "MV" && parts.Length >= 3) {',
     '      double nx, ny; if (double.TryParse(parts[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out nx) && double.TryParse(parts[2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out ny)) {',
@@ -2567,7 +2739,8 @@ async function start() {
     '        uint up = parts[1] == "right" ? 0x0010u : (parts[1] == "middle" ? 0x0040u : 0x0004u);',
     '        if (op == "DN") mouse_event(dn, 0, 0, 0, UIntPtr.Zero);',
     '        else if (op == "UP") mouse_event(up, 0, 0, 0, UIntPtr.Zero);',
-    '        else { mouse_event(dn, 0, 0, 0, UIntPtr.Zero); Thread.Sleep(15); mouse_event(up, 0, 0, 0, UIntPtr.Zero); }',
+    '        else { mouse_event(dn, 0, 0, 0, UIntPtr.Zero); Thread.Sleep(12); mouse_event(up, 0, 0, 0, UIntPtr.Zero); }',
+    '        _forceKeyframe = true; _wakeSignal.Set();',
     '      }',
     '      return;',
     '    }',
@@ -2575,9 +2748,10 @@ async function start() {
     '      double nx, ny;',
     '      if (double.TryParse(parts[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out nx) && double.TryParse(parts[2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out ny)) {',
     '        var pt = MapNorm(nx, ny); SetCursorPos(pt.X, pt.Y);',
-    '        mouse_event(0x0002u, 0, 0, 0, UIntPtr.Zero); Thread.Sleep(12); mouse_event(0x0004u, 0, 0, 0, UIntPtr.Zero);',
-    '        Thread.Sleep(45);',
-    '        mouse_event(0x0002u, 0, 0, 0, UIntPtr.Zero); Thread.Sleep(12); mouse_event(0x0004u, 0, 0, 0, UIntPtr.Zero);',
+    '        mouse_event(0x0002u, 0, 0, 0, UIntPtr.Zero); Thread.Sleep(10); mouse_event(0x0004u, 0, 0, 0, UIntPtr.Zero);',
+    '        Thread.Sleep(35);',
+    '        mouse_event(0x0002u, 0, 0, 0, UIntPtr.Zero); Thread.Sleep(10); mouse_event(0x0004u, 0, 0, 0, UIntPtr.Zero);',
+    '        _forceKeyframe = true; _wakeSignal.Set();',
     '      }',
     '      return;',
     '    }',
@@ -2586,24 +2760,28 @@ async function start() {
     '      if (int.TryParse(parts[1], out delta) && double.TryParse(parts[2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out nx) && double.TryParse(parts[3], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out ny)) {',
     '        var pt = MapNorm(nx, ny); SetCursorPos(pt.X, pt.Y);',
     '        mouse_event(0x0800u, 0, 0, unchecked((uint)delta), UIntPtr.Zero);',
+    '        _forceKeyframe = true; _wakeSignal.Set();',
     '      }',
     '      return;',
     '    }',
     '    if (op == "KEY" && parts.Length >= 4) {',
     '      int vk; if (int.TryParse(parts[1], out vk)) SendKeyVk((byte)vk, parts[2] == "1", parts[3] == "1");',
+    '      _forceKeyframe = true; _wakeSignal.Set();',
     '      return;',
     '    }',
     '    if (op == "HOTKEY" && parts.Length >= 2) {',
     '      var tokens = parts[1].Split(\',\');',
     '      var vks = new byte[tokens.Length]; int count = 0;',
     '      for (int i = 0; i < tokens.Length; i++) { int v; if (int.TryParse(tokens[i], out v)) vks[count++] = (byte)v; }',
-    '      for (int i = 0; i < count; i++) { SendKeyVk(vks[i], true, false); Thread.Sleep(10); }',
-    '      Thread.Sleep(25);',
-    '      for (int i = count - 1; i >= 0; i--) { SendKeyVk(vks[i], false, false); Thread.Sleep(10); }',
+    '      for (int i = 0; i < count; i++) { SendKeyVk(vks[i], true, false); Thread.Sleep(8); }',
+    '      Thread.Sleep(20);',
+    '      for (int i = count - 1; i >= 0; i--) { SendKeyVk(vks[i], false, false); Thread.Sleep(8); }',
+    '      _forceKeyframe = true; _wakeSignal.Set();',
     '      return;',
     '    }',
     '    if (op == "TXT" && parts.Length >= 2) {',
     '      try { SendUnicodeString(Encoding.UTF8.GetString(Convert.FromBase64String(parts[1]))); } catch {}',
+    '      _forceKeyframe = true; _wakeSignal.Set();',
     '      return;',
     '    }',
     '  }',
@@ -2611,22 +2789,29 @@ async function start() {
     '    SetProcessDPIAware();',
     '    _maxWidth = Math.Max(640, Math.Min(1920, maxWidth));',
     '    _quality = Math.Max(25, Math.Min(85, quality));',
-    '    _fps = Math.Max(2, Math.Min(15, fps));',
+    '    _fps = Math.Max(2, Math.Min(25, fps));',
     '    var encoder = GetJpegEncoder();',
     '    var bounds0 = Screen.PrimaryScreen.Bounds;',
     '    lock (_outLock) { Console.WriteLine("READY|" + bounds0.Width + "|" + bounds0.Height); Console.Out.Flush(); }',
     '    var capThread = new Thread(() => {',
     '      string lastHash = "";',
     '      DateTime lastSent = DateTime.MinValue;',
-    '      using (var md5 = MD5.Create()) {',
-    '        while (_running) {',
-    '          var sw = System.Diagnostics.Stopwatch.StartNew();',
-    '          try {',
-    '            if (new TimeSpan(DateTime.UtcNow.Ticks - Interlocked.Read(ref _lastCmdTicks)).TotalSeconds > 50) { _running = false; break; }',
-    '            var b = Screen.PrimaryScreen.Bounds;',
-    '            using (var src = new Bitmap(b.Width, b.Height, PixelFormat.Format24bppRgb)) {',
-    '              using (var gSrc = Graphics.FromImage(src)) {',
-    '                gSrc.CopyFromScreen(b.X, b.Y, 0, 0, b.Size, CopyPixelOperation.SourceCopy);',
+    '      Bitmap srcBmp = null;',
+    '      Bitmap scaledBmp = null;',
+    '      using (var md5 = MD5.Create())',
+    '      using (var ms = new MemoryStream(163840)) {',
+    '        try {',
+    '          while (_running) {',
+    '            var sw = System.Diagnostics.Stopwatch.StartNew();',
+    '            try {',
+    '              if (new TimeSpan(DateTime.UtcNow.Ticks - Interlocked.Read(ref _lastCmdTicks)).TotalSeconds > 50) { _running = false; break; }',
+    '              var b = Screen.PrimaryScreen.Bounds;',
+    '              if (srcBmp == null || srcBmp.Width != b.Width || srcBmp.Height != b.Height) {',
+    '                if (srcBmp != null) srcBmp.Dispose();',
+    '                srcBmp = new Bitmap(b.Width, b.Height, PixelFormat.Format32bppRgb);',
+    '              }',
+    '              using (var gSrc = Graphics.FromImage(srcBmp)) {',
+    '                gSrc.CopyFromScreen(b.X, b.Y, 0, 0, b.Size, CopyPixelOperation.SourceCopy | CopyPixelOperation.CaptureBlt);',
     '                CURSORINFO ci = new CURSORINFO(); ci.cbSize = Marshal.SizeOf(typeof(CURSORINFO));',
     '                if (GetCursorInfo(ref ci) && (ci.flags & 1) != 0 && ci.hCursor != IntPtr.Zero) {',
     '                  int cx = ci.ptScreenPos.X - b.X; int cy = ci.ptScreenPos.Y - b.Y;',
@@ -2645,33 +2830,42 @@ async function start() {
     '              double scale = maxSide > _maxWidth ? ((double)_maxWidth / maxSide) : 1.0;',
     '              int targetW = Math.Max(1, (int)Math.Round(b.Width * scale));',
     '              int targetH = Math.Max(1, (int)Math.Round(b.Height * scale));',
-    '              Bitmap outBmp = src;',
+    '              Bitmap outBmp = srcBmp;',
     '              if (scale < 0.999) {',
-    '                outBmp = new Bitmap(targetW, targetH, PixelFormat.Format24bppRgb);',
-    '                using (var gOut = Graphics.FromImage(outBmp)) {',
-    '                  gOut.InterpolationMode = InterpolationMode.Bilinear;',
-    '                  gOut.DrawImage(src, 0, 0, targetW, targetH);',
+    '                if (scaledBmp == null || scaledBmp.Width != targetW || scaledBmp.Height != targetH) {',
+    '                  if (scaledBmp != null) scaledBmp.Dispose();',
+    '                  scaledBmp = new Bitmap(targetW, targetH, PixelFormat.Format32bppRgb);',
+    '                }',
+    '                using (var gOut = Graphics.FromImage(scaledBmp)) {',
+    '                  gOut.CompositingMode = CompositingMode.SourceCopy;',
+    '                  gOut.CompositingQuality = CompositingQuality.HighSpeed;',
+    '                  gOut.InterpolationMode = InterpolationMode.Low;',
+    '                  gOut.SmoothingMode = SmoothingMode.None;',
+    '                  gOut.PixelOffsetMode = PixelOffsetMode.HighSpeed;',
+    '                  gOut.DrawImage(srcBmp, 0, 0, targetW, targetH);',
+    '                }',
+    '                outBmp = scaledBmp;',
+    '              }',
+    '              ms.Position = 0; ms.SetLength(0);',
+    '              using (var ep = new EncoderParameters(1)) {',
+    '                ep.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, (long)_quality);',
+    '                outBmp.Save(ms, encoder, ep);',
+    '                byte[] jpg = ms.ToArray();',
+    '                string hash = Convert.ToBase64String(md5.ComputeHash(jpg));',
+    '                bool needSend = _forceKeyframe || hash != lastHash || (DateTime.UtcNow - lastSent).TotalMilliseconds > 2500;',
+    '                if (needSend) {',
+    '                  _forceKeyframe = false; lastHash = hash; lastSent = DateTime.UtcNow;',
+    '                  string b64 = Convert.ToBase64String(jpg);',
+    '                  lock (_outLock) { Console.WriteLine("FRAME|" + b.Width + "|" + b.Height + "|" + b64); Console.Out.Flush(); }',
     '                }',
     '              }',
-    '              try {',
-    '                using (var ms = new MemoryStream())',
-    '                using (var ep = new EncoderParameters(1)) {',
-    '                  ep.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, (long)_quality);',
-    '                  outBmp.Save(ms, encoder, ep);',
-    '                  byte[] jpg = ms.ToArray();',
-    '                  string hash = Convert.ToBase64String(md5.ComputeHash(jpg));',
-    '                  bool needSend = _forceKeyframe || hash != lastHash || (DateTime.UtcNow - lastSent).TotalMilliseconds > 2800;',
-    '                  if (needSend) {',
-    '                    _forceKeyframe = false; lastHash = hash; lastSent = DateTime.UtcNow;',
-    '                    string b64 = Convert.ToBase64String(jpg);',
-    '                    lock (_outLock) { Console.WriteLine("FRAME|" + b.Width + "|" + b.Height + "|" + b64); Console.Out.Flush(); }',
-    '                  }',
-    '                }',
-    '              } finally { if (outBmp != src) outBmp.Dispose(); }',
-    '            }',
-    '          } catch {}',
-    '          int waitMs = Math.Max(15, (1000 / Math.Max(2, _fps)) - (int)sw.ElapsedMilliseconds);',
-    '          Thread.Sleep(waitMs);',
+    '            } catch {}',
+    '            int waitMs = Math.Max(12, (1000 / Math.Max(2, _fps)) - (int)sw.ElapsedMilliseconds);',
+    '            _wakeSignal.WaitOne(waitMs);',
+    '          }',
+    '        } finally {',
+    '          if (scaledBmp != null) scaledBmp.Dispose();',
+    '          if (srcBmp != null) srcBmp.Dispose();',
     '        }',
     '      }',
     '    });',
@@ -2682,13 +2876,14 @@ async function start() {
     '      while (_running && (line = Console.ReadLine()) != null) { HandleLine(line); }',
     '    } catch {}',
     '    _running = false;',
+    '    _wakeSignal.Set();',
     '    try { capThread.Join(500); } catch {}',
     '  }',
     '}',
     '"@',
-    '$mw = if ($env:SK_RD_WIDTH) { [int]$env:SK_RD_WIDTH } else { 1280 }',
-    '$q = if ($env:SK_RD_QUALITY) { [int]$env:SK_RD_QUALITY } else { 55 }',
-    '$f = if ($env:SK_RD_FPS) { [int]$env:SK_RD_FPS } else { 7 }',
+    '$mw = if ($env:SK_RD_WIDTH) { [int]$env:SK_RD_WIDTH } else { 1152 }',
+    '$q = if ($env:SK_RD_QUALITY) { [int]$env:SK_RD_QUALITY } else { 58 }',
+    '$f = if ($env:SK_RD_FPS) { [int]$env:SK_RD_FPS } else { 14 }',
     '[SkRdHost]::Run($mw, $q, $f)'
   ].join('\r\n');
 
@@ -2697,9 +2892,14 @@ async function start() {
       sendRdStatus({ active: false, error: 'Desktop Live funcționează doar pe PC Windows.' });
       return;
     }
-    const maxWidth = Number(opts.maxWidth) || 1280;
-    const quality = Number(opts.quality) || 55;
-    const fps = Number(opts.fps) || 7;
+    remoteDesktopActive = true;
+    const maxWidth = Number(opts.maxWidth) || 1152;
+    const quality = Number(opts.quality) || 58;
+    const fps = Number(opts.fps) || 14;
+
+    if (opts.shield && !privacyShieldActive) {
+      setWindowsPrivacyShield(true);
+    }
 
     if (rdAgentProc && !rdAgentProc.killed) {
       sendRdStdin(`CFG|${maxWidth}|${quality}|${fps}`);
@@ -2749,7 +2949,7 @@ async function start() {
                 data: b64,
                 ts: Date.now(),
               });
-            } else if (Date.now() - lastCongestedKfAt > 700) {
+            } else if (Date.now() - lastCongestedKfAt > 450) {
               lastCongestedKfAt = Date.now();
               try {
                 if (proc.stdin && proc.stdin.writable) proc.stdin.write('KF\n');
@@ -2768,7 +2968,11 @@ async function start() {
         try { rl.close(); } catch (_) {}
         if (rdAgentProc === proc) {
           rdAgentProc = null;
+          remoteDesktopActive = false;
           if (rdWatchdogTimer) { clearInterval(rdWatchdogTimer); rdWatchdogTimer = null; }
+          if (!privacyShieldActive && !taskbarOverrideVisible) {
+            setTimeout(() => enforceKioskTaskbar(true), 300);
+          }
           if (code && code !== 0 && errBuf) {
             log(`[Remote Desktop] Agent ieșit cu cod ${code}: ${errBuf.trim()}`);
             sendRdStatus({ active: false, error: errBuf.trim() });
@@ -2784,6 +2988,7 @@ async function start() {
         }
       }, 5000);
     } catch (e) {
+      remoteDesktopActive = false;
       log(`[Remote Desktop] Eroare pornire agent: ${e.message}`);
       sendRdStatus({ active: false, error: e.message });
     }
@@ -2810,12 +3015,22 @@ async function start() {
       if (!rdAgentProc) {
         startRemoteDesktopAgent(data);
       } else {
-        sendRdStdin(`CFG|${Number(data.maxWidth) || 1280}|${Number(data.quality) || 55}|${Number(data.fps) || 7}`);
+        sendRdStdin(`CFG|${Number(data.maxWidth) || 1152}|${Number(data.quality) || 58}|${Number(data.fps) || 14}`);
       }
       return;
     }
     if (action === 'keyframe') {
       sendRdStdin('KF');
+      return;
+    }
+    if (action === 'shield_view') {
+      const view = data.view === 'client' ? 'client' : 'admin';
+      if (view === 'client' && !privacyShieldActive) {
+        enforceKioskTaskbar(true);
+      } else if (view === 'admin' && !privacyShieldActive) {
+        revealDesktopAndSmartKioskFolder();
+      }
+      setPrivacyShieldViewMode(view);
       return;
     }
     if (!rdAgentProc) return;

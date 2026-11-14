@@ -54,23 +54,23 @@
   </style>
 </head>
 <body>
-  <h1>📱 QR Codes — Smart Kiosk</h1>
+  <h1>QR Codes — Smart Kiosk</h1>
   <p class="sub">Scanează cu telefonul pentru a comanda de la masă</p>
 
   <div class="controls">
     <label>Backend URL: <input type="text" id="backend" value="http://localhost:4000"/></label>
     <label>QR App URL:  <input type="text" id="qrapp"   value="http://localhost:3013"/></label>
     <label>Nr. mese:    <input type="number" id="tables" value="10" min="1" max="50"/></label>
-    <button onclick="generate()">🔄 Generează</button>
-    <button class="print-btn" onclick="window.print()">🖨️ Printează</button>
+    <button onclick="generate()">Generează</button>
+    <button class="print-btn" onclick="window.print()">Printează</button>
   </div>
 
   <div id="output"></div>
 
   <script>
     const BRANDS = [
-      { id: 'smashme',    name: '🍔 SmashMe',     cls: 'smashme' },
-      { id: 'sushimaster',name: '🍣 SushiMaster',  cls: 'sushi'   },
+      { id: 'smashme',    name: 'SmashMe',     cls: 'smashme' },
+      { id: 'sushimaster',name: 'SushiMaster',  cls: 'sushi'   },
     ];
 
     function generate() {

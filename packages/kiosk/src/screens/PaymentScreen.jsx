@@ -441,11 +441,11 @@ export default function PaymentScreen() {
           {/* Cozy Corner Pumpkins with modest candlelight glow */}
           <div className="ambient-pumpkin-corner corner-bottom-left">
             <div className="pumpkin-candle-glow" />
-            <img src="/halloween_pumpkin.png" alt="🎃" className="ambient-pumpkin-img" />
+            <img src="/halloween_pumpkin.png" alt="" className="ambient-pumpkin-img" />
           </div>
           <div className="ambient-pumpkin-corner corner-bottom-right">
             <div className="pumpkin-candle-glow glow-delayed" />
-            <img src="/halloween_pumpkin.png" alt="🎃" className="ambient-pumpkin-img" />
+            <img src="/halloween_pumpkin.png" alt="" className="ambient-pumpkin-img" />
           </div>
         </div>
       )}
@@ -494,7 +494,7 @@ export default function PaymentScreen() {
               {/* Halloween Pumpkin Mascot on Payment Card with modest inner candle glow */}
               <div className="halloween-payment-pumpkin" aria-hidden="true">
                 <div className="pumpkin-candle-glow" />
-                <img src="/halloween_pumpkin.png" alt="🎃" className="payment-pumpkin-img" />
+                <img src="/halloween_pumpkin.png" alt="" className="payment-pumpkin-img" />
               </div>
 
               {/* Spiderweb Left Corner (Smoothly contoured to rounded container) */}
@@ -532,7 +532,7 @@ export default function PaymentScreen() {
               {/* Dangling Spider */}
               <div className="halloween-dangling-spider" aria-hidden="true">
                 <div className="spider-silk-thread" />
-                <span className="spider-icon">🕷️</span>
+                <span className="spider-icon"></span>
               </div>
             </>
           )}

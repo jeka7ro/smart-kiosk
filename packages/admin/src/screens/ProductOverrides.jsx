@@ -131,7 +131,7 @@ export default function ProductOverrides() {
       (oData.overrides || []).forEach(o => oMap[o.id] = o);
       setOverrides(oMap);
 
-    } catch (e) { showToast('❌ Eroare la încărcare: ' + e.message, 'err'); }
+    } catch (e) { showToast('Eroare la încărcare: ' + e.message, 'err'); }
     finally { setLoading(false); }
   };
 
@@ -273,16 +273,16 @@ export default function ProductOverrides() {
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error('Eroare de la server');
-      showToast('✅ Preferință salvată');
+      showToast('Preferință salvată');
     } catch (e) {
-      showToast('❌ Eroare la salvare: ' + e.message, 'err');
+      showToast('Eroare la salvare: ' + e.message, 'err');
       fetchAll(); // rollback
     }
   };
 
   const handleBulkToggle = async (tagType, newValue) => {
     if (filtered.length === 0) return;
-    const ok = await confirm(`Aplici modificarea pe toate cele ${filtered.length} produse afișate?`, { title: 'Modificare în masă', icon: '⚠️', okLabel: 'Aplică', danger: false });
+    const ok = await confirm(`Aplici modificarea pe toate cele ${filtered.length} produse afișate?`, { title: 'Modificare în masă', icon: '', okLabel: 'Aplică', danger: false });
     if (!ok) return;
     
     setLoading(true);
@@ -309,7 +309,7 @@ export default function ProductOverrides() {
        } catch(e) { console.error('Failed to bulk update', p.id); }
     }
     setLoading(false);
-    showToast(`✅ Au fost marcate ${successCount} produse.`);
+    showToast(`Au fost marcate ${successCount} produse.`);
   };
 
   const handleImageUploadClick = (productId) => {
@@ -338,15 +338,15 @@ export default function ProductOverrides() {
       }, true); // pass true for isFormData if needed, but our context handles it if we don't stringify
 
       if (!res.ok) throw new Error('Nu s-a putut salva');
-      showToast('📸 Poză Custom salvată!', 'ok');
+      showToast('Poză Custom salvată!', 'ok');
       fetchAll();
     } catch (err) {
-      showToast('❌ Eroare: ' + err.message, 'err');
+      showToast('Eroare: ' + err.message, 'err');
     }
   };
 
   const deleteCustomImage = async (productId) => {
-    const ok = await confirm('Ștergi poza Custom și revii la cea din Syrve?', { icon: '🗑️', okLabel: 'Șterge', danger: true });
+    const ok = await confirm('Ștergi poza Custom și revii la cea din Syrve?', { icon: '', okLabel: 'Șterge', danger: true });
     if (!ok) return;
     try {
       await fetchWithAuth(`${BACKEND}/api/products/overrides/${activeBrand}/${productId}/image`, { method: 'DELETE' });

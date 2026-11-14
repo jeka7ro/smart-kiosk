@@ -37,7 +37,7 @@ async function addPortScan(entry) {
         JSON.stringify(log.com_ports), JSON.stringify(log.printers)
       ]
     );
-    console.log(`[Port Scan] ✅ Saved: ${log.location_id} | ${log.hostname} | ${log.com_ports.length} COM | ${log.printers.length} printers`);
+    console.log(`[Port Scan] Saved: ${log.location_id} | ${log.hostname} | ${log.com_ports.length} COM | ${log.printers.length} printers`);
     try {
       const bridgeMonitoringService = require('../services/bridgeMonitoringService');
       bridgeMonitoringService.updateBridgeHardware(log.location_id, {
@@ -48,7 +48,7 @@ async function addPortScan(entry) {
       });
     } catch (_) {}
   } catch (err) {
-    console.error(`[Port Scan] ❌ Failed to save:`, err.message);
+    console.error(`[Port Scan] Failed to save:`, err.message);
   }
 
   return {

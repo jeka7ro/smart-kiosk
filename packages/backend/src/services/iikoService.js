@@ -510,7 +510,7 @@ async function syncAllMenus() {
       if (brand.orgId === orgId) {
         _menuCache[brandId] = _menuCache[cacheKey];
       }
-      console.log(`[Syrve] ✅ Synced ${brandId} (${orgId}): ${menu.categories.length} cats, ${menu.products.length} products`);
+      console.log(`[Syrve] Synced ${brandId} (${orgId}): ${menu.categories.length} cats, ${menu.products.length} products`);
 
       // Trigger background translation job for missing descriptions
       translator.processNewTranslations(menu.products)
@@ -528,7 +528,7 @@ async function syncAllMenus() {
       );
 
     } catch (err) {
-      console.error(`[Syrve] ❌ Sync failed for ${brandId} (${orgId}):`, err.message);
+      console.error(`[Syrve] Sync failed for ${brandId} (${orgId}):`, err.message);
     }
   }
 }
@@ -563,7 +563,7 @@ function clearMenuCache() {
   for (const key of Object.keys(_menuCache)) {
     delete _menuCache[key];
   }
-  console.log('[Syrve] 🗑️  Menu cache cleared — will re-fetch from Syrve API on next request');
+  console.log('[Syrve] Menu cache cleared — will re-fetch from Syrve API on next request');
 }
 
 /**
@@ -1242,7 +1242,7 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
       logIikoRequest(order.orderNumber || order.id, brandId, payload, res, res.errorDescription);
       return null;
     }
-    console.log(`[Syrve] ✅ Order created [${brandId}]:`, res?.orderInfo?.id || res?.id);
+    console.log(`[Syrve] Order created [${brandId}]:`, res?.orderInfo?.id || res?.id);
     logIikoRequest(order.orderNumber || order.id, brandId, payload, res);
 
     // Asynchronously verify final delivery creation status in Syrve (within 2-3 seconds)
@@ -1278,7 +1278,7 @@ async function verifyDeliveryStatus(deliveryId, orgId, brandId, orderNumber) {
       if (dOrder.creationStatus === 'Error') {
         const errMsg = dOrder.errorInfo?.message || dOrder.errorInfo?.description || 'Eroare necunoscută Syrve';
         const errReason = dOrder.errorInfo?.errorReason || 'CreationError';
-        console.error(`[Syrve] ❌ ASYNC ORDER REJECTION for #${orderNumber} (${deliveryId}): [${errReason}] ${errMsg}`);
+        console.error(`[Syrve] ASYNC ORDER REJECTION for #${orderNumber} (${deliveryId}): [${errReason}] ${errMsg}`);
 
         // Update iiko_logs so admin portal shows the exact error
         try {
@@ -1306,7 +1306,7 @@ async function verifyDeliveryStatus(deliveryId, orgId, brandId, orderNumber) {
           });
         }
       } else if (dOrder.creationStatus === 'Success') {
-        console.log(`[Syrve] ✅ Delivery #${orderNumber} (${deliveryId}) confirmed Success in Syrve.`);
+        console.log(`[Syrve] Delivery #${orderNumber} (${deliveryId}) confirmed Success in Syrve.`);
       }
     }
   } catch (err) {

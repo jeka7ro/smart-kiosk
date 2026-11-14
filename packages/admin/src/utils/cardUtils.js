@@ -298,7 +298,7 @@ export const BANK_CONFIG = {
     border: 'border-orange-400',
     ring: 'ring-orange-400/40',
     gradient: 'from-orange-500 to-amber-600',
-    logoText: '🍽️',
+    logoText: '',
     bins: [
       '516738', '530865', '535490', '535491', '535492', '535515', '535516', '535520', 
       '535521', '539126', '539127', '539128', '542168', '546452', '548888', '552631'
@@ -316,7 +316,7 @@ export const BANK_CONFIG = {
     border: 'border-slate-400',
     ring: 'ring-slate-400/40',
     gradient: 'from-slate-500 to-slate-700',
-    logoText: '💳',
+    logoText: '',
     bins: [],
     keywords: []
   }

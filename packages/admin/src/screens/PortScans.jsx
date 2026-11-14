@@ -96,7 +96,7 @@ export default function PortScans() {
                       isExpanded ? 'bg-blue-50/50 dark:bg-blue-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/30'
                     }`}
                   >
-                    <td className="px-4 py-3 text-center text-slate-400 text-xs font-mono">
+                    <td className="px-4 py-3 text-center text-slate-400 text-xs tabular-nums">
                       {(currentPage - 1) * itemsPerPage + idx + 1}
                     </td>
                     <td className="px-4 py-3 text-xs whitespace-nowrap">
@@ -110,7 +110,7 @@ export default function PortScans() {
                     <td className="px-4 py-3 text-xs font-bold text-blue-600 dark:text-blue-400">
                       {scan.locationId || '—'}
                     </td>
-                    <td className="px-4 py-3 text-xs font-mono text-slate-600 dark:text-slate-400">
+                    <td className="px-4 py-3 text-xs tabular-nums text-slate-600 dark:text-slate-400">
                       {scan.hostname || '—'}
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-500">
@@ -126,7 +126,7 @@ export default function PortScans() {
                         {scan.posGateway || '—'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-xs font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                    <td className="px-4 py-3 text-xs tabular-nums text-emerald-600 dark:text-emerald-400 font-bold">
                       {scan.printerName || '—'}
                     </td>
                     <td className="px-4 py-3 text-xs text-center">

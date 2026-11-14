@@ -22,7 +22,9 @@ import {
   RotateCcw,
   Zap,
   Server,
-  Monitor
+  Monitor,
+  Copy,
+  Check
 } from 'lucide-react';
 import RemoteDesktopViewer from './RemoteDesktopViewer';
 
@@ -125,6 +127,8 @@ export default function WindowsRemoteModal({
   const [cmdInput, setCmdInput] = useState('');
   const [cmdRunning, setCmdRunning] = useState(false);
   const [terminalLines, setTerminalLines] = useState([]);
+  const [copiedTerminal, setCopiedTerminal] = useState(false);
+  const [copiedBridgeLogs, setCopiedBridgeLogs] = useState(false);
   const [bridgeLogs, setBridgeLogs] = useState('');
   const terminalEndRef = useRef(null);
   const cmdTimeoutRef = useRef(null);
@@ -205,7 +209,16 @@ export default function WindowsRemoteModal({
         });
         showNotice(res.ok === false ? 'error' : 'success', res.message || res.error || 'Autostart reparat în Windows Startup!');
       } else if (res.action === 'toggle_privacy_shield') {
-        showNotice('success', res.message || 'Paravan AnyDesk actualizat!');
+        showNotice('success', res.message || 'Paravan Mentenanță actualizat!');
+      } else if (res.action === 'open_desktop_folder') {
+        if (typeof res.taskbarVisible === 'boolean') setTaskbarVisible(res.taskbarVisible);
+        showNotice('success', res.message || 'Chrome minimizat și C:\\SmartKiosk deschis pe Desktop!');
+      } else if (res.action === 'reboot_pc') {
+        showNotice(res.ok === false ? 'error' : 'success', res.message || res.error || '🔄 Comanda de Restart PC Windows a fost lansată!');
+        setTerminalLines(prev => [
+          ...prev,
+          { type: res.ok === false ? 'err' : 'out', text: `[SYSTEM REBOOT] ${res.message || res.error || 'shutdown /r /t 2 /f'}` }
+        ]);
       } else if (res.action === 'exec_cmd') {
         if (cmdTimeoutRef.current) {
           clearTimeout(cmdTimeoutRef.current);
@@ -422,6 +435,23 @@ export default function WindowsRemoteModal({
     }
   };
 
+  const handleCopyTerminalLogs = () => {
+    const text = terminalLines.map(l => l.text).join('\n');
+    if (!text) return;
+    navigator.clipboard?.writeText(text).then(() => {
+      setCopiedTerminal(true);
+      setTimeout(() => setCopiedTerminal(false), 2000);
+    }).catch(() => {});
+  };
+
+  const handleCopyBridgeLogs = () => {
+    if (!bridgeLogs) return;
+    navigator.clipboard?.writeText(bridgeLogs).then(() => {
+      setCopiedBridgeLogs(true);
+      setTimeout(() => setCopiedBridgeLogs(false), 2000);
+    }).catch(() => {});
+  };
+
   const handleTogglePrivacyShield = (e, withFeedback = false) => {
     const nextState = !isMaintenance;
     if (socket && socket.connected) {
@@ -437,10 +467,42 @@ export default function WindowsRemoteModal({
       showNotice(
         'success',
         nextState
-          ? 'Paravanul invizibil a fost ACTIVAT! Pe ecranul fizic apare Mentenanță, iar tu lucrezi transparent peste desktop!'
-          : 'Paravanul de mentenanță a fost OPRIT!'
+          ? 'Paravanul Mentenanță a fost ACTIVAT! Pe Kiosk se vede Mentenanță, iar aici în Admin (Desktop Live) Chrome a fost minimizat și vezi Desktopul Windows + C:\\SmartKiosk!'
+          : 'Paravanul de mentenanță a fost OPRIT și Kiosk-ul a revenit pe tot ecranul!'
       );
     }
+  };
+
+  const handleOpenDesktopFolder = () => {
+    if (!requireOnlineBridge('deschiderea Desktopului & C:\\SmartKiosk')) return;
+    socket.emit('pc_remote_request', {
+      requestId: `desk_${Date.now()}`,
+      locationId: locId,
+      action: 'open_desktop_folder',
+    });
+  };
+
+  const handleRebootPc = async () => {
+    if (!requireOnlineBridge('restartarea PC-ului Windows')) return;
+    const confirmed = window.confirm(
+      `Ești sigur că vrei să dai RESTART COMPLET la calculatorul Windows din „${locName}”?\n\nCalculatorul se va închide și va reporni automat în ~1 minut (cu autostart Kiosk + POS Bridge).`
+    );
+    if (!confirmed) return;
+
+    if (socket && socket.connected) {
+      socket.emit('pc_remote_request', {
+        requestId: `reboot_${Date.now()}`,
+        locationId: locId,
+        action: 'reboot_pc',
+      });
+    }
+    try {
+      await fetch(`${backend}/api/bridge-monitoring/${locId}/reboot-pc`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': 'sk-live-2024-secure' },
+      });
+    } catch (_) {}
+    showNotice('success', `🔄 Comanda de RESTART PC Windows a fost trimisă către ${locName}! Calculatorul repornește acum...`);
   };
 
   return (
@@ -489,6 +551,17 @@ export default function WindowsRemoteModal({
             >
               <Sliders className="w-3.5 h-3.5 shrink-0" />
               <span>{isMaintenance ? 'Mentenanță: ACTIV' : 'Mod Mentenanță'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleRebootPc}
+              disabled={!isOnline}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 whitespace-nowrap bg-rose-600/90 hover:bg-rose-600 disabled:opacity-45 text-white shadow-sm border border-rose-500/60"
+              title="Dă Restart complet la calculatorul Windows din locație (shutdown /r /t 2 /f)"
+            >
+              <RotateCcw className="w-3.5 h-3.5 shrink-0" />
+              <span>Restart PC</span>
             </button>
 
             <button
@@ -568,6 +641,8 @@ export default function WindowsRemoteModal({
             isOnline={isOnline}
             isMaintenance={isMaintenance}
             onToggleShield={(e) => handleTogglePrivacyShield(e, true)}
+            onOpenDesktopFolder={handleOpenDesktopFolder}
+            onRebootPc={handleRebootPc}
           />
         )}
 
@@ -900,19 +975,51 @@ export default function WindowsRemoteModal({
                   Închide orice proces POS Bridge secundar care blochează portul COM.
                 </p>
               </button>
+
+              <button
+                type="button"
+                onClick={handleRebootPc}
+                className="p-3.5 rounded-xl border border-rose-300 dark:border-rose-700/80 hover:border-rose-500 bg-rose-50/70 dark:bg-rose-950/30 text-left transition-all cursor-pointer"
+              >
+                <div className="text-xs font-bold text-rose-700 dark:text-rose-300 mb-1">🔄 Restart Complet PC Windows</div>
+                <p className="text-[11px] text-rose-600/80 dark:text-rose-300/80">
+                  Execută <code className="font-bold">shutdown /r /t 2 /f</code> — repornește fizic întregul calculator Windows.
+                </p>
+              </button>
             </div>
 
             {/* Consola CMD interactivă */}
             <div className="rounded-xl border border-slate-800 bg-slate-950 overflow-hidden flex flex-col">
               <div className="px-3.5 py-2 bg-slate-900 border-b border-slate-800 flex items-center justify-between text-xs font-mono text-slate-400">
                 <span>Administrator: Command Prompt (Silențios — windowsHide: true)</span>
-                <button
-                  type="button"
-                  onClick={() => setTerminalLines([])}
-                  className="text-[11px] text-slate-400 hover:text-white cursor-pointer"
-                >
-                  Curăță ecranul
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleCopyTerminalLogs}
+                    className="text-[11px] text-slate-300 hover:text-white flex items-center gap-1.5 cursor-pointer transition-colors px-2 py-0.5 rounded hover:bg-slate-800"
+                    title="Copiază tot textul din consolă în clipboard"
+                  >
+                    {copiedTerminal ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span className="text-emerald-400 font-bold">Copiat!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-slate-400 hover:text-white" />
+                        <span>Copiază logurile</span>
+                      </>
+                    )}
+                  </button>
+                  <span className="text-slate-700">|</span>
+                  <button
+                    type="button"
+                    onClick={() => setTerminalLines([])}
+                    className="text-[11px] text-slate-400 hover:text-white cursor-pointer transition-colors"
+                  >
+                    Curăță ecranul
+                  </button>
+                </div>
               </div>
               <div className="p-3.5 font-mono text-xs space-y-1.5 max-h-56 overflow-y-auto">
                 {terminalLines.map((l, i) => (
@@ -968,6 +1075,24 @@ export default function WindowsRemoteModal({
                 Aceasta este fereastra neagră <code className="font-bold">start-windows.bat / node index.js</code> de pe PC-ul din locație:
               </div>
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleCopyBridgeLogs}
+                  className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 cursor-pointer transition-colors"
+                  title="Copiază tot jurnalul POS Bridge în clipboard"
+                >
+                  {copiedBridgeLogs ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-500" />
+                      <span className="text-emerald-600 dark:text-emerald-400">Copiat!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Copiază Logul</span>
+                    </>
+                  )}
+                </button>
                 <button
                   type="button"
                   onClick={() => handleSelectFile('pos-bridge.log')}

@@ -4,24 +4,9 @@ import { Lock, Unlock, ShieldAlert, ShieldCheck, Clock, RefreshCw, Download, Sea
 import { io } from 'socket.io-client';
 import * as XLSX from 'xlsx';
 import BrandLogo from '../components/BrandLogo.jsx';
+import { ALL_BRAND_COLORS as BRAND_COLORS, ALL_BRAND_LABELS as BRAND_NAMES, getBrandColor, getBrandLabel } from '../utils/brandTheme';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
-
-const BRAND_COLORS = {
-  smashme: '#ef4444',
-  crunch: '#eab308',
-  rollmaster: '#e31e24',
-  lovesushi: '#ec4899',
-  pokiwoki: '#f97316'
-};
-
-const BRAND_NAMES = {
-  smashme: 'SmashMe',
-  crunch: 'Crunch',
-  rollmaster: 'Roll Master',
-  lovesushi: 'Love Sushi',
-  pokiwoki: 'Poki-Woki'
-};
 
 const EVENT_CONFIG = {
   unlock_manager: {
@@ -382,10 +367,10 @@ export default function KioskLogs() {
         <div className="flex flex-wrap items-center gap-2">
           {[
             { id: 'all', label: 'Toate' },
-            { id: 'unlock_manager', label: '✓ PIN Manager' },
-            { id: 'unlock_vendor', label: '✓ PIN Vânzător' },
+            { id: 'unlock_manager', label: 'PIN Manager' },
+            { id: 'unlock_vendor', label: 'PIN Vânzător' },
             { id: 'auto_unlock', label: '⏱ Deblocat Orar' },
-            { id: 'unlock_failed', label: '✕ PIN Incorect' }
+            { id: 'unlock_failed', label: 'PIN Incorect' }
           ].map(f => (
             <button
               key={f.id}
@@ -486,7 +471,7 @@ export default function KioskLogs() {
         </div>
       </div>
 
-      {/* ─── TABEL EVENIMENTE (Cu Brand Avatar & Typography curată, FĂRĂ font-mono) ─── */}
+      {/* ─── TABEL EVENIMENTE (Cu Brand Avatar & Typography curată, FĂRĂ tabular-nums) ─── */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-x-auto">
         <table className="w-full text-left border-collapse min-w-[850px]">
           <thead>
@@ -548,12 +533,12 @@ export default function KioskLogs() {
                   key={log.id || idx}
                   className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
                 >
-                  {/* Nr. Crt. FĂRĂ font-mono */}
+                  {/* Nr. Crt. FĂRĂ tabular-nums */}
                   <td className="px-4 py-3 text-center text-sm font-medium text-slate-400">
                     {rowIndex}
                   </td>
 
-                  {/* Data / Ora FĂRĂ font-mono */}
+                  {/* Data / Ora FĂRĂ tabular-nums */}
                   <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 whitespace-nowrap">
                     {dt ? (
                       <div className="flex flex-col gap-0.5">
@@ -588,8 +573,8 @@ export default function KioskLogs() {
 
                       {/* Nume Curat Brand & Locatie FARA ID tehnice */}
                       <div className="flex flex-col items-start min-w-0">
-                        <span className="text-sm font-bold text-slate-800 dark:text-slate-100 capitalize">
-                          {BRAND_NAMES[brand] || brand}
+                        <span style={{ color: getBrandColor(brand) }} className="text-xs font-bold">
+                          {getBrandLabel(brand)}
                         </span>
                         <span className="px-2 py-0.5 mt-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-400">
                           {cleanName}

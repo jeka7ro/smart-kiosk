@@ -10,8 +10,8 @@ import { formatThousands } from '../utils/formatters';
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
 
 const STATUS_CONFIG = {
-  success: { label: 'Succes',  color: '#ffffff', bg: '#059669', icon: '✓' },
-  error:   { label: 'Eroare',  color: '#ffffff', bg: '#dc2626', icon: '✕' },
+  success: { label: 'Succes',  color: '#ffffff', bg: '#059669', icon: '' },
+  error:   { label: 'Eroare',  color: '#ffffff', bg: '#dc2626', icon: '' },
   unknown: { label: 'Necunoscut', color: '#ffffff', bg: '#d97706', icon: '?' },
 };
 
@@ -411,8 +411,8 @@ export default function PrinterLogs() {
         <div className="flex flex-wrap items-center gap-2">
           {[
             { id: 'all',     label: 'Toate' },
-            { id: 'success', label: '✓ Reușite' },
-            { id: 'error',   label: '✕ Erori' },
+            { id: 'success', label: 'Reușite' },
+            { id: 'error',   label: 'Erori' },
           ].map(f => (
             <button
               key={f.id}

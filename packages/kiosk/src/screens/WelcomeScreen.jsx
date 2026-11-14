@@ -20,7 +20,7 @@ export default function WelcomeScreen() {
   const locationData = useKioskStore((s) => s.locationData);
   const [slide, setSlide] = useState(0);
   const slides = locationData?.brands?.length > 1 
-    ? [{ headline: 'Bine ați venit!', sub: 'Alegeți restaurantul preferat', emoji: '🍽️' }]
+    ? [{ headline: 'Bine ați venit!', sub: 'Alegeți restaurantul preferat', emoji: '' }]
     : brand.welcomeSlides;
 
   // ─── Poster / Screensaver (Single or Multi-dish rotation) ──
@@ -339,7 +339,7 @@ const FLAG_GRADIENTS = {
               {isHalloweenActive && (
                 <img 
                   src="/halloween_pumpkin.png" 
-                  alt="🎃" 
+                  alt="" 
                   className="standby-pumpkin-img" 
                 />
               )}
@@ -349,7 +349,7 @@ const FLAG_GRADIENTS = {
               {isHalloweenActive && (
                 <img 
                   src="/halloween_bat.png" 
-                  alt="🦇" 
+                  alt="" 
                   className="standby-bat-img" 
                 />
               )}
@@ -415,7 +415,7 @@ const FLAG_GRADIENTS = {
           style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, background: btnColor, color: btnTextColor, borderColor: btnBorderColor, borderWidth: (isHalloweenActive || btnBorderColor !== 'transparent') ? '2px' : '0', borderStyle: 'solid', boxShadow: isHalloweenActive ? undefined : `0 12px 32px ${btnShadowColor}80` }}
           onClick={goAfterWelcome}
         >
-          {isHalloweenActive && <img src="/halloween_pumpkin.png" alt="🎃" className="standby-pumpkin-img" style={{ width: 38, height: 38 }} />}
+          {isHalloweenActive && <img src="/halloween_pumpkin.png" alt="" className="standby-pumpkin-img" style={{ width: 38, height: 38 }} />}
           {(locationData?.brands?.length > 1 ? locationData.brands : [brand.id]).map((bId) => (
             <img
               key={bId}
@@ -426,7 +426,7 @@ const FLAG_GRADIENTS = {
             />
           ))}
           <span style={{ color: btnTextColor }} className={isHalloweenActive ? 'halloween-btn-label' : ''}>{customBtnText || t('tap_to_order', lang)}</span>
-          {isHalloweenActive && <img src="/halloween_bat.png" alt="🦇" className="standby-bat-img" style={{ height: 40, width: 'auto', maxWidth: 95 }} />}
+          {isHalloweenActive && <img src="/halloween_bat.png" alt="" className="standby-bat-img" style={{ height: 40, width: 'auto', maxWidth: 95 }} />}
         </button>
       </div>
 
@@ -512,8 +512,7 @@ const FLAG_GRADIENTS = {
                 onClick={(e) => { e.stopPropagation(); setShowBridgeModal(false); }}
                 style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '14px', cursor: 'pointer', padding: 0 }}
               >
-                ✕
-              </button>
+                </button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>

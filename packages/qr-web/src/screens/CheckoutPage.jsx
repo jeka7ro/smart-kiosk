@@ -59,7 +59,7 @@ export default function CheckoutPage({ brand }) {
       <button className="co-back" onClick={() => goTo('cart')}>← Coș</button>
 
       <div className="co-body">
-        <div className="co-icon">💳</div>
+        <div className="co-icon"></div>
         <h1 className="co-title">Plată securizată</h1>
         <p className="co-sub">Masa #{tableNum} · Procesată prin Viva.com</p>
 
@@ -74,9 +74,9 @@ export default function CheckoutPage({ brand }) {
         </div>
 
         <div className="co-info card">
-          <div className="co-info-row">🔒 <span>Conexiune securizată SSL 3DS</span></div>
-          <div className="co-info-row">🏦 <span>Procesat de Viva.com</span></div>
-          <div className="co-info-row">❌ <span>Nu stocăm datele cardului</span></div>
+          <div className="co-info-row"><span>Conexiune securizată SSL 3DS</span></div>
+          <div className="co-info-row"><span>Procesat de Viva.com</span></div>
+          <div className="co-info-row"><span>Nu stocăm datele cardului</span></div>
         </div>
 
         {error && <div className="co-error">{error}</div>}

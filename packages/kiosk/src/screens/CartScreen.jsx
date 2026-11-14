@@ -405,7 +405,7 @@ export default function CartScreen() {
                         {/* Feedback overlay la adăugare */}
                         {isAdded && (
                           <div className="cart-upsell-card-overlay">
-                            <span className="cart-upsell-card-check">✓</span>
+                            <span className="cart-upsell-card-check"></span>
                             <span className="cart-upsell-card-added-text">Adăugat</span>
                           </div>
                         )}
@@ -424,7 +424,7 @@ export default function CartScreen() {
                             }}
                             aria-label={`Adaugă ${prod.name}`}
                           >
-                            {isAdded ? '✓ Adăugat' : '+ Adaugă'}
+                            {isAdded ? 'Adăugat' : '+ Adaugă'}
                           </button>
                         </div>
                       </div>

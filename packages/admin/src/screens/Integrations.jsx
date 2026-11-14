@@ -56,7 +56,7 @@ export default function Integrations() {
       const pData = await pRes.json();
       setIntegrations(iData.integrations || []);
       setProviders(pData.providers || []);
-    } catch (e) { showToast('❌ ' + e.message, 'err'); }
+    } catch (e) { showToast('' + e.message, 'err'); }
     finally { setLoading(false); }
   };
 
@@ -95,7 +95,7 @@ export default function Integrations() {
       setEditId(item.id);
       setTestResult(null);
       setModal(true);
-    } catch (e) { showToast('❌ ' + e.message, 'err'); }
+    } catch (e) { showToast('' + e.message, 'err'); }
   };
 
   const closeModal = () => { setModal(false); setForm(EMPTY_FORM); setEditId(null); setTestResult(null); };
@@ -111,9 +111,9 @@ export default function Integrations() {
       const res    = await fetchWithAuth(url, { method, body: JSON.stringify(form) });
       const data   = await res.json();
       if (!res.ok) throw new Error(data.error);
-      showToast(editId ? '✅ Integrare actualizată!' : '✅ Integrare adăugată!');
+      showToast(editId ? 'Integrare actualizată!' : 'Integrare adăugată!');
       closeModal(); fetchAll();
-    } catch (e) { showToast('❌ ' + e.message, 'err'); }
+    } catch (e) { showToast('' + e.message, 'err'); }
     finally { setSaving(false); }
   };
 
@@ -123,9 +123,9 @@ export default function Integrations() {
     try {
       const res  = await fetchWithAuth(`${BACKEND}/api/integrations/${id}/test`, { method: 'POST' });
       const data = await res.json();
-      if (res.ok) { setTestResult({ ok: true, msg: data.detail }); showToast('✅ ' + data.detail); }
-      else { setTestResult({ ok: false, msg: data.error }); showToast('❌ ' + data.error, 'err'); }
-    } catch (e) { setTestResult({ ok: false, msg: e.message }); showToast('❌ ' + e.message, 'err'); }
+      if (res.ok) { setTestResult({ ok: true, msg: data.detail }); showToast('' + data.detail); }
+      else { setTestResult({ ok: false, msg: data.error }); showToast('' + data.error, 'err'); }
+    } catch (e) { setTestResult({ ok: false, msg: e.message }); showToast('' + e.message, 'err'); }
     finally { setTesting(null); fetchAll(); }
   };
 
@@ -134,38 +134,38 @@ export default function Integrations() {
     try {
       const res  = await fetchWithAuth(`${BACKEND}/api/integrations/${id}/sync`, { method: 'POST' });
       const data = await res.json();
-      if (res.ok) showToast(`🔄 ${data.detail}`);
-      else showToast('❌ ' + data.error, 'err');
-    } catch (e) { showToast('❌ ' + e.message, 'err'); }
+      if (res.ok) showToast(`${data.detail}`);
+      else showToast('' + data.error, 'err');
+    } catch (e) { showToast('' + e.message, 'err'); }
     finally { setSyncing(null); fetchAll(); }
   };
 
   const deleteOne = async (integ) => {
-    const ok = await confirm(`Ștergi integrarea „${integ.name}"?`, { title: 'Confirmare ștergere', icon: '🗑️', okLabel: 'Șterge', danger: true });
+    const ok = await confirm(`Ștergi integrarea „${integ.name}"?`, { title: 'Confirmare ștergere', icon: '', okLabel: 'Șterge', danger: true });
     if (!ok) return;
     try {
       await fetchWithAuth(`${BACKEND}/api/integrations/${integ.id}`, { method: 'DELETE' });
-      showToast('🗑 Șters'); fetchAll();
-    } catch (e) { showToast('❌ ' + e.message, 'err'); }
+      showToast('Șters'); fetchAll();
+    } catch (e) { showToast('' + e.message, 'err'); }
   };
 
   const bulkDelete = async () => {
     if (!selected.size) return;
-    const ok = await confirm(`Ștergi ${selected.size} integrări?`, { title: 'Confirmare ștergere multiple', icon: '🗑️', okLabel: 'Șterge tot', danger: true });
+    const ok = await confirm(`Ștergi ${selected.size} integrări?`, { title: 'Confirmare ștergere multiple', icon: '', okLabel: 'Șterge tot', danger: true });
     if (!ok) return;
     try {
       await Promise.all([...selected].map(id => fetchWithAuth(`${BACKEND}/api/integrations/${id}`, { method: 'DELETE' })));
-      setSelected(new Set()); showToast(`🗑 ${selected.size} integrări șterse`); fetchAll();
-    } catch (e) { showToast('❌ ' + e.message, 'err'); }
+      setSelected(new Set()); showToast(`${selected.size} integrări șterse`); fetchAll();
+    } catch (e) { showToast('' + e.message, 'err'); }
   };
 
   const importSyrve = async () => {
     try {
       const res  = await fetchWithAuth(`${BACKEND}/api/integrations/import-from-env`, { method: 'POST' });
       const data = await res.json();
-      if (data.ok) { showToast(`✅ ${data.detail}`); fetchAll(); }
-      else showToast('❌ ' + (data.error || 'Eroare import'), 'err');
-    } catch (e) { showToast('❌ ' + e.message, 'err'); }
+      if (data.ok) { showToast(`${data.detail}`); fetchAll(); }
+      else showToast('' + (data.error || 'Eroare import'), 'err');
+    } catch (e) { showToast('' + e.message, 'err'); }
   };
 
   const providerMeta = (key) => providers.find(p => p.key === key) || { label: key, color: '#6b7280' };
@@ -338,7 +338,7 @@ export default function Integrations() {
                 {pageItems.length === 0 && !loading && (
                   <tr>
                     <td colSpan={8} className="px-6 py-16 text-center">
-                      <div className="text-4xl mb-4">🔌</div>
+                      <div className="text-4xl mb-4"></div>
                       <div className="text-slate-900 dark:text-white font-bold mb-2">Nicio integrare configurată</div>
                       <div className="text-slate-500 text-sm">Adaugă primul POS pentru a conecta meniul și comenzile</div>
                     </td>
@@ -464,7 +464,7 @@ export default function Integrations() {
               {/* Test result */}
               {testResult && (
                 <div className={`mt-6 p-4 rounded-full border font-medium flex items-center gap-3 ${testResult.ok ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50' : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800/50'}`}>
-                  <span className="text-xl">{testResult.ok ? '✅' : '❌'}</span>
+                  <span className="text-xl">{testResult.ok ? '' : ''}</span>
                   <span>{testResult.msg}</span>
                 </div>
               )}

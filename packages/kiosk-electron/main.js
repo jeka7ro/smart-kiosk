@@ -47,7 +47,7 @@ function createKioskWindow() {
   const targetDisplay = screen.getPrimaryDisplay();
   const { bounds } = targetDisplay;
 
-  console.log(`[Armored Kiosk] 🖥️ Rezoluție nativă Kiosk detectată: ${bounds.width} x ${bounds.height}`);
+  console.log(`[Armored Kiosk] Rezoluție nativă Kiosk detectată: ${bounds.width} x ${bounds.height}`);
 
   mainWindow = new BrowserWindow({
     x: bounds.x,
@@ -79,7 +79,7 @@ function createKioskWindow() {
         openAsHidden: false,
         name: 'Smart Kiosk'
       });
-      console.log('[Armored Kiosk] ✅ Auto-Start la pornirea Windows a fost înregistrat.');
+      console.log('[Armored Kiosk] Auto-Start la pornirea Windows a fost înregistrat.');
     } catch (e) {
       console.warn('[Armored Kiosk] Nu s-a putut seta Auto-Start:', e.message);
     }
@@ -182,7 +182,7 @@ function createKioskWindow() {
   });
 
   // Încărcare URL Kiosk
-  console.log(`[Armored Kiosk] 🚀 Pornește Kiosk pentru locația [${targetLocation}]: ${targetUrl}`);
+  console.log(`[Armored Kiosk] Pornește Kiosk pentru locația [${targetLocation}]: ${targetUrl}`);
   mainWindow.loadURL(targetUrl);
 }
 
@@ -194,7 +194,7 @@ function promptManagerExit() {
     type: 'question',
     buttons: ['Da, Închide Kiosk', 'Anulează'],
     defaultId: 1,
-    title: '🛡️ Manager Override',
+    title: 'Manager Override',
     message: 'Dorești să închizi aplicația Smart Kiosk?',
     detail: 'Aplicația este în mod Kiosk securizat.'
   }).then(result => {

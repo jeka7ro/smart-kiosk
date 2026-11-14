@@ -879,15 +879,15 @@ export const T = {
     es: "Pagado"
   },
   confirmed: {
-    ro: '✓ Confirmat',
-    en: '✓ Confirmed',
-    fr: '✓ Confirmé',
-    hu: '✓ Megerősítve',
-    ru: '✓ Подтверждено',
-    uk: '✓ Підтверджено',
-    bg: "✓ Потвърдено",
-    de: "✓ Bestätigt",
-    es: "✓ Confirmado"
+    ro: 'Confirmat',
+    en: 'Confirmed',
+    fr: 'Confirmé',
+    hu: 'Megerősítve',
+    ru: 'Подтверждено',
+    uk: 'Підтверджено',
+    bg: "Потвърдено",
+    de: "Bestätigt",
+    es: "Confirmado"
   },
   screen_reset_in: {
     ro: 'Ecranul se va reseta în',

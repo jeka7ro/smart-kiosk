@@ -237,7 +237,7 @@ class VerifoneSerialService {
           // ── NAK ──────────────────────────────────────────────────────────
           if (b === NAK) {
             rxBuf = rxBuf.subarray(1);
-            log('⚠ NAK primit');
+            log('NAK primit');
             break;
           }
 

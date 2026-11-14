@@ -52,13 +52,13 @@ function getActualPrinterName() {
       const configuredHasError = configuredPrinter && isRealError(configuredPrinter.PrinterStatus);
       
       if (configuredHasError) {
-        console.warn(`[Printer] ⚠ Imprimanta configurată "${configured}" este în stare de EROARE pe Windows!`);
+        console.warn(`[Printer] Imprimanta configurată "${configured}" este în stare de EROARE pe Windows!`);
         if (physicalUsbPrinter) {
-          console.log(`[Printer] 🔄 Folosesc imprimanta fizică sănătoasă (${physicalUsbPrinter.PortName}): "${physicalUsbPrinter.Name}"`);
+          console.log(`[Printer] Folosesc imprimanta fizică sănătoasă (${physicalUsbPrinter.PortName}): "${physicalUsbPrinter.Name}"`);
           return physicalUsbPrinter.Name;
         }
         if (healthyEpson) {
-          console.log(`[Printer] 🔄 Folosesc imprimanta funcțională: "${healthyEpson.Name}"`);
+          console.log(`[Printer] Folosesc imprimanta funcțională: "${healthyEpson.Name}"`);
           return healthyEpson.Name;
         }
       }
@@ -97,9 +97,9 @@ function getActualPrinterName() {
 let printerDriver;
 try {
   printerDriver = require('@thiagoelg/node-printer');
-  console.log('[Printer] ✅ Driver nativ găsit.');
+  console.log('[Printer] Driver nativ găsit.');
 } catch (e) {
-  console.log('[Printer] ⚠ Driver nativ nu e instalat — voi folosi metoda PowerShell (raw print).');
+  console.log('[Printer] Driver nativ nu e instalat — voi folosi metoda PowerShell (raw print).');
 }
 
 async function printTicket(order) {
@@ -309,7 +309,7 @@ async function printTicket(order) {
     
     // If using file interface, send the file to the Windows printer
     if (!printerDriver && fs.existsSync(tempFile)) {
-      console.log(`[Printer] 🎯 Trimit la imprimantă: "${PRINTER_NAME}" | Fișier: ${tempFile} (${fs.statSync(tempFile).size} bytes)`);
+      console.log(`[Printer] Trimit la imprimantă: "${PRINTER_NAME}" | Fișier: ${tempFile} (${fs.statSync(tempFile).size} bytes)`);
       
       const shareName = 'EPSON_RAW';
       // 1. Asigurăm partajarea imprimantei pentru trimitere directă RAW (by-pass driver)
@@ -327,10 +327,10 @@ async function printTicket(order) {
       // Metoda 1: Trimitere directă RAW către Spooler Share (100% nativ Windows, fără compilare C#)
       try {
         execSync(`cmd.exe /c "copy /b \\"${tempFile}\\" \\"\\\\127.0.0.1\\${shareName}\\""`, { timeout: 8000 });
-        console.log(`[Printer] ✅ Bon printat via RAW Spooler (Share) pentru comanda #${order.orderNumber || '?'}`);
+        console.log(`[Printer] Bon printat via RAW Spooler (Share) pentru comanda #${order.orderNumber || '?'}`);
         return { status: 'success', method: 'raw_share', printerName: PRINTER_NAME, receiptContent };
       } catch (shareErr) {
-        console.warn(`[Printer] ⚠ RAW Share: ${shareErr.message}. Încerc WinSpool...`);
+        console.warn(`[Printer] RAW Share: ${shareErr.message}. Încerc WinSpool...`);
       }
 
       // Metoda 2: WinSpool P/Invoke via rawprint.ps1
@@ -348,40 +348,40 @@ async function printTicket(order) {
             const checkCmd = `Get-PrintJob -PrinterName '${usedPrinter}' -ErrorAction SilentlyContinue | Select-Object Id, JobStatus, DocumentName | ConvertTo-Json -Compress`;
             const qRaw = execSync(`powershell -NoProfile -Command "${checkCmd}"`, { timeout: 3000 }).toString().trim();
             if (qRaw) {
-              console.warn(`[Printer] ⚠ Joburi în coada Windows pentru "${usedPrinter}": ${qRaw}`);
+              console.warn(`[Printer] Joburi în coada Windows pentru "${usedPrinter}": ${qRaw}`);
               queueInfo = qRaw;
             }
           } catch (_) {}
 
-          console.log(`[Printer] ✅ Bon printat via WinSpool pe "${usedPrinter}" pentru comanda #${order.orderNumber || '?'}`);
+          console.log(`[Printer] Bon printat via WinSpool pe "${usedPrinter}" pentru comanda #${order.orderNumber || '?'}`);
           return { status: 'success', method: 'winspool', printerName: usedPrinter, receiptContent, queueInfo };
         }
       } catch (psErr) {
-        console.warn(`[Printer] ⚠ WinSpool: ${psErr.message}`);
+        console.warn(`[Printer] WinSpool: ${psErr.message}`);
       }
 
       // Metoda 3: COPY către localhost printer name
       try {
         execSync(`cmd.exe /c "copy /b \\"${tempFile}\\" \\"\\\\localhost\\${PRINTER_NAME}\\""`, { timeout: 8000 });
-        console.log(`[Printer] ✅ Bon printat prin COPY localhost pentru comanda #${order.orderNumber || '?'}`);
+        console.log(`[Printer] Bon printat prin COPY localhost pentru comanda #${order.orderNumber || '?'}`);
         return { status: 'success', method: 'copy', printerName: PRINTER_NAME, receiptContent };
       } catch (copyErr) {
-        console.warn(`[Printer] ⚠ COPY: ${copyErr.message}`);
+        console.warn(`[Printer] COPY: ${copyErr.message}`);
       }
 
       // Metoda 4: direct Out-Printer
       try {
         execSync(`powershell -NoProfile -Command "Get-Content -Encoding Byte -Path '${tempFile}' | Out-Printer -Name '${PRINTER_NAME}'"`, { timeout: 10000 });
-        console.log(`[Printer] ✅ Bon printat prin Out-Printer pentru comanda #${order.orderNumber || '?'}`);
+        console.log(`[Printer] Bon printat prin Out-Printer pentru comanda #${order.orderNumber || '?'}`);
         return { status: 'success', method: 'out-printer', printerName: PRINTER_NAME, receiptContent };
       } catch (outErr) {
-        console.error(`[Printer] ❌ Toate metodele au eșuat. Share: failed | Out-Printer: ${outErr.message}`);
+        console.error(`[Printer] Toate metodele au eșuat. Share: failed | Out-Printer: ${outErr.message}`);
         return { status: 'error', method: 'failed', printerName: PRINTER_NAME, error: outErr.message, receiptContent };
       } finally {
         try { fs.unlinkSync(tempFile); } catch (_) {}
       }
     } else if (printerDriver) {
-      console.log(`[Printer] ✅ Bon printat cu succes pentru comanda #${order.orderNumber}`);
+      console.log(`[Printer] Bon printat cu succes pentru comanda #${order.orderNumber}`);
       return { status: 'success', method: 'driver', printerName: PRINTER_NAME, receiptContent };
     }
 

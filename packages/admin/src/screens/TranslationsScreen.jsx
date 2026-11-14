@@ -15,11 +15,11 @@ const BRAND_LOGOS = {
 
 const BRAND_META = {
   smashme:     { name: 'SmashMe',      color: '#ef4444' },
-  crunch:      { name: 'Crunch',       color: '#eab308' },
-  rollmaster:  { name: 'Roll Master',  color: '#e31e24' },
-  lovesushi:   { name: 'Love Sushi',   color: '#ec4899' },
-  pokiwoki:    { name: 'Poki-Woki',    color: '#f97316' },
-  welovesushi: { name: 'WeLoveSushi',  color: '#6366f1' }
+  crunch:      { name: 'Crunch',       color: '#d97706' },
+  rollmaster:  { name: 'Roll Master',  color: '#dc2626' },
+  lovesushi:   { name: 'Love Sushi',   color: '#f97316' },
+  pokiwoki:    { name: 'Poki-Woki',    color: '#65a30d' },
+  welovesushi: { name: 'WeLoveSushi',  color: '#f97316' }
 };
 
 export default function TranslationsScreen({ backend }) {
@@ -75,7 +75,7 @@ export default function TranslationsScreen({ backend }) {
   const confirm = useConfirm();
 
   const handleForceTranslate = async () => {
-    const ok = await confirm('Va dura câteva minute în fundal.', { title: 'Auto-Traducere', icon: '🌐', okLabel: 'Pornește', danger: false });
+    const ok = await confirm('Va dura câteva minute în fundal.', { title: 'Auto-Traducere', icon: '', okLabel: 'Pornește', danger: false });
     if (!ok) return;
     try {
       setSubmitting(true);

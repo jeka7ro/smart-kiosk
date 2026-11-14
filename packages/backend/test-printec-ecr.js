@@ -107,11 +107,11 @@ function nextTest() {
   clearTimeout(respTimer);
 
   log(`\n══ TEST ${testIdx+1}/${tests.length}: ${t.name} ══`);
-  log(`📤 Frame:${hexLine(t.buf)}`);
+  log(`Frame:${hexLine(t.buf)}`);
   
   port.write(t.buf, err => {
-    if (err) { log(`❌ Write: ${err.message}`); testIdx++; setTimeout(nextTest, 500); return; }
-    log('📡 Trimis. Aştept răspuns (8s)...');
+    if (err) { log(`Write: ${err.message}`); testIdx++; setTimeout(nextTest, 500); return; }
+    log('Trimis. Aştept răspuns (8s)...');
     respTimer = setTimeout(() => {
       log('⏱ Timeout — EOT sau niciun răspuns');
       waiting = false; testIdx++;
@@ -129,26 +129,26 @@ console.log('══════════════════════�
 port = new SerialPort({ path: PORT, baudRate: BAUD, dataBits:8, parity:'none', stopBits:1, autoOpen:false });
 
 port.open(err => {
-  if (err) { console.error('❌', err.message); process.exit(1); }
-  log(`✅ Port deschis: ${PORT} @ ${BAUD} baud, 8N1`);
+  if (err) { console.error('', err.message); process.exit(1); }
+  log(`Port deschis: ${PORT} @ ${BAUD} baud, 8N1`);
   setTimeout(nextTest, 500);
 });
 
 port.on('data', chunk => {
   if (!waiting) return;
   rxBuf = Buffer.concat([rxBuf, chunk]);
-  log(`📥 ${hexLine(chunk)}`);
+  log(`${hexLine(chunk)}`);
 
   if (chunk.includes(EOT)) {
-    log('❌ EOT — format nerecunoscut'); clearTimeout(respTimer);
+    log('EOT — format nerecunoscut'); clearTimeout(respTimer);
     waiting = false; testIdx++; setTimeout(nextTest, 1500); return;
   }
   if (chunk.includes(NAK)) {
-    log('⚠️ NAK — format parțial corect (LRC sau câmp greșit)!'); clearTimeout(respTimer);
+    log('NAK — format parțial corect (LRC sau câmp greșit)!'); clearTimeout(respTimer);
     waiting = false; testIdx++; setTimeout(nextTest, 1500); return;
   }
   if (chunk.includes(ACK)) {
-    log('🎉 ACK! FORMAT CORECT! Aştept răspuns complet...'); clearTimeout(respTimer);
+    log('ACK! FORMAT CORECT! Aştept răspuns complet...'); clearTimeout(respTimer);
     respTimer = setTimeout(() => { waiting = false; testIdx++; setTimeout(nextTest, 1500); }, 15000);
   }
 
@@ -156,17 +156,17 @@ port.on('data', chunk => {
   const si = rxBuf.indexOf(STX), ei = rxBuf.indexOf(ETX, si+1);
   if (si>=0 && ei>si && rxBuf.length>ei+1) {
     const payload = rxBuf.subarray(si+1,ei).toString('ascii');
-    log(`📦 Frame complet: "${payload}"`);
+    log(`Frame complet: "${payload}"`);
     clearTimeout(respTimer);
     
     // Răspuns ACK la POS
     port.write(Buffer.from([ACK]));
-    log('📤 ACK trimis înapoi la POS');
+    log('ACK trimis înapoi la POS');
     
     waiting = false; testIdx++;
     setTimeout(nextTest, 2000);
   }
 });
 
-port.on('error', err => log(`❌ ${err.message}`));
+port.on('error', err => log(`${err.message}`));
 setTimeout(() => { log('Timeout global 3min'); port.close(); process.exit(0); }, 180000);

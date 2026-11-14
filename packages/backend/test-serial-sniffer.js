@@ -105,7 +105,7 @@ function sendNext() {
 
   if (c.buf === null) {
     // Doar ascultăm 5s
-    console.log(`[${ts()}] 👂 Ascult ce trimite POS spontan (5s)...`);
+    console.log(`[${ts()}] Ascult ce trimite POS spontan (5s)...`);
     responseTimer = setTimeout(() => {
       console.log(`[${ts()}] (nimic primit spontan)`);
       candidateIdx++;
@@ -116,7 +116,7 @@ function sendNext() {
 
   // Pas 1: ENQ
   port.write(Buffer.from([ENQ]), () => {
-    console.log(`[${ts()}] 📤 ENQ`);
+    console.log(`[${ts()}] ENQ`);
     
     // Aştept ACK la ENQ, apoi trimit comanda
     const enqTimer = setTimeout(() => {
@@ -130,8 +130,8 @@ function sendNext() {
       port.removeListener('data', onEnqResp);
       
       if (data[0] === ACK) {
-        console.log(`[${ts()}] 📥 ACK ← ENQ OK`);
-        console.log(`[${ts()}] 📤 ${c.name}: ${hexLine(c.buf)}`);
+        console.log(`[${ts()}] ACK ← ENQ OK`);
+        console.log(`[${ts()}] ${c.name}: ${hexLine(c.buf)}`);
         port.write(c.buf);
         
         // Aştept răspuns la comandă (5s)
@@ -141,7 +141,7 @@ function sendNext() {
           sendNext();
         }, 5000);
       } else {
-        console.log(`[${ts()}] 📥 Resp ENQ: ${hexLine(data)} — POS nu e gata, skip`);
+        console.log(`[${ts()}] Resp ENQ: ${hexLine(data)} — POS nu e gata, skip`);
         candidateIdx++;
         setTimeout(sendNext, 500);
       }
@@ -155,11 +155,11 @@ let collecting = false;
 port.on('data', chunk => {
   if (!waitingResponse) return;
   rxBuf = Buffer.concat([rxBuf, chunk]);
-  console.log(`[${ts()}] 📥 ${hexLine(chunk)}`);
+  console.log(`[${ts()}] ${hexLine(chunk)}`);
 
   // Dacă primim EOT sau NAK — înseamnă că formatul NU e recunoscut
   if (chunk.includes(EOT)) {
-    console.log(`[${ts()}] ❌ EOT — format NERECUNOSCUT`);
+    console.log(`[${ts()}] EOT — format NERECUNOSCUT`);
     clearTimeout(responseTimer);
     waitingResponse = false;
     candidateIdx++;
@@ -168,7 +168,7 @@ port.on('data', chunk => {
   }
 
   if (chunk.includes(NAK)) {
-    console.log(`[${ts()}] ⚠️ NAK — LRC greșit sau format parțial înțeles (FORMAT PROMIȚĂTOR!)`);
+    console.log(`[${ts()}] NAK — LRC greșit sau format parțial înțeles (FORMAT PROMIȚĂTOR!)`);
     clearTimeout(responseTimer);
     waitingResponse = false;
     candidateIdx++;
@@ -179,7 +179,7 @@ port.on('data', chunk => {
   // ACK după comandă = FORMAT CORECT!
   if (chunk.includes(ACK)) {
     clearTimeout(responseTimer);
-    console.log(`[${ts()}] 🎉 ACK — FORMAT RECUNOSCUT! → "${candidates[candidateIdx].name}"`);
+    console.log(`[${ts()}] ACK — FORMAT RECUNOSCUT! → "${candidates[candidateIdx].name}"`);
     // Continuăm să ascultăm frame-ul complet
     responseTimer = setTimeout(() => {
       waitingResponse = false;
@@ -193,7 +193,7 @@ port.on('data', chunk => {
   const etxI = rxBuf.indexOf(ETX, stxI + 1);
   if (stxI >= 0 && etxI > stxI && rxBuf.length > etxI + 1) {
     const payload = rxBuf.subarray(stxI+1, etxI).toString('ascii');
-    console.log(`[${ts()}] 📦 Frame complet: "${payload}"`);
+    console.log(`[${ts()}] Frame complet: "${payload}"`);
     clearTimeout(responseTimer);
     waitingResponse = false;
     candidateIdx++;
@@ -202,11 +202,11 @@ port.on('data', chunk => {
 });
 
 port.open(err => {
-  if (err) { console.error('❌', err.message); process.exit(1); }
-  console.log(`✅ Port: ${PORT} @ ${BAUD}`);
-  console.log('🔍 Testăm formate ECR cunoscute...\n');
+  if (err) { console.error('', err.message); process.exit(1); }
+  console.log(`Port: ${PORT} @ ${BAUD}`);
+  console.log('Testăm formate ECR cunoscute...\n');
   setTimeout(sendNext, 500);
 });
 
-port.on('error', err => console.error('❌', err.message));
+port.on('error', err => console.error('', err.message));
 setTimeout(() => { console.log('\nTimeout global 3min'); port.close(); process.exit(0); }, 180000);

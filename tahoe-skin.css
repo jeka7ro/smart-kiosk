@@ -1,0 +1,93 @@
+/* === macOS Tahoe Native Skin (Apple HIG · Finder/Numbers Tables · Zero Robotic Fonts) === */
+:root {
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", system-ui, sans-serif !important;
+  --font-mono: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", system-ui, sans-serif !important;
+  --tahoe-border-light: rgba(15, 23, 42, 0.08);
+  --tahoe-border-dark: rgba(255, 255, 255, 0.08);
+}
+
+html, body, #root, #app, button, input, select, textarea {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", system-ui, sans-serif !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+}
+
+/* Eliminare completă fonturi robotizate / monospace și aliniere numerică tabelară Apple */
+.font-mono,
+[class*="font-mono"],
+code, pre, kbd, samp,
+td, th,
+[class*="tabular-nums"] {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", system-ui, sans-serif !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+/* Eliminare etichete cu aspect robotizat (tracking exagerat) */
+[class*="tracking-widest"],
+[class*="tracking-wider"],
+[class*="tracking-["] {
+  letter-spacing: -0.005em !important;
+}
+
+/* === Tabele Native stil macOS Tahoe (Finder / Numbers) === */
+table {
+  width: 100%;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  font-size: 13px !important;
+  line-height: 1.35 !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  letter-spacing: -0.01em !important;
+  text-transform: none !important;
+  padding: 9px 12px !important;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.22) !important;
+  white-space: nowrap;
+}
+
+tbody tr {
+  height: 38px;
+  transition: background-color 120ms ease !important;
+}
+
+tbody tr:nth-child(even) {
+  background-color: rgba(148, 163, 184, 0.03);
+}
+
+tbody tr:hover {
+  background-color: rgba(59, 130, 246, 0.07) !important;
+}
+
+tbody td {
+  padding: 7px 12px !important;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12) !important;
+  vertical-align: middle !important;
+}
+
+/* Panouri și ferestre macOS Tahoe Liquid Glass discret */
+[class*="rounded-2xl"],
+[class*="rounded-xl"] {
+  border-radius: 12px !important;
+}
+
+/* Optimizare iPhone / Mobil — Zero scroll orizontal pe pagină */
+@media (max-width: 768px) {
+  html, body {
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}

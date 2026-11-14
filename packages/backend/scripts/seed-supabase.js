@@ -16,7 +16,7 @@ const pool = new Pool({
 const DATA = path.join(__dirname, '../data');
 
 async function seed() {
-  console.log('🌱 Starting seed into Supabase...');
+  console.log('Starting seed into Supabase...');
 
   // ── Locations ──────────────────────────────────────────────────
   try {
@@ -30,10 +30,10 @@ async function seed() {
          ON CONFLICT (id) DO UPDATE SET data = $3, active = $4, updated_at = NOW()`,
         [id, loc.name || id, JSON.stringify(data), active !== false]
       );
-      console.log(`  ✅ Location: ${loc.name} (${id})`);
+      console.log(`  Location: ${loc.name} (${id})`);
     }
   } catch (e) {
-    console.warn('  ⚠️  Could not seed locations:', e.message);
+    console.warn('  Could not seed locations:', e.message);
   }
 
   // ── Users ──────────────────────────────────────────────────────
@@ -47,10 +47,10 @@ async function seed() {
          ON CONFLICT (email) DO NOTHING`,
         [u.id, u.email, u.password, u.name || '', u.role || 'staff', JSON.stringify(u.locations || [])]
       );
-      console.log(`  ✅ User: ${u.email} (${u.role})`);
+      console.log(`  User: ${u.email} (${u.role})`);
     }
   } catch (e) {
-    console.warn('  ⚠️  Could not seed users:', e.message);
+    console.warn('  Could not seed users:', e.message);
   }
 
   // ── Kiosk Config ───────────────────────────────────────────────
@@ -64,13 +64,13 @@ async function seed() {
          ON CONFLICT (brand_id) DO UPDATE SET data = $2, updated_at = NOW()`,
         [brandId, JSON.stringify(poster)]
       );
-      console.log(`  ✅ Kiosk config: ${brandId}`);
+      console.log(`  Kiosk config: ${brandId}`);
     }
   } catch (e) {
-    console.warn('  ⚠️  Could not seed kiosk-config:', e.message);
+    console.warn('  Could not seed kiosk-config:', e.message);
   }
 
-  console.log('\n🎉 Seed complete! All data is now in Supabase.');
+  console.log('\nSeed complete! All data is now in Supabase.');
   await pool.end();
 }
 

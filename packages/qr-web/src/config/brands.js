@@ -3,13 +3,13 @@
  */
 export const QR_BRANDS = {
   smashme: {
-    id: 'smashme', name: 'Smash Me', emoji: '🍔', url: 'smashme.ro',
+    id: 'smashme', name: 'Smash Me', emoji: '', url: 'smashme.ro',
     logoImg: '/brands/smashme-logo.png',
     primary: '#EE3B24', accent: '#FFB800',
     bg: '#F5F5F5', card: '#FFFFFF',
   },
   sushimaster: {
-    id: 'sushimaster', name: 'Sushi Master', emoji: '🍣', url: 'sushimaster.ro',
+    id: 'sushimaster', name: 'Sushi Master', emoji: '', url: 'sushimaster.ro',
     logoImg: '/brands/sushimaster-logo.png',
     primary: '#E31E24', accent: '#D4AF37',
     bg: '#F5F5F5', card: '#FFFFFF',

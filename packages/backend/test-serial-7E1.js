@@ -79,16 +79,16 @@ const TOUT = setTimeout(() => {
 }, 90000);
 
 port.open(err => {
-  if (err) { console.error('❌', err.message); process.exit(1); }
-  log(`✅ Port deschis: ${PORT} @ 9600, 7E1`);
-  log(`📤 Trimitere MOL10 (${AMOUNT.toFixed(2)} RON):`);
+  if (err) { console.error('', err.message); process.exit(1); }
+  log(`Port deschis: ${PORT} @ 9600, 7E1`);
+  log(`Trimitere MOL10 (${AMOUNT.toFixed(2)} RON):`);
   log(`   HEX: ${[...MOL10].map(b=>b.toString(16).padStart(2,'0').toUpperCase()).join(' ')}`);
-  port.write(MOL10, err => err && log(`❌ Write err: ${err.message}`));
+  port.write(MOL10, err => err && log(`Write err: ${err.message}`));
 });
 
 port.on('data', chunk => {
   rxBuf = Buffer.concat([rxBuf, chunk]);
-  log(`📥 RAW: ${[...chunk].map(b=>b.toString(16).padStart(2,'0').toUpperCase()).join(' ')}  →  ${[...chunk].map(interp).join(' ')}`);
+  log(`RAW: ${[...chunk].map(b=>b.toString(16).padStart(2,'0').toUpperCase()).join(' ')}  →  ${[...chunk].map(interp).join(' ')}`);
 
   let offset = 0;
   while (offset < rxBuf.length) {
@@ -96,22 +96,22 @@ port.on('data', chunk => {
 
     if (b === ACK) {
       if (state === 'WAIT_ACK_10') {
-        log('✅ ACK ← MOL10 acceptat! Aştept MOL11...');
+        log('ACK ← MOL10 acceptat! Aştept MOL11...');
         state = 'WAIT_11';
       } else if (state === 'WAIT_ACK_13') {
-        log('✅ ACK ← MOL13 confirmat. Tranzacție completă!');
+        log('ACK ← MOL13 confirmat. Tranzacție completă!');
         done = true; clearTimeout(TOUT); port.close();
       }
       offset++; continue;
     }
 
     if (b === NAK) {
-      log('⚠️ NAK — LRC sau format greșit');
+      log('NAK — LRC sau format greșit');
       offset++; continue;
     }
 
     if (b === EOT) {
-      log('⛔ EOT — terminal refuză / nu e în modul ECR');
+      log('EOT — terminal refuză / nu e în modul ECR');
       offset++; continue;
     }
 
@@ -121,11 +121,11 @@ port.on('data', chunk => {
       
       const payload = rxBuf.subarray(offset + 1, etxI).toString('ascii');
       const frameLrc = rxBuf[etxI + 1];
-      log(`📦 Frame: "${payload}"  LRC=0x${frameLrc.toString(16).toUpperCase()}`);
+      log(`Frame: "${payload}"  LRC=0x${frameLrc.toString(16).toUpperCase()}`);
       
       // ACK imediat
       port.write(Buffer.from([ACK]));
-      log('📤 ACK trimis');
+      log('ACK trimis');
       
       if (payload.startsWith('MOL11.')) {
         log('🟡 MOL11 — POS activ, clientul poate introduce cardul...');
@@ -133,7 +133,7 @@ port.on('data', chunk => {
       } else if (payload.startsWith('MOL12.')) {
         const rc = payload.slice(6, 8);
         const approved = rc === '00' || rc === '0 ' || rc.trim() === '0';
-        log(`${approved ? '🎉' : '❌'} MOL12 — Cod răspuns: "${rc}" → ${approved ? 'APROBAT' : 'REFUZAT'}`);
+        log(`${approved ? '' : ''} MOL12 — Cod răspuns: "${rc}" → ${approved ? 'APROBAT' : 'REFUZAT'}`);
         log(`   Payload complet: ${payload}`);
         
         // Parse câmpuri
@@ -142,8 +142,8 @@ port.on('data', chunk => {
         if (parts.length > 1) log(`   PAN: "${parts[0].slice(2)}" | Expiry: "${parts[1]}"`);
         
         // Trimitere MOL13 (acknowledgment final)
-        log('📤 Trimitere MOL13 (Authorization Acknowledgment)...');
-        port.write(MOL13, err => err && log(`❌ ${err.message}`));
+        log('Trimitere MOL13 (Authorization Acknowledgment)...');
+        port.write(MOL13, err => err && log(`${err.message}`));
         state = 'WAIT_ACK_13';
       } else {
         log(`   Frame necunoscut — ignorat`);
@@ -157,5 +157,5 @@ port.on('data', chunk => {
   if (offset > 0) rxBuf = rxBuf.subarray(offset);
 });
 
-port.on('error', err => log(`❌ ${err.message}`));
+port.on('error', err => log(`${err.message}`));
 port.on('close', () => { clearTimeout(TOUT); log('Port închis.'); });

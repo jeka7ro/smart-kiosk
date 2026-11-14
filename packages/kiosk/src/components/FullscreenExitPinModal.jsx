@@ -74,8 +74,7 @@ export default function FullscreenExitPinModal({ locationData, onSuccess, onCanc
     <div className="mgr-modal-backdrop mgr-pin-backdrop" onClick={onCancel} role="dialog" aria-modal="true">
       <div className="ios-pin-card mgr-pin-ios-card" onClick={e => e.stopPropagation()}>
         <button className="ios-pin-close-btn" onClick={onCancel} aria-label="Reintră în Fullscreen" title="Reintră în ecran complet">
-          ✕
-        </button>
+          </button>
 
         {/* Header Icon */}
         <div style={{ marginTop: '4px', marginBottom: '8px', display: 'flex', justifyContent: 'center' }}>

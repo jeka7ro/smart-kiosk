@@ -181,7 +181,7 @@ async function sendKitchenOrderWebhook(order, event = 'order.created') {
       responseSummary: responseBody.slice(0, 200),
     });
 
-    console.log(`[KitchenWebhook] ✅ Dispatched #${orderNumber} (${event}) to ${config.url} [HTTP ${response.status} in ${latencyMs}ms]`);
+    console.log(`[KitchenWebhook] Dispatched #${orderNumber} (${event}) to ${config.url} [HTTP ${response.status} in ${latencyMs}ms]`);
     return { success: ok, statusCode: response.status, latencyMs };
   } catch (err) {
     const latencyMs = Date.now() - startTime;
@@ -195,7 +195,7 @@ async function sendKitchenOrderWebhook(order, event = 'order.created') {
       error: err.message,
     });
 
-    console.warn(`[KitchenWebhook] ⚠️ Failed to dispatch #${orderNumber} to ${config.url}:`, err.message);
+    console.warn(`[KitchenWebhook] Failed to dispatch #${orderNumber} to ${config.url}:`, err.message);
     return { success: false, error: err.message, latencyMs };
   }
 }
@@ -266,7 +266,7 @@ async function verifyKitchenOrder({ orderId, orderNumber, verified = true, cookN
     }
   }
 
-  console.log(`[KitchenWebhook] 👨‍🍳 Verificare înregistrată pentru #${orderData.orderNumber} de către ${verificationRecord.cookName} (Status: ${currentStatus})`);
+  console.log(`[KitchenWebhook] ‍Verificare înregistrată pentru #${orderData.orderNumber} de către ${verificationRecord.cookName} (Status: ${currentStatus})`);
 
   return {
     found: true,

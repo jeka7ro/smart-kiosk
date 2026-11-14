@@ -494,12 +494,12 @@ async function processOrderCreation(body, io) {
           if (syrveResult?.orderInfo?.id || syrveResult?.id) {
             const syrveId = syrveResult?.orderInfo?.id || syrveResult?.id;
             syrveIds.push(syrveId);
-            console.log(`[Syrve] ✅ SUCCES — syrveId: ${syrveId}`);
+            console.log(`[Syrve] SUCCES — syrveId: ${syrveId}`);
           } else {
-            console.log(`[Syrve] ⚠️  Răspuns fără ID: ${JSON.stringify(syrveResult)}`);
+            console.log(`[Syrve] Răspuns fără ID: ${JSON.stringify(syrveResult)}`);
           }
         } catch (e) {
-          console.error(`[Syrve] ❌ EROARE iiko brand ${bId}: ${e.message}`);
+          console.error(`[Syrve] EROARE iiko brand ${bId}: ${e.message}`);
         }
       }
 
@@ -745,7 +745,7 @@ router.patch('/:id/status', async (req, res) => {
 
     // Dacă casierul tocmai a confirmat plata cash → trimitem la iiko acum
     if (wasCashWaiting && (status === 'pending' || status === 'confirmed')) {
-      console.log(`[Order] 💵 Casier a confirmat plata cash #${order.orderNumber} — trimit la iiko`);
+      console.log(`[Order] Casier a confirmat plata cash #${order.orderNumber} — trimit la iiko`);
       setImmediate(async () => {
         try {
           const locData = findLocation(order.locationId);
@@ -771,7 +771,7 @@ router.patch('/:id/status', async (req, res) => {
             try {
               const syrveResult = await syrveCreateOrder({ brandId: bId, orgId: specificOrgId, order: splitOrder });
               if (syrveResult?.orderInfo?.id || syrveResult?.id) syrveIds.push(syrveResult?.orderInfo?.id || syrveResult?.id);
-            } catch (e) { console.error(`[Syrve] ❌ cash confirm error ${bId}:`, e.message); }
+            } catch (e) { console.error(`[Syrve] cash confirm error ${bId}:`, e.message); }
           }
           if (syrveIds.length > 0) {
             order.syrveOrderId = syrveIds.join(',');
@@ -869,14 +869,14 @@ router.post('/:id/retry', async (req, res) => {
         [JSON.stringify(syrveId), req.params.id]
       );
 
-      console.log(`[Syrve-Retry] ✅ SUCCES — syrveId: ${syrveId}`);
+      console.log(`[Syrve-Retry] SUCCES — syrveId: ${syrveId}`);
       return res.json({ success: true, syrveOrderId: syrveId });
     } else {
-      console.log(`[Syrve-Retry] ⚠️ Răspuns fără ID:`, JSON.stringify(syrveResult));
+      console.log(`[Syrve-Retry] Răspuns fără ID:`, JSON.stringify(syrveResult));
       return res.status(502).json({ error: 'Syrve returned no order ID', response: syrveResult });
     }
   } catch (err) {
-    console.error(`[Syrve-Retry] ❌ EROARE:`, err.message);
+    console.error(`[Syrve-Retry] EROARE:`, err.message);
     return res.status(500).json({ error: err.message });
   }
 });

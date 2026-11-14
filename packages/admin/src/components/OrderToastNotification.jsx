@@ -2,14 +2,7 @@ import React, { useEffect, useState } from 'react';
 import BrandLogo from './BrandLogo.jsx';
 import { CheckCircle2, XCircle, CreditCard, Banknote, X } from 'lucide-react';
 import { formatThousands } from '../utils/formatters';
-
-const BRAND_COLORS = {
-  smashme: '#ef4444',
-  crunch: '#eab308',
-  rollmaster: '#e31e24',
-  lovesushi: '#ec4899',
-  pokiwoki: '#f97316'
-};
+import { ALL_BRAND_COLORS as BRAND_COLORS } from '../utils/brandTheme';
 
 /**
  * Sound muted as requested by user ("fara sunet")
