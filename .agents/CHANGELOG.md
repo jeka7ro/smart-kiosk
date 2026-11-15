@@ -1,5 +1,16 @@
 # Jurnal de modificări — Smart Kiosk (Antigravity ↔ Paperclip)
 
+### 2026-11-15 08:50 — Buton Start.bat pe Cardul LIVE Status
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Buton Start.bat în LIVE Status (`BridgeMonitoring.jsx`):** Adăugat buton dedicat „Start.bat” (cu icon Play verde) pe grila de acțiuni rapide a fiecărui card de aparat.
+  2. **Lansare Remote & Copiere Comandă:** Când bridge-ul este online, trimite comanda prin socket pentru rularea `start-windows.bat`. Când bridge-ul este deconectat, copiază comanda `cmd /c cd /d C:\SmartKiosk & start-windows.bat` în clipboard și afișează dialog explicativ.
+- **Fișiere:**
+  - `packages/admin/src/screens/BridgeMonitoring.jsx`
+  - `.agents/CHANGELOG.md`
+- **Ramură / Commit:** Local
+- **Build / Teste:** `npm --prefix packages/admin run build` OK (0 erori, 1.31s).
+
 ### 2026-11-15 08:44 — Buton Restart PC Windows cu Confirmare de Siguranță pe Cardul LIVE Status
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

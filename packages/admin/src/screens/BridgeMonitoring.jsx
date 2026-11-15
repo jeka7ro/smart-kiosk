@@ -31,7 +31,8 @@ import {
   Maximize2,
   Lock,
   Unlock,
-  Power
+  Power,
+  Play
 } from 'lucide-react';
 import BrandLogo from '../components/BrandLogo.jsx';
 import SoftwareReleaseNotesModal from '../components/SoftwareReleaseNotesModal.jsx';
@@ -516,6 +517,59 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
       setActionLoading(null);
       setTimeout(() => setActionFeedback(null), 5000);
       setTimeout(fetchStatus, 3000);
+    }
+  };
+
+  const handleRunStartBat = async (locKey, displayName, isBridgeOnline) => {
+    const startCmd = `cmd /c "cd /d C:\\SmartKiosk & start-windows.bat"`;
+    if (isBridgeOnline) {
+      const ok = await confirm(
+        `Vrei să lansezi / relansezi scriptul start-windows.bat pe ${displayName || locKey}?`,
+        { title: `Lansare start-windows.bat — ${displayName || locKey}`, okLabel: 'Lansează start.bat' }
+      );
+      if (!ok) return;
+      setActionLoading(`${locKey}-start-bat`);
+      try {
+        if (socket && socket.connected) {
+          socket.emit('pc_remote_request', {
+            requestId: `start_bat_${Date.now()}`,
+            locationId: locKey,
+            action: 'run_cmd',
+            cmd: 'cmd.exe /c start-windows.bat'
+          });
+        }
+        setActionFeedback({ type: 'success', text: `🚀 Comandă trimisă! start-windows.bat a fost lansat pe ${displayName || locKey}.` });
+      } catch (err) {
+        setActionFeedback({ type: 'error', text: err.message });
+      } finally {
+        setActionLoading(null);
+        setTimeout(() => setActionFeedback(null), 4000);
+      }
+    } else {
+      try {
+        navigator.clipboard.writeText(startCmd);
+      } catch (_) {}
+      await confirm(
+        <div className="text-left space-y-3 text-sm">
+          <p className="text-amber-600 dark:text-amber-400 font-bold">
+            Bridge-ul {displayName || locKey} este DECONECTAT.
+          </p>
+          <p className="text-xs text-slate-600 dark:text-slate-300">
+            Comanda pentru pornirea manuală a fost <b>copiată în clipboard</b>:
+          </p>
+          <div className="p-2.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs tabular-nums break-all select-all font-mono">
+            {startCmd}
+          </div>
+          <p className="text-xs text-slate-500">
+            Dacă PC-ul este pornit, watchdog-ul local de pe PC îl repornește automat în ~30 secunde. Poți rula această comandă și din Desktop Live (Terminal CMD).
+          </p>
+        </div>,
+        {
+          title: `Pornire start-windows.bat — ${displayName || locKey}`,
+          okLabel: 'Am înțeles (Comandă copiată)',
+          hideCancel: true
+        }
+      );
     }
   };
 
@@ -1732,9 +1786,9 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                   );
                 })()}
 
-                {/* Action Buttons: 7-column responsive grid */}
+                {/* Action Buttons: 8-column responsive grid */}
                 <div className="pt-1 border-t border-slate-100 dark:border-slate-700/60">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-1.5 sm:gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-1.5 sm:gap-2">
                     {!loc.isBridgeUpToDate ? (
                       <button
                         type="button"
@@ -1832,6 +1886,16 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                     >
                       <Power className={`w-3.5 h-3.5 text-slate-500 shrink-0 ${actionLoading === `${locKey}-reboot-pc` ? 'animate-spin text-rose-500' : ''}`} />
                       <span>Restart PC</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleRunStartBat(locKey, loc.displayName, !!isBridgeOnline)}
+                      disabled={actionLoading === `${locKey}-start-bat`}
+                      title="Lansează sau copiază comanda de pornire start-windows.bat"
+                      className="flex items-center justify-center gap-1.5 py-2 px-1.5 sm:px-2 rounded-xl text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/80 transition-colors disabled:opacity-50 cursor-pointer shadow-xs whitespace-nowrap"
+                    >
+                      <Play className={`w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 ${actionLoading === `${locKey}-start-bat` ? 'animate-spin' : ''}`} />
+                      <span>Start.bat</span>
                     </button>
                   </div>
                 </div>
