@@ -7,13 +7,10 @@ import {
   Minimize2,
   Send,
   Keyboard,
-  ShieldCheck,
   FolderOpen,
   RefreshCw,
   Wifi,
   AlertTriangle,
-  Eye,
-  Wrench,
   RotateCcw
 } from 'lucide-react';
 
@@ -74,8 +71,6 @@ export default function RemoteDesktopViewer({
   locId,
   locName,
   isOnline,
-  isMaintenance,
-  onToggleShield,
   onOpenDesktopFolder,
   onRebootPc,
 }) {
@@ -89,7 +84,6 @@ export default function RemoteDesktopViewer({
   const [keyboardFocused, setKeyboardFocused] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [pasteText, setPasteText] = useState('');
-  const [viewTarget, setViewTarget] = useState('admin'); // 'admin' = Desktop & Foldere (prin paravan) | 'client' = Ce vede Clientul (ecran fizic)
 
   const imgRef = useRef(null);
   const stageRef = useRef(null);
@@ -122,10 +116,9 @@ export default function RemoteDesktopViewer({
       maxWidth: preset.maxWidth,
       quality: preset.quality,
       fps: preset.fps,
-      shield: Boolean(isMaintenance),
     });
     setTimeout(() => stageRef.current?.focus(), 60);
-  }, [presetKey, socket, locId, emitRd, isMaintenance]);
+  }, [presetKey, socket, locId, emitRd]);
 
   const stopStream = useCallback(() => {
     setStreaming(false);
@@ -406,19 +399,6 @@ export default function RemoteDesktopViewer({
     stageRef.current?.focus();
   };
 
-  const handleSwitchViewTarget = (nextView) => {
-    const mode = nextView === 'client' ? 'client' : 'admin';
-    setViewTarget(mode);
-    emitRd({ action: 'shield_view', view: mode });
-    stageRef.current?.focus();
-  };
-
-  useEffect(() => {
-    if (isMaintenance) {
-      setViewTarget('admin');
-    }
-  }, [isMaintenance]);
-
   const containerCls = isExpanded
     ? 'fixed inset-3 z-[70] bg-slate-950 rounded-2xl border border-slate-700 shadow-2xl flex flex-col overflow-hidden p-3 space-y-2.5'
     : 'p-4 flex-1 flex flex-col space-y-3 overflow-hidden';
@@ -462,55 +442,6 @@ export default function RemoteDesktopViewer({
               <option key={k} value={k}>{p.label}</option>
             ))}
           </select>
-
-          <button
-            type="button"
-            onClick={onToggleShield}
-            className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
-              isMaintenance
-                ? 'bg-amber-500 text-slate-950'
-                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 hover:bg-slate-50'
-            }`}
-            title="Pune paravanul KIOSK ÎN MENTENANȚĂ pe ecranul fizic din restaurant; minimizează automat Chrome și îți afișează Desktopul Windows + C:\SmartKiosk!"
-          >
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>{isMaintenance ? 'Paravan: ACTIV' : 'Paravan Mentenanță'}</span>
-          </button>
-
-          {/* Comutator live: Ce lucrez eu (Desktop sub Paravan) vs Ce vede Clientul (Ecranul fizic din locație) */}
-          <div
-            className="inline-flex items-center p-0.5 rounded-lg bg-slate-200/80 dark:bg-slate-900 border border-slate-300 dark:border-slate-600"
-            title="Comută instant între ce lucrezi tu pe Desktop (sub paravan) și ce vede clientul pe ecranul fizic din restaurant"
-          >
-            <button
-              type="button"
-              disabled={!isOnline}
-              onClick={() => handleSwitchViewTarget('admin')}
-              className={`px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
-                viewTarget === 'admin'
-                  ? 'bg-indigo-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-              }`}
-              title="Vezi prin paravan direct în Windows Desktop & C:\SmartKiosk ca să lucrezi fără ca clientul să vadă"
-            >
-              <Wrench className="w-3.5 h-3.5" />
-              <span>Eu (Desktop)</span>
-            </button>
-            <button
-              type="button"
-              disabled={!isOnline}
-              onClick={() => handleSwitchViewTarget('client')}
-              className={`px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
-                viewTarget === 'client'
-                  ? 'bg-amber-500 text-slate-950 shadow-xs'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-              }`}
-              title="Vezi exact ce este afișat acum pe monitorul fizic în fața clientului (paravanul de mentenanță sau Kiosk-ul)"
-            >
-              <Eye className="w-3.5 h-3.5" />
-              <span>Ce vede Clientul</span>
-            </button>
-          </div>
 
           {onOpenDesktopFolder && (
             <button

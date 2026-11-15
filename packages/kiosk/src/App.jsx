@@ -355,6 +355,10 @@ export default function App() {
         }
       } catch (e) {
         console.warn('[Kiosk] Failed to fetch location:', e.message);
+        // Retry rapid la pornire dacă nu s-au putut încărca datele locației (ex: server repornit)
+        if (!useKioskStore.getState().locationData) {
+          setTimeout(fetchLocation, 2500);
+        }
       } finally {
         setLoading(false);
       }
@@ -363,9 +367,16 @@ export default function App() {
     // Fetch immediately on boot
     fetchLocation();
 
-    // Poll every 2.5s on localhost for instant testing, or every 30s in production
+    // Poll la fiecare 3s dacă datele nu s-au încărcat încă, sau la 30s când sistemul e operațional
     const isLocalHost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-    const interval = setInterval(fetchLocation, isLocalHost ? 2500 : 30_000);
+    const interval = setInterval(() => {
+      const hasData = Boolean(useKioskStore.getState().locationData);
+      if (!hasData) {
+        fetchLocation();
+      } else if (!isLocalHost) {
+        fetchLocation();
+      }
+    }, isLocalHost ? 2500 : 30_000);
     return () => clearInterval(interval);
   }, [setLocationData]);
 

@@ -1256,9 +1256,9 @@ export default function AdminApp() {
           <div className="space-y-4 md:space-y-6 px-3 md:px-8 pb-10 min-w-0 max-w-full w-full">
 
             {/* Live Kiosks Status Strip */}
-            <div className="bg-white dark:bg-slate-800 p-2 sm:p-2.5 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 w-full max-w-full min-w-0">
+            <div className="bg-white dark:bg-slate-800 p-2 sm:p-2.5 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-xs flex flex-row items-center justify-between gap-2 w-full max-w-full min-w-0">
               {/* Kiosk Pills: 2x2 pe ecrane foarte mici, flex-row pe desktop */}
-              <div className="grid grid-cols-2 sm:flex sm:items-center gap-1.5 sm:gap-2 w-full sm:w-auto sm:flex-1">
+              <div className="grid grid-cols-2 sm:flex sm:items-center gap-1.5 sm:gap-2 flex-1 min-w-0">
                 {[
                   { 
                     id: 'cluj1', 
@@ -1565,8 +1565,8 @@ export default function AdminApp() {
                 })}
               </div>
 
-              {/* Actions: right aligned */}
-              <div className="flex items-center justify-end gap-2 shrink-0">
+              {/* Actions: pe desktop arată pastile late, pe mobil stau compact pe verticală aliniate cu cele 2 rânduri */}
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-1.5 shrink-0 self-stretch sm:self-auto py-0.5 sm:py-0">
                 {/* Indicator versiune macOS-style: 'Soft la zi' sau buton 'Actualizează' */}
                 {(() => {
                   const targetVer = BRIDGE_RELEASE_NOTES[0]?.version || bridgeSummary?.latestBridgeVersion || '3.5.0';
@@ -1584,10 +1584,10 @@ export default function AdminApp() {
                           setIsReleaseNotesOpen(true);
                         }}
                         title={`Click pentru a vedea noutățile versiunii oficiale v${targetVer} (Release Notes)`}
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 hover:bg-emerald-100/90 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 shadow-xs cursor-pointer transition-all active:scale-98 group whitespace-nowrap"
+                        className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 hover:bg-emerald-100/90 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 shadow-xs cursor-pointer transition-all active:scale-98 group whitespace-nowrap h-8 sm:h-auto"
                       >
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
-                        <span>Soft la zi (v{targetVer})</span>
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform shrink-0" />
+                        <span className="hidden sm:inline">Soft la zi (v{targetVer})</span>
                       </button>
                     );
                   }
@@ -1599,10 +1599,13 @@ export default function AdminApp() {
                         setIsReleaseNotesOpen(true);
                       }}
                       title={`Click pentru noutăți și actualizare la v${targetVer} (${outdated.length} kiosk-uri)`}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-all cursor-pointer active:scale-98 whitespace-nowrap"
+                      className="relative flex items-center justify-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-all cursor-pointer active:scale-98 whitespace-nowrap h-8 sm:h-auto w-8 sm:w-auto"
                     >
-                      <RefreshCw className="w-3 h-3 text-white/80 shrink-0" />
-                      <span>Actualizează la v{targetVer} ({outdated.length})</span>
+                      <RefreshCw className="w-3.5 h-3.5 text-white/90 shrink-0" />
+                      <span className="hidden sm:inline">Actualizează la v{targetVer} ({outdated.length})</span>
+                      <span className="sm:hidden absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-white text-[9px] font-black rounded-full flex items-center justify-center ring-2 ring-white dark:ring-slate-800">
+                        {outdated.length}
+                      </span>
                     </button>
                   );
                 })()}
@@ -1611,7 +1614,7 @@ export default function AdminApp() {
                   type="button"
                   onClick={() => setTab('bridge-monitoring')}
                   title="Monitorizare detaliată LIVE Status"
-                  className="p-2 rounded-xl text-slate-400 hover:text-blue-600 dark:text-slate-500 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors cursor-pointer shrink-0"
+                  className="w-8 h-8 sm:w-auto sm:h-auto sm:p-2 rounded-xl text-slate-400 hover:text-blue-600 dark:text-slate-500 dark:hover:text-blue-400 bg-slate-50 sm:bg-transparent dark:bg-slate-700/40 sm:dark:bg-transparent border border-slate-200/60 sm:border-0 dark:border-slate-700/60 flex items-center justify-center transition-colors cursor-pointer shrink-0"
                 >
                   <ExternalLink className="w-4 h-4" />
                 </button>
@@ -1700,8 +1703,8 @@ export default function AdminApp() {
                 {/* Separator discret vertical */}
                 <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 shrink-0 hidden sm:block" />
 
-                {/* Butoane Rapide Perioadă - Swipeable Row on Mobile, No Page Blowout! */}
-                <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5 -mx-1 px-1 w-full sm:w-auto min-w-0">
+                {/* Butoane Rapide Perioadă — DOAR PE DESKTOP (pe mobil e dropdown mai jos) */}
+                <div className="hidden sm:flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5 -mx-1 px-1 w-full sm:w-auto min-w-0">
                   {[
                     { id: 'today', label: 'Azi' },
                     { id: 'yesterday', label: 'Ieri' },
@@ -1754,8 +1757,24 @@ export default function AdminApp() {
                 )}
               </div>
 
-              {/* Grup Dreapta: Locație, Plată, Căutare */}
+              {/* Grup Dreapta: Perioadă (mobil), Locație, Plată, Căutare */}
               <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full md:w-auto md:ml-auto min-w-0">
+                {/* Dropdown Filtru Perioadă — DOAR PE MOBIL */}
+                <select 
+                  className="sm:hidden w-full px-3 h-9 rounded-full text-xs font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                  value={dashboardPeriod}
+                  onChange={(e) => handleSelectDashboardPeriod(e.target.value)}
+                >
+                  <option value="today">📅 Azi</option>
+                  <option value="yesterday">📅 Ieri</option>
+                  <option value="thisWeek">📅 Săpt. Curentă</option>
+                  <option value="lastWeek">📅 Săpt. Trecută</option>
+                  <option value="thisMonth">📅 Luna Curentă</option>
+                  <option value="lastMonth">📅 Luna Trecută</option>
+                  <option value="thisYear">📅 Anul Curent</option>
+                  <option value="custom">📅 Personalizat</option>
+                </select>
+
                 {/* Location Filter */}
                 <select 
                   className="w-full sm:w-auto px-3 h-9 rounded-full text-xs font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"

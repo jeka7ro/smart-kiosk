@@ -1,4 +1,4 @@
-const BRIDGE_VERSION = '3.5.8';
+const BRIDGE_VERSION = '3.5.9';
 const PROCESS_BOOT_TIME = Date.now();
 let globalSocket = null;
 
@@ -121,7 +121,6 @@ function getKioskTargetUrl() {
 }
 
 let taskbarOverrideVisible = false;
-let privacyShieldActive = false;
 let remoteDesktopActive = false;
 
 function setWindowsTaskbarVisible(show) {
@@ -131,7 +130,7 @@ function setWindowsTaskbarVisible(show) {
     const swFlag = taskbarOverrideVisible ? 5 : 0; // 5 = SW_SHOW, 0 = SW_HIDE
     const psCmd = `powershell -NoProfile -WindowStyle Hidden -Command "$c='[DllImport(\\"user32.dll\\")] public static extern IntPtr FindWindow(string c, string n); [DllImport(\\"user32.dll\\")] public static extern bool ShowWindow(IntPtr h, int s);'; $t=Add-Type -MemberDefinition $c -Name WTask -Namespace Sk -PassThru; $h=$t::FindWindow('Shell_TrayWnd',$null); if($h -ne [IntPtr]::Zero){[void]$t::ShowWindow($h,${swFlag})}; $h2=$t::FindWindow('Shell_SecondaryTrayWnd',$null); if($h2 -ne [IntPtr]::Zero){[void]$t::ShowWindow($h2,${swFlag})}"`;
     exec(psCmd, { windowsHide: true }, () => {});
-    if (!taskbarOverrideVisible && !privacyShieldActive) {
+    if (!taskbarOverrideVisible) {
       setTimeout(() => enforceKioskTaskbar(true), 250);
     }
   } catch (err) {
@@ -141,7 +140,7 @@ function setWindowsTaskbarVisible(show) {
 
 function enforceKioskTaskbar(forceNow = false) {
   if (process.platform !== 'win32') return;
-  if (!forceNow && (taskbarOverrideVisible || privacyShieldActive || remoteDesktopActive)) return;
+  if (!forceNow && (taskbarOverrideVisible || remoteDesktopActive)) return;
   try {
     const kUrl = getKioskTargetUrl();
     const psCmd = `powershell -NoProfile -WindowStyle Hidden -Command "$c=@'
@@ -160,31 +159,21 @@ $t=[KioskWin]::FindWindow('Shell_TrayWnd',$null); if($t -ne [IntPtr]::Zero){ [Ki
 $s=[KioskWin]::FindWindow('Shell_SecondaryTrayWnd',$null); if($s -ne [IntPtr]::Zero){ [KioskWin]::ShowWindow($s,0) };
 # 2. Opreste orice proces concurent / de la alta companie
 Get-Process -Name 'iiko*','Syrve*','Resto*','TapX*','Ordero*','SmartTouch*','PosSector*' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue;
-# 3. Verifica fereastra Chrome/Edge Kiosk (SW_RESTORE=9 pastreaza modul --kiosk peste taskbar pe Windows 10/11)
-Get-Process -Name chrome,msedge -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 } | ForEach-Object {
-    if([KioskWin]::IsIconic($_.MainWindowHandle)){ [KioskWin]::ShowWindow($_.MainWindowHandle, 9) | Out-Null };
-    [KioskWin]::SetForegroundWindow($_.MainWindowHandle) | Out-Null;
-};
+# 3. Verifica fereastra Chrome/Edge Kiosk - restauram DOAR daca este explicit minimizata, altfel nu deranjam focusul si inputul touch
 $w=[KioskWin]::FindWindow('Chrome_WidgetWin_1',$null);
 if($w -ne [IntPtr]::Zero){
     if([KioskWin]::IsIconic($w)){
         [KioskWin]::ShowWindow($w, 9);
         [KioskWin]::SetForegroundWindow($w);
-    } else {
-        $fg=[KioskWin]::GetForegroundWindow();
-        if($fg -ne $w -and $fg -ne [IntPtr]::Zero){
-            [KioskWin]::ShowWindow($w, 9);
-            [KioskWin]::SetForegroundWindow($w);
-        }
     }
 } else {
-    # Daca ecranul Kiosk este inchis, il redeschide automat pe tot ecranul
+    # Daca ecranul Kiosk este inchis, il redeschide automat pe tot ecranul cu suport complet touch
     $b='C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
     if(!(Test-Path $b)){ $b='C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe' };
     if(!(Test-Path $b)){ $b=Join-Path $env:LocalAppData 'Google\\Chrome\\Application\\chrome.exe' };
     if(!(Test-Path $b)){ $b='C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe' };
     if(Test-Path $b){
-        Start-Process $b -ArgumentList '--kiosk \\\"${kUrl}\\\" --start-fullscreen --window-position=0,0 --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble';
+        Start-Process $b -ArgumentList '--kiosk \"${kUrl}\" --start-fullscreen --window-position=0,0 --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble';
     }
 }
 $p='HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StuckRects3'; if(Test-Path $p){ $v=(Get-ItemProperty $p).Settings; if($v -and $v.Length -gt 8 -and $v[8] -ne 3){ $v[8]=3; Set-ItemProperty $p Settings $v -Force -ErrorAction SilentlyContinue } }"`;
@@ -198,9 +187,17 @@ $p='HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StuckRects3';
   }
 }
 
-// Menține Kiosk-ul activ pe tot ecranul garantat la fiecare 8 secunde
-setTimeout(() => enforceKioskTaskbar(false), 1500);
-setInterval(() => enforceKioskTaskbar(false), 8000);
+// Verificare singulară la boot (fără buclă la 8s pentru a nu bloca touchscreen-ul)
+setTimeout(() => {
+  if (process.platform === 'win32') {
+    try {
+      const { exec } = require('child_process');
+      // Închide procese vechi de paravan la boot pentru a reda touch-ul utilizatorului
+      exec('powershell -NoProfile -WindowStyle Hidden -Command "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like \'*privacy_shield.ps1*\' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"', { windowsHide: true }, () => {});
+    } catch (_) {}
+  }
+  enforceKioskTaskbar(false);
+}, 2500);
 
 function ensureKioskAutoStartAndProtection() {
   if (process.platform !== 'win32') return;
@@ -1979,8 +1976,8 @@ async function start() {
   socket.on('kiosk_force_fullscreen', (data) => {
     if (!data || !data.locationId || data.locationId === 'all' || data.locationId === LOCATION_ID || isMyLocation(data.locationId)) {
       const isManual = Boolean(data?.manual);
-      if (!isManual && (privacyShieldActive || taskbarOverrideVisible || remoteDesktopActive)) {
-        log('🛡️ [Auto-Recover Ignorat] Paravanul Mentenanță sau Desktop Live este activ — păstrez Desktopul și folderele vizibile în Admin!');
+      if (!isManual && (taskbarOverrideVisible || remoteDesktopActive)) {
+        log('🖥️ [Auto-Recover Ignorat] Taskbar sau Desktop Live este activ — păstrez Desktopul vizibil!');
         return;
       }
       log('🖥️ Comandă Remote Fullscreen primită! Readuc forțat fereastra Kiosk pe tot ecranul...');
@@ -2121,195 +2118,15 @@ async function start() {
     testPosSignal();
   });
 
-  // ─── Paravan Invizibil Desktop Live / Admin (Windows SetWindowDisplayAffinity 0x11 — FĂRĂ DRIVERE, 100% SAFE) ───
-  let privacyShieldProc = null;
-  let privacyShieldViewMode = 'admin'; // 'admin' (vezi Desktopul sub paravan) | 'client' (vezi paravanul pe care îl vede clientul)
-  const peekFilePath = pathMod.join(__dirname, '.shield_peek');
-
-  function setPrivacyShieldViewMode(mode = 'admin') {
-    privacyShieldViewMode = mode === 'client' ? 'client' : 'admin';
-    try {
-      if (privacyShieldViewMode === 'client') {
-        fs.writeFileSync(peekFilePath, 'client', 'utf8');
-      } else if (fs.existsSync(peekFilePath)) {
-        fs.unlinkSync(peekFilePath);
-      }
-    } catch (_) {}
-    setTimeout(() => { try { sendRdStdin('KF'); } catch (_) {} }, 250);
-    setTimeout(() => { try { sendRdStdin('KF'); } catch (_) {} }, 650);
-    sendRdStatus({ active: Boolean(rdAgentProc), shieldActive: privacyShieldActive, shieldView: privacyShieldViewMode });
-  }
-
-  function setWindowsPrivacyShield(enable) {
-    if (process.platform !== 'win32') return;
-    try {
-      if (privacyShieldProc) {
-        try { privacyShieldProc.kill(); } catch (_) {}
-        privacyShieldProc = null;
-      }
-      try { if (fs.existsSync(peekFilePath)) fs.unlinkSync(peekFilePath); } catch (_) {}
-      privacyShieldViewMode = 'admin';
-
-      if (!enable) {
-        privacyShieldActive = false;
-        const { exec } = require('child_process');
-        exec('powershell -NoProfile -WindowStyle Hidden -Command "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like \'*privacy_shield.ps1*\' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"', { windowsHide: true }, () => {});
-        log('[Privacy Shield] Paravanul fizic pentru mentenanță a fost OPRIT. Readuc Chrome Kiosk pe tot ecranul...');
-        sendRdStatus({ active: Boolean(rdAgentProc), shieldActive: false, shieldView: 'client' });
-        setTimeout(() => {
-          enforceKioskTaskbar(true);
-          setTimeout(() => { try { sendRdStdin('KF'); } catch (_) {} }, 350);
-        }, 250);
-        return;
-      }
-
-      privacyShieldActive = true;
+  // ─── Curățare reziduuri paravan vechi (dacă există) ───
+  try {
+    if (process.platform === 'win32') {
       const psPath = pathMod.join(__dirname, 'privacy_shield.ps1');
-      const psScript = [
-        'Get-CimInstance Win32_Process | Where-Object { $_.ProcessId -ne $PID -and $_.CommandLine -like "*privacy_shield.ps1*" } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }',
-        'Add-Type -AssemblyName System.Windows.Forms',
-        'Add-Type -AssemblyName System.Drawing',
-        '$code = @"',
-        'using System;',
-        'using System.Runtime.InteropServices;',
-        'public class Win32Shield {',
-        '  [DllImport("user32.dll", SetLastError = true)] public static extern bool SetWindowDisplayAffinity(IntPtr hWnd, uint dwAffinity);',
-        '  [DllImport("user32.dll", SetLastError = true)] public static extern bool GetWindowDisplayAffinity(IntPtr hWnd, out uint dwAffinity);',
-        '  [DllImport("user32.dll", SetLastError = true)] public static extern int GetWindowLong(IntPtr hWnd, int nIndex);',
-        '  [DllImport("user32.dll", SetLastError = true)] public static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);',
-        '  [DllImport("user32.dll", SetLastError = true)] public static extern bool SetLayeredWindowAttributes(IntPtr hwnd, uint crKey, byte bAlpha, uint dwFlags);',
-        '  [DllImport("user32.dll", SetLastError = true)] public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);',
-        '  [DllImport("user32.dll")] public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);',
-        '  [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);',
-        '  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);',
-        '}',
-        '"@',
-        'Add-Type -TypeDefinition $code',
-        '$peekFile = Join-Path $PSScriptRoot ".shield_peek"',
-        '$script:lastPeek = $null',
-        '$vs = [System.Windows.Forms.SystemInformation]::VirtualScreen',
-        '$form = New-Object System.Windows.Forms.Form',
-        '$form.Text = "SmartKiosk Privacy Shield"',
-        '$form.FormBorderStyle = "None"',
-        '$form.StartPosition = "Manual"',
-        '$form.Bounds = $vs',
-        '$form.TopMost = $true',
-        '$form.ShowInTaskbar = $false',
-        '# Inițializăm WS_EX_LAYERED din WinForms ca să nu devină transparent (alpha=0) când adăugăm WS_EX_TRANSPARENT',
-        '$form.Opacity = 0.996',
-        '$form.BackColor = [System.Drawing.Color]::FromArgb(7, 11, 20)',
-        '$lbl = New-Object System.Windows.Forms.Label',
-        '$lbl.Text = "KIOSK IN MENTENANTA`r`n`r`nRevenim in cateva momente!"',
-        '$lbl.ForeColor = [System.Drawing.Color]::White',
-        '$lbl.Font = New-Object System.Drawing.Font("Segoe UI", 28, [System.Drawing.FontStyle]::Bold)',
-        '$lbl.AutoSize = $false',
-        '$lbl.Dock = "Fill"',
-        '$lbl.TextAlign = "MiddleCenter"',
-        '$form.Controls.Add($lbl)',
-        '$applyViewMode = {',
-        '  param([bool]$peekClient)',
-        '  $curVs = [System.Windows.Forms.SystemInformation]::VirtualScreen',
-        '  $ex = [Win32Shield]::GetWindowLong($form.Handle, -20)',
-        '  if ($peekClient) {',
-        '    # Mod Verificare Client: Paravanul devine vizibil și în captura Desktop Live din Admin (affinity = 0)',
-        '    $newEx = ($ex -bor 0x80000 -bor 0x80 -bor 0x08000000) -band (-bnot 0x20)',
-        '    [Win32Shield]::SetWindowLong($form.Handle, -20, $newEx) | Out-Null',
-        '    [Win32Shield]::SetLayeredWindowAttributes($form.Handle, 0, 255, 2) | Out-Null',
-        '    $okAff = [Win32Shield]::SetWindowDisplayAffinity($form.Handle, 0x00000000)',
-        '  } else {',
-        '    # Mod Lucru Admin: Paravanul rămâne 100% opac pe monitorul fizic, dar INVIZIBIL și click-through în Admin (0x11)',
-        '    $newEx = ($ex -bor 0x80000 -bor 0x20 -bor 0x80 -bor 0x08000000)',
-        '    [Win32Shield]::SetWindowLong($form.Handle, -20, $newEx) | Out-Null',
-        '    [Win32Shield]::SetLayeredWindowAttributes($form.Handle, 0, 255, 2) | Out-Null',
-        '    $okAff = [Win32Shield]::SetWindowDisplayAffinity($form.Handle, 0x00000011)',
-        '  }',
-        '  [Win32Shield]::SetWindowPos($form.Handle, [IntPtr](-1), $curVs.X, $curVs.Y, $curVs.Width, $curVs.Height, 0x0050) | Out-Null',
-        '  $form.Invalidate($true)',
-        '  $form.Refresh()',
-        '  return $okAff',
-        '}',
-        '$form.Add_Shown({',
-        '  $curVs = [System.Windows.Forms.SystemInformation]::VirtualScreen',
-        '  $okAff = & $applyViewMode $false',
-        '  $script:lastPeek = $false',
-        '  # 2. Afișăm bara de jos Windows (Taskbar) și MINIMIZĂM Chrome/Edge (SW_MINIMIZE = 6) ca în Desktop Live din Admin să se vadă Desktopul și folderele (nu Chrome!)',
-        '  $tb = [Win32Shield]::FindWindow("Shell_TrayWnd", $null)',
-        '  if ($tb -ne [IntPtr]::Zero) { [Win32Shield]::ShowWindow($tb, 5) | Out-Null }',
-        '  $tb2 = [Win32Shield]::FindWindow("Shell_SecondaryTrayWnd", $null)',
-        '  if ($tb2 -ne [IntPtr]::Zero) { [Win32Shield]::ShowWindow($tb2, 5) | Out-Null }',
-        '  Get-Process -Name "chrome","msedge" -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 } | ForEach-Object {',
-        '    [Win32Shield]::ShowWindow($_.MainWindowHandle, 6) | Out-Null',
-        '  }',
-        '  # 3. Deschidem automat folderul C:\\SmartKiosk pe Desktop ca să fie gata de lucru în Admin Desktop Live',
-        '  $exp = [Win32Shield]::FindWindow("CabinetWClass", $null)',
-        '  if ($exp -eq [IntPtr]::Zero) {',
-        '    Start-Process explorer.exe -ArgumentList "C:\\SmartKiosk" -ErrorAction SilentlyContinue',
-        '  } else {',
-        '    [Win32Shield]::ShowWindow($exp, 9) | Out-Null',
-        '    [Win32Shield]::SetForegroundWindow($exp) | Out-Null',
-        '  }',
-        '  # 4. Re-ancorăm paravanul în vârful Z-order-ului fizic peste Explorer și Taskbar',
-        '  [Win32Shield]::SetWindowPos($form.Handle, [IntPtr](-1), $curVs.X, $curVs.Y, $curVs.Width, $curVs.Height, 0x0050) | Out-Null',
-        '  Write-Output ("SHIELD_ACTIVE:affinity=" + $okAff + ":os=" + [System.Environment]::OSVersion.Version.ToString())',
-        '})',
-        '# Verificare rapidă (250ms) pentru comutarea instantanee între „Vedere Admin (Sub Paravan)” și „Ce vede Clientul” + ancorare TopMost',
-        '$keepTopTimer = New-Object System.Windows.Forms.Timer',
-        '$keepTopTimer.Interval = 250',
-        '$keepTopTimer.Add_Tick({',
-        '  $curVs = [System.Windows.Forms.SystemInformation]::VirtualScreen',
-        '  if ($form.WindowState -ne "Normal") { $form.WindowState = "Normal" }',
-        '  $wantPeek = [System.IO.File]::Exists($peekFile)',
-        '  if ($script:lastPeek -ne $wantPeek) {',
-        '    $script:lastPeek = $wantPeek',
-        '    & $applyViewMode $wantPeek | Out-Null',
-        '    Write-Output ("SHIELD_VIEW:" + $(if ($wantPeek) { "client" } else { "admin" }))',
-        '  } else {',
-        '    [uint32]$curAff = 0',
-        '    [Win32Shield]::GetWindowDisplayAffinity($form.Handle, [ref]$curAff) | Out-Null',
-        '    $expectedAff = if ($wantPeek) { 0 } else { 0x11 }',
-        '    if ($curAff -ne $expectedAff) { [Win32Shield]::SetWindowDisplayAffinity($form.Handle, $expectedAff) | Out-Null }',
-        '    [Win32Shield]::SetWindowPos($form.Handle, [IntPtr](-1), $curVs.X, $curVs.Y, $curVs.Width, $curVs.Height, 0x0050) | Out-Null',
-        '  }',
-        '})',
-        '$keepTopTimer.Start()',
-        '# Safety auto-close dupa 30 minute ca sa nu ramana niciodata blocat',
-        '$timer = New-Object System.Windows.Forms.Timer',
-        '$timer.Interval = 1800000',
-        '$timer.Add_Tick({ $keepTopTimer.Stop(); $form.Close() })',
-        '$timer.Start()',
-        '[System.Windows.Forms.Application]::Run($form)'
-      ].join('\r\n');
-
-      fs.writeFileSync(psPath, psScript, 'utf8');
-      const { spawn } = require('child_process');
-      const child = spawn('powershell.exe', ['-NoProfile', '-STA', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', psPath], {
-        cwd: __dirname,
-        windowsHide: true,
-        detached: false
-      });
-      privacyShieldProc = child;
-      child.stdout.on('data', (d) => {
-        const txt = String(d || '').trim();
-        if (txt) log(`[Privacy Shield] ${txt}`);
-      });
-      child.stderr.on('data', (d) => {
-        const txt = String(d || '').trim();
-        if (txt) log(`⚠️ [Privacy Shield stderr] ${txt}`);
-      });
-      child.on('exit', (code) => {
-        if (privacyShieldProc === child) {
-          privacyShieldProc = null;
-          privacyShieldActive = false;
-        }
-        log(`[Privacy Shield] Proces oprit (exit=${code}).`);
-      });
-      setTimeout(() => { try { sendRdStdin('KF'); } catch (_) {} }, 450);
-      setTimeout(() => { try { sendRdStdin('KF'); } catch (_) {} }, 1200);
-      log('[Privacy Shield] Paravan Mentenanță pornit: pe Kiosk se vede Mentenanță, iar în Admin (Desktop Live) Chrome este minimizat și vezi Desktopul + C:\\SmartKiosk!');
-    } catch (e) {
-      log(`[Privacy Shield] Eroare: ${e.message}`);
+      if (fs.existsSync(psPath)) { try { fs.unlinkSync(psPath); } catch (_) {} }
+      const peekPath = pathMod.join(__dirname, '.shield_peek');
+      if (fs.existsSync(peekPath)) { try { fs.unlinkSync(peekPath); } catch (_) {} }
     }
-  }
+  } catch (_) {}
 
   function revealDesktopAndSmartKioskFolder() {
     if (process.platform !== 'win32') return;
@@ -2426,34 +2243,11 @@ async function start() {
         return reply({ ok: true, action, written, message: `Autostart instalat în: ${written.join(', ') || 'Registrul Windows'}` });
       }
 
-      if (action === 'toggle_privacy_shield') {
-        const enable = Boolean(req.enable);
-        setWindowsPrivacyShield(enable);
+      if (action === 'toggle_privacy_shield' || action === 'set_shield_view') {
         return reply({
           ok: true,
           action,
-          enable,
-          message: enable
-            ? 'Paravanul Mentenanță a fost ACTIVAT! Pe ecranul din locație se vede doar Mentenanța, iar în Admin (Desktop Live) Chrome a fost minimizat și vezi Desktopul Windows + folderul C:\\SmartKiosk!'
-            : 'Paravanul Mentenanță a fost OPRIT și Kiosk-ul a revenit pe tot ecranul!'
-        });
-      }
-
-      if (action === 'set_shield_view') {
-        const view = req.view === 'client' ? 'client' : 'admin';
-        if (view === 'client' && !privacyShieldActive) {
-          enforceKioskTaskbar(true);
-        } else if (view === 'admin' && !privacyShieldActive) {
-          revealDesktopAndSmartKioskFolder();
-        }
-        setPrivacyShieldViewMode(view);
-        return reply({
-          ok: true,
-          action,
-          view,
-          message: view === 'client'
-            ? 'Vedere comutată pe CE VEDE CLIENTUL (ecranul fizic din restaurant).'
-            : 'Vedere comutată pe DESKTOP ADMIN (vezi prin paravan direct în Windows & C:\\SmartKiosk).'
+          message: 'Paravanul Windows a fost retras definitiv pentru a garanta stabilitatea touchscreen-ului.'
         });
       }
 
@@ -2618,7 +2412,7 @@ async function start() {
       }, 250);
       log(`[Remote Desktop] Sesiune oprită (${reason}).`);
     }
-    if (!privacyShieldActive && !taskbarOverrideVisible) {
+    if (!taskbarOverrideVisible) {
       setTimeout(() => enforceKioskTaskbar(true), 300);
     }
     sendRdStatus({ active: false, reason });
@@ -2897,10 +2691,6 @@ async function start() {
     const quality = Number(opts.quality) || 58;
     const fps = Number(opts.fps) || 14;
 
-    if (opts.shield && !privacyShieldActive) {
-      setWindowsPrivacyShield(true);
-    }
-
     if (rdAgentProc && !rdAgentProc.killed) {
       sendRdStdin(`CFG|${maxWidth}|${quality}|${fps}`);
       sendRdStdin('KF');
@@ -2970,7 +2760,7 @@ async function start() {
           rdAgentProc = null;
           remoteDesktopActive = false;
           if (rdWatchdogTimer) { clearInterval(rdWatchdogTimer); rdWatchdogTimer = null; }
-          if (!privacyShieldActive && !taskbarOverrideVisible) {
+          if (!taskbarOverrideVisible) {
             setTimeout(() => enforceKioskTaskbar(true), 300);
           }
           if (code && code !== 0 && errBuf) {
@@ -3024,13 +2814,6 @@ async function start() {
       return;
     }
     if (action === 'shield_view') {
-      const view = data.view === 'client' ? 'client' : 'admin';
-      if (view === 'client' && !privacyShieldActive) {
-        enforceKioskTaskbar(true);
-      } else if (view === 'admin' && !privacyShieldActive) {
-        revealDesktopAndSmartKioskFolder();
-      }
-      setPrivacyShieldViewMode(view);
       return;
     }
     if (!rdAgentProc) return;
@@ -3069,9 +2852,18 @@ async function start() {
   });
 }
 
+function gracefulShutdown(signal) {
+  log(`🛑 Semnal de oprire primit (${signal}). Eliberez portul serial...`);
+  try { if (globalPort && globalPort.isOpen) globalPort.close(); } catch (_) {}
+  try { if (globalSocket && globalSocket.connected) globalSocket.disconnect(); } catch (_) {}
+  setTimeout(() => process.exit(0), 400);
+}
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+
 process.on('uncaughtException', (err) => {
   log(`💥 EROARE NEPRINSĂ (uncaughtException): ${err.stack || err.message}`);
-  // Lăsăm 1 secundă pentru scrierea în fișierul de log, apoi ieșim pentru ca start-windows.bat să repornească curat
+  try { if (globalPort && globalPort.isOpen) globalPort.close(); } catch (_) {}
   setTimeout(() => process.exit(1), 1000);
 });
 

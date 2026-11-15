@@ -8,7 +8,6 @@ import {
   Save,
   RefreshCw,
   Play,
-  ShieldCheck,
   Lock,
   Unlock,
   Sliders,
@@ -452,23 +451,15 @@ export default function WindowsRemoteModal({
     }).catch(() => {});
   };
 
-  const handleTogglePrivacyShield = (e, withFeedback = false) => {
+  const handleToggleMaintenanceMode = (e, withFeedback = false) => {
     const nextState = !isMaintenance;
-    if (socket && socket.connected) {
-      socket.emit('pc_remote_request', {
-        requestId: `shield_${Date.now()}`,
-        locationId: locId,
-        action: 'toggle_privacy_shield',
-        enable: nextState,
-      });
-    }
     if (onToggleMaintenance) onToggleMaintenance(loc, e);
     if (withFeedback) {
       showNotice(
         'success',
         nextState
-          ? 'Paravanul Mentenanță a fost ACTIVAT! Pe Kiosk se vede Mentenanță, iar aici în Admin (Desktop Live) Chrome a fost minimizat și vezi Desktopul Windows + C:\\SmartKiosk!'
-          : 'Paravanul de mentenanță a fost OPRIT și Kiosk-ul a revenit pe tot ecranul!'
+          ? 'Kiosk-ul a fost trecut în Mod Mentenanță (afișaj animat și blocare comenzi).'
+          : 'Modul Mentenanță a fost oprit — Kiosk-ul a revenit la comenzi normale.'
       );
     }
   };
@@ -541,13 +532,13 @@ export default function WindowsRemoteModal({
           <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
-              onClick={(e) => handleTogglePrivacyShield(e, false)}
+              onClick={(e) => handleToggleMaintenanceMode(e, true)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 whitespace-nowrap ${
                 isMaintenance
                   ? 'bg-amber-500 text-slate-950 shadow-sm ring-2 ring-amber-400/40'
                   : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
               }`}
-              title="Pune sau scoate paravanul animat „Kiosk în mentenanță” pe ecranul din restaurant + Paravanul Invizibil"
+              title="Comută Kiosk-ul în Mod Mentenanță (afișează ecranul animat cu logo-ul brandului și blochează comenzile)"
             >
               <Sliders className="w-3.5 h-3.5 shrink-0" />
               <span>{isMaintenance ? 'Mentenanță: ACTIV' : 'Mod Mentenanță'}</span>
@@ -639,8 +630,6 @@ export default function WindowsRemoteModal({
             locId={locId}
             locName={locName}
             isOnline={isOnline}
-            isMaintenance={isMaintenance}
-            onToggleShield={(e) => handleTogglePrivacyShield(e, true)}
             onOpenDesktopFolder={handleOpenDesktopFolder}
             onRebootPc={handleRebootPc}
           />
@@ -855,30 +844,6 @@ export default function WindowsRemoteModal({
         {/* ─── TAB 2: COMENZI WINDOWS & TERMINAL SILENȚIOS ─── */}
         {activeTab === 'terminal' && (
           <div className="p-5 overflow-y-auto space-y-4 flex-1">
-            {/* Banner Paravan Invizibil AnyDesk (100% Safe, fără drivere) */}
-            <div className="p-4 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700/70 flex flex-wrap items-center justify-between gap-3">
-              <div className="space-y-1 max-w-2xl">
-                <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                  <span>🛡️ Paravan AnyDesk Invizibil (100% Safe — Fără Drivere, Fără Monitor 2)</span>
-                </div>
-                <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
-                  Folosește funcția nativă Windows <code className="font-bold">WDA_EXCLUDEFROMCAPTURE</code>: pe monitorul fizic din restaurant afișează peste tot ecranul <b>„KIOSK ÎN MENTENANȚĂ”</b>, dar pentru <b>AnyDesk paravanul este 100% transparent</b> — tu în AnyDesk vezi prin el direct desktopul Windows și folderele, fără să dereglezi touch-ul sau rezoluția!
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={(e) => handleTogglePrivacyShield(e, true)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all active:scale-95 shrink-0 ${
-                  isMaintenance
-                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                    : 'bg-amber-500 hover:bg-amber-600 text-slate-950'
-                }`}
-              >
-                {isMaintenance ? '✓ Paravan AnyDesk ACTIV (Oprește)' : 'Activează Paravanul pentru AnyDesk'}
-              </button>
-            </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <button
                 type="button"

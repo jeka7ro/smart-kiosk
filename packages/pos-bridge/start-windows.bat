@@ -67,7 +67,7 @@ public class KioskWin {
     [DllImport(\"user32.dll\")] public static extern bool ShowWindow(IntPtr h, int s);
     [DllImport(\"user32.dll\")] public static extern bool SetForegroundWindow(IntPtr h);
 }
-'@; Add-Type -TypeDefinition $c -ErrorAction SilentlyContinue; $t=[KioskWin]::FindWindow('Shell_TrayWnd',$null); if($t -ne [IntPtr]::Zero){ [KioskWin]::ShowWindow($t,0) }; $s=[KioskWin]::FindWindow('Shell_SecondaryTrayWnd',$null); if($s -ne [IntPtr]::Zero){ [KioskWin]::ShowWindow($s,0) }; $w=[KioskWin]::FindWindow('Chrome_WidgetWin_1',$null); if($w -ne [IntPtr]::Zero){ [KioskWin]::ShowWindow($w,3); [KioskWin]::SetForegroundWindow($w) }; (New-Object -Com WScript.Shell).SendKeys('{F11}')" >nul 2>&1
+'@; Add-Type -TypeDefinition $c -ErrorAction SilentlyContinue; $t=[KioskWin]::FindWindow('Shell_TrayWnd',$null); if($t -ne [IntPtr]::Zero){ [KioskWin]::ShowWindow($t,0) }; $s=[KioskWin]::FindWindow('Shell_SecondaryTrayWnd',$null); if($s -ne [IntPtr]::Zero){ [KioskWin]::ShowWindow($s,0) }" >nul 2>&1
 
 :: Asigura ca scurtatura POSBridge exista in Startup la fiecare pornire
 if not exist "%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\POSBridge.lnk" (

@@ -327,7 +327,7 @@ export function SalesTrendChart3D({
   const deltaPct = totalYesterdayRev > 0 ? (deltaRev / totalYesterdayRev) * 100 : 0;
 
   return (
-    <div className="relative bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden group h-full flex flex-col justify-between">
+    <div className="relative bg-white dark:bg-slate-900 rounded-2xl p-3 sm:p-5 border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden group h-full flex flex-col justify-between">
       {/* 3D Background Glow */}
       <div className="absolute -right-20 -top-20 w-64 h-64 bg-blue-500/10 dark:bg-blue-600/15 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-indigo-500/10 dark:bg-indigo-600/15 rounded-full blur-3xl pointer-events-none" />
@@ -357,7 +357,8 @@ export function SalesTrendChart3D({
               )}
             </div>
 
-            <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-2 flex-wrap mt-0.5">
+            {/* Subtitlu detaliat — ascuns pe mobil pentru a economisi spațiu */}
+            <div className="hidden sm:flex text-[11px] text-slate-500 dark:text-slate-400 items-center gap-2 flex-wrap mt-0.5">
               <span className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-xs shadow-cyan-400/60" />
                 Total Azi: <strong className="text-slate-800 dark:text-slate-200">{formatThousands(totalRev)} lei</strong> ({totalCnt} comenzi)
@@ -378,8 +379,8 @@ export function SalesTrendChart3D({
           </div>
         </div>
 
-        {/* Toggle Mode, Valori pe Grafic & Comutator Comparație (Ieri vs 22.08) */}
-        <div className="flex items-center gap-2 flex-wrap">
+        {/* Toggle Mode, Valori pe Grafic & Comutator Comparație (Ieri vs 22.08) — pe mobil pe un singur rând compact */}
+        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none py-1 w-full sm:w-auto flex-nowrap shrink-0">
           {/* Segmented Controller Comparație: Fără | vs Ieri | vs Luna Trecută (22.08) */}
           {isHourly && (
             <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-full border border-slate-200 dark:border-slate-700 text-[11px] font-bold">
@@ -1164,7 +1165,7 @@ export function BrandDonutChart3D({
   );
 
   return (
-    <div className="relative bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden group h-full flex flex-col justify-between">
+    <div className="relative bg-white dark:bg-slate-900 rounded-2xl p-3 sm:p-5 border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden group h-full flex flex-col justify-between">
       {/* Header cu Titlu și Toggle Mod Vizualizare */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2.5">
@@ -2281,7 +2282,7 @@ export function CalendarHeatmapChart({
   const peakDayName = DAYS.find(d => d.id === peakInfo.dayId)?.name || 'Luni';
 
   return (
-    <div className="relative bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden group h-full flex flex-col justify-between">
+    <div className="relative bg-white dark:bg-slate-900 rounded-2xl p-3 sm:p-5 border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden group h-full flex flex-col justify-between">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-2.5">
         <div className="flex items-center gap-2.5">

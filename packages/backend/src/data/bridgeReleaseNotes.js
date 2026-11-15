@@ -4,9 +4,34 @@
 
 const BRIDGE_RELEASE_NOTES = [
   {
+    version: '3.5.9',
+    releaseDate: '15 Noiembrie 2026',
+    isLatest: true,
+    tag: 'Stabilitate Maximă Touchscreen & Curățare Procese',
+    title: 'Eliminare Paravan Windows, Watchdog Pasiv și Auto-Recuperare Server',
+    summary: 'Elimină complet ferestrele externe PowerShell și buclele Win32 ShowWindow care furau focusul și blocau touchscreen-ul. Watchdog-ul devine 100% pasiv prin WMI, iar Kiosk-ul include auto-reconectare automată la pornire.',
+    categories: [
+      {
+        title: 'Corecție Critică Touchscreen',
+        badge: 'Critic',
+        badgeColor: 'rose',
+        items: [
+          {
+            title: 'Eliminare Buclă PowerShell 8s & Păstrare Focus Touch',
+            desc: 'Oprirea execuției repetate a scriptului PowerShell Win32 elimină coliziunile cu driverul tactil HID și previne pierderea focusului pe Chrome Kiosk.'
+          },
+          {
+            title: 'Curățare Automată Procese Reziduale Paravan',
+            desc: 'La pornire și la oprirea paravanului, toate procesele PowerShell de mentenanță sunt oprite forțat pentru a reda accesul la ecranul fizic.'
+          }
+        ]
+      }
+    ]
+  },
+  {
     version: '3.5.8',
     releaseDate: '13 Noiembrie 2026',
-    isLatest: true,
+    isLatest: false,
     tag: 'Desktop Live Fluid 18 FPS + Paravan Mentenanță cu Desktop & C:\\SmartKiosk în Admin',
     title: 'Paravan Mentenanță Invizibil în Admin (Vezi Direct Desktopul și Folderele) + Desktop Live Ultra-Fluid',
     summary: 'Când activezi Paravanul de Mentenanță în Admin, pe ecranul fizic din restaurant rămâne paravanul „KIOSK ÎN MENTENANȚĂ”, iar în fereastra Desktop Live din Admin se minimizează automat Chrome și se deschide direct Desktopul Windows + folderul C:\\SmartKiosk. Motorul SkRdHost a fost optimizat pentru 14–18 FPS fără latență la click sau dublu-click.',

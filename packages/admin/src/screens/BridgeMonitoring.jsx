@@ -28,7 +28,10 @@ import {
   AlertTriangle,
   Sparkles,
   ArrowDown,
-  Maximize2
+  Maximize2,
+  Lock,
+  Unlock,
+  Power
 } from 'lucide-react';
 import BrandLogo from '../components/BrandLogo.jsx';
 import SoftwareReleaseNotesModal from '../components/SoftwareReleaseNotesModal.jsx';
@@ -234,6 +237,47 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
     } catch (_) {}
   };
 
+  const handleToggleLock = async (locKey, dbId, currentLocked) => {
+    const nextLocked = !currentLocked;
+    const targetId = dbId || locKey;
+    setData(prev => {
+      const locs = { ...(prev?.locations || {}) };
+      if (locs[locKey]) {
+        locs[locKey] = {
+          ...locs[locKey],
+          forceLocked: nextLocked,
+        };
+      }
+      return { ...prev, locations: locs };
+    });
+    const key = `${locKey}-toggle-lock`;
+    setActionLoading(key);
+    try {
+      const res = await fetch(`${apiBase}/api/locations/${targetId}/lock`, {
+        method: 'POST',
+        headers: {
+          ...apiHeaders,
+          Authorization: `Bearer ${localStorage.getItem('token') || ''}`
+        },
+        body: JSON.stringify({ locked: nextLocked }),
+      });
+      if (res.ok) {
+        setActionFeedback({
+          type: 'success',
+          text: nextLocked ? `🔒 Kiosk-ul ${locKey} a fost BLOCAT cu ecran PIN!` : `🔓 Kiosk-ul ${locKey} a fost DEBLOCAT!`
+        });
+      } else {
+        setActionFeedback({ type: 'error', text: 'Eroare la schimbarea stării de blocare.' });
+      }
+    } catch (err) {
+      setActionFeedback({ type: 'error', text: err.message });
+    } finally {
+      setActionLoading(null);
+      setTimeout(() => setActionFeedback(null), 3000);
+      setTimeout(fetchStatus, 1000);
+    }
+  };
+
   // ───────── Restart POS Bridge: confirmare + progres + jurnal ─────────
   const confirm = useConfirm();
   const apiBase = backend || 'https://smart-kiosk-ttut.onrender.com';
@@ -426,6 +470,52 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
       }
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const handleRebootPc = async (locKey, displayName) => {
+    const ok = await confirm(
+      <div className="text-left space-y-2 text-sm">
+        <p>Sigur vrei să repornești fizic sistemul <b>Windows</b> pe <b>{displayName || locKey}</b>?</p>
+        <ul className="list-disc pl-5 space-y-1 text-xs opacity-90">
+          <li>Toate procesele (Chrome, Bridge) se vor opri și calculatorul se va stinge curat.</li>
+          <li>Kiosk-ul va fi indisponibil aproximativ <b>1 minut</b> până revine Windows-ul.</li>
+          <li>La pornire, Kiosk-ul și POS Bridge vor porni automat.</li>
+          <li><b>Nu reporni dacă un client comandă chiar acum!</b></li>
+        </ul>
+      </div>,
+      {
+        title: `Restart PC Windows — ${displayName || locKey}`,
+        icon: <Power className="w-5 h-5 text-rose-500" />,
+        okLabel: 'Da, repornește PC-ul',
+        cancelLabel: 'Nu, renunță',
+        danger: true,
+      }
+    );
+    if (!ok) return;
+
+    const key = `${locKey}-reboot-pc`;
+    setActionLoading(key);
+    try {
+      const res = await fetch(`${apiBase}/api/bridge-monitoring/${locKey}/reboot-pc`, {
+        method: 'POST',
+        headers: apiHeaders,
+      });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setActionFeedback({
+          type: 'success',
+          text: `🔄 Comandă trimisă! Windows (${displayName || locKey}) se repornește acum...`
+        });
+      } else {
+        setActionFeedback({ type: 'error', text: json.error || 'Eroare la trimiterea comenzii de restart PC.' });
+      }
+    } catch (err) {
+      setActionFeedback({ type: 'error', text: err.message });
+    } finally {
+      setActionLoading(null);
+      setTimeout(() => setActionFeedback(null), 5000);
+      setTimeout(fetchStatus, 3000);
     }
   };
 
@@ -627,6 +717,12 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
             }
             if (dbLoc.posWakeIntervalMinutes !== undefined) {
               merged.locations[locKey].posWakeIntervalMinutes = Number(dbLoc.posWakeIntervalMinutes) || 5;
+            }
+            if (dbLoc.forceLocked !== undefined) {
+              merged.locations[locKey].forceLocked = Boolean(dbLoc.forceLocked);
+            }
+            if (dbLoc.id) {
+              merged.locations[locKey].dbLocId = dbLoc.id;
             }
           }
         }
@@ -1636,9 +1732,9 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                   );
                 })()}
 
-                {/* Action Buttons: 5-column responsive grid (all on one row) */}
+                {/* Action Buttons: 7-column responsive grid */}
                 <div className="pt-1 border-t border-slate-100 dark:border-slate-700/60">
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 sm:gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-1.5 sm:gap-2">
                     {!loc.isBridgeUpToDate ? (
                       <button
                         type="button"
@@ -1708,6 +1804,34 @@ export default function BridgeMonitoring({ backend = '', socket = null, kiosksLi
                     >
                       <Printer className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                       <span>Test Bon</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleLock(locKey, loc.dbLocId || locKey, loc.forceLocked)}
+                      disabled={actionLoading === `${locKey}-toggle-lock`}
+                      title={loc.forceLocked ? "Deblochează Kiosk-ul (înlătură ecranul PIN)" : "Blochează Kiosk-ul rapid cu ecran PIN"}
+                      className={`flex items-center justify-center gap-1.5 py-2 px-1.5 sm:px-2 rounded-xl text-xs font-bold transition-all disabled:opacity-50 cursor-pointer shadow-xs whitespace-nowrap active:scale-95 ${
+                        loc.forceLocked
+                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                          : 'bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200/80 dark:border-rose-800/80'
+                      }`}
+                    >
+                      {loc.forceLocked ? (
+                        <Unlock className={`w-3.5 h-3.5 shrink-0 ${actionLoading === `${locKey}-toggle-lock` ? 'animate-spin' : ''}`} />
+                      ) : (
+                        <Lock className={`w-3.5 h-3.5 shrink-0 ${actionLoading === `${locKey}-toggle-lock` ? 'animate-spin' : ''}`} />
+                      )}
+                      <span>{loc.forceLocked ? 'Deblocat' : 'Blocare PIN'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleRebootPc(locKey, loc.displayName)}
+                      disabled={actionLoading === `${locKey}-reboot-pc`}
+                      title="Repornește sistemul Windows fizic pe acest Kiosk (cere confirmare)"
+                      className="flex items-center justify-center gap-1.5 py-2 px-1.5 sm:px-2 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-700/50 hover:bg-rose-50 hover:border-rose-300 hover:text-rose-700 dark:hover:bg-rose-950/40 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-600/80 transition-colors disabled:opacity-50 cursor-pointer shadow-xs whitespace-nowrap"
+                    >
+                      <Power className={`w-3.5 h-3.5 text-slate-500 shrink-0 ${actionLoading === `${locKey}-reboot-pc` ? 'animate-spin text-rose-500' : ''}`} />
+                      <span>Restart PC</span>
                     </button>
                   </div>
                 </div>

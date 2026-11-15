@@ -1,5 +1,66 @@
 # Jurnal de modificări — Smart Kiosk (Antigravity ↔ Paperclip)
 
+### 2026-11-15 08:44 — Buton Restart PC Windows cu Confirmare de Siguranță pe Cardul LIVE Status
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Buton Restart PC Windows în LIVE Status (`BridgeMonitoring.jsx`):** Adăugat buton dedicat „Restart PC” (cu iconiță Power și avertizare roșie) pe grila de acțiuni rapide a fiecărui card de aparat.
+  2. **Dialog de Confirmare de Siguranță:** La apăsare, afișează dialog de confirmare cu avertisment clar (timp de restart ~1 min, interzis dacă un client comandă) pentru a preveni apăsarea accidentală pe telefon.
+  3. **Execuție Nativă Windows:** Apelează direct `/api/bridge-monitoring/:locationId/reboot-pc`, care transmite către bridge comanda Windows nativă `shutdown /r /t 2 /f`.
+- **Fișiere:**
+  - `packages/admin/src/screens/BridgeMonitoring.jsx`
+  - `.agents/CHANGELOG.md`
+- **Ramură / Commit:** Local (fără push)
+- **Build / Teste:** `npm --prefix packages/admin run build` OK (0 erori, 1.35s).
+
+### 2026-11-15 08:42 — Optimizare Spațiu Mobil Admin & Buton Rapid Blocare PIN în LIVE Status
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Optimizare Live Kiosks Strip pe Mobil (`App.jsx`):** Eliminat al 3-lea rând risipit de spațiu pe mobil. Cele 4 kiosk-uri rămân pe 2 rânduri (2x2), iar butonul de actualizare cu badge numeric și iconița către LIVE Status au fost așezate compact în coloană verticală chiar în capătul celor 2 rânduri. Pe desktop se păstrează stilul orizontal complet.
+  2. **Dropdown Filtru Perioadă pe Mobil (`App.jsx`):** Pastilele orizontale („Azi”, „Ieri”, „Săpt. Curentă” etc.) au fost ascunse pe mobil (`hidden sm:flex`) și înlocuite cu un meniu dropdown `<select>` elegant, aliniat perfect cu filtrele de Locație, Plată și Căutare.
+  3. **Grafic Vânzări & Încasări Compact (`DashboardCharts3D.jsx`):** Subtitlul text lung a fost ascuns pe mobil (`hidden sm:flex`), butoanele de comparație și metrici („Fără comp.”, „vs Ieri”, „Valori pe Grafic”, „Încasări (RON)”, „Nr. Comenzi”) au fost așezate pe un singur rând orizontal glisabil (`flex-nowrap overflow-x-auto`), iar padding-ul cardului a fost optimizat la `p-3 sm:p-5`.
+  4. **Buton Rapid Blocare PIN în LIVE Status (`BridgeMonitoring.jsx`):** Adăugat butonul „Blocare PIN” / „Deblochează” (cu icon Lock/Unlock și update optimist) pe fiecare card de echipamente, apelând direct endpoint-ul web `/api/locations/:id/lock` fără a atinge Windows sau driverul tactil.
+  5. **Verificare și Păstrare Reguli Push:** Toate modificările au fost testate local și verificate (`build` 0 erori). Niciun `git push` nu se execută fără confirmarea expresă a utilizatorului.
+- **Fișiere:**
+  - `packages/admin/src/App.jsx`
+  - `packages/admin/src/components/DashboardCharts3D.jsx`
+  - `packages/admin/src/screens/BridgeMonitoring.jsx`
+  - `packages/admin/src/data/bridgeReleaseNotes.js`
+  - `packages/backend/src/data/bridgeReleaseNotes.js`
+  - `.agents/CHANGELOG.md`
+- **Ramură / Commit:** Local (fără push)
+- **Build / Teste:** `npm --prefix packages/admin run build` reușit (0 erori, 1.29s), `node --check packages/pos-bridge/index.js` OK.
+
+### 2026-11-14 17:12 — Eliminare Definitivă Paravan Windows (Privacy Shield) & Păstrare Mentenanță Web Curată
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Eliminare Completă Paravan Windows (`privacy_shield`):** Șters codul de generare/rulare a ferestrelor externe PowerShell / Windows Form (`privacy_shield.ps1`) și manipularea HWND-urilor prin `WDA_EXCLUDEFROMCAPTURE` din `packages/pos-bridge/index.js`, prevenind 100% orice risc de furt de focus sau invalidare a driverului tactil Windows HID.
+  2. **Curățare UI Admin (Desktop Live):** În `packages/admin/src/components/RemoteDesktopViewer.jsx` s-au eliminat butoanele „Paravan Mentenanță” și comutatorul „Eu (Desktop)” / „Ce vede Clientul”. S-a păstrat fluxul curat nativ: conectare Desktop Live, streaming FPS/Calitate, deschidere `C:\SmartKiosk` și control tastatură/mouse.
+  3. **Păstrare Toate Instrumentele de Mentenanță:** Toate celelalte funcționalități din panoul Mentenanță au rămas 100% active și intacte: Mod Mentenanță Web (ecranul animat cu logo de brand din Kiosk React), Restart PC, Restart POS Bridge, Restart Kiosk, Test Semnal POS (UART Ping), scanare porturi și log-uri.
+- **Fișiere:**
+  - `packages/pos-bridge/index.js`
+  - `packages/pos-bridge/start-windows.bat`
+  - `packages/admin/src/components/RemoteDesktopViewer.jsx`
+  - `packages/admin/src/components/WindowsRemoteModal.jsx`
+  - `.agents/CHANGELOG.md`
+- **Ramură / Commit:** Local (fără push)
+- **Build / Teste:** `npm --prefix packages/admin run build` OK (0 erori), `node --check packages/pos-bridge/index.js` OK.
+
+### 2026-11-14 16:30 — Analiză Post-Mortem & Corecție Critică Touchscreen (Eliminare Bucle Win32 Focus)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Identificare & Eliminare Cauză Rădăcină Blocare Touchscreen (5-10 secunde):** În `packages/pos-bridge/index.js` (bucla de 8s `enforceKioskTaskbar`) și în `packages/pos-bridge/watchdog.vbs` (bucla de 5s `WScript.Sleep 5000`) se executau repetat comenzi Win32 `ShowWindow(..., 9/3)` și `SetForegroundWindow` prin PowerShell. Pe Windows 10/11, apelarea repetată a lui `ShowWindow` peste o fereastră Google Chrome Fullscreen borderless (`--kiosk`) rupea capturarea driverului tactil HID (DirectComposition / WM_POINTERDOWN), făcând ecranul complet insensibil la atingeri fizice deși rămânea vizibil.
+  2. **Curățare Completă `watchdog.vbs`:** Rescris `watchdog.vbs` să fie 100% pasiv (verifică doar o dată la 30s dacă `node.exe` există prin WMI), eliminând definitiv orice invocare de PowerShell, compilare C#, apeluri `ShowWindow`, `SetForegroundWindow` sau verificări de taskbar.
+  3. **Curățare `index.js`:** Eliminat `setInterval(() => enforceKioskTaskbar(false), 8000)`, iar la boot se execută o singură verificare pasivă fără buclă repetitivă.
+  4. **Auto-Recuperare Server în `App.jsx`:** Adăugat timer de auto-reîncercare la 2.5 secunde când datele locației lipsesc (`!locationData`), prevenind blocarea pe ecranul „Se conectează la server...”.
+  5. **Aplicat direct pe Cluj 2:** Fișierele `index.js` și `watchdog.vbs` au fost actualizate direct pe discul local `C:\SmartKiosk` al calculatorului Cluj 2, fără `git push`, iar procesele concurente au fost oprite.
+- **Fișiere:**
+  - `packages/pos-bridge/index.js`
+  - `packages/pos-bridge/watchdog.vbs`
+  - `packages/kiosk/src/App.jsx`
+  - `.agents/CHANGELOG.md`
+- **Ramură / Commit:** Local (fără push)
+- **Build / Teste:** `npm --prefix packages/kiosk run build` OK, testat pe Cluj 2 live — touchscreen 100% funcțional, POS 108ms.
+
 ### 2026-11-14 12:22 — Comutator Live în Desktop Live: „🔧 Eu (Desktop)” vs „👁️ Ce vede Clientul”
 - **Autor:** Antigravity
 - **Ce s-a făcut:**
