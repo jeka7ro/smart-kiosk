@@ -85,6 +85,63 @@ const getOrderStatus = (o) => {
   return STATUS_LABELS[o.status] || { label: 'Achitată', color: '#059669' };
 };
 
+function getOrdersQueryParams(period, cStart, cEnd) {
+  if (period === 'all') return 'limit=2000';
+  const now = new Date();
+  if (period === 'today') {
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).toISOString();
+    return `startDate=${encodeURIComponent(start)}&limit=500`;
+  }
+  if (period === 'yesterday') {
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0).toISOString();
+    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).toISOString();
+    return `startDate=${encodeURIComponent(start)}&endDate=${encodeURIComponent(end)}&limit=500`;
+  }
+  if (period === 'thisWeek') {
+    const day = now.getDay() || 7;
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1, 0, 0, 0, 0).toISOString();
+    return `startDate=${encodeURIComponent(start)}&limit=1500`;
+  }
+  if (period === 'lastWeek') {
+    const day = now.getDay() || 7;
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day - 6, 0, 0, 0, 0).toISOString();
+    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1, 0, 0, 0, 0).toISOString();
+    return `startDate=${encodeURIComponent(start)}&endDate=${encodeURIComponent(end)}&limit=1500`;
+  }
+  if (period === 'thisMonth') {
+    const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0).toISOString();
+    return `startDate=${encodeURIComponent(start)}&limit=3000`;
+  }
+  if (period === 'lastMonth') {
+    let m = now.getMonth() - 1;
+    let y = now.getFullYear();
+    if (m < 0) { m = 11; y--; }
+    const start = new Date(y, m, 1, 0, 0, 0, 0).toISOString();
+    const end = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0).toISOString();
+    return `startDate=${encodeURIComponent(start)}&endDate=${encodeURIComponent(end)}&limit=3000`;
+  }
+  if (period === 'thisYear') {
+    const start = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0).toISOString();
+    return `startDate=${encodeURIComponent(start)}&limit=4000`;
+  }
+  if (period === 'custom') {
+    const parts = [];
+    if (cStart) {
+      const sd = new Date(cStart);
+      sd.setHours(0, 0, 0, 0);
+      parts.push(`startDate=${encodeURIComponent(sd.toISOString())}`);
+    }
+    if (cEnd) {
+      const ed = new Date(cEnd);
+      ed.setHours(23, 59, 59, 999);
+      parts.push(`endDate=${encodeURIComponent(ed.toISOString())}`);
+    }
+    parts.push('limit=2500');
+    return parts.join('&');
+  }
+  return 'limit=500';
+}
+
 export default function AdminApp() {
   const { token, user, fetchWithAuth, logout } = useAuth();
   const confirm = useConfirm();
@@ -394,6 +451,10 @@ export default function AdminApp() {
   const handleManualRefresh = async () => {
     setIsManualRefreshing(true);
     try {
+      const activeOrdersQuery = tab === 'orders'
+        ? getOrdersQueryParams(periodFilter, customStart, customEnd)
+        : getOrdersQueryParams(dashboardPeriod, dashboardCustomStart, dashboardCustomEnd);
+
       await Promise.all([
         fetchWithAuth(`${BACKEND}/api/locations/live-status`)
           .then(r => r.json())
@@ -405,7 +466,7 @@ export default function AdminApp() {
           .then(r => r.json())
           .then(summary => { if (summary?.locations) setBridgeSummary(summary); })
           .catch(() => null),
-        fetchWithAuth(`${BACKEND}/api/orders?limit=5000`)
+        fetchWithAuth(`${BACKEND}/api/orders?${activeOrdersQuery}`)
           .then(r => r.json())
           .then(d => { if (d?.orders) setOrders(d.orders); })
           .catch(() => null),
@@ -775,16 +836,47 @@ export default function AdminApp() {
   /* ─── Load promotions configs for UI Previews ───── */
   // promosData moved to KioskSettingsForm
 
-  /* ─── Load initial orders + poll every 30s ──────── */
+  /* ─── Load initial orders + poll recent every 30s ─── */
   useEffect(() => {
-    const loadOrders = () => {
-      let url = `${BACKEND}/api/orders?limit=5000`;
-      fetchWithAuth(url)
+    let isCancelled = false;
+
+    const activeOrdersQuery = tab === 'orders'
+      ? getOrdersQueryParams(periodFilter, customStart, customEnd)
+      : getOrdersQueryParams(dashboardPeriod, dashboardCustomStart, dashboardCustomEnd);
+
+    // 1. Încărcare inițială pentru perioada selectată (Azi = doar ~36 KB în loc de 10.5 MB)
+    fetchWithAuth(`${BACKEND}/api/orders?${activeOrdersQuery}`)
+      .then(r => r.json())
+      .then(d => {
+        if (isCancelled) return;
+        const list = d.orders || [];
+        if (knownOrderIdsRef.current !== null) {
+          const newArrivals = list.filter(o => {
+            const id = o._id || o.id;
+            const num = o.orderNumber;
+            const isKnown = (id && knownOrderIdsRef.current.has(id)) || (num && knownOrderIdsRef.current.has(num));
+            return !isKnown;
+          });
+          if (newArrivals.length > 0) {
+            newArrivals.slice(0, 1).forEach(o => triggerOrderToast(o));
+          }
+        }
+        knownOrderIdsRef.current = new Set(list.map(o => o._id || o.orderNumber));
+        setOrders(list);
+      })
+      .catch(() => {});
+
+    // 2. Verificare de fundal la fiecare 30s: transferă doar ultimele 30 de comenzi (~50 KB)
+    const pollRecent = () => {
+      fetchWithAuth(`${BACKEND}/api/orders?limit=30`)
         .then(r => r.json())
         .then(d => {
-          const list = d.orders || [];
+          if (isCancelled) return;
+          const recentList = d.orders || [];
+          if (recentList.length === 0) return;
+
           if (knownOrderIdsRef.current !== null) {
-            const newArrivals = list.filter(o => {
+            const newArrivals = recentList.filter(o => {
               const id = o._id || o.id;
               const num = o.orderNumber;
               const isKnown = (id && knownOrderIdsRef.current.has(id)) || (num && knownOrderIdsRef.current.has(num));
@@ -794,15 +886,40 @@ export default function AdminApp() {
               newArrivals.slice(0, 1).forEach(o => triggerOrderToast(o));
             }
           }
-          knownOrderIdsRef.current = new Set(list.map(o => o._id || o.orderNumber));
-          setOrders(list);
+          recentList.forEach(o => {
+            const key = o._id || o.id || o.orderNumber;
+            if (key) knownOrderIdsRef.current?.add(key);
+          });
+
+          // Combină comenzile recente fără să șteargă lista deja încărcată
+          setOrders(prev => {
+            const incomingMap = new Map();
+            recentList.forEach(o => {
+              const k = o._id || o.id || o.orderNumber;
+              if (k) incomingMap.set(k, o);
+            });
+            const updated = prev.map(o => {
+              const k = o._id || o.id || o.orderNumber;
+              if (k && incomingMap.has(k)) {
+                const match = incomingMap.get(k);
+                incomingMap.delete(k);
+                return { ...o, ...match };
+              }
+              return o;
+            });
+            const fresh = Array.from(incomingMap.values());
+            return [...fresh, ...updated];
+          });
         })
         .catch(() => {});
     };
-    loadOrders();
-    const interval = setInterval(loadOrders, 30_000);
-    return () => clearInterval(interval);
-  }, [periodFilter, customStart, customEnd, dashboardPeriod, dashboardCustomStart, dashboardCustomEnd, triggerOrderToast]);
+
+    const interval = setInterval(pollRecent, 30_000);
+    return () => {
+      isCancelled = true;
+      clearInterval(interval);
+    };
+  }, [tab, periodFilter, customStart, customEnd, dashboardPeriod, dashboardCustomStart, dashboardCustomEnd, triggerOrderToast]);
 
   const handleCancelOrder = async (orderId) => {
     const ok = await confirm('Ești sigur că vrei să anulezi această comandă (anulată din POS)?', {

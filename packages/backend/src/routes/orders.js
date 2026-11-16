@@ -577,43 +577,6 @@ router.post('/', async (req, res) => {
 router.get('/', async (req, res) => {
   const { status, brand, startDate, endDate, limit = 50, locationId } = req.query;
   try {
-    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-094"') WHERE data->>'orderNumber' = 'CJ1-544'`).catch(() => {});
-    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CT-001"') WHERE data->>'orderNumber' = 'CT-438'`).catch(() => {});
-    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CT-002"') WHERE data->>'orderNumber' = 'CT-439'`).catch(() => {});
-
-    // Auto-corectie dinamică secvență Cluj blocată la 500 (26.09.2026)
-    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-507"') WHERE id = 'ORD-1790425948655'`).catch(() => {});
-    await pool.query(`
-      WITH numbered AS (
-        SELECT id,
-               ROW_NUMBER() OVER (ORDER BY created_at ASC) - 1 AS offset
-        FROM orders
-        WHERE data->>'orderNumber' = 'CJ1-500'
-      )
-      UPDATE orders o
-      SET data = jsonb_set(data, '{orderNumber}', to_jsonb('CJ1-' || (500 + n.offset)::text))
-      FROM numbered n
-      WHERE o.id = n.id AND n.offset > 0
-    `).catch(() => {});
-
-    // Auto-corectie comenzi sarite la 10024+ (26.09.2026)
-    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-508"') WHERE id = 'ORD-1790426940073'`).catch(() => {});
-    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-509"') WHERE id = 'ORD-1790427016320'`).catch(() => {});
-    await pool.query(`UPDATE orders SET data = jsonb_set(data, '{orderNumber}', '"CJ1-510"') WHERE id = 'ORD-1790427710472'`).catch(() => {});
-    await pool.query(`
-      WITH rogue_today AS (
-        SELECT id,
-               ROW_NUMBER() OVER (ORDER BY created_at ASC) - 1 AS offset
-        FROM orders
-        WHERE data->>'orderNumber' ~ '^CJ[0-9]*-1002[4-9]'
-          AND created_at >= '2026-09-26T12:00:00Z'
-      )
-      UPDATE orders o
-      SET data = jsonb_set(data, '{orderNumber}', to_jsonb('CJ1-' || (508 + r.offset)::text))
-      FROM rogue_today r
-      WHERE o.id = r.id
-    `).catch(() => {});
-
     let query = `SELECT data, status FROM orders WHERE 1=1`;
     const params = [];
 

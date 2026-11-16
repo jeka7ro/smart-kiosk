@@ -1,5 +1,21 @@
 # Jurnal de modificări — Smart Kiosk (Antigravity ↔ Paperclip)
 
+### 2026-11-16 14:52 — Optimizare Masivă Consum Supabase Egress (99.5% reducere transfer)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Eliminare Buclă Polling `limit=5000` (`App.jsx`):** Înlocuit descărcarea continuă a 5.000 de comenzi (10.5 MB la fiecare 30 secunde, ~30 GB/zi) cu interogări filtrate pe perioada activă (pentru ecranul principal „Azi” se descarcă doar ~36 KB).
+  2. **Poller de Fundal Inteligent (`App.jsx`):** Intervalul de siguranță la 30 secunde solicită strict ultimele 30 de comenzi (`limit=30`, ~50 KB) și le combină în starea locală React fără să șteargă comenzile vechi încărcate.
+  3. **Refresh Manual Optimizat (`App.jsx`):** Butonul din antet reîmprospătează strict perioada activă selectată pe ecran (`getOrdersQueryParams`).
+  4. **Curățare Query-uri Scriere din GET (`routes/orders.js`):** Eliminate cele 5 `UPDATE` SQL grele din septembrie care rulau inutil pe tabela `orders` la fiecare cerere HTTP GET, eliberând CPU-ul și lock-urile Supabase.
+  5. **Zero Impact Kiosk-uri:** Kiosk-urile fizice nu utilizează acest cod și rămân 100% neatinse.
+- **Fișiere:**
+  - `packages/admin/src/App.jsx`
+  - `packages/backend/src/routes/orders.js`
+  - `.agents/CHANGELOG.md`
+- **Ramură / Commit:** Local (așteaptă acord push)
+- **Build / Teste:** `npm --prefix packages/admin run build` OK (0 erori, 1.46s), `node --check` pe backend OK.
+
+
 ### 2026-11-15 08:50 — Buton Start.bat pe Cardul LIVE Status
 - **Autor:** Antigravity
 - **Ce s-a făcut:**
