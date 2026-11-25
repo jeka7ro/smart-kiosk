@@ -8,13 +8,13 @@ import UsersManager from './screens/UsersManager';
 import ModifierImages from './screens/ModifierImages';
 import ProductOverrides from './screens/ProductOverrides';
 import TranslationsScreen from './screens/TranslationsScreen';
-import Integrations   from './screens/Integrations';
-import PosLogs        from './screens/PosLogs';
-import PendingOrders  from './screens/PendingOrders';
-import KioskLogs      from './screens/KioskLogs';
-import IikoLogs       from './screens/IikoLogs';
-import PrinterLogs    from './screens/PrinterLogs';
-import PortScans      from './screens/PortScans';
+import Integrations from './screens/Integrations';
+import PosLogs from './screens/PosLogs';
+import PendingOrders from './screens/PendingOrders';
+import KioskLogs from './screens/KioskLogs';
+import IikoLogs from './screens/IikoLogs';
+import PrinterLogs from './screens/PrinterLogs';
+import PortScans from './screens/PortScans';
 import BridgeMonitoring from './screens/BridgeMonitoring';
 import BrandLogo from './components/BrandLogo.jsx';
 import BankLogo from './components/BankLogo.jsx';
@@ -23,15 +23,14 @@ import SoftwareReleaseNotesModal from './components/SoftwareReleaseNotesModal.js
 import WindowsRemoteModal from './components/WindowsRemoteModal.jsx';
 import { BRIDGE_RELEASE_NOTES } from './data/bridgeReleaseNotes.js';
 import DashboardCharts3D, { detectCardBrand, detectCardBank, BANK_CONFIG } from './components/DashboardCharts3D.jsx';
-import OrderToastNotificationStack, { playNewOrderSound } from './components/OrderToastNotification.jsx';
-import DeviceAlertToastStack from './components/DeviceAlertToast.jsx';
-import OrdersNotificationBell from './components/OrdersNotificationBell.jsx';
-import Promotions     from './screens/Promotions';
+import { playNewOrderSound } from './components/OrderToastNotification.jsx';
+import DynamicIsland from './components/DynamicIsland.jsx';
+import Promotions from './screens/Promotions';
 import FortuneWheelPreview from './components/FortuneWheelPreview';
 import MenuManager, { MenuProfileEditorModal } from './screens/MenuManager';
 import QrGenerator from './screens/QrGenerator';
 import { useConfirm, RestartDialogIcon } from './components/ConfirmModal';
-import { LayoutDashboard, Receipt, TrendingUp, MapPin, MonitorSmartphone, QrCode, Utensils, Languages, Image as ImageIcon, Tags, Users, Blocks, Gift, Store, Sun, Moon, LogOut, Menu, X, CreditCard, Download, Printer, Building2, Palette, Sparkles, Flame, Snowflake, Layers, Upload, Star, ChevronUp, ChevronDown, Check, CheckCircle2, Zap, Wifi, Sliders, Info, Trash2, AlertTriangle, Globe, Phone, Lock, Clock, ShieldCheck, ShieldAlert, Unlock, Eye, EyeOff, Activity, RotateCcw, Calendar, Copy, Server, ExternalLink, RefreshCw, Maximize2 } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, FileText, TrendingUp, MapPin, MonitorSmartphone, QrCode, Utensils, Languages, Image as ImageIcon, Tags, Users, Blocks, Gift, Store, Sun, Moon, LogOut, Menu, PanelLeftClose, PanelLeftOpen, X, CreditCard, Download, Printer, Building2, Palette, Sparkles, Flame, Snowflake, Layers, Upload, Pencil, Star, ChevronUp, ChevronDown, Check, CheckCircle2, Zap, Wifi, Sliders, Info, Trash2, AlertTriangle, Globe, Phone, Lock, Clock, ShieldCheck, ShieldAlert, Unlock, Eye, EyeOff, Activity, RotateCcw, Calendar, Copy, Server, ExternalLink, RefreshCw, Maximize2, Minimize2 } from 'lucide-react';
 import { formatThousands } from './utils/formatters';
 
 
@@ -46,7 +45,7 @@ const BUILD_INFO = {
 // ─── Keep-alive: prevent Render.com free tier from sleeping ───────────────────
 function useKeepAlive() {
   useEffect(() => {
-    const ping = () => fetch(`${BACKEND}/api/health`, { method: 'GET' }).catch(() => {});
+    const ping = () => fetch(`${BACKEND}/api/health`, { method: 'GET' }).catch(() => { });
     ping(); // immediate ping on load
     const id = setInterval(ping, 4 * 60 * 1000); // every 4 minutes
     return () => clearInterval(id);
@@ -56,20 +55,20 @@ function useKeepAlive() {
 import { BRAND_COLORS, BRAND_LABELS, getBrandColor, getBrandLabel } from './utils/brandTheme';
 
 const STATUS_LABELS = {
-  pending:          { label: 'Achitată',     color: '#059669' },
-  awaiting_payment: { label: 'iiko',         color: '#059669' },
-  confirmed:        { label: 'iiko',         color: '#059669' },
-  preparing:        { label: 'În preparare', color: '#3b82f6' },
-  ready:            { label: 'Gata',         color: '#059669' },
-  delivered:        { label: 'Livrat',       color: '#8b5cf6' },
-  cancelled:        { label: 'Anulată',      color: '#ef4444' },
+  pending: { label: 'Achitată', color: '#059669' },
+  awaiting_payment: { label: 'iiko', color: '#059669' },
+  confirmed: { label: 'iiko', color: '#059669' },
+  preparing: { label: 'În preparare', color: '#3b82f6' },
+  ready: { label: 'Gata', color: '#059669' },
+  delivered: { label: 'Livrat', color: '#8b5cf6' },
+  cancelled: { label: 'Anulată', color: '#ef4444' },
 };
 
 const getOrderStatus = (o) => {
   if (!o) return { label: '—', color: '#6b7a99' };
   if (o.status === 'cancelled') return { label: 'Anulată', color: '#ef4444' };
   if (o.status === 'delivered') return { label: 'Livrat', color: '#8b5cf6' };
-  if (o.status === 'ready')     return { label: 'Gata', color: '#059669' };
+  if (o.status === 'ready') return { label: 'Gata', color: '#059669' };
   if (o.status === 'preparing') return { label: 'În preparare', color: '#3b82f6' };
 
   // Comenzi plătite cu cardul -> Achitată
@@ -142,10 +141,89 @@ function getOrdersQueryParams(period, cStart, cEnd) {
   return 'limit=500';
 }
 
+function getComparisonOrdersQueries(period, cStart, cEnd) {
+  const now = new Date();
+  const makeRangeQuery = (startDateObj, endDateObj, limit = 1000) =>
+    `startDate=${encodeURIComponent(startDateObj.toISOString())}&endDate=${encodeURIComponent(endDateObj.toISOString())}&limit=${limit}`;
+  const makeDayQuery = (dayObj, limit = 600) => {
+    const s = new Date(dayObj.getFullYear(), dayObj.getMonth(), dayObj.getDate(), 0, 0, 0, 0);
+    const e = new Date(dayObj.getFullYear(), dayObj.getMonth(), dayObj.getDate(), 23, 59, 59, 999);
+    return makeRangeQuery(s, e, limit);
+  };
+  const sameDayPrevMonth = (baseDay) => {
+    const lmMonth = baseDay.getMonth() === 0 ? 11 : baseDay.getMonth() - 1;
+    const lmYear = baseDay.getMonth() === 0 ? baseDay.getFullYear() - 1 : baseDay.getFullYear();
+    const maxDay = new Date(lmYear, lmMonth + 1, 0).getDate();
+    return new Date(lmYear, lmMonth, Math.min(baseDay.getDate(), maxDay), 0, 0, 0, 0);
+  };
+  const parseLocalYMD = (s) => {
+    if (!s) return null;
+    const [y, m, d] = s.split('-').map(Number);
+    return (y && m && d) ? new Date(y, m - 1, d, 0, 0, 0, 0) : null;
+  };
+
+  if (period === 'today') {
+    const yest = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    const lm = sameDayPrevMonth(now);
+    return [makeDayQuery(yest, 600), makeDayQuery(lm, 600)];
+  }
+  if (period === 'yesterday') {
+    const yest = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    const dayBeforeYest = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2);
+    const lm = sameDayPrevMonth(yest);
+    return [makeDayQuery(dayBeforeYest, 600), makeDayQuery(lm, 600)];
+  }
+  if (period === 'thisWeek') {
+    const dow = now.getDay() || 7;
+    const prevMon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow + 1 - 7, 0, 0, 0, 0);
+    const prevEnd = new Date(prevMon.getFullYear(), prevMon.getMonth(), prevMon.getDate() + dow - 1, 23, 59, 59, 999);
+    return [makeRangeQuery(prevMon, prevEnd, 1500)];
+  }
+  if (period === 'lastWeek') {
+    const dow = now.getDay() || 7;
+    const twoWeeksAgoMon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow + 1 - 14, 0, 0, 0, 0);
+    const twoWeeksAgoSun = new Date(twoWeeksAgoMon.getFullYear(), twoWeeksAgoMon.getMonth(), twoWeeksAgoMon.getDate() + 6, 23, 59, 59, 999);
+    return [makeRangeQuery(twoWeeksAgoMon, twoWeeksAgoSun, 1500)];
+  }
+  if (period === 'thisMonth') {
+    const prevStart = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
+    const prevMonthMaxDay = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+    const prevEnd = new Date(now.getFullYear(), now.getMonth() - 1, Math.min(now.getDate(), prevMonthMaxDay), 23, 59, 59, 999);
+    return [makeRangeQuery(prevStart, prevEnd, 3500)];
+  }
+  if (period === 'lastMonth') {
+    const prevStart = new Date(now.getFullYear(), now.getMonth() - 2, 1, 0, 0, 0, 0);
+    const prevEnd = new Date(now.getFullYear(), now.getMonth() - 1, 0, 23, 59, 59, 999);
+    return [makeRangeQuery(prevStart, prevEnd, 3500)];
+  }
+  if (period === 'thisYear') {
+    const prevStart = new Date(now.getFullYear() - 1, 0, 1, 0, 0, 0, 0);
+    const prevEnd = new Date(now.getFullYear() - 1, now.getMonth() + 1, 0, 23, 59, 59, 999);
+    return [makeRangeQuery(prevStart, prevEnd, 5000)];
+  }
+  if (period === 'custom') {
+    const sd = parseLocalYMD(cStart);
+    const ed = parseLocalYMD(cEnd);
+    if (!sd || !ed) return [];
+    const start = sd <= ed ? sd : ed;
+    const end = sd <= ed ? ed : sd;
+    const totalDays = Math.max(1, Math.round((end - start) / 86400000) + 1);
+    if (totalDays === 1) {
+      const prevDay = new Date(start.getFullYear(), start.getMonth(), start.getDate() - 1);
+      const lm = sameDayPrevMonth(start);
+      return [makeDayQuery(prevDay, 600), makeDayQuery(lm, 600)];
+    }
+    const prevStart = new Date(start.getFullYear(), start.getMonth(), start.getDate() - totalDays, 0, 0, 0, 0);
+    const prevEnd = new Date(start.getFullYear(), start.getMonth(), start.getDate() - 1, 23, 59, 59, 999);
+    return [makeRangeQuery(prevStart, prevEnd, 3000)];
+  }
+  return [];
+}
+
 export default function AdminApp() {
   const { token, user, fetchWithAuth, logout } = useAuth();
   const confirm = useConfirm();
-  
+
   const [tab, setTabState] = useState(() => {
     const hash = window.location.hash.replace('#', '');
     const validTabs = ['dashboard', 'orders', 'pending-orders', 'locations', 'kiosks', 'bridge-monitoring', 'qrcodes', 'menu', 'modifiers', 'products', 'users', 'integrations', 'promotions', 'brands', 'translations', 'pos-logs', 'printer-logs', 'port-scans', 'iiko-logs', 'kiosk-logs'];
@@ -167,19 +245,21 @@ export default function AdminApp() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  const [orders,    setOrders]    = useState([]);
-  const [menuStatus,setMenuStatus]= useState(null);
+  const [orders, setOrders] = useState([]);
+  const [dashboardComparisonOrders, setDashboardComparisonOrders] = useState([]);
+  const [isComparisonLoading, setIsComparisonLoading] = useState(false);
+  const [menuStatus, setMenuStatus] = useState(null);
   const [connected, setConnected] = useState(false);
   const [brandFilter, setBrandFilter] = useState('all');
   const [locationFilter, setLocationFilter] = useState('all');
   const [paymentFilter, setPaymentFilter] = useState('all');
   const [periodFilter, setPeriodFilter] = useState('all');
-  
+
   const todayStr = new Date().toISOString().slice(0, 10);
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   const tomStr = tomorrow.toISOString().slice(0, 10);
-  
+
   const [customStart, setCustomStart] = useState(todayStr);
   const [customEnd, setCustomEnd] = useState(tomStr);
 
@@ -301,13 +381,24 @@ export default function AdminApp() {
     setDashboardSearch('');
   };
 
-  const [notifications, setNotifs]= useState([]);
+  const [notifications, setNotifs] = useState([]);
   const [orderToasts, setOrderToasts] = useState([]);
   const knownOrderIdsRef = useRef(null);
   const toastedOrderKeysRef = useRef(new Set());
 
+  const isOrderFromToday = (order) => {
+    const dt = order?.createdAt || order?.arrivedAt;
+    if (!dt) return false;
+    const d = new Date(dt);
+    if (isNaN(d.getTime())) return false;
+    const now = new Date();
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+  };
+
   const triggerOrderToast = useCallback((order) => {
     if (!order) return;
+    // Never pop live Dynamic Island notifications for historical orders from previous days
+    if (order.createdAt && !isOrderFromToday(order)) return;
     const orderKey = String(order._id || order.orderNumber || order.id || '');
     if (!orderKey) return;
 
@@ -386,7 +477,7 @@ export default function AdminApp() {
     if (kiosksLiveStatus && Object.keys(kiosksLiveStatus).length > 0) {
       try {
         localStorage.setItem('admin_cached_kiosks_live_status', JSON.stringify(kiosksLiveStatus));
-      } catch {}
+      } catch { }
     }
   }, [kiosksLiveStatus]);
 
@@ -394,7 +485,7 @@ export default function AdminApp() {
     if (bridgeSummary?.locations && Object.keys(bridgeSummary.locations).length > 0) {
       try {
         localStorage.setItem('admin_cached_bridge_summary', JSON.stringify(bridgeSummary));
-      } catch {}
+      } catch { }
     }
   }, [bridgeSummary]);
   const [activeLocationDropdown, setActiveLocationDropdown] = useState(null);
@@ -470,6 +561,23 @@ export default function AdminApp() {
           .then(r => r.json())
           .then(d => { if (d?.orders) setOrders(d.orders); })
           .catch(() => null),
+        ...(tab === 'dashboard'
+          ? [Promise.all(
+              getComparisonOrdersQueries(dashboardPeriod, dashboardCustomStart, dashboardCustomEnd).map(q =>
+                fetchWithAuth(`${BACKEND}/api/orders?${q}`).then(r => r.json()).then(d => d?.orders || []).catch(() => [])
+              )
+            ).then(lists => {
+              const seen = new Set();
+              const merged = [];
+              lists.flat().forEach(o => {
+                if (!o) return;
+                const k = o._id || o.id || o.orderNumber;
+                if (k) { if (seen.has(k)) return; seen.add(k); }
+                merged.push(o);
+              });
+              setDashboardComparisonOrders(merged);
+            }).catch(() => null)]
+          : []),
       ]);
     } finally {
       setTimeout(() => setIsManualRefreshing(false), 500);
@@ -480,14 +588,14 @@ export default function AdminApp() {
     const activeLocations = new Set();
     const locDefs = [
       { id: 'cluj1', aliases: ['cluj1', 'cluj', 'cluj-centru', 'cluj-main', 'smashme-main', 'sm-cluj', 'smashme-cluj', '9c63cff6-1d66-442d-a98d-2302656e3943', '90296b11-9ba9-4279-a69b-1f84e193315e'] },
-      { id: 'cluj2', aliases: ['cluj2', 'cluj-2', 'cj2', 'smashme-cj2'] },
+      { id: 'cluj2', aliases: ['cluj2', 'cluj-2', 'cj2', 'cj-2', 'smashme-cj2', 'smashme cj-2', 'cj-kiosk2', 'cluj-kiosk2'] },
       { id: 'sm-brasov', aliases: ['sm-brasov', 'brasov', 'brasov-centru', 'rollmaster', 'rollmaster-brasov', 'rm-brasov', 'adddb5a0-26e5-4d50-b472-1c74726c3f72'] },
       { id: 'constanta1', aliases: ['constanta1', 'constanta', 'smashme-constanta', '8308e796-8780-4d18-ae66-4e430178c778'] }
     ];
 
     locDefs.forEach(loc => {
-      const bridgeLoc = bridgeSummary?.locations?.[loc.id] || 
-                       (loc.aliases ? loc.aliases.map(a => bridgeSummary?.locations?.[a]).find(Boolean) : null);
+      const bridgeLoc = bridgeSummary?.locations?.[loc.id] ||
+        (loc.aliases ? loc.aliases.map(a => bridgeSummary?.locations?.[a]).find(Boolean) : null);
       const isBridgeOnline = Boolean(bridgeLoc?.status === 'online' || bridgeLoc?.isBridgeOnline);
       if (isBridgeOnline) {
         activeLocations.add(loc.id);
@@ -497,13 +605,56 @@ export default function AdminApp() {
     return activeLocations.size;
   }, [kiosksLiveStatus, bridgeSummary]);
 
+  /* ─── Live Locations Health Summary (for Apple Dynamic Island) ─── */
+  const locationsHealth = useMemo(() => {
+    const locDefs = [
+      { id: 'cluj1', name: 'Cluj 1', aliases: ['cluj1', 'cluj', 'cluj-centru', 'cluj-main', 'smashme-main', 'sm-cluj', 'smashme-cluj', '9c63cff6-1d66-442d-a98d-2302656e3943', '90296b11-9ba9-4279-a69b-1f84e193315e'] },
+      { id: 'cluj2', name: 'Cluj 2', aliases: ['cluj2', 'cluj-2', 'cj2', 'cj-2', 'smashme-cj2', 'smashme cj-2', 'cj-kiosk2', 'cluj-kiosk2'] },
+      { id: 'sm-brasov', name: 'Brașov', aliases: ['sm-brasov', 'brasov', 'brasov-centru', 'rollmaster', 'rollmaster-brasov', 'rm-brasov', 'adddb5a0-26e5-4d50-b472-1c74726c3f72'] },
+      { id: 'constanta1', name: 'Constanța', aliases: ['constanta1', 'constanta', 'smashme-constanta', '8308e796-8780-4d18-ae66-4e430178c778'] }
+    ];
+
+    let onlineCount = 0;
+    const issues = [];
+
+    locDefs.forEach(loc => {
+      const liveKiosk = loc.aliases.map(a => kiosksLiveStatus[a]).find(Boolean);
+      const bridgeLoc = bridgeSummary?.locations?.[loc.id] ||
+        loc.aliases.map(a => bridgeSummary?.locations?.[a]).find(Boolean);
+      const isBridgeOnline = Boolean(bridgeLoc?.status === 'online' || bridgeLoc?.isBridgeOnline);
+      const hasRecent = Boolean(bridgeLoc?.connectedAt && (Date.now() - bridgeLoc.connectedAt < 30000) && bridgeLoc.port && bridgeLoc.port !== 'N/A');
+      const bridgeActive = isBridgeOnline || hasRecent;
+      const isKioskConnected = Boolean(
+        liveKiosk?.isLive ||
+        liveKiosk?.online ||
+        (liveKiosk?.onlineCount > 0) ||
+        bridgeLoc?.isKioskOnline ||
+        (loc.id === 'cluj2' && bridgeActive)
+      );
+
+      if (isKioskConnected && bridgeActive) {
+        onlineCount += 1;
+      } else if (bridgeSummary?.locations) {
+        if (!bridgeActive && isKioskConnected) {
+          issues.push({ id: loc.id, name: loc.name, statusTone: 'warning', statusLabel: 'POS Oprit', message: 'Ecran Kiosk activ, POS Bridge deconectat' });
+        } else if (bridgeActive && !isKioskConnected) {
+          issues.push({ id: loc.id, name: loc.name, statusTone: 'warning', statusLabel: 'Ecran Inactiv', message: 'POS Bridge activ, ecran Kiosk oprit' });
+        } else {
+          issues.push({ id: loc.id, name: loc.name, statusTone: 'offline', statusLabel: 'Offline', message: 'Kiosk și POS Bridge deconectate' });
+        }
+      }
+    });
+
+    return { onlineCount, totalCount: locDefs.length, issues };
+  }, [kiosksLiveStatus, bridgeSummary]);
+
   /* ─── Device Disconnect & Reconnect Alert Watcher ─── */
   useEffect(() => {
     if (!bridgeSummary || !bridgeSummary.locations) return;
 
     const locDefs = [
       { id: 'cluj1', name: 'Cluj 1', aliases: ['cluj1', 'cluj', 'cluj-centru', 'cluj-main', 'smashme-main', 'sm-cluj', 'smashme-cluj', '9c63cff6-1d66-442d-a98d-2302656e3943', '90296b11-9ba9-4279-a69b-1f84e193315e'] },
-      { id: 'cluj2', name: 'Cluj 2', aliases: ['cluj2', 'cluj-2', 'cj2', 'smashme-cj2'] },
+      { id: 'cluj2', name: 'Cluj 2', aliases: ['cluj2', 'cluj-2', 'cj2', 'cj-2', 'smashme-cj2', 'smashme cj-2', 'cj-kiosk2', 'cluj-kiosk2'] },
       { id: 'sm-brasov', name: 'Brașov', aliases: ['sm-brasov', 'brasov', 'brasov-centru', 'rollmaster', 'rollmaster-brasov', 'rm-brasov', 'adddb5a0-26e5-4d50-b472-1c74726c3f72'] },
       { id: 'constanta1', name: 'Constanța', aliases: ['constanta1', 'constanta', 'smashme-constanta', '8308e796-8780-4d18-ae66-4e430178c778'] }
     ];
@@ -513,14 +664,19 @@ export default function AdminApp() {
 
     locDefs.forEach(loc => {
       const liveKiosk = loc.aliases.map(a => kiosksLiveStatus[a]).find(Boolean);
-      const isKioskConnected = Boolean(liveKiosk?.isLive || liveKiosk?.online || (liveKiosk?.onlineCount > 0));
-      
-      const bridgeLoc = bridgeSummary?.locations?.[loc.id] || 
-                       (loc.aliases ? loc.aliases.map(a => bridgeSummary?.locations?.[a]).find(Boolean) : null);
+      const bridgeLoc = bridgeSummary?.locations?.[loc.id] ||
+        (loc.aliases ? loc.aliases.map(a => bridgeSummary?.locations?.[a]).find(Boolean) : null);
       const isBridgeOnline = Boolean(bridgeLoc?.status === 'online' || bridgeLoc?.isBridgeOnline);
 
       const hasRecentConnection = Boolean(bridgeLoc?.connectedAt && (Date.now() - bridgeLoc.connectedAt < 30 * 1000) && bridgeLoc.port && bridgeLoc.port !== 'N/A');
       const bridgeIsActive = isBridgeOnline || hasRecentConnection;
+      const isKioskConnected = Boolean(
+        liveKiosk?.isLive ||
+        liveKiosk?.online ||
+        (liveKiosk?.onlineCount > 0) ||
+        bridgeLoc?.isKioskOnline ||
+        (loc.id === 'cluj2' && bridgeIsActive)
+      );
 
       let statusTone = 'offline';
       let statusLabel = 'Offline';
@@ -590,14 +746,18 @@ export default function AdminApp() {
     lastKnownDeviceStatusRef.current = currentStatuses;
     deviceAlertsInitializedRef.current = true;
 
-    // Elimină automat alertele de avertizare pentru orice locație care a revenit ONLINE
-    setDeviceAlerts(prev => prev.filter(a => {
-      const locStatus = currentStatuses[a.locationId];
-      if (locStatus && locStatus.statusTone === 'online' && a.type !== 'reconnected') {
-        return false;
-      }
-      return true;
-    }));
+    // Elimină automat alertele de avertizare pentru orice locație care a revenit ONLINE (fără a crea array nou dacă nu se schimbă nimic)
+    setDeviceAlerts(prev => {
+      if (prev.length === 0) return prev;
+      const next = prev.filter(a => {
+        const locStatus = currentStatuses[a.locationId];
+        if (locStatus && locStatus.statusTone === 'online' && a.type !== 'reconnected') {
+          return false;
+        }
+        return true;
+      });
+      return next.length === prev.length ? prev : next;
+    });
 
     if (newAlerts.length > 0) {
       setDeviceAlerts(prev => {
@@ -626,13 +786,13 @@ export default function AdminApp() {
       const orderNum = order.orderNumber;
 
       setOrders(prev => {
-        const exists = prev.some(o => 
+        const exists = prev.some(o =>
           (orderId && (o._id === orderId || o.id === orderId)) ||
           (orderNum && o.orderNumber === orderNum)
         );
         if (exists) {
           // Actualizează pe loc datele (ex: syrveOrderId, status) fără să creeze dublură
-          return prev.map(o => 
+          return prev.map(o =>
             ((orderId && (o._id === orderId || o.id === orderId)) || (orderNum && o.orderNumber === orderNum))
               ? { ...o, ...order }
               : o
@@ -642,7 +802,7 @@ export default function AdminApp() {
       });
 
       const isAlreadyToast = (orderId && knownOrderIdsRef.current?.has(orderId)) ||
-                             (orderNum && knownOrderIdsRef.current?.has(orderNum));
+        (orderNum && knownOrderIdsRef.current?.has(orderNum));
       if (!isAlreadyToast) {
         if (orderId && knownOrderIdsRef.current) knownOrderIdsRef.current.add(orderId);
         if (orderNum && knownOrderIdsRef.current) knownOrderIdsRef.current.add(orderNum);
@@ -650,7 +810,7 @@ export default function AdminApp() {
       }
     };
 
-    const socket = io(BACKEND, { 
+    const socket = io(BACKEND, {
       reconnectionAttempts: 10,
       transports: ['websocket', 'polling'] // Allow polling fallback
     });
@@ -755,7 +915,7 @@ export default function AdminApp() {
         if (Object.keys(mergedLive).length > 0) {
           setKiosksLiveStatus(prev => ({ ...prev, ...mergedLive }));
         }
-      }).catch(() => {});
+      }).catch(() => { });
     };
     fetchLiveKiosks();
     const livePoll = setInterval(fetchLiveKiosks, 15000);
@@ -780,7 +940,7 @@ export default function AdminApp() {
           }
         }
         if (merged?.locations) setBridgeSummary(merged);
-      }).catch(() => {});
+      }).catch(() => { });
     };
     fetchBridgeStatus();
     const bridgePoll = setInterval(fetchBridgeStatus, 15000);
@@ -850,21 +1010,57 @@ export default function AdminApp() {
       .then(d => {
         if (isCancelled) return;
         const list = d.orders || [];
-        if (knownOrderIdsRef.current !== null) {
-          const newArrivals = list.filter(o => {
-            const id = o._id || o.id;
-            const num = o.orderNumber;
-            const isKnown = (id && knownOrderIdsRef.current.has(id)) || (num && knownOrderIdsRef.current.has(num));
-            return !isKnown;
-          });
-          if (newArrivals.length > 0) {
-            newArrivals.slice(0, 1).forEach(o => triggerOrderToast(o));
-          }
+        if (knownOrderIdsRef.current === null) {
+          knownOrderIdsRef.current = new Set();
         }
-        knownOrderIdsRef.current = new Set(list.map(o => o._id || o.orderNumber));
+        // Only register loaded orders as known — switching tabs or date filters must NEVER trigger live toasts for old orders
+        list.forEach(o => {
+          if (o._id) knownOrderIdsRef.current.add(o._id);
+          if (o.id) knownOrderIdsRef.current.add(o.id);
+          if (o.orderNumber) knownOrderIdsRef.current.add(o.orderNumber);
+        });
         setOrders(list);
       })
-      .catch(() => {});
+      .catch(() => { });
+
+    // 1b. Încărcare comenzi REALE pentru perioada de comparație din Dashboard (Ieri / Alaltăieri / Luna trec. / Săpt. trec. etc.)
+    if (tab === 'dashboard') {
+      const compQueries = getComparisonOrdersQueries(dashboardPeriod, dashboardCustomStart, dashboardCustomEnd);
+      if (compQueries.length > 0) {
+        setDashboardComparisonOrders([]);
+        setIsComparisonLoading(true);
+        Promise.all(
+          compQueries.map(q =>
+            fetchWithAuth(`${BACKEND}/api/orders?${q}`)
+              .then(r => r.json())
+              .then(d => d?.orders || [])
+              .catch(() => [])
+          )
+        )
+          .then(lists => {
+            if (isCancelled) return;
+            const merged = [];
+            const seen = new Set();
+            lists.flat().forEach(o => {
+              if (!o) return;
+              const k = o._id || o.id || o.orderNumber;
+              if (k) {
+                if (seen.has(k)) return;
+                seen.add(k);
+              }
+              merged.push(o);
+            });
+            setDashboardComparisonOrders(merged);
+            setIsComparisonLoading(false);
+          })
+          .catch(() => {
+            if (!isCancelled) setIsComparisonLoading(false);
+          });
+      } else {
+        setDashboardComparisonOrders([]);
+        setIsComparisonLoading(false);
+      }
+    }
 
     // 2. Verificare de fundal la fiecare 30s: transferă doar ultimele 30 de comenzi (~50 KB)
     const pollRecent = () => {
@@ -876,19 +1072,24 @@ export default function AdminApp() {
           if (recentList.length === 0) return;
 
           if (knownOrderIdsRef.current !== null) {
+            const nowMs = Date.now();
             const newArrivals = recentList.filter(o => {
               const id = o._id || o.id;
               const num = o.orderNumber;
               const isKnown = (id && knownOrderIdsRef.current.has(id)) || (num && knownOrderIdsRef.current.has(num));
-              return !isKnown;
+              if (isKnown) return false;
+              // Only alert for genuinely fresh orders placed TODAY (within last 5 minutes)
+              const createdMs = new Date(o.createdAt || o.arrivedAt || 0).getTime();
+              return isOrderFromToday(o) && createdMs > 0 && (nowMs - createdMs) < 5 * 60 * 1000;
             });
             if (newArrivals.length > 0) {
               newArrivals.slice(0, 1).forEach(o => triggerOrderToast(o));
             }
           }
           recentList.forEach(o => {
-            const key = o._id || o.id || o.orderNumber;
-            if (key) knownOrderIdsRef.current?.add(key);
+            if (o._id) knownOrderIdsRef.current?.add(o._id);
+            if (o.id) knownOrderIdsRef.current?.add(o.id);
+            if (o.orderNumber) knownOrderIdsRef.current?.add(o.orderNumber);
           });
 
           // Combină comenzile recente fără să șteargă lista deja încărcată
@@ -911,7 +1112,7 @@ export default function AdminApp() {
             return [...fresh, ...updated];
           });
         })
-        .catch(() => {});
+        .catch(() => { });
     };
 
     const interval = setInterval(pollRecent, 30_000);
@@ -949,7 +1150,7 @@ export default function AdminApp() {
     fetchWithAuth(`${BACKEND}/api/menu/status`)
       .then(r => r.json())
       .then(d => setMenuStatus(d))
-      .catch(() => {});
+      .catch(() => { });
   }, []);
   useEffect(() => { if (tab === 'menu') fetchMenuStatus(); }, [tab, fetchMenuStatus]);
 
@@ -984,7 +1185,7 @@ export default function AdminApp() {
         }
       });
       setMenuImages(imgMap);
-    }).catch(() => {});
+    }).catch(() => { });
   }, []);
 
   const addNotif = (msg) => {
@@ -995,19 +1196,19 @@ export default function AdminApp() {
 
   /* ─── Stats ──────────────────────────────────────── */
   const stats = {
-    total:     orders.length,
+    total: orders.length,
     todayTotal: orders.filter(o => {
       if (!o.createdAt) return false;
       const d = new Date(o.createdAt);
       const today = new Date();
-      return d.getDate() === today.getDate() && 
-             d.getMonth() === today.getMonth() && 
-             d.getFullYear() === today.getFullYear();
+      return d.getDate() === today.getDate() &&
+        d.getMonth() === today.getMonth() &&
+        d.getFullYear() === today.getFullYear();
     }).length,
-    pending:   orders.filter(o => o.status === 'pending').length,
+    pending: orders.filter(o => o.status === 'pending').length,
     preparing: orders.filter(o => o.status === 'preparing').length,
-    ready:     orders.filter(o => o.status === 'ready').length,
-    revenue:   orders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + (o.totalAmount || 0), 0),
+    ready: orders.filter(o => o.status === 'ready').length,
+    revenue: orders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + (o.totalAmount || 0), 0),
   };
   const brandStats = orders.reduce((acc, o) => {
     if (o.brand) acc[o.brand] = (acc[o.brand] || 0) + 1;
@@ -1021,7 +1222,7 @@ export default function AdminApp() {
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-    
+
     if (period === 'today') return d >= startOfToday;
     if (period === 'yesterday') return d >= startOfYesterday && d < startOfToday;
     if (period === 'thisWeek') {
@@ -1129,7 +1330,7 @@ export default function AdminApp() {
           if (dateStr !== dashboardDay.value) return false;
         }
       }
-      
+
       if (dashboardSearch) {
         const q = dashboardSearch.toLowerCase();
         const matchNumber = String(o.orderNumber || '').includes(q);
@@ -1139,7 +1340,7 @@ export default function AdminApp() {
         const matchItem = (o.items || []).some(i => (i.name || '').toLowerCase().includes(q));
         if (!matchNumber && !matchIiko && !matchLoc && !matchAmount && !matchItem) return false;
       }
-      
+
       return true;
     });
   }, [dashboardPeriodOrders, dashboardBrands, dashboardHour, dashboardDay, dashboardSearch]);
@@ -1157,7 +1358,7 @@ export default function AdminApp() {
     if (locationFilter !== 'all' && (o.locationName || o.locationId) !== locationFilter) return false;
     if (paymentFilter !== 'all' && o.paymentMethod !== paymentFilter) return false;
     if (!isDateInPeriod(o.createdAt, periodFilter)) return false;
-    
+
     if (globalSearch) {
       const q = globalSearch.toLowerCase();
       const matchNumber = String(o.orderNumber || '').includes(q);
@@ -1166,1483 +1367,1777 @@ export default function AdminApp() {
       const matchAmount = String(o.totalAmount || '').includes(q);
       if (!matchNumber && !matchIiko && !matchLoc && !matchAmount) return false;
     }
-    
+
     return true;
   });
 
   const uniqueLocations = [...new Set(orders.map(o => o.locationName || o.locationId).filter(Boolean))];
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    try { return localStorage.getItem('admin_sidebar_collapsed') === 'true'; } catch { return false; }
+  });
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const syncFullscreen = () => {
+      const active = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+      setIsFullscreen(active);
+      document.documentElement.classList.toggle('admin-fullscreen', active);
+    };
+
+    document.addEventListener('fullscreenchange', syncFullscreen);
+    document.addEventListener('webkitfullscreenchange', syncFullscreen);
+    return () => {
+      document.removeEventListener('fullscreenchange', syncFullscreen);
+      document.removeEventListener('webkitfullscreenchange', syncFullscreen);
+      document.documentElement.classList.remove('admin-fullscreen');
+    };
+  }, []);
+
+  const handleToggleFullscreen = useCallback(async () => {
+    try {
+      const active = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+      if (!active) {
+        const el = document.documentElement;
+        if (el.requestFullscreen) {
+          await el.requestFullscreen();
+        } else if (el.webkitRequestFullscreen) {
+          el.webkitRequestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+      }
+    } catch {
+      // Fallback: dacă browserul blochează API-ul, togglează clasa de layout extins
+      setIsFullscreen(prev => {
+        const next = !prev;
+        document.documentElement.classList.toggle('admin-fullscreen', next);
+        return next;
+      });
+    }
+  }, []);
+
+  const handleToggleSidebar = () => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      setIsSidebarOpen(prev => !prev);
+    } else {
+      setIsSidebarCollapsed(prev => {
+        const next = !prev;
+        try { localStorage.setItem('admin_sidebar_collapsed', String(next)); } catch { }
+        return next;
+      });
+    }
+  };
 
   if (!token) return <LoginScreen />;
 
   return (
-    <div className="flex flex-col h-screen h-[100dvh] overflow-hidden min-w-0 max-w-full w-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white transition-colors duration-300">
-      
-      {/* ─── GLOBAL TOP HEADER ─── */}
-      <header className="h-16 md:h-20 shrink-0 px-3 md:px-8 flex items-center justify-between bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 z-20 shadow-sm transition-colors duration-300 w-full max-w-full">
-        
-        {/* Left: Logo & Mobile Toggle */}
-        <div className="flex items-center gap-3 md:gap-6 h-full min-w-0">
-          <div className="flex items-center h-full">
-            <img 
-              src={theme === 'dark' ? "/getapp_smart_kiosk_white.png" : "/getapp_smart_kiosk_logo.png"} 
-              alt="GetApp Smart Kiosk" 
-              className="max-h-9 md:max-h-12 object-contain" 
+    <div className="flex flex-col h-screen h-[100dvh] overflow-hidden min-w-0 max-w-full w-full bg-[#F5F5F7] dark:bg-[#000000] text-[#1D1D1F] dark:text-[#F5F5F7] transition-colors duration-200">
+
+      {/* ─── GLOBAL TOP HEADER (macOS Sequoia Toolbar + Sidebar Seam Toggle + Centered Apple Dynamic Island) ─── */}
+      <header className="h-14 shrink-0 pl-3 md:pl-0 pr-3 md:pr-5 grid grid-cols-[1fr_auto_1fr] items-center gap-2 apple-glass border-b border-black/[0.06] dark:border-white/[0.08] z-40 transition-colors duration-200 w-full max-w-full relative">
+
+        {/* Left: Renewed Apple-Style GetApp Logo + Sidebar Toggle anchored right at the Sidebar Boundary */}
+        <div
+          className={`flex items-center justify-self-start h-full min-w-0 transition-all duration-300 ${isSidebarCollapsed
+            ? 'gap-2.5 md:pl-4'
+            : 'gap-2.5 md:gap-0 md:justify-between md:w-60 md:pl-4 md:pr-3 md:border-r md:border-black/[0.06] md:dark:border-white/[0.08]'
+            }`}
+        >
+          <button
+            type="button"
+            onClick={() => setTab('dashboard')}
+            className="flex items-center cursor-pointer group select-none min-w-0"
+            title="Mergi la Dashboard"
+          >
+            <img
+              src={theme === 'dark' ? "/getapp_smart_kiosk_white.png" : "/getapp_smart_kiosk_logo.png"}
+              alt="GetApp Smart Kiosk"
+              className="max-h-8 md:max-h-9 object-contain transition-transform duration-200 group-hover:scale-[1.03]"
             />
-          </div>
-          <button className="md:hidden p-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-white cursor-pointer" onClick={() => setIsSidebarOpen(true)}>
-            <Menu className="w-6 h-6" />
+          </button>
+
+          {/* Apple Liquid Glass Sidebar Toggle — Anchored right on the Sidebar/Content Boundary */}
+          <button
+            type="button"
+            className="apple-glass-btn apple-glass-btn-sm"
+            onClick={handleToggleSidebar}
+            title={isSidebarCollapsed ? 'Afișează meniul lateral' : 'Ascunde meniul lateral'}
+            aria-label={isSidebarCollapsed ? 'Afișează meniul lateral' : 'Ascunde meniul lateral'}
+          >
+            <span className="md:hidden">
+              <Menu className="w-[15.5px] h-[15.5px]" strokeWidth={1.9} />
+            </span>
+            <span className="hidden md:inline-flex">
+              {isSidebarCollapsed ? (
+                <PanelLeftOpen className="w-[15.5px] h-[15.5px]" strokeWidth={1.9} />
+              ) : (
+                <PanelLeftClose className="w-[15.5px] h-[15.5px]" strokeWidth={1.9} />
+              )}
+            </span>
           </button>
         </div>
 
-        {/* Right: Actions */}
-        <div className="flex items-center gap-1.5 md:gap-3 shrink-0">
-          {/* Notifications Bell with Recent Orders Dropdown */}
-          <OrdersNotificationBell 
+        {/* Center: Apple Dynamic Island & Unified Notification Center */}
+        <div className="justify-self-center flex items-center justify-center">
+          <DynamicIsland
+            orderToasts={orderToasts}
+            deviceAlerts={deviceAlerts}
+            systemNotifications={notifications}
             orders={orders}
+            locationsHealth={locationsHealth}
+            connected={connected}
+            onDismissOrderToast={handleDismissOrderToast}
+            onDismissDeviceAlert={handleDismissDeviceAlert}
             onOpenOrder={(order) => setSelectedOrder(order)}
+            onOpenLocation={handleOpenDeviceLocation}
             onViewAllOrders={() => setTab('orders')}
-            onTriggerTestOrder={() => {
-              const testBrands = ['smashme', 'crunch', 'rollmaster', 'lovesushi', 'pokiwoki'];
-              const randomBrand = testBrands[Math.floor(Math.random() * testBrands.length)];
-              const mockOrder = {
-                _id: `mock-${Date.now()}`,
-                orderNumber: `CJ1-0${Math.floor(Math.random() * 89 + 10)}`,
-                brand: randomBrand,
-                totalAmount: Number((Math.random() * 40 + 35).toFixed(2)),
-                orderType: Math.random() > 0.5 ? 'takeaway' : 'dine-in',
-                locationName: 'SmashMe Centru',
-                paymentMethod: 'card',
-                paymentRef: { authCode: `${Math.floor(Math.random() * 899999 + 100000)}` },
-                syrveOrderId: `syrve-${Math.floor(Math.random() * 90000 + 10000)}`,
-                createdAt: new Date().toISOString(),
-                items: [
-                  { name: 'Smash Burger Dublu', quantity: 1 },
-                  { name: 'Cartofi Prăjiți Usturoi', quantity: 1 }
-                ]
-              };
-              setOrders(prev => [mockOrder, ...prev]);
-              triggerOrderToast(mockOrder);
-            }}
+            onOpenLiveStatus={() => setTab('bridge-monitoring')}
           />
+        </div>
 
-          <button 
+        {/* Right: Authentic Apple Liquid Glass Circular Controls */}
+        <div className="flex items-center gap-2 justify-self-end shrink-0">
+          <button
+            type="button"
+            title="Reîmprospătează datele"
+            onClick={handleManualRefresh}
+            disabled={isManualRefreshing}
+            className="apple-glass-btn disabled:opacity-40"
+          >
+            <RefreshCw strokeWidth={1.9} className={`w-[15.5px] h-[15.5px] ${isManualRefreshing ? 'animate-spin text-[#007AFF]' : ''}`} />
+          </button>
+
+          <button
+            type="button"
             title={theme === 'dark' ? 'Mod Luminos' : 'Mod Întunecat'}
             onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
-            className="w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors cursor-pointer"
+            className="apple-glass-btn"
           >
-            {theme === 'dark' ? <Sun className="w-4 h-4 md:w-5 md:h-5" /> : <Moon className="w-4 h-4 md:w-5 md:h-5" />}
+            {theme === 'dark' ? <Sun strokeWidth={1.9} className="w-[15.5px] h-[15.5px]" /> : <Moon strokeWidth={1.9} className="w-[15.5px] h-[15.5px]" />}
           </button>
-          
-          <button 
-            title="Deconectare"
-            onClick={logout} 
-            className="w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 transition-colors cursor-pointer"
+
+          <button
+            type="button"
+            title={isFullscreen ? 'Ieși din Ecran Complet (Esc)' : 'Ecran Complet (optimizat Laptop → 5K Ultrawide)'}
+            onClick={handleToggleFullscreen}
+            className={`apple-glass-btn ${isFullscreen ? '!text-[#007AFF] dark:!text-[#0A84FF] !border-[#007AFF]/30 dark:!border-[#0A84FF]/40' : ''}`}
           >
-            <LogOut className="w-4 h-4 md:w-5 md:h-5" />
+            {isFullscreen ? (
+              <Minimize2 strokeWidth={1.9} className="w-[15.5px] h-[15.5px]" />
+            ) : (
+              <Maximize2 strokeWidth={1.9} className="w-[15.5px] h-[15.5px]" />
+            )}
+          </button>
+
+          <div className="w-px h-5 bg-black/[0.08] dark:bg-white/[0.12] mx-0.5 hidden sm:block" />
+
+          <button
+            type="button"
+            title="Deconectare"
+            onClick={logout}
+            className="apple-glass-btn apple-glass-btn-danger"
+          >
+            <LogOut strokeWidth={1.9} className="w-[15.5px] h-[15.5px]" />
           </button>
         </div>
       </header>
 
-      {/* ─── BODY (Sidebar + Main) ─── */}
+      {/* ─── BODY (macOS Sidebar + Main Canvas) ─── */}
       <div className="flex flex-1 overflow-hidden min-w-0 max-w-full w-full">
-        
-        {/* ─── Sidebar ─── */}
+
+        {/* ─── macOS Sequoia Collapsible Sidebar ─── */}
         {isSidebarOpen && (
-          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-20 md:hidden" onClick={() => setIsSidebarOpen(false)} />
+          <div className="fixed inset-0 bg-black/35 backdrop-blur-xs z-30 md:hidden" onClick={() => setIsSidebarOpen(false)} />
         )}
-        <aside className={`w-64 shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col transition-all duration-300 z-30 ${isSidebarOpen ? 'fixed inset-y-0 left-0 shadow-2xl' : 'hidden md:flex'}`}>
-          <button className="md:hidden absolute right-4 top-4 text-slate-500" onClick={() => setIsSidebarOpen(false)}><X className="w-5 h-5" /></button>
-          
-          <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-1">
+        <aside className={`shrink-0 apple-sidebar flex flex-col transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] z-30 ${isSidebarOpen
+          ? 'fixed inset-y-0 left-0 w-60 border-r border-black/[0.06] dark:border-white/[0.08] shadow-2xl'
+          : isSidebarCollapsed
+            ? 'hidden md:flex md:w-0 md:overflow-hidden md:opacity-0 md:border-r-0 md:pointer-events-none'
+            : 'hidden md:flex md:w-60 border-r border-black/[0.06] dark:border-white/[0.08]'
+          }`}>
+          <div className="md:hidden flex items-center justify-end px-3 pt-3">
+            <button type="button" className="apple-close-btn !w-7 !h-7" onClick={() => setIsSidebarOpen(false)}>
+              <X size={14} />
+            </button>
+          </div>
+
+          <nav className="flex-1 overflow-y-auto py-3.5 px-2.5 space-y-5">
             {[
-              { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
-              { id: 'orders',    label: 'Comenzi', icon: <Receipt className="w-5 h-5" /> },
-              { id: 'pending-orders', label: 'Comenzi În Așteptare', icon: <Clock className="w-5 h-5" /> },
-              { id: 'locations', label: 'Locații', icon: <MapPin className="w-5 h-5" /> },
-              { id: 'kiosks',    label: 'Kioskuri', icon: <MonitorSmartphone className="w-5 h-5" /> },
-              { 
-                id: 'bridge-monitoring', 
-                label: 'LIVE Status', 
-                icon: <Server className="w-5 h-5" />,
+              {
+                section: 'Gestiune & Vânzări',
+                items: [
+                  { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-[16px] h-[16px]" /> },
+                  { id: 'orders', label: 'Comenzi', icon: <ShoppingBag className="w-[16px] h-[16px]" /> },
+                  { id: 'pending-orders', label: 'În Așteptare', icon: <Clock className="w-[16px] h-[16px]" /> },
+                  { id: 'locations', label: 'Locații', icon: <MapPin className="w-[16px] h-[16px]" /> },
+                  { id: 'kiosks', label: 'Kioskuri', icon: <MonitorSmartphone className="w-[16px] h-[16px]" /> },
+                  { id: 'bridge-monitoring', label: 'LIVE Status', icon: <Server className="w-[16px] h-[16px]" /> },
+                ]
               },
-              { id: 'qrcodes',   label: 'QR Coduri', icon: <QrCode className="w-5 h-5" /> },
-              { id: 'menu',      label: 'Meniu / Syrve', icon: <Utensils className="w-5 h-5" /> },
-              { id: 'translations', label: 'Traduceri Automate', icon: <Languages className="w-5 h-5" /> },
-              { id: 'modifiers', label: 'Imagini Opțiuni', icon: <ImageIcon className="w-5 h-5" /> },
-              { id: 'products', label: 'Produse & Etichete', icon: <Tags className="w-5 h-5" /> },
-              ...(user?.role === 'admin' ? [{ id: 'users', label: 'Echipă', icon: <Users className="w-5 h-5" /> }] : []),
-              ...(user?.role === 'admin' ? [{ id: 'integrations', label: 'Integrări POS', icon: <Blocks className="w-5 h-5" /> }] : []),
-              ...(user?.role === 'admin' ? [{ id: 'pos-logs', label: 'Loguri POS', icon: <CreditCard className="w-5 h-5" /> }] : []),
-              ...(user?.role === 'admin' ? [{ id: 'printer-logs', label: 'Loguri Imprimantă', icon: <Printer className="w-5 h-5" /> }] : []),
-              ...(user?.role === 'admin' ? [{ id: 'port-scans', label: 'Scanare Porturi PC', icon: <MonitorSmartphone className="w-5 h-5" /> }] : []),
-              ...(user?.role === 'admin' ? [{ id: 'iiko-logs', label: 'Loguri iiko', icon: <Receipt className="w-5 h-5" /> }] : []),
-              ...(user?.role === 'admin' ? [{ id: 'kiosk-logs', label: 'Loguri Kiosk (PIN)', icon: <Lock className="w-5 h-5" /> }] : []),
-              ...(user?.role === 'admin' ? [{ id: 'promotions', label: 'Promoții', icon: <Gift className="w-5 h-5" /> }] : []),
-              ...(user?.role === 'admin' ? [{ id: 'brands', label: 'Branduri', icon: <Store className="w-5 h-5" /> }] : []),
-            ].map(item => (
-              <button
-                key={item.id}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-full transition-all font-medium text-sm ${tab === item.id ? 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'}`}
-                onClick={() => { setTab(item.id); setIsSidebarOpen(false); }}
-              >
-                <span className={tab === item.id ? 'opacity-100' : 'opacity-75'}>{item.icon}</span>
-                <span className="flex-1 text-left">{item.label}</span>
-                {item.badge && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
-                    {item.badge}
-                  </span>
-                )}
-              </button>
+              {
+                section: 'Catalog & Promoții',
+                items: [
+                  { id: 'menu', label: 'Meniu / Syrve', icon: <Utensils className="w-[16px] h-[16px]" /> },
+                  { id: 'promotions', label: 'Promoții & Vouchere', icon: <Gift className="w-[16px] h-[16px]" /> },
+                  { id: 'brands', label: 'Branduri', icon: <Store className="w-[16px] h-[16px]" /> },
+                  { id: 'products', label: 'Produse & Etichete', icon: <Tags className="w-[16px] h-[16px]" /> },
+                  { id: 'modifiers', label: 'Imagini Opțiuni', icon: <ImageIcon className="w-[16px] h-[16px]" /> },
+                  { id: 'translations', label: 'Traduceri Automate', icon: <Languages className="w-[16px] h-[16px]" /> },
+                  { id: 'qrcodes', label: 'QR Coduri', icon: <QrCode className="w-[16px] h-[16px]" /> },
+                ]
+              },
+              {
+                section: 'Diagnostic & Sistem',
+                items: [
+                  ...(user?.role === 'admin' ? [{ id: 'pos-logs', label: 'Loguri POS', icon: <CreditCard className="w-[16px] h-[16px]" /> }] : []),
+                  ...(user?.role === 'admin' ? [{ id: 'printer-logs', label: 'Loguri Imprimantă', icon: <Printer className="w-[16px] h-[16px]" /> }] : []),
+                  ...(user?.role === 'admin' ? [{ id: 'port-scans', label: 'Scanare Porturi PC', icon: <MonitorSmartphone className="w-[16px] h-[16px]" /> }] : []),
+                  ...(user?.role === 'admin' ? [{ id: 'iiko-logs', label: 'Loguri iiko', icon: <FileText className="w-[16px] h-[16px]" /> }] : []),
+                  ...(user?.role === 'admin' ? [{ id: 'kiosk-logs', label: 'Loguri Kiosk (PIN)', icon: <Lock className="w-[16px] h-[16px]" /> }] : []),
+                  ...(user?.role === 'admin' ? [{ id: 'integrations', label: 'Integrări POS', icon: <Blocks className="w-[16px] h-[16px]" /> }] : []),
+                  ...(user?.role === 'admin' ? [{ id: 'users', label: 'Echipă', icon: <Users className="w-[16px] h-[16px]" /> }] : []),
+                ]
+              }
+            ].map(group => (
+              <div key={group.section} className="space-y-0.5">
+                <div className="px-2.5 pb-1 text-[11px] font-semibold tracking-tight text-[#86868B] dark:text-[#636366]">
+                  {group.section}
+                </div>
+                {group.items.map(item => {
+                  const isActive = tab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={`w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[9px] text-[13px] transition-all cursor-pointer ${isActive
+                        ? 'bg-[#007AFF] text-white font-medium shadow-[0_1px_2px_rgba(0,122,255,0.28)]'
+                        : 'text-[#1D1D1F]/80 dark:text-[#F5F5F7]/80 font-normal hover:bg-black/[0.045] dark:hover:bg-white/[0.06] hover:text-[#1D1D1F] dark:hover:text-white'
+                        }`}
+                      onClick={() => { setTab(item.id); setIsSidebarOpen(false); }}
+                    >
+                      <span className={isActive ? 'text-white' : 'text-[#007AFF] dark:text-[#0A84FF]'}>
+                        {item.icon}
+                      </span>
+                      <span className="flex-1 text-left truncate">{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             ))}
           </nav>
 
-          <div className="p-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
+          {/* Compact macOS Sidebar Status Footer */}
+          <div className="px-3 py-3 border-t border-black/[0.06] dark:border-white/[0.08] space-y-2">
             <button
               type="button"
-              onClick={() => { setTab('kiosks'); setIsSidebarOpen(false); }}
-              title="Vezi starea kiosk-urilor conectate"
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-full text-sm font-bold transition-all cursor-pointer ${
-                connected 
-                  ? 'bg-emerald-50 hover:bg-emerald-100/80 text-emerald-700 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-500/20 shadow-sm' 
-                  : 'bg-red-50 hover:bg-red-100/80 text-red-600 dark:bg-red-500/10 dark:hover:bg-red-500/20 dark:text-red-400 border border-red-200/60 dark:border-red-500/20'
-              }`}
+              onClick={() => { setTab('bridge-monitoring'); setIsSidebarOpen(false); }}
+              title="Vezi starea echipamentelor"
+              className="w-full flex items-center justify-between px-2.5 py-2 rounded-[10px] text-[12px] font-medium bg-black/[0.04] hover:bg-black/[0.07] dark:bg-white/[0.06] dark:hover:bg-white/[0.1] transition-colors cursor-pointer"
             >
               <div className="flex items-center gap-2">
-                <div className={`w-2.5 h-2.5 rounded-full ${connected ? 'bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'bg-red-500'}`} />
-                <span>{connected ? 'Live' : 'Offline'}</span>
+                <span className={`w-2 h-2 rounded-full ${connected ? 'bg-[#34C759]' : 'bg-[#FF3B30]'}`} />
+                <span className="text-[#1D1D1F] dark:text-[#F5F5F7]">{connected ? 'Conectat' : 'Offline'}</span>
               </div>
               {connected && (
-                <span className="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300">
+                <span className="text-[11px] font-medium text-[#6E6E73] dark:text-[#98989D] tabular-nums">
                   {liveKiosksCount} {liveKiosksCount === 1 ? 'kiosk' : 'kiosk-uri'}
                 </span>
               )}
             </button>
 
-            {/* Build Version & Date/Time */}
-            <div className="px-1 text-center text-xs leading-normal text-slate-400 dark:text-slate-500 select-none">
-              <div className="font-semibold text-slate-600 dark:text-slate-300">
-                Build #{BUILD_INFO.number}
-              </div>
-              {BUILD_INFO.date && (
-                <div className="text-[11px] text-slate-400 dark:text-slate-500">
-                  {BUILD_INFO.date}
-                </div>
-              )}
+            <div className="px-1 flex items-center justify-between text-[11px] text-[#86868B] dark:text-[#636366] select-none tabular-nums">
+              <span>Build #{BUILD_INFO.number}</span>
+              {BUILD_INFO.date && <span className="truncate ml-2">{BUILD_INFO.date}</span>}
             </div>
           </div>
         </aside>
 
-        {/* ─── Main ─── */}
-        <main className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden min-w-0 max-w-full w-full bg-slate-50 dark:bg-slate-900 relative">
-        <div className="shrink-0 px-3 md:px-8 pt-4 md:pt-6 pb-2">
-           <h2 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-white">
-              {tab === 'dashboard' && 'Dashboard Overview'}
-              {tab === 'orders' && 'Gestionare Comenzi'}
+        {/* ─── Main Apple Grouped Canvas (Adaptive Laptop → 4K → 5K Ultrawide) ─── */}
+        <main className="admin-adaptive-main flex-1 flex flex-col overflow-y-auto overflow-x-hidden min-w-0 max-w-full w-full bg-[#F5F5F7] dark:bg-[#000000] relative">
+          <div className="admin-adaptive-container w-full mx-auto flex flex-col flex-1 min-w-0">
+          <div className="shrink-0 px-4 md:px-7 pt-5 md:pt-6 pb-3">
+            <h2 className="text-[22px] md:text-[26px] font-bold tracking-[-0.022em] text-[#1D1D1F] dark:text-[#F5F5F7]">
+              {tab === 'dashboard' && 'Dashboard'}
+              {tab === 'orders' && 'Comenzi'}
               {tab === 'pending-orders' && 'Comenzi În Așteptare'}
-              {tab === 'locations' && 'Gestionare Locații'}
+              {tab === 'locations' && 'Locații'}
               {tab === 'kiosks' && 'Kiosk-uri & Screensavere'}
               {tab === 'bridge-monitoring' && 'LIVE Status'}
               {tab === 'qrcodes' && 'Coduri QR & Portal Mobil'}
-              {tab === 'menu' && 'Sincronizare Syrve & Profile'}
-              {tab === 'translations' && 'Traduceri Automate Meniu'}
-              {tab === 'modifiers' && 'Asociere Imagini Opțiuni'}
-              {tab === 'products' && 'Produse & Etichete (Overrides)'}
+              {tab === 'menu' && 'Meniu / Syrve'}
+              {tab === 'translations' && 'Traduceri Automate'}
+              {tab === 'modifiers' && 'Imagini Opțiuni'}
+              {tab === 'products' && 'Produse & Etichete'}
               {tab === 'users' && 'Echipă & Permisiuni'}
               {tab === 'integrations' && 'Integrări POS'}
-              {tab === 'promotions' && 'Promoții / Roată Kiosk'}
-              {tab === 'brands' && 'Gestionare Branduri'}
-              {tab === 'pos-logs' && 'Loguri Tranzacții POS'}
+              {tab === 'promotions' && 'Promoții & Vouchere'}
+              {tab === 'brands' && 'Branduri'}
+              {tab === 'pos-logs' && 'Loguri POS'}
               {tab === 'printer-logs' && 'Loguri Imprimantă'}
               {tab === 'port-scans' && 'Scanare Porturi PC'}
               {tab === 'iiko-logs' && 'Loguri iiko Syrve'}
-              {tab === 'kiosk-logs' && 'Loguri Kiosk & Deblocare PIN'}
-           </h2>
-        </div>
+              {tab === 'kiosk-logs' && 'Loguri Kiosk & PIN'}
+            </h2>
+          </div>
 
-        {/* Notifications */}
-        <div className="notif-stack">
-          {notifications.map(n => (
-            <div key={n.id} className="notif">{n.msg}</div>
-          ))}
-        </div>
+          {/* ─── DASHBOARD ─── */}
+          {tab === 'dashboard' && (
+            <div className="space-y-4 md:space-y-5 px-4 md:px-7 pb-10 min-w-0 max-w-full w-full">
 
-        {/* ─── DASHBOARD ─── */}
-        {tab === 'dashboard' && (
-          <div className="space-y-4 md:space-y-6 px-3 md:px-8 pb-10 min-w-0 max-w-full w-full">
+              {/* Live Kiosks Status Strip (Concentric Apple Pill Toolbar) */}
+              <div className="apple-card !rounded-[24px] sm:!rounded-full p-2 flex flex-row items-center justify-between gap-2 w-full max-w-full min-w-0">
+                <div className="grid grid-cols-2 sm:flex sm:items-center gap-1.5 flex-1 min-w-0">
+                  {[
+                    {
+                      id: 'cluj1',
+                      name: 'Cluj 1 (Centru)',
+                      aliases: ['cluj1', 'cluj', 'cluj-centru', 'cluj-main', 'smashme-main', 'sm-cluj', 'smashme-cluj', '9c63cff6-1d66-442d-a98d-2302656e3943', '90296b11-9ba9-4279-a69b-1f84e193315e']
+                    },
+                    {
+                      id: 'cluj2',
+                      name: 'Cluj 2',
+                      aliases: ['cluj2', 'cluj-2', 'cj2', 'cj-2', 'smashme-cj2', 'smashme cj-2', 'cj-kiosk2', 'cluj-kiosk2']
+                    },
+                    {
+                      id: 'sm-brasov',
+                      name: 'Brașov',
+                      aliases: ['sm-brasov', 'brasov', 'brasov-centru', 'rollmaster', 'rollmaster-brasov', 'rm-brasov', 'adddb5a0-26e5-4d50-b472-1c74726c3f72']
+                    },
+                    {
+                      id: 'constanta1',
+                      name: 'Constanța',
+                      aliases: ['constanta1', 'constanta', 'smashme-constanta', '8308e796-8780-4d18-ae66-4e430178c778']
+                    },
+                  ].map(loc => {
+                    const liveKiosk = loc.aliases.map(a => kiosksLiveStatus[a]).find(Boolean);
+                    const bridgeLoc = bridgeSummary?.locations?.[loc.id] ||
+                      (loc.aliases ? loc.aliases.map(a => bridgeSummary?.locations?.[a]).find(Boolean) : null);
+                    const isBridgeOnline = Boolean(bridgeLoc?.status === 'online' || bridgeLoc?.isBridgeOnline);
 
-            {/* Live Kiosks Status Strip */}
-            <div className="bg-white dark:bg-slate-800 p-2 sm:p-2.5 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-xs flex flex-row items-center justify-between gap-2 w-full max-w-full min-w-0">
-              {/* Kiosk Pills: 2x2 pe ecrane foarte mici, flex-row pe desktop */}
-              <div className="grid grid-cols-2 sm:flex sm:items-center gap-1.5 sm:gap-2 flex-1 min-w-0">
-                {[
-                  { 
-                    id: 'cluj1', 
-                    name: 'Cluj 1 (Centru)',
-                    aliases: ['cluj1', 'cluj', 'cluj-centru', 'cluj-main', 'smashme-main', 'sm-cluj', 'smashme-cluj', '9c63cff6-1d66-442d-a98d-2302656e3943', '90296b11-9ba9-4279-a69b-1f84e193315e']
-                  },
-                  { 
-                    id: 'cluj2', 
-                    name: 'Cluj 2',
-                    aliases: ['cluj2', 'cluj-2', 'cj2', 'smashme-cj2']
-                  },
-                  { 
-                    id: 'sm-brasov', 
-                    name: 'Brașov',
-                    aliases: ['sm-brasov', 'brasov', 'brasov-centru', 'rollmaster', 'rollmaster-brasov', 'rm-brasov', 'adddb5a0-26e5-4d50-b472-1c74726c3f72']
-                  },
-                  { 
-                    id: 'constanta1', 
-                    name: 'Constanța',
-                    aliases: ['constanta1', 'constanta', 'smashme-constanta', '8308e796-8780-4d18-ae66-4e430178c778']
-                  },
-                ].map(loc => {
-                  const liveKiosk = loc.aliases.map(a => kiosksLiveStatus[a]).find(Boolean);
-                  const isKioskConnected = Boolean(liveKiosk?.isLive || liveKiosk?.online || (liveKiosk?.onlineCount > 0));
-                  
-                  const bridgeLoc = bridgeSummary?.locations?.[loc.id] || 
-                                   (loc.aliases ? loc.aliases.map(a => bridgeSummary?.locations?.[a]).find(Boolean) : null);
-                  const isBridgeOnline = Boolean(bridgeLoc?.status === 'online' || bridgeLoc?.isBridgeOnline);
-                  
-                  const hasRecentConnection = Boolean(bridgeLoc?.connectedAt && (Date.now() - bridgeLoc.connectedAt < 30 * 1000) && bridgeLoc.port && bridgeLoc.port !== 'N/A');
-                  const bridgeIsActive = isBridgeOnline || hasRecentConnection;
-                  const targetVerGlobal = BRIDGE_RELEASE_NOTES[0]?.version || bridgeSummary?.latestBridgeVersion || '3.5.0';
-                  const hasBridgeUpdate = isBridgeOnline && Boolean(bridgeLoc?.bridgeVersion && bridgeLoc.bridgeVersion !== targetVerGlobal);
-                  
-                  // STRICT: Verde doar dacă TOATE sunt conectate (ecran + POS bridge activ pe port)
-                  let statusTone = 'offline';
-                  let statusLabel = 'Offline';
-                  if (isKioskConnected && bridgeIsActive) {
-                    statusTone = 'online';
-                    statusLabel = 'Online';
-                  } else if (!bridgeIsActive && isKioskConnected) {
-                    statusTone = 'warning';
-                    statusLabel = 'POS Oprit';
-                  } else if (bridgeIsActive && !isKioskConnected) {
-                    statusTone = 'warning';
-                    statusLabel = 'Ecran Inactiv';
-                  }
+                    const hasRecentConnection = Boolean(bridgeLoc?.connectedAt && (Date.now() - bridgeLoc.connectedAt < 30 * 1000) && bridgeLoc.port && bridgeLoc.port !== 'N/A');
+                    const bridgeIsActive = isBridgeOnline || hasRecentConnection;
+                    const isKioskConnected = Boolean(
+                      liveKiosk?.isLive ||
+                      liveKiosk?.online ||
+                      (liveKiosk?.onlineCount > 0) ||
+                      bridgeLoc?.isKioskOnline ||
+                      (loc.id === 'cluj2' && bridgeIsActive)
+                    );
+                    const targetVerGlobal = BRIDGE_RELEASE_NOTES[0]?.version || bridgeSummary?.latestBridgeVersion || '3.5.0';
+                    const hasBridgeUpdate = isBridgeOnline && Boolean(bridgeLoc?.bridgeVersion && bridgeLoc.bridgeVersion !== targetVerGlobal);
 
-                  const isOpen = activeLocationDropdown === loc.id;
+                    let statusTone = 'offline';
+                    let statusLabel = 'Offline';
+                    if (isKioskConnected && bridgeIsActive) {
+                      statusTone = 'online';
+                      statusLabel = 'Online';
+                    } else if (!bridgeIsActive && isKioskConnected) {
+                      statusTone = 'warning';
+                      statusLabel = 'POS Oprit';
+                    } else if (bridgeIsActive && !isKioskConnected) {
+                      statusTone = 'warning';
+                      statusLabel = 'Ecran Inactiv';
+                    }
 
-                  return (
-                    <div key={loc.id} className="relative">
-                      {/* Pastila curata: doar numele si statusul */}
-                      <button
-                        type="button"
-                        onClick={() => setActiveLocationDropdown(prev => prev === loc.id ? null : loc.id)}
-                        title="Click pentru a deschide detaliile tehnice ale acestei locații"
-                        className={`w-full flex items-center justify-between gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-medium transition-all text-left cursor-pointer hover:shadow-xs ${
-                          statusTone === 'online'
-                            ? (isOpen 
-                                ? 'bg-emerald-100/90 dark:bg-emerald-950/40 border-emerald-400 dark:border-emerald-700 text-emerald-950 dark:text-emerald-100 ring-2 ring-emerald-500/20 shadow-xs'
-                                : 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60 text-emerald-900 dark:text-emerald-200 hover:border-emerald-300'
-                              )
+                    const isOpen = activeLocationDropdown === loc.id;
+
+                    return (
+                      <div key={loc.id} className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setActiveLocationDropdown(prev => prev === loc.id ? null : loc.id)}
+                          title="Click pentru detalii tehnice"
+                          className={`w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded-full text-[12px] transition-all text-left cursor-pointer border ${isOpen
+                            ? 'bg-black/[0.08] dark:bg-white/[0.14] text-[#1D1D1F] dark:text-white border-black/[0.12] dark:border-white/[0.18]'
+                            : 'bg-[#F5F5F7] dark:bg-[#2C2C2E]/80 hover:bg-black/[0.06] dark:hover:bg-white/[0.12] border-black/[0.05] dark:border-white/[0.07] text-[#1D1D1F] dark:text-[#F5F5F7]'
+                            }`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <span className={`w-2 h-2 rounded-full shrink-0 ${statusTone === 'online'
+                              ? 'bg-[#34C759]'
+                              : statusTone === 'warning'
+                                ? 'bg-[#FF9500] animate-pulse'
+                                : 'bg-[#8E8E93]'
+                              }`} />
+                            <span className="font-medium truncate">{loc.name}</span>
+                          </div>
+                          <span className={`text-[11px] font-medium shrink-0 ${statusTone === 'online'
+                            ? 'text-[#248A3D] dark:text-[#30D158]'
                             : statusTone === 'warning'
-                            ? (isOpen
-                                ? 'bg-amber-100/90 dark:bg-amber-950/40 border-amber-400 dark:border-amber-700 text-amber-950 dark:text-amber-100 ring-2 ring-amber-500/20 shadow-xs'
-                                : 'bg-amber-50/60 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 hover:border-amber-300'
-                              )
-                            : (isOpen
-                                ? 'bg-slate-100 dark:bg-slate-800 border-slate-400 dark:border-slate-600 text-slate-800 dark:text-slate-200 ring-2 ring-slate-500/20 shadow-xs'
-                                : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-slate-300'
-                              )
-                        }`}
-                      >
-                        <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                          <span className={`w-2 h-2 rounded-full shrink-0 ${
-                            statusTone === 'online' 
-                              ? 'bg-emerald-500 animate-pulse' 
-                              : statusTone === 'warning'
-                              ? 'bg-amber-500 animate-pulse'
-                              : 'bg-slate-300 dark:bg-slate-600'
-                          }`} />
-                          <span className="font-bold text-[11px] sm:text-xs truncate">{loc.name}</span>
-                        </div>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
-                            statusTone === 'online' 
-                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300' 
-                              : statusTone === 'warning'
-                              ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300'
-                              : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-                          }`}>
+                              ? 'text-[#C96B00] dark:text-[#FF9F0A]'
+                              : 'text-[#86868B]'
+                            }`}>
                             {statusLabel}
                           </span>
-                        </div>
-                      </button>
+                        </button>
 
-                      {/* Dropdown Popover cu toate detaliile tehnice la click */}
-                      {isOpen && (
-                        <>
-                          <div 
-                            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-xs" 
-                            onClick={() => setActiveLocationDropdown(null)} 
-                          />
-                          <div className="fixed inset-x-4 top-20 max-w-sm mx-auto sm:absolute sm:inset-auto sm:top-full sm:left-0 sm:mt-2 sm:w-80 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xl p-4 z-50 animate-in fade-in zoom-in-95 duration-150">
-                            {/* Header Popover */}
-                            <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-700/60">
-                              <div>
-                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{loc.id}</div>
-                                <div className="text-sm font-bold text-slate-900 dark:text-white">{loc.name}</div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                  statusTone === 'online' 
-                                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' 
+                        {/* Dropdown Popover cu toate detaliile tehnice la click */}
+                        {isOpen && (
+                          <>
+                            <div
+                              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-xs"
+                              onClick={() => setActiveLocationDropdown(null)}
+                            />
+                            <div className="fixed inset-x-4 top-20 max-w-sm mx-auto sm:absolute sm:inset-auto sm:top-full sm:left-0 sm:mt-2 sm:w-84 apple-modal !rounded-[20px] p-4 z-50 animate-in fade-in zoom-in-95 duration-150 select-none">
+                              {/* Header Popover */}
+                              <div className="flex items-center justify-between pb-3 border-b border-black/[0.06] dark:border-white/[0.08]">
+                                <div>
+                                  <div className="text-[10px] font-semibold text-[#86868B] uppercase tracking-wider">{loc.id}</div>
+                                  <div className="text-[14.5px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] tracking-tight">{loc.name}</div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusTone === 'online'
+                                    ? 'bg-[#34C759]/12 text-[#1F7A33] dark:text-[#30D158]'
                                     : statusTone === 'warning'
-                                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
-                                    : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'
-                                }`}>
-                                  {statusLabel.toUpperCase()}
-                                </span>
-                                <button 
-                                  type="button" 
-                                  onClick={() => setActiveLocationDropdown(null)}
-                                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 cursor-pointer"
-                                >
-                                  <X className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* Detalii Tehnice Hardware */}
-                            <div className="py-2.5 space-y-1.5 text-xs">
-                              <div className="flex items-center justify-between py-0.5 border-b border-slate-100/60 dark:border-slate-700/40">
-                                <span className="text-slate-500 dark:text-slate-400">POS Bridge (start.bat):</span>
-                                <span className={`font-semibold ${isBridgeOnline ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400 font-bold'}`}>
-                                  {isBridgeOnline ? 'Rulare activă' : 'Oprit / Deconectat'}
-                                </span>
-                              </div>
-                              <div className="flex items-center justify-between py-0.5 border-b border-slate-100/60 dark:border-slate-700/40">
-                                <span className="text-slate-500 dark:text-slate-400">Versiune Soft (PC):</span>
-                                <div className="flex items-center gap-1.5">
-                                  <span className="font-semibold text-slate-800 dark:text-slate-200">
-                                    v{bridgeLoc?.bridgeVersion || bridgeLoc?.latestBridgeVer || '3.5.4'}
+                                      ? 'bg-[#FF9500]/12 text-[#C96B00] dark:text-[#FF9F0A]'
+                                      : 'bg-black/[0.05] text-[#6E6E73] dark:bg-white/[0.08] dark:text-[#98989D]'
+                                    }`}>
+                                    {statusLabel}
                                   </span>
-                                  {isBridgeOnline && (
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setActiveLocationDropdown(null);
-                                        setReleaseNotesTargetLoc(loc.id);
-                                        setIsReleaseNotesOpen(true);
-                                      }}
-                                      className={`px-1.5 py-0.5 rounded text-[9px] font-bold cursor-pointer transition-all hover:scale-105 active:scale-95 ${
-                                        !hasBridgeUpdate
-                                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
-                                          : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 ring-1 ring-amber-300 dark:ring-amber-700/60'
-                                      }`}
-                                    >
-                                      {!hasBridgeUpdate ? 'La zi' : `Nou: v${targetVerGlobal}`}
-                                    </button>
-                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => setActiveLocationDropdown(null)}
+                                    className="apple-close-btn !w-7 !h-7"
+                                    title="Închide"
+                                  >
+                                    <X size={13} />
+                                  </button>
                                 </div>
                               </div>
-                              <div className="flex items-center justify-between py-0.5 border-b border-slate-100/60 dark:border-slate-700/40">
-                                <span className="text-slate-500 dark:text-slate-400">Port Serial POS:</span>
-                                <span className="font-semibold text-slate-800 dark:text-slate-200">
-                                  {bridgeLoc?.port && bridgeLoc.port !== 'N/A' ? `${bridgeLoc.port} (${bridgeLoc.gateway || 'raiffeisen'})` : 'COM? (Nedetectat)'}
-                                </span>
-                              </div>
-                              <div className="flex items-center justify-between py-0.5 border-b border-slate-100/60 dark:border-slate-700/40">
-                                <span className="text-slate-500 dark:text-slate-400">Imprimantă Bonuri:</span>
-                                <span className="font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[140px]" title={bridgeLoc?.printerName || 'Nedetectată'}>
-                                  {bridgeLoc?.printerName || 'Nedetectată'}
-                                </span>
-                              </div>
-                              <div className="flex items-center justify-between py-0.5 border-b border-slate-100/60 dark:border-slate-700/40">
-                                <span className="text-slate-500 dark:text-slate-400">Ecran Kiosk (Browser):</span>
-                                <span className={`font-semibold ${isKioskConnected ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500'}`}>
-                                  {isKioskConnected ? 'Conectat în browser' : 'Inactiv'}
-                                </span>
-                              </div>
-                              {(() => {
-                                const isUniversalConfig = Boolean(liveKiosk?.isUniversal);
-                                const kioskScriptVer = liveKiosk?.scriptVersion || (isUniversalConfig ? '2.4.0' : null);
-                                const latestScriptVer = liveKiosk?.latestScriptVersion || '2.4.0';
-                                const isScriptUpToDate = Boolean(kioskScriptVer && kioskScriptVer === latestScriptVer);
 
-                                return (
-                                  <>
-                                    <div className="flex items-center justify-between py-0.5 border-b border-slate-100/60 dark:border-slate-700/40">
-                                      <span className="text-slate-500 dark:text-slate-400">Configurare Universală:</span>
-                                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                        isUniversalConfig 
-                                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' 
-                                          : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-                                      }`}>
-                                        {isUniversalConfig ? 'ACTIVAT' : 'DEZACTIVAT'}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center justify-between py-0.5 border-b border-slate-100/60 dark:border-slate-700/40">
-                                      <span className="text-slate-500 dark:text-slate-400">Versiune Script:</span>
-                                      <div className="flex items-center gap-1.5 text-right">
-                                        <span className="font-semibold text-slate-800 dark:text-slate-200">
-                                          {kioskScriptVer ? `v${kioskScriptVer}` : 'Fără script'}
-                                        </span>
-                                        <span className="text-[10px] text-slate-400 dark:text-slate-500">
-                                          (ultim: v{latestScriptVer})
-                                        </span>
-                                        {isKioskConnected && (
-                                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
-                                            isScriptUpToDate
-                                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
-                                              : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
-                                          }`}>
-                                            {isScriptUpToDate ? 'La zi' : 'Actualizare'}
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </>
-                                );
-                              })()}
-                              {isBridgeOnline && bridgeLoc?.uptimeSeconds > 0 && (
-                                <div className="flex items-center justify-between py-0.5">
-                                  <span className="text-slate-500 dark:text-slate-400">Timp de rulare:</span>
-                                  <span className="font-medium text-slate-700 dark:text-slate-300">
-                                    {Math.floor(bridgeLoc.uptimeSeconds / 60)} min
+                              {/* Detalii Tehnice Hardware - Apple Inset Grouped */}
+                              <div className="my-3 apple-inset-group px-3 py-1.5 divide-y divide-black/[0.05] dark:divide-white/[0.06] text-[12px]">
+                                <div className="flex items-center justify-between py-1.5">
+                                  <span className="text-[#6E6E73] dark:text-[#98989D]">POS Bridge</span>
+                                  <span className={`font-semibold ${isBridgeOnline ? 'text-[#248A3D] dark:text-[#30D158]' : 'text-[#C96B00] dark:text-[#FF9F0A]'}`}>
+                                    {isBridgeOnline ? 'Rulare activă' : 'Oprit / Deconectat'}
                                   </span>
+                                </div>
+                                <div className="flex items-center justify-between py-1.5">
+                                  <span className="text-[#6E6E73] dark:text-[#98989D]">Versiune Soft (PC)</span>
+                                  <div className="flex items-center gap-1.5 tabular-nums">
+                                    <span className="font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">
+                                      v{bridgeLoc?.bridgeVersion || bridgeLoc?.latestBridgeVer || '3.5.4'}
+                                    </span>
+                                    {isBridgeOnline && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setActiveLocationDropdown(null);
+                                          setReleaseNotesTargetLoc(loc.id);
+                                          setIsReleaseNotesOpen(true);
+                                        }}
+                                        className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold cursor-pointer transition-all active:scale-95 ${!hasBridgeUpdate
+                                          ? 'bg-[#34C759]/12 text-[#1F7A33] dark:text-[#30D158]'
+                                          : 'bg-[#FF9500]/12 text-[#C96B00] dark:text-[#FF9F0A]'
+                                          }`}
+                                      >
+                                        {!hasBridgeUpdate ? 'La zi' : `Nou: v${targetVerGlobal}`}
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex items-center justify-between py-1.5">
+                                  <span className="text-[#6E6E73] dark:text-[#98989D]">Port Serial POS</span>
+                                  <span className="font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">
+                                    {bridgeLoc?.port && bridgeLoc.port !== 'N/A' ? `${bridgeLoc.port} (${bridgeLoc.gateway || 'raiffeisen'})` : 'Nedetectat'}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between py-1.5">
+                                  <span className="text-[#6E6E73] dark:text-[#98989D]">Imprimantă Bonuri</span>
+                                  <span className="font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] truncate max-w-[145px]" title={bridgeLoc?.printerName || 'Nedetectată'}>
+                                    {bridgeLoc?.printerName || 'Nedetectată'}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between py-1.5">
+                                  <span className="text-[#6E6E73] dark:text-[#98989D]">Ecran Kiosk</span>
+                                  <span className={`font-semibold ${isKioskConnected ? 'text-[#248A3D] dark:text-[#30D158]' : 'text-[#86868B]'}`}>
+                                    {isKioskConnected ? 'Conectat în browser' : 'Inactiv'}
+                                  </span>
+                                </div>
+                                {(() => {
+                                  const isUniversalConfig = Boolean(liveKiosk?.isUniversal);
+                                  const kioskScriptVer = liveKiosk?.scriptVersion || (isUniversalConfig ? '2.4.0' : null);
+                                  const latestScriptVer = liveKiosk?.latestScriptVersion || '2.4.0';
+                                  const isScriptUpToDate = Boolean(kioskScriptVer && kioskScriptVer === latestScriptVer);
+
+                                  return (
+                                    <>
+                                      <div className="flex items-center justify-between py-1.5">
+                                        <span className="text-[#6E6E73] dark:text-[#98989D]">Configurare</span>
+                                        <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-semibold ${isUniversalConfig
+                                          ? 'bg-[#34C759]/12 text-[#1F7A33] dark:text-[#30D158]'
+                                          : 'bg-black/[0.06] text-[#6E6E73] dark:bg-white/[0.08] dark:text-[#98989D]'
+                                          }`}>
+                                          {isUniversalConfig ? 'Universală' : 'Manuală'}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center justify-between py-1.5">
+                                        <span className="text-[#6E6E73] dark:text-[#98989D]">Script Kiosk</span>
+                                        <div className="flex items-center gap-1.5 text-right tabular-nums">
+                                          <span className="font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">
+                                            {kioskScriptVer ? `v${kioskScriptVer}` : 'Fără script'}
+                                          </span>
+                                          {isKioskConnected && (
+                                            <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-semibold ${isScriptUpToDate
+                                              ? 'bg-[#34C759]/12 text-[#1F7A33] dark:text-[#30D158]'
+                                              : 'bg-[#FF9500]/12 text-[#C96B00] dark:text-[#FF9F0A]'
+                                              }`}>
+                                              {isScriptUpToDate ? 'La zi' : 'Update'}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </>
+                                  );
+                                })()}
+                                {isBridgeOnline && bridgeLoc?.uptimeSeconds > 0 && (
+                                  <div className="flex items-center justify-between py-1.5 tabular-nums">
+                                    <span className="text-[#6E6E73] dark:text-[#98989D]">Timp de rulare</span>
+                                    <span className="font-medium text-[#1D1D1F] dark:text-[#F5F5F7]">
+                                      {Math.floor(bridgeLoc.uptimeSeconds / 60)} min
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Notificare acțiune */}
+                              {dropdownActionFeedback && dropdownActionFeedback.locationId === loc.id && (
+                                <div className={`mb-2.5 px-3 py-2 rounded-xl text-[11.5px] font-medium ${dropdownActionFeedback.type === 'success'
+                                  ? 'bg-[#34C759]/12 text-[#1F7A33] dark:text-[#30D158]'
+                                  : 'bg-[#FF3B30]/12 text-[#D70015] dark:text-[#FF453A]'
+                                  }`}>
+                                  {dropdownActionFeedback.text}
                                 </div>
                               )}
-                            </div>
 
-                            {/* Notificare acțiune */}
-                            {dropdownActionFeedback && dropdownActionFeedback.locationId === loc.id && (
-                              <div className={`mb-2 p-2 rounded-lg text-[11px] font-semibold border ${
-                                dropdownActionFeedback.type === 'success'
-                                  ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200'
-                                  : 'bg-rose-50 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200'
-                              }`}>
-                                {dropdownActionFeedback.text}
+                              {/* Butoane Acțiuni Control - Apple Secondary Controls */}
+                              <div className="grid grid-cols-4 gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDropdownAction(loc.id, 'test-print')}
+                                  disabled={dropdownActionLoading === `${loc.id}-test-print`}
+                                  title="Scoate un bon de probă pe imprimantă"
+                                  className="apple-btn-secondary flex flex-col items-center justify-center gap-1 py-2 px-1 text-[10.5px] disabled:opacity-50"
+                                >
+                                  <Printer className="w-3.5 h-3.5 text-[#007AFF] dark:text-[#0A84FF]" />
+                                  <span className="whitespace-nowrap">Test Bon</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDropdownAction(loc.id, 'restart-bridge')}
+                                  disabled={dropdownActionLoading === `${loc.id}-restart-bridge`}
+                                  title="Repornește programul Bridge de pe Windows PC"
+                                  className="apple-btn-secondary flex flex-col items-center justify-center gap-1 py-2 px-1 text-[10.5px] disabled:opacity-50"
+                                >
+                                  <RefreshCw className={`w-3.5 h-3.5 text-[#007AFF] dark:text-[#0A84FF] ${dropdownActionLoading === `${loc.id}-restart-bridge` ? 'animate-spin' : ''}`} />
+                                  <span className="whitespace-nowrap">Bridge</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDropdownAction(loc.id, 'reload-kiosk')}
+                                  disabled={dropdownActionLoading === `${loc.id}-reload-kiosk`}
+                                  title="Reîncarcă ecranul Kiosk din browser"
+                                  className="apple-btn-secondary flex flex-col items-center justify-center gap-1 py-2 px-1 text-[10.5px] disabled:opacity-50"
+                                >
+                                  <RotateCcw className={`w-3.5 h-3.5 text-[#007AFF] dark:text-[#0A84FF] ${dropdownActionLoading === `${loc.id}-reload-kiosk` ? 'animate-spin' : ''}`} />
+                                  <span className="whitespace-nowrap">Ecran</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDropdownAction(loc.id, 'fullscreen-kiosk')}
+                                  disabled={dropdownActionLoading === `${loc.id}-fullscreen-kiosk`}
+                                  title="Activează modul Fullscreen pe ecranul Kiosk"
+                                  className="apple-btn-secondary flex flex-col items-center justify-center gap-1 py-2 px-1 text-[10.5px] disabled:opacity-50"
+                                >
+                                  <Maximize2 className={`w-3.5 h-3.5 text-[#007AFF] dark:text-[#0A84FF] ${dropdownActionLoading === `${loc.id}-fullscreen-kiosk` ? 'animate-pulse' : ''}`} />
+                                  <span className="whitespace-nowrap">Fullscreen</span>
+                                </button>
                               </div>
-                            )}
-
-                            {/* Butoane Acțiuni Control */}
-                            <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 grid grid-cols-4 gap-1.5">
                               <button
                                 type="button"
-                                onClick={() => handleDropdownAction(loc.id, 'test-print')}
-                                disabled={dropdownActionLoading === `${loc.id}-test-print`}
-                                title="Scoate un bon de probă pe imprimantă"
-                                className="flex flex-col items-center justify-center gap-1 py-1.5 px-1 rounded-lg text-[10px] font-semibold bg-slate-50 dark:bg-slate-700/60 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 transition-colors disabled:opacity-50 cursor-pointer"
+                                onClick={() => {
+                                  setActiveLocationDropdown(null);
+                                  setDashboardRemoteLoc({ id: loc.id, kioskUrl: loc.id, name: loc.name, bridgeLoc, isOnline: statusTone === 'online' || isKioskConnected });
+                                }}
+                                className="apple-btn-primary mt-2.5 w-full py-2.5 px-3 text-[12px] flex items-center justify-center gap-2"
                               >
-                                <Printer className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-                                <span className="whitespace-nowrap">Test Bon</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDropdownAction(loc.id, 'restart-bridge')}
-                                disabled={dropdownActionLoading === `${loc.id}-restart-bridge`}
-                                title="Repornește programul Bridge de pe Windows PC"
-                                className="flex flex-col items-center justify-center gap-1 py-1.5 px-1 rounded-lg text-[10px] font-semibold bg-slate-50 dark:bg-slate-700/60 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 transition-colors disabled:opacity-50 cursor-pointer"
-                              >
-                                <RefreshCw className={`w-3.5 h-3.5 text-slate-500 dark:text-slate-400 ${dropdownActionLoading === `${loc.id}-restart-bridge` ? 'animate-spin' : ''}`} />
-                                <span className="whitespace-nowrap">Bridge</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDropdownAction(loc.id, 'reload-kiosk')}
-                                disabled={dropdownActionLoading === `${loc.id}-reload-kiosk`}
-                                title="Reîncarcă ecranul Kiosk din browser"
-                                className="flex flex-col items-center justify-center gap-1 py-1.5 px-1 rounded-lg text-[10px] font-semibold bg-slate-50 dark:bg-slate-700/60 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 transition-colors disabled:opacity-50 cursor-pointer"
-                              >
-                                <RotateCcw className={`w-3.5 h-3.5 text-slate-500 dark:text-slate-400 ${dropdownActionLoading === `${loc.id}-reload-kiosk` ? 'animate-spin' : ''}`} />
-                                <span className="whitespace-nowrap">Ecran</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDropdownAction(loc.id, 'fullscreen-kiosk')}
-                                disabled={dropdownActionLoading === `${loc.id}-fullscreen-kiosk`}
-                                title="Activează modul Fullscreen pe ecranul Kiosk (fără restart, fără pierderi comenzi)"
-                                className="flex flex-col items-center justify-center gap-1 py-1.5 px-1 rounded-lg text-[10px] font-semibold bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-700 transition-colors disabled:opacity-50 cursor-pointer"
-                              >
-                                <Maximize2 className={`w-3.5 h-3.5 text-amber-600 dark:text-amber-400 ${dropdownActionLoading === `${loc.id}-fullscreen-kiosk` ? 'animate-pulse' : ''}`} />
-                                <span className="whitespace-nowrap">Fullscreen</span>
+                                <Server className="w-3.5 h-3.5" />
+                                <span>Control PC Windows (C:\SmartKiosk)</span>
                               </button>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActiveLocationDropdown(null);
-                                setDashboardRemoteLoc({ id: loc.id, kioskUrl: loc.id, name: loc.name, bridgeLoc, isOnline: statusTone === 'online' || isKioskConnected });
-                              }}
-                              className="mt-2 w-full py-2 px-3 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
-                            >
-                              <Server className="w-3.5 h-3.5" />
-                              <span>💻 Control PC Windows (C:\SmartKiosk)</span>
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
 
-              {/* Actions: pe desktop arată pastile late, pe mobil stau compact pe verticală aliniate cu cele 2 rânduri */}
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-1.5 shrink-0 self-stretch sm:self-auto py-0.5 sm:py-0">
-                {/* Indicator versiune macOS-style: 'Soft la zi' sau buton 'Actualizează' */}
-                {(() => {
-                  const targetVer = BRIDGE_RELEASE_NOTES[0]?.version || bridgeSummary?.latestBridgeVersion || '3.5.0';
-                  const locList = bridgeSummary?.locations ? Object.values(bridgeSummary.locations) : [];
-                  const onlineList = locList.filter(l => l.status === 'online' || l.isBridgeOnline);
-                  if (onlineList.length === 0) return null;
-                  const outdated = onlineList.filter(l => (l.bridgeVersion && l.bridgeVersion !== targetVer) || l.isBridgeUpToDate === false);
-                  
-                  if (outdated.length === 0) {
+                {/* Actions: Apple Version Status Pill + Open Live Status */}
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-1.5 shrink-0 self-stretch sm:self-auto py-0.5 sm:py-0">
+                  {(() => {
+                    const targetVer = BRIDGE_RELEASE_NOTES[0]?.version || bridgeSummary?.latestBridgeVersion || '3.5.0';
+                    const locList = bridgeSummary?.locations ? Object.values(bridgeSummary.locations) : [];
+                    const onlineList = locList.filter(l => l.status === 'online' || l.isBridgeOnline);
+                    if (onlineList.length === 0) return null;
+                    const outdated = onlineList.filter(l => (l.bridgeVersion && l.bridgeVersion !== targetVer) || l.isBridgeUpToDate === false);
+
+                    if (outdated.length === 0) {
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setReleaseNotesTargetLoc(null);
+                            setIsReleaseNotesOpen(true);
+                          }}
+                          title={`Click pentru a vedea noutățile versiunii oficiale v${targetVer} (Release Notes)`}
+                          className="flex items-center justify-center gap-1.5 px-3 h-7 rounded-full text-[11.5px] font-semibold bg-[#34C759]/[0.11] hover:bg-[#34C759]/[0.17] text-[#1F7A33] dark:text-[#30D158] border border-[#34C759]/20 cursor-pointer transition-all active:scale-95 whitespace-nowrap tabular-nums"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5 shrink-0" strokeWidth={2.2} />
+                          <span className="hidden sm:inline">Soft la zi (v{targetVer})</span>
+                        </button>
+                      );
+                    }
                     return (
-                      <button 
+                      <button
                         type="button"
                         onClick={() => {
                           setReleaseNotesTargetLoc(null);
                           setIsReleaseNotesOpen(true);
                         }}
-                        title={`Click pentru a vedea noutățile versiunii oficiale v${targetVer} (Release Notes)`}
-                        className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 hover:bg-emerald-100/90 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 shadow-xs cursor-pointer transition-all active:scale-98 group whitespace-nowrap h-8 sm:h-auto"
+                        title={`Click pentru noutăți și actualizare la v${targetVer} (${outdated.length} kiosk-uri)`}
+                        className="apple-btn-primary relative flex items-center justify-center gap-1.5 px-3 h-7 !rounded-full text-[11.5px] whitespace-nowrap tabular-nums"
                       >
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform shrink-0" />
-                        <span className="hidden sm:inline">Soft la zi (v{targetVer})</span>
+                        <RefreshCw className="w-3.5 h-3.5 text-white/90 shrink-0" />
+                        <span className="hidden sm:inline">Actualizează la v{targetVer} ({outdated.length})</span>
+                        <span className="sm:hidden absolute -top-1 -right-1 w-4 h-4 bg-[#FF9500] text-white text-[9px] font-bold rounded-full flex items-center justify-center ring-2 ring-white dark:ring-[#1C1C1E]">
+                          {outdated.length}
+                        </span>
                       </button>
                     );
-                  }
-                  return (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setReleaseNotesTargetLoc(null);
-                        setIsReleaseNotesOpen(true);
-                      }}
-                      title={`Click pentru noutăți și actualizare la v${targetVer} (${outdated.length} kiosk-uri)`}
-                      className="relative flex items-center justify-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-all cursor-pointer active:scale-98 whitespace-nowrap h-8 sm:h-auto w-8 sm:w-auto"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5 text-white/90 shrink-0" />
-                      <span className="hidden sm:inline">Actualizează la v{targetVer} ({outdated.length})</span>
-                      <span className="sm:hidden absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-white text-[9px] font-black rounded-full flex items-center justify-center ring-2 ring-white dark:ring-slate-800">
-                        {outdated.length}
-                      </span>
-                    </button>
-                  );
-                })()}
+                  })()}
 
-                <button
-                  type="button"
-                  onClick={() => setTab('bridge-monitoring')}
-                  title="Monitorizare detaliată LIVE Status"
-                  className="w-8 h-8 sm:w-auto sm:h-auto sm:p-2 rounded-xl text-slate-400 hover:text-blue-600 dark:text-slate-500 dark:hover:text-blue-400 bg-slate-50 sm:bg-transparent dark:bg-slate-700/40 sm:dark:bg-transparent border border-slate-200/60 sm:border-0 dark:border-slate-700/60 flex items-center justify-center transition-colors cursor-pointer shrink-0"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Stat Cards Grid - Responsive Grid with comfortable spacing */}
-            <div className={`grid ${
-              (2 + Object.keys(BRAND_COLORS).filter(b => (dashboardBrandStats[b] || 0) > 0).length) <= 2 ? 'grid-cols-2' :
-              (2 + Object.keys(BRAND_COLORS).filter(b => (dashboardBrandStats[b] || 0) > 0).length) === 3 ? 'grid-cols-2 sm:grid-cols-3' :
-              (2 + Object.keys(BRAND_COLORS).filter(b => (dashboardBrandStats[b] || 0) > 0).length) === 4 ? 'grid-cols-2 sm:grid-cols-4' :
-              (2 + Object.keys(BRAND_COLORS).filter(b => (dashboardBrandStats[b] || 0) > 0).length) === 5 ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-5' :
-              (2 + Object.keys(BRAND_COLORS).filter(b => (dashboardBrandStats[b] || 0) > 0).length) === 6 ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-6' :
-              'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-7'
-            } gap-3`}>
-              <div className="w-full">
-                <StatCard 
-                  label={
-                    dashboardPeriod === 'today' ? 'Comenzi Azi' :
-                    dashboardPeriod === 'yesterday' ? 'Comenzi Ieri' :
-                    dashboardPeriod === 'thisWeek' ? 'Comenzi Săptămână' :
-                    dashboardPeriod === 'lastWeek' ? 'Comenzi Săpt. Prec.' :
-                    dashboardPeriod === 'thisMonth' ? 'Comenzi Lună' :
-                    dashboardPeriod === 'lastMonth' ? 'Comenzi Luna Prec.' :
-                    dashboardPeriod === 'thisYear' ? 'Comenzi An' :
-                    'Comenzi'
-                  } 
-                  value={dashboardFilteredOrders.length} 
-                  color="var(--primary)" 
-                  icon={Receipt}
-                  onClick={() => setDashboardBrands([])}
-                />
-              </div>
-              <div className="w-full">
-                <StatCard 
-                  label="Încasări Total" 
-                  value={`${formatThousands(dashboardRevenue, 0)} lei`} 
-                  color="#059669" 
-                  icon={TrendingUp}
-                />
-              </div>
-              {Object.keys(BRAND_COLORS)
-                .filter(b => (dashboardBrandStats[b] || 0) > 0)
-                .map(b => (
-                  <div key={b} className="w-full">
-                    <StatCard 
-                      label={b === 'smashme' ? 'SmashMe' : b === 'crunch' ? 'Crunch' : b === 'rollmaster' ? 'Roll Master' : b === 'lovesushi' ? 'Love Sushi' : 'Poki-Woki'} 
-                      value={dashboardBrandStats[b] || 0} 
-                      color={BRAND_COLORS[b]} 
-                      brandId={b}
-                      onClick={() => toggleDashboardBrand(b)}
-                      active={dashboardBrands.includes(b)}
-                    />
-                  </div>
-                ))}
-            </div>
-
-            {/* Controls & Period Filter Bar - Responsive layout */}
-            <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3 w-full max-w-full min-w-0">
-              {/* Grup Stânga: Branduri + Butoane Perioadă */}
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 w-full md:w-auto min-w-0">
-                {/* Brand Filter Buttons - Compact Icons with swipe on mobile */}
-                <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5 -mx-1 px-1 shrink-0">
-                  {['all','smashme','crunch','rollmaster','lovesushi','pokiwoki'].map(b => {
-                    const isSelected = b === 'all' ? dashboardBrands.length === 0 : dashboardBrands.includes(b);
-                    return (
-                      <button
-                        key={b}
-                        type="button"
-                        title={b === 'all' ? 'Toate Brandurile' : b === 'smashme' ? 'SmashMe' : b === 'crunch' ? 'Crunch' : b === 'rollmaster' ? 'Roll Master' : b === 'lovesushi' ? 'Love Sushi' : 'Poki-Woki'}
-                        className={`shrink-0 h-9 rounded-full flex items-center justify-center border transition-all cursor-pointer ${
-                          b === 'all' ? 'px-3 text-xs font-bold' : 'w-9'
-                        } ${
-                          isSelected
-                            ? 'bg-blue-600 text-white border-blue-600 shadow-sm ring-2 ring-blue-500/20'
-                            : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
-                        }`}
-                        onClick={() => toggleDashboardBrand(b)}
-                      >
-                        {b === 'all' ? 'Toate' : <BrandLogo brandId={b} size={16} />}
-                      </button>
-                    );
-                  })}
+                  <button
+                    type="button"
+                    onClick={() => setTab('bridge-monitoring')}
+                    title="Monitorizare detaliată LIVE Status"
+                    className="apple-glass-btn apple-glass-btn-sm"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" strokeWidth={2} />
+                  </button>
                 </div>
+              </div>
 
-                {/* Separator discret vertical */}
-                <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 shrink-0 hidden sm:block" />
+              {/* Stat Cards Grid - Responsive Grid with comfortable spacing */}
+              <div className={`grid ${(2 + Object.keys(BRAND_COLORS).filter(b => (dashboardBrandStats[b] || 0) > 0).length) <= 2 ? 'grid-cols-2' :
+                (2 + Object.keys(BRAND_COLORS).filter(b => (dashboardBrandStats[b] || 0) > 0).length) === 3 ? 'grid-cols-2 sm:grid-cols-3' :
+                  (2 + Object.keys(BRAND_COLORS).filter(b => (dashboardBrandStats[b] || 0) > 0).length) === 4 ? 'grid-cols-2 sm:grid-cols-4' :
+                    (2 + Object.keys(BRAND_COLORS).filter(b => (dashboardBrandStats[b] || 0) > 0).length) === 5 ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-5' :
+                      (2 + Object.keys(BRAND_COLORS).filter(b => (dashboardBrandStats[b] || 0) > 0).length) === 6 ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-6' :
+                        'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-7'
+                } gap-3`}>
+                <div className="w-full">
+                  <StatCard
+                    label={
+                      dashboardPeriod === 'today' ? 'Comenzi Azi' :
+                        dashboardPeriod === 'yesterday' ? 'Comenzi Ieri' :
+                          dashboardPeriod === 'thisWeek' ? 'Comenzi Săptămână' :
+                            dashboardPeriod === 'lastWeek' ? 'Comenzi Săpt. Prec.' :
+                              dashboardPeriod === 'thisMonth' ? 'Comenzi Lună' :
+                                dashboardPeriod === 'lastMonth' ? 'Comenzi Luna Prec.' :
+                                  dashboardPeriod === 'thisYear' ? 'Comenzi An' :
+                                    'Comenzi'
+                    }
+                    value={dashboardFilteredOrders.length}
+                    color="#007AFF"
+                    icon={ShoppingBag}
+                    onClick={() => setDashboardBrands([])}
+                  />
+                </div>
+                <div className="w-full">
+                  <StatCard
+                    label="Încasări Total"
+                    value={`${formatThousands(dashboardRevenue, 0)} lei`}
+                    color="#34C759"
+                    icon={TrendingUp}
+                  />
+                </div>
+                {Object.keys(BRAND_COLORS)
+                  .filter(b => (dashboardBrandStats[b] || 0) > 0)
+                  .map(b => (
+                    <div key={b} className="w-full">
+                      <StatCard
+                        label={b === 'smashme' ? 'SmashMe' : b === 'crunch' ? 'Crunch' : b === 'rollmaster' ? 'Roll Master' : b === 'lovesushi' ? 'Love Sushi' : 'Poki-Woki'}
+                        value={dashboardBrandStats[b] || 0}
+                        color={BRAND_COLORS[b]}
+                        brandId={b}
+                        onClick={() => toggleDashboardBrand(b)}
+                        active={dashboardBrands.includes(b)}
+                      />
+                    </div>
+                  ))}
+              </div>
 
-                {/* Butoane Rapide Perioadă — DOAR PE DESKTOP (pe mobil e dropdown mai jos) */}
-                <div className="hidden sm:flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5 -mx-1 px-1 w-full sm:w-auto min-w-0">
-                  {[
-                    { id: 'today', label: 'Azi' },
-                    { id: 'yesterday', label: 'Ieri' },
-                    { id: 'thisWeek', label: 'Săpt. Curentă' },
-                    { id: 'lastWeek', label: 'Săpt. Trecută' },
-                    { id: 'thisMonth', label: 'Luna Curentă' },
-                    { id: 'lastMonth', label: 'Luna Trecută' },
-                    { id: 'thisYear', label: 'Anul Curent' },
-                    { id: 'custom', label: 'Personalizat' }
-                  ].map(p => {
-                    const isActive = dashboardPeriod === p.id;
-                    return (
+              {/* Controls & Period Filter Bar — STRICTLY ONE SINGLE ROW Concentric Apple Pill Toolbar */}
+              <div className={`apple-card p-2 w-full max-w-full min-w-0 ${dashboardPeriod === 'custom' ? '!rounded-[22px]' : '!rounded-full'}`}>
+                <div className="flex items-center gap-2 flex-nowrap overflow-x-auto scrollbar-none w-full min-w-0">
+                  {/* 1. Brand Segmented Strip */}
+                  <div className="apple-segmented shrink-0">
+                    {['all', 'smashme', 'crunch', 'rollmaster', 'lovesushi', 'pokiwoki'].map(b => {
+                      const isSelected = b === 'all' ? dashboardBrands.length === 0 : dashboardBrands.includes(b);
+                      return (
+                        <button
+                          key={b}
+                          type="button"
+                          title={b === 'all' ? 'Toate Brandurile' : b === 'smashme' ? 'SmashMe' : b === 'crunch' ? 'Crunch' : b === 'rollmaster' ? 'Roll Master' : b === 'lovesushi' ? 'Love Sushi' : 'Poki-Woki'}
+                          className={`apple-segmented-item flex items-center justify-center ${b === 'all' ? '!px-3' : '!px-0 w-[28px]'
+                            } ${isSelected ? 'is-active' : 'opacity-75 hover:opacity-100'}`}
+                          onClick={() => toggleDashboardBrand(b)}
+                        >
+                          {b === 'all' ? 'Toate' : (
+                            <span className={`rounded-full flex items-center justify-center ${isSelected ? 'bg-white p-[1.5px] shadow-2xs' : ''}`}>
+                              <BrandLogo brandId={b} size={17} />
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="w-px h-5 bg-black/[0.07] dark:bg-white/[0.1] shrink-0 hidden sm:block" />
+
+                  {/* 2. Quick Period Segmented Control (Desktop) */}
+                  <div className="hidden sm:inline-flex apple-segmented shrink-0">
+                    {[
+                      { id: 'today', label: 'Azi' },
+                      { id: 'yesterday', label: 'Ieri' },
+                      { id: 'thisWeek', label: 'Săpt.' },
+                      { id: 'thisMonth', label: 'Lună' },
+                    ].map(p => (
                       <button
                         key={p.id}
                         type="button"
                         onClick={() => handleSelectDashboardPeriod(p.id)}
-                        className={`shrink-0 px-3 h-8 sm:h-9 rounded-full text-xs font-bold transition-all border cursor-pointer ${
-                          isActive
-                            ? 'bg-blue-600 text-white border-blue-600 shadow-sm ring-2 ring-blue-500/20'
-                            : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
-                        }`}
+                        className={`apple-segmented-item ${dashboardPeriod === p.id ? 'is-active' : ''}`}
                       >
                         {p.label}
                       </button>
-                    );
-                  })}
+                    ))}
+                  </div>
+
+                  {/* 3. Extended Period Selector (Desktop: Săpt. trec., Luna trec., An, Interval) */}
+                  <select
+                    className={`hidden sm:block apple-input h-8 px-2.5 text-[12px] font-medium cursor-pointer shrink-0 ${['lastWeek', 'lastMonth', 'thisYear', 'custom'].includes(dashboardPeriod)
+                      ? '!text-[#007AFF] dark:!text-[#0A84FF] !bg-[#007AFF]/[0.09] !border-[#007AFF]/25 font-semibold'
+                      : ''
+                      }`}
+                    value={['lastWeek', 'lastMonth', 'thisYear', 'custom'].includes(dashboardPeriod) ? dashboardPeriod : ''}
+                    onChange={(e) => { if (e.target.value) handleSelectDashboardPeriod(e.target.value); }}
+                    title="Alte perioade"
+                  >
+                    <option value="" disabled>Mai mult</option>
+                    <option value="lastWeek">Săpt. trec.</option>
+                    <option value="lastMonth">Luna trec.</option>
+                    <option value="thisYear">Anul curent</option>
+                    <option value="custom">Interval...</option>
+                  </select>
+
+                  {/* Mobile Single Period Selector */}
+                  <select
+                    className="sm:hidden apple-input h-8 px-2.5 text-[12px] font-medium cursor-pointer shrink-0"
+                    value={dashboardPeriod}
+                    onChange={(e) => handleSelectDashboardPeriod(e.target.value)}
+                  >
+                    <option value="today">Azi</option>
+                    <option value="yesterday">Ieri</option>
+                    <option value="thisWeek">Săptămâna curentă</option>
+                    <option value="lastWeek">Săptămâna trecută</option>
+                    <option value="thisMonth">Luna curentă</option>
+                    <option value="lastMonth">Luna trecută</option>
+                    <option value="thisYear">Anul curent</option>
+                    <option value="custom">Interval personalizat</option>
+                  </select>
+
+                  <div className="w-px h-5 bg-black/[0.07] dark:bg-white/[0.1] shrink-0 hidden md:block" />
+
+                  {/* 4. Location Selector */}
+                  <select
+                    className="apple-input h-8 px-2.5 text-[12px] font-medium cursor-pointer shrink-0 max-w-[145px]"
+                    value={dashboardLocation}
+                    onChange={(e) => setDashboardLocation(e.target.value)}
+                  >
+                    <option value="all">Toate locațiile</option>
+                    {uniqueLocations.map(loc => (
+                      <option key={loc} value={loc}>{loc}</option>
+                    ))}
+                  </select>
+
+                  {/* 5. Payment Selector */}
+                  <select
+                    className="apple-input h-8 px-2.5 text-[12px] font-medium cursor-pointer shrink-0 max-w-[130px]"
+                    value={dashboardPayment}
+                    onChange={(e) => setDashboardPayment(e.target.value)}
+                  >
+                    <option value="all">Toate plățile</option>
+                    <option value="card">Card POS (Toate)</option>
+                    <option value="visa">Card Visa</option>
+                    <option value="mastercard">Card Mastercard</option>
+                    <option value="cash">Numerar (Cash)</option>
+                  </select>
+
+                  {/* 6. Spotlight Search (Fills remaining width cleanly on the same single row) */}
+                  <div className="relative flex-1 min-w-[125px]">
+                    <input
+                      type="text"
+                      value={dashboardSearch}
+                      onChange={(e) => setDashboardSearch(e.target.value)}
+                      placeholder="Caută..."
+                      className="apple-input h-8 pl-8 pr-7 text-[12px] w-full placeholder-[#86868B]"
+                    />
+                    <svg className="w-3.5 h-3.5 text-[#86868B] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                    {dashboardSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setDashboardSearch('')}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-black/15 dark:bg-white/20 flex items-center justify-center text-[#1D1D1F] dark:text-white cursor-pointer"
+                      >
+                        <X size={10} strokeWidth={2.5} />
+                      </button>
+                    )}
+                  </div>
                 </div>
 
-                {/* Câmpuri Dată - afișate DOAR când este selectat Personalizat */}
+                {/* Custom Date Range Drawer (Only appears when 'Interval...' is chosen) */}
                 {dashboardPeriod === 'custom' && (
-                  <div className="flex items-center gap-1.5 bg-blue-50/70 dark:bg-blue-950/40 py-1 px-2.5 rounded-full border border-blue-200 dark:border-blue-800 shrink-0 shadow-xs animate-in fade-in">
-                    <Calendar className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                    <span className="text-[11px] font-bold text-blue-700 dark:text-blue-300">Interval:</span>
+                  <div className="mt-2 pt-2 border-t border-black/[0.06] dark:border-white/[0.08] flex items-center gap-2 flex-wrap animate-in fade-in">
+                    <div className="flex items-center gap-1.5 text-[12px] font-medium text-[#6E6E73] dark:text-[#98989D]">
+                      <Calendar className="w-3.5 h-3.5 text-[#007AFF]" />
+                      <span>Interval personalizat:</span>
+                    </div>
                     <input
                       type="date"
                       value={dashboardCustomStart}
                       onChange={(e) => handleCustomDateChange('start', e.target.value)}
-                      className="px-2 h-7 rounded-md text-xs font-sans font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500"
+                      className="apple-input px-2.5 h-8 text-[12px] font-medium tabular-nums"
                       title="Data de început"
                     />
-                    <span className="text-slate-400 text-xs font-bold">—</span>
+                    <span className="text-[#86868B] text-xs">—</span>
                     <input
                       type="date"
                       value={dashboardCustomEnd}
                       onChange={(e) => handleCustomDateChange('end', e.target.value)}
-                      className="px-2 h-7 rounded-md text-xs font-sans font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500"
+                      className="apple-input px-2.5 h-8 text-[12px] font-medium tabular-nums"
                       title="Data de sfârșit"
                     />
                   </div>
                 )}
               </div>
 
-              {/* Grup Dreapta: Perioadă (mobil), Locație, Plată, Căutare */}
-              <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full md:w-auto md:ml-auto min-w-0">
-                {/* Dropdown Filtru Perioadă — DOAR PE MOBIL */}
-                <select 
-                  className="sm:hidden w-full px-3 h-9 rounded-full text-xs font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-                  value={dashboardPeriod}
-                  onChange={(e) => handleSelectDashboardPeriod(e.target.value)}
-                >
-                  <option value="today">📅 Azi</option>
-                  <option value="yesterday">📅 Ieri</option>
-                  <option value="thisWeek">📅 Săpt. Curentă</option>
-                  <option value="lastWeek">📅 Săpt. Trecută</option>
-                  <option value="thisMonth">📅 Luna Curentă</option>
-                  <option value="lastMonth">📅 Luna Trecută</option>
-                  <option value="thisYear">📅 Anul Curent</option>
-                  <option value="custom">📅 Personalizat</option>
-                </select>
-
-                {/* Location Filter */}
-                <select 
-                  className="w-full sm:w-auto px-3 h-9 rounded-full text-xs font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-                  value={dashboardLocation}
-                  onChange={(e) => setDashboardLocation(e.target.value)}
-                >
-                  <option value="all">Toate locațiile</option>
-                  {uniqueLocations.map(loc => (
-                    <option key={loc} value={loc}>{loc}</option>
+              {/* Active Filter Pills Bar (with crisp visible X buttons!) */}
+              {(dashboardBrands.length > 0 || dashboardHour !== null || dashboardDay !== null || dashboardPayment !== 'all' || dashboardLocation !== 'all' || dashboardSearch) && (
+                <div className="apple-card flex items-center gap-2 flex-wrap text-xs px-3.5 py-2.5">
+                  <span className="text-[#86868B] font-medium">Filtre active:</span>
+                  {dashboardBrands.map(b => (
+                    <span key={b} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#007AFF]/10 text-[#007AFF] dark:text-[#0A84FF] font-medium">
+                      <BrandLogo brandId={b} size={14} />
+                      <span>{b}</span>
+                      <button type="button" onClick={() => toggleDashboardBrand(b)} className="hover:opacity-70 ml-0.5 cursor-pointer"><X size={12} strokeWidth={2.5} /></button>
+                    </span>
                   ))}
-                </select>
-
-                {/* Payment Filter */}
-                <select 
-                  className="w-full sm:w-auto px-3 h-9 rounded-full text-xs font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-                  value={dashboardPayment}
-                  onChange={(e) => setDashboardPayment(e.target.value)}
-                >
-                  <option value="all">Toate plățile</option>
-                  <option value="card">Card POS (Toate)</option>
-                  <option value="visa">Card Visa</option>
-                  <option value="mastercard">Card Mastercard</option>
-                  <option value="cash">Numerar (Cash)</option>
-                </select>
-
-                {/* Search Bar */}
-                <div className="col-span-2 sm:col-span-1 relative w-full sm:w-44 md:w-52">
-                  <input
-                    type="text"
-                    value={dashboardSearch}
-                    onChange={(e) => setDashboardSearch(e.target.value)}
-                    placeholder="Caută comandă..."
-                    className="h-9 pl-9 pr-3 rounded-full text-xs font-medium bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full transition-all"
-                  />
-                  <svg className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                  {dashboardHour !== null && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/[0.06] dark:bg-white/[0.1] text-[#1D1D1F] dark:text-white font-medium">
+                      <span>Ora {dashboardHour}:00–{dashboardHour + 1}:00</span>
+                      <button type="button" onClick={() => toggleDashboardHour(dashboardHour)} className="hover:opacity-70 ml-0.5 cursor-pointer"><X size={12} strokeWidth={2.5} /></button>
+                    </span>
+                  )}
+                  {dashboardDay !== null && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/[0.06] dark:bg-white/[0.1] text-[#1D1D1F] dark:text-white font-medium">
+                      <span>{dashboardDay.label}</span>
+                      <button type="button" onClick={() => toggleDashboardDay(dashboardDay)} className="hover:opacity-70 ml-0.5 cursor-pointer"><X size={12} strokeWidth={2.5} /></button>
+                    </span>
+                  )}
+                  {dashboardPayment !== 'all' && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#34C759]/12 text-[#248A3D] dark:text-[#30D158] font-medium">
+                      <span>
+                        {dashboardPayment === 'card' ? 'Card POS' :
+                          dashboardPayment === 'visa' ? 'Visa' :
+                            dashboardPayment === 'mastercard' ? 'Mastercard' :
+                              dashboardPayment.startsWith('bank_') ? `Card ${BANK_CONFIG[dashboardPayment.replace('bank_', '')]?.name || 'Bancă'}` :
+                                'Cash'}
+                      </span>
+                      <button type="button" onClick={() => toggleDashboardPayment(dashboardPayment)} className="hover:opacity-70 ml-0.5 cursor-pointer"><X size={12} strokeWidth={2.5} /></button>
+                    </span>
+                  )}
+                  {dashboardLocation !== 'all' && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/[0.06] dark:bg-white/[0.1] text-[#1D1D1F] dark:text-white font-medium">
+                      <span>{dashboardLocation}</span>
+                      <button type="button" onClick={() => setDashboardLocation('all')} className="hover:opacity-70 ml-0.5 cursor-pointer"><X size={12} strokeWidth={2.5} /></button>
+                    </span>
+                  )}
+                  {dashboardSearch && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/[0.06] dark:bg-white/[0.1] text-[#1D1D1F] dark:text-white font-medium">
+                      <span>„{dashboardSearch}”</span>
+                      <button type="button" onClick={() => setDashboardSearch('')} className="hover:opacity-70 ml-0.5 cursor-pointer"><X size={12} strokeWidth={2.5} /></button>
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={clearAllDashboardFilters}
+                    className="text-xs text-[#FF3B30] hover:underline font-medium ml-auto cursor-pointer"
+                  >
+                    Resetează tot
+                  </button>
                 </div>
-              </div>
-            </div>
+              )}
 
-            {/* Active Filter Pills Bar (if filtered by chart or toolbar) */}
-            {(dashboardBrands.length > 0 || dashboardHour !== null || dashboardDay !== null || dashboardPayment !== 'all' || dashboardLocation !== 'all' || dashboardSearch) && (
-              <div className="flex items-center gap-2 flex-wrap text-xs bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                <span className="text-slate-400 font-bold">Filtre active:</span>
-                {dashboardBrands.map(b => (
-                  <span key={b} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-bold">
-                    <BrandLogo brandId={b} size={15} />
-                    <span>Brand: {b}</span>
-                    <button onClick={() => toggleDashboardBrand(b)} className="hover:text-red-500 font-bold ml-1 cursor-pointer"></button>
-                  </span>
-                ))}
-                {dashboardHour !== null && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 font-bold">
-                    Oră: {dashboardHour}:00 - {dashboardHour + 1}:00
-                    <button onClick={() => toggleDashboardHour(dashboardHour)} className="hover:text-red-500 font-bold ml-1 cursor-pointer"></button>
-                  </span>
+              {/* 5 Interactive Charts + Orders Table in Unified Adaptive Bento Grid (Laptop → 21:9 → 5K 32:9 Ultrawide) */}
+              <DashboardCharts3D
+                orders={dashboardPeriodOrders}
+                allOrders={orders}
+                comparisonOrders={dashboardComparisonOrders}
+                isComparisonLoading={isComparisonLoading}
+                period={dashboardPeriod}
+                customStart={dashboardCustomStart}
+                customEnd={dashboardCustomEnd}
+                selectedLocation={dashboardLocation}
+                selectedBrands={dashboardBrands}
+                onSelectBrand={toggleDashboardBrand}
+                selectedHour={dashboardHour}
+                onSelectHour={toggleDashboardHour}
+                selectedDay={dashboardDay}
+                onSelectDay={toggleDashboardDay}
+                selectedPayment={dashboardPayment}
+                onSelectPayment={toggleDashboardPayment}
+                selectedProduct={dashboardSearch}
+                onSelectProduct={(prodName) => setDashboardSearch(prev => prev === prodName ? '' : prodName)}
+                ordersSection={(
+                  <div className="h-full flex flex-col">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-[17px] font-semibold tracking-tight text-[#1D1D1F] dark:text-[#F5F5F7] flex items-center gap-2.5">
+                        Comenzi Perioadă
+                        <span className="px-2.5 py-0.5 rounded-full text-[11.5px] font-semibold bg-[#007AFF]/[0.10] text-[#007AFF] dark:text-[#0A84FF] tabular-nums">
+                          {dashboardFilteredOrders.length} înregistrări
+                        </span>
+                      </h3>
+                    </div>
+                    <OrdersTable
+                      orders={dashboardFilteredOrders}
+                      onRowClick={setSelectedOrder}
+                      onOpenThermalReceipt={setThermalReceiptOrder}
+                      selectedId={selectedOrder?._id}
+                      defaultRows={10}
+                      menuProducts={menuProducts}
+                      menuImages={menuImages}
+                      backend={BACKEND}
+                    />
+                  </div>
                 )}
-                {dashboardDay !== null && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-bold">
-                    Zi: {dashboardDay.label}
-                    <button onClick={() => toggleDashboardDay(dashboardDay)} className="hover:text-red-500 font-bold ml-1 cursor-pointer"></button>
-                  </span>
-                )}
-                {dashboardPayment !== 'all' && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold">
-                    Plată: {
-                      dashboardPayment === 'card' ? 'Card POS (Toate)' :
-                      dashboardPayment === 'visa' ? 'Card Visa' :
-                      dashboardPayment === 'mastercard' ? 'Card Mastercard' :
-                      dashboardPayment.startsWith('bank_') ? `Card ${BANK_CONFIG[dashboardPayment.replace('bank_', '')]?.name || 'Bancă'}` :
-                      'Numerar (Cash)'
-                    }
-                    <button onClick={() => toggleDashboardPayment(dashboardPayment)} className="hover:text-red-500 font-bold ml-1 cursor-pointer"></button>
-                  </span>
-                )}
-                {dashboardLocation !== 'all' && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 font-bold">
-                    Locație: {dashboardLocation}
-                    <button onClick={() => setDashboardLocation('all')} className="hover:text-red-500 font-bold ml-1 cursor-pointer"></button>
-                  </span>
-                )}
-                {dashboardSearch && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-500/10 text-slate-700 dark:text-slate-300 border border-slate-500/20 font-bold">
-                    Căutare: "{dashboardSearch}"
-                    <button onClick={() => setDashboardSearch('')} className="hover:text-red-500 font-bold ml-1 cursor-pointer"></button>
-                  </span>
-                )}
-                <button 
-                  onClick={clearAllDashboardFilters} 
-                  className="text-xs text-red-500 hover:text-red-600 underline font-bold ml-auto cursor-pointer"
-                >
-                  Resetează toate filtrele
-                </button>
-              </div>
-            )}
-
-            {/* 5 Interactive ZoomCharts with Cross-Filtering & Top Products */}
-            <DashboardCharts3D 
-              orders={dashboardPeriodOrders} 
-              allOrders={orders}
-              period={dashboardPeriod} 
-              selectedBrands={dashboardBrands}
-              onSelectBrand={toggleDashboardBrand}
-              selectedHour={dashboardHour}
-              onSelectHour={toggleDashboardHour}
-              selectedDay={dashboardDay}
-              onSelectDay={toggleDashboardDay}
-              selectedPayment={dashboardPayment}
-              onSelectPayment={toggleDashboardPayment}
-              selectedProduct={dashboardSearch}
-              onSelectProduct={(prodName) => setDashboardSearch(prev => prev === prodName ? '' : prodName)}
-            />
-
-            {/* Orders Table with Pagination & Row Numbers */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
-                  Comenzi Perioadă
-                  <span className="px-3 py-1 rounded-full text-xs font-black bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                    Total: {dashboardFilteredOrders.length} înregistrări
-                  </span>
-                </h3>
-              </div>
-              <OrdersTable 
-                orders={dashboardFilteredOrders} 
-                onRowClick={setSelectedOrder} 
-                onOpenThermalReceipt={setThermalReceiptOrder}
-                selectedId={selectedOrder?._id}
-                defaultRows={10}
-                menuProducts={menuProducts}
-                menuImages={menuImages}
-                backend={BACKEND}
               />
             </div>
-          </div>
-        )}
+          )}
 
-        {/* ─── ORDERS ─── */}
-        {tab === 'orders' && (
-          <div className="space-y-4 px-4 md:px-8 pb-10">
-            <div className="flex items-center gap-3 flex-wrap">
-              <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide shrink-0">
-                {['all','smashme','crunch','rollmaster','lovesushi','pokiwoki'].map(b => (
-                  <button
-                    key={b}
-                    title={b === 'all' ? 'Toate' : b}
-                    className={`shrink-0 h-10 rounded-full flex items-center justify-center border transition-colors ${b === 'all' ? 'px-5 text-sm font-bold' : 'w-10'} ${brandFilter === b ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-                    onClick={() => setBrandFilter(b)}
+          {/* ─── ORDERS ─── */}
+          {tab === 'orders' && (
+            <div className="space-y-4 px-4 md:px-7 pb-10">
+              <div className={`apple-card p-2 ${periodFilter === 'custom' ? '!rounded-[22px]' : '!rounded-full'}`}>
+                <div className="flex items-center gap-2 flex-nowrap overflow-x-auto scrollbar-none w-full min-w-0">
+                  <div className="apple-segmented shrink-0">
+                    {['all', 'smashme', 'crunch', 'rollmaster', 'lovesushi', 'pokiwoki'].map(b => (
+                      <button
+                        key={b}
+                        type="button"
+                        title={b === 'all' ? 'Toate' : b}
+                        className={`apple-segmented-item flex items-center justify-center ${b === 'all' ? '!px-3' : '!px-0 w-[28px]'} ${brandFilter === b ? 'is-active' : 'opacity-75 hover:opacity-100'}`}
+                        onClick={() => setBrandFilter(b)}
+                      >
+                        {b === 'all' ? 'Toate' : (
+                          <span className={`rounded-full flex items-center justify-center ${brandFilter === b ? 'bg-white p-[1.5px] shadow-2xs' : ''}`}>
+                            <BrandLogo brandId={b} size={17} />
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="w-px h-5 bg-black/[0.07] dark:bg-white/[0.1] shrink-0 hidden sm:block" />
+
+                  <select
+                    className="apple-input shrink-0 px-2.5 h-8 text-[12px] font-medium cursor-pointer"
+                    value={periodFilter}
+                    onChange={(e) => setPeriodFilter(e.target.value)}
                   >
-                    {b === 'all' ? 'Toate' : <BrandLogo brandId={b} size={20} />}
-                  </button>
-                ))}
-              </div>
-              
-              {/* Global Search Bar */}
-              <div className="relative flex-1 min-w-[200px] max-w-[320px]">
-                  <input
-                    type="text"
-                    value={globalSearch}
-                    onChange={(e) => setGlobalSearch(e.target.value)}
-                    placeholder="Caută comandă, iiko, locație..."
-                    className="h-10 pl-10 pr-4 rounded-full text-sm font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full transition-all"
-                  />
-                  <svg className="w-4 h-4 text-slate-400 absolute left-4 top-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                    <option value="all">Toată perioada</option>
+                    <option value="today">Azi</option>
+                    <option value="yesterday">Ieri</option>
+                    <option value="thisWeek">Săptămâna curentă</option>
+                    <option value="thisMonth">Luna curentă</option>
+                    <option value="lastMonth">Luna trecută</option>
+                    <option value="thisYear">Anul curent</option>
+                    <option value="custom">Interval...</option>
+                  </select>
+                  <select
+                    className="apple-input shrink-0 px-2.5 h-8 text-[12px] font-medium cursor-pointer max-w-[155px]"
+                    value={locationFilter}
+                    onChange={(e) => setLocationFilter(e.target.value)}
+                  >
+                    <option value="all">Toate locațiile</option>
+                    {uniqueLocations.map(loc => (
+                      <option key={loc} value={loc}>{loc}</option>
+                    ))}
+                  </select>
+                  <select
+                    className="apple-input shrink-0 px-2.5 h-8 text-[12px] font-medium cursor-pointer max-w-[130px]"
+                    value={paymentFilter}
+                    onChange={(e) => setPaymentFilter(e.target.value)}
+                  >
+                    <option value="all">Toate plățile</option>
+                    <option value="cash">Cash</option>
+                    <option value="card">Card</option>
+                  </select>
+
+                  <div className="relative flex-1 min-w-[150px]">
+                    <input
+                      type="text"
+                      value={globalSearch}
+                      onChange={(e) => setGlobalSearch(e.target.value)}
+                      placeholder="Caută comandă, iiko, locație..."
+                      className="apple-input h-8 pl-8 pr-3 text-[12px] w-full placeholder-[#86868B]"
+                    />
+                    <svg className="w-3.5 h-3.5 text-[#86868B] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                  </div>
                 </div>
-                <select 
-                  className="shrink-0 px-4 h-10 rounded-full text-sm font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 outline-none hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                  value={periodFilter}
-                  onChange={(e) => setPeriodFilter(e.target.value)}
-                >
-                  <option value="all">Toată perioada</option>
-                  <option value="today">Azi</option>
-                  <option value="yesterday">Ieri</option>
-                  <option value="thisWeek">Săptămâna Curentă</option>
-                  <option value="thisMonth">Luna Curentă</option>
-                  <option value="lastMonth">Luna Trecută</option>
-                  <option value="thisYear">Anul Curent</option>
-                  <option value="custom">Personalizat</option>
-                </select>
                 {periodFilter === 'custom' && (
-                  <div className="flex items-center gap-2 shrink-0">
-                    <input 
-                      type="date" 
-                      className="px-3 h-10 rounded-full text-sm font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 outline-none hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                  <div className="mt-2 pt-2 border-t border-black/[0.06] dark:border-white/[0.08] flex items-center gap-2 flex-wrap">
+                    <Calendar className="w-3.5 h-3.5 text-[#007AFF]" />
+                    <input
+                      type="date"
+                      className="apple-input px-2.5 h-8 text-[12px] tabular-nums"
                       value={customStart}
                       onChange={(e) => setCustomStart(e.target.value)}
                     />
-                    <span className="text-slate-400">-</span>
-                    <input 
-                      type="date" 
-                      className="px-3 h-10 rounded-full text-sm font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 outline-none hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                    <span className="text-[#86868B] text-xs">—</span>
+                    <input
+                      type="date"
+                      className="apple-input px-2.5 h-8 text-[12px] tabular-nums"
                       value={customEnd}
                       onChange={(e) => setCustomEnd(e.target.value)}
                     />
                   </div>
                 )}
-                <select 
-                  className="shrink-0 px-4 h-10 rounded-full text-sm font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 outline-none hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                  value={locationFilter}
-                  onChange={(e) => setLocationFilter(e.target.value)}
-                >
-                  <option value="all">Toate locațiile</option>
-                  {uniqueLocations.map(loc => (
-                    <option key={loc} value={loc}>{loc}</option>
-                  ))}
-                </select>
-                <select 
-                  className="shrink-0 px-4 h-10 rounded-full text-sm font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 outline-none hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                  value={paymentFilter}
-                  onChange={(e) => setPaymentFilter(e.target.value)}
-                >
-                  <option value="all">Toate plățile</option>
-                  <option value="cash">Cash</option>
-                  <option value="card">Card</option>
-                </select>
               </div>
-            <OrdersTable 
-              orders={filteredOrders} 
-              full 
-              onRowClick={setSelectedOrder} 
-              onOpenThermalReceipt={setThermalReceiptOrder}
-              selectedId={selectedOrder?._id} 
-              menuProducts={menuProducts}
-              menuImages={menuImages}
-              backend={BACKEND}
-            />
-          </div>
-        )}
-
-        {/* ─── MAIN CONTENT WRAPPER ─── */}
-        <div className="flex-1 overflow-y-auto px-4 md:px-8 pb-10">
-          {/* ─── MENU ─── */}
-          {tab === 'menu' && (
-            <MenuManager backend={BACKEND} />
-          )}
-
-          {/* ─── LOCATIONS ─── */}
-          {tab === 'locations' && (
-            <div className="admin-section"><LocationsManager backend={BACKEND} kiosksLiveStatus={kiosksLiveStatus} /></div>
-          )}
-
-          {/* ─── KIOSKS / SCREENSAVER ─── */}
-          {tab === 'kiosks' && (
-            <div className="admin-section">
-              <KiosksManager 
-                backend={BACKEND} 
-                kiosksLiveStatus={kiosksLiveStatus} 
-                bridgeSummary={bridgeSummary}
-                socket={socketRef.current}
-                onNavigateToProducts={(locId, kioskId, filterDiet = 'promo', brandId = 'smashme') => {
-                  if (locId) localStorage.setItem('admin_active_location', locId);
-                  if (kioskId) localStorage.setItem('admin_active_kiosk', kioskId);
-                  if (filterDiet) localStorage.setItem('admin_product_filter_diet', filterDiet);
-                  if (brandId) localStorage.setItem('admin_active_brand', brandId);
-                  setTab('products');
-                }}
+              <OrdersTable
+                orders={filteredOrders}
+                full
+                onRowClick={setSelectedOrder}
+                onOpenThermalReceipt={setThermalReceiptOrder}
+                selectedId={selectedOrder?._id}
+                menuProducts={menuProducts}
+                menuImages={menuImages}
+                backend={BACKEND}
               />
             </div>
           )}
 
-          {/* ─── QR CODE GENERATOR ─── */}
-          {tab === 'qrcodes' && (
-            <QrGenerator backend={BACKEND} />
-          )}
-          {/* ─── USERS MANAGER ─── */}
-          {tab === 'translations' && <div className="admin-section"><TranslationsScreen backend={BACKEND} /></div>}
-          {tab === 'modifiers' && <ModifierImages />}
-          {tab === 'products' && <ProductOverrides />}
-          {tab === 'integrations' && <Integrations />}
-          {tab === 'pos-logs' && <PosLogs orders={orders} onGoToOrder={async (orderId) => {
-            const foundOrder = orders.find(o => o._id === orderId);
-            if (foundOrder) {
-              setSelectedOrder(foundOrder);
-            } else {
-              try {
-                const res = await fetchWithAuth(`${BACKEND}/api/orders/${orderId}`);
-                if (res.ok) {
-                  const data = await res.json();
-                  setOrders(prev => {
-                    if (!prev.find(o => o._id === data._id)) {
-                      return [data, ...prev];
-                    }
-                    return prev;
-                  });
-                  setSelectedOrder(data);
-                } else {
-                  console.error('Order not found on server');
-                }
-              } catch (e) {
-                console.error('Failed to fetch order', e);
-              }
-            }
-          }} />}
-          {tab === 'pending-orders' && (
-            <PendingOrders 
-              backend={BACKEND} 
-              onGoToOrder={async (orderId) => {
-                const foundOrder = orders.find(o => o._id === orderId);
-                if (foundOrder) {
-                  setSelectedOrder(foundOrder);
-                } else {
-                  try {
-                    const res = await fetchWithAuth(`${BACKEND}/api/orders/${orderId}`);
-                    if (res.ok) {
-                      const data = await res.json();
-                      setOrders(prev => [data, ...prev.filter(o => o._id !== data._id)]);
-                      setSelectedOrder(data);
-                    }
-                  } catch (e) {
-                    console.error('Failed to fetch order', e);
-                  }
-                }
-              }} 
-            />
-          )}
-          {tab === 'iiko-logs' && <IikoLogs />}
-          {tab === 'printer-logs' && <PrinterLogs />}
-          {tab === 'port-scans' && <PortScans />}
-          {tab === 'bridge-monitoring' && <BridgeMonitoring backend={BACKEND} socket={socketRef.current} kiosksLiveStatus={kiosksLiveStatus} />}
-          {tab === 'kiosk-logs' && <KioskLogs />}
-          {tab === 'promotions' && <Promotions />}
-          {tab === 'users' && <UsersManager />}
-          {tab === 'brands' && <BrandsManager backend={BACKEND} />}
-        </div>
-      </main>
-      </div>
+          {/* ─── MAIN CONTENT WRAPPER ─── */}
+          <div className="flex-1 overflow-y-auto px-4 md:px-7 pb-10">
+            {/* ─── MENU ─── */}
+            {tab === 'menu' && (
+              <MenuManager backend={BACKEND} />
+            )}
 
-    {/* Real-time Order Popup Toast in Top-Right Corner */}
-    <OrderToastNotificationStack 
-      orderToasts={orderToasts}
-      onDismiss={handleDismissOrderToast}
-      onOpenOrder={(order) => setSelectedOrder(order)}
-    />
+            {/* ─── LOCATIONS ─── */}
+            {tab === 'locations' && (
+              <div className="admin-section"><LocationsManager backend={BACKEND} kiosksLiveStatus={kiosksLiveStatus} /></div>
+            )}
 
-    {/* Real-time Device Disconnect & Reconnect Alert Toast (Top Center) */}
-    <DeviceAlertToastStack 
-      deviceAlerts={deviceAlerts}
-      onDismiss={handleDismissDeviceAlert}
-      onOpenLocation={handleOpenDeviceLocation}
-    />
-
-    {/* ── Order Detail Modal (centered) ── */}
-    {selectedOrder && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setSelectedOrder(null)}>
-        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800">
-            <div 
-              className="cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={() => setThermalReceiptOrder(selectedOrder)}
-              title="Apasă pentru a deschide bonul de casă"
-            >
-              <div className="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500 tracking-wider">COMANDA</div>
-              <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">#{selectedOrder.orderNumber}</h2>
-            </div>
-            <button onClick={() => setSelectedOrder(null)} className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"></button>
-          </div>
-
-          <div className="p-6 space-y-4 overflow-y-auto">
-            <div className="flex items-center gap-3">
-              <BrandLogo brandId={selectedOrder.brand} size={24} />
-              <span className="font-bold" style={{ color: getBrandColor(selectedOrder.brand) }}>{getBrandLabel(selectedOrder.brand)}</span>
-              {(() => {
-                const sc = getOrderStatus(selectedOrder);
-                return (
-                  <span 
-                    className="ml-auto px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap cursor-pointer hover:scale-105 active:scale-95 transition-transform" 
-                    style={{
-                      backgroundColor: `${sc.color}20`,
-                      color: sc.color,
-                      border: `1px solid ${sc.color}40`
-                    }}
-                    onClick={() => setThermalReceiptOrder(selectedOrder)}
-                    title="Apasă pentru a deschide bonul de casă"
-                  >
-                    ● {sc.label}
-                  </span>
-                );
-              })()}
-            </div>
-            <div className="text-sm text-slate-500 space-y-2">
-              <div className="flex items-center gap-6">
-                <p><strong>Canal:</strong> {selectedOrder.channel}</p>
-                <p><strong>Tip Comandă:</strong> {selectedOrder.orderType === 'dine-in' ? (selectedOrder.tableNumber ? `La masă (Masa ${selectedOrder.tableNumber})` : 'La masă') : 'La pachet'}</p>
-              </div>
-              <div className="flex items-center gap-6">
-                <p className="flex items-center gap-2 flex-wrap">
-                  <strong>Plată:</strong> 
-                  <span className="font-bold">{selectedOrder.paymentMethod === 'cash' ? 'CASH' : (selectedOrder.paymentMethod === 'card' ? 'CARD' : '—')}</span> 
-                  {selectedOrder.paymentMethod === 'card' ? (
-                    <>
-                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap bg-emerald-500/20 text-emerald-500 border border-emerald-500/40">Aprobat</span>
-                      {(() => {
-                        const bank = detectCardBank(selectedOrder);
-                        return bank ? (
-                          <span 
-                            className="px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap border inline-flex items-center gap-1 shadow-2xs"
-                            style={{
-                              backgroundColor: `${bank.color}15`,
-                              color: bank.color,
-                              borderColor: `${bank.color}35`
-                            }}
-                          >
-                            <BankLogo bankId={bank.id} bank={bank} size={15} />
-                            {bank.name}
-                          </span>
-                        ) : null;
-                      })()}
-                    </>
-                  ) : (selectedOrder.paymentMethod === 'cash' ? <span className="px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap bg-amber-500/20 text-amber-500 border border-amber-500/40">La Casă</span> : '')}
-                </p>
-                <p><strong>Data/Ora:</strong> {selectedOrder.createdAt ? new Date(selectedOrder.createdAt).toLocaleString('ro-RO') : '—'}</p>
-              </div>
-              {/* CUI / Date Fiscale */}
-              {selectedOrder.fiscal && (
-                <div className="flex items-center gap-3 bg-indigo-50 dark:bg-indigo-900/20 p-2.5 rounded-lg border border-indigo-200 dark:border-indigo-700/50 mt-2">
-                  <Building2 className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-indigo-700 dark:text-indigo-300 uppercase tracking-wider mb-0.5">Bon Fiscal cu CUI</p>
-                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 truncate">{selectedOrder.fiscal.name || '—'}</p>
-                    <p className="text-xs text-slate-500">
-                      CUI: <span className="font-bold text-slate-700 dark:text-slate-200">{selectedOrder.fiscal.rawCui || selectedOrder.fiscal.cui}</span>
-                      {selectedOrder.fiscal.regCom && <> | Reg.Com: {selectedOrder.fiscal.regCom}</>}
-                      {selectedOrder.fiscal.isVatPayer && <span className="ml-2 px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">Plătitor TVA</span>}
-                    </p>
-                    {selectedOrder.fiscal.address && (
-                      <p className="text-xs text-slate-400 truncate mt-0.5">{selectedOrder.fiscal.address}</p>
-                    )}
-                  </div>
-                </div>
-              )}
-              {selectedOrder.syrveOrderId && (
-                <div className="flex items-center justify-between gap-3 bg-slate-50 dark:bg-slate-800 p-2 rounded-lg border border-slate-200 dark:border-slate-700 mt-2">
-                  <div className="flex flex-col">
-                    <span className="text-[10px] uppercase font-bold text-slate-500">ID Comandă iiko</span>
-                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300 truncate select-all">{selectedOrder.syrveOrderId}</span>
-                  </div>
-                  {selectedOrder.paymentRef?.receiptNo && (
-                    <div className="flex flex-col mt-2">
-                      <span className="text-[10px] uppercase font-bold text-slate-500">Număr Bon POS (Chitanță)</span>
-                      <span className="text-sm font-bold text-slate-700 dark:text-slate-300 select-all">{selectedOrder.paymentRef.receiptNo}</span>
-                    </div>
-                  )}
-                  <button 
-                    onClick={(e) => {
-                      navigator.clipboard.writeText(selectedOrder.syrveOrderId);
-                      const btn = e.currentTarget;
-                      const originalHTML = btn.innerHTML;
-                      btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#059669" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>';
-                      setTimeout(() => { btn.innerHTML = originalHTML; }, 1500);
-                    }}
-                    className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                    title="Copiază ID iiko"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {selectedOrder.status !== 'cancelled' && (
-              <div className="mt-4 flex justify-end">
-                <button
-                  onClick={() => {
-                    handleCancelOrder(selectedOrder._id);
-                    setSelectedOrder({ ...selectedOrder, status: 'cancelled', canceledBy: 'admin' });
+            {/* ─── KIOSKS / SCREENSAVER ─── */}
+            {tab === 'kiosks' && (
+              <div className="admin-section">
+                <KiosksManager
+                  backend={BACKEND}
+                  kiosksLiveStatus={kiosksLiveStatus}
+                  bridgeSummary={bridgeSummary}
+                  socket={socketRef.current}
+                  onNavigateToProducts={(locId, kioskId, filterDiet = 'promo', brandId = 'smashme') => {
+                    if (locId) localStorage.setItem('admin_active_location', locId);
+                    if (kioskId) localStorage.setItem('admin_active_kiosk', kioskId);
+                    if (filterDiet) localStorage.setItem('admin_product_filter_diet', filterDiet);
+                    if (brandId) localStorage.setItem('admin_active_brand', brandId);
+                    setTab('products');
                   }}
-                  className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold rounded-lg transition-colors text-sm"
-                >
-                  Anulează Comanda (Refuz POS)
-                </button>
+                />
               </div>
             )}
 
-            {(() => {
-              const allItems = selectedOrder.items || [];
-              const totalItems = allItems.length;
-              const totalPages = Math.ceil(totalItems / modalProductsPerPage) || 1;
-              const safePage = Math.min(modalProductsPage, totalPages);
-              const paginatedItems = allItems.slice((safePage - 1) * modalProductsPerPage, safePage * modalProductsPerPage);
+            {/* ─── QR CODE GENERATOR ─── */}
+            {tab === 'qrcodes' && (
+              <QrGenerator backend={BACKEND} />
+            )}
+            {/* ─── USERS MANAGER ─── */}
+            {tab === 'translations' && <div className="admin-section"><TranslationsScreen backend={BACKEND} /></div>}
+            {tab === 'modifiers' && <ModifierImages />}
+            {tab === 'products' && <ProductOverrides />}
+            {tab === 'integrations' && <Integrations />}
+            {tab === 'pos-logs' && <PosLogs orders={orders} onGoToOrder={async (orderId) => {
+              const foundOrder = orders.find(o => o._id === orderId);
+              if (foundOrder) {
+                setSelectedOrder(foundOrder);
+              } else {
+                try {
+                  const res = await fetchWithAuth(`${BACKEND}/api/orders/${orderId}`);
+                  if (res.ok) {
+                    const data = await res.json();
+                    setOrders(prev => {
+                      if (!prev.find(o => o._id === data._id)) {
+                        return [data, ...prev];
+                      }
+                      return prev;
+                    });
+                    setSelectedOrder(data);
+                  } else {
+                    console.error('Order not found on server');
+                  }
+                } catch (e) {
+                  console.error('Failed to fetch order', e);
+                }
+              }
+            }} />}
+            {tab === 'pending-orders' && (
+              <PendingOrders
+                backend={BACKEND}
+                onGoToOrder={async (orderId) => {
+                  const foundOrder = orders.find(o => o._id === orderId);
+                  if (foundOrder) {
+                    setSelectedOrder(foundOrder);
+                  } else {
+                    try {
+                      const res = await fetchWithAuth(`${BACKEND}/api/orders/${orderId}`);
+                      if (res.ok) {
+                        const data = await res.json();
+                        setOrders(prev => [data, ...prev.filter(o => o._id !== data._id)]);
+                        setSelectedOrder(data);
+                      }
+                    } catch (e) {
+                      console.error('Failed to fetch order', e);
+                    }
+                  }
+                }}
+              />
+            )}
+            {tab === 'iiko-logs' && <IikoLogs />}
+            {tab === 'printer-logs' && <PrinterLogs />}
+            {tab === 'port-scans' && <PortScans />}
+            {tab === 'bridge-monitoring' && <BridgeMonitoring backend={BACKEND} socket={socketRef.current} kiosksLiveStatus={kiosksLiveStatus} />}
+            {tab === 'kiosk-logs' && <KioskLogs />}
+            {tab === 'promotions' && <Promotions />}
+            {tab === 'users' && <UsersManager />}
+            {tab === 'brands' && <BrandsManager backend={BACKEND} />}
+          </div>
+          </div>
+        </main>
+      </div>
 
-              return (
-                <>
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-bold uppercase text-slate-400">Produse ({totalItems})</h3>
-                    {totalItems > 5 && (
-                      <div className="flex items-center gap-2">
-                        <select
-                          value={modalProductsPerPage}
-                          onChange={e => { setModalProductsPerPage(Number(e.target.value)); setModalProductsPage(1); }}
-                          className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs font-medium outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                          <option value={5}>5 / pag</option>
-                          <option value={10}>10 / pag</option>
-                          <option value={20}>20 / pag</option>
-                          <option value={999}>Toate</option>
-                        </select>
-                        <div className="flex gap-1">
-                          <button onClick={() => setModalProductsPage(p => Math.max(1, p - 1))} disabled={safePage === 1} className="w-6 h-6 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs disabled:opacity-50 text-slate-600 dark:text-slate-300">‹</button>
-                          <button onClick={() => setModalProductsPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages} className="w-6 h-6 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs disabled:opacity-50 text-slate-600 dark:text-slate-300">›</button>
-                        </div>
-                      </div>
+      {/* ── Order Detail Modal (Apple Sheet Style) ── */}
+      {selectedOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-md p-4 animate-in fade-in duration-150" onClick={() => setSelectedOrder(null)}>
+          <div className="apple-modal w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-in zoom-in-95 duration-150" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4.5 border-b border-slate-200/80 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/50">
+              <div className="flex items-center gap-3">
+                <BrandLogo brandId={selectedOrder.brand} size={32} className="rounded-xl shadow-2xs shrink-0" />
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">#{selectedOrder.orderNumber}</h2>
+                    <span className="text-xs font-semibold" style={{ color: getBrandColor(selectedOrder.brand) }}>
+                      {getBrandLabel(selectedOrder.brand)}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-slate-400 font-medium">
+                    {selectedOrder.createdAt ? new Date(selectedOrder.createdAt).toLocaleString('ro-RO') : '—'}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {(() => {
+                  const sc = getOrderStatus(selectedOrder);
+                  return (
+                    <span
+                      className="px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap"
+                      style={{
+                        backgroundColor: `${sc.color}15`,
+                        color: sc.color,
+                        border: `1px solid ${sc.color}35`
+                      }}
+                    >
+                      ● {sc.label}
+                    </span>
+                  );
+                })()}
+                <button
+                  type="button"
+                  onClick={() => setSelectedOrder(null)}
+                  className="apple-close-btn ml-2"
+                  title="Închide"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-5 overflow-y-auto">
+              {/* ─── Apple Inset Grouped Metadata Card ─── */}
+              <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800/80 bg-slate-50/60 dark:bg-slate-800/40 divide-y divide-slate-200/60 dark:divide-slate-700/60 text-xs overflow-hidden">
+                {/* Servire & Canal */}
+                <div className="px-4 py-3 flex items-center justify-between">
+                  <span className="text-slate-500 dark:text-slate-400 font-medium">Tip Servire & Canal</span>
+                  <div className="flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-200">
+                    <span>{selectedOrder.orderType === 'dine-in' ? (selectedOrder.tableNumber ? `La masă (Masa ${selectedOrder.tableNumber})` : 'La masă') : 'La pachet'}</span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-200/80 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                      {selectedOrder.channel || 'kiosk'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Plată */}
+                <div className="px-4 py-3 flex items-center justify-between">
+                  <span className="text-slate-500 dark:text-slate-400 font-medium">Metodă Plată</span>
+                  <div className="flex items-center gap-1.5">
+                    {selectedOrder.paymentMethod === 'card' ? (
+                      <>
+                        {(() => {
+                          const bank = detectCardBank(selectedOrder);
+                          return bank ? (
+                            <span
+                              className="px-2.5 py-1 rounded-full text-[11px] font-semibold border inline-flex items-center gap-1.5 shadow-2xs"
+                              style={{
+                                backgroundColor: `${bank.color}15`,
+                                color: bank.color,
+                                borderColor: `${bank.color}35`
+                              }}
+                            >
+                              <BankLogo bankId={bank.id} bank={bank} size={15} />
+                              {bank.name}
+                            </span>
+                          ) : null;
+                        })()}
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                          Card POS
+                        </span>
+                      </>
+                    ) : selectedOrder.paymentMethod === 'cash' ? (
+                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                        Cash (La Casă)
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 font-medium">—</span>
                     )}
                   </div>
-                  <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
-                    {paginatedItems.map((item, idx) => {
-                      const actualIdx = (safePage - 1) * modalProductsPerPage + idx;
-                      const fullProd = menuProducts[item.productId] || (item.name && menuProducts[item.name.toLowerCase()]);
-                      const overrideImg = menuImages[item.productId];
-                      let imgSrc = overrideImg || item.imageUrl || (fullProd?.imageLinks && fullProd.imageLinks[0]) || fullProd?.image || null;
-                      if (imgSrc && imgSrc.startsWith('/uploads')) imgSrc = `${BACKEND}${imgSrc}`;
+                </div>
 
-                      return (
-                        <div key={idx} className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                             onClick={() => { if (fullProd) setSelectedItemDetail({ ...fullProd, originalItem: item }); }}>
-                          <div className="font-bold text-slate-400 text-sm shrink-0 w-6 text-right">
-                            {actualIdx + 1}.
-                          </div>
-                          <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-700 shrink-0 flex items-center justify-center">
-                            {imgSrc
-                              ? <img src={imgSrc} alt={item.name} className="w-full h-full object-cover" />
-                              : <Utensils className="w-6 h-6 text-slate-400" />
-                            }
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-bold text-sm truncate">{item.name}</p>
-                            {item.selectedModifiers?.length > 0 && (
-                              <p className="text-xs text-slate-400 truncate">{item.selectedModifiers.map(m => m.optionName || m.modifierName).filter(Boolean).join(' · ')}</p>
-                            )}
-                          </div>
-                          <div className="text-right shrink-0">
-                            <span className="text-xs font-bold text-blue-500">{item.quantity}x</span>
-                            <p className="font-bold text-sm">{formatThousands((item.unitPrice !== undefined ? item.unitPrice : item.price) || 0)} lei</p>
+                {/* ID iiko & Bon POS */}
+                {selectedOrder.syrveOrderId && (
+                  <div className="px-4 py-3 flex items-center justify-between gap-3">
+                    <span className="text-slate-500 dark:text-slate-400 font-medium">ID Comandă iiko</span>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-[11px] text-slate-700 dark:text-slate-300 truncate max-w-[200px]" title={selectedOrder.syrveOrderId}>
+                        {selectedOrder.syrveOrderId}
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          navigator.clipboard.writeText(selectedOrder.syrveOrderId);
+                          const btn = e.currentTarget;
+                          const originalHTML = btn.innerHTML;
+                          btn.innerHTML = '<span class="text-emerald-600 text-[10px] font-bold">Copiat!</span>';
+                          setTimeout(() => { btn.innerHTML = originalHTML; }, 1500);
+                        }}
+                        className="apple-pressable p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                        title="Copiază ID iiko"
+                      >
+                        <Copy size={13} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Date Fiscale CUI */}
+                {selectedOrder.fiscal && (
+                  <div className="px-4 py-3 flex items-start justify-between gap-3">
+                    <span className="text-slate-500 dark:text-slate-400 font-medium pt-0.5">Bon Fiscal (CUI)</span>
+                    <div className="text-right">
+                      <div className="font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[220px]">
+                        {selectedOrder.fiscal.name || '—'}
+                      </div>
+                      <div className="text-[11px] text-slate-400 mt-0.5">
+                        CUI: <span className="font-bold text-slate-700 dark:text-slate-300">{selectedOrder.fiscal.rawCui || selectedOrder.fiscal.cui}</span>
+                        {selectedOrder.fiscal.isVatPayer && <span className="ml-1.5 px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[9px] font-bold">TVA</span>}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ─── Apple Receipt Items List ─── */}
+              {(() => {
+                const allItems = selectedOrder.items || [];
+                const totalItems = allItems.length;
+                const totalPages = Math.ceil(totalItems / modalProductsPerPage) || 1;
+                const safePage = Math.min(modalProductsPage, totalPages);
+                const paginatedItems = allItems.slice((safePage - 1) * modalProductsPerPage, safePage * modalProductsPerPage);
+
+                return (
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                        Produse comandate ({totalItems})
+                      </span>
+                      {totalItems > 5 && (
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={modalProductsPerPage}
+                            onChange={e => { setModalProductsPerPage(Number(e.target.value)); setModalProductsPage(1); }}
+                            className="apple-input px-2 py-0.5 text-[11px] font-medium cursor-pointer"
+                          >
+                            <option value={5}>5 / pag</option>
+                            <option value={10}>10 / pag</option>
+                            <option value={20}>20 / pag</option>
+                            <option value={999}>Toate</option>
+                          </select>
+                          <div className="flex gap-1">
+                            <button onClick={() => setModalProductsPage(p => Math.max(1, p - 1))} disabled={safePage === 1} className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs disabled:opacity-40 text-slate-600 dark:text-slate-300 cursor-pointer">‹</button>
+                            <button onClick={() => setModalProductsPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages} className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs disabled:opacity-40 text-slate-600 dark:text-slate-300 cursor-pointer">›</button>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                </>
-              );
-            })()}
+                      )}
+                    </div>
 
-            <div 
-              className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-800 cursor-pointer hover:opacity-85 transition-opacity"
-              onClick={() => setThermalReceiptOrder(selectedOrder)}
-              title="Apasă pentru a deschide bonul de casă"
-            >
-              <span className="text-sm font-bold uppercase text-slate-400">Total</span>
-              <span className="text-2xl font-black text-slate-900 dark:text-white hover:text-emerald-600 transition-colors">{formatThousands(selectedOrder.totalAmount || 0)} lei</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    )}
+                    <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900/60 divide-y divide-slate-100 dark:divide-slate-800/70 overflow-hidden shadow-2xs max-h-[45vh] overflow-y-auto">
+                      {paginatedItems.map((item, idx) => {
+                        const fullProd = menuProducts[item.productId] || (item.name && menuProducts[item.name.toLowerCase()]);
+                        const overrideImg = menuImages[item.productId];
+                        let imgSrc = overrideImg || item.imageUrl || (fullProd?.imageLinks && fullProd.imageLinks[0]) || fullProd?.image || null;
+                        if (imgSrc && imgSrc.startsWith('/uploads')) imgSrc = `${BACKEND}${imgSrc}`;
 
-    {/* ── Thermal Receipt Modal (80mm Paper Slip) ── */}
-    {thermalReceiptOrder && (
-      <ThermalReceiptModal 
-        order={thermalReceiptOrder} 
-        onClose={() => setThermalReceiptOrder(null)} 
-      />
-    )}
+                        const unitP = (item.unitPrice !== undefined ? item.unitPrice : item.price) || 0;
+                        const lineTotal = (item.totalPrice !== undefined ? item.totalPrice : unitP * (item.quantity || 1)) || 0;
 
-    {/* ── Apple macOS Software Release Notes Modal ── */}
-    <SoftwareReleaseNotesModal
-      isOpen={isReleaseNotesOpen}
-      onClose={() => {
-        setIsReleaseNotesOpen(false);
-        setReleaseNotesTargetLoc(null);
-      }}
-      initialVersion={BRIDGE_RELEASE_NOTES[0]?.version || '3.5.0'}
-      targetLocation={releaseNotesTargetLoc}
-      canUpdate={(() => {
-        const targetVer = BRIDGE_RELEASE_NOTES[0]?.version || '3.5.0';
-        const locList = bridgeSummary?.locations ? Object.values(bridgeSummary.locations) : [];
-        return locList.some(l => (l.status === 'online' || l.isBridgeOnline) && ((l.bridgeVersion && l.bridgeVersion !== targetVer) || l.isBridgeUpToDate === false));
-      })()}
-      outdatedCount={(() => {
-        const targetVer = BRIDGE_RELEASE_NOTES[0]?.version || '3.5.0';
-        const locList = bridgeSummary?.locations ? Object.values(bridgeSummary.locations) : [];
-        return locList.filter(l => (l.status === 'online' || l.isBridgeOnline) && ((l.bridgeVersion && l.bridgeVersion !== targetVer) || l.isBridgeUpToDate === false)).length;
-      })()}
-      onUpdate={async (version, selectedIds) => {
-        try {
-          const isAll = !selectedIds || selectedIds.length === 0 || selectedIds.length === 4;
-          const backend = import.meta.env.VITE_BACKEND_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5001' : 'https://smart-kiosk-ttut.onrender.com');
-          await fetch(`${backend}/api/bridge-monitoring/update-all-bridges`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-api-key': 'sk-live-2024-secure',
-            },
-            body: JSON.stringify({ locations: isAll ? undefined : selectedIds }),
-          });
-        } catch (err) {
-          console.error('Eroare actualizare bridge din Dashboard:', err);
-        }
-      }}
-      onCompleteUpdate={() => {
-        fetchBridgeSummary();
-      }}
-    />
+                        return (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-3.5 p-3.5 hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors cursor-pointer"
+                            onClick={() => { if (fullProd) setSelectedItemDetail({ ...fullProd, originalItem: item }); }}
+                          >
+                            <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 shrink-0 flex items-center justify-center border border-black/5 dark:border-white/5 shadow-2xs">
+                              {imgSrc ? (
+                                <img src={imgSrc} alt={item.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <Utensils className="w-5 h-5 text-slate-400" />
+                              )}
+                            </div>
 
-    {/* ── Product Detail Modal ── */}
-    {selectedItemDetail && (
-      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setSelectedItemDetail(null)}>
-        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-          <div className="flex items-center justify-between px-8 py-5 border-b border-slate-200 dark:border-slate-800">
-            <h2 className="text-xl font-bold">{selectedItemDetail.name}</h2>
-            <button onClick={() => setSelectedItemDetail(null)} className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"></button>
-          </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-xs text-slate-900 dark:text-slate-100 truncate">{item.name}</p>
+                              {item.selectedModifiers?.length > 0 ? (
+                                <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                                  {item.selectedModifiers.map(m => m.optionName || m.modifierName).filter(Boolean).join(' · ')}
+                                </p>
+                              ) : (
+                                <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                                  {item.quantity || 1} buc × {formatThousands(unitP)} lei
+                                </p>
+                              )}
+                            </div>
 
-          <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
-            {/* LEFT: Image */}
-            <div className="md:w-2/5 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center p-8 md:border-r border-b md:border-b-0 border-slate-200 dark:border-slate-800">
-              {(() => {
-                let finalImg = menuImages[selectedItemDetail.id] || selectedItemDetail.image || (selectedItemDetail.imageLinks && selectedItemDetail.imageLinks[0]);
-                if (finalImg && finalImg.startsWith('/uploads')) finalImg = `${BACKEND}${finalImg}`;
-                if (finalImg) {
-                  return <img src={finalImg} alt={selectedItemDetail.name} className="w-full max-w-[250px] aspect-square object-cover rounded-3xl" />;
-                }
-                return (
-                  <div className="w-full max-w-[250px] aspect-square rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center">
-                    <Utensils className="w-16 h-16 text-slate-300 dark:text-slate-600" />
+                            <div className="text-right shrink-0">
+                              <p className="font-bold text-xs text-slate-900 dark:text-white">
+                                {formatThousands(lineTotal)} lei
+                              </p>
+                              <span className="text-[10px] font-semibold text-slate-400">
+                                {item.quantity}x
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 );
               })()}
-            </div>
 
-            {/* RIGHT: Description from iiko */}
-            <div className="md:w-3/5 p-8 overflow-y-auto">
-              {(() => {
-                const trans = selectedItemDetail.translations || {};
-                const desc = trans.ro || trans.en || selectedItemDetail.description || '';
-                if (!desc) return <p className="text-slate-400 italic">Nicio descriere detaliată disponibilă în Syrve.</p>;
-                return <div className="text-sm leading-relaxed text-slate-700 dark:text-slate-300" dangerouslySetInnerHTML={{ __html: desc.replace(/\n/g, '<br/>') }} />;
-              })()}
+              {/* Voucher Discount Info (when order used a promo code) */}
+              {(selectedOrder.voucherCode || selectedOrder.voucherDiscount > 0) && (
+                <div className="flex items-center justify-between px-3.5 py-2 rounded-2xl bg-[#34C759]/[0.10] border border-[#34C759]/20 text-xs">
+                  <span className="font-semibold text-[#1F7A33] dark:text-[#30D158]">
+                    Cupon aplicat: {selectedOrder.voucherCode || 'PROMO'}
+                  </span>
+                  <span className="font-bold text-[#1F7A33] dark:text-[#30D158]">
+                    -{formatThousands(selectedOrder.voucherDiscount || 0)} lei
+                  </span>
+                </div>
+              )}
 
-              <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
-                {selectedItemDetail.weight != null && <p className="text-sm text-slate-500"><strong className="text-slate-700 dark:text-white">Greutate:</strong> {selectedItemDetail.weight} kg</p>}
-                {selectedItemDetail.energyAmount != null && <p className="text-sm text-slate-500"><strong className="text-slate-700 dark:text-white">Energie:</strong> {selectedItemDetail.energyAmount} Kcal</p>}
-                {selectedItemDetail.fatAmount != null && <p className="text-sm text-slate-500"><strong className="text-slate-700 dark:text-white">Grăsimi:</strong> {selectedItemDetail.fatAmount}g</p>}
-                {selectedItemDetail.proteinsAmount != null && <p className="text-sm text-slate-500"><strong className="text-slate-700 dark:text-white">Proteine:</strong> {selectedItemDetail.proteinsAmount}g</p>}
-                {selectedItemDetail.carbohydratesAmount != null && <p className="text-sm text-slate-500"><strong className="text-slate-700 dark:text-white">Carbohidrați:</strong> {selectedItemDetail.carbohydratesAmount}g</p>}
+              {/* Total Row */}
+              <div className="flex items-center justify-between pt-3 border-t border-slate-200/80 dark:border-slate-800/80">
+                <div>
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                    Total Comandă
+                  </span>
+                  <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">TVA inclus</div>
+                </div>
+                <span className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                  {formatThousands(selectedOrder.totalAmount || 0)} lei
+                </span>
+              </div>
+
+              {/* ─── Apple Capsule Action Buttons (Bottom Bar) ─── */}
+              <div className="flex items-center justify-between gap-3 pt-2">
+                {selectedOrder.status !== 'cancelled' ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleCancelOrder(selectedOrder._id);
+                      setSelectedOrder({ ...selectedOrder, status: 'cancelled', canceledBy: 'admin' });
+                    }}
+                    className="apple-pressable px-5 py-2.5 rounded-full bg-[#FF3B30]/[0.10] hover:bg-[#FF3B30]/[0.18] text-[#FF3B30] dark:text-[#FF453A] border border-[#FF3B30]/20 text-[12.5px] font-semibold cursor-pointer transition-all"
+                  >
+                    Anulează Comanda (Refuz)
+                  </button>
+                ) : (
+                  <span className="text-xs font-semibold text-[#FF3B30]">Comandă Anulată</span>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setThermalReceiptOrder(selectedOrder)}
+                  className="apple-pressable ml-auto px-5 py-2.5 rounded-full bg-[#1D1D1F] hover:bg-[#000000] dark:bg-white dark:hover:bg-[#F5F5F7] text-white dark:text-[#1D1D1F] text-[12.5px] font-semibold flex items-center gap-2 shadow-[0_2px_8px_rgba(0,0,0,0.18)] cursor-pointer transition-all"
+                  title="Afișează bonul termic format casă de marcat"
+                >
+                  <Printer size={14} />
+                  <span>Vezi Bon Termic</span>
+                </button>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    )}
+      )}
 
-    <WindowsRemoteModal
-      isOpen={Boolean(dashboardRemoteLoc)}
-      onClose={() => setDashboardRemoteLoc(null)}
-      loc={dashboardRemoteLoc}
-      bridgeLoc={dashboardRemoteLoc?.bridgeLoc}
-      isOnline={dashboardRemoteLoc?.isOnline}
-      isLocked={false}
-      isMaintenance={false}
-      backend={BACKEND}
-      socket={socketRef.current}
-    />
+      {/* ── Thermal Receipt Modal (80mm Paper Slip) ── */}
+      {thermalReceiptOrder && (
+        <ThermalReceiptModal
+          order={thermalReceiptOrder}
+          onClose={() => setThermalReceiptOrder(null)}
+        />
+      )}
+
+      {/* ── Apple macOS Software Release Notes Modal ── */}
+      <SoftwareReleaseNotesModal
+        isOpen={isReleaseNotesOpen}
+        onClose={() => {
+          setIsReleaseNotesOpen(false);
+          setReleaseNotesTargetLoc(null);
+        }}
+        initialVersion={BRIDGE_RELEASE_NOTES[0]?.version || '3.5.0'}
+        targetLocation={releaseNotesTargetLoc}
+        canUpdate={(() => {
+          const targetVer = BRIDGE_RELEASE_NOTES[0]?.version || '3.5.0';
+          const locList = bridgeSummary?.locations ? Object.values(bridgeSummary.locations) : [];
+          return locList.some(l => (l.status === 'online' || l.isBridgeOnline) && ((l.bridgeVersion && l.bridgeVersion !== targetVer) || l.isBridgeUpToDate === false));
+        })()}
+        outdatedCount={(() => {
+          const targetVer = BRIDGE_RELEASE_NOTES[0]?.version || '3.5.0';
+          const locList = bridgeSummary?.locations ? Object.values(bridgeSummary.locations) : [];
+          return locList.filter(l => (l.status === 'online' || l.isBridgeOnline) && ((l.bridgeVersion && l.bridgeVersion !== targetVer) || l.isBridgeUpToDate === false)).length;
+        })()}
+        onUpdate={async (version, selectedIds) => {
+          try {
+            const isAll = !selectedIds || selectedIds.length === 0 || selectedIds.length === 4;
+            const backend = import.meta.env.VITE_BACKEND_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5001' : 'https://smart-kiosk-ttut.onrender.com');
+            await fetch(`${backend}/api/bridge-monitoring/update-all-bridges`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': 'sk-live-2024-secure',
+              },
+              body: JSON.stringify({ locations: isAll ? undefined : selectedIds }),
+            });
+          } catch (err) {
+            console.error('Eroare actualizare bridge din Dashboard:', err);
+          }
+        }}
+        onCompleteUpdate={() => {
+          fetchBridgeSummary();
+        }}
+      />
+
+      {/* ── Product Detail Modal (Apple HIG Kiosk-Style Sheet) ── */}
+      {selectedItemDetail && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-md p-4 animate-in fade-in duration-200"
+          onClick={() => setSelectedItemDetail(null)}
+        >
+          <div
+            className="bg-white dark:bg-slate-900 rounded-3xl shadow-[0_24px_50px_-12px_rgba(0,0,0,0.35)] border border-slate-200/80 dark:border-white/10 w-full max-w-2xl max-h-[88vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 select-none"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header cu Titlu și Buton Închidere Apple */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md shrink-0">
+              <div className="min-w-0 pr-4">
+                <h2 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white truncate">
+                  {selectedItemDetail.name}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedItemDetail(null)}
+                className="apple-close-btn shrink-0"
+                title="Închide"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Corp Modal: Poza Mare Sus + Text Cuminte Dedesubt */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col">
+              {/* ─── Hero Image (Poza Mare Apetisantă) ─── */}
+              <div className="w-full h-[400px] sm:h-[500px] bg-gradient-to-b from-slate-50 via-slate-100/60 to-slate-100 dark:from-slate-900 dark:via-slate-800/60 dark:to-slate-800 flex items-center justify-center p-3 relative overflow-hidden border-b border-slate-100 dark:border-slate-800/80 shrink-0">
+                {(() => {
+                  let finalImg = menuImages[selectedItemDetail.id] || selectedItemDetail.image || (selectedItemDetail.imageLinks && selectedItemDetail.imageLinks[0]);
+                  if (finalImg && finalImg.startsWith('/uploads')) finalImg = `${BACKEND}${finalImg}`;
+                  if (finalImg) {
+                    return (
+                      <img
+                        src={finalImg}
+                        alt={selectedItemDetail.name}
+                        className="w-full h-full object-contain rounded-2xl drop-shadow-xl transition-transform duration-300 hover:scale-[1.03]"
+                      />
+                    );
+                  }
+                  return (
+                    <div className="w-28 h-28 rounded-3xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-white/10 flex items-center justify-center shadow-sm">
+                      <Utensils className="w-12 h-12 text-slate-300 dark:text-slate-600" />
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* ─── Text Cuminte Dedesubt (Descriere, Ingrediente, Valori Nutriționale) ─── */}
+              <div className="p-6 sm:p-7 space-y-4 flex-1">
+                {(() => {
+                  const trans = selectedItemDetail.translations || {};
+                  const rawDesc = trans.ro || trans.en || selectedItemDetail.description || '';
+
+                  if (!rawDesc) {
+                    return (
+                      <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-white/5 text-center text-slate-400 text-sm">
+                        Nicio descriere detaliată disponibilă în Syrve pentru acest produs.
+                      </div>
+                    );
+                  }
+
+                  // Parsare conform logicii din Kiosk (descriere scurtă, ingrediente, valori nutriționale)
+                  const lower = rawDesc.toLowerCase();
+                  const ingMarkers = ['ingrediente:', 'ingredient:'];
+                  const nutMarkers = ['declarație nutrițională', 'declaratie nutritionala', 'declarația nutrițională', 'declaratia nutritionala', 'valori nutritionale', 'valori nutritive'];
+
+                  let ingIdx = -1;
+                  let ingLen = 0;
+                  for (const m of ingMarkers) {
+                    const idx = lower.indexOf(m);
+                    if (idx !== -1 && (ingIdx === -1 || idx < ingIdx)) {
+                      ingIdx = idx;
+                      ingLen = m.length;
+                    }
+                  }
+
+                  let nutIdx = -1;
+                  for (const m of nutMarkers) {
+                    const idx = lower.indexOf(m);
+                    if (idx !== -1 && (nutIdx === -1 || idx < nutIdx)) {
+                      nutIdx = idx;
+                    }
+                  }
+
+                  let shortDesc = rawDesc;
+                  let ingredientsText = '';
+                  let nutritionText = '';
+
+                  if (ingIdx !== -1 && nutIdx !== -1 && nutIdx > ingIdx) {
+                    shortDesc = rawDesc.slice(0, ingIdx).trim();
+                    ingredientsText = rawDesc.slice(ingIdx + ingLen, nutIdx).trim();
+                    nutritionText = rawDesc.slice(nutIdx).trim();
+                  } else if (ingIdx !== -1) {
+                    shortDesc = rawDesc.slice(0, ingIdx).trim();
+                    ingredientsText = rawDesc.slice(ingIdx + ingLen).trim();
+                  } else if (nutIdx !== -1) {
+                    shortDesc = rawDesc.slice(0, nutIdx).trim();
+                    nutritionText = rawDesc.slice(nutIdx).trim();
+                  }
+
+                  return (
+                    <>
+                      {/* Descriere Comercială / Prezentare Produs */}
+                      {shortDesc && (
+                        <div className="text-sm sm:text-base text-slate-700 dark:text-slate-200 font-normal leading-relaxed whitespace-pre-wrap">
+                          {shortDesc}
+                        </div>
+                      )}
+
+                      {/* Card Ingrediente Complete (Apple Inset Card) */}
+                      {ingredientsText && (
+                        <div className="p-4 rounded-2xl bg-slate-50/90 dark:bg-slate-800/50 border border-slate-200/60 dark:border-white/5 space-y-2">
+                          <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                            Ingrediente Complete
+                          </div>
+                          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
+                            {ingredientsText}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Card Valori Nutriționale & Metric Chips (Apple Inset Card) */}
+                      {(nutritionText || selectedItemDetail.weight != null || selectedItemDetail.energyAmount != null) && (
+                        <div className="p-4 rounded-2xl bg-slate-50/90 dark:bg-slate-800/50 border border-slate-200/60 dark:border-white/5 space-y-3">
+                          <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                            Informații Nutriționale
+                          </div>
+
+                          {/* Grilă de metrici nutriționale */}
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            {selectedItemDetail.weight != null && (
+                              <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 text-center shadow-2xs">
+                                <span className="text-[10px] text-slate-400 block font-medium">Greutate</span>
+                                <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                                  {selectedItemDetail.weight} kg
+                                </span>
+                              </div>
+                            )}
+                            {selectedItemDetail.energyAmount != null && (
+                              <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 text-center shadow-2xs">
+                                <span className="text-[10px] text-slate-400 block font-medium">Energie</span>
+                                <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                                  {selectedItemDetail.energyAmount} kcal
+                                </span>
+                              </div>
+                            )}
+                            {selectedItemDetail.proteinsAmount != null && (
+                              <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 text-center shadow-2xs">
+                                <span className="text-[10px] text-slate-400 block font-medium">Proteine</span>
+                                <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                                  {selectedItemDetail.proteinsAmount}g
+                                </span>
+                              </div>
+                            )}
+                            {selectedItemDetail.fatAmount != null && (
+                              <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 text-center shadow-2xs">
+                                <span className="text-[10px] text-slate-400 block font-medium">Grăsimi</span>
+                                <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                                  {selectedItemDetail.fatAmount}g
+                                </span>
+                              </div>
+                            )}
+                            {selectedItemDetail.carbohydratesAmount != null && (
+                              <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 text-center shadow-2xs">
+                                <span className="text-[10px] text-slate-400 block font-medium">Carbohidrați</span>
+                                <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                                  {selectedItemDetail.carbohydratesAmount}g
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          {nutritionText && (
+                            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed pt-1 whitespace-pre-wrap">
+                              {nutritionText}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <WindowsRemoteModal
+        isOpen={Boolean(dashboardRemoteLoc)}
+        onClose={() => setDashboardRemoteLoc(null)}
+        loc={dashboardRemoteLoc}
+        bridgeLoc={dashboardRemoteLoc?.bridgeLoc}
+        isOnline={dashboardRemoteLoc?.isOnline}
+        isLocked={false}
+        isMaintenance={false}
+        backend={BACKEND}
+        socket={socketRef.current}
+      />
 
     </div>
   );
 }
 
 function StatCard({ label, value, color, large, brandId, icon: Icon, onClick, active }) {
-  // Parse currency if present (e.g. "3 645 lei")
   const isCurrency = typeof value === 'string' && value.includes('lei');
   const displayVal = isCurrency ? value.replace('lei', '').trim() : value;
   const valLength = String(displayVal).length;
+  const resolvedColor = color === 'var(--primary)' ? '#007AFF' : (color || '#007AFF');
 
-  // Adaptive font sizing:
-  // User explicitly asked: "fă mai mic număr comenzi și suma să se vadă întreagă"
-  let fontSizeClass = 'text-lg';
+  let fontSizeClass = 'text-[26px]';
   if (isCurrency) {
-    if (valLength > 8) fontSizeClass = 'text-sm';
-    else if (valLength > 5) fontSizeClass = 'text-base';
-    else fontSizeClass = 'text-lg';
+    if (valLength > 8) fontSizeClass = 'text-[19px]';
+    else if (valLength > 5) fontSizeClass = 'text-[22px]';
+    else fontSizeClass = 'text-[26px]';
   } else {
-    // Number of orders & brand counts: compact, clean and elegant
-    fontSizeClass = valLength > 4 ? 'text-base' : 'text-lg';
+    fontSizeClass = valLength > 4 ? 'text-[22px]' : 'text-[26px]';
   }
 
   return (
-    <div 
+    <div
       onClick={onClick}
-      className={`bg-white dark:bg-slate-900 rounded-2xl shadow-sm border px-3 py-2.5 flex items-center justify-between min-w-0 flex-1 relative overflow-hidden transition-all duration-200 group select-none ${
-        active 
-          ? 'ring-2 ring-blue-500 border-blue-500 shadow-md scale-[1.02]' 
-          : 'border-slate-200 dark:border-slate-800'
-      } ${onClick ? 'cursor-pointer hover:shadow-md hover:scale-[1.02]' : ''}`} 
-      style={{ borderLeft: `4px solid ${color}` }}
+      className={`apple-card px-4 py-3.5 flex items-center justify-between gap-3 min-w-0 flex-1 relative overflow-hidden select-none apple-pressable ${active
+        ? 'ring-2 ring-[#007AFF] border-[#007AFF]'
+        : ''
+        } ${onClick ? 'cursor-pointer hover:border-black/[0.12] dark:hover:border-white/[0.16]' : ''}`}
     >
-      <div className="flex flex-col justify-center min-w-0 pr-1 z-10 flex-1">
-        <div className="flex items-baseline gap-1 whitespace-nowrap overflow-visible">
-          <span className={`font-black text-slate-900 dark:text-white tracking-tight ${fontSizeClass}`}>
+      {/* Left: Apple Metric Stack */}
+      <div className="flex flex-col justify-between gap-1.5 min-w-0">
+        <span className="text-[12px] font-medium text-[#6E6E73] dark:text-[#98989D] truncate" title={label}>
+          {label}
+        </span>
+        <div className="flex items-baseline gap-1 whitespace-nowrap">
+          <span className={`font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] tracking-[-0.03em] leading-none tabular-nums ${fontSizeClass}`}>
             {displayVal}
           </span>
           {isCurrency && (
-            <span className="text-[10.5px] font-bold text-slate-500 dark:text-slate-400">
+            <span className="text-[12.5px] font-medium text-[#86868B]">
               lei
             </span>
           )}
         </div>
-        {!brandId && (
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-0.5 leading-snug line-clamp-1" title={label}>
-            {label}
-          </span>
-        )}
       </div>
 
+      {/* Right: Authentic Apple macOS Sequoia / iOS 18 App Squircle */}
       {brandId ? (
-        <div className="flex flex-col items-center justify-center shrink-0 ml-1.5 z-10">
-          <div className="relative">
-            {/* 3D Atmosphere Glow behind avatar */}
-            <div 
-              className="absolute -inset-1 rounded-full blur-sm opacity-35 group-hover:opacity-75 transition-opacity pointer-events-none"
-              style={{ backgroundColor: color }}
-            />
-            {/* 3D Raised Bezel Container with Specular Top Highlight */}
-            <div 
-              className="relative w-8.5 h-8.5 rounded-full p-0.5 flex items-center justify-center bg-gradient-to-b from-white via-slate-50 to-slate-100 dark:from-slate-700 dark:via-slate-800 dark:to-slate-900 border border-white/80 dark:border-slate-600/60 transition-transform duration-200 group-hover:scale-110 group-hover:-translate-y-0.5"
-              style={{ 
-                boxShadow: `0 3px 8px ${color}40, 0 1px 2px rgba(0,0,0,0.1), inset 0 1.5px 2px rgba(255,255,255,0.85)` 
-              }}
-            >
-              <BrandLogo brandId={brandId} size={24} className="rounded-full shadow-inner" />
-            </div>
-          </div>
-          {/* Denumire brand aliniată sub avatar */}
-          <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-1 whitespace-nowrap text-center max-w-[76px] overflow-hidden text-ellipsis" title={label}>
-            {label}
-          </span>
+        <div className="w-10 h-10 rounded-[11px] bg-[#F5F5F7] dark:bg-[#2C2C2E] border border-black/[0.06] dark:border-white/[0.09] flex items-center justify-center shrink-0 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          <BrandLogo brandId={brandId} size={22} />
         </div>
       ) : Icon ? (
-        <div className="relative shrink-0 ml-1.5">
-          <div 
-            className="absolute -inset-1 rounded-full blur-sm opacity-30 group-hover:opacity-60 transition-opacity pointer-events-none"
-            style={{ backgroundColor: color }}
-          />
-          <div 
-            className="relative w-8.5 h-8.5 rounded-full flex items-center justify-center text-white transition-transform duration-200 group-hover:scale-110 group-hover:-translate-y-0.5"
-            style={{ 
-              background: `linear-gradient(135deg, ${color}, ${color}cc)`,
-              boxShadow: `0 3px 8px ${color}35, 0 1px 2px rgba(0,0,0,0.1), inset 0 1.5px 2px rgba(255,255,255,0.4)` 
-            }}
-          >
-            <Icon size={16} strokeWidth={2.5} />
-          </div>
+        <div
+          className="w-10 h-10 rounded-[11px] flex items-center justify-center shrink-0 text-white"
+          style={{
+            backgroundColor: resolvedColor,
+            backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(0,0,0,0.08) 100%)',
+            boxShadow: `0 2px 8px -1px ${resolvedColor}45, inset 0 0.5px 0 rgba(255,255,255,0.35)`
+          }}
+        >
+          <Icon size={19} strokeWidth={2} />
         </div>
       ) : null}
     </div>
@@ -2680,16 +3175,16 @@ function OrdersTable({ orders, full, onRowClick, onOpenThermalReceipt, selectedI
   const paginated = safeOrders.slice((safePage - 1) * itemsPerPage, safePage * itemsPerPage);
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-x-auto">
+    <div className="apple-card overflow-x-auto">
       <table className="w-full text-left border-collapse min-w-[800px]">
         <thead>
-          <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
-            <th className="w-14 px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 text-center">Nr.</th>
-            <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500"># Comandă</th>
-            <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Brand</th>
-            <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Produse / Coș</th>
-            <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Total</th>
-            <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Status</th>
+          <tr className="bg-slate-50/70 dark:bg-slate-800/40 border-b border-slate-200/80 dark:border-slate-700/60">
+            <th className="w-14 px-4 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 text-center">Nr.</th>
+            <th className="px-5 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500"># Comandă</th>
+            <th className="px-5 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Brand</th>
+            <th className="px-5 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Produse / Coș</th>
+            <th className="px-5 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Total</th>
+            <th className="px-5 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Status</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -2706,11 +3201,11 @@ function OrdersTable({ orders, full, onRowClick, onOpenThermalReceipt, selectedI
               const iikoId = o.syrveOrderId || o.iiko_order_id || o.iikoOrderId;
 
               return (
-                <tr key={o._id} className={`transition-colors group cursor-pointer ${selectedId === o._id ? 'bg-blue-50 dark:bg-blue-500/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`} onClick={() => onRowClick && onRowClick(o)}>
+                <tr key={o._id} className={`transition-colors group cursor-pointer ${selectedId === o._id ? 'bg-emerald-500/10 text-emerald-950 dark:text-emerald-100' : 'hover:bg-slate-50/80 dark:hover:bg-slate-800/40'}`} onClick={() => onRowClick && onRowClick(o)}>
                   <td className="w-14 px-4 py-3.5 text-center text-xs font-bold text-slate-500 dark:text-slate-400">
                     {rowNumber}
                   </td>
-                  <td 
+                  <td
                     className="px-5 py-3.5 whitespace-nowrap cursor-pointer hover:opacity-85 transition-opacity"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -2780,7 +3275,7 @@ function OrdersTable({ orders, full, onRowClick, onOpenThermalReceipt, selectedI
                       );
                     })()}
                   </td>
-                  <td 
+                  <td
                     className="px-5 py-3.5 whitespace-nowrap cursor-pointer hover:opacity-85 transition-opacity"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -2816,7 +3311,7 @@ function OrdersTable({ orders, full, onRowClick, onOpenThermalReceipt, selectedI
                       )}
                     </div>
                   </td>
-                  <td 
+                  <td
                     className="px-5 py-3.5 whitespace-nowrap"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -2824,8 +3319,8 @@ function OrdersTable({ orders, full, onRowClick, onOpenThermalReceipt, selectedI
                       else if (onRowClick) onRowClick(o);
                     }}
                   >
-                    <span 
-                      className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap inline-block cursor-pointer hover:scale-105 active:scale-95 transition-transform" 
+                    <span
+                      className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap inline-block cursor-pointer hover:scale-105 active:scale-95 transition-transform"
                       style={{ backgroundColor: `${sc.color}20`, color: sc.color, border: `1px solid ${sc.color}40` }}
                       title="Apasă pentru a deschide bonul de casă"
                     >
@@ -2840,14 +3335,14 @@ function OrdersTable({ orders, full, onRowClick, onOpenThermalReceipt, selectedI
       </table>
 
       {/* Pagination Footer - Always Visible */}
-      <div className="flex flex-wrap items-center justify-between px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 gap-4">
-        <div className="flex items-center gap-4 text-sm text-slate-500">
+      <div className="flex flex-wrap items-center justify-between px-5 py-3.5 bg-black/[0.015] dark:bg-white/[0.02] border-t border-black/[0.06] dark:border-white/[0.08] gap-4">
+        <div className="flex items-center gap-3 text-[12px] text-[#6E6E73] dark:text-[#98989D]">
           <span className="flex items-center gap-2">
             Afișează
-            <select 
-              value={itemsPerPage} 
+            <select
+              value={itemsPerPage}
               onChange={e => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full px-2 py-0.5 font-medium outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+              className="apple-input py-1 px-2.5 text-[12px] font-semibold cursor-pointer"
             >
               <option value={10}>10</option>
               <option value={15}>15</option>
@@ -2856,22 +3351,22 @@ function OrdersTable({ orders, full, onRowClick, onOpenThermalReceipt, selectedI
               <option value={999999}>Toți</option>
             </select>
           </span>
-          <span>Total înregistrări: <strong className="text-slate-700 dark:text-slate-300">{safeOrders.length}</strong></span>
+          <span className="tabular-nums">Total: <strong className="text-[#1D1D1F] dark:text-[#F5F5F7]">{safeOrders.length}</strong></span>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-slate-500">Pagina {currentPage} din {totalPages}</span>
+          <span className="text-[12px] font-medium text-[#6E6E73] dark:text-[#98989D] tabular-nums">Pagina {currentPage} din {totalPages}</span>
           <div className="flex gap-1">
             {[
-              { label: '«', action: () => setCurrentPage(1),           disabled: currentPage === 1 },
-              { label: '‹', action: () => setCurrentPage(p => p - 1),  disabled: currentPage === 1 },
-              { label: '›', action: () => setCurrentPage(p => p + 1),  disabled: currentPage === totalPages },
-              { label: '»', action: () => setCurrentPage(totalPages),  disabled: currentPage === totalPages },
+              { label: '«', action: () => setCurrentPage(1), disabled: currentPage === 1 },
+              { label: '‹', action: () => setCurrentPage(p => p - 1), disabled: currentPage === 1 },
+              { label: '›', action: () => setCurrentPage(p => p + 1), disabled: currentPage === totalPages },
+              { label: '»', action: () => setCurrentPage(totalPages), disabled: currentPage === totalPages },
             ].map((btn, i) => (
               <button
                 key={i}
                 onClick={btn.action}
                 disabled={btn.disabled}
-                className={`w-7 h-7 flex items-center justify-center rounded-full text-sm font-medium transition-colors ${btn.disabled ? 'text-slate-300 dark:text-slate-700 cursor-not-allowed' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95'}`}
+                className="w-7 h-7 flex items-center justify-center rounded-full border border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-[#1C1C1E] text-[#6E6E73] dark:text-[#98989D] hover:bg-black/[0.04] dark:hover:bg-white/[0.08] disabled:opacity-35 disabled:cursor-not-allowed text-[13px] font-semibold transition-colors cursor-pointer"
               >
                 {btn.label}
               </button>
@@ -2881,16 +3376,16 @@ function OrdersTable({ orders, full, onRowClick, onOpenThermalReceipt, selectedI
       </div>
 
       {full && (
-        <div className="flex flex-col md:flex-row items-center justify-between p-6 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 gap-4">
+        <div className="flex flex-col md:flex-row items-center justify-between px-5 py-4 bg-black/[0.015] dark:bg-white/[0.02] border-t border-black/[0.06] dark:border-white/[0.08] gap-4">
           <div>
-            <p className="text-sm font-bold uppercase tracking-wider text-slate-500">Total Comenzi Active</p>
-            <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-[#86868B] m-0">Total Comenzi Active</p>
+            <p className="text-[22px] font-bold tracking-tight text-[#248A3D] dark:text-[#30D158] m-0 mt-0.5 tabular-nums">
               {formatThousands(orders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + (o.totalAmount || 0), 0))} lei
             </p>
           </div>
-          <div className="text-right">
-            <p className="text-sm font-bold uppercase tracking-wider text-slate-500">Total Comenzi Anulate</p>
-            <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+          <div className="md:text-right">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-[#86868B] m-0">Total Comenzi Anulate</p>
+            <p className="text-[22px] font-bold tracking-tight text-[#FF3B30] m-0 mt-0.5 tabular-nums">
               {formatThousands(orders.filter(o => o.status === 'cancelled').reduce((s, o) => s + (o.totalAmount || 0), 0))} lei
             </p>
           </div>
@@ -2900,12 +3395,12 @@ function OrdersTable({ orders, full, onRowClick, onOpenThermalReceipt, selectedI
   );
 }
 
-function KioskPosterCard({ brandId, brandName, emoji, backend }) { 
+function KioskPosterCard({ brandId, brandName, emoji, backend }) {
   const { fetchWithAuth } = useAuth();
-  const [url, setUrl]         = useState('');
-  const [type, setType]       = useState('image');
+  const [url, setUrl] = useState('');
+  const [type, setType] = useState('image');
   const [enabled, setEnabled] = useState(false);
-  const [saved, setSaved]     = useState(false);
+  const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Load existing config
@@ -3007,7 +3502,7 @@ function KioskPosterCard({ brandId, brandName, emoji, backend }) {
         <div className="px-6 pb-6">
           <span className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Preview:</span>
           <div className="w-full aspect-video bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 relative">
-            {type === 'image' && <img src={url} alt="Preview" className="w-full h-full object-contain" onError={e => e.target.src=''} />}
+            {type === 'image' && <img src={url} alt="Preview" className="w-full h-full object-contain" onError={e => e.target.src = ''} />}
             {type === 'video' && <video src={url} autoPlay muted loop className="w-full h-full object-contain" />}
             {type === 'iframe' && <iframe src={url} title="Preview" className="w-full h-full border-none" />}
           </div>
@@ -3081,12 +3576,12 @@ function KiosksManager({ backend, kiosksLiveStatus = {}, bridgeSummary = null, s
           }
         };
       }
-    } catch (_) {}
+    } catch (_) { }
 
     return () => {
       window.removeEventListener('admin_location_updated', onLocUpdated);
       if (localCh) {
-        try { localCh.close(); } catch (_) {}
+        try { localCh.close(); } catch (_) { }
       }
     };
   }, []);
@@ -3101,7 +3596,7 @@ function KiosksManager({ backend, kiosksLiveStatus = {}, bridgeSummary = null, s
         }
         ch.close();
       }
-    } catch (_) {}
+    } catch (_) { }
   };
 
   const lockKioskNow = async (loc, e, currentlyLocked = false) => {
@@ -3217,9 +3712,9 @@ function KiosksManager({ backend, kiosksLiveStatus = {}, bridgeSummary = null, s
 
   const isLocOnline = (loc) => {
     if (!loc) return false;
-    const live = kiosksLiveStatus[loc.id] || 
-                 (loc.kioskUrl ? kiosksLiveStatus[loc.kioskUrl] : null) ||
-                 (loc.aliases && Array.isArray(loc.aliases) ? loc.aliases.map(a => kiosksLiveStatus[a]).find(Boolean) : null);
+    const live = kiosksLiveStatus[loc.id] ||
+      (loc.kioskUrl ? kiosksLiveStatus[loc.kioskUrl] : null) ||
+      (loc.aliases && Array.isArray(loc.aliases) ? loc.aliases.map(a => kiosksLiveStatus[a]).find(Boolean) : null);
     return Boolean(live && (live.isLive || live.online || (live.onlineCount > 0)));
   };
 
@@ -3227,7 +3722,7 @@ function KiosksManager({ backend, kiosksLiveStatus = {}, bridgeSummary = null, s
     setToast({ msg, type });
     setTimeout(() => setToast(null), 4000);
   };
-  
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -3246,11 +3741,11 @@ function KiosksManager({ backend, kiosksLiveStatus = {}, bridgeSummary = null, s
         const rawLocs = locData?.locations || (Array.isArray(locData) ? locData : []);
         if (rawLocs.length > 0) {
           setLocations(rawLocs);
-          try { localStorage.setItem('admin_cached_locations', JSON.stringify(rawLocs)); } catch {}
+          try { localStorage.setItem('admin_cached_locations', JSON.stringify(rawLocs)); } catch { }
         }
         if (bData.brands?.length > 0) {
           setBrandsData(bData.brands);
-          try { localStorage.setItem('admin_cached_brands', JSON.stringify(bData.brands)); } catch {}
+          try { localStorage.setItem('admin_cached_brands', JSON.stringify(bData.brands)); } catch { }
         }
         setAllMenus(mData || {});
         setLoading(false);
@@ -3286,26 +3781,26 @@ function KiosksManager({ backend, kiosksLiveStatus = {}, bridgeSummary = null, s
       const brandMenuObj = allMenus[bId]?.menu;
       const allProds = brandMenuObj?.products || [];
       const allCats = brandMenuObj?.categories || [];
-      
+
       const bData = brandsData.find(b => b.id === bId);
       const profiles = bData?.data?.menuProfiles || [];
       const overrides = loc.menuOverrides?.[bId] || {};
-      
+
       let profile = null;
       if (overrides.profileId) {
         profile = profiles.find(p => p.id === overrides.profileId);
         if (profile) profileName = profile.name;
       }
-      
+
       const rootFolderId = overrides.rootFolderId || profile?.rootFolderId || null;
       const templateHidden = profile?.hiddenItems || {};
       const localHidden = overrides.hiddenItems || {};
-      
+
       const mergedHidden = { ...templateHidden };
       for (const [k, v] of Object.entries(localHidden)) {
         mergedHidden[k] = v;
       }
-      
+
       const hasAnyHidden = Object.values(mergedHidden).some(v => v === true);
       if (rootFolderId || hasAnyHidden || overrides.profileId) {
         hasExplicitOverrides = true;
@@ -3313,7 +3808,7 @@ function KiosksManager({ backend, kiosksLiveStatus = {}, bridgeSummary = null, s
 
       if (allProds.length === 0) continue;
       totalCount += allProds.length;
-      
+
       // Calculate surviving categories & products
       let finalCategories = allCats;
       if (rootFolderId) {
@@ -3326,7 +3821,7 @@ function KiosksManager({ backend, kiosksLiveStatus = {}, bridgeSummary = null, s
         const scoped = getDescendantsAndSelf(rootFolderId, finalCategories);
         if (scoped.length > 0) finalCategories = scoped;
       }
-      
+
       let categoriesToKeep = [];
       for (const cat of finalCategories) {
         let isHidden = false;
@@ -3337,10 +3832,10 @@ function KiosksManager({ backend, kiosksLiveStatus = {}, bridgeSummary = null, s
         }
         if (!isHidden) categoriesToKeep.push(cat);
       }
-      
+
       const validCatIds = new Set(categoriesToKeep.map(c => c.id));
       const surviving = allProds.filter(p => validCatIds.has(p.categoryId) && mergedHidden[p.id] !== true);
-      
+
       visibleCount += surviving.length;
     }
 
@@ -3366,25 +3861,25 @@ function KiosksManager({ backend, kiosksLiveStatus = {}, bridgeSummary = null, s
   }
 
   const brandMeta = {
-    smashme:     { name: 'SmashMe',     color: BRAND_COLORS.smashme },
-    crunch:      { name: 'Crunch',      color: BRAND_COLORS.crunch },
-    rollmaster:  { name: 'Roll Master', color: BRAND_COLORS.rollmaster },
-    lovesushi:   { name: 'Love Sushi',  color: BRAND_COLORS.lovesushi },
-    pokiwoki:    { name: 'Poki-Woki',   color: BRAND_COLORS.pokiwoki },
+    smashme: { name: 'SmashMe', color: BRAND_COLORS.smashme },
+    crunch: { name: 'Crunch', color: BRAND_COLORS.crunch },
+    rollmaster: { name: 'Roll Master', color: BRAND_COLORS.rollmaster },
+    lovesushi: { name: 'Love Sushi', color: BRAND_COLORS.lovesushi },
+    pokiwoki: { name: 'Poki-Woki', color: BRAND_COLORS.pokiwoki },
     welovesushi: { name: 'WeLoveSushi', color: BRAND_COLORS.lovesushi },
   };
 
   const allBrandIds = new Set();
   locations.forEach(l => {
-     if (l.brands && Array.isArray(l.brands)) {
-       l.brands.forEach(b => {
-         const norm = (b === 'sushimaster' || b === 'ikura') ? 'rollmaster' : b;
-         allBrandIds.add(norm);
-       });
-     } else if (l.brandId) {
-       const norm = (l.brandId === 'sushimaster' || l.brandId === 'ikura') ? 'rollmaster' : l.brandId;
-       allBrandIds.add(norm);
-     }
+    if (l.brands && Array.isArray(l.brands)) {
+      l.brands.forEach(b => {
+        const norm = (b === 'sushimaster' || b === 'ikura') ? 'rollmaster' : b;
+        allBrandIds.add(norm);
+      });
+    } else if (l.brandId) {
+      const norm = (l.brandId === 'sushimaster' || l.brandId === 'ikura') ? 'rollmaster' : l.brandId;
+      allBrandIds.add(norm);
+    }
   });
   const brandIds = [...allBrandIds];
 
@@ -3420,444 +3915,373 @@ function KiosksManager({ backend, kiosksLiveStatus = {}, bridgeSummary = null, s
 
   return (
     <>
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide flex-1">
-          <button
-            className={`shrink-0 px-5 h-10 rounded-full text-sm font-bold flex items-center gap-2 border transition-colors ${brandFilter === 'all' && statusFilter === 'all' ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-            onClick={() => {
-              setBrandFilter('all');
-              setStatusFilter('all');
-              setCurrentPage(1);
-            }}
-          >
-            Toate ({locations.length})
-          </button>
-
-          <button
-            className={`shrink-0 px-4 h-10 rounded-full text-sm font-bold flex items-center gap-2 border transition-all cursor-pointer ${
-              statusFilter === 'online'
-                ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm shadow-emerald-600/20 ring-2 ring-emerald-500/30'
-                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-            }`}
-            onClick={() => {
-              setStatusFilter(prev => prev === 'online' ? 'all' : 'online');
-              setCurrentPage(1);
-            }}
-            title="Filtrează doar kiosk-urile conectate online"
-          >
-            <span className={`w-2 h-2 rounded-full ${statusFilter === 'online' ? 'bg-white' : 'bg-emerald-500'} ${totalOnlineCount > 0 ? 'animate-pulse' : ''}`} />
-            <span>Online ({totalOnlineCount})</span>
-          </button>
-
-        {brandIds.map(bid => {
-          const m = brandMeta[bid] || { name: bid, color: '#6b7a99' };
-          const count = locations.filter(l => (l.brands && l.brands.includes(bid)) || l.brandId === bid).length;
-          return (
+      <div className="space-y-5">
+        <div className="apple-card p-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="flex gap-1.5 overflow-x-auto scrollbar-hide flex-1">
             <button
-              key={bid}
-              className={`shrink-0 px-5 h-10 rounded-full text-sm font-bold flex items-center gap-2 border transition-colors ${brandFilter === bid ? 'bg-white dark:bg-slate-900 shadow-sm border-slate-300 dark:border-slate-600' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-              style={brandFilter === bid ? { borderColor: m.color, color: m.color } : {}}
-              onClick={() => handleFilterClick(bid)}
+              className={`shrink-0 px-3.5 h-8 rounded-full text-[12px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer tabular-nums ${brandFilter === 'all' && statusFilter === 'all' ? 'bg-[#007AFF] text-white' : 'bg-black/[0.04] dark:bg-white/[0.06] text-[#1D1D1F] dark:text-[#F5F5F7] hover:bg-black/[0.08] dark:hover:bg-white/[0.12]'}`}
+              onClick={() => {
+                setBrandFilter('all');
+                setStatusFilter('all');
+                setCurrentPage(1);
+              }}
             >
-              <BrandLogo brandId={bid} size={14} /> {m.name} ({count})
+              Toate ({locations.length})
             </button>
-          );
-        })}
-        </div>
-      </div>
 
-      {/* Tabel Business */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-x-auto">
-        <table className="w-full text-left border-collapse min-w-[900px]">
-          <thead>
-            <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 whitespace-nowrap">
-              <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 text-left whitespace-nowrap">#</th>
-              <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 min-w-[200px]">Denumire</th>
-              <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Meniu</th>
-              <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Program</th>
-              <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Stare</th>
-              <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 text-right">Acțiuni</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {paginated.map((loc, index) => {
-              const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-              const kioskBaseUrl = isLocalhost ? 'http://localhost:4010' : 'https://kiosk-smashme.netlify.app';
-              const finalKioskUrl = loc.kioskUrl ? `${kioskBaseUrl}/?loc=${loc.kioskUrl}` : `${kioskBaseUrl}/?loc=${loc.id}`;
-              const brandsArr = [...new Set((loc.brands && loc.brands.length > 0 ? loc.brands : (loc.brandId ? [loc.brandId] : (loc.name && loc.name.toLowerCase().includes('roll') ? ['rollmaster'] : (loc.name && loc.name.toLowerCase().includes('smash') ? ['smashme'] : [])))).map(b => (b === 'sushimaster' || b === 'ikura') ? 'rollmaster' : b))];
-              const displayBrands = brandsArr.length > 1 && loc.name 
-                ? (brandsArr.filter(b => loc.name.toLowerCase().replace(/[\s\-_]+/g, '').includes(b)).length > 0
-                    ? brandsArr.filter(b => loc.name.toLowerCase().replace(/[\s\-_]+/g, '').includes(b))
-                    : brandsArr)
-                : brandsArr;
-              const menuStats = getKioskMenuStats(loc);
-              const live = kiosksLiveStatus[loc.id] || 
-                           (loc.kioskUrl ? kiosksLiveStatus[loc.kioskUrl] : null) ||
-                           (loc.aliases && Array.isArray(loc.aliases) ? loc.aliases.map(a => kiosksLiveStatus[a]).find(Boolean) : null);
-              const isOnline = isLocOnline(loc);
-              const isLocked = Boolean(loc.forceLocked) || (live ? Boolean(live.isLocked || live.screen === 'pin') : false);
-              const isMaintenance = Boolean(loc.maintenanceMode);
-              
+            <button
+              className={`shrink-0 px-3.5 h-8 rounded-full text-[12px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer tabular-nums ${statusFilter === 'online'
+                ? 'bg-[#34C759] text-white'
+                : 'bg-black/[0.04] dark:bg-white/[0.06] text-[#1D1D1F] dark:text-[#F5F5F7] hover:bg-black/[0.08] dark:hover:bg-white/[0.12]'
+                }`}
+              onClick={() => {
+                setStatusFilter(prev => prev === 'online' ? 'all' : 'online');
+                setCurrentPage(1);
+              }}
+              title="Filtrează doar kiosk-urile conectate online"
+            >
+              <span className={`w-2 h-2 rounded-full ${statusFilter === 'online' ? 'bg-white' : 'bg-[#34C759]'}`} />
+              <span>Online ({totalOnlineCount})</span>
+            </button>
+
+            {brandIds.map(bid => {
+              const m = brandMeta[bid] || { name: bid, color: '#007AFF' };
+              const count = locations.filter(l => (l.brands && l.brands.includes(bid)) || l.brandId === bid).length;
               return (
-                <tr key={loc.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
-                  <td className="px-6 py-4 text-sm text-slate-400 font-medium whitespace-nowrap">
-                    {(currentPage - 1) * itemsPerPage + index + 1}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex flex-col gap-1 items-start">
-                      <button 
-                        type="button"
-                        onClick={() => { setEditingLoc(loc); setEditingTab('design'); }}
-                        title={`Apasă pentru setările chioșcului ${loc.name}`}
-                        className="inline-flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-full text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all whitespace-nowrap cursor-pointer"
-                      >
-                        {displayBrands.length > 0 && (
-                          <div className="flex items-center gap-1 shrink-0">
-                            {displayBrands.map(b => (
-                              <BrandLogo key={b} brandId={b} size={18} />
-                            ))}
-                          </div>
-                        )}
-                        <span>{loc.name}</span>
-                      </button>
-                      <div className="flex items-center gap-2 text-[11px] font-medium whitespace-nowrap">
-                        <a 
-                          href={finalKioskUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          title={`Deschide chioșcul live (${loc.kioskUrl || loc.id})`}
-                          className="text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 transition-colors"
-                        >
-                          URL: {loc.kioskUrl || loc.id}
-                        </a>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex flex-col gap-1 items-start">
-                      {menuStats.isCustom ? (
-                        <button 
-                          type="button"
-                          onClick={() => { setEditingLoc(loc); setEditingTab('menu'); }}
-                          title={`Meniu Personalizat: ${menuStats.visibleCount !== null ? `${menuStats.visibleCount}/${menuStats.totalCount} produse` : ''} ${menuStats.hiddenCount > 0 ? `(${menuStats.hiddenCount} ascunse)` : ''}${menuStats.profileName ? ` - Profil: ${menuStats.profileName}` : ''}. Apasă pentru configurare.`}
-                          className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all whitespace-nowrap cursor-pointer"
-                        >
-                          <span className="text-white">Meniu Personalizat</span>
-                        </button>
-                      ) : (
-                        <button 
-                          type="button"
-                          onClick={() => { setEditingLoc(loc); setEditingTab('menu'); }}
-                          title={`Meniu Complet${menuStats.totalCount ? ` (${menuStats.totalCount} produse)` : ''}. Apasă pentru configurare.`}
-                          className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all whitespace-nowrap cursor-pointer"
-                        >
-                          <span className="text-white">Meniu Complet</span>
-                        </button>
-                      )}
-                      {/* Detalii Meniu sub buton - exact 1 singur rând compact (maxim 2 rânduri per celulă) */}
-                      <div 
-                        className="text-[11px] text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap overflow-hidden text-ellipsis max-w-[260px] leading-tight"
-                        title={menuStats.isCustom 
-                          ? `${menuStats.profileName ? `Profil: ${menuStats.profileName} • ` : ''}${menuStats.visibleCount}/${menuStats.totalCount} produse${menuStats.hiddenCount > 0 ? ` (${menuStats.hiddenCount} ascunse)` : ''}`
-                          : `${menuStats.totalCount || 'Toate'} produse active`
-                        }
-                      >
-                        {menuStats.isCustom ? (
-                          <span className="inline-flex items-center gap-1">
-                            {menuStats.profileName && (
-                              <span className="font-semibold text-slate-700 dark:text-slate-200">
-                                {menuStats.profileName} •
-                              </span>
-                            )}
-                            <span>{menuStats.visibleCount}/{menuStats.totalCount} prod</span>
-                            {menuStats.hiddenCount > 0 && (
-                              <span className="text-amber-600 dark:text-amber-400 font-semibold">
-                                (-{menuStats.hiddenCount})
-                              </span>
-                            )}
-                          </span>
-                        ) : (
-                          <span>{menuStats.totalCount ? `${menuStats.totalCount} produse active` : 'Toate produsele active'}</span>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex flex-col gap-1 items-start">
-                      {loc.lockScheduleActive ? (
-                        <button 
-                          type="button"
-                          onClick={() => { setEditingLoc(loc); setEditingTab('system'); }}
-                          title={`Orar blocare: ${loc.lockStartTime || '22:00'} - ${loc.lockEndTime || '09:00'}. Apasă pentru configurare.`}
-                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all whitespace-nowrap cursor-pointer"
-                        >
-                          <Clock className="w-3.5 h-3.5" />
-                          <span>Orar: {loc.lockStartTime || '22:00'} - {loc.lockEndTime || '09:00'}</span>
-                        </button>
-                      ) : (
-                        <button 
-                          type="button"
-                          onClick={() => { setEditingLoc(loc); setEditingTab('system'); }}
-                          title="Fără program automat de blocare. Apasă pentru configurare orar."
-                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 transition-all whitespace-nowrap cursor-pointer"
-                        >
-                          <Clock className="w-3.5 h-3.5 text-slate-400" />
-                          <span>Fără program</span>
-                        </button>
-                      )}
-                      {/* PIN sub butonul de program */}
-                      {loc.kioskPin ? (
-                        <div className="inline-flex items-center gap-1 text-[11px] text-slate-600 dark:text-slate-300 font-semibold whitespace-nowrap">
-                          <span>PIN: {revealedPins.has(loc.id) ? loc.kioskPin : '••••'}</span>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleRevealPin(loc.id);
-                            }}
-                            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-0.5 rounded focus:outline-none cursor-pointer"
-                            title={revealedPins.has(loc.id) ? 'Ascunde PIN' : 'Arată PIN'}
-                          >
-                            {revealedPins.has(loc.id) ? (
-                              <EyeOff className="w-3.5 h-3.5" />
-                            ) : (
-                              <Eye className="w-3.5 h-3.5" />
-                            )}
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="text-[11px] text-slate-400 font-normal whitespace-nowrap">
-                          Fără PIN
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex flex-col gap-1 items-start">
-                      <div 
-                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-white shadow-sm whitespace-nowrap ${
-                          isOnline ? 'bg-emerald-600' : 'bg-slate-500 dark:bg-slate-600'
-                        }`}
-                        title={isOnline ? 'Chioșcul este activ și comunică în timp real' : 'Chioșcul este offline (deconectat)'}
-                      >
-                        <span 
-                          className={`w-2 h-2 rounded-full shrink-0 ${isOnline ? 'bg-white animate-pulse' : 'bg-slate-300'}`} 
-                        />
-                        <span>{isOnline ? 'Conectat' : (loc.active ? 'Offline' : 'Inactiv')}</span>
-                        {isLocked && (
-                          <span className="ml-1 inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full text-[9px] font-black bg-red-600 text-white">
-                            <Lock className="w-2.5 h-2.5 text-white" /> Blocat PIN
-                          </span>
-                        )}
-                        {isMaintenance && (
-                          <span className="ml-1 inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full text-[9px] font-black bg-amber-500 text-slate-950">
-                            <Sliders className="w-2.5 h-2.5" /> Mentenanță
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={(e) => lockKioskNow(loc, e, isLocked)}
-                        disabled={lockingId === loc.id}
-                        title={isLocked ? 'Blocat cu PIN — Apasă pentru a debloca rapid din Admin' : 'Blochează acum (Ecran PIN fără X — se deblochează cu PIN Manager/Casier sau de aici)'}
-                        className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all cursor-pointer active:scale-95 ${
-                          isLocked
-                            ? 'bg-red-600 hover:bg-emerald-600 text-white border-red-600 hover:border-emerald-600 shadow-sm ring-2 ring-red-500/30'
-                            : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 dark:hover:bg-rose-500/10 dark:hover:text-rose-400 text-slate-600 dark:text-slate-400'
-                        } ${lockingId === loc.id ? 'opacity-70 cursor-wait' : ''}`}
-                      >
-                        <Lock className="w-4 h-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => toggleMaintenanceMode(loc, e)}
-                        disabled={maintainingId === loc.id}
-                        title={isMaintenance ? 'În Mentenanță — Apasă pentru a opri modul Mentenanță' : 'Mod Mentenanță (Ecran animat cu logo-ul brandului — clienții nu văd ce lucrezi și nu pot apăsa)'}
-                        className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all cursor-pointer active:scale-95 ${
-                          isMaintenance
-                            ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-sm ring-2 ring-amber-400/40'
-                            : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 dark:hover:bg-amber-500/10 dark:hover:text-amber-400 text-slate-600 dark:text-slate-400'
-                        } ${maintainingId === loc.id ? 'opacity-70 cursor-wait' : ''}`}
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
-                        </svg>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setRemoteModalLoc(loc);
-                        }}
-                        title="Control PC Windows (C:\SmartKiosk, .env, Startup & Consolă — fără AnyDesk)"
-                        className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400 text-slate-600 dark:text-slate-400 flex items-center justify-center transition-all cursor-pointer active:scale-95"
-                      >
-                        <Server className="w-4 h-4" />
-                      </button>
-                      <button 
-                        title="Restartare Ecrane Remote"
-                        className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 dark:hover:bg-orange-500/10 dark:hover:text-orange-400 text-slate-600 dark:text-slate-400 flex items-center justify-center transition-colors"
-                        onClick={async (e) => {
-                           e.stopPropagation();
-                            if (restartingId === loc.id) return; // already restarting
-                            const okRestart = await confirm(
-                              `Se repornesc ecranul kiosk ȘI POS Bridge-ul la „${loc.name}”. Timp de 1–2 minute nu se pot face plăți cu cardul și nu se tipărește bonul. Nu continua dacă un client plătește chiar acum.`,
-                              { title: 'Restart locație — ești sigur?', icon: <RestartDialogIcon />, okLabel: 'Da, repornește', cancelLabel: 'Nu, renunț', danger: true }
-                            );
-                            if (!okRestart) return;
-                            setRestartingId(loc.id);
-                           try {
-                             const res = await fetchWithAuth(`${backend}/api/locations/${loc.id}/restart`, { method: 'POST' });
-                             const data = await res.json();
-                             if (res.ok) {
-                               showToast(`Semnal de restart trimis pentru ${loc.name}!`);
-                             } else {
-                               showToast(data.error || 'Eroare la trimiterea comenzii', 'error');
-                             }
-                           } catch {
-                             showToast('Conexiune eșuată. Verificați rețeaua.', 'error');
-                           } finally {
-                             setRestartingId(null);
-                           }
-                        }}
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={restartingId === loc.id ? 'animate-spin' : ''}><path d="M2.5 2v6h6M21.5 22v-6h-6"/><path d="M22 11.5A10 10 0 0 0 3.2 7.2M2 12.5a10 10 0 0 0 18.8 4.2"/></svg>
-                      </button>
-                      <a 
-                        title="Vizualizare Kiosk direct"
-                        href={finalKioskUrl} target="_blank" rel="noreferrer"
-                        className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-blue-500/10 dark:hover:text-blue-400 text-slate-600 dark:text-slate-400 flex items-center justify-center transition-colors"
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                      </a>
-                      <button 
-                        title="Copiază Link Universal"
-                        className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-400 text-slate-600 dark:text-slate-400 flex items-center justify-center transition-colors"
-                        onClick={(e) => {
-                          const btn = e.currentTarget;
-                          const svg = btn.querySelector('svg');
-                          navigator.clipboard.writeText(finalKioskUrl);
-                          svg.innerHTML = '<polyline points="20 6 9 17 4 12"></polyline>';
-                          setTimeout(() => {
-                             svg.innerHTML = '<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>';
-                          }, 2000);
-                        }}
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                      </button>
-                      <button 
-                        type="button"
-                        title="Produse Promoționale & Pop-up Start (Overrides)"
-                        className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 dark:hover:bg-amber-500/10 dark:hover:text-amber-400 text-slate-600 dark:text-slate-400 flex items-center justify-center transition-colors cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const targetKioskId = loc.kioskUrl || loc.id;
-                          const bArr = loc.brands && loc.brands.length > 0 ? loc.brands : (loc.brandId ? [loc.brandId] : ['smashme']);
-                          const firstB = bArr[0] || 'smashme';
-                          localStorage.setItem('admin_active_location', loc.id);
-                          localStorage.setItem('admin_active_kiosk', targetKioskId);
-                          localStorage.setItem('admin_product_filter_diet', 'promo');
-                          localStorage.setItem('admin_active_brand', firstB);
-                          localStorage.setItem('admin_return_to_kiosk', loc.id);
-                          localStorage.setItem('admin_return_to_kiosk_name', loc.name || loc.id);
-                          localStorage.setItem('admin_return_to_kiosk_tab', 'marketing');
-                          if (onNavigateToProducts) onNavigateToProducts(loc.id, targetKioskId, 'promo', firstB);
-                          else window.location.hash = 'products';
-                        }}
-                      >
-                        <Tags className="w-4 h-4" />
-                      </button>
-                      <button 
-                        title="Setări și Screensaver"
-                        className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-purple-50 hover:text-purple-600 hover:border-purple-200 dark:hover:bg-purple-500/10 dark:hover:text-purple-400 text-slate-600 dark:text-slate-400 flex items-center justify-center transition-colors"
-                        onClick={() => { setEditingLoc(loc); setEditingTab('design'); }}
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-                      </button>
-                      <button 
-                        title="Șterge Kiosk"
-                        className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-red-50 hover:text-red-600 hover:border-red-200 dark:hover:bg-red-500/10 dark:hover:text-red-400 text-slate-600 dark:text-slate-400 flex items-center justify-center transition-colors"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteLoc(loc);
-                        }}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                <button
+                  key={bid}
+                  className={`shrink-0 px-3 h-8 rounded-full text-[12px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer tabular-nums ${brandFilter === bid ? 'bg-[#007AFF] text-white' : 'bg-black/[0.04] dark:bg-white/[0.06] text-[#6E6E73] dark:text-[#98989D] hover:bg-black/[0.08] dark:hover:bg-white/[0.12]'}`}
+                  onClick={() => handleFilterClick(bid)}
+                >
+                  <BrandLogo brandId={bid} size={14} /> {m.name} ({count})
+                </button>
               );
             })}
-          </tbody>
-        </table>
-        
-        {/* Pagination Controls */}
-        <div className="flex items-center justify-between px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-slate-500">Rânduri pe pagină:</span>
-            <select
-              value={itemsPerPage}
-              onChange={e => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-              className="text-sm border border-slate-200 dark:border-slate-700 rounded-full px-2 py-1 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-            >
-              {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
-            </select>
-            <span className="text-sm font-medium text-slate-500 ml-2 hidden sm:block">
-              {(currentPage - 1) * itemsPerPage + 1}–{Math.min(sorted.length, currentPage * itemsPerPage)} din {sorted.length}
-            </span>
           </div>
-          <div className="flex gap-1">
-            {[
-              { label: '«', action: () => setCurrentPage(1),            disabled: currentPage === 1,          title: 'Prima pagină' },
-              { label: '‹', action: () => setCurrentPage(p => p - 1),  disabled: currentPage === 1,          title: 'Anterioară' },
-              { label: '›', action: () => setCurrentPage(p => p + 1),  disabled: currentPage === totalPages, title: 'Următoarea' },
-              { label: '»', action: () => setCurrentPage(totalPages),  disabled: currentPage === totalPages, title: 'Ultima pagină' },
-            ].map(btn => (
-              <button key={btn.label} onClick={btn.action} disabled={btn.disabled} title={btn.title}
-                className={`w-8 h-8 rounded-full border text-sm font-bold flex items-center justify-center transition-colors ${btn.disabled ? 'border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-slate-300 dark:text-slate-600 cursor-not-allowed' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer'}`}
-              >{btn.label}</button>
-            ))}
+        </div>
+
+        {/* Tabel Business */}
+        <div className="apple-card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[900px]">
+              <thead>
+                <tr className="bg-black/[0.02] dark:bg-white/[0.02] border-b border-black/[0.06] dark:border-white/[0.08] whitespace-nowrap text-[11px] font-semibold uppercase tracking-wider text-[#6E6E73] dark:text-[#98989D]">
+                  <th className="px-5 py-3 text-left w-12">#</th>
+                  <th className="px-5 py-3 min-w-[200px]">Denumire</th>
+                  <th className="px-5 py-3">Meniu</th>
+                  <th className="px-5 py-3">Program</th>
+                  <th className="px-5 py-3">Stare</th>
+                  <th className="px-5 py-3 text-right">Acțiuni</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-black/[0.05] dark:divide-white/[0.06]">
+                {paginated.map((loc, index) => {
+                  const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+                  const kioskBaseUrl = isLocalhost ? 'http://localhost:4010' : 'https://kiosk-smashme.netlify.app';
+                  const finalKioskUrl = loc.kioskUrl ? `${kioskBaseUrl}/?loc=${loc.kioskUrl}` : `${kioskBaseUrl}/?loc=${loc.id}`;
+                  const brandsArr = [...new Set((loc.brands && loc.brands.length > 0 ? loc.brands : (loc.brandId ? [loc.brandId] : (loc.name && loc.name.toLowerCase().includes('roll') ? ['rollmaster'] : (loc.name && loc.name.toLowerCase().includes('smash') ? ['smashme'] : [])))).map(b => (b === 'sushimaster' || b === 'ikura') ? 'rollmaster' : b))];
+                  const displayBrands = brandsArr.length > 1 && loc.name
+                    ? (brandsArr.filter(b => loc.name.toLowerCase().replace(/[\s\-_]+/g, '').includes(b)).length > 0
+                      ? brandsArr.filter(b => loc.name.toLowerCase().replace(/[\s\-_]+/g, '').includes(b))
+                      : brandsArr)
+                    : brandsArr;
+                  const menuStats = getKioskMenuStats(loc);
+                  const live = kiosksLiveStatus[loc.id] ||
+                    (loc.kioskUrl ? kiosksLiveStatus[loc.kioskUrl] : null) ||
+                    (loc.aliases && Array.isArray(loc.aliases) ? loc.aliases.map(a => kiosksLiveStatus[a]).find(Boolean) : null);
+                  const isOnline = isLocOnline(loc);
+                  const isLocked = Boolean(loc.forceLocked) || (live ? Boolean(live.isLocked || live.screen === 'pin') : false);
+                  const isMaintenance = Boolean(loc.maintenanceMode);
+
+                  return (
+                    <tr key={loc.id} className="hover:bg-black/[0.02] dark:hover:bg-white/[0.03] transition-colors group">
+                      <td className="px-5 py-3.5 text-[13px] text-[#86868B] font-medium whitespace-nowrap tabular-nums">
+                        {(currentPage - 1) * itemsPerPage + index + 1}
+                      </td>
+                      <td className="px-5 py-3.5 whitespace-nowrap">
+                        <div className="flex flex-col gap-0.5 items-start">
+                          <button
+                            type="button"
+                            onClick={() => { setEditingLoc(loc); setEditingTab('design'); }}
+                            title={`Setări chioșc ${loc.name}`}
+                            className="inline-flex items-center gap-2 text-[13px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] hover:text-[#007AFF] transition-colors cursor-pointer"
+                          >
+                            {displayBrands.length > 0 && (
+                              <div className="flex items-center gap-1 shrink-0">
+                                {displayBrands.map(b => (
+                                  <BrandLogo key={b} brandId={b} size={18} />
+                                ))}
+                              </div>
+                            )}
+                            <span>{loc.name}</span>
+                          </button>
+                          <a
+                            href={finalKioskUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            title={`Deschide chioșcul live (${loc.kioskUrl || loc.id})`}
+                            className="text-[11px] text-[#86868B] hover:text-[#007AFF] transition-colors pl-0.5"
+                          >
+                            {loc.kioskUrl || loc.id}
+                          </a>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5 whitespace-nowrap">
+                        <div className="flex flex-col gap-1 items-start">
+                          <button
+                            type="button"
+                            onClick={() => { setEditingLoc(loc); setEditingTab('menu'); }}
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold transition-colors cursor-pointer ${menuStats.isCustom
+                              ? 'bg-[#007AFF]/12 text-[#007AFF] hover:bg-[#007AFF]/20'
+                              : 'bg-black/[0.05] dark:bg-white/[0.08] text-[#1D1D1F] dark:text-[#F5F5F7] hover:bg-black/[0.09]'
+                              }`}
+                          >
+                            {menuStats.isCustom ? 'Meniu Personalizat' : 'Meniu Complet'}
+                          </button>
+                          <div className="text-[11px] text-[#6E6E73] dark:text-[#98989D] whitespace-nowrap overflow-hidden text-ellipsis max-w-[240px] tabular-nums">
+                            {menuStats.isCustom ? (
+                              <span className="inline-flex items-center gap-1">
+                                {menuStats.profileName && <span className="font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">{menuStats.profileName} ·</span>}
+                                <span>{menuStats.visibleCount}/{menuStats.totalCount} prod</span>
+                                {menuStats.hiddenCount > 0 && <span className="text-[#FF9500] font-semibold">(-{menuStats.hiddenCount})</span>}
+                              </span>
+                            ) : (
+                              <span>{menuStats.totalCount ? `${menuStats.totalCount} produse active` : 'Toate produsele active'}</span>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5 whitespace-nowrap">
+                        <div className="flex flex-col gap-1 items-start">
+                          <button
+                            type="button"
+                            onClick={() => { setEditingLoc(loc); setEditingTab('system'); }}
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold transition-colors cursor-pointer tabular-nums ${loc.lockScheduleActive
+                              ? 'bg-[#007AFF]/12 text-[#007AFF] hover:bg-[#007AFF]/20'
+                              : 'bg-black/[0.04] dark:bg-white/[0.06] text-[#6E6E73] dark:text-[#98989D] hover:bg-black/[0.08]'
+                              }`}
+                          >
+                            <Clock className="w-3 h-3" />
+                            <span>{loc.lockScheduleActive ? `${loc.lockStartTime || '22:00'} – ${loc.lockEndTime || '09:00'}` : 'Fără program'}</span>
+                          </button>
+                          {loc.kioskPin ? (
+                            <div className="inline-flex items-center gap-1 text-[11px] text-[#6E6E73] dark:text-[#98989D] ">
+                              <span>PIN: {revealedPins.has(loc.id) ? loc.kioskPin : '••••'}</span>
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); toggleRevealPin(loc.id); }}
+                                className="text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-white p-0.5 cursor-pointer"
+                                title={revealedPins.has(loc.id) ? 'Ascunde PIN' : 'Arată PIN'}
+                              >
+                                {revealedPins.has(loc.id) ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-[11px] text-[#86868B]">Fără PIN</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5 whitespace-nowrap">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${isOnline
+                              ? 'bg-[#34C759]/12 text-[#248A3D] dark:text-[#30D158]'
+                              : 'bg-black/[0.05] dark:bg-white/[0.08] text-[#86868B]'
+                              }`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-[#34C759]' : 'bg-[#86868B]'}`} />
+                            {isOnline ? 'Conectat' : (loc.active ? 'Offline' : 'Inactiv')}
+                          </span>
+                          {isLocked && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#FF3B30]/12 text-[#FF3B30]">
+                              <Lock className="w-2.5 h-2.5" /> PIN
+                            </span>
+                          )}
+                          {isMaintenance && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#FF9500]/12 text-[#C93400] dark:text-[#FF9F0A]">
+                              <Sliders className="w-2.5 h-2.5" /> Mentenanță
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5 text-right">
+                        <div className="inline-flex justify-end gap-1">
+                          <button
+                            type="button"
+                            onClick={(e) => lockKioskNow(loc, e, isLocked)}
+                            disabled={lockingId === loc.id}
+                            title={isLocked ? 'Blocat cu PIN — apasă pentru deblocare' : 'Blochează cu ecran PIN'}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer ${isLocked
+                              ? 'bg-[#FF3B30] text-white'
+                              : 'bg-black/[0.04] dark:bg-white/[0.06] text-[#6E6E73] dark:text-[#98989D] hover:bg-[#FF3B30]/12 hover:text-[#FF3B30]'
+                              }`}
+                          >
+                            <Lock className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => toggleMaintenanceMode(loc, e)}
+                            disabled={maintainingId === loc.id}
+                            title={isMaintenance ? 'Oprește modul Mentenanță' : 'Activează modul Mentenanță'}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer ${isMaintenance
+                              ? 'bg-[#FF9500] text-white'
+                              : 'bg-black/[0.04] dark:bg-white/[0.06] text-[#6E6E73] dark:text-[#98989D] hover:bg-[#FF9500]/12 hover:text-[#FF9500]'
+                              }`}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setRemoteModalLoc(loc); }}
+                            title="Control PC Windows (C:\SmartKiosk)"
+                            className="w-8 h-8 rounded-full bg-black/[0.04] dark:bg-white/[0.06] text-[#6E6E73] dark:text-[#98989D] hover:bg-[#007AFF]/12 hover:text-[#007AFF] flex items-center justify-center transition-colors cursor-pointer"
+                          >
+                            <Server className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            title="Restartare Ecrane Remote"
+                            className="w-8 h-8 rounded-full bg-black/[0.04] dark:bg-white/[0.06] text-[#6E6E73] dark:text-[#98989D] hover:bg-[#FF9500]/12 hover:text-[#FF9500] flex items-center justify-center transition-colors cursor-pointer"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              if (restartingId === loc.id) return;
+                              const okRestart = await confirm(
+                                `Se repornesc ecranul kiosk ȘI POS Bridge-ul la „${loc.name}”. Timp de 1–2 minute nu se pot face plăți cu cardul și nu se tipărește bonul. Nu continua dacă un client plătește chiar acum.`,
+                                { title: 'Restart locație — ești sigur?', icon: <RestartDialogIcon />, okLabel: 'Da, repornește', cancelLabel: 'Nu, renunț', danger: true }
+                              );
+                              if (!okRestart) return;
+                              setRestartingId(loc.id);
+                              try {
+                                const res = await fetchWithAuth(`${backend}/api/locations/${loc.id}/restart`, { method: 'POST' });
+                                const data = await res.json();
+                                if (res.ok) showToast(`Semnal de restart trimis pentru ${loc.name}!`);
+                                else showToast(data.error || 'Eroare la trimiterea comenzii', 'error');
+                              } catch {
+                                showToast('Conexiune eșuată. Verificați rețeaua.', 'error');
+                              } finally {
+                                setRestartingId(null);
+                              }
+                            }}
+                          >
+                            <RefreshCw className={`w-3.5 h-3.5 ${restartingId === loc.id ? 'animate-spin' : ''}`} />
+                          </button>
+                          <a
+                            title="Vizualizare Kiosk direct"
+                            href={finalKioskUrl} target="_blank" rel="noreferrer"
+                            className="w-8 h-8 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] text-[#6E6E73] dark:text-[#98989D] hover:bg-[#007AFF]/12 hover:text-[#007AFF] flex items-center justify-center transition-colors"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </a>
+                          <button
+                            title="Copiază Link Universal"
+                            className="w-8 h-8 rounded-full bg-black/[0.04] dark:bg-white/[0.06] text-[#6E6E73] dark:text-[#98989D] hover:bg-[#34C759]/12 hover:text-[#248A3D] flex items-center justify-center transition-colors cursor-pointer"
+                            onClick={() => {
+                              navigator.clipboard.writeText(finalKioskUrl);
+                              showToast('Link kiosk copiat');
+                            }}
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            title="Produse Promoționale & Pop-up Start"
+                            className="w-8 h-8 rounded-full bg-black/[0.04] dark:bg-white/[0.06] text-[#6E6E73] dark:text-[#98989D] hover:bg-[#FF9500]/12 hover:text-[#FF9500] flex items-center justify-center transition-colors cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const targetKioskId = loc.kioskUrl || loc.id;
+                              const bArr = loc.brands && loc.brands.length > 0 ? loc.brands : (loc.brandId ? [loc.brandId] : ['smashme']);
+                              const firstB = bArr[0] || 'smashme';
+                              localStorage.setItem('admin_active_location', loc.id);
+                              localStorage.setItem('admin_active_kiosk', targetKioskId);
+                              localStorage.setItem('admin_product_filter_diet', 'promo');
+                              localStorage.setItem('admin_active_brand', firstB);
+                              localStorage.setItem('admin_return_to_kiosk', loc.id);
+                              localStorage.setItem('admin_return_to_kiosk_name', loc.name || loc.id);
+                              localStorage.setItem('admin_return_to_kiosk_tab', 'marketing');
+                              if (onNavigateToProducts) onNavigateToProducts(loc.id, targetKioskId, 'promo', firstB);
+                              else window.location.hash = 'products';
+                            }}
+                          >
+                            <Tags className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            title="Setări și Screensaver"
+                            className="w-8 h-8 rounded-full bg-black/[0.04] dark:bg-white/[0.06] text-[#1D1D1F] dark:text-[#F5F5F7] hover:bg-[#007AFF]/12 hover:text-[#007AFF] flex items-center justify-center transition-colors cursor-pointer"
+                            onClick={() => { setEditingLoc(loc); setEditingTab('design'); }}
+                          >
+                            <Sliders className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            title="Șterge Kiosk"
+                            className="w-8 h-8 rounded-full bg-[#FF3B30]/10 hover:bg-[#FF3B30]/20 text-[#FF3B30] flex items-center justify-center transition-colors cursor-pointer"
+                            onClick={(e) => { e.stopPropagation(); deleteLoc(loc); }}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination Controls */}
+          <div className="flex items-center justify-between px-5 py-3.5 bg-black/[0.015] dark:bg-white/[0.02] border-t border-black/[0.06] dark:border-white/[0.08]">
+            <div className="flex items-center gap-2.5">
+              <span className="text-[12px] font-medium text-[#6E6E73] dark:text-[#98989D]">Rânduri pe pagină</span>
+              <select
+                value={itemsPerPage}
+                onChange={e => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                className="apple-input py-1 px-2.5 text-[12px] font-semibold cursor-pointer"
+              >
+                {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+              <span className="text-[12px] font-medium text-[#6E6E73] dark:text-[#98989D] ml-1 hidden sm:block tabular-nums">
+                {(currentPage - 1) * itemsPerPage + 1}–{Math.min(sorted.length, currentPage * itemsPerPage)} din {sorted.length}
+              </span>
+            </div>
+            <div className="flex gap-1">
+              {[
+                { label: '«', action: () => setCurrentPage(1), disabled: currentPage === 1, title: 'Prima pagină' },
+                { label: '‹', action: () => setCurrentPage(p => p - 1), disabled: currentPage === 1, title: 'Anterioară' },
+                { label: '›', action: () => setCurrentPage(p => p + 1), disabled: currentPage === totalPages, title: 'Următoarea' },
+                { label: '»', action: () => setCurrentPage(totalPages), disabled: currentPage === totalPages, title: 'Ultima pagină' },
+              ].map(btn => (
+                <button key={btn.label} onClick={btn.action} disabled={btn.disabled} title={btn.title}
+                  className="w-8 h-8 rounded-full border border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-[#1C1C1E] text-[#6E6E73] dark:text-[#98989D] hover:bg-black/[0.04] dark:hover:bg-white/[0.08] disabled:opacity-35 disabled:cursor-not-allowed text-[13px] font-semibold flex items-center justify-center transition-colors cursor-pointer"
+                >{btn.label}</button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
-    </div>
-    {remoteModalLoc && (
-      <WindowsRemoteModal
-        isOpen={Boolean(remoteModalLoc)}
-        onClose={() => setRemoteModalLoc(null)}
-        loc={locations.find(l => l.id === remoteModalLoc.id) || remoteModalLoc}
-        bridgeLoc={
-          bridgeSummary?.locations?.[remoteModalLoc.kioskUrl || remoteModalLoc.id] ||
-          bridgeSummary?.locations?.[remoteModalLoc.id]
-        }
-        isOnline={isLocOnline(remoteModalLoc)}
-        isLocked={Boolean((locations.find(l => l.id === remoteModalLoc.id) || remoteModalLoc).forceLocked)}
-        isMaintenance={Boolean((locations.find(l => l.id === remoteModalLoc.id) || remoteModalLoc).maintenanceMode)}
-        onToggleLock={(l, e, curLocked) => lockKioskNow(locations.find(x => x.id === l.id) || l, e, curLocked)}
-        onToggleMaintenance={(l, e) => toggleMaintenanceMode(locations.find(x => x.id === l.id) || l, e)}
-        backend={backend}
-        socket={socket}
-      />
-    )}
-    {toast && (
-      <div style={{
-        position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
-        background: toast.type === 'error' ? '#ef4444' : '#059669',
-        color: '#fff', padding: '14px 24px', borderRadius: '14px',
-        fontWeight: 700, fontSize: '0.95rem',
-        boxShadow: '0 8px 30px rgba(0,0,0,0.2)',
-        display: 'flex', alignItems: 'center', gap: 10,
-      }}>
-        <span style={{ fontSize: '1.2rem' }}>{toast.type === 'error' ? '' : ''}</span>
-        {toast.msg}
-      </div>
-    )}
+      {remoteModalLoc && (
+        <WindowsRemoteModal
+          isOpen={Boolean(remoteModalLoc)}
+          onClose={() => setRemoteModalLoc(null)}
+          loc={locations.find(l => l.id === remoteModalLoc.id) || remoteModalLoc}
+          bridgeLoc={
+            bridgeSummary?.locations?.[remoteModalLoc.kioskUrl || remoteModalLoc.id] ||
+            bridgeSummary?.locations?.[remoteModalLoc.id]
+          }
+          isOnline={isLocOnline(remoteModalLoc)}
+          isLocked={Boolean((locations.find(l => l.id === remoteModalLoc.id) || remoteModalLoc).forceLocked)}
+          isMaintenance={Boolean((locations.find(l => l.id === remoteModalLoc.id) || remoteModalLoc).maintenanceMode)}
+          onToggleLock={(l, e, curLocked) => lockKioskNow(locations.find(x => x.id === l.id) || l, e, curLocked)}
+          onToggleMaintenance={(l, e) => toggleMaintenanceMode(locations.find(x => x.id === l.id) || l, e)}
+          backend={backend}
+          socket={socket}
+        />
+      )}
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] bg-[#1C1C1E] dark:bg-[#2C2C2E] text-white px-5 py-2.5 rounded-full text-[13px] font-medium shadow-2xl border border-white/10 flex items-center gap-2.5 animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <span className={`w-2 h-2 rounded-full ${toast.type === 'error' ? 'bg-[#FF3B30]' : 'bg-[#34C759]'}`} />
+          <span>{toast.msg}</span>
+        </div>
+      )}
     </>
   );
 }
@@ -3899,8 +4323,8 @@ function RestartKioskBtn({ locId, backend, fetchWithAuth }) {
     >
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
         style={{ animation: rstState === 'sending' ? 'spin 0.8s linear infinite' : 'none' }}>
-        <path d="M2.5 2v6h6M21.5 22v-6h-6"/>
-        <path d="M22 11.5A10 10 0 0 0 3.2 7.2M2 12.5a10 10 0 0 0 18.8 4.2"/>
+        <path d="M2.5 2v6h6M21.5 22v-6h-6" />
+        <path d="M22 11.5A10 10 0 0 0 3.2 7.2M2 12.5a10 10 0 0 0 18.8 4.2" />
       </svg>
       {labels[rstState]}
     </button>
@@ -3916,15 +4340,9 @@ function KioskSwitch({ checked, onChange, disabled }) {
       aria-checked={checked}
       disabled={disabled}
       onClick={() => !disabled && onChange(!checked)}
-      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-        checked ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'
-      } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+      className={`apple-switch ${checked ? 'is-on' : ''} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
     >
-      <span
-        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-          checked ? 'translate-x-5' : 'translate-x-0'
-        }`}
-      />
+      <span className="apple-switch-thumb" />
     </button>
   );
 }
@@ -3941,9 +4359,9 @@ function KioskColorPicker({ label, value, onChange, placeholder, allowClear, cle
             onChange={e => onChange(e.target.value)}
             className="absolute -inset-2 w-14 h-14 cursor-pointer opacity-0"
           />
-          <div 
-            className="w-full h-full border border-black/10" 
-            style={{ backgroundColor: value || 'transparent' }} 
+          <div
+            className="w-full h-full border border-black/10"
+            style={{ backgroundColor: value || 'transparent' }}
           />
         </div>
         <input
@@ -3957,7 +4375,7 @@ function KioskColorPicker({ label, value, onChange, placeholder, allowClear, cle
           <button
             type="button"
             onClick={() => onChange(clearValue)}
-            className="px-2.5 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-700 transition-colors"
+            className="px-2.5 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full border border-slate-200 dark:border-slate-700 transition-colors"
           >
             {clearLabel}
           </button>
@@ -4174,7 +4592,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
     fetchWithAuth(`${backend}/api/promotions`)
       .then(r => r.json())
       .then(d => setPromosData(d || {}))
-      .catch(() => {});
+      .catch(() => { });
   }, [backend, fetchWithAuth]);
 
   // Derived: active brands for this location
@@ -4192,17 +4610,17 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
       ])
         .then(([brandData, menuData]) => {
           if (brandData) {
-             setBrandProfiles(prev => ({ 
-               ...prev, 
-               [brandId]: { 
-                 brand: brandData, 
-                 profiles: brandData.data?.menuProfiles || [],
-                 menu: menuData || null
-               } 
-             }));
+            setBrandProfiles(prev => ({
+              ...prev,
+              [brandId]: {
+                brand: brandData,
+                profiles: brandData.data?.menuProfiles || [],
+                menu: menuData || null
+              }
+            }));
           }
         })
-        .catch(() => {});
+        .catch(() => { });
     });
   }, [backend, activeBrands.join(','), loc.id, JSON.stringify(formData.orgIds || {}), JSON.stringify(loc.orgIds || {})]);
 
@@ -4244,10 +4662,10 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
         }
       });
     }
-    if (!useBottomBanner) { 
-      finalData.bottomBannerUrl = ''; 
-      finalData.bottomBannerText = ''; 
-      finalData.bottomBannerContent = ''; 
+    if (!useBottomBanner) {
+      finalData.bottomBannerUrl = '';
+      finalData.bottomBannerText = '';
+      finalData.bottomBannerContent = '';
       finalData.bottomBannerLogoUrl = '';
     }
 
@@ -4262,7 +4680,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
       setTimeout(() => {
         onBack();
       }, 1000);
-    } catch(e) {
+    } catch (e) {
       console.error('Eroare la salvare.');
       setIsSaving(false);
     }
@@ -4292,16 +4710,16 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
   const renderPreview = (u, rotation = 0) => {
     if (!u) return null;
     let style = { width: '100%', height: '100%', objectFit: 'contain', border: 'none' };
-    
+
     if (rotation === 90 || rotation === 270) {
-      style = { 
+      style = {
         ...style,
         width: '177.77%',
         height: '56.25%',
         position: 'absolute',
         top: '50%',
         left: '50%',
-        transform: `translate(-50%, -50%) rotate(${rotation}deg)` 
+        transform: `translate(-50%, -50%) rotate(${rotation}deg)`
       };
     } else if (rotation === 180) {
       style = { ...style, transform: `rotate(180deg)` };
@@ -4321,7 +4739,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
     const locOrgId = (formData.orgIds && formData.orgIds[editBrandId]) || (loc.orgIds && loc.orgIds[editBrandId]) || '';
     return (
       <div className="admin-section" style={{ padding: 0 }}>
-        <MenuProfileEditorModal 
+        <MenuProfileEditorModal
           backend={backend}
           brand={editingMenuBrand.brand}
           profile={editingMenuBrand.profile}
@@ -4331,74 +4749,74 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
           locationName={formData.name || loc.name}
           onClose={() => setEditingMenuBrand(null)}
           onSave={async (updatedConfig) => {
-             const brandId = editingMenuBrand.brand.id;
-             const newOverrides = { ...formData.menuOverrides };
-             if (!newOverrides[brandId]) newOverrides[brandId] = {};
-             newOverrides[brandId].hiddenItems = updatedConfig.hiddenItems;
+            const brandId = editingMenuBrand.brand.id;
+            const newOverrides = { ...formData.menuOverrides };
+            if (!newOverrides[brandId]) newOverrides[brandId] = {};
+            newOverrides[brandId].hiddenItems = updatedConfig.hiddenItems;
 
-             // Actualizare sau creare profil de meniu pentru brand dacă numele a fost editat
-             const brand = editingMenuBrand.brand;
-             const currentProfiles = brand.data?.menuProfiles || [];
-             let updatedProfiles = [...currentProfiles];
-             const trimmedName = (updatedConfig.name || '').trim();
-             let profileModified = false;
+            // Actualizare sau creare profil de meniu pentru brand dacă numele a fost editat
+            const brand = editingMenuBrand.brand;
+            const currentProfiles = brand.data?.menuProfiles || [];
+            let updatedProfiles = [...currentProfiles];
+            const trimmedName = (updatedConfig.name || '').trim();
+            let profileModified = false;
 
-             if (editingMenuBrand.profile?.id) {
-               if (trimmedName && trimmedName !== editingMenuBrand.profile.name) {
-                 updatedProfiles = currentProfiles.map(p => 
-                   p.id === editingMenuBrand.profile.id ? { ...p, name: trimmedName } : p
-                 );
-                 profileModified = true;
-               }
-             } else if (trimmedName && trimmedName !== 'Meniu Complet (Fără Șablon)' && trimmedName !== 'Meniu Personalizat') {
-               const newProfId = 'prof_' + Date.now().toString(36);
-               const newProf = {
-                 id: newProfId,
-                 name: trimmedName,
-                 rootFolderId: updatedConfig.rootFolderId || null,
-                 hiddenItems: updatedConfig.hiddenItems || {}
-               };
-               updatedProfiles.push(newProf);
-               newOverrides[brandId].profileId = newProfId;
-               profileModified = true;
-             }
+            if (editingMenuBrand.profile?.id) {
+              if (trimmedName && trimmedName !== editingMenuBrand.profile.name) {
+                updatedProfiles = currentProfiles.map(p =>
+                  p.id === editingMenuBrand.profile.id ? { ...p, name: trimmedName } : p
+                );
+                profileModified = true;
+              }
+            } else if (trimmedName && trimmedName !== 'Meniu Complet (Fără Șablon)' && trimmedName !== 'Meniu Personalizat') {
+              const newProfId = 'prof_' + Date.now().toString(36);
+              const newProf = {
+                id: newProfId,
+                name: trimmedName,
+                rootFolderId: updatedConfig.rootFolderId || null,
+                hiddenItems: updatedConfig.hiddenItems || {}
+              };
+              updatedProfiles.push(newProf);
+              newOverrides[brandId].profileId = newProfId;
+              profileModified = true;
+            }
 
-             if (profileModified) {
-               try {
-                 const updatedBrand = { ...brand, data: { ...brand.data, menuProfiles: updatedProfiles } };
-                 await fetchWithAuth(`${backend}/api/brands/${brandId}`, {
-                   method: 'PUT',
-                   headers: { 'Content-Type': 'application/json' },
-                   body: JSON.stringify(updatedBrand)
-                 });
-                 setBrandProfiles(prev => ({
-                   ...prev,
-                   [brandId]: { brand: updatedBrand, profiles: updatedProfiles }
-                 }));
-               } catch (err) {
-                 console.error('Eroare salvare profil brand:', err);
-               }
-             }
+            if (profileModified) {
+              try {
+                const updatedBrand = { ...brand, data: { ...brand.data, menuProfiles: updatedProfiles } };
+                await fetchWithAuth(`${backend}/api/brands/${brandId}`, {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(updatedBrand)
+                });
+                setBrandProfiles(prev => ({
+                  ...prev,
+                  [brandId]: { brand: updatedBrand, profiles: updatedProfiles }
+                }));
+              } catch (err) {
+                console.error('Eroare salvare profil brand:', err);
+              }
+            }
 
-             handleChange('menuOverrides', newOverrides);
-             setEditingMenuBrand(null);
-             try {
-               await fetchWithAuth(`${backend}/api/locations/${loc.id}`, {
-                 method: 'PUT',
-                 headers: { 'Content-Type': 'application/json' },
-                 body: JSON.stringify({ menuOverrides: newOverrides })
-               });
-             } catch (err) {
-               console.error('Auto-save visibility error:', err);
-             }
+            handleChange('menuOverrides', newOverrides);
+            setEditingMenuBrand(null);
+            try {
+              await fetchWithAuth(`${backend}/api/locations/${loc.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ menuOverrides: newOverrides })
+              });
+            } catch (err) {
+              console.error('Auto-save visibility error:', err);
+            }
           }}
         />
       </div>
     );
   }
 
-  const finalKioskUrl = formData.kioskUrl 
-    ? `https://kiosk-smashme.netlify.app/?loc=${formData.kioskUrl}` 
+  const finalKioskUrl = formData.kioskUrl
+    ? `https://kiosk-smashme.netlify.app/?loc=${formData.kioskUrl}`
     : `https://kiosk-smashme.netlify.app/?loc=${loc.id}`;
 
   const TABS = [
@@ -4418,7 +4836,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
           <button
             type="button"
             onClick={onBack}
-            className="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-semibold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+            className="px-3.5 py-2 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-semibold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
             title="Înapoi la lista de Kioskuri"
           >
             ← Înapoi
@@ -4430,9 +4848,9 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
               <span className="text-[11px] font-medium text-slate-400">URL: {loc.kioskUrl || loc.id}</span>
             </div>
             <div className="flex items-center gap-2 mt-0.5">
-              <input 
-                type="text" 
-                value={formData.name || ''} 
+              <input
+                type="text"
+                value={formData.name || ''}
                 onChange={e => handleChange('name', e.target.value)}
                 placeholder="Nume Locație (ex: SmashMe Cluj)"
                 className="text-xl font-bold text-slate-900 dark:text-white bg-transparent border-b-2 border-dashed border-blue-500/50 focus:border-blue-500 outline-none pb-0.5 min-w-[260px] transition-colors"
@@ -4446,7 +4864,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
           <button
             type="button"
             onClick={goToPromoProducts}
-            className="inline-flex items-center gap-2 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/20 dark:hover:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-3.5 py-2 rounded-xl text-sm font-semibold border border-amber-200 dark:border-amber-800/60 transition-all shadow-xs cursor-pointer"
+            className="inline-flex items-center gap-2 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/20 dark:hover:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-3.5 py-2 rounded-full text-sm font-semibold border border-amber-200 dark:border-amber-800/60 transition-all shadow-xs cursor-pointer"
             title="Deschide lista de produse promoționale și oferte Pop-up Start pentru acest Kiosk"
           >
             <Tags className="w-4 h-4 text-amber-500" />
@@ -4454,33 +4872,32 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
           </button>
           <a
             href={finalKioskUrl}
-            target="_blank" 
+            target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-200 px-4 py-2 rounded-xl text-sm font-semibold border border-slate-200 dark:border-slate-700 transition-all shadow-sm"
+            className="apple-btn-secondary px-4 py-2 text-[13px]"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            Deschide Live
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
+            <span>Deschide Live</span>
           </a>
           <RestartKioskBtn locId={loc.id} backend={backend} fetchWithAuth={fetchWithAuth} />
-          <button 
+          <button
             type="button"
             onClick={handleDeleteThisLoc}
-            className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-red-200 dark:hover:border-red-500/30 bg-slate-100 hover:bg-red-50 dark:bg-slate-800 dark:hover:bg-red-500/10 text-slate-600 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400 transition-all shadow-sm flex items-center justify-center cursor-pointer"
+            className="apple-glass-btn apple-glass-btn-danger"
             title="Șterge Kiosk"
           >
             <Trash2 className="w-4 h-4" />
           </button>
-          <button 
+          <button
             type="button"
-            onClick={saveSettings} 
+            onClick={saveSettings}
             disabled={isSaving || saveSuccess}
-            className={`px-6 py-2.5 rounded-xl text-sm font-bold text-white transition-all shadow-md flex items-center gap-2 cursor-pointer ${
-              saveSuccess 
-                ? 'bg-emerald-600 shadow-emerald-500/30 ring-2 ring-emerald-400' 
-                : isSaving 
-                  ? 'bg-slate-700 opacity-80 cursor-wait' 
-                  : 'bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-500 shadow-slate-900/20'
-            }`}
+            className={`px-5 py-2.5 rounded-full text-[13px] font-semibold text-white transition-all inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer ${saveSuccess
+              ? 'bg-[#34C759] shadow-[0_2px_10px_rgba(52,199,89,0.35)]'
+              : isSaving
+                ? 'bg-[#007AFF]/70 cursor-wait'
+                : 'apple-btn-primary'
+              }`}
           >
             {saveSuccess ? 'Configurație Salvată' : isSaving ? 'Se salvează...' : 'Salvează Schimbările'}
           </button>
@@ -4497,20 +4914,18 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center justify-center gap-1.5 px-2.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer text-center ${
-                  isActive
-                    ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm border border-slate-200/80 dark:border-slate-700/80 ring-1 ring-blue-500/20'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-700/50'
-                }`}
+                className={`flex items-center justify-center gap-1.5 px-2.5 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all cursor-pointer text-center ${isActive
+                  ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm border border-slate-200/80 dark:border-slate-700/80 ring-1 ring-blue-500/20'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-700/50'
+                  }`}
               >
                 <span className="shrink-0">{tab.icon}</span>
                 <span className="truncate">{tab.label}</span>
                 {tab.badge && (
-                  <span className={`shrink-0 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full ${
-                    isActive 
-                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' 
-                      : 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
-                  }`}>
+                  <span className={`shrink-0 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full ${isActive
+                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300'
+                    : 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                    }`}>
                     {tab.badge}
                   </span>
                 )}
@@ -4553,7 +4968,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
               {activeBrands.map(brandId => {
                 const bData = brandProfiles[brandId];
                 if (!bData || !bData.brand) return null;
-                
+
                 const brandOverrides = (formData.menuOverrides || {})[brandId] || {};
                 const currentProfileId = brandOverrides.profileId || '';
                 const localHiddenCount = Object.keys(brandOverrides.hiddenItems || {}).length;
@@ -4611,11 +5026,10 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                             localHiddenItemsOverride: overrides.hiddenItems || {}
                           });
                         }}
-                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
-                          localHiddenCount > 0 
-                            ? 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/50 dark:border-blue-800' 
-                            : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
-                        }`}
+                        className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border cursor-pointer ${localHiddenCount > 0
+                          ? 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/50 dark:border-blue-800'
+                          : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                          }`}
                       >
                         Editează Vizibilitatea {localHiddenCount > 0 && `(${localHiddenCount} specifice)`}
                       </button>
@@ -4827,11 +5241,10 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                         key={opt.v}
                         type="button"
                         onClick={() => handleChange('kioskUiSize', opt.v)}
-                        className={`py-3 px-2 rounded-lg text-center transition-all cursor-pointer ${
-                          isSelected
-                            ? 'bg-white dark:bg-slate-750 text-blue-600 dark:text-blue-400 font-bold shadow-sm'
-                            : 'text-slate-600 dark:text-slate-400 font-medium hover:text-slate-900 dark:hover:text-white'
-                        }`}
+                        className={`py-3 px-2 rounded-full text-center transition-all cursor-pointer ${isSelected
+                          ? 'bg-white dark:bg-slate-750 text-blue-600 dark:text-blue-400 font-bold shadow-sm'
+                          : 'text-slate-600 dark:text-slate-400 font-medium hover:text-slate-900 dark:hover:text-white'
+                          }`}
                       >
                         <div className="text-sm">{opt.l}</div>
                         <div className="text-[10px] opacity-75">{opt.desc}</div>
@@ -4933,11 +5346,10 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                       key={opt.id}
                       type="button"
                       onClick={() => handleChange('halloweenButtonTheme', opt.id)}
-                      className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                        (formData.halloweenButtonTheme || 'auto') === opt.id
-                          ? 'bg-gradient-to-r from-orange-600 to-purple-600 text-white shadow-sm'
-                          : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
-                      }`}
+                      className={`px-3 py-1.5 text-xs font-bold rounded-full transition-all ${(formData.halloweenButtonTheme || 'auto') === opt.id
+                        ? 'bg-gradient-to-r from-orange-600 to-purple-600 text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                        }`}
                     >
                       {opt.label}
                     </button>
@@ -5007,7 +5419,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                         border: '2px solid #ff8800',
                         animation: 'adminHalloweenAlive 5.5s cubic-bezier(0.4, 0, 0.2, 1) infinite',
                       } : {
-                        background: formData.langButtonFlagColors 
+                        background: formData.langButtonFlagColors
                           ? 'linear-gradient(90deg, #002B7F 33.3%, #FCD116 33.3% 66.6%, #CE1126 66.6%)'
                           : (formData.langButtonColor || '#0f172a'),
                         color: formData.langButtonTextColor || '#ffffff',
@@ -5048,7 +5460,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                             zIndex: 3,
                           }}
                         >
-                          </span>
+                        </span>
                       )}
 
                       {/* Floating Pumpkin */}
@@ -5138,9 +5550,8 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                   onChange={e => handleChange('posterUrl', e.target.value)}
                   className="flex-1 px-3.5 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
-                <label className={`px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer shrink-0 ${
-                  uploadingScreensaver ? 'opacity-70 cursor-wait' : ''
-                }`}>
+                <label className={`px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer shrink-0 ${uploadingScreensaver ? 'opacity-70 cursor-wait' : ''
+                  }`}>
                   {uploadingScreensaver ? (
                     'Se încarcă...'
                   ) : (
@@ -5177,11 +5588,10 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                       key={rot.v}
                       type="button"
                       onClick={() => handleChange('posterRotation', rot.v)}
-                      className={`py-2 px-2 rounded-lg text-xs transition-all cursor-pointer ${
-                        isSelected
-                          ? 'bg-white dark:bg-slate-750 text-blue-600 dark:text-blue-400 font-bold shadow-sm'
-                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-medium'
-                      }`}
+                      className={`py-2 px-2 rounded-full text-xs transition-all cursor-pointer ${isSelected
+                        ? 'bg-white dark:bg-slate-750 text-blue-600 dark:text-blue-400 font-bold shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-medium'
+                        }`}
                     >
                       {rot.l}
                     </button>
@@ -5336,7 +5746,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                       <div className="w-full h-8 bg-slate-300 dark:bg-slate-700 rounded" />
                       <div className="w-full h-8 bg-slate-300 dark:bg-slate-700 rounded" />
                     </div>
-                    <div 
+                    <div
                       className="absolute top-0 left-0 right-0 overflow-hidden bg-black shadow-md transition-all duration-300"
                       style={{
                         height: `${10 + ((formData.topBannerHeight || 1) - 1) * 5}%`,
@@ -5449,7 +5859,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                           const cur = formData.bottomBannerText ? formData.bottomBannerText.trim() : '';
                           handleChange('bottomBannerText', cur ? `${cur} • ${add}` : add);
                         }}
-                        className="px-2 py-0.5 text-[10px] font-medium bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 text-slate-600 dark:text-slate-300 rounded-md border border-slate-200 dark:border-slate-700 transition-colors"
+                        className="px-2 py-0.5 text-[10px] font-medium bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 text-slate-600 dark:text-slate-300 rounded-full border border-slate-200 dark:border-slate-700 transition-colors"
                       >
                         + wwww.getapp.ro
                       </button>
@@ -5460,7 +5870,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                           const cur = formData.bottomBannerText ? formData.bottomBannerText.trim() : '';
                           handleChange('bottomBannerText', cur ? `${cur} • ${add}` : add);
                         }}
-                        className="px-2 py-0.5 text-[10px] font-medium bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 text-slate-600 dark:text-slate-300 rounded-md border border-slate-200 dark:border-slate-700 transition-colors"
+                        className="px-2 py-0.5 text-[10px] font-medium bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 text-slate-600 dark:text-slate-300 rounded-full border border-slate-200 dark:border-slate-700 transition-colors"
                       >
                         + 0727 77 77 12
                       </button>
@@ -5480,11 +5890,10 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                             key={String(m.v)}
                             type="button"
                             onClick={() => handleChange('bottomBannerTextFixed', m.v)}
-                            className={`py-1 text-xs rounded font-semibold transition-all ${
-                              formData.bottomBannerTextFixed === m.v
-                                ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm'
-                                : 'text-slate-500'
-                            }`}
+                            className={`py-1 text-xs rounded font-semibold transition-all ${formData.bottomBannerTextFixed === m.v
+                              ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm'
+                              : 'text-slate-500'
+                              }`}
                           >
                             {m.l}
                           </button>
@@ -5500,11 +5909,10 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                             key={align}
                             type="button"
                             onClick={() => handleChange('bottomBannerTextAlign', align)}
-                            className={`py-1 text-xs rounded font-semibold capitalize transition-all ${
-                              (formData.bottomBannerTextAlign || 'center') === align
-                                ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm'
-                                : 'text-slate-500'
-                            }`}
+                            className={`py-1 text-xs rounded font-semibold capitalize transition-all ${(formData.bottomBannerTextAlign || 'center') === align
+                              ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm'
+                              : 'text-slate-500'
+                              }`}
                           >
                             {align === 'left' ? 'Stânga' : align === 'center' ? 'Centru' : 'Dreapta'}
                           </button>
@@ -5620,7 +6028,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                 {/* Simulator Footer */}
                 <div className="lg:col-span-5 flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3">Simulator Banner Footer (Kiosk)</span>
-                  
+
                   {/* Phone Simulator Frame */}
                   <div className="w-[150px] h-[260px] rounded-2xl overflow-hidden border-4 border-slate-800 bg-slate-900 relative shadow-lg flex flex-col justify-end">
                     {/* Dummy menu content in simulator */}
@@ -5642,7 +6050,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                       const hasSimCustomBg = Boolean(simInfoBg && simInfoBg !== 'transparent');
 
                       return (
-                        <div 
+                        <div
                           className="w-full transition-all duration-300 flex flex-col items-center justify-center px-1 py-0.5 relative overflow-hidden z-10 text-center"
                           style={{
                             height: `${14 + ((formData.bottomBannerHeight || 1) - 1) * 4}%`,
@@ -5654,7 +6062,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                             gap: '1px'
                           }}
                         >
-                          <div 
+                          <div
                             className="flex flex-col items-center justify-center transition-all duration-200"
                             style={{
                               backgroundColor: simInfoBg || 'transparent',
@@ -5665,10 +6073,10 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                             }}
                           >
                             {formData.bottomBannerLogoUrl && (
-                              <img 
-                                src={formData.bottomBannerLogoUrl} 
-                                alt="Logo" 
-                                className="h-2.5 max-w-[28px] object-contain shrink-0" 
+                              <img
+                                src={formData.bottomBannerLogoUrl}
+                                alt="Logo"
+                                className="h-2.5 max-w-[28px] object-contain shrink-0"
                               />
                             )}
                             {simWeb && (
@@ -5709,7 +6117,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                       const hasPCustomBg = Boolean(pInfoBg && pInfoBg !== 'transparent');
 
                       return (
-                        <div 
+                        <div
                           className="w-full min-h-[64px] py-2 px-3 rounded-xl flex flex-col items-center justify-center gap-1 overflow-hidden shadow-sm"
                           style={{
                             backgroundColor: formData.bottomBannerBg || '#1e293b',
@@ -5720,7 +6128,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                             textAlign: formData.bottomBannerTextAlign || 'center'
                           }}
                         >
-                          <div 
+                          <div
                             className="flex flex-col items-center justify-center transition-all duration-200"
                             style={{
                               backgroundColor: pInfoBg || 'transparent',
@@ -5732,10 +6140,10 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                             }}
                           >
                             {formData.bottomBannerLogoUrl && (
-                              <img 
-                                src={formData.bottomBannerLogoUrl} 
-                                alt="Logo" 
-                                className="h-5 max-w-[80px] object-contain shrink-0" 
+                              <img
+                                src={formData.bottomBannerLogoUrl}
+                                alt="Logo"
+                                className="h-5 max-w-[80px] object-contain shrink-0"
                               />
                             )}
                             {pWeb && (
@@ -5850,7 +6258,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                     <button
                       type="button"
                       onClick={() => setShowWheelPreviewFull(true)}
-                      className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-200 text-xs font-bold transition-all border border-slate-200 dark:border-slate-700"
+                      className="w-full py-2.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-200 text-xs font-bold transition-all border border-slate-200 dark:border-slate-700"
                     >
                       Deschide Simulatorul Roții de Noroc
                     </button>
@@ -5879,22 +6287,21 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                     <Tags className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                     Produse cu Ofertă de Start pe acest Kiosk:
                   </span>
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-black ${
-                    startPopupCount > 0 
-                      ? 'bg-emerald-600 text-white shadow-xs' 
-                      : activePromoCount > 0 
-                        ? 'bg-amber-500 text-white' 
-                        : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-                  }`}>
-                    {startPopupCount > 0 
-                      ? `${startPopupCount} în Pop-up Start` 
-                      : activePromoCount > 0 
-                        ? `${activePromoCount} promo (fără Pop-up Start)` 
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-black ${startPopupCount > 0
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : activePromoCount > 0
+                      ? 'bg-amber-500 text-white'
+                      : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                    }`}>
+                    {startPopupCount > 0
+                      ? `${startPopupCount} în Pop-up Start`
+                      : activePromoCount > 0
+                        ? `${activePromoCount} promo (fără Pop-up Start)`
                         : '0 configurate'}
                   </span>
                 </div>
                 <p className="text-[11px] text-amber-800/80 dark:text-amber-300/80 leading-relaxed">
-                  {startPopupCount > 0 
+                  {startPopupCount > 0
                     ? `Kioskul afișează automat popup-ul cu ofertele de întâmpinare la primul contact al clientului cu ecranul.`
                     : `Configurează prețul promoțional și bifează căsuța „Pop-up Start” în ecranul de Produse & Etichete.`}
                 </p>
@@ -5903,7 +6310,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
               <button
                 type="button"
                 onClick={goToPromoProducts}
-                className="shrink-0 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-sm shadow-amber-600/20 transition-all cursor-pointer"
+                className="shrink-0 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-sm shadow-amber-600/20 transition-all cursor-pointer"
                 title="Deschide ecranul Produse & Etichete pre-filtrat pe acest kiosk și pe Doar Promo"
               >
                 <span>Gestionează Produse Promo (Overrides)</span>
@@ -5919,11 +6326,10 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                 <button
                   type="button"
                   onClick={() => handleChange('startPromoLayout', 'carousel')}
-                  className={`p-4 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
-                    (formData.startPromoLayout || 'carousel') === 'carousel'
-                      ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 ring-2 ring-blue-500/20'
-                      : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900'
-                  }`}
+                  className={`p-4 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${(formData.startPromoLayout || 'carousel') === 'carousel'
+                    ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 ring-2 ring-blue-500/20'
+                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900'
+                    }`}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-bold text-sm text-slate-900 dark:text-white">Carusel (Slider Tactil)</span>
@@ -5939,11 +6345,10 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                 <button
                   type="button"
                   onClick={() => handleChange('startPromoLayout', 'duo')}
-                  className={`p-4 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
-                    formData.startPromoLayout === 'duo'
-                      ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 ring-2 ring-blue-500/20'
-                      : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900'
-                  }`}
+                  className={`p-4 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${formData.startPromoLayout === 'duo'
+                    ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 ring-2 ring-blue-500/20'
+                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900'
+                    }`}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-bold text-sm text-slate-900 dark:text-white">Duo (2 Coloane Alăturate)</span>
@@ -6008,11 +6413,10 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                       return (
                         <div
                           key={lang}
-                          className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all ${
-                            isDefault 
-                              ? 'bg-blue-50/70 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800' 
-                              : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-800'
-                          }`}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all ${isDefault
+                            ? 'bg-blue-50/70 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800'
+                            : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-800'
+                            }`}
                         >
                           <span className="text-xs font-bold text-slate-400 w-5 text-center">{idx + 1}</span>
                           <span className="flex-1 text-sm font-bold text-slate-800 dark:text-slate-100">{langNames[lang]}</span>
@@ -6062,7 +6466,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                             key={l}
                             type="button"
                             onClick={() => addLang(l)}
-                            className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 text-slate-600 dark:text-slate-400 hover:text-blue-600 transition-all cursor-pointer"
+                            className="px-2.5 py-1 text-xs font-semibold rounded-full border border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 text-slate-600 dark:text-slate-400 hover:text-blue-600 transition-all cursor-pointer"
                           >
                             + {langNames[l]}
                           </button>
@@ -6094,11 +6498,10 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                       key={pos.v}
                       type="button"
                       onClick={() => handleChange('langVerticalPosition', pos.v)}
-                      className={`py-2 text-xs font-bold rounded-lg transition-all ${
-                        (formData.langVerticalPosition || 'bottom') === pos.v
-                          ? 'bg-white dark:bg-slate-750 text-blue-600 shadow-sm'
-                          : 'text-slate-500'
-                      }`}
+                      className={`py-2 text-xs font-bold rounded-full transition-all ${(formData.langVerticalPosition || 'bottom') === pos.v
+                        ? 'bg-white dark:bg-slate-750 text-blue-600 shadow-sm'
+                        : 'text-slate-500'
+                        }`}
                     >
                       {pos.l}
                     </button>
@@ -6118,11 +6521,10 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                       key={mom.v}
                       type="button"
                       onClick={() => handleChange('langSelectorPosition', mom.v)}
-                      className={`py-2 text-xs font-bold rounded-lg transition-all ${
-                        formData.langSelectorPosition === mom.v
-                          ? 'bg-white dark:bg-slate-750 text-blue-600 shadow-sm'
-                          : 'text-slate-500'
-                      }`}
+                      className={`py-2 text-xs font-bold rounded-full transition-all ${formData.langSelectorPosition === mom.v
+                        ? 'bg-white dark:bg-slate-750 text-blue-600 shadow-sm'
+                        : 'text-slate-500'
+                        }`}
                     >
                       {mom.l}
                     </button>
@@ -6211,11 +6613,10 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                     key={pos.id}
                     type="button"
                     onClick={() => handleChange('paymentGateway', pos.id)}
-                    className={`p-4 rounded-xl text-left border transition-all cursor-pointer flex flex-col justify-between ${
-                      isSelected
-                        ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-950/40 ring-2 ring-blue-500/20'
-                        : 'border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/30 hover:border-slate-300'
-                    }`}
+                    className={`p-4 rounded-xl text-left border transition-all cursor-pointer flex flex-col justify-between ${isSelected
+                      ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-950/40 ring-2 ring-blue-500/20'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/30 hover:border-slate-300'
+                      }`}
                   >
                     <div>
                       <div className="mb-2">{pos.icon}</div>
@@ -6254,11 +6655,10 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                       key={opt.id}
                       type="button"
                       onClick={() => handleChange('paymentMode', opt.id)}
-                      className={`p-3 rounded-xl text-left border transition-all cursor-pointer flex flex-col justify-between ${
-                        isSel
-                          ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/40 ring-2 ring-emerald-500/20'
-                          : 'border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/30 hover:border-slate-300'
-                      }`}
+                      className={`p-3 rounded-xl text-left border transition-all cursor-pointer flex flex-col justify-between ${isSel
+                        ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/40 ring-2 ring-emerald-500/20'
+                        : 'border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/30 hover:border-slate-300'
+                        }`}
                     >
                       <div>
                         <div className="text-xs font-bold text-slate-900 dark:text-white">{opt.title}</div>
@@ -6299,18 +6699,16 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                     <span className="block mt-0.5 text-slate-400 dark:text-slate-500 italic">Recomandat: <strong>5 minute</strong> pentru a preveni deconectarea portului serial.</span>
                   </p>
                 </div>
-                
+
                 <button
                   type="button"
                   onClick={() => handleChange('posWakeStandby', !formData.posWakeStandby)}
-                  className={`shrink-0 relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                    formData.posWakeStandby ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'
-                  }`}
+                  className={`shrink-0 relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${formData.posWakeStandby ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'
+                    }`}
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      formData.posWakeStandby ? 'translate-x-6' : 'translate-x-1'
-                    }`}
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.posWakeStandby ? 'translate-x-6' : 'translate-x-1'
+                      }`}
                   />
                 </button>
               </div>
@@ -6333,7 +6731,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                           if (current > 1) handleChange('posWakeIntervalMinutes', current - 1);
                         }}
                         disabled={Number(formData.posWakeIntervalMinutes || 5) <= 1}
-                        className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition font-extrabold text-lg select-none"
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition font-extrabold text-lg select-none"
                         title="Scade cu 1 minut"
                       >
                         -
@@ -6355,7 +6753,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                           if (current < 60) handleChange('posWakeIntervalMinutes', current + 1);
                         }}
                         disabled={Number(formData.posWakeIntervalMinutes || 5) >= 60}
-                        className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition font-extrabold text-lg select-none"
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition font-extrabold text-lg select-none"
                         title="Crește cu 1 minut"
                       >
                         +
@@ -6380,13 +6778,12 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                           key={preset.min}
                           type="button"
                           onClick={() => handleChange('posWakeIntervalMinutes', preset.min)}
-                          className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-all ${
-                            isSelected
-                              ? 'bg-blue-600 text-white shadow-sm ring-2 ring-blue-600/30 font-bold'
-                              : preset.highlight
-                                ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800'
-                                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700'
-                          }`}
+                          className={`text-xs px-2.5 py-1 rounded-full font-medium transition-all ${isSelected
+                            ? 'bg-blue-600 text-white shadow-sm ring-2 ring-blue-600/30 font-bold'
+                            : preset.highlight
+                              ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800'
+                              : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700'
+                            }`}
                         >
                           {preset.label}
                         </button>
@@ -6419,7 +6816,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                   return (
                     <div key={k} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl">
                       <div className="flex items-center gap-3">
-                        <div 
+                        <div
                           className="w-7 h-7 rounded-lg flex items-center justify-center text-white"
                           style={{ background: BRAND_COLORS?.[k] || '#64748b' }}
                         >
@@ -6435,7 +6832,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                           onClick={() => {
                             const newB = [...formData.brands];
                             if (index > 0) {
-                              [newB[index-1], newB[index]] = [newB[index], newB[index-1]];
+                              [newB[index - 1], newB[index]] = [newB[index], newB[index - 1]];
                               setFormData(p => ({ ...p, brands: newB }));
                             }
                           }}
@@ -6449,7 +6846,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                           onClick={() => {
                             const newB = [...formData.brands];
                             if (index < newB.length - 1) {
-                              [newB[index+1], newB[index]] = [newB[index], newB[index+1]];
+                              [newB[index + 1], newB[index]] = [newB[index], newB[index + 1]];
                               setFormData(p => ({ ...p, brands: newB }));
                             }
                           }}
@@ -6485,7 +6882,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                         key={k}
                         type="button"
                         onClick={() => toggleBrand(k)}
-                        className="px-3 py-1.5 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 transition-all cursor-pointer"
+                        className="px-3 py-1.5 rounded-full border border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 transition-all cursor-pointer"
                       >
                         <span className="text-blue-500">+</span>
                         <BrandLogo brandId={k} size={14} />
@@ -6513,7 +6910,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                   <button
                     type="button"
                     onClick={() => navigator.clipboard.writeText(finalKioskUrl)}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm shrink-0 cursor-pointer"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-xs font-bold transition-all shadow-sm shrink-0 cursor-pointer"
                   >
                     Copiază URL
                   </button>
@@ -6537,7 +6934,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                     <button
                       type="button"
                       onClick={() => navigator.clipboard.writeText(`${finalKioskUrl}&manager=true`)}
-                      className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                      className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-full text-xs font-bold transition-all cursor-pointer"
                       title="Copiază link-ul direct pentru Manager"
                     >
                       Copiază
@@ -6604,9 +7001,8 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                                 handleChange('kioskPin', val);
                                 if (val && !usePin) setUsePin(true);
                               }}
-                              className={`w-full px-3.5 py-2.5 pr-10 text-center rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all shadow-sm ${
-                                formData.kioskPin ? 'font-bold tracking-[0.25em] text-base' : 'font-normal tracking-normal text-sm placeholder:text-slate-400'
-                              }`}
+                              className={`w-full px-3.5 py-2.5 pr-10 text-center rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all shadow-sm ${formData.kioskPin ? 'font-bold tracking-[0.25em] text-base' : 'font-normal tracking-normal text-sm placeholder:text-slate-400'
+                                }`}
                             />
                             <button
                               type="button"
@@ -6621,7 +7017,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                             <button
                               type="button"
                               onClick={() => handleChange('kioskPin', '')}
-                              className="px-3 py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 shrink-0"
+                              className="px-3 py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 shrink-0"
                               title="Șterge PIN Manager (Kioskul va funcționa fără PIN)"
                             >
                               <RotateCcw className="w-3.5 h-3.5" />
@@ -6655,9 +7051,8 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                                 handleChange('vendorPin', val);
                                 if (val && !usePin) setUsePin(true);
                               }}
-                              className={`w-full px-3.5 py-2.5 pr-10 text-center rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all shadow-sm ${
-                                formData.vendorPin ? 'font-bold tracking-[0.25em] text-base' : 'font-normal tracking-normal text-sm placeholder:text-slate-400'
-                              }`}
+                              className={`w-full px-3.5 py-2.5 pr-10 text-center rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all shadow-sm ${formData.vendorPin ? 'font-bold tracking-[0.25em] text-base' : 'font-normal tracking-normal text-sm placeholder:text-slate-400'
+                                }`}
                             />
                             <button
                               type="button"
@@ -6672,7 +7067,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                             <button
                               type="button"
                               onClick={() => handleChange('vendorPin', '')}
-                              className="px-3 py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 shrink-0"
+                              className="px-3 py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 shrink-0"
                               title="Șterge PIN Vânzător"
                             >
                               <RotateCcw className="w-3.5 h-3.5" />
@@ -6732,9 +7127,8 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                             confirm('Eroare de rețea la actualizarea stării de blocare.', { title: 'Eroare de rețea', danger: true, hideCancel: true, okLabel: 'Închide' });
                           }
                         }}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold text-white shadow-sm flex items-center gap-2 transition-all active:scale-95 cursor-pointer shrink-0 ${
-                          formData.forceLocked ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'
-                        }`}
+                        className={`px-4 py-2 rounded-full text-xs font-bold text-white shadow-sm flex items-center gap-2 transition-all active:scale-95 cursor-pointer shrink-0 ${formData.forceLocked ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'
+                          }`}
                       >
                         {formData.forceLocked ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
                         <span>{formData.forceLocked ? 'Deblochează acum' : 'Blochează acum'}</span>
@@ -6770,22 +7164,20 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                               <button
                                 type="button"
                                 onClick={() => handleChange('lockScheduleMode', 'daily')}
-                                className={`px-4 py-1.5 rounded-lg transition-all ${
-                                  (formData.lockScheduleMode || 'daily') === 'daily'
-                                    ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm'
-                                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                                }`}
+                                className={`px-4 py-1.5 rounded-full transition-all ${(formData.lockScheduleMode || 'daily') === 'daily'
+                                  ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm'
+                                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                                  }`}
                               >
                                 Zilnic (Luni - Duminică)
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleChange('lockScheduleMode', 'custom')}
-                                className={`px-4 py-1.5 rounded-lg transition-all ${
-                                  formData.lockScheduleMode === 'custom'
-                                    ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm'
-                                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                                }`}
+                                className={`px-4 py-1.5 rounded-full transition-all ${formData.lockScheduleMode === 'custom'
+                                  ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm'
+                                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                                  }`}
                               >
                                 Zile selectate
                               </button>
@@ -6823,11 +7215,10 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                                         }
                                         handleChange('lockDays', updated);
                                       }}
-                                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                                        isSelected
-                                          ? 'bg-blue-500 text-white border-blue-600 shadow-sm'
-                                          : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-300'
-                                      }`}
+                                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${isSelected
+                                        ? 'bg-blue-500 text-white border-blue-600 shadow-sm'
+                                        : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-300'
+                                        }`}
                                     >
                                       {day.label}
                                     </button>
@@ -6905,7 +7296,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
               {activeBrands.map(brandId => {
                 const bData = brandProfiles[brandId];
                 if (!bData || !bData.brand) return null;
-                
+
                 const brandOverrides = (formData.menuOverrides || {})[brandId] || {};
                 const currentProfileId = brandOverrides.profileId || '';
                 const localHiddenCount = Object.keys(brandOverrides.hiddenItems || {}).length;
@@ -6963,11 +7354,10 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
                             localHiddenItemsOverride: overrides.hiddenItems || {}
                           });
                         }}
-                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
-                          localHiddenCount > 0 
-                            ? 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/50 dark:border-blue-800' 
-                            : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
-                        }`}
+                        className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border cursor-pointer ${localHiddenCount > 0
+                          ? 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/50 dark:border-blue-800'
+                          : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                          }`}
                       >
                         Editează Vizibilitatea {localHiddenCount > 0 && `(${localHiddenCount} specifice)`}
                       </button>
@@ -6983,7 +7373,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
       {/* ─── OVERLAY ROATĂ NOROC FULLSCREEN ─── */}
       {showWheelPreviewFull && formData.promoBrandId && promosData[formData.promoBrandId] && (
         <div className="fixed inset-0 z-[99999] bg-slate-950/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 animate-fadeIn">
-          <button 
+          <button
             type="button"
             onClick={() => setShowWheelPreviewFull(false)}
             className="absolute top-6 right-6 px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white text-sm font-bold border border-white/20 transition-all cursor-pointer"
@@ -7005,7 +7395,7 @@ function KioskSettingsForm({ loc, backend, initialTab = 'design', onBack, onSave
 /* ─── LOCATIONS MANAGER ──────────────────────────────────── */
 const BRAND_PILL_COLORS = BRAND_COLORS;
 
-function LocationsManager({ backend, kiosksLiveStatus = {} }) { 
+function LocationsManager({ backend, kiosksLiveStatus = {} }) {
   const { fetchWithAuth } = useAuth();
   const confirm = useConfirm();
   const [locations, setLocations] = useState([]);
@@ -7065,18 +7455,23 @@ function LocationsManager({ backend, kiosksLiveStatus = {} }) {
 
   const handleFilterChange = (f) => { setFilter(f); setCurrentPage(1); };
 
-  if (loading) return <p style={{color:'var(--text-muted)'}}>Se incarca...</p>;
+  if (loading) return (
+    <div className="apple-card flex flex-col items-center justify-center py-20 gap-3">
+      <div className="w-6 h-6 border-2 border-black/10 dark:border-white/10 border-t-[#007AFF] rounded-full animate-spin" />
+      <span className="text-[#86868B] text-[13px] font-medium">Se încarcă locațiile...</span>
+    </div>
+  );
 
   if (editingLoc) {
     return <LocationEditForm loc={editingLoc} backend={backend} onBack={() => setEditingLoc(null)} onSave={fetchLocs} />;
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Filters & Add button */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <button className={`px-4 h-10 rounded-full text-sm font-bold transition-all ${filter === 'all' ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`} onClick={() => handleFilterChange('all')}>
+      <div className="apple-card p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button className={`px-3.5 h-8 rounded-full text-[12px] font-semibold transition-all cursor-pointer tabular-nums ${filter === 'all' ? 'bg-[#007AFF] text-white' : 'bg-black/[0.04] dark:bg-white/[0.06] text-[#1D1D1F] dark:text-[#F5F5F7] hover:bg-black/[0.08] dark:hover:bg-white/[0.12]'}`} onClick={() => handleFilterChange('all')}>
             Toate ({locations.length})
           </button>
           {Object.entries(BRAND_LABELS).map(([k, v]) => {
@@ -7085,7 +7480,7 @@ function LocationsManager({ backend, kiosksLiveStatus = {} }) {
             return (
               <button
                 key={k}
-                className={`px-4 h-10 rounded-full text-sm font-bold flex items-center gap-2 transition-all border ${filter === k ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 shadow-sm' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                className={`px-3 h-8 rounded-full text-[12px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer tabular-nums ${filter === k ? 'bg-[#007AFF] text-white' : 'bg-black/[0.04] dark:bg-white/[0.06] text-[#6E6E73] dark:text-[#98989D] hover:bg-black/[0.08] dark:hover:bg-white/[0.12]'}`}
                 onClick={() => handleFilterChange(k)}
               >
                 <BrandLogo brandId={k} size={14} /> {v} ({count})
@@ -7093,26 +7488,26 @@ function LocationsManager({ backend, kiosksLiveStatus = {} }) {
             );
           })}
         </div>
-        <button className="px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap" onClick={() => setShowAdd(!showAdd)}>
-          Adaugă Locație
+        <button className="apple-btn-primary px-4 py-1.5 text-[13px] whitespace-nowrap" onClick={() => setShowAdd(!showAdd)}>
+          {showAdd ? 'Închide' : '+ Adaugă Locație'}
         </button>
       </div>
 
       {/* Add form */}
       {showAdd && (
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row gap-4 items-center">
+        <div className="apple-card p-4 flex flex-col sm:flex-row gap-3 items-center animate-in fade-in duration-150">
           <input
             type="text"
             placeholder="Nume locație (ex: SM Brașov)"
             value={newName}
             onChange={e => setNewName(e.target.value)}
-            className="flex-1 w-full h-10 px-4 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
+            className="apple-input flex-1 w-full text-[13px]"
           />
-          <div className="flex items-center gap-2 overflow-x-auto max-w-full">
+          <div className="flex items-center gap-1.5 overflow-x-auto max-w-full">
             {Object.entries(BRAND_LABELS).map(([k, v]) => (
               <button
                 key={k}
-                className={`px-3 h-10 rounded-full text-sm font-bold flex items-center gap-2 shrink-0 border transition-colors ${newBrands.includes(k) ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400' : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
+                className={`px-3 h-8 rounded-full text-[12px] font-semibold flex items-center gap-1.5 shrink-0 transition-colors cursor-pointer ${newBrands.includes(k) ? 'bg-[#007AFF] text-white' : 'bg-black/[0.04] dark:bg-white/[0.06] text-[#6E6E73] dark:text-[#98989D] hover:bg-black/[0.08]'}`}
                 onClick={() => toggleBrand(k)}
               ><BrandLogo brandId={k} size={14} /> {v}</button>
             ))}
@@ -7122,72 +7517,77 @@ function LocationsManager({ backend, kiosksLiveStatus = {} }) {
             min="1" max="100"
             value={newTables}
             onChange={e => setNewTables(Number(e.target.value))}
-            className="w-24 h-10 px-4 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
+            className="apple-input w-24 text-center text-[13px] tabular-nums"
             placeholder="Nr. mese"
           />
-          <button className="px-5 h-10 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-sm transition-all" onClick={createLocation}>Salvează</button>
+          <button className="apple-btn-primary px-4 py-2 text-[13px]" onClick={createLocation}>Salvează</button>
         </div>
       )}
 
       {/* Locations table */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div className="apple-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[800px]">
             <thead>
-              <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
-                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">#</th>
-                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Nume Locație</th>
-                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Branduri Active</th>
-                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Statistici</th>
-                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Stare</th>
-                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 text-right">Acțiuni</th>
+              <tr className="bg-black/[0.02] dark:bg-white/[0.02] border-b border-black/[0.06] dark:border-white/[0.08] text-[11px] font-semibold uppercase tracking-wider text-[#6E6E73] dark:text-[#98989D]">
+                <th className="px-5 py-3 w-12">#</th>
+                <th className="px-5 py-3">Nume Locație</th>
+                <th className="px-5 py-3">Branduri Active</th>
+                <th className="px-5 py-3">Statistici</th>
+                <th className="px-5 py-3">Stare</th>
+                <th className="px-5 py-3 text-right">Acțiuni</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-black/[0.05] dark:divide-white/[0.06]">
               {paginated.map((loc, index) => (
-                <tr key={loc.id} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer ${!loc.active ? 'opacity-60 grayscale' : ''}`} onClick={() => setEditingLoc(loc)}>
-                  <td className="px-6 py-4 text-sm font-bold text-slate-400 dark:text-slate-500">
+                <tr key={loc.id} className={`hover:bg-black/[0.02] dark:hover:bg-white/[0.03] transition-colors cursor-pointer ${!loc.active ? 'opacity-55' : ''}`} onClick={() => setEditingLoc(loc)}>
+                  <td className="px-5 py-3.5 text-[13px] font-medium text-[#86868B] tabular-nums">
                     {(currentPage - 1) * itemsPerPage + index + 1}
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="font-bold text-slate-900 dark:text-white text-sm">{loc.name}</div>
-                    <div className="text-xs text-slate-400 mt-0.5 font-medium">ID: {loc.id}</div>
+                  <td className="px-5 py-3.5">
+                    <div className="font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] text-[13px]">{loc.name}</div>
+                    <div className="text-[11px] text-[#86868B] mt-0.5">{loc.id}</div>
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="flex gap-2 flex-wrap">
+                  <td className="px-5 py-3.5">
+                    <div className="flex gap-1.5 flex-wrap">
                       {(loc.brands || []).map(b => <BrandLogo key={b} brandId={b} size={20} />)}
                     </div>
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="flex gap-2">
-                      <span className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-xs font-medium text-slate-600 dark:text-slate-300">Mese: {loc.tables || 0}</span>
-                      <span className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-xs font-medium text-slate-600 dark:text-slate-300">Kiosk-uri: {(loc.kiosks || []).length}</span>
+                  <td className="px-5 py-3.5 tabular-nums">
+                    <div className="flex gap-1.5">
+                      <span className="px-2.5 py-0.5 rounded-full bg-black/[0.04] dark:bg-white/[0.06] text-[11px] font-semibold text-[#6E6E73] dark:text-[#98989D]">Mese: {loc.tables || 0}</span>
+                      <span className="px-2.5 py-0.5 rounded-full bg-black/[0.04] dark:bg-white/[0.06] text-[11px] font-semibold text-[#6E6E73] dark:text-[#98989D]">Kiosk-uri: {(loc.kiosks || []).length}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                    <button 
-                      className="p-2 -ml-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                      onClick={() => toggleActive(loc)} 
-                      title={loc.active ? 'Acum e LIVE (Apasă pentru dezactivare)' : 'Inactiv (Apasă pentru activare)'}
+                  <td className="px-5 py-3.5" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      type="button"
+                      onClick={() => toggleActive(loc)}
+                      title={loc.active ? 'Activ — apasă pentru dezactivare' : 'Inactiv — apasă pentru activare'}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold cursor-pointer transition-colors ${loc.active
+                        ? 'bg-[#34C759]/12 text-[#248A3D] dark:text-[#30D158]'
+                        : 'bg-[#FF3B30]/10 text-[#FF3B30]'
+                        }`}
                     >
-                       <div className={`w-3 h-3 rounded-full ${loc.active ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-red-500'}`} />
+                      <span className={`w-1.5 h-1.5 rounded-full ${loc.active ? 'bg-[#34C759]' : 'bg-[#FF3B30]'}`} />
+                      {loc.active ? 'Activă' : 'Inactivă'}
                     </button>
                   </td>
-                  <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex justify-end gap-2">
-                      <button 
+                  <td className="px-5 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
+                    <div className="inline-flex justify-end gap-1.5">
+                      <button
                         title="Configurare locație"
-                        className="w-8 h-8 rounded-full bg-slate-100 hover:bg-blue-100 dark:bg-slate-800 dark:hover:bg-blue-500/20 text-slate-600 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 flex items-center justify-center transition-colors"
+                        className="w-8 h-8 rounded-full bg-black/[0.04] hover:bg-black/[0.08] dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-[#1D1D1F] dark:text-[#F5F5F7] flex items-center justify-center transition-colors cursor-pointer"
                         onClick={() => setEditingLoc(loc)}
                       >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
                       </button>
-                      <button 
+                      <button
                         title="Șterge definitiv locația"
-                        className="w-8 h-8 rounded-full bg-slate-100 hover:bg-red-100 dark:bg-slate-800 dark:hover:bg-red-500/20 text-slate-600 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400 flex items-center justify-center transition-colors"
+                        className="w-8 h-8 rounded-full bg-[#FF3B30]/10 hover:bg-[#FF3B30]/20 text-[#FF3B30] flex items-center justify-center transition-colors cursor-pointer"
                         onClick={() => deleteLoc(loc.id)}
                       >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
                       </button>
                     </div>
                   </td>
@@ -7195,33 +7595,33 @@ function LocationsManager({ backend, kiosksLiveStatus = {} }) {
               ))}
             </tbody>
           </table>
-          {filtered.length === 0 && <div className="p-10 text-center text-slate-500 dark:text-slate-400 font-medium">Nu există locații care să corespundă filtrelor.</div>}
+          {filtered.length === 0 && <div className="p-10 text-center text-[#86868B] text-[13px] font-medium">Nu există locații care să corespundă filtrelor.</div>}
         </div>
 
         {/* Pagination */}
-        <div className="flex justify-between items-center px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Rânduri:</span>
+        <div className="flex justify-between items-center px-5 py-3.5 bg-black/[0.015] dark:bg-white/[0.02] border-t border-black/[0.06] dark:border-white/[0.08]">
+          <div className="flex items-center gap-2.5">
+            <span className="text-[12px] font-medium text-[#6E6E73] dark:text-[#98989D]">Rânduri</span>
             <select
               value={itemsPerPage}
               onChange={e => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-              className="text-sm font-bold border border-slate-200 dark:border-slate-700 rounded-full px-2 py-1 bg-white dark:bg-slate-900 text-slate-900 dark:text-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="apple-input py-1 px-2.5 text-[12px] font-semibold cursor-pointer"
             >
               {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
             </select>
-            <span className="text-xs font-medium text-slate-500 ml-2">
+            <span className="text-[12px] font-medium text-[#6E6E73] dark:text-[#98989D] ml-1 tabular-nums">
               {sorted.length === 0 ? '0' : `${(currentPage - 1) * itemsPerPage + 1}–${Math.min(sorted.length, currentPage * itemsPerPage)}`} din {sorted.length}
             </span>
           </div>
           <div className="flex gap-1">
             {[
-              { label: '«', action: () => setCurrentPage(1),           disabled: currentPage === 1,          title: 'Prima pagină' },
-              { label: '‹', action: () => setCurrentPage(p => p - 1), disabled: currentPage === 1,          title: 'Anterioară' },
+              { label: '«', action: () => setCurrentPage(1), disabled: currentPage === 1, title: 'Prima pagină' },
+              { label: '‹', action: () => setCurrentPage(p => p - 1), disabled: currentPage === 1, title: 'Anterioară' },
               { label: '›', action: () => setCurrentPage(p => p + 1), disabled: currentPage === totalPages, title: 'Următoarea' },
-              { label: '»', action: () => setCurrentPage(totalPages),  disabled: currentPage === totalPages, title: 'Ultima pagină' },
+              { label: '»', action: () => setCurrentPage(totalPages), disabled: currentPage === totalPages, title: 'Ultima pagină' },
             ].map(btn => (
               <button key={btn.label} onClick={btn.action} disabled={btn.disabled} title={btn.title}
-                className={`w-8 h-8 rounded-full flex items-center justify-center font-bold transition-colors ${btn.disabled ? 'text-slate-300 dark:text-slate-700 cursor-not-allowed' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
+                className="w-8 h-8 rounded-full border border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-[#1C1C1E] text-[#6E6E73] dark:text-[#98989D] hover:bg-black/[0.04] dark:hover:bg-white/[0.08] disabled:opacity-35 disabled:cursor-not-allowed flex items-center justify-center font-semibold transition-colors cursor-pointer"
               >{btn.label}</button>
             ))}
           </div>
@@ -7244,7 +7644,7 @@ function LocationEditForm({ loc, backend, onBack, onSave }) {
   });
 
   const handleChange = (field, val) => setFormData(prev => ({ ...prev, [field]: val }));
-  
+
   const handleOrgChange = (brandId, val) => {
     setFormData(prev => ({ ...prev, orgIds: { ...prev.orgIds, [brandId]: val } }));
   };
@@ -7266,85 +7666,100 @@ function LocationEditForm({ loc, backend, onBack, onSave }) {
     onBack();
   };
 
+  const BRAND_DISPLAY = {
+    smashme: 'SmashMe',
+    crunch: 'Crunch',
+    rollmaster: 'Roll Master',
+    lovesushi: 'Love Sushi',
+    pokiwoki: 'Poki-Woki',
+    welovesushi: 'WeLoveSushi',
+    sushimaster: 'Sushi Master',
+    ikura: 'Ikura',
+  };
+
   return (
-    <div className="space-y-6 max-w-4xl animate-in fade-in duration-300">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
-        <button onClick={onBack}
-          className="px-4 h-10 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-2 shrink-0 shadow-sm"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"></path><polyline points="12 19 5 12 12 5"></polyline></svg>
-          Înapoi
-        </button>
-        <div className="flex-1">
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white m-0 tracking-tight">
-            {loc.name}
-          </h2>
-          <p className="text-sm text-slate-500 mt-1">Editare locație</p>
+    <div className="space-y-5 w-full animate-in fade-in duration-200">
+      <div className="apple-card px-5 py-4 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5 min-w-0">
+          <button type="button" onClick={onBack} className="apple-btn-secondary px-3.5 h-9 text-[13px]">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"></path><polyline points="12 19 5 12 12 5"></polyline></svg>
+            <span>Înapoi</span>
+          </button>
+          <div className="min-w-0">
+            <h2 className="text-[19px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] m-0 tracking-tight truncate">
+              {loc.name}
+            </h2>
+            <p className="text-[12px] text-[#86868B] mt-0.5 mb-0 truncate">Editare locație · {loc.id}</p>
+          </div>
         </div>
-        <button onClick={saveLoc}
-          className="px-6 h-11 rounded-full bg-slate-900 hover:bg-black dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-bold text-sm shadow-sm transition-all shrink-0"
-        >
-          Salvează Modificările
+        <button type="button" onClick={saveLoc} className="apple-btn-primary px-5 h-9 text-[13px]">
+          <Check size={15} strokeWidth={2.5} />
+          <span>Salvează Modificările</span>
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Card: Nume & Mese */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-800">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Informații Generale</h3>
-          
-          <div className="space-y-5">
-            <div>
-               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block">Nume Locație</label>
-               <input type="text" className="w-full h-11 px-4 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white transition-all" value={formData.name} onChange={e => handleChange('name', e.target.value)} placeholder="Ex: SM Bacău" />
-            </div>
-            <div>
-               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block">Număr de Mese (Kiosk/QR)</label>
-               <input type="number" className="w-full h-11 px-4 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white transition-all" value={formData.tables} onChange={e => handleChange('tables', parseInt(e.target.value)||0)} min="0" />
-            </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="apple-card p-5 space-y-4">
+          <h3 className="text-[15px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] m-0">Informații Generale</h3>
+          <div>
+            <label className="text-[11px] font-semibold uppercase tracking-wider text-[#86868B] mb-1.5 block">Nume Locație</label>
+            <input type="text" className="apple-input w-full" value={formData.name} onChange={e => handleChange('name', e.target.value)} placeholder="Ex: SM Bacău" />
+          </div>
+          <div>
+            <label className="text-[11px] font-semibold uppercase tracking-wider text-[#86868B] mb-1.5 block">Număr de Mese (Kiosk/QR)</label>
+            <input type="number" className="apple-input w-full" value={formData.tables} onChange={e => handleChange('tables', parseInt(e.target.value) || 0)} min="0" />
           </div>
         </div>
 
-        {/* Card: Branduri Asignate */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-800">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Restaurante Active</h3>
-          
-          <div className="flex flex-wrap gap-3">
-            {Object.entries({smashme:'SmashMe', crunch:'Crunch', rollmaster:'Roll Master', lovesushi:'Love Sushi', pokiwoki:'Poki-Woki'}).map(([k, v]) => {
+        <div className="apple-card p-5 space-y-4">
+          <div>
+            <h3 className="text-[15px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] m-0">Restaurante Active</h3>
+            <p className="text-[12.5px] text-[#86868B] mt-1 mb-0">Selectează brandurile disponibile pe kiosk-urile din această locație.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {Object.entries({ smashme: 'SmashMe', crunch: 'Crunch', rollmaster: 'Roll Master', lovesushi: 'Love Sushi', pokiwoki: 'Poki-Woki' }).map(([k, v]) => {
               const isActive = formData.brands.includes(k);
-              const pillColor = (BRAND_COLORS && BRAND_COLORS[k]) ? BRAND_COLORS[k] : '#64748b';
               return (
                 <button
                   key={k}
-                  className={`px-4 h-11 rounded-full flex items-center gap-3 font-bold text-sm transition-all border-2 ${isActive ? 'text-white shadow-md' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 opacity-80 grayscale hover:grayscale-0 hover:opacity-100'}`}
-                  style={isActive ? { background: pillColor, borderColor: pillColor, boxShadow: `0 4px 12px ${pillColor}40` } : {}}
+                  type="button"
+                  className={`px-3.5 h-9 rounded-full inline-flex items-center gap-2 font-semibold text-[13px] transition-all cursor-pointer ${isActive
+                    ? 'bg-[#007AFF] text-white shadow-[0_2px_8px_rgba(0,122,255,0.3)]'
+                    : 'bg-black/[0.04] dark:bg-white/[0.06] text-[#6E6E73] dark:text-[#98989D] hover:bg-black/[0.08] dark:hover:bg-white/[0.12]'
+                    }`}
                   onClick={() => toggleBrand(k)}
                 >
-                  <BrandLogo brandId={k} size={18} /> {v}
+                  <BrandLogo brandId={k} size={18} />
+                  <span>{v}</span>
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* Card: Syrve API Keys */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-800 md:col-span-2">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Setări Syrve (iiko) per locație</h3>
-          <p className="text-sm text-slate-500 mb-6 max-w-3xl">Dacă un brand folosește un <code>Organization ID</code> diferit față de cel global (din .env), pune-l aici pentru a trimite comenzile corect la POS-ul locației corespunzătoare.</p>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-             {formData.brands.map(bId => (
-               <div key={bId} className="space-y-2">
-                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
-                   <BrandLogo brandId={bId} size={14} /> Org ID ({bId})
-                 </label>
-                 <input type="text" className="w-full h-11 px-4 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white transition-all" value={formData.orgIds[bId] || ''} onChange={e => handleOrgChange(bId, e.target.value)} placeholder="ID global implicit" />
-               </div>
-             ))}
-             {formData.brands.length === 0 && <span className="text-sm text-amber-600 dark:text-amber-400 font-medium p-4 bg-amber-50 dark:bg-amber-500/10 rounded-full border border-amber-200 dark:border-amber-500/20 col-span-full">Selectează măcar un brand pentru a seta suprascrieri de locație Syrve.</span>}
+        <div className="apple-card p-5 lg:col-span-2 space-y-4">
+          <div>
+            <h3 className="text-[15px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] m-0">Setări Syrve (iiko) per locație</h3>
+            <p className="text-[13px] text-[#6E6E73] dark:text-[#98989D] mt-1 mb-0">Dacă un brand folosește un <span className="font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">Organization ID</span> diferit față de cel global, completează-l mai jos.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {formData.brands.map(bId => (
+              <div key={bId} className="space-y-1.5">
+                <label className="text-[11.5px] font-semibold text-[#6E6E73] dark:text-[#98989D] flex items-center gap-1.5">
+                  <BrandLogo brandId={bId} size={16} />
+                  <span>Org ID — {BRAND_DISPLAY[bId] || bId}</span>
+                </label>
+                <input type="text" className="apple-input w-full text-[13px]" value={formData.orgIds[bId] || ''} onChange={e => handleOrgChange(bId, e.target.value)} placeholder="ID global implicit" />
+              </div>
+            ))}
+            {formData.brands.length === 0 && (
+              <div className="text-[13px] text-[#C93400] dark:text-[#FF9F0A] font-medium px-4 py-3 bg-[#FF9500]/10 rounded-xl col-span-full">
+                Selectează măcar un brand pentru a seta suprascrieri de locație Syrve.
+              </div>
+            )}
           </div>
         </div>
-        
       </div>
     </div>
   );
@@ -7409,123 +7824,102 @@ function BrandsManager({ backend }) {
 
   const BRAND_DEFAULT_COLORS = BRAND_COLORS;
 
-  if (loading) return <p className="loading-text">Se încarcă brandurile...</p>;
+  if (loading) return (
+    <div className="apple-card flex flex-col items-center justify-center py-20 gap-3">
+      <div className="w-6 h-6 border-2 border-black/10 dark:border-white/10 border-t-[#007AFF] rounded-full animate-spin" />
+      <span className="text-[#86868B] text-[13px] font-medium">Se încarcă brandurile...</span>
+    </div>
+  );
 
   return (
-    <div className="admin-section">
-      <p style={{ color: 'var(--text-muted)', marginBottom: 24, fontSize: '0.9rem' }}>
-        Gestionează informațiile și logo-urile pentru fiecare brand din sistem.
-      </p>
+    <div className="space-y-5 w-full">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-[#6E6E73] dark:text-[#98989D] text-[13px] m-0">
+          Gestionează identitatea vizuală, logo-urile și detaliile fiecărui brand din sistem.
+        </p>
+        <span className="px-2.5 py-0.5 rounded-full text-[11.5px] font-semibold bg-black/[0.045] dark:bg-white/[0.08] text-[#6E6E73] dark:text-[#98989D]">
+          {brands.length} branduri
+        </span>
+      </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {brands.map(brand => {
           const isEditing = editing === brand.id;
-          const color = BRAND_DEFAULT_COLORS[brand.id] || 'var(--primary)';
           return (
-            <div key={brand.id} style={{
-              background: 'var(--surface)', borderRadius: 20, padding: 24,
-              border: `1px solid var(--border)`,
-              boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
-              outline: isEditing ? `2px solid ${color}` : 'none',
-              transition: 'all 0.2s',
-            }}>
-              {/* Logo + brand ID header */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
-                <div style={{
-                  width: 72, height: 72, borderRadius: 16,
-                  background: `${color}15`,
-                  border: `2px solid ${color}40`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  overflow: 'hidden', flexShrink: 0,
-                }}>
-                  {brand.logo_url ? (
-                    <img src={brand.logo_url} alt={brand.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                  ) : (
-                    <span style={{ fontSize: '1.8rem', fontWeight: 900, color, opacity: 0.4 }}>{(brand.name||brand.id)[0].toUpperCase()}</span>
-                  )}
+            <div key={brand.id} className={`apple-card p-4 flex flex-col justify-between gap-4 transition-all ${isEditing ? 'ring-2 ring-[#007AFF]/45' : ''}`}>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-14 h-14 rounded-[16px] bg-white dark:bg-[#2C2C2E] border border-black/[0.06] dark:border-white/[0.08] shadow-xs flex items-center justify-center overflow-hidden shrink-0 p-1.5">
+                    {brand.logo_url ? (
+                      <img src={brand.logo_url} alt={brand.name} className="w-full h-full object-contain rounded-xl" />
+                    ) : (
+                      <BrandLogo brandId={brand.id} size={44} className="!border-0 !shadow-none !bg-transparent" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[15px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] truncate leading-tight">
+                      {brand.name || brand.id}
+                    </div>
+                    <div className="mt-1 inline-flex items-center px-2 py-0.5 rounded-full bg-black/[0.04] dark:bg-white/[0.07] text-[11px] font-medium text-[#86868B]">
+                      {brand.id}
+                    </div>
+                    {brand.website && (
+                      <a href={brand.website} target="_blank" rel="noreferrer" className="text-[12px] text-[#007AFF] hover:underline font-medium block truncate mt-1">
+                        {brand.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                      </a>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text)' }}>{brand.name || brand.id}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>{brand.id}</div>
-                  {brand.website && (
-                    <a href={brand.website} target="_blank" rel="noreferrer" style={{ fontSize: '0.75rem', color: color, textDecoration: 'none', fontWeight: 600 }}>
-                      {brand.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
-                    </a>
-                  )}
-                </div>
+
+                {!isEditing && brand.description && (
+                  <p className="text-[12.5px] text-[#6E6E73] dark:text-[#98989D] m-0 leading-relaxed line-clamp-2">
+                    {brand.description}
+                  </p>
+                )}
               </div>
 
               {!isEditing ? (
-                <>
-                  {brand.description && <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0 0 16px', lineHeight: 1.5 }}>{brand.description}</p>}
-
-                  {/* Logo upload area */}
-                  <label style={{
-                    display: 'block', border: '2px dashed var(--border)', borderRadius: 12,
-                    padding: '12px', textAlign: 'center', cursor: 'pointer',
-                    background: 'var(--bg-surface)', transition: 'all 0.2s', marginBottom: 12,
-                  }}>
-                    <input type="file" accept="image/*" style={{ display: 'none' }}
+                <div className="flex items-center gap-2 pt-3 border-t border-black/[0.05] dark:border-white/[0.07]">
+                  <label className="apple-btn-secondary flex-1 h-8 px-3 text-[12px] cursor-pointer">
+                    <input type="file" accept="image/*" className="hidden"
                       onChange={e => handleLogoUpload(brand.id, e.target.files[0])} />
-                    {uploadingId === brand.id ? (
-                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Se încarcă...</span>
-                    ) : (
-                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-                        Upload logo (PNG/JPG/SVG, max 5MB)
-                      </span>
-                    )}
+                    <Upload size={13} strokeWidth={2.2} className="text-[#007AFF]" />
+                    <span>{uploadingId === brand.id ? 'Se încarcă...' : 'Logo'}</span>
                   </label>
-
-                  {/* Or paste URL */}
-                  {brand.logo_url && (
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 12, wordBreak: 'break-all', fontWeight: 500, background: 'var(--bg-surface)', padding: '6px 8px', borderRadius: 6 }}>
-                      {brand.logo_url}
-                    </div>
-                  )}
-
-                  <button onClick={() => startEdit(brand)} style={{
-                    width: '100%', padding: '10px', borderRadius: 10,
-                    background: 'var(--bg-surface)', border: '1px solid var(--border)',
-                    color: 'var(--text)', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem',
-                  }}>
-                    Editează informații
+                  <button type="button" onClick={() => startEdit(brand)} className="apple-btn-secondary flex-1 h-8 px-3 text-[12px]">
+                    <Pencil size={13} strokeWidth={2.1} className="text-[#6E6E73] dark:text-[#98989D]" />
+                    <span>Editează</span>
                   </button>
-                </>
+                </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div className="space-y-3 pt-3 border-t border-black/[0.05] dark:border-white/[0.07]">
                   <div>
-                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Nume brand</label>
-                    <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                      style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text)', fontSize: '0.9rem', boxSizing: 'border-box' }} />
+                    <label className="block text-[11px] font-semibold text-[#86868B] uppercase tracking-wider mb-1">Nume brand</label>
+                    <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="apple-input w-full text-[13px]" />
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Descriere</label>
-                    <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={2}
-                      style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text)', fontSize: '0.85rem', boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit' }} />
+                    <label className="block text-[11px] font-semibold text-[#86868B] uppercase tracking-wider mb-1">Descriere</label>
+                    <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={2} className="apple-input w-full text-[13px] resize-y" />
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Website</label>
-                    <input value={form.website} onChange={e => setForm(p => ({ ...p, website: e.target.value }))}
-                      placeholder="https://smashme.ro" type="url"
-                      style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text)', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                    <label className="block text-[11px] font-semibold text-[#86868B] uppercase tracking-wider mb-1">Website</label>
+                    <input value={form.website} onChange={e => setForm(p => ({ ...p, website: e.target.value }))} placeholder="https://smashme.ro" type="url" className="apple-input w-full text-[13px]" />
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Logo URL (sau uploadează mai sus)</label>
-                    <input value={form.logo_url} onChange={e => setForm(p => ({ ...p, logo_url: e.target.value }))}
-                      placeholder="https://cdn.example.com/logo.png" type="url"
-                      style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text)', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                    <label className="block text-[11px] font-semibold text-[#86868B] uppercase tracking-wider mb-1">Logo URL</label>
+                    <input value={form.logo_url} onChange={e => setForm(p => ({ ...p, logo_url: e.target.value }))} placeholder="https://cdn.example.com/logo.png" type="url" className="apple-input w-full text-[13px]" />
                   </div>
                   {form.logo_url && (
-                    <div style={{ height: 60, borderRadius: 10, background: 'var(--bg-surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8 }}>
-                      <img src={form.logo_url} alt="Preview" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
+                    <div className="h-14 rounded-xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/[0.06] dark:border-white/[0.08] flex items-center justify-center p-2">
+                      <img src={form.logo_url} alt="Preview" className="max-h-full max-w-full object-contain" />
                     </div>
                   )}
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button onClick={saveEdit} disabled={saving} style={{ flex: 2, padding: '10px', borderRadius: 10, background: color, color: '#fff', border: 'none', fontWeight: 700, cursor: saving ? 'default' : 'pointer', fontSize: '0.9rem' }}>
-                      {saving ? 'Se salvează...' : 'Salvează'}
-                    </button>
-                    <button onClick={() => setEditing(null)} style={{ flex: 1, padding: '10px', borderRadius: 10, background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text)', fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem' }}>
+                  <div className="flex gap-2 pt-1">
+                    <button type="button" onClick={() => setEditing(null)} className="apple-btn-secondary flex-1 h-9 px-3 text-[12.5px]">
                       Anulează
+                    </button>
+                    <button type="button" onClick={saveEdit} disabled={saving} className="apple-btn-primary flex-1 h-9 px-3 text-[12.5px]">
+                      {saving ? 'Se salvează...' : 'Salvează'}
                     </button>
                   </div>
                 </div>
@@ -7535,16 +7929,10 @@ function BrandsManager({ backend }) {
         })}
       </div>
 
-      {/* Toast */}
       {toast && (
-        <div style={{
-          position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
-          background: toast.type === 'error' ? '#ef4444' : '#059669',
-          color: '#fff', padding: '14px 24px', borderRadius: '14px',
-          fontWeight: 700, fontSize: '0.95rem', boxShadow: '0 8px 30px rgba(0,0,0,0.2)',
-          display: 'flex', alignItems: 'center', gap: 10,
-        }}>
-          <span>{toast.type === 'error' ? '' : ''}</span> {toast.msg}
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] bg-[#1C1C1E] dark:bg-[#2C2C2E] text-white px-5 py-2.5 rounded-full text-[13px] font-medium shadow-2xl border border-white/10 flex items-center gap-2.5 animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <span className={`w-2 h-2 rounded-full ${toast.type === 'error' ? 'bg-[#FF3B30]' : 'bg-[#34C759]'}`} />
+          <span>{toast.msg}</span>
         </div>
       )}
     </div>

@@ -17,7 +17,8 @@ const CITY_CONFIG = {
     prefix: 'CJ',
     minStart: 0,
     aliases: [
-      'cluj', 'cluj1', 'cluj2', 'cluj-centru', 'cluj-main',
+      'cluj', 'cluj1', 'cluj2', 'cluj-2', 'cj2', 'cj-2', 'smashme-cj2', 'smashme cj-2',
+      'cluj-centru', 'cluj-main',
       'smashme-main', 'sm-cluj', 'smashme-cluj', 'cj',
       'smashme centru', 'sm cluj',
       // UUIDs from locations.json

@@ -29,6 +29,8 @@ export function normalizeOrderForReceipt(data) {
       orderType: rc.orderType || data.orderType || 'takeaway',
       items: rc.items || [],
       total: rc.total || data.totalAmount || 0,
+      voucherCode: rc.voucherCode || data.voucherCode || null,
+      voucherDiscount: Number(rc.voucherDiscount || data.voucherDiscount || 0),
       date: rc.date || (data.timestamp ? new Date(data.timestamp).toLocaleString('ro-RO') : new Date().toLocaleString('ro-RO')),
     };
   }
@@ -73,6 +75,8 @@ export function normalizeOrderForReceipt(data) {
     orderType,
     items,
     total,
+    voucherCode: payload.voucherCode || data.voucherCode || null,
+    voucherDiscount: Number(payload.voucherDiscount || data.voucherDiscount || 0),
     date: dateStr,
   };
 }
@@ -92,22 +96,22 @@ export default function ThermalReceiptModal({ order, onClose }) {
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-in fade-in duration-150"
       onClick={onClose}
     >
       <div 
-        className="relative w-full max-w-[340px] bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-5 sm:p-6 text-xs text-slate-800 dark:text-slate-200 font-sans transition-all max-h-[90vh] overflow-y-auto"
+        className="relative w-full max-w-[340px] apple-modal p-5 sm:p-6 text-xs text-slate-800 dark:text-slate-200 font-sans max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-150"
         onClick={e => e.stopPropagation()}
       >
         {/* Close button */}
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+          className="apple-close-btn absolute top-4 right-4"
           title="Închide bonul"
           aria-label="Închide bonul"
         >
-          <X size={18} />
+          <X size={16} />
         </button>
 
         {/* Receipt Header with Brand Logo */}
@@ -196,6 +200,14 @@ export default function ThermalReceiptModal({ order, onClose }) {
             ))}
           </div>
         </div>
+
+        {/* Voucher / Promo Discount Row */}
+        {(rc.voucherCode || rc.voucherDiscount > 0) && (
+          <div className="flex items-center justify-between py-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 border-b border-dashed border-slate-300 dark:border-slate-700">
+            <span>Cupon {rc.voucherCode || 'PROMO'}:</span>
+            <span>-{formatThousands(Number(rc.voucherDiscount || 0))} RON</span>
+          </div>
+        )}
 
         {/* Total Section */}
         <div className="flex items-center justify-between py-2.5 text-sm font-black text-slate-900 dark:text-white border-b border-dashed border-slate-300 dark:border-slate-700">

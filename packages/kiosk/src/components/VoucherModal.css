@@ -1,0 +1,309 @@
+.voucher-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+  animation: voucherFadeIn 0.2s ease-out;
+}
+
+@keyframes voucherFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.voucher-modal {
+  background: #ffffff;
+  color: #0f172a;
+  width: 100%;
+  max-width: 680px;
+  border-radius: 28px;
+  padding: 28px 24px 24px;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  animation: voucherSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+@keyframes voucherSlideUp {
+  from { transform: translateY(24px) scale(0.97); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.voucher-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: relative;
+}
+
+.voucher-modal-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: #ecfdf5;
+  color: #059669;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  shrink: 0;
+}
+
+.voucher-modal-header h2 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  margin: 0;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.voucher-modal-header p {
+  font-size: 0.9rem;
+  color: #64748b;
+  margin: 2px 0 0;
+}
+
+.voucher-modal-close {
+  margin-left: auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.voucher-modal-close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.voucher-modal-close:active {
+  transform: scale(0.94);
+}
+
+/* Input Display Box */
+.voucher-input-box {
+  position: relative;
+  background: #f8fafc;
+  border: 2px solid #cbd5e1;
+  border-radius: 20px;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 68px;
+  transition: border-color 0.2s ease;
+}
+
+.voucher-input-box:focus-within {
+  border-color: #10b981;
+  background: #ffffff;
+}
+
+.voucher-input-display {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.voucher-placeholder {
+  color: #94a3b8;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.voucher-caret {
+  display: inline-block;
+  width: 3px;
+  height: 28px;
+  background: #10b981;
+  margin-left: 4px;
+  border-radius: 2px;
+  animation: voucherBlink 1s infinite;
+}
+
+@keyframes voucherBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.voucher-clear-btn {
+  background: #e2e8f0;
+  color: #475569;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 12px;
+  transition: all 0.15s ease;
+}
+
+.voucher-clear-btn:active {
+  transform: scale(0.9);
+  background: #cbd5e1;
+}
+
+/* Feedback messages */
+.voucher-feedback {
+  padding: 10px 16px;
+  border-radius: 14px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.voucher-feedback--error {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.voucher-feedback--success {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+/* On-screen Keyboard */
+.voucher-keyboard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 6px 0;
+}
+
+.voucher-keyboard-row {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.voucher-key {
+  flex: 1;
+  height: 56px;
+  max-width: 60px;
+  background: #f1f5f9;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.08s ease, background-color 0.1s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.voucher-key:hover {
+  background: #e2e8f0;
+}
+
+.voucher-key:active {
+  transform: scale(0.92);
+  background: #cbd5e1;
+}
+
+.voucher-key--backspace {
+  flex: 1.5;
+  max-width: 90px;
+  background: #fee2e2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.voucher-key--backspace:hover {
+  background: #fecaca;
+}
+
+.voucher-key--backspace:active {
+  background: #fca5a5;
+}
+
+.voucher-backspace-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Actions */
+.voucher-modal-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.voucher-btn {
+  flex: 1;
+  height: 56px;
+  border-radius: 18px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.voucher-btn-cancel {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.voucher-btn-cancel:active {
+  transform: scale(0.97);
+  background: #e2e8f0;
+}
+
+.voucher-btn-apply {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+}
+
+.voucher-btn-apply:hover {
+  filter: brightness(1.05);
+}
+
+.voucher-btn-apply:active {
+  transform: scale(0.97);
+}
+
+.voucher-btn-apply:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}

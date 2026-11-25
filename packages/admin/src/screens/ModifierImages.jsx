@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthProvider';
 import { useConfirm } from '../components/ConfirmModal';
-import { Sparkles, Trash2, Check } from 'lucide-react';
+import { Sparkles, Trash2, Check, Search, Pencil, X, Image as ImageIcon } from 'lucide-react';
 
 const BACKEND   = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 const PAGE_SIZE = 25;
@@ -138,97 +138,106 @@ export default function ModifierImages() {
   const acceptSelectedSugs = () => bulkAcceptSugs(selectedSugs);
 
   return (
-    <div className="w-full max-w-7xl mx-auto pb-10 animate-in fade-in duration-300">
+    <div className="w-full max-w-7xl mx-auto pb-10 space-y-6 animate-in fade-in duration-300">
 
       {/* ── Sugestii Automate ────────────────────────────────── */}
       {suggestions.length > 0 && (
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4 flex-wrap">
-            <h2 className="m-0 text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Sparkles size={18} className="text-amber-500" />
-              Sugestii Automate
-            </h2>
-            <span className="bg-amber-100 text-amber-900 text-xs font-bold px-2.5 py-0.5 rounded-full border border-amber-300">{suggestions.length}</span>
-            <div className="ml-auto flex gap-2">
+        <div className="apple-card overflow-hidden">
+          <div className="px-5 py-4 border-b border-black/[0.06] dark:border-white/[0.08] flex items-center gap-3 flex-wrap">
+            <div className="w-9 h-9 rounded-xl bg-[#FF9500]/12 text-[#FF9500] flex items-center justify-center shrink-0">
+              <Sparkles size={18} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="m-0 text-[15px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">Sugestii Automate</h2>
+                <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#FF9500]/12 text-[#FF9500] tabular-nums">{suggestions.length}</span>
+              </div>
+              <p className="text-[12px] text-[#6E6E73] dark:text-[#98989D] m-0">Imagini identificate automat din produsele meniului</p>
+            </div>
+            <div className="ml-auto flex items-center gap-2 flex-wrap">
               {selectedSugs.size > 0 && (
-                <button className="px-3 h-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1" onClick={acceptSelectedSugs} disabled={acceptingAll}>
+                <button className="apple-btn-primary text-[12px] px-3.5 py-1.5" onClick={acceptSelectedSugs} disabled={acceptingAll}>
                   <Check size={13} />
-                  {acceptingAll ? '...' : `Acceptă Selectate (${selectedSugs.size})`}
+                  {acceptingAll ? '...' : `Acceptă selectate (${selectedSugs.size})`}
                 </button>
               )}
-              <button className="px-4 h-8 rounded-full bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1" onClick={acceptAllSugs} disabled={acceptingAll}>
+              <button className="apple-btn-primary text-[12px] px-3.5 py-1.5" onClick={acceptAllSugs} disabled={acceptingAll}>
                 <Check size={13} />
-                {acceptingAll ? 'Se procesează...' : `Acceptă Tot (${suggestions.length})`}
+                {acceptingAll ? 'Se procesează...' : `Acceptă tot (${suggestions.length})`}
               </button>
-              <button className="px-3 h-8 rounded-full bg-transparent hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 text-xs font-bold transition-all" onClick={() => setSuggestions([])}>Ignoră Toate</button>
+              <button className="apple-btn-secondary text-[12px] px-3 py-1.5" onClick={() => setSuggestions([])}>Ignoră toate</button>
             </div>
           </div>
 
-          <div className="bg-amber-50/50 dark:bg-amber-900/10 rounded-2xl border border-amber-400 overflow-hidden shadow-sm">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-amber-200 dark:border-amber-900/30 bg-amber-100/50 dark:bg-amber-900/20">
-                    <th className="px-4 py-3 w-12 text-center"><input type="checkbox" className="w-4 h-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500" checked={allSugsSelected} onChange={toggleAllSugs} /></th>
-                    <th className="px-4 py-3 text-xs font-bold text-amber-700 uppercase tracking-wider w-12">#</th>
-                    <th className="px-4 py-3 text-xs font-bold text-amber-700 uppercase tracking-wider">Modificator</th>
-                    <th className="px-4 py-3 text-xs font-bold text-amber-700 uppercase tracking-wider">Grup</th>
-                    <th className="px-4 py-3 text-xs font-bold text-amber-700 uppercase tracking-wider">Produs Sugerat</th>
-                    <th className="px-4 py-3 text-xs font-bold text-amber-700 uppercase tracking-wider">Imagine</th>
-                    <th className="px-4 py-3 text-xs font-bold text-amber-700 uppercase tracking-wider">Potrivire</th>
-                    <th className="px-4 py-3 text-xs font-bold text-amber-700 uppercase tracking-wider">Acțiuni</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-amber-200/50 dark:divide-amber-900/20">
-                  {suggestions.map((sug, i) => (
-                    <tr key={sug.modifier.id} className={`transition-colors hover:bg-amber-100/30 dark:hover:bg-amber-900/30 ${selectedSugs.has(sug.modifier.id) ? 'bg-amber-100/50 dark:bg-amber-900/40' : ''}`}>
-                      <td className="px-4 py-3 text-center"><input type="checkbox" className="w-4 h-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500" checked={selectedSugs.has(sug.modifier.id)} onChange={() => toggleOneSug(sug.modifier.id)} /></td>
-                      <td className="px-4 py-3 text-sm text-slate-500 font-medium">{i + 1}</td>
-                      <td className="px-4 py-3">
-                        <strong className="text-sm text-slate-900 dark:text-white block">{sug.modifier.name}</strong>
-                        {sug.modifier.brandId ? (
-                          <div className="flex items-center gap-1.5 mt-1">
-                            <img src={`/brands/${sug.modifier.brandId.toLowerCase()}-logo.png`} alt={sug.modifier.brandId} className="w-4 h-4 rounded-full object-cover border border-slate-200 dark:border-slate-700" onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='block'; }} />
-                            <small className="hidden text-xs text-slate-500 font-medium uppercase tracking-wider">{sug.modifier.brandId}</small>
-                          </div>
-                        ) : <small className="text-slate-500">—</small>}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{sug.modifier.groupName}</td>
-                      <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{sug.suggestedProduct.name}</td>
-                      <td className="px-4 py-3">
-                        <img src={sug.suggestedProduct.image} alt="" className="w-12 h-12 object-cover rounded-xl" onError={e => { e.target.style.display='none'; }} />
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${sug.confidence >= 70 ? 'bg-emerald-100 text-emerald-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                          {sug.confidence}%
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="flex items-center gap-1.5">
-                          <button title="Acceptă" onClick={() => acceptSuggestion(sug)} disabled={saving === sug.modifier.id} className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-teal-600 hover:bg-teal-700 text-white shadow-sm transition-colors">
-                            {saving === sug.modifier.id ? '...' : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
-                          </button>
-                          <button title="Ignoră" onClick={() => dismissSuggestion(sug.modifier.id)} className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                          </button>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-black/[0.06] dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.02] text-[11px] font-semibold text-[#6E6E73] dark:text-[#98989D] uppercase tracking-wider">
+                  <th className="px-4 py-3 w-12 text-center"><input type="checkbox" className="w-4 h-4 rounded accent-[#007AFF] cursor-pointer" checked={allSugsSelected} onChange={toggleAllSugs} /></th>
+                  <th className="px-4 py-3 w-12">#</th>
+                  <th className="px-4 py-3">Modificator</th>
+                  <th className="px-4 py-3">Grup</th>
+                  <th className="px-4 py-3">Produs Sugerat</th>
+                  <th className="px-4 py-3">Imagine</th>
+                  <th className="px-4 py-3">Potrivire</th>
+                  <th className="px-4 py-3 text-right">Acțiuni</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-black/[0.05] dark:divide-white/[0.06]">
+                {suggestions.map((sug, i) => (
+                  <tr key={sug.modifier.id} className={`transition-colors hover:bg-black/[0.02] dark:hover:bg-white/[0.03] ${selectedSugs.has(sug.modifier.id) ? 'bg-[#007AFF]/[0.05]' : ''}`}>
+                    <td className="px-4 py-3 text-center"><input type="checkbox" className="w-4 h-4 rounded accent-[#007AFF] cursor-pointer" checked={selectedSugs.has(sug.modifier.id)} onChange={() => toggleOneSug(sug.modifier.id)} /></td>
+                    <td className="px-4 py-3 text-[13px] text-[#86868B] tabular-nums">{i + 1}</td>
+                    <td className="px-4 py-3">
+                      <div className="text-[13px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">{sug.modifier.name}</div>
+                      {sug.modifier.brandId ? (
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <img src={`/brands/${sug.modifier.brandId.toLowerCase()}-logo.png`} alt={sug.modifier.brandId} className="w-4 h-4 rounded-full object-cover border border-black/[0.08] dark:border-white/[0.1]" onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='block'; }} />
+                          <small className="hidden text-[11px] text-[#86868B] font-medium uppercase tracking-wider">{sug.modifier.brandId}</small>
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      ) : <small className="text-[#86868B]">—</small>}
+                    </td>
+                    <td className="px-4 py-3 text-[13px] text-[#6E6E73] dark:text-[#98989D]">{sug.modifier.groupName}</td>
+                    <td className="px-4 py-3 text-[13px] text-[#6E6E73] dark:text-[#98989D]">{sug.suggestedProduct.name}</td>
+                    <td className="px-4 py-3">
+                      <img src={sug.suggestedProduct.image} alt="" className="w-11 h-11 object-cover rounded-xl border border-black/[0.06] dark:border-white/[0.08]" onError={e => { e.target.style.display='none'; }} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold tabular-nums ${sug.confidence >= 70 ? 'bg-[#34C759]/12 text-[#248A3D] dark:text-[#30D158]' : 'bg-[#FF9500]/12 text-[#C93400] dark:text-[#FF9F0A]'}`}>
+                        {sug.confidence}%
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-right">
+                      <div className="inline-flex items-center gap-1.5">
+                        <button title="Acceptă" onClick={() => acceptSuggestion(sug)} disabled={saving === sug.modifier.id} className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-[#007AFF] hover:bg-[#0066D6] text-white transition-colors cursor-pointer">
+                          {saving === sug.modifier.id ? '...' : <Check size={14} strokeWidth={2.5} />}
+                        </button>
+                        <button title="Ignoră" onClick={() => dismissSuggestion(sug.modifier.id)} className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-black/[0.05] dark:bg-white/[0.08] text-[#6E6E73] dark:text-[#98989D] hover:bg-black/[0.1] dark:hover:bg-white/[0.14] transition-colors cursor-pointer">
+                          <X size={14} strokeWidth={2.5} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
 
       {/* ── Toolbar ──────────────────────────────────────────── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
+      <div className="apple-card p-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-hide">
           <button
-            onClick={() => setActiveBrand('ALL')}
-            className={`flex-shrink-0 px-4 h-10 rounded-full text-sm font-bold transition-all flex items-center ${activeBrand === 'ALL' ? 'bg-teal-600 text-white border border-teal-600 shadow-sm' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-          >Toate</button>
+            onClick={() => { setActiveBrand('ALL'); setPage(1); }}
+            className={`shrink-0 px-3.5 h-8 rounded-full text-[12px] font-semibold transition-all cursor-pointer ${
+              activeBrand === 'ALL'
+                ? 'bg-[#007AFF] text-white'
+                : 'bg-black/[0.04] dark:bg-white/[0.06] text-[#1D1D1F] dark:text-[#F5F5F7] hover:bg-black/[0.08] dark:hover:bg-white/[0.12]'
+            }`}
+          >
+            Toate
+          </button>
           {BRANDS.map(b => {
             const isActive = activeBrand === b.id;
             return (
@@ -236,97 +245,99 @@ export default function ModifierImages() {
                 key={b.id}
                 onClick={() => { setActiveBrand(b.id); setPage(1); }}
                 title={b.label}
-                className={`flex-shrink-0 w-10 h-10 rounded-full p-0 flex items-center justify-center overflow-hidden transition-all bg-white shadow-sm hover:scale-105`}
-                style={{
-                  border: isActive ? `2px solid ${b.color}` : '1px solid var(--tw-prose-th-borders, #e2e8f0)',
-                  boxShadow: isActive ? `0 4px 10px ${b.color}40` : '',
-                  opacity: isActive ? 1 : 0.6,
-                  transform: isActive ? 'scale(1.1)' : 'scale(1)',
-                }}
+                className={`shrink-0 flex items-center gap-1.5 px-2.5 h-8 rounded-full text-[12px] font-semibold transition-all cursor-pointer ${
+                  isActive
+                    ? 'bg-[#007AFF] text-white'
+                    : 'bg-black/[0.04] dark:bg-white/[0.06] text-[#6E6E73] dark:text-[#98989D] hover:bg-black/[0.08] dark:hover:bg-white/[0.12]'
+                }`}
               >
-                <img src={`/brands/${b.id}-logo.png`} alt={b.label} className="w-full h-full object-cover" onError={e => { e.target.style.display='none'; }} />
+                <img src={`/brands/${b.id}-logo.png`} alt={b.label} className="w-5 h-5 rounded-full object-cover bg-white shrink-0" onError={e => { e.target.style.display='none'; }} />
+                <span>{b.label}</span>
               </button>
             );
           })}
         </div>
-        
-        <div className="relative flex-1 min-w-[200px] max-w-xs ml-auto">
-          <input 
-            className="w-full pl-11 pr-16 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-shadow shadow-sm"
-            placeholder="Caută modificator..." 
-            value={search} 
-            onChange={e => { setSearch(e.target.value); setPage(1); setSelected(new Set()); }} 
-          />
-          <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-          {search && (
-            <span className="absolute right-1.5 top-1.5 bottom-1.5 flex items-center justify-center bg-blue-600 text-white rounded-full px-3 text-xs font-bold pointer-events-none">
-              {filtered.filter(m => m.imageUrl).length}/{filtered.length}
-            </span>
+
+        <div className="flex items-center gap-2.5 md:ml-auto">
+          {selected.size > 0 && (
+            <div className="flex items-center gap-2 bg-black/[0.04] dark:bg-white/[0.06] px-3 py-1 rounded-xl">
+              <span className="text-[12px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] tabular-nums">{selected.size} selectați</span>
+              <button className="px-2.5 py-1 rounded-full bg-[#FF3B30]/12 hover:bg-[#FF3B30]/20 text-[#FF3B30] text-[12px] font-semibold transition-colors flex items-center gap-1 cursor-pointer" onClick={bulkDelete}>
+                <Trash2 size={13} /> Șterge
+              </button>
+              <button className="px-2 py-1 rounded-full text-[#6E6E73] dark:text-[#98989D] hover:text-[#1D1D1F] dark:hover:text-white text-[12px] font-medium transition-colors cursor-pointer" onClick={() => setSelected(new Set())}>Anulează</button>
+            </div>
           )}
-        </div>
-        
-        {selected.size > 0 && (
-          <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 px-4 py-2 rounded-full border border-slate-200 dark:border-slate-700 animate-in slide-in-from-right-4">
-            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{selected.size} selectați</span>
-            <button className="px-4 py-1.5 rounded-full bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-900/20 dark:hover:bg-red-900/40 dark:text-red-500 text-sm font-bold transition-colors flex items-center gap-1.5" onClick={bulkDelete}>
-              <Trash2 size={14} /> Șterge imagini ({selected.size})
-            </button>
-            <button className="px-4 py-1.5 rounded-full bg-transparent hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 text-sm font-bold transition-colors" onClick={() => setSelected(new Set())}>Deselectează</button>
+
+          <div className="relative min-w-[210px] max-w-xs flex-1">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#86868B] pointer-events-none" />
+            <input
+              className="apple-input rounded-full w-full pl-9 pr-14 py-1.5 text-[13px]"
+              placeholder="Caută modificator..."
+              value={search}
+              onChange={e => { setSearch(e.target.value); setPage(1); setSelected(new Set()); }}
+            />
+            {search && (
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-0.5 rounded-md bg-[#007AFF]/12 text-[#007AFF] text-[11px] font-semibold tabular-nums pointer-events-none">
+                {filtered.filter(m => m.imageUrl).length}/{filtered.length}
+              </span>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* ── Main Table ───────────────────────────────────────── */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-4 opacity-50">
-          <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-500 rounded-full animate-spin"></div>
-          <span className="text-slate-500 text-sm font-medium">Se încarcă modificatorii...</span>
+        <div className="apple-card flex flex-col items-center justify-center py-20 gap-3">
+          <div className="w-6 h-6 border-2 border-black/10 dark:border-white/10 border-t-[#007AFF] rounded-full animate-spin" />
+          <span className="text-[#86868B] text-[13px] font-medium">Se încarcă modificatorii...</span>
         </div>
       ) : (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm mb-6">
+        <div className="apple-card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-                  <th className="px-4 py-3 w-12 text-center"><input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" checked={allPageSelected} onChange={toggleAll} /></th>
-                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider w-12">#</th>
-                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider w-20">Imagine</th>
-                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Modificator</th>
-                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Grup</th>
-                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Brand</th>
-                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Preț Extra</th>
-                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Acțiuni</th>
+                <tr className="border-b border-black/[0.06] dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.02] text-[11px] font-semibold text-[#6E6E73] dark:text-[#98989D] uppercase tracking-wider">
+                  <th className="px-4 py-3 w-12 text-center"><input type="checkbox" className="w-4 h-4 rounded accent-[#007AFF] cursor-pointer" checked={allPageSelected} onChange={toggleAll} /></th>
+                  <th className="px-4 py-3 w-12">#</th>
+                  <th className="px-4 py-3 w-20">Imagine</th>
+                  <th className="px-4 py-3">Modificator</th>
+                  <th className="px-4 py-3">Grup</th>
+                  <th className="px-4 py-3">Brand</th>
+                  <th className="px-4 py-3">Preț Extra</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3 text-right">Acțiuni</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+              <tbody className="divide-y divide-black/[0.05] dark:divide-white/[0.06]">
                 {pageItems.map((mod, i) => (
-                  <tr key={mod.id} className={`transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50 ${selected.has(mod.id) ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}>
-                    <td className="px-4 py-3 text-center"><input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" checked={selected.has(mod.id)} onChange={() => toggleOne(mod.id)} /></td>
-                    <td className="px-4 py-3 text-sm text-slate-500 font-medium">{(page - 1) * PAGE_SIZE + i + 1}</td>
+                  <tr key={mod.id} className={`transition-colors hover:bg-black/[0.02] dark:hover:bg-white/[0.03] ${selected.has(mod.id) ? 'bg-[#007AFF]/[0.05]' : ''}`}>
+                    <td className="px-4 py-3 text-center"><input type="checkbox" className="w-4 h-4 rounded accent-[#007AFF] cursor-pointer" checked={selected.has(mod.id)} onChange={() => toggleOne(mod.id)} /></td>
+                    <td className="px-4 py-3 text-[13px] text-[#86868B] tabular-nums">{(page - 1) * PAGE_SIZE + i + 1}</td>
                     <td className="px-4 py-3">
                       {mod.imageUrl
-                        ? <img src={mod.imageUrl} alt="" className="w-12 h-12 object-cover rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm" onError={e => { e.target.style.display='none'; }} />
-                        : <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 font-medium text-lg border border-slate-200 dark:border-slate-700">?</div>
+                        ? <img src={mod.imageUrl} alt="" className="w-11 h-11 object-cover rounded-xl border border-black/[0.06] dark:border-white/[0.08]" onError={e => { e.target.style.display='none'; }} />
+                        : <div className="w-11 h-11 rounded-xl bg-black/[0.04] dark:bg-white/[0.06] flex items-center justify-center text-[#86868B]"><ImageIcon size={16} /></div>
                       }
                     </td>
-                    <td className="px-4 py-3 text-sm font-bold text-slate-900 dark:text-white">{mod.name}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{mod.groupName}</td>
+                    <td className="px-4 py-3 text-[13px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">{mod.name}</td>
+                    <td className="px-4 py-3 text-[13px] text-[#6E6E73] dark:text-[#98989D]">{mod.groupName}</td>
                     <td className="px-4 py-3">
                       {mod.brandId ? (
                         <div className="flex items-center gap-2">
-                          <img src={`/brands/${mod.brandId.toLowerCase()}-logo.png`} alt={mod.brandId} className="w-7 h-7 rounded-full object-cover border border-slate-200 dark:border-slate-700 shadow-sm" onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='block'; }} />
-                          <span className="hidden text-xs font-bold text-slate-500 uppercase tracking-wider">{mod.brandId}</span>
+                          <img src={`/brands/${mod.brandId.toLowerCase()}-logo.png`} alt={mod.brandId} className="w-6 h-6 rounded-full object-cover border border-black/[0.08] dark:border-white/[0.1] bg-white" onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='block'; }} />
+                          <span className="hidden text-[11px] font-semibold text-[#86868B] uppercase tracking-wider">{mod.brandId}</span>
                         </div>
-                      ) : <span className="text-sm text-slate-500">—</span>}
+                      ) : <span className="text-[13px] text-[#86868B]">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-sm font-medium">
+                    <td className="px-4 py-3 text-[13px] font-medium tabular-nums">
                       {mod.price > 0
-                        ? <span className="text-red-600 dark:text-red-400">+{mod.price.toFixed(2)} lei</span>
-                        : <span className="text-slate-500">Inclus</span>}
+                        ? <span className="text-[#1D1D1F] dark:text-[#F5F5F7]">+{mod.price.toFixed(2)} lei</span>
+                        : <span className="text-[#86868B]">Inclus</span>}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold border ${mod.imageUrl ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-400' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400'}`}>
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${mod.imageUrl ? 'bg-[#34C759]/12 text-[#248A3D] dark:text-[#30D158]' : 'bg-[#FF3B30]/10 text-[#FF3B30]'}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${mod.imageUrl ? 'bg-[#34C759]' : 'bg-[#FF3B30]'}`} />
                         {mod.imageUrl ? 'Cu imagine' : 'Fără imagine'}
                       </span>
                     </td>
@@ -339,23 +350,23 @@ export default function ModifierImages() {
                             onChange={e => setEditUrl(e.target.value)}
                             onKeyDown={e => e.key === 'Enter' && saveImage(mod.id, mod.name, mod.brandId, editUrl)}
                             placeholder="https://..."
-                            className="flex-1 px-3 py-1.5 text-sm rounded-lg border border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                            className="apple-input flex-1 py-1.5 text-[13px]"
                           />
-                          <button title="OK" onClick={() => saveImage(mod.id, mod.name, mod.brandId, editUrl)} disabled={saving === mod.id} className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-teal-600 hover:bg-teal-700 text-white shadow-sm transition-colors">
-                            {saving === mod.id ? '...' : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                          <button title="Salvează" onClick={() => saveImage(mod.id, mod.name, mod.brandId, editUrl)} disabled={saving === mod.id} className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-[#007AFF] hover:bg-[#0066D6] text-white transition-colors cursor-pointer">
+                            {saving === mod.id ? '...' : <Check size={14} strokeWidth={2.5} />}
                           </button>
-                          <button title="" onClick={() => setEditingId(null)} className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                          <button title="Anulează" onClick={() => setEditingId(null)} className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-black/[0.05] dark:bg-white/[0.08] text-[#6E6E73] dark:text-[#98989D] hover:bg-black/[0.1] dark:hover:bg-white/[0.14] transition-colors cursor-pointer">
+                            <X size={14} strokeWidth={2.5} />
                           </button>
                         </div>
                       ) : (
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button title={mod.imageUrl ? 'Schimbă' : '+ URL'} onClick={() => { setEditingId(mod.id); setEditUrl(mod.imageUrl || ''); }} className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 transition-colors shadow-sm">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                        <div className="inline-flex items-center gap-1.5">
+                          <button title={mod.imageUrl ? 'Schimbă URL' : 'Adaugă URL'} onClick={() => { setEditingId(mod.id); setEditUrl(mod.imageUrl || ''); }} className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-black/[0.04] hover:bg-black/[0.08] dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-[#1D1D1F] dark:text-[#F5F5F7] transition-colors cursor-pointer">
+                            <Pencil size={13} />
                           </button>
                           {mod.imageUrl && (
-                            <button title="Șterge" onClick={() => deleteImage(mod.id)} className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 text-red-600 dark:text-red-500 border border-red-100 dark:border-red-900/50 transition-colors shadow-sm">
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>
+                            <button title="Șterge imagine" onClick={() => deleteImage(mod.id)} className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-[#FF3B30]/10 hover:bg-[#FF3B30]/20 text-[#FF3B30] transition-colors cursor-pointer">
+                              <Trash2 size={13} />
                             </button>
                           )}
                         </div>
@@ -364,7 +375,7 @@ export default function ModifierImages() {
                   </tr>
                 ))}
                 {pageItems.length === 0 && (
-                  <tr><td colSpan={9} className="text-center py-12 text-slate-500 font-medium">Niciun modificator găsit.</td></tr>
+                  <tr><td colSpan={9} className="text-center py-12 text-[#86868B] text-[13px] font-medium">Niciun modificator găsit.</td></tr>
                 )}
               </tbody>
             </table>
@@ -374,29 +385,30 @@ export default function ModifierImages() {
 
       {/* ── Pagination ───────────────────────────────────────── */}
       {totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 text-sm text-slate-600 dark:text-slate-400 font-medium">
-          <span>{(page-1)*PAGE_SIZE+1}–{Math.min(page*PAGE_SIZE, filtered.length)} din {filtered.length}</span>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-[13px] text-[#6E6E73] dark:text-[#98989D] font-medium">
+          <span className="tabular-nums">{(page-1)*PAGE_SIZE+1}–{Math.min(page*PAGE_SIZE, filtered.length)} din {filtered.length}</span>
           <div className="flex items-center gap-1">
-            <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 transition-colors" disabled={page===1} onClick={() => setPage(1)}>«</button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 transition-colors" disabled={page===1} onClick={() => setPage(p => p-1)}>‹</button>
+            <button className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/[0.05] dark:hover:bg-white/[0.08] disabled:opacity-30 transition-colors cursor-pointer" disabled={page===1} onClick={() => setPage(1)}>«</button>
+            <button className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/[0.05] dark:hover:bg-white/[0.08] disabled:opacity-30 transition-colors cursor-pointer" disabled={page===1} onClick={() => setPage(p => p-1)}>‹</button>
             {Array.from({ length: totalPages }, (_, k) => k+1)
               .filter(p => p===1 || p===totalPages || Math.abs(p-page)<=2)
               .map((p, idx, arr) => (
                 <div key={p} className="flex items-center">
-                  {idx>0 && arr[idx-1]!==p-1 && <span className="w-8 text-center text-slate-400">…</span>}
-                  <button className={`w-8 h-8 flex items-center justify-center rounded-lg font-bold transition-colors ${p === page ? 'bg-blue-600 text-white shadow-sm' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`} onClick={() => setPage(p)}>{p}</button>
+                  {idx>0 && arr[idx-1]!==p-1 && <span className="w-8 text-center text-[#86868B]">…</span>}
+                  <button className={`w-8 h-8 flex items-center justify-center rounded-full font-semibold tabular-nums transition-colors cursor-pointer ${p === page ? 'bg-[#007AFF] text-white' : 'hover:bg-black/[0.05] dark:hover:bg-white/[0.08]'}`} onClick={() => setPage(p)}>{p}</button>
                 </div>
               ))}
-            <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 transition-colors" disabled={page===totalPages} onClick={() => setPage(p => p+1)}>›</button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 transition-colors" disabled={page===totalPages} onClick={() => setPage(totalPages)}>»</button>
+            <button className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/[0.05] dark:hover:bg-white/[0.08] disabled:opacity-30 transition-colors cursor-pointer" disabled={page===totalPages} onClick={() => setPage(p => p+1)}>›</button>
+            <button className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/[0.05] dark:hover:bg-white/[0.08] disabled:opacity-30 transition-colors cursor-pointer" disabled={page===totalPages} onClick={() => setPage(totalPages)}>»</button>
           </div>
         </div>
       )}
 
       {/* Toast */}
       {toast && (
-        <div className={`fixed bottom-6 right-6 px-6 py-3 rounded-2xl text-sm font-bold shadow-xl flex items-center gap-3 z-50 animate-in slide-in-from-bottom-5 ${toast.type === 'err' ? 'bg-red-600 text-white' : 'bg-emerald-600 text-white'}`}>
-          {toast.msg}
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-full bg-[#1C1C1E] dark:bg-[#2C2C2E] text-white text-[13px] font-medium shadow-2xl border border-white/10 flex items-center gap-2.5 z-50 animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <span className={`w-2 h-2 rounded-full ${toast.type === 'err' ? 'bg-[#FF3B30]' : 'bg-[#34C759]'}`} />
+          <span>{toast.msg}</span>
         </div>
       )}
     </div>

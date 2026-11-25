@@ -1166,6 +1166,7 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
     const discountSum = Math.max(0, Math.round((grossSyrveTotal - Number(order.totalAmount || 0)) * 100) / 100);
 
     let discountsInfo = null;
+    const voucherTag = order.voucherCode ? ` (VOUCHER: ${order.voucherCode})` : '';
     if (discountSum > 0.01) {
       const discountTypeId = await getKioskDiscountTypeId(resolvedOrgId, brandId);
       if (discountTypeId) {
@@ -1180,11 +1181,16 @@ async function createOrder({ brandId = 'smashme', orgId, order }) {
             }
           ]
         };
-        console.log(`[Syrve] Applied discount of ${discountSum.toFixed(2)} lei (discountTypeId: ${discountTypeId}) for order #${order.orderNumber} [${brandId}]`);
-        orderComment += ` | REDUCERE: -${discountSum.toFixed(2)} LEI`;
+        console.log(`[Syrve] Applied discount of ${discountSum.toFixed(2)} lei${voucherTag} (discountTypeId: ${discountTypeId}) for order #${order.orderNumber} [${brandId}]`);
+        orderComment += ` | REDUCERE${voucherTag}: -${discountSum.toFixed(2)} LEI`;
       } else {
-        console.warn(`[Syrve] Warning: Discount of ${discountSum.toFixed(2)} lei detected but no kiosk discount type configured for org ${resolvedOrgId}`);
+        console.warn(`[Syrve] Warning: Discount of ${discountSum.toFixed(2)} lei${voucherTag} detected but no kiosk discount type configured for org ${resolvedOrgId}`);
+        if (order.voucherCode) {
+          orderComment += ` | VOUCHER ${order.voucherCode}: -${discountSum.toFixed(2)} LEI`;
+        }
       }
+    } else if (order.voucherCode) {
+      orderComment += ` | VOUCHER: ${order.voucherCode}`;
     }
 
     const finalPaymentSum = Math.max(0, Math.round((grossSyrveTotal - discountSum) * 100) / 100);

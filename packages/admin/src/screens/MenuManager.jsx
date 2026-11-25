@@ -2,7 +2,23 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthProvider';
 import BrandLogo from '../components/BrandLogo';
 import { Folder, Search, X, ChevronDown, ChevronUp, EyeOff, RotateCcw, Plus, Edit3 } from 'lucide-react';
-import { ALL_BRAND_COLORS as BRAND_COLORS } from '../utils/brandTheme';
+import { ALL_BRAND_COLORS as BRAND_COLORS, ALL_BRAND_LABELS as BRAND_LABELS } from '../utils/brandTheme';
+
+function resolveBrandDisplayName(b, brandsList = []) {
+  const rawId = (b.brandId || '').toString().trim();
+  const cleanKey = rawId.includes(':') ? rawId.split(':')[0].toLowerCase() : rawId.toLowerCase();
+  const matchedBrand = brandsList.find(br => (br.id || '').toLowerCase() === cleanKey);
+  if (matchedBrand?.name) return matchedBrand.name;
+  if (BRAND_LABELS[cleanKey]) return BRAND_LABELS[cleanKey];
+  const rawName = (b.name || '').toString().trim();
+  // Never display raw UUIDs or composite org keys like "lovesushi:adddb5a0-..."
+  const looksLikeKey = /^[0-9a-f-]{20,}$/i.test(rawName) || rawName.includes(':');
+  if (rawName && !looksLikeKey) return rawName;
+  if (cleanKey && !/^[0-9a-f-]{20,}$/i.test(cleanKey)) {
+    return cleanKey.charAt(0).toUpperCase() + cleanKey.slice(1);
+  }
+  return 'Brand Syrve';
+}
 
 export default function MenuManager({ backend }) {
   const { fetchWithAuth } = useAuth();
@@ -102,130 +118,127 @@ export default function MenuManager({ backend }) {
   if (loading) return <p className="text-slate-500 font-medium py-10 text-center animate-pulse">Se încarcă managerul de meniu...</p>;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
+    <div className="space-y-5 animate-in fade-in duration-300">
       {/* Header & Quick Action */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
-            Sincronizare Syrve & Profile Meniu
-            <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-              Total: {menuStatus?.brands?.length || brands.length} branduri
-            </span>
-          </h2>
-          <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm leading-relaxed">
-            Monitorizează sincronizarea meniului POS (Syrve/iiko) și configurează profilele de meniu per brand.
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <p className="text-[#6E6E73] dark:text-[#98989D] text-[13px] m-0">
+            Sincronizare live cu Syrve/iiko și profile de meniu per brand.
           </p>
+          <span className="px-2.5 py-0.5 rounded-full text-[11.5px] font-semibold bg-[#007AFF]/10 text-[#007AFF] dark:text-[#0A84FF]">
+            {menuStatus?.brands?.length || brands.length} branduri
+          </span>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
-          <button
-            onClick={fetchMenuStatus}
-            className="px-4 h-10 rounded-full bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-sm font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer"
-            title="Verifică starea sincronizării cu POS-ul Syrve"
-          >
-            <RotateCcw className="w-4 h-4 text-slate-400" />
-            <span>Re-sincronizare Check</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={fetchMenuStatus}
+          className="apple-btn-secondary px-4 h-9 text-[13px]"
+          title="Verifică starea sincronizării cu POS-ul Syrve"
+        >
+          <RotateCcw className="w-3.5 h-3.5 text-[#86868B]" />
+          <span>Re-sincronizare</span>
+        </button>
       </div>
 
       {menuStatus?.error && (
-        <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-4 rounded-xl border border-red-200 dark:border-red-800 font-medium">
+        <div className="bg-[#FF3B30]/10 text-[#FF3B30] p-4 rounded-2xl border border-[#FF3B30]/20 text-[13px] font-medium">
           {menuStatus.error}
         </div>
       )}
 
-      {/* Tabel Business Unificat */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+      {/* Tabel Business Unificat — Apple Card */}
+      <div className="apple-card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[850px]">
+          <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 whitespace-nowrap">
-                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 text-center w-[60px]">#</th>
-                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 min-w-[200px]">Brand</th>
-                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 min-w-[180px]">Stare Syrve POS</th>
-                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 min-w-[190px]">Date Meniu POS</th>
-                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Profile Meniu Active</th>
-                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 text-right min-w-[150px]">Acțiuni</th>
+              <tr className="bg-[#F5F5F7]/70 dark:bg-[#2C2C2E]/60 border-b border-black/[0.06] dark:border-white/[0.07] whitespace-nowrap">
+                <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-[#86868B] text-center w-11">#</th>
+                <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-[#86868B]">Brand</th>
+                <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-[#86868B]">Stare Syrve</th>
+                <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-[#86868B]">Date Meniu</th>
+                <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-[#86868B]">Profile Meniu Active</th>
+                <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-[#86868B] text-right">Acțiuni</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-black/[0.05] dark:divide-white/[0.06]">
               {menuStatus?.brands?.map((b, index) => {
-                const brand = brands.find(br => br.id === b.brandId) || { id: b.brandId, name: b.name || b.brandId, data: {} };
+                const displayName = resolveBrandDisplayName(b, brands);
+                const brand = brands.find(br => br.id === b.brandId) || { id: b.brandId, name: displayName, data: {} };
                 const profiles = brand.data?.menuProfiles || [];
                 const isLive = Boolean(b.categories || b.products);
 
                 return (
-                  <tr key={b.brandId} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                  <tr key={b.brandId} className="hover:bg-black/[0.02] dark:hover:bg-white/[0.03] transition-colors group">
                     {/* Nr. Crt. */}
-                    <td className="px-6 py-4 text-sm font-bold text-slate-400 dark:text-slate-500 text-center whitespace-nowrap">
+                    <td className="px-4 py-3.5 text-[13px] font-semibold text-[#86868B] text-center whitespace-nowrap">
                       {index + 1}
                     </td>
 
                     {/* Brand */}
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-3.5 whitespace-nowrap">
                       <div className="flex items-center gap-3">
-                        <BrandLogo brandId={b.brandId} size={28} />
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-slate-900 dark:text-white text-sm">
-                            {b.name || b.brandId}
+                        <BrandLogo brandId={b.brandId} size={32} />
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] text-[13.5px] leading-tight">
+                            {displayName}
                           </span>
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 leading-none mt-0.5">
-                            {b.source || 'SYRVE-LIVE'}
+                          <span className="text-[11px] font-medium text-[#86868B] leading-tight mt-0.5">
+                            Syrve Live
                           </span>
                         </div>
                       </div>
                     </td>
 
                     {/* Stare Syrve POS */}
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex flex-col gap-1 items-start">
-                        <div className="flex items-center gap-2">
-                          <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${isLive ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)] animate-pulse' : 'bg-slate-400'}`} />
-                          <span className={`text-xs font-bold ${isLive ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500'}`}>
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      <div className="flex flex-col gap-0.5 items-start">
+                        <div className="flex items-center gap-1.5">
+                          <span className={`w-2 h-2 rounded-full shrink-0 ${isLive ? 'bg-[#34C759]' : 'bg-[#86868B]'}`} />
+                          <span className={`text-[12.5px] font-semibold ${isLive ? 'text-[#248A3D] dark:text-[#30D158]' : 'text-[#86868B]'}`}>
                             {isLive ? 'Sincronizat Live' : 'Neverificat'}
                           </span>
                         </div>
-                        <span className="text-[11px] text-slate-400 font-medium">
-                          Modificare: {b.syncedAt ? new Date(b.syncedAt).toLocaleTimeString('ro-RO') : 'N/A'}
+                        <span className="text-[11px] text-[#86868B]">
+                          {b.syncedAt ? `Actualizat ${new Date(b.syncedAt).toLocaleTimeString('ro-RO')}` : 'N/A'}
                         </span>
                       </div>
                     </td>
 
                     {/* Date Meniu POS */}
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <span className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      <div className="flex items-center gap-1.5">
+                        <span className="px-2.5 py-1 rounded-full bg-black/[0.04] dark:bg-white/[0.07] text-[12px] font-medium text-[#1D1D1F] dark:text-[#F5F5F7]">
                           {b.categories} categorii
                         </span>
-                        <span className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                        <span className="px-2.5 py-1 rounded-full bg-black/[0.04] dark:bg-white/[0.07] text-[12px] font-medium text-[#1D1D1F] dark:text-[#F5F5F7]">
                           {b.products} produse
                         </span>
                       </div>
                     </td>
 
                     {/* Profile Meniu Active */}
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3.5">
                       {profiles.length === 0 ? (
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                          Meniu 100% complet (implicit)
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-medium text-[#86868B] bg-black/[0.035] dark:bg-white/[0.06] whitespace-nowrap">
+                          Meniu complet (implicit)
                         </span>
                       ) : (
-                        <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           {profiles.map(p => {
                             const hiddenCount = Object.keys(p.hiddenItems || {}).length;
                             return (
                               <div
                                 key={p.id}
-                                className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 text-blue-700 dark:text-blue-300 shadow-xs"
+                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-medium bg-[#007AFF]/10 border border-[#007AFF]/20 text-[#007AFF] dark:text-[#64D2FF] whitespace-nowrap"
                               >
-                                <span className="font-bold text-slate-900 dark:text-white">{p.name}</span>
+                                <span className="font-semibold text-[#1D1D1F] dark:text-white whitespace-nowrap">{p.name}</span>
                                 {hiddenCount > 0 ? (
-                                  <span className="text-amber-600 dark:text-amber-400 text-[10px] font-bold">
+                                  <span className="text-[#C93400] dark:text-[#FF9F0A] text-[11px] font-semibold">
                                     (-{hiddenCount})
                                   </span>
                                 ) : (
-                                  <span className="text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">
+                                  <span className="text-[#248A3D] dark:text-[#30D158] text-[11px] font-semibold">
                                     (complet)
                                   </span>
                                 )}
@@ -233,7 +246,7 @@ export default function MenuManager({ backend }) {
                                   type="button"
                                   onClick={() => setEditingProfileForBrand({ brand, profile: p })}
                                   title="Editează arbore produse profil"
-                                  className="w-5 h-5 rounded-full hover:bg-blue-200 dark:hover:bg-blue-800 flex items-center justify-center text-blue-600 dark:text-blue-300 hover:text-blue-900 dark:hover:text-white transition-colors cursor-pointer ml-1"
+                                  className="w-5 h-5 rounded-full hover:bg-[#007AFF]/20 inline-flex items-center justify-center text-[#007AFF] dark:text-[#64D2FF] transition-colors cursor-pointer"
                                 >
                                   <Edit3 className="w-3 h-3" />
                                 </button>
@@ -241,7 +254,7 @@ export default function MenuManager({ backend }) {
                                   type="button"
                                   onClick={() => setActionModal({ type: 'delete', brandId: brand.id, profileId: p.id, profileName: p.name })}
                                   title="Șterge profil"
-                                  className="w-5 h-5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/40 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors cursor-pointer"
+                                  className="w-5 h-5 rounded-full hover:bg-[#FF3B30]/15 inline-flex items-center justify-center text-[#86868B] hover:text-[#FF3B30] transition-colors cursor-pointer"
                                 >
                                   <X className="w-3 h-3" />
                                 </button>
@@ -253,18 +266,16 @@ export default function MenuManager({ backend }) {
                     </td>
 
                     {/* Acțiuni */}
-                    <td className="px-6 py-4 text-right whitespace-nowrap" onClick={e => e.stopPropagation()}>
-                      <div className="flex justify-end items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => { setInputValue(''); setActionModal({ type: 'create', brandId: brand.id, brandName: brand.name }); }}
-                          title={`Adaugă profil de meniu pentru ${brand.name}`}
-                          className="px-3.5 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-900 text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                          <span>Adaugă Profil</span>
-                        </button>
-                      </div>
+                    <td className="px-4 py-3.5 text-right whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={() => { setInputValue(''); setActionModal({ type: 'create', brandId: brand.id, brandName: displayName }); }}
+                        title={`Adaugă profil de meniu pentru ${displayName}`}
+                        className="apple-btn-primary px-3.5 py-1.5 text-[12px]"
+                      >
+                        <Plus className="w-3.5 h-3.5" strokeWidth={2.4} />
+                        <span>Adaugă Profil</span>
+                      </button>
                     </td>
                   </tr>
                 );
@@ -274,50 +285,60 @@ export default function MenuManager({ backend }) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-500 font-medium">
-          <span>Total branduri sincronizate: <strong>{menuStatus?.brands?.length || 0}</strong></span>
+        <div className="flex items-center justify-between px-4 py-3 bg-[#F5F5F7]/60 dark:bg-white/[0.02] border-t border-black/[0.06] dark:border-white/[0.07] text-[12px] text-[#86868B] font-medium">
+          <span>Total branduri sincronizate: <strong className="text-[#1D1D1F] dark:text-[#F5F5F7]">{menuStatus?.brands?.length || 0}</strong></span>
           <span>Sursă date: Syrve Cloud API (iiko)</span>
         </div>
       </div>
 
-      {/* CUSTOM PROMPT MODALS TO AVOID NATIVE BROWSER POPUPS BLOCKING */}
+      {/* CUSTOM PROMPT MODALS — Apple Modal Style */}
       {actionModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[999999] flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-800">
-            
+        <div
+          onClick={() => setActionModal(null)}
+          className="fixed inset-0 bg-black/40 backdrop-blur-md z-[999999] flex items-center justify-center p-4 animate-in fade-in duration-150"
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            className="apple-modal p-6 w-full max-w-md animate-in zoom-in-95 duration-150"
+          >
             {actionModal.type === 'create' && (
               <>
-                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Creează Profil Nou</h3>
-                <p className="text-sm text-slate-500 mb-6">Introdu un nume pentru noul profil al brandului <strong className="text-slate-900 dark:text-white">{actionModal.brandName}</strong>.</p>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-[17px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">Creează Profil Nou</h3>
+                  <button type="button" className="apple-close-btn" onClick={() => setActionModal(null)} title="Închide"><X size={16} /></button>
+                </div>
+                <p className="text-[13px] text-[#86868B] mb-5">Introdu un nume pentru noul profil al brandului <strong className="text-[#1D1D1F] dark:text-white">{actionModal.brandName}</strong>.</p>
                 <input 
                   autoFocus
                   type="text" 
                   value={inputValue} 
                   onChange={e => setInputValue(e.target.value)} 
                   placeholder="ex: Meniu Terasă"
-                  className="w-full px-4 h-12 text-base rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all mb-8 shadow-inner"
+                  className="apple-input w-full px-3.5 h-11 text-[14px] mb-6"
                   onKeyDown={e => { if (e.key === 'Enter' && inputValue.trim()) { createProfile(actionModal.brandId, inputValue); setActionModal(null); } }}
                 />
-                <div className="flex gap-3 justify-end">
-                  <button className="px-5 h-11 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold transition-colors" onClick={() => setActionModal(null)}>Anulează</button>
-                  <button className="px-5 h-11 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed" onClick={() => { createProfile(actionModal.brandId, inputValue); setActionModal(null); }} disabled={!inputValue.trim()}>Creează Profil</button>
+                <div className="flex gap-2.5 justify-end">
+                  <button type="button" className="apple-btn-secondary px-4 py-2 text-[13px]" onClick={() => setActionModal(null)}>Anulează</button>
+                  <button type="button" className="apple-btn-primary px-4 py-2 text-[13px] disabled:opacity-40" onClick={() => { createProfile(actionModal.brandId, inputValue); setActionModal(null); }} disabled={!inputValue.trim()}>Creează Profil</button>
                 </div>
               </>
             )}
 
             {actionModal.type === 'delete' && (
               <>
-                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Ștergere Profil</h3>
-                <p className="text-sm text-slate-500 mb-8">
-                  Sigur dorești să ștergi profilul de meniu <strong className="text-slate-900 dark:text-white">{actionModal.profileName}</strong>? Kiosk-urile care folosesc acest profil vor reveni la meniul complet standard, deci va trebui să le reatribui.
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-[17px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">Ștergere Profil</h3>
+                  <button type="button" className="apple-close-btn" onClick={() => setActionModal(null)} title="Închide"><X size={16} /></button>
+                </div>
+                <p className="text-[13px] text-[#86868B] mb-6 leading-relaxed">
+                  Sigur dorești să ștergi profilul <strong className="text-[#1D1D1F] dark:text-white">{actionModal.profileName}</strong>? Kiosk-urile care folosesc acest profil vor reveni la meniul complet standard.
                 </p>
-                <div className="flex gap-3 justify-end">
-                  <button className="px-5 h-11 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold transition-colors" onClick={() => setActionModal(null)}>Anulează</button>
-                  <button className="px-5 h-11 rounded-full bg-red-600 hover:bg-red-700 text-white text-sm font-bold shadow-sm transition-all" onClick={() => { deleteProfileConfirmed(actionModal.brandId, actionModal.profileId); setActionModal(null); }}>Da, Șterge Definitiv</button>
+                <div className="flex gap-2.5 justify-end">
+                  <button type="button" className="apple-btn-secondary px-4 py-2 text-[13px]" onClick={() => setActionModal(null)}>Anulează</button>
+                  <button type="button" className="px-4 py-2 rounded-full bg-[#FF3B30] hover:bg-[#D70015] text-white text-[13px] font-semibold transition-all cursor-pointer" onClick={() => { deleteProfileConfirmed(actionModal.brandId, actionModal.profileId); setActionModal(null); }}>Șterge Definitiv</button>
                 </div>
               </>
             )}
-
           </div>
         </div>
       )}
@@ -676,7 +697,7 @@ export function MenuProfileEditorModal({
                   <button 
                     type="button"
                     onClick={() => { setRootFolderId(''); setActiveTab(null); }}
-                    className="text-xs px-3 py-1 bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 rounded-lg hover:bg-amber-200 font-semibold transition-colors"
+                    className="text-xs px-3 py-1 bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 rounded-full hover:bg-amber-200 font-semibold transition-colors"
                   >
                     Resetează la Tot Meniul
                   </button>
@@ -834,7 +855,7 @@ export function MenuProfileEditorModal({
                        <button 
                          key={c.id}
                          onClick={() => setActiveTab(c.id)}
-                         className={`px-5 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${activeTab === c.id ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm border border-transparent' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
+                         className={`px-4 py-1.5 rounded-full text-[13px] font-semibold transition-all inline-flex items-center gap-2 cursor-pointer ${activeTab === c.id ? 'bg-[#007AFF] text-white shadow-sm' : 'bg-white dark:bg-[#2C2C2E] text-[#1D1D1F] dark:text-[#F5F5F7] border border-black/[0.08] dark:border-white/[0.1] hover:bg-black/[0.03] dark:hover:bg-white/[0.08]'}`}
                        >
                           <span>{c.name}</span>
                           {hiddenInCat > 0 && (

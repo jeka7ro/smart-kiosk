@@ -438,12 +438,12 @@ export default function ProductOverrides() {
   const returnKioskName = localStorage.getItem('admin_return_to_kiosk_name');
 
   return (
-    <div className="w-full max-w-7xl mx-auto pb-10 animate-in fade-in duration-300">
-      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+    <div className="w-full max-w-7xl mx-auto pb-10 space-y-5 animate-in fade-in duration-300">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Produse & Etichete (Overrides)</h2>
-          <p className="m-0 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Meniul sincronizat din Syrve. Aici poți adăuga manual supra-scrieri (poză HD proprie, preț promo, ofertă Pop-up Start).
+          <h2 className="text-[18px] font-semibold tracking-tight text-[#1D1D1F] dark:text-[#F5F5F7] m-0">Produse & Etichete</h2>
+          <p className="m-0 text-[13px] text-[#6E6E73] dark:text-[#98989D] mt-0.5">
+            Meniul sincronizat din Syrve. Adaugă poze HD proprii, preț promoțional sau oferte Pop-up Start.
           </p>
         </div>
         {returnKioskId && (
@@ -452,11 +452,11 @@ export default function ProductOverrides() {
             onClick={() => {
               window.location.hash = 'kiosks';
             }}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl border border-blue-200 dark:border-blue-800/70 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-xs font-bold transition-all shadow-xs cursor-pointer shrink-0"
+            className="apple-btn-secondary text-[12px] px-3.5 py-1.5 shrink-0"
           >
             <span>← Înapoi la Setări Kiosk</span>
             {returnKioskName && (
-              <span className="px-2 py-0.5 rounded-md bg-blue-200/70 dark:bg-blue-800/80 text-blue-900 dark:text-blue-100 font-semibold text-[11px]">
+              <span className="px-2 py-0.5 rounded-md bg-[#007AFF]/12 text-[#007AFF] font-semibold text-[11px]">
                 {returnKioskName}
               </span>
             )}
@@ -467,9 +467,9 @@ export default function ProductOverrides() {
       <input type="file" ref={fileInputRef} className="hidden" accept="image/png, image/jpeg, image/webp" onChange={onFileChange} />
 
       {/* ── Toolbar ──────────────────────────────────────────── */}
-      <div className="flex flex-col gap-3 mb-5">
+      <div className="apple-card p-3.5 flex flex-col gap-3">
         {/* Brand Selector */}
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-1">
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
           {BRANDS.map(b => {
             const isActive = activeBrand === b.id;
             return (
@@ -479,26 +479,26 @@ export default function ProductOverrides() {
                   setActiveBrand(b.id);
                   localStorage.setItem('admin_active_brand', b.id);
                 }}
-                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border shrink-0 cursor-pointer ${
+                className={`inline-flex items-center gap-1.5 px-3 h-8 rounded-full text-[12px] font-semibold transition-all shrink-0 cursor-pointer ${
                   isActive
-                    ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white shadow-2xs'
-                    : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                    ? 'bg-[#007AFF] text-white'
+                    : 'bg-black/[0.04] dark:bg-white/[0.06] text-[#6E6E73] dark:text-[#98989D] hover:bg-black/[0.08] dark:hover:bg-white/[0.12]'
                 }`}
               >
-                <BrandLogo brandId={b.id} size={16} />
+                <BrandLogo brandId={b.id} size={15} />
                 <span>{b.label}</span>
               </button>
             );
           })}
         </div>
-        
+
         {/* Filters & Search */}
-        <div className="flex flex-wrap gap-2.5 items-center">
+        <div className="flex flex-wrap gap-2 items-center">
           {brandLocations.length > 0 && (
             <select
               value={activeLocation}
               onChange={e => setActiveLocation(e.target.value)}
-              className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-medium bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-400"
+              className="apple-input py-1.5 px-3 text-[12px] font-medium cursor-pointer"
             >
               <option value="" disabled>Locație...</option>
               {brandLocations.map(loc => (
@@ -523,7 +523,7 @@ export default function ProductOverrides() {
               <select
                 value={activeKiosk}
                 onChange={e => setActiveKiosk(e.target.value)}
-                className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-medium bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-400 min-w-[110px]"
+                className="apple-input py-1.5 px-3 text-[12px] font-medium cursor-pointer min-w-[110px]"
               >
                 <option value="" disabled>Kiosk...</option>
                 {knownKiosks.length === 0 && (
@@ -536,106 +536,66 @@ export default function ProductOverrides() {
             );
           })()}
 
-          <select 
+          <select
             value={filterCategory}
             onChange={e => { setFilterCategory(e.target.value); setPage(1); }}
-            className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-medium bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-400 max-w-[170px]"
+            className="apple-input py-1.5 px-3 text-[12px] font-medium cursor-pointer max-w-[180px]"
           >
             <option value="">Toate categoriile</option>
             {uniqueCategories.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
 
           <div className="relative flex-1 min-w-[180px]">
-            <input 
-              className="w-full pl-9 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
-              placeholder="Caută produs..." 
-              value={search} 
-              onChange={e => { setSearch(e.target.value); setPage(1); }} 
+            <input
+              className="apple-input rounded-full w-full pl-8 pr-3 py-1.5 text-[12px]"
+              placeholder="Caută produs..."
+              value={search}
+              onChange={e => { setSearch(e.target.value); setPage(1); }}
             />
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#86868B] pointer-events-none" />
           </div>
-          
-          <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              onClick={() => {
-                const next = filterDiet === 'veg' ? null : 'veg';
-                setFilterDiet(next);
-                if (next) localStorage.setItem('admin_product_filter_diet', next);
-                else localStorage.removeItem('admin_product_filter_diet');
-                setPage(1);
-              }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border cursor-pointer ${
-                filterDiet === 'veg' 
-                  ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white shadow-2xs' 
-                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50'
-              }`}
-            >
-              Vegetarian
-            </button>
-            <button
-              onClick={() => {
-                const next = filterDiet === 'spicy' ? null : 'spicy';
-                setFilterDiet(next);
-                if (next) localStorage.setItem('admin_product_filter_diet', next);
-                else localStorage.removeItem('admin_product_filter_diet');
-                setPage(1);
-              }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border cursor-pointer ${
-                filterDiet === 'spicy' 
-                  ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white shadow-2xs' 
-                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50'
-              }`}
-            >
-              Picant
-            </button>
-            <button
-              onClick={() => {
-                const next = filterDiet === 'promo' ? null : 'promo';
-                setFilterDiet(next);
-                if (next) localStorage.setItem('admin_product_filter_diet', next);
-                else localStorage.removeItem('admin_product_filter_diet');
-                setPage(1);
-              }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border cursor-pointer ${
-                filterDiet === 'promo' 
-                  ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white shadow-2xs' 
-                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50'
-              }`}
-            >
-              Doar Promo
-            </button>
-            <button
-              onClick={() => {
-                const next = filterDiet === 'featured' ? null : 'featured';
-                setFilterDiet(next);
-                if (next) localStorage.setItem('admin_product_filter_diet', next);
-                else localStorage.removeItem('admin_product_filter_diet');
-                setPage(1);
-              }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border cursor-pointer ${
-                filterDiet === 'featured' 
-                  ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white shadow-2xs' 
-                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50'
-              }`}
-            >
-              Prima Pagină
-            </button>
+
+          <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+            {[
+              { id: 'veg', label: 'Vegetarian' },
+              { id: 'spicy', label: 'Picant' },
+              { id: 'promo', label: 'Doar Promo' },
+              { id: 'featured', label: 'Prima Pagină' },
+            ].map(pill => (
+              <button
+                key={pill.id}
+                onClick={() => {
+                  const next = filterDiet === pill.id ? null : pill.id;
+                  setFilterDiet(next);
+                  if (next) localStorage.setItem('admin_product_filter_diet', next);
+                  else localStorage.removeItem('admin_product_filter_diet');
+                  setPage(1);
+                }}
+                className={`px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all cursor-pointer ${
+                  filterDiet === pill.id
+                    ? 'bg-[#007AFF] text-white'
+                    : 'bg-black/[0.04] dark:bg-white/[0.06] text-[#6E6E73] dark:text-[#98989D] hover:bg-black/[0.08] dark:hover:bg-white/[0.12]'
+                }`}
+              >
+                {pill.label}
+              </button>
+            ))}
           </div>
         </div>
       </div>
 
       {/* ── Main Table ───────────────────────────────────────── */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-3 opacity-60">
-          <div className="w-7 h-7 border-2 border-slate-300 border-t-slate-700 rounded-full animate-spin"></div>
-          <span className="text-slate-500 text-xs font-medium">Se încarcă catalogul sincronizat...</span>
+        <div className="apple-card flex flex-col items-center justify-center py-20 gap-3">
+          <div className="w-6 h-6 border-2 border-black/10 dark:border-white/10 border-t-[#007AFF] rounded-full animate-spin" />
+          <span className="text-[#86868B] text-[13px] font-medium">Se încarcă catalogul sincronizat...</span>
         </div>
       ) : (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-2xs">
+        <div className="apple-card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-800/50">
+                <tr className="border-b border-black/[0.06] dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.02]">
                   <th className="w-12 px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-slate-400">#</th>
                   <th className="w-16 px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Imagine</th>
                   <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Produs & Categorie</th>
@@ -792,7 +752,7 @@ export default function ProductOverrides() {
                                   <button
                                     title="Salvează preț (Enter)"
                                     onClick={() => handleSavePromo(prod.id)}
-                                    className="w-6 h-6 inline-flex items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 transition-colors"
+                                    className="w-6 h-6 inline-flex items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 transition-colors"
                                   >
                                     <Check size={12} />
                                   </button>
@@ -801,7 +761,7 @@ export default function ProductOverrides() {
                                   <button
                                     title="Șterge promoția"
                                     onClick={() => handleDeletePromo(prod.id)}
-                                    className="w-6 h-6 inline-flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                                    className="w-6 h-6 inline-flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
                                   >
                                     <X size={12} />
                                   </button>
@@ -898,7 +858,7 @@ export default function ProductOverrides() {
                           <button 
                             title="Upload Poză Custom HD" 
                             onClick={() => handleImageUploadClick(prod.id)} 
-                            className="w-7 h-7 inline-flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors"
+                            className="w-7 h-7 inline-flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors"
                           >
                             <Upload size={13} />
                           </button>
@@ -906,7 +866,7 @@ export default function ProductOverrides() {
                             <button 
                               title="Șterge Custom (Revine la Syrve)" 
                               onClick={() => deleteCustomImage(prod.id)} 
-                              className="w-7 h-7 inline-flex items-center justify-center rounded-lg bg-slate-100 hover:bg-red-50 dark:bg-slate-800 dark:hover:bg-red-950/30 text-slate-500 hover:text-red-600 transition-colors"
+                              className="w-7 h-7 inline-flex items-center justify-center rounded-full bg-slate-100 hover:bg-red-50 dark:bg-slate-800 dark:hover:bg-red-950/30 text-slate-500 hover:text-red-600 transition-colors"
                             >
                               <RotateCcw size={13} />
                             </button>
@@ -964,7 +924,7 @@ export default function ProductOverrides() {
           {totalPages > 1 && (
             <div className="flex items-center gap-1">
               <button
-                className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 transition-colors"
+                className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 transition-colors"
                 disabled={page === 1}
                 onClick={() => setPage(1)}
                 title="Prima pagină"
@@ -972,7 +932,7 @@ export default function ProductOverrides() {
                 «
               </button>
               <button
-                className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 transition-colors"
+                className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 transition-colors"
                 disabled={page === 1}
                 onClick={() => setPage((p) => p - 1)}
                 title="Pagina precedentă"
@@ -985,10 +945,10 @@ export default function ProductOverrides() {
                   <div key={p} className="flex items-center">
                     {idx > 0 && arr[idx - 1] !== p - 1 && <span className="w-5 text-center text-slate-400">…</span>}
                     <button
-                      className={`w-7 h-7 flex items-center justify-center rounded-lg font-bold transition-colors ${
+                      className={`w-7 h-7 flex items-center justify-center rounded-full font-bold transition-colors ${
                         p === page
-                          ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-2xs'
-                          : 'hover:bg-slate-100 dark:hover:bg-slate-800'
+                          ? 'bg-[#007AFF] text-white shadow-[0_2px_6px_rgba(0,122,255,0.3)]'
+                          : 'hover:bg-black/[0.05] dark:hover:bg-white/[0.08]'
                       }`}
                       onClick={() => setPage(p)}
                     >
@@ -997,7 +957,7 @@ export default function ProductOverrides() {
                   </div>
                 ))}
               <button
-                className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 transition-colors"
+                className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 transition-colors"
                 disabled={page === totalPages}
                 onClick={() => setPage((p) => p + 1)}
                 title="Pagina următoare"
@@ -1005,7 +965,7 @@ export default function ProductOverrides() {
                 ›
               </button>
               <button
-                className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 transition-colors"
+                className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 transition-colors"
                 disabled={page === totalPages}
                 onClick={() => setPage(totalPages)}
                 title="Ultima pagină"
@@ -1019,43 +979,56 @@ export default function ProductOverrides() {
 
       {/* Toast */}
       {toast && (
-        <div className={`fixed bottom-6 right-6 px-6 py-3 rounded-2xl text-sm font-bold shadow-xl flex items-center gap-3 z-50 animate-in slide-in-from-bottom-5 ${toast.type === 'err' ? 'bg-red-600 text-white' : 'bg-emerald-600 text-white'}`}>
-          {toast.msg}
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-full bg-[#1C1C1E] dark:bg-[#2C2C2E] text-white text-[13px] font-medium shadow-2xl border border-white/10 flex items-center gap-2.5 z-50 animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <span className={`w-2 h-2 rounded-full ${toast.type === 'err' ? 'bg-[#FF3B30]' : 'bg-[#34C759]'}`} />
+          <span>{toast.msg}</span>
         </div>
       )}
 
       {/* Image Preview Modal */}
       {previewImage && (
-        <div 
+        <div
           onClick={() => setPreviewImage(null)}
-          className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-10 cursor-zoom-out"
+          className="fixed inset-0 bg-black/75 backdrop-blur-md z-[9999] flex items-center justify-center p-6 sm:p-10 cursor-zoom-out animate-in fade-in duration-150"
         >
-          <div className="relative max-w-full max-h-full flex justify-center animate-in zoom-in-95 duration-200">
-            <img 
-              src={previewImage} 
-              alt="Preview" 
-              className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl" 
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative max-w-full max-h-full flex justify-center animate-in zoom-in-95 duration-200"
+          >
+            <img
+              src={previewImage}
+              alt="Preview"
+              className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl border border-white/10"
             />
-            <div className="absolute -top-10 -right-10 text-white text-4xl font-light cursor-pointer select-none">&times;</div>
+            <button
+              type="button"
+              onClick={() => setPreviewImage(null)}
+              className="apple-close-btn absolute top-3 right-3 shadow-lg"
+              title="Închide"
+            >
+              <X size={16} />
+            </button>
           </div>
         </div>
       )}
 
       {/* Description Preview Modal */}
       {previewDesc && (
-        <div 
+        <div
           onClick={(e) => { if (e.target === e.currentTarget) setPreviewDesc(null); }}
-          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-10"
+          className="fixed inset-0 bg-black/40 backdrop-blur-md z-[9999] flex items-center justify-center p-4 sm:p-10 animate-in fade-in duration-150"
         >
-          <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl p-8 shadow-2xl border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-200">
-            <button 
+          <div className="relative w-full max-w-lg apple-modal p-6 sm:p-7 animate-in zoom-in-95 duration-150">
+            <button
+              type="button"
               onClick={() => setPreviewDesc(null)}
-              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 flex items-center justify-center text-xl transition-colors"
+              className="apple-close-btn absolute top-4 right-4"
+              title="Închide"
             >
-              &times;
+              <X size={16} />
             </button>
-            <h3 className="m-0 mb-4 text-xl font-bold text-slate-900 dark:text-white pr-8">{previewDesc.name}</h3>
-            <p className="m-0 text-slate-600 dark:text-slate-400 leading-relaxed text-sm whitespace-pre-wrap">
+            <h3 className="m-0 mb-3 text-[17px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] pr-10">{previewDesc.name}</h3>
+            <p className="m-0 text-[#6E6E73] dark:text-[#98989D] leading-relaxed text-[13px] whitespace-pre-wrap">
               {previewDesc.description || 'Acest produs nu are o descriere setată în sistem.'}
             </p>
           </div>

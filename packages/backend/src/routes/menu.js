@@ -393,16 +393,31 @@ router.get('/all', (req, res) => {
 });
 
 // GET /api/menu/status — per-brand sync status for Admin Panel
+const BRAND_DISPLAY_NAMES = {
+  smashme: 'SmashMe',
+  crunch: 'Crunch',
+  rollmaster: 'Roll Master',
+  sushimaster: 'Sushi Master',
+  lovesushi: 'Love Sushi',
+  welovesushi: 'WeLoveSushi',
+  pokiwoki: 'Poki-Woki',
+  ikura: 'Ikura',
+};
+
 router.get('/status', (req, res) => {
   const all = getAllCachedMenus();
-  const brands = Object.entries(all).map(([key, val]) => ({
-    brandId:   val.brandId || key,
-    name:      val.brandId === 'smashme' ? 'SmashMe' : val.brandId === 'sushimaster' ? 'SushiMaster' : key,
-    categories: val.menu?.categories?.length || 0,
-    products:   val.menu?.products?.length   || 0,
-    syncedAt:   val.syncedAt || null,
-    source:     'syrve-live',
-  }));
+  const brands = Object.entries(all).map(([key, val]) => {
+    const rawBrandId = (val.brandId || key || '').toString();
+    const normalizedKey = rawBrandId.includes(':') ? rawBrandId.split(':')[0].toLowerCase() : rawBrandId.toLowerCase();
+    return {
+      brandId:    val.brandId || key,
+      name:       BRAND_DISPLAY_NAMES[normalizedKey] || normalizedKey,
+      categories: val.menu?.categories?.length || 0,
+      products:   val.menu?.products?.length   || 0,
+      syncedAt:   val.syncedAt || null,
+      source:     'syrve-live',
+    };
+  });
   // Remove duplicates (cache keyed by both brandId and orgId)
   const seen = new Set();
   const unique = brands.filter(b => {

@@ -7,12 +7,12 @@ import { Search, QrCode, Smartphone, ArrowLeft, Download, Trash2, Check, Externa
 const QR_WEB_BASE = 'https://qr-restaurants.netlify.app';
 
 const BRANDS = [
-  { id: 'smashme',     name: 'SmashMe',       color: '#ef4444' },
-  { id: 'rollmaster',  name: 'Roll Master',   color: '#e31e24' },
-  { id: 'lovesushi',   name: 'Love Sushi',    color: '#ec4899' },
-  { id: 'pokiwoki',    name: 'Poki-Woki',     color: '#f97316' },
-  { id: 'crunch',      name: 'Crunch',        color: '#eab308' },
-  { id: 'welovesushi', name: 'We Love Sushi',  color: '#8b5cf6' },
+  { id: 'smashme', name: 'SmashMe', color: '#ef4444' },
+  { id: 'rollmaster', name: 'Roll Master', color: '#e31e24' },
+  { id: 'lovesushi', name: 'Love Sushi', color: '#ec4899' },
+  { id: 'pokiwoki', name: 'Poki-Woki', color: '#f97316' },
+  { id: 'crunch', name: 'Crunch', color: '#eab308' },
+  { id: 'welovesushi', name: 'We Love Sushi', color: '#8b5cf6' },
 ];
 
 const BRAND_LOGOS = {
@@ -42,10 +42,15 @@ function renderPreview(url) {
 
 function Toggle({ checked, onChange }) {
   return (
-    <label className="relative inline-flex items-center cursor-pointer m-0">
-      <input type="checkbox" className="sr-only peer" checked={checked} onChange={e => onChange(e.target.checked)} />
-      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-blue-600"></div>
-    </label>
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={(e) => { e.preventDefault(); onChange(!checked); }}
+      className={`apple-switch ${checked ? 'is-on' : ''}`}
+    >
+      <span className="apple-switch-thumb" />
+    </button>
   );
 }
 
@@ -110,34 +115,35 @@ function LocationList({ locations, onSelect }) {
   }, [locations]);
 
   const mobileConfiguredCount = useMemo(() => {
-    return locations.filter(l => 
+    return locations.filter(l =>
       !!(l.data?.mobileConfig?.topBannerUrl || l.data?.mobileConfig?.posterUrl || l.data?.mobileConfig?.bottomBannerUrl)
     ).length;
   }, [locations]);
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
+    <div className="space-y-5 animate-in fade-in duration-300">
       {/* Header & KPI Sumar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
-            Coduri QR & Portal Mobil
-            <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-              Total: {locations.length} locații
+          <div className="flex items-center gap-2.5">
+            <h2 className="text-[18px] font-semibold tracking-tight text-[#1D1D1F] dark:text-[#F5F5F7] m-0">
+              Coduri QR & Portal Mobil
+            </h2>
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#007AFF]/10 text-[#007AFF] tabular-nums">
+              {locations.length} locații
             </span>
-          </h2>
-          <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm leading-relaxed">
-            Generează coduri QR pentru mese și configurează portalul mobil (screensaver, promoții) pentru comanda clienților de pe telefon.
+          </div>
+          <p className="text-[#6E6E73] dark:text-[#98989D] mt-1 text-[13px] m-0">
+            Generează coduri QR pentru mese și configurează portalul mobil pentru comanda de pe telefon.
           </p>
         </div>
 
-        {/* KPI Pills */}
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="px-3.5 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-400 text-xs font-bold flex items-center gap-2">
+          <div className="px-3 py-1.5 rounded-full bg-[#34C759]/12 text-[#248A3D] dark:text-[#30D158] text-[12px] font-semibold flex items-center gap-1.5 tabular-nums">
             <QrCode className="w-3.5 h-3.5" />
             <span>{totalQrCountAll} QR-uri active</span>
           </div>
-          <div className="px-3.5 py-1.5 rounded-full bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/60 text-purple-700 dark:text-purple-400 text-xs font-bold flex items-center gap-2">
+          <div className="px-3 py-1.5 rounded-full bg-[#AF52DE]/12 text-[#8944AB] dark:text-[#BF5AF2] text-[12px] font-semibold flex items-center gap-1.5 tabular-nums">
             <Smartphone className="w-3.5 h-3.5" />
             <span>{mobileConfiguredCount} portaluri mobile</span>
           </div>
@@ -145,15 +151,13 @@ function LocationList({ locations, onSelect }) {
       </div>
 
       {/* Bară Filtre Branduri & Căutare */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        {/* Butoane Branduri */}
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide flex-1">
+      <div className="apple-card p-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="flex gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-hide flex-1">
           <button
-            className={`shrink-0 px-4 h-10 rounded-full text-sm font-bold flex items-center gap-2 border transition-all cursor-pointer ${
-              brandFilter === 'all'
-                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm border-slate-900 dark:border-white'
-                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-            }`}
+            className={`shrink-0 px-3.5 h-8 rounded-full text-[12px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer tabular-nums ${brandFilter === 'all'
+                ? 'bg-[#007AFF] text-white'
+                : 'bg-black/[0.04] dark:bg-white/[0.06] text-[#1D1D1F] dark:text-[#F5F5F7] hover:bg-black/[0.08] dark:hover:bg-white/[0.12]'
+              }`}
             onClick={() => { setBrandFilter('all'); setCurrentPage(1); }}
           >
             Toate ({locations.length})
@@ -168,54 +172,52 @@ function LocationList({ locations, onSelect }) {
             return (
               <button
                 key={bid}
-                className={`shrink-0 px-4 h-10 rounded-full text-sm font-bold flex items-center gap-2 border transition-all cursor-pointer ${
-                  isSelected
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 shadow-sm ring-2 ring-blue-500/20'
-                    : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-                }`}
+                className={`shrink-0 px-3 h-8 rounded-full text-[12px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer tabular-nums ${isSelected
+                    ? 'bg-[#007AFF] text-white'
+                    : 'bg-black/[0.04] dark:bg-white/[0.06] text-[#6E6E73] dark:text-[#98989D] hover:bg-black/[0.08] dark:hover:bg-white/[0.12]'
+                  }`}
                 onClick={() => { setBrandFilter(bid); setCurrentPage(1); }}
               >
-                <BrandLogo brandId={bid} size={16} />
+                <BrandLogo brandId={bid} size={15} />
                 <span>{name}</span>
-                <span className="text-xs text-slate-400">({count})</span>
+                <span className={isSelected ? 'text-white/80' : 'text-[#86868B]'}>({count})</span>
               </button>
             );
           })}
         </div>
 
-        {/* Căutare */}
-        <div className="relative min-w-[240px] max-w-xs shrink-0">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+        <div className="relative min-w-[220px] max-w-xs shrink-0">
+          <Search className="w-3.5 h-3.5 text-[#86868B] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
-            className="w-full h-10 pl-10 pr-20 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all"
+            className="apple-input rounded-full w-full pl-9 pr-14 py-1.5 text-[13px]"
             placeholder="Caută locație..."
             value={search}
             onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
           />
           {search && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 bg-blue-600 text-white rounded-full px-2 py-0.5 text-[11px] font-bold">
-              {filtered.length} / {locations.length}
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 bg-[#007AFF]/12 text-[#007AFF] rounded-md px-2 py-0.5 text-[11px] font-semibold tabular-nums">
+              {filtered.length}/{locations.length}
             </div>
           )}
         </div>
       </div>
 
       {/* Tabel Business */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div className="apple-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[850px]">
             <thead>
-              <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 whitespace-nowrap">
-                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 text-center w-[60px]">#</th>
-                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 min-w-[220px]">Denumire & ID</th>
-                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Branduri Active</th>
-                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Statistici (Mese & QR)</th>
-                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">Portal Mobil</th>
-                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-500 text-right">Acțiuni</th>
+              <tr className="bg-black/[0.02] dark:bg-white/[0.02] border-b border-black/[0.06] dark:border-white/[0.08] whitespace-nowrap text-[11px] font-semibold uppercase tracking-wider text-[#6E6E73] dark:text-[#98989D]">
+                <th className="px-5 py-3 text-center w-[56px]">#</th>
+                <th className="px-5 py-3 min-w-[220px]">Denumire & ID</th>
+                <th className="px-5 py-3">Branduri Active</th>
+                <th className="px-5 py-3">Statistici (Mese & QR)</th>
+                <th className="px-5 py-3">Portal Mobil</th>
+                <th className="px-5 py-3 text-right">Acțiuni</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-black/[0.05] dark:divide-white/[0.06]">
               {paginated.map((loc, index) => {
                 const totalQr = Object.values(loc.data?.qrConfig || {}).reduce((s, v) => s + v, 0);
                 const hasMob = !!(loc.data?.mobileConfig?.topBannerUrl || loc.data?.mobileConfig?.posterUrl || loc.data?.mobileConfig?.bottomBannerUrl);
@@ -226,28 +228,25 @@ function LocationList({ locations, onSelect }) {
                   <tr
                     key={loc.id}
                     onClick={() => onSelect(loc)}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group"
+                    className="hover:bg-black/[0.02] dark:hover:bg-white/[0.03] transition-colors cursor-pointer group"
                   >
-                    {/* Nr. Crt. */}
-                    <td className="px-6 py-4 text-sm font-bold text-slate-400 dark:text-slate-500 text-center whitespace-nowrap">
+                    <td className="px-5 py-3.5 text-[13px] font-medium text-[#86868B] text-center whitespace-nowrap tabular-nums">
                       {rowNumber}
                     </td>
 
-                    {/* Denumire & ID (max 2 rânduri) */}
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-5 py-3.5 whitespace-nowrap">
                       <div className="flex flex-col gap-1 items-start">
                         <div className="flex items-center gap-2">
-                          <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${totalQr > 0 ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)]' : 'bg-slate-300 dark:bg-slate-600'}`} />
-                          <span className="font-semibold text-slate-900 dark:text-white text-sm whitespace-nowrap">{loc.name}</span>
+                          <span className={`w-2 h-2 rounded-full shrink-0 ${totalQr > 0 ? 'bg-[#34C759]' : 'bg-[#C7C7CC] dark:bg-[#48484A]'}`} />
+                          <span className="font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] text-[13px]">{loc.name}</span>
                         </div>
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 leading-none">
-                          ID: {loc.id}
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-mono text-[#6E6E73] dark:text-[#98989D] bg-black/[0.04] dark:bg-white/[0.06]">
+                          {loc.id}
                         </span>
                       </div>
                     </td>
 
-                    {/* Branduri Active */}
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-5 py-3.5 whitespace-nowrap">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {brandsArr.length > 0 ? (
                           brandsArr.map(b => (
@@ -256,57 +255,52 @@ function LocationList({ locations, onSelect }) {
                             </div>
                           ))
                         ) : (
-                          <span className="text-xs text-slate-400 font-normal">Nespecificat</span>
+                          <span className="text-[12px] text-[#86868B]">Nespecificat</span>
                         )}
                       </div>
                     </td>
 
-                    {/* Statistici (Mese & QR) */}
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-5 py-3.5 whitespace-nowrap tabular-nums">
                       <div className="flex items-center gap-2">
-                        <span className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                        <span className="px-2.5 py-0.5 rounded-full bg-black/[0.04] dark:bg-white/[0.06] text-[11px] font-semibold text-[#6E6E73] dark:text-[#98989D]">
                           Mese: {loc.tables || 10}
                         </span>
                         {totalQr > 0 ? (
-                          <span className="px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-xs font-bold text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 flex items-center gap-1">
+                          <span className="px-2.5 py-0.5 rounded-full bg-[#34C759]/12 text-[11px] font-semibold text-[#248A3D] dark:text-[#30D158] flex items-center gap-1">
                             <QrCode className="w-3 h-3" />
                             {totalQr} QR-uri
                           </span>
                         ) : (
-                          <span className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-xs font-medium text-slate-400 border border-slate-200 dark:border-slate-700">
+                          <span className="px-2.5 py-0.5 rounded-full bg-black/[0.04] dark:bg-white/[0.06] text-[11px] font-medium text-[#86868B]">
                             0 QR
                           </span>
                         )}
                       </div>
                     </td>
 
-                    {/* Portal Mobil */}
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-5 py-3.5 whitespace-nowrap">
                       {hasMob ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800/60">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#AF52DE]/12 text-[#8944AB] dark:text-[#BF5AF2]">
                           <Smartphone className="w-3 h-3" />
                           Configurat
                         </span>
                       ) : (
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-black/[0.04] dark:bg-white/[0.06] text-[#86868B]">
                           Standard
                         </span>
                       )}
                     </td>
 
-                    {/* Acțiuni */}
-                    <td className="px-6 py-4 text-right whitespace-nowrap" onClick={e => e.stopPropagation()}>
-                      <div className="flex justify-end items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => onSelect(loc)}
-                          title="Configurează codurile QR și portalul mobil"
-                          className="px-4 py-1.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer group-hover:scale-[1.02]"
-                        >
-                          <span>Configurare</span>
-                          <span className="text-xs">→</span>
-                        </button>
-                      </div>
+                    <td className="px-5 py-3.5 text-right whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={() => onSelect(loc)}
+                        title="Configurează codurile QR și portalul mobil"
+                        className="apple-btn-primary text-[12px] px-3.5 py-1.5"
+                      >
+                        <span>Configurare</span>
+                        <span>→</span>
+                      </button>
                     </td>
                   </tr>
                 );
@@ -315,45 +309,39 @@ function LocationList({ locations, onSelect }) {
           </table>
         </div>
 
-        {/* Empty state */}
         {sorted.length === 0 && (
-          <div className="p-12 text-center text-slate-500 dark:text-slate-400 font-medium">
+          <div className="p-12 text-center text-[#86868B] text-[13px] font-medium">
             Nu există nicio locație care să corespundă filtrelor selectate.
           </div>
         )}
 
-        {/* Pagination Footer */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Rânduri pe pagină:</span>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-5 py-3.5 bg-black/[0.015] dark:bg-white/[0.02] border-t border-black/[0.06] dark:border-white/[0.08]">
+          <div className="flex items-center gap-2.5">
+            <span className="text-[12px] font-medium text-[#6E6E73] dark:text-[#98989D]">Rânduri pe pagină</span>
             <select
               value={itemsPerPage}
               onChange={e => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-              className="text-sm font-bold border border-slate-200 dark:border-slate-700 rounded-full px-3 py-1 bg-white dark:bg-slate-900 text-slate-900 dark:text-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="apple-input py-1 px-2.5 text-[12px] font-semibold cursor-pointer"
             >
               {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
             </select>
-            <span className="text-xs font-medium text-slate-500 ml-2">
+            <span className="text-[12px] font-medium text-[#6E6E73] dark:text-[#98989D] ml-2 tabular-nums">
               {sorted.length === 0 ? '0' : `${(currentPage - 1) * itemsPerPage + 1}–${Math.min(sorted.length, currentPage * itemsPerPage)}`} din {sorted.length}
             </span>
           </div>
           <div className="flex items-center gap-1">
             {[
-              { label: '«', action: () => setCurrentPage(1),            disabled: currentPage === 1,          title: 'Prima pagină' },
-              { label: '‹', action: () => setCurrentPage(p => p - 1),  disabled: currentPage === 1,          title: 'Anterioară' },
-              { label: '›', action: () => setCurrentPage(p => p + 1),  disabled: currentPage === totalPages, title: 'Următoarea' },
-              { label: '»', action: () => setCurrentPage(totalPages),  disabled: currentPage === totalPages, title: 'Ultima pagină' },
+              { label: '«', action: () => setCurrentPage(1), disabled: currentPage === 1, title: 'Prima pagină' },
+              { label: '‹', action: () => setCurrentPage(p => p - 1), disabled: currentPage === 1, title: 'Anterioară' },
+              { label: '›', action: () => setCurrentPage(p => p + 1), disabled: currentPage === totalPages, title: 'Următoarea' },
+              { label: '»', action: () => setCurrentPage(totalPages), disabled: currentPage === totalPages, title: 'Ultima pagină' },
             ].map(btn => (
               <button
                 key={btn.label}
                 onClick={btn.action}
                 disabled={btn.disabled}
                 title={btn.title}
-                className={`w-8 h-8 rounded-full border text-sm font-bold flex items-center justify-center transition-colors ${
-                  btn.disabled
-                    ? 'border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-slate-300 dark:text-slate-600 cursor-not-allowed'
-                    : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer'
-                }`}
+                className="w-8 h-8 rounded-full border border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-[#1C1C1E] text-[#6E6E73] dark:text-[#98989D] hover:bg-black/[0.04] dark:hover:bg-white/[0.08] disabled:opacity-40 disabled:cursor-not-allowed text-[13px] font-semibold flex items-center justify-center transition-colors cursor-pointer"
               >
                 {btn.label}
               </button>
@@ -376,37 +364,37 @@ function LocationQrForm({ loc, backend, onBack, onRefresh }) {
     ? BRANDS.filter(b => loc.brands.includes(b.id))
     : BRANDS;
 
-  const [brandId, setBrandId]     = useState(() => {
+  const [brandId, setBrandId] = useState(() => {
     const first = loc.brands?.find(id => BRANDS.some(b => b.id === id));
     return first || 'smashme';
   });
   const [tableCount, setTableCount] = useState(10);
-  const [savingQr, setSavingQr]   = useState(false);
+  const [savingQr, setSavingQr] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [activeTab, setActiveTab] = useState('qr');
 
   // mobile settings
   const mc = loc.data?.mobileConfig || {};
   const [mob, setMob] = useState({
-    posterUrl:              mc.posterUrl              || '',
-    inactivityTimeout:      mc.inactivityTimeout      || 30,
-    topBannerUrl:           mc.topBannerUrl           || '',
-    topBannerHeight:        mc.topBannerHeight        || 3,
-    topBannerRadiusTop:     mc.topBannerRadiusTop     !== undefined ? mc.topBannerRadiusTop    : true,
-    topBannerRadiusBottom:  mc.topBannerRadiusBottom  !== undefined ? mc.topBannerRadiusBottom : false,
-    bottomBannerUrl:        mc.bottomBannerUrl        || '',
-    bottomBannerText:       mc.bottomBannerText       || '',
-    bottomBannerHeight:     mc.bottomBannerHeight     || 2,
-    bottomBannerRadiusTop:  mc.bottomBannerRadiusTop  !== undefined ? mc.bottomBannerRadiusTop  : false,
+    posterUrl: mc.posterUrl || '',
+    inactivityTimeout: mc.inactivityTimeout || 30,
+    topBannerUrl: mc.topBannerUrl || '',
+    topBannerHeight: mc.topBannerHeight || 3,
+    topBannerRadiusTop: mc.topBannerRadiusTop !== undefined ? mc.topBannerRadiusTop : true,
+    topBannerRadiusBottom: mc.topBannerRadiusBottom !== undefined ? mc.topBannerRadiusBottom : false,
+    bottomBannerUrl: mc.bottomBannerUrl || '',
+    bottomBannerText: mc.bottomBannerText || '',
+    bottomBannerHeight: mc.bottomBannerHeight || 2,
+    bottomBannerRadiusTop: mc.bottomBannerRadiusTop !== undefined ? mc.bottomBannerRadiusTop : false,
     bottomBannerRadiusBottom: mc.bottomBannerRadiusBottom !== undefined ? mc.bottomBannerRadiusBottom : true,
-    bottomBannerTextFixed:  mc.bottomBannerTextFixed  || false,
-    bottomBannerTextAlign:  mc.bottomBannerTextAlign  || 'center',
-    bottomBannerBg:         mc.bottomBannerBg         || '#1e293b',
+    bottomBannerTextFixed: mc.bottomBannerTextFixed || false,
+    bottomBannerTextAlign: mc.bottomBannerTextAlign || 'center',
+    bottomBannerBg: mc.bottomBannerBg || '#1e293b',
   });
-  const [useBanner,       setUseBanner]       = useState(!!mc.topBannerUrl);
+  const [useBanner, setUseBanner] = useState(!!mc.topBannerUrl);
   const [useBottomBanner, setUseBottomBanner] = useState(!!(mc.bottomBannerUrl || mc.bottomBannerText));
   const [savingMob, setSavingMob] = useState(false);
-  const [mobSaved,  setMobSaved]  = useState(false);
+  const [mobSaved, setMobSaved] = useState(false);
 
   const savedCount = loc.data?.qrConfig?.[brandId] || 0;
 
@@ -442,7 +430,7 @@ function LocationQrForm({ loc, backend, onBack, onRefresh }) {
         body: JSON.stringify({ ...loc, data: updatedData }),
       });
       onRefresh();
-    } catch (e) {}
+    } catch (e) { }
     setSavingQr(false);
   };
 
@@ -460,7 +448,7 @@ function LocationQrForm({ loc, backend, onBack, onRefresh }) {
   const saveMobileSettings = async () => {
     setSavingMob(true);
     const mobileConfig = { ...mob };
-    if (!useBanner)       { mobileConfig.topBannerUrl = ''; }
+    if (!useBanner) { mobileConfig.topBannerUrl = ''; }
     if (!useBottomBanner) { mobileConfig.bottomBannerUrl = ''; mobileConfig.bottomBannerText = ''; }
     const updatedData = { ...loc.data, mobileConfig };
     try {
@@ -477,44 +465,45 @@ function LocationQrForm({ loc, backend, onBack, onRefresh }) {
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-6 flex-wrap">
-        <button onClick={onBack}
-          className="px-4 py-2 rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold text-sm cursor-pointer flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm">
+      <div className="flex items-center gap-4 flex-wrap">
+        <button onClick={onBack} className="apple-btn-secondary px-3.5 py-2 text-[13px]">
           <ArrowLeft className="w-4 h-4" />
           <span>Înapoi</span>
         </button>
         <div className="flex-1">
-          <h1 className="m-0 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+          <h1 className="m-0 text-[20px] font-semibold tracking-tight text-[#1D1D1F] dark:text-[#F5F5F7]">
             {loc.name}
           </h1>
-          <p className="m-0 mt-1 text-sm text-slate-500 bg-slate-100 dark:bg-slate-800 inline-block px-2 py-0.5 rounded font-medium">ID: {loc.id}</p>
+          <span className="inline-block mt-1 text-[11px] font-mono text-[#6E6E73] dark:text-[#98989D] bg-black/[0.04] dark:bg-white/[0.06] px-2 py-0.5 rounded-md">{loc.id}</span>
         </div>
         {activeTab === 'settings' && (
           <button onClick={saveMobileSettings} disabled={savingMob}
-            className={`px-6 py-2.5 rounded-full border-none cursor-pointer font-bold text-sm transition-all shadow-sm ${mobSaved ? 'bg-emerald-500 text-white shadow-emerald-500/20' : 'bg-slate-900 dark:bg-slate-800 text-white hover:bg-slate-800 dark:hover:bg-slate-700'}`}>
-            {mobSaved ? 'Salvat!' : savingMob ? 'Se salvează...' : 'Salvează Setările Mobile'}
+            className={`px-5 py-2 rounded-full font-semibold text-[13px] cursor-pointer transition-all ${mobSaved ? 'bg-[#34C759] text-white' : 'apple-btn-primary'}`}>
+            {mobSaved ? 'Salvat' : savingMob ? 'Se salvează...' : 'Salvează Setările Mobile'}
           </button>
         )}
         {activeTab === 'qr' && savedCount > 0 && (
-          <div className="flex gap-2">
-            <button className="px-5 h-10 rounded-full bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm font-bold border border-slate-200 dark:border-slate-800 transition-colors shadow-sm" onClick={downloadAll}>Descarcă toate</button>
+          <div className="flex items-center gap-2">
+            <button className="apple-btn-secondary px-4 py-2 text-[13px]" onClick={downloadAll}>
+              <Download className="w-3.5 h-3.5" /> Descarcă toate
+            </button>
             {!confirmClear
-              ? <button className="px-5 h-10 rounded-full bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 text-sm font-bold border border-red-100 dark:border-red-900/50 transition-colors shadow-sm" onClick={() => setConfirmClear(true)}>Șterge QR-urile</button>
-              : <div className="flex gap-2 items-center bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 rounded-full px-4 py-1.5 text-sm font-bold animate-in slide-in-from-right-4">
-                  <span className="text-red-600 dark:text-red-400">Sigur?</span>
-                  <button className="px-3 py-1 rounded-full bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors" onClick={handleDeleteQr} disabled={savingQr}>Da</button>
-                  <button className="px-3 py-1 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 text-xs font-bold transition-colors" onClick={() => setConfirmClear(false)}>Nu</button>
-                </div>
+              ? <button className="px-4 py-2 rounded-full bg-[#FF3B30]/10 hover:bg-[#FF3B30]/20 text-[#FF3B30] text-[13px] font-semibold transition-colors cursor-pointer" onClick={() => setConfirmClear(true)}>Șterge QR-urile</button>
+              : <div className="flex gap-2 items-center bg-[#FF3B30]/10 border border-[#FF3B30]/20 rounded-xl px-3.5 py-1.5 text-[12px] font-semibold">
+                <span className="text-[#FF3B30]">Sigur?</span>
+                <button className="px-2.5 py-1 rounded-full bg-[#FF3B30] text-white text-[12px] font-semibold cursor-pointer" onClick={handleDeleteQr} disabled={savingQr}>Da</button>
+                <button className="px-2.5 py-1 rounded-full bg-white dark:bg-[#2C2C2E] text-[#1D1D1F] dark:text-[#F5F5F7] text-[12px] font-semibold cursor-pointer" onClick={() => setConfirmClear(false)}>Nu</button>
+              </div>
             }
           </div>
         )}
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-0 border-b border-slate-200 dark:border-slate-800 mb-8">
-        {[['qr','Coduri QR'],['settings','Setări Mobile']].map(([tab, label]) => (
+      {/* Segmented Tabs */}
+      <div className="apple-segmented inline-flex">
+        {[['qr', 'Coduri QR'], ['settings', 'Setări Mobile']].map(([tab, label]) => (
           <button key={tab} onClick={() => setActiveTab(tab)}
-            className={`px-6 py-3 border-none cursor-pointer font-bold text-sm transition-all bg-transparent -mb-[1px] border-b-2 ${activeTab === tab ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>
+            className={`apple-segmented-item px-5 ${activeTab === tab ? 'is-active' : ''}`}>
             {label}
           </button>
         ))}
@@ -523,34 +512,34 @@ function LocationQrForm({ loc, backend, onBack, onRefresh }) {
       {/* ══ QR TAB ══════════════════════════════════ */}
       {activeTab === 'qr' && (
         <>
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm mb-8">
-            <div className="flex flex-wrap gap-6 items-end">
+          <div className="apple-card p-5">
+            <div className="flex flex-wrap gap-5 items-end">
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Brand</label>
-                <div className="flex flex-wrap gap-2">
-                  {availableBrands.map(b => (
-                    <button key={b.id} onClick={() => setBrandId(b.id)}
-                      className="px-4 py-2 rounded-full text-sm font-bold cursor-pointer transition-all flex items-center gap-2"
-                      style={{
-                        border: `1.5px solid ${brandId === b.id ? b.color : 'var(--tw-prose-th-borders, #e2e8f0)'}`,
-                        background: brandId === b.id ? b.color : 'transparent',
-                        color: brandId === b.id ? '#fff' : 'inherit'
-                      }}>
-                      <BrandLogo brandId={b.id} size={18} />
-                      {b.name}
-                    </button>
-                  ))}
+                <label className="block text-[11px] font-semibold text-[#86868B] uppercase tracking-wider mb-2">Brand</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {availableBrands.map(b => {
+                    const isActive = brandId === b.id;
+                    return (
+                      <button key={b.id} onClick={() => setBrandId(b.id)}
+                        className={`px-3.5 py-1.5 rounded-full text-[13px] font-semibold cursor-pointer transition-all flex items-center gap-2 ${isActive
+                            ? 'bg-[#007AFF] text-white'
+                            : 'bg-black/[0.04] dark:bg-white/[0.06] text-[#1D1D1F] dark:text-[#F5F5F7] hover:bg-black/[0.08]'
+                          }`}>
+                        <BrandLogo brandId={b.id} size={16} />
+                        {b.name}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Nr. mese</label>
+                <label className="block text-[11px] font-semibold text-[#86868B] uppercase tracking-wider mb-2">Nr. mese</label>
                 <input type="number" min="1" max="200" value={tableCount}
                   onChange={e => setTableCount(parseInt(e.target.value) || 1)}
-                  className="w-24 px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50" />
+                  className="apple-input w-24 text-center font-semibold tabular-nums" />
               </div>
               <div className="ml-auto">
-                <button className="px-6 py-2.5 rounded-full text-white font-bold text-sm shadow-sm hover:brightness-110 transition-all cursor-pointer" onClick={handleGenerate} disabled={savingQr}
-                  style={{ background: selectedBrand.color }}>
+                <button className="apple-btn-primary px-5 py-2.5 text-[13px]" onClick={handleGenerate} disabled={savingQr}>
                   {savingQr ? 'Se salvează...' : savedCount > 0 ? `Actualizează (${tableCount} mese)` : `Generează ${tableCount} QR-uri`}
                 </button>
               </div>
@@ -558,20 +547,20 @@ function LocationQrForm({ loc, backend, onBack, onRefresh }) {
           </div>
 
           {savedCount > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
               {Array.from({ length: savedCount }).map((_, i) => {
                 const n = i + 1;
                 const qrUrl = `${QR_WEB_BASE}/?brand=${brandId}&table=${n}&loc=${loc.id}`;
                 return (
-                  <div key={n} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm flex flex-col items-center">
-                    <div className="w-full py-3 text-center text-white font-bold text-lg" style={{ background: selectedBrand.color }}>Masa {n}</div>
-                    <div className="p-6 bg-white w-full flex justify-center">
-                      <QRCodeCanvas id={`qr-canvas-${n}`} value={qrUrl} size={180} level="H" includeMargin={true}
-                        imageSettings={{ src: getBrandLogoUrl(brandId), height: 42, width: 42, excavate: true }} />
+                  <div key={n} className="apple-card overflow-hidden flex flex-col items-center">
+                    <div className="w-full py-2.5 text-center text-white font-semibold text-[15px]" style={{ background: selectedBrand.color }}>Masa {n}</div>
+                    <div className="p-5 bg-white w-full flex justify-center">
+                      <QRCodeCanvas id={`qr-canvas-${n}`} value={qrUrl} size={172} level="H" includeMargin={true}
+                        imageSettings={{ src: getBrandLogoUrl(brandId), height: 40, width: 40, excavate: true }} />
                     </div>
-                    <div className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 text-xs text-slate-500 truncate text-center border-t border-slate-100 dark:border-slate-800 font-medium">{qrUrl}</div>
-                    <button className="w-full py-3 bg-transparent border-t border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer" onClick={() => downloadQr(n)}>
-                      <Download className="w-4 h-4" />
+                    <div className="w-full px-4 py-2.5 bg-black/[0.02] dark:bg-white/[0.02] text-[11px] text-[#86868B] truncate text-center border-t border-black/[0.05] dark:border-white/[0.06] font-mono">{qrUrl}</div>
+                    <button className="w-full py-2.5 border-t border-black/[0.06] dark:border-white/[0.08] hover:bg-black/[0.03] dark:hover:bg-white/[0.05] text-[#007AFF] text-[13px] font-semibold transition-colors flex items-center justify-center gap-1.5 cursor-pointer" onClick={() => downloadQr(n)}>
+                      <Download className="w-3.5 h-3.5" />
                       <span>Descarcă PNG</span>
                     </button>
                   </div>
@@ -579,13 +568,12 @@ function LocationQrForm({ loc, backend, onBack, onRefresh }) {
               })}
             </div>
           ) : (
-            <div className="p-12 bg-slate-50 dark:bg-slate-800/30 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 text-center">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mx-auto mb-4 text-slate-400">
-                <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
-                <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="3" height="3" rx="0.5"/>
-              </svg>
-              <h3 className="m-0 mb-2 text-xl font-bold text-slate-900 dark:text-white">Niciun QR generat pentru {selectedBrand.name}</h3>
-              <p className="m-0 text-slate-500 max-w-md mx-auto leading-relaxed">
+            <div className="apple-card p-12 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-black/[0.04] dark:bg-white/[0.06] text-[#86868B] flex items-center justify-center mx-auto mb-3">
+                <QrCode size={24} />
+              </div>
+              <h3 className="m-0 mb-1.5 text-[16px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">Niciun QR generat pentru {selectedBrand.name}</h3>
+              <p className="m-0 text-[13px] text-[#6E6E73] dark:text-[#98989D] max-w-md mx-auto leading-relaxed">
                 Alege numărul de mese și apasă <strong>Generează</strong>. QR-urile vor fi salvate permanent și le vei putea descărca oricând.
               </p>
             </div>
@@ -593,60 +581,68 @@ function LocationQrForm({ loc, backend, onBack, onRefresh }) {
         </>
       )}
 
-      {/* ══ SETTINGS TAB — identic cu KioskSettingsForm ══ */}
+      {/* ══ SETTINGS TAB ══ */}
       {activeTab === 'settings' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
           {/* ─ Screensaver ─ */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
-            <h3 className="m-0 mb-2 text-lg font-bold text-slate-900 dark:text-white">Screensaver Standby</h3>
-            <p className="text-sm text-slate-500 mb-6">Reclamă full-screen dacă telefonul stă neatins. Apare la scanarea QR-ului.</p>
+          <div className="apple-card p-5 space-y-4">
+            <div>
+              <h3 className="m-0 text-[16px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">Screensaver Standby</h3>
+              <p className="text-[13px] text-[#6E6E73] dark:text-[#98989D] mt-1 mb-0">Reclamă full-screen dacă telefonul stă neatins. Apare la scanarea QR-ului.</p>
+            </div>
 
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Timeout inactivitate (secunde)</label>
-            <input type="number" min="5" max="300" value={mob.inactivityTimeout}
-              onChange={e => hm('inactivityTimeout', parseInt(e.target.value) || 30)}
-              className="w-32 px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 mb-6" />
+            <div>
+              <label className="block text-[11px] font-semibold text-[#86868B] uppercase tracking-wider mb-1.5">Timeout inactivitate (secunde)</label>
+              <input type="number" min="5" max="300" value={mob.inactivityTimeout}
+                onChange={e => hm('inactivityTimeout', parseInt(e.target.value) || 30)}
+                className="apple-input w-32 font-semibold tabular-nums" />
+            </div>
 
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">URL Video / Imagine Screensaver</label>
-            <input type="url" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 mb-6" placeholder="https://... MP4 sau imagine"
-              value={mob.posterUrl} onChange={e => hm('posterUrl', e.target.value)} />
+            <div>
+              <label className="block text-[11px] font-semibold text-[#86868B] uppercase tracking-wider mb-1.5">URL Video / Imagine Screensaver</label>
+              <input type="url" className="apple-input w-full" placeholder="https://... MP4 sau imagine"
+                value={mob.posterUrl} onChange={e => hm('posterUrl', e.target.value)} />
+            </div>
 
             {mob.posterUrl ? (
-              <div className="flex justify-center mt-2">
-                <div className="w-[140px] h-[250px] rounded-[24px] overflow-hidden border-[8px] border-slate-800 bg-black relative shadow-xl">
+              <div className="flex justify-center pt-2">
+                <div className="w-[140px] h-[250px] rounded-[24px] overflow-hidden border-[6px] border-[#1D1D1F] bg-black relative shadow-lg">
                   {renderPreview(mob.posterUrl)}
-                  <div className="absolute bottom-5 left-1/2 -translate-x-1/2 bg-white/90 text-slate-900 px-3 py-1 rounded-full text-[10px] font-bold whitespace-nowrap shadow-sm">Atinge pentru a începe</div>
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/90 text-[#1D1D1F] px-3 py-1 rounded-full text-[10px] font-semibold whitespace-nowrap">Atinge pentru a începe</div>
                 </div>
               </div>
             ) : (
-              <div className="h-24 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-400 text-sm font-medium">Fără screensaver.</div>
+              <div className="h-24 rounded-xl border border-dashed border-black/[0.12] dark:border-white/[0.12] flex items-center justify-center text-[#86868B] text-[13px]">Fără screensaver</div>
             )}
           </div>
 
           {/* ─ Banner Sus ─ */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="m-0 text-lg font-bold text-slate-900 dark:text-white">Banner Promo (Sus)</h3>
+          <div className="apple-card p-5 space-y-4">
+            <div className="flex justify-between items-start gap-3">
+              <div>
+                <h3 className="m-0 text-[16px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">Banner Promo (Sus)</h3>
+                <p className="text-[13px] text-[#6E6E73] dark:text-[#98989D] mt-1 mb-0">Bandă afișată în partea de sus a aplicației mobile.</p>
+              </div>
               <Toggle checked={useBanner} onChange={setUseBanner} />
             </div>
-            <p className="text-sm text-slate-500 mb-6">Bandă în partea de sus a aplicației mobile.</p>
 
             {useBanner && (
-              <div className="animate-in fade-in duration-300">
-                <input type="url" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 mb-6" placeholder="URL Video MP4 sau Imagine..."
+              <div className="space-y-4 animate-in fade-in duration-200">
+                <input type="url" className="apple-input w-full" placeholder="URL Video MP4 sau Imagine..."
                   value={mob.topBannerUrl} onChange={e => hm('topBannerUrl', e.target.value)} />
 
                 {mob.topBannerUrl && (
-                  <div className="flex justify-center mb-6">
-                    <div className="w-[140px] h-[250px] rounded-[24px] overflow-hidden border-[6px] border-slate-800 bg-slate-100 dark:bg-slate-800 relative shadow-xl">
-                      <div className="absolute inset-1 flex flex-col gap-1.5 opacity-30">
-                        <div className="w-full h-[25%] bg-slate-300 dark:bg-slate-600 rounded-md"></div>
-                        <div className="w-full h-[25%] bg-slate-300 dark:bg-slate-600 rounded-md"></div>
-                        <div className="w-full h-[25%] bg-slate-300 dark:bg-slate-600 rounded-md"></div>
+                  <div className="flex justify-center">
+                    <div className="w-[140px] h-[250px] rounded-[24px] overflow-hidden border-[6px] border-[#1D1D1F] bg-[#F5F5F7] dark:bg-[#2C2C2E] relative shadow-lg">
+                      <div className="absolute inset-1.5 flex flex-col gap-1.5 opacity-30">
+                        <div className="w-full h-[25%] bg-black/20 dark:bg-white/20 rounded-md" />
+                        <div className="w-full h-[25%] bg-black/20 dark:bg-white/20 rounded-md" />
+                        <div className="w-full h-[25%] bg-black/20 dark:bg-white/20 rounded-md" />
                       </div>
                       <div className="absolute top-0 left-0 right-0 overflow-hidden bg-black transition-all"
-                        style={{ 
-                          height: `${10 + (mob.topBannerHeight - 1) * 5}%`, 
+                        style={{
+                          height: `${10 + (mob.topBannerHeight - 1) * 5}%`,
                           borderBottomLeftRadius: mob.topBannerRadiusBottom ? '8px' : '0',
                           borderBottomRightRadius: mob.topBannerRadiusBottom ? '8px' : '0',
                           borderTopLeftRadius: mob.topBannerRadiusTop ? '16px' : '0',
@@ -660,80 +656,96 @@ function LocationQrForm({ loc, backend, onBack, onRefresh }) {
               </div>
             )}
 
-            {/* Design — mereu vizibil */}
-            <div className="mt-4 p-5 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-200 dark:border-slate-800">
-              <label className="flex justify-between text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">
-                <span>Înălțime Banner</span><span className="text-slate-900 dark:text-white">Nivel {mob.topBannerHeight} / 5</span>
-              </label>
-              <input type="range" min="1" max="5" step="1" value={mob.topBannerHeight}
-                onChange={e => hm('topBannerHeight', parseInt(e.target.value))} className="w-full cursor-pointer accent-blue-600" />
-              
-              <div className="flex flex-col sm:flex-row gap-3 mt-6">
-                {[['topBannerRadiusTop','Colțuri Sus Rotunde'],['topBannerRadiusBottom','Colțuri Jos Rotunde']].map(([key, lbl]) => (
-                  <label key={key} className="flex-1 bg-white dark:bg-slate-900 px-4 py-3 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-between cursor-pointer shadow-sm">
-                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{lbl}</span>
+            <div className="apple-inset-group p-4 space-y-4">
+              <div>
+                <div className="flex justify-between text-[12px] font-semibold text-[#6E6E73] dark:text-[#98989D] mb-2">
+                  <span>Înălțime Banner</span>
+                  <span className="text-[#1D1D1F] dark:text-[#F5F5F7] tabular-nums">Nivel {mob.topBannerHeight} / 5</span>
+                </div>
+                <input type="range" min="1" max="5" step="1" value={mob.topBannerHeight}
+                  onChange={e => hm('topBannerHeight', parseInt(e.target.value))} className="w-full cursor-pointer accent-[#007AFF]" />
+              </div>
+
+              <div className="divide-y divide-black/[0.06] dark:divide-white/[0.08] border-t border-black/[0.06] dark:border-white/[0.08]">
+                {[['topBannerRadiusTop', 'Colțuri Sus Rotunde'], ['topBannerRadiusBottom', 'Colțuri Jos Rotunde']].map(([key, lbl]) => (
+                  <div key={key} className="py-2.5 flex items-center justify-between">
+                    <span className="text-[13px] font-medium text-[#1D1D1F] dark:text-[#F5F5F7]">{lbl}</span>
                     <Toggle checked={mob[key]} onChange={v => hm(key, v)} />
-                  </label>
+                  </div>
                 ))}
               </div>
             </div>
           </div>
 
           {/* ─ Banner Jos ─ */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="m-0 text-lg font-bold text-slate-900 dark:text-white">Banner Promo (Jos)</h3>
+          <div className="apple-card p-5 space-y-4 lg:col-span-2">
+            <div className="flex justify-between items-start gap-3">
+              <div>
+                <h3 className="m-0 text-[16px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">Banner Promo (Jos)</h3>
+                <p className="text-[13px] text-[#6E6E73] dark:text-[#98989D] mt-1 mb-0">Apare în josul aplicației. Suportă video/imagine sau text derulant.</p>
+              </div>
               <Toggle checked={useBottomBanner} onChange={setUseBottomBanner} />
             </div>
-            <p className="text-sm text-slate-500 mb-6">Apare în josul aplicației. Suportă video/imagine sau text derulant.</p>
 
             {useBottomBanner && (
-              <div className="animate-in fade-in duration-300">
-                <h4 className="m-0 mb-2 text-sm font-bold text-slate-900 dark:text-white">1. Reclamă (Video / Imagine)</h4>
-                <input type="url" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 mb-6" placeholder="https://... URL video sau imagine"
-                  value={mob.bottomBannerUrl} onChange={e => hm('bottomBannerUrl', e.target.value)} />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in duration-200">
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#86868B] uppercase tracking-wider mb-1.5">1. Reclamă (Video / Imagine)</label>
+                    <input type="url" className="apple-input w-full" placeholder="https://... URL video sau imagine"
+                      value={mob.bottomBannerUrl} onChange={e => hm('bottomBannerUrl', e.target.value)} />
+                  </div>
 
-                <h4 className="m-0 mb-2 text-sm font-bold text-slate-900 dark:text-white">2. Text Derulant</h4>
-                <textarea className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 mb-4 min-h-[80px] resize-y leading-relaxed" placeholder="Ex: Burger -20% azi! Gratis cartofi la orice combo!"
-                  value={mob.bottomBannerText} onChange={e => hm('bottomBannerText', e.target.value)} />
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#86868B] uppercase tracking-wider mb-1.5">2. Text Derulant</label>
+                    <textarea className="apple-input w-full min-h-[88px] resize-y leading-relaxed" placeholder="Ex: Burger -20% azi! Gratis cartofi la orice combo!"
+                      value={mob.bottomBannerText} onChange={e => hm('bottomBannerText', e.target.value)} />
+                  </div>
+                </div>
 
                 {mob.bottomBannerText.length > 0 && (
-                  <div className="mb-6 p-5 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-200 dark:border-slate-800">
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Mod Afișare Text</label>
-                    <div className="flex gap-2 mb-6">
-                      {[['false','Rulant'],['true','Fix']].map(([v, l]) => {
-                        const isA = String(mob.bottomBannerTextFixed) === v;
-                        return <button key={v} type="button" onClick={() => hm('bottomBannerTextFixed', v === 'true')}
-                          className={`flex-1 py-2 rounded-full text-sm font-bold border-2 transition-colors ${isA ? 'border-slate-900 bg-slate-900 text-white dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'}`}>{l}</button>;
-                      })}
+                  <div className="apple-inset-group p-4 space-y-4">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-[#86868B] uppercase tracking-wider mb-2">Mod Afișare Text</label>
+                      <div className="apple-segmented w-full grid grid-cols-2">
+                        {[['false', 'Rulant'], ['true', 'Fix']].map(([v, l]) => {
+                          const isA = String(mob.bottomBannerTextFixed) === v;
+                          return <button key={v} type="button" onClick={() => hm('bottomBannerTextFixed', v === 'true')}
+                            className={`apple-segmented-item ${isA ? 'is-active' : ''}`}>{l}</button>;
+                        })}
+                      </div>
                     </div>
-                    
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Poziție Text</label>
-                    <div className="flex gap-2">
-                      {[['left','Stânga'],['center','Centru'],['right','Dreapta']].map(([v, l]) => (
-                        <button key={v} type="button" onClick={() => hm('bottomBannerTextAlign', v)}
-                          className={`flex-1 py-2 rounded-full text-sm font-bold border-2 transition-colors ${mob.bottomBannerTextAlign === v ? 'border-slate-900 bg-slate-900 text-white dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'}`}>{l}</button>
-                      ))}
+
+                    <div>
+                      <label className="block text-[11px] font-semibold text-[#86868B] uppercase tracking-wider mb-2">Poziție Text</label>
+                      <div className="apple-segmented w-full grid grid-cols-3">
+                        {[['left', 'Stânga'], ['center', 'Centru'], ['right', 'Dreapta']].map(([v, l]) => (
+                          <button key={v} type="button" onClick={() => hm('bottomBannerTextAlign', v)}
+                            className={`apple-segmented-item ${mob.bottomBannerTextAlign === v ? 'is-active' : ''}`}>{l}</button>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )}
               </div>
             )}
 
-            {/* Design — mereu vizibil */}
-            <div className="mt-4 p-5 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-200 dark:border-slate-800">
-              <label className="flex justify-between text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">
-                <span>Înălțime Banner</span><span className="text-slate-900 dark:text-white">Nivel {mob.bottomBannerHeight} / 5</span>
-              </label>
-              <input type="range" min="1" max="5" step="1" value={mob.bottomBannerHeight}
-                onChange={e => hm('bottomBannerHeight', parseInt(e.target.value))} className="w-full cursor-pointer accent-blue-600 mb-6" />
-              
-              <div className="flex flex-col sm:flex-row gap-3">
-                {[['bottomBannerRadiusTop','Colțuri Sus Rotunde'],['bottomBannerRadiusBottom','Colțuri Jos Rotunde']].map(([key, lbl]) => (
-                  <label key={key} className="flex-1 bg-white dark:bg-slate-900 px-4 py-3 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-between cursor-pointer shadow-sm">
-                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{lbl}</span>
+            <div className="apple-inset-group p-4 space-y-4">
+              <div>
+                <div className="flex justify-between text-[12px] font-semibold text-[#6E6E73] dark:text-[#98989D] mb-2">
+                  <span>Înălțime Banner</span>
+                  <span className="text-[#1D1D1F] dark:text-[#F5F5F7] tabular-nums">Nivel {mob.bottomBannerHeight} / 5</span>
+                </div>
+                <input type="range" min="1" max="5" step="1" value={mob.bottomBannerHeight}
+                  onChange={e => hm('bottomBannerHeight', parseInt(e.target.value))} className="w-full cursor-pointer accent-[#007AFF]" />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-black/[0.06] dark:border-white/[0.08]">
+                {[['bottomBannerRadiusTop', 'Colțuri Sus Rotunde'], ['bottomBannerRadiusBottom', 'Colțuri Jos Rotunde']].map(([key, lbl]) => (
+                  <div key={key} className="flex items-center justify-between py-1">
+                    <span className="text-[13px] font-medium text-[#1D1D1F] dark:text-[#F5F5F7]">{lbl}</span>
                     <Toggle checked={mob[key]} onChange={v => hm(key, v)} />
-                  </label>
+                  </div>
                 ))}
               </div>
             </div>
@@ -750,7 +762,7 @@ function LocationQrForm({ loc, backend, onBack, onRefresh }) {
 ═══════════════════════════════════════════════════════ */
 export default function QrGenerator({ backend }) {
   const { fetchWithAuth } = useAuth();
-  const [locations,   setLocations]   = useState([]);
+  const [locations, setLocations] = useState([]);
   const [loadingLocs, setLoadingLocs] = useState(true);
   const [selectedLoc, setSelectedLoc] = useState(null);
 
@@ -780,18 +792,18 @@ export default function QrGenerator({ backend }) {
           if (fresh) setSelectedLoc(fresh);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   };
 
   if (loadingLocs) return (
-    <div className="flex flex-col items-center justify-center py-20 gap-4 opacity-50">
-      <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-500 rounded-full animate-spin"></div>
-      <span className="text-slate-500 text-sm font-medium">Se încarcă locațiile...</span>
+    <div className="apple-card flex flex-col items-center justify-center py-20 gap-3">
+      <div className="w-6 h-6 border-2 border-black/10 dark:border-white/10 border-t-[#007AFF] rounded-full animate-spin" />
+      <span className="text-[#86868B] text-[13px] font-medium">Se încarcă locațiile...</span>
     </div>
   );
-  
+
   if (!locations.length) return (
-    <div className="p-12 text-center text-slate-500 bg-slate-50 dark:bg-slate-900 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
+    <div className="apple-card p-12 text-center text-[#86868B] text-[13px]">
       Nu ai nicio locație creată.
     </div>
   );

@@ -1870,7 +1870,11 @@ async function runMorningPreflightCheck(targetChatId = null, isManual = false) {
 
     // Ecran Kiosk
     if (isKioskAlive) {
-      const kData = kiosksSummary[locKey] || {};
+      const kData = kiosksSummary[locKey] ||
+        (locKey === 'cluj1' ? (kiosksSummary['smashme-main'] || kiosksSummary['cluj']) : null) ||
+        (locKey === 'cluj2' ? (kiosksSummary['cluj-2'] || kiosksSummary['cj2'] || kiosksSummary['cj-2'] || kiosksSummary['smashme-cj2'] || kiosksSummary['smashme cj-2']) : null) ||
+        (locKey === 'constanta1' ? (kiosksSummary['smashme-constanta'] || kiosksSummary['constanta']) : null) ||
+        (locKey === 'sm-brasov' ? (kiosksSummary['rollmaster'] || kiosksSummary['brasov']) : null) || {};
       const verStr = kData.scriptVersion ? `v${kData.scriptVersion}` : 'Universal';
       const screenStr = kData.screen ? ` • Ecran: ${kData.screen}` : '';
       const isVis = typeof kData.isVisible !== 'undefined' ? Boolean(kData.isVisible) : true;
@@ -2363,6 +2367,7 @@ function getStatusSummary() {
 
     const kData = kiosksSummary[locKey] || 
       (locKey === 'cluj1' ? (kiosksSummary['smashme-main'] || kiosksSummary['cluj']) : null) ||
+      (locKey === 'cluj2' ? (kiosksSummary['cluj-2'] || kiosksSummary['cj2'] || kiosksSummary['cj-2'] || kiosksSummary['smashme-cj2'] || kiosksSummary['smashme cj-2']) : null) ||
       (locKey === 'constanta1' ? (kiosksSummary['smashme-constanta'] || kiosksSummary['constanta']) : null) ||
       (locKey === 'sm-brasov' ? (kiosksSummary['rollmaster'] || kiosksSummary['brasov']) : null) || {};
     const isKioskVisible = typeof kData.isVisible !== 'undefined' ? Boolean(kData.isVisible) : true;

@@ -9,18 +9,18 @@ function StatCard({ icon, label, value, sub, onClick, loading }) {
   return (
     <div
       onClick={onClick}
-      className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 flex flex-col gap-2 shadow-sm transition-all duration-200 ${onClick ? 'cursor-pointer hover:-translate-y-1 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-700' : ''}`}
+      className={`apple-card p-5 flex flex-col gap-1.5 transition-all duration-150 ${onClick ? 'cursor-pointer hover:ring-1 hover:ring-[#007AFF]/40' : ''}`}
     >
-      <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800/50 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-1">
+      <div className="w-9 h-9 rounded-xl bg-[#007AFF]/12 text-[#007AFF] flex items-center justify-center mb-1">
         {icon}
       </div>
       {loading
-        ? <div className="w-16 h-8 rounded-lg bg-slate-200 dark:bg-slate-800 animate-pulse" />
-        : <span className="text-3xl font-black text-slate-900 dark:text-white leading-none">{value ?? '—'}</span>
+        ? <div className="w-16 h-7 rounded-lg bg-black/[0.06] dark:bg-white/[0.08] animate-pulse" />
+        : <span className="text-[26px] font-bold tracking-tight text-[#1D1D1F] dark:text-[#F5F5F7] leading-none tabular-nums">{value ?? '—'}</span>
       }
-      <span className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">{label}</span>
-      {sub && <span className="text-xs text-slate-500">{sub}</span>}
-      {onClick && <span className="text-xs text-blue-600 dark:text-blue-400 font-bold mt-1">→ Vezi lista</span>}
+      <span className="text-[11px] font-semibold text-[#86868B] uppercase tracking-wider mt-1">{label}</span>
+      {sub && <span className="text-[12px] text-[#6E6E73] dark:text-[#98989D]">{sub}</span>}
+      {onClick && <span className="text-[12px] text-[#007AFF] font-semibold mt-1">Vezi lista →</span>}
     </div>
   );
 }
@@ -82,94 +82,97 @@ export default function IntegrationDetail({ integ, onBack, onTest, onSync, testi
     return !q || JSON.stringify(item).toLowerCase().includes(q);
   });
 
-  const STATUS_COLOR = { active: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800', error: 'text-red-600 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800', pending: 'text-slate-600 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700' };
+  const STATUS_COLOR = {
+    active: 'text-[#248A3D] dark:text-[#30D158] bg-[#34C759]/12',
+    error: 'text-[#FF3B30] bg-[#FF3B30]/12',
+    pending: 'text-[#6E6E73] dark:text-[#98989D] bg-black/[0.05] dark:bg-white/[0.08]',
+  };
   const statusColorClasses = STATUS_COLOR[integ?.status] || STATUS_COLOR.pending;
   const statusLabel = { active: 'Activ', error: 'Eroare', pending: 'Nou' }[integ?.status] || integ?.status;
 
   if (drillDown) {
     const titles = { restaurants: 'Restaurante', products: 'Produse', categories: 'Categorii' };
     return (
-      <div className="pb-10 animate-in fade-in duration-300">
-        <div className="flex items-center gap-4 mb-6">
-          <button onClick={() => setDrillDown(null)}
-            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-700 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>
-            Înapoi la integrare
+      <div className="pb-10 space-y-5 animate-in fade-in duration-300">
+        <div className="flex items-center gap-3 flex-wrap">
+          <button onClick={() => setDrillDown(null)} className="apple-btn-secondary px-3.5 py-2 text-[13px]">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>
+            Înapoi
           </button>
-          <h2 className="text-2xl font-black text-slate-900 dark:text-white m-0 leading-tight">
-            {titles[drillDown]} <span className="text-slate-400 font-normal mx-1">—</span> {integ.name}
+          <h2 className="text-[20px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] m-0">
+            {titles[drillDown]} <span className="text-[#86868B] font-normal mx-1">·</span> {integ.name}
           </h2>
         </div>
 
-        <div className="relative w-full max-w-sm mb-6">
+        <div className="relative w-full max-w-sm">
           <input value={drillSearch} onChange={e => setDrillSearch(e.target.value)}
             placeholder={`Caută în ${titles[drillDown].toLowerCase()}...`}
-            className="w-full pl-11 pr-16 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-shadow shadow-sm"
+            className="apple-input rounded-full w-full pl-9 pr-14 py-2 text-[13px]"
           />
-          <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#86868B] pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
           {drillSearch && (
-            <span className="absolute right-1 top-1 bottom-1 flex items-center justify-center bg-blue-600 text-white rounded-full px-3 text-xs font-bold pointer-events-none">
+            <span className="absolute right-2 top-1/2 -translate-y-1/2 bg-[#007AFF]/12 text-[#007AFF] rounded-md px-2 py-0.5 text-[11px] font-semibold tabular-nums pointer-events-none">
               {filtered.length}/{drillData.length}
             </span>
           )}
         </div>
 
         {drillLoading ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-4 opacity-50 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
-             <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-500 rounded-full animate-spin"></div>
-             <span className="text-slate-500 text-sm font-medium">Se încarcă...</span>
+          <div className="apple-card flex flex-col items-center justify-center py-20 gap-3">
+            <div className="w-6 h-6 border-2 border-black/10 dark:border-white/10 border-t-[#007AFF] rounded-full animate-spin" />
+            <span className="text-[#86868B] text-[13px] font-medium">Se încarcă...</span>
           </div>
         ) : (
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+          <div className="apple-card overflow-hidden">
             {filtered.length === 0
-              ? <div className="text-slate-500 py-16 text-center font-medium">Niciun rezultat{drillSearch ? ` pentru "${drillSearch}"` : ''}</div>
+              ? <div className="text-[#86868B] py-16 text-center text-[13px] font-medium">Niciun rezultat{drillSearch ? ` pentru "${drillSearch}"` : ''}</div>
               : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+                      <tr className="border-b border-black/[0.06] dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.02] text-[11px] font-semibold text-[#6E6E73] dark:text-[#98989D] uppercase tracking-wider">
                         {drillDown === 'restaurants' && <>
-                          <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider w-12">#</th>
-                          <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Nume</th>
-                          <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">ID</th>
-                          <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Stare</th>
+                          <th className="px-4 py-3 w-12">#</th>
+                          <th className="px-4 py-3">Nume</th>
+                          <th className="px-4 py-3">ID</th>
+                          <th className="px-4 py-3">Stare</th>
                         </>}
                         {drillDown === 'products' && <>
-                          <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider w-12">#</th>
-                          <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Produs</th>
-                          <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Categorie</th>
-                          <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Preț</th>
+                          <th className="px-4 py-3 w-12">#</th>
+                          <th className="px-4 py-3">Produs</th>
+                          <th className="px-4 py-3">Categorie</th>
+                          <th className="px-4 py-3">Preț</th>
                         </>}
                         {drillDown === 'categories' && <>
-                          <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider w-12">#</th>
-                          <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Categorie</th>
-                          <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Produse</th>
+                          <th className="px-4 py-3 w-12">#</th>
+                          <th className="px-4 py-3">Categorie</th>
+                          <th className="px-4 py-3">Produse</th>
                         </>}
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                    <tbody className="divide-y divide-black/[0.05] dark:divide-white/[0.06]">
                       {filtered.slice(0, 200).map((item, i) => (
-                        <tr key={item.id || i} className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                        <tr key={item.id || i} className="transition-colors hover:bg-black/[0.02] dark:hover:bg-white/[0.03]">
                           {drillDown === 'restaurants' && <>
-                            <td className="px-4 py-3 text-sm text-slate-500 font-medium">{i + 1}</td>
-                            <td className="px-4 py-3 text-sm font-bold text-slate-900 dark:text-white">{item.name || item.id}</td>
-                            <td className="px-4 py-3 text-xs text-slate-400 font-medium">{item.id}</td>
+                            <td className="px-4 py-3 text-[13px] text-[#86868B] tabular-nums">{i + 1}</td>
+                            <td className="px-4 py-3 text-[13px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">{item.name || item.id}</td>
+                            <td className="px-4 py-3 text-[12px] text-[#86868B]">{item.id}</td>
                             <td className="px-4 py-3">
-                              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border ${item.active ? 'text-emerald-600 bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800' : 'text-slate-500 bg-slate-100 border-slate-200 dark:bg-slate-800 dark:border-slate-700'}`}>
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${item.active ? 'text-[#248A3D] dark:text-[#30D158] bg-[#34C759]/12' : 'text-[#86868B] bg-black/[0.05] dark:bg-white/[0.08]'}`}>
                                 {item.active ? 'Activ' : 'Inactiv'}
                               </span>
                             </td>
                           </>}
                           {drillDown === 'products' && <>
-                            <td className="px-4 py-3 text-sm text-slate-500 font-medium">{i + 1}</td>
-                            <td className="px-4 py-3 text-sm font-bold text-slate-900 dark:text-white">{item.name || item.title}</td>
-                            <td className="px-4 py-3 text-sm text-slate-500">{item.category || item.categoryName || '—'}</td>
-                            <td className="px-4 py-3 text-sm font-bold text-blue-600 dark:text-blue-400">{item.price ? `${item.price} lei` : '—'}</td>
+                            <td className="px-4 py-3 text-[13px] text-[#86868B] tabular-nums">{i + 1}</td>
+                            <td className="px-4 py-3 text-[13px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">{item.name || item.title}</td>
+                            <td className="px-4 py-3 text-[13px] text-[#6E6E73] dark:text-[#98989D]">{item.category || item.categoryName || '—'}</td>
+                            <td className="px-4 py-3 text-[13px] font-semibold text-[#007AFF] tabular-nums">{item.price ? `${item.price} lei` : '—'}</td>
                           </>}
                           {drillDown === 'categories' && <>
-                            <td className="px-4 py-3 text-sm text-slate-500 font-medium">{i + 1}</td>
-                            <td className="px-4 py-3 text-sm font-bold text-slate-900 dark:text-white">{item.name || item.title}</td>
-                            <td className="px-4 py-3 text-sm text-slate-500 font-medium">{item.itemsCount ?? item.products?.length ?? '—'}</td>
+                            <td className="px-4 py-3 text-[13px] text-[#86868B] tabular-nums">{i + 1}</td>
+                            <td className="px-4 py-3 text-[13px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">{item.name || item.title}</td>
+                            <td className="px-4 py-3 text-[13px] text-[#6E6E73] dark:text-[#98989D] tabular-nums">{item.itemsCount ?? item.products?.length ?? '—'}</td>
                           </>}
                         </tr>
                       ))}
@@ -179,7 +182,7 @@ export default function IntegrationDetail({ integ, onBack, onTest, onSync, testi
               )
             }
             {filtered.length > 200 && (
-              <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 text-slate-500 text-sm font-medium text-center">
+              <div className="px-5 py-3 border-t border-black/[0.06] dark:border-white/[0.08] bg-black/[0.015] dark:bg-white/[0.02] text-[#86868B] text-[12px] font-medium text-center tabular-nums">
                 Afișate primele 200 din {filtered.length} rezultate
               </div>
             )}
@@ -190,77 +193,63 @@ export default function IntegrationDetail({ integ, onBack, onTest, onSync, testi
   }
 
   return (
-    <div className="pb-10 animate-in fade-in duration-300">
+    <div className="pb-10 space-y-6 animate-in fade-in duration-300">
       {/* Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <button onClick={onBack}
-            className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors mb-3">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>
+          <button onClick={onBack} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#007AFF] hover:underline mb-2 cursor-pointer">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>
             Integrări POS
           </button>
-          <h1 className="text-3xl font-black text-slate-900 dark:text-white m-0 leading-tight mb-3">{integ.name}</h1>
-          <div className="flex flex-wrap items-center gap-3">
-            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${statusColorClasses}`}>
+          <h1 className="text-[24px] font-semibold tracking-tight text-[#1D1D1F] dark:text-[#F5F5F7] m-0 mb-2">{integ.name}</h1>
+          <div className="flex flex-wrap items-center gap-2.5 text-[13px]">
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${statusColorClasses}`}>
               {statusLabel}
             </span>
-            <span className="text-sm text-slate-500">Provider: <strong className="text-slate-700 dark:text-slate-300">Syrve / iiko</strong></span>
-            <span className="text-sm text-slate-500">Brand: <strong className="text-slate-700 dark:text-slate-300">{integ.brand_id || '—'}</strong></span>
+            <span className="text-[#6E6E73] dark:text-[#98989D]">Provider: <strong className="text-[#1D1D1F] dark:text-[#F5F5F7]">Syrve / iiko</strong></span>
+            <span className="text-[#6E6E73] dark:text-[#98989D]">Brand: <strong className="text-[#1D1D1F] dark:text-[#F5F5F7]">{integ.brand_id || '—'}</strong></span>
           </div>
           {stats?.lastSync && (
-            <div className="text-sm text-slate-400 mt-2 font-medium">Ultima sincronizare: {stats.lastSync}</div>
+            <div className="text-[12px] text-[#86868B] mt-1.5 tabular-nums">Ultima sincronizare: {stats.lastSync}</div>
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <button onClick={() => onTest && onTest(integ.id)} disabled={testing === integ.id}
-            className="flex items-center justify-center gap-2 px-5 h-11 rounded-full bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/20 dark:hover:bg-amber-900/40 text-amber-600 dark:text-amber-500 text-sm font-bold border border-amber-200 dark:border-amber-800/50 transition-colors disabled:opacity-50 min-w-[160px]">
-            {testing === integ.id ? (
-              <div className="w-4 h-4 border-2 border-amber-300 border-t-amber-600 rounded-full animate-spin"></div>
-            ) : (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            )}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button onClick={() => onTest && onTest(integ.id)} disabled={testing === integ.id} className="apple-btn-secondary px-4 py-2 text-[13px]">
             {testing === integ.id ? 'Se testează...' : 'Test Conexiune'}
           </button>
-          <button onClick={() => onSync && onSync(integ.id, integ.name)} disabled={syncing === integ.id}
-            className="flex items-center justify-center gap-2 px-6 h-11 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all disabled:opacity-50 min-w-[160px]">
-            {syncing === integ.id ? (
-              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-            ) : (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-            )}
+          <button onClick={() => onSync && onSync(integ.id, integ.name)} disabled={syncing === integ.id} className="apple-btn-primary px-5 py-2 text-[13px]">
             {syncing === integ.id ? 'Sincronizare...' : 'Sync Meniu'}
           </button>
         </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard icon={<Store size={22} />} label="Restaurante" value={stats?.restaurants} loading={loadingStats}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard icon={<Store size={19} />} label="Restaurante" value={stats?.restaurants} loading={loadingStats}
           onClick={() => openDrill('restaurants')} />
-        <StatCard icon={<Utensils size={22} />} label="Produse" value={stats?.products} loading={loadingStats}
+        <StatCard icon={<Utensils size={19} />} label="Produse" value={stats?.products} loading={loadingStats}
           onClick={() => openDrill('products')} />
-        <StatCard icon={<FolderTree size={22} />} label="Categorii" value={stats?.categories} loading={loadingStats}
+        <StatCard icon={<FolderTree size={19} />} label="Categorii" value={stats?.categories} loading={loadingStats}
           onClick={() => openDrill('categories')} />
-        <StatCard icon={<Link2 size={22} />} label="Brand ID" value={integ.brand_id || '—'} />
+        <StatCard icon={<Link2 size={19} />} label="Brand ID" value={integ.brand_id || '—'} />
       </div>
 
       {/* Connection details card */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 md:p-8 shadow-sm">
-        <h3 className="text-lg font-bold text-slate-900 dark:text-white m-0 mb-6 flex items-center gap-3">
-           <svg className="text-slate-400" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
-           Detalii Conexiune
+      <div className="apple-card p-6">
+        <h3 className="text-[16px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] m-0 mb-5">
+          Detalii Conexiune
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+        <div className="apple-inset-group divide-y divide-black/[0.06] dark:divide-white/[0.08]">
           {[
             ['Provider', 'Syrve / iiko cloud'],
             ['API URL', integ.credentials?.apiUrl || 'https://api-eu.syrve.live'],
             ['Org ID', integ.credentials?.orgId || '—'],
             ['API Login', integ.credentials?.apiLogin ? '••••••••' : '—'],
           ].map(([k, v]) => (
-            <div key={k} className="flex flex-col gap-1">
-              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">{k}</div>
-              <div className={`text-sm font-medium text-slate-900 dark:text-white ${v.startsWith('•') ? 'tracking-widest text-lg translate-y-1' : ''}`}>{v}</div>
+            <div key={k} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 px-4 py-3">
+              <div className="text-[12px] font-medium text-[#6E6E73] dark:text-[#98989D]">{k}</div>
+              <div className={`text-[13px] font-medium text-[#1D1D1F] dark:text-[#F5F5F7] ${v.startsWith('•') ? 'tracking-widest' : ''}`}>{v}</div>
             </div>
           ))}
         </div>

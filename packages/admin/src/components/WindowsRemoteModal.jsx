@@ -152,7 +152,7 @@ export default function WindowsRemoteModal({
       { type: 'sys', text: `Microsoft Windows [Version 10.0.19045] — Sesiune Remote Silențioasă (${locName})` },
       { type: 'sys', text: isOnline
         ? `Conectat la C:\\SmartKiosk pe ${bridgeLoc?.hostname || 'Kiosk-PC'} (Comenzi live prin POS Bridge)`
-        : `⚠️ POS Bridge este OFFLINE pe ${locName} — comenzile nu pot ajunge la PC până nu pornește bridge-ul.` },
+        : `POS Bridge este OFFLINE pe ${locName} — comenzile nu pot ajunge la PC până nu pornește bridge-ul.` },
     ]);
 
     if (socket && socket.connected && isOnline) {
@@ -213,7 +213,7 @@ export default function WindowsRemoteModal({
         if (typeof res.taskbarVisible === 'boolean') setTaskbarVisible(res.taskbarVisible);
         showNotice('success', res.message || 'Chrome minimizat și C:\\SmartKiosk deschis pe Desktop!');
       } else if (res.action === 'reboot_pc') {
-        showNotice(res.ok === false ? 'error' : 'success', res.message || res.error || '🔄 Comanda de Restart PC Windows a fost lansată!');
+        showNotice(res.ok === false ? 'error' : 'success', res.message || res.error || 'Comanda de Restart PC Windows a fost lansată.');
         setTerminalLines(prev => [
           ...prev,
           { type: res.ok === false ? 'err' : 'out', text: `[SYSTEM REBOOT] ${res.message || res.error || 'shutdown /r /t 2 /f'}` }
@@ -493,63 +493,63 @@ export default function WindowsRemoteModal({
         headers: { 'Content-Type': 'application/json', 'x-api-key': 'sk-live-2024-secure' },
       });
     } catch (_) {}
-    showNotice('success', `🔄 Comanda de RESTART PC Windows a fost trimisă către ${locName}! Calculatorul repornește acum...`);
+    showNotice('success', `Comanda de Restart PC Windows a fost trimisă către ${locName}. Calculatorul repornește acum.`);
   };
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-xs p-3 sm:p-6 animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-md p-3 sm:p-6 animate-in fade-in duration-150"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-5xl bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        className="w-full max-w-5xl apple-modal overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
         {/* ─── Top Header Bar ─── */}
-        <div className="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between gap-4 border-b border-slate-800">
+        <div className="px-5 py-4 bg-white dark:bg-[#1C1C1E] flex items-center justify-between gap-4 border-b border-black/[0.06] dark:border-white/[0.08]">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-indigo-300 shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-[#007AFF]/12 text-[#007AFF] flex items-center justify-center shrink-0">
               <Terminal className="w-5 h-5" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-sm sm:text-base font-bold tracking-tight text-white truncate">
+                <h3 className="text-[15px] font-semibold tracking-tight text-[#1D1D1F] dark:text-[#F5F5F7] truncate m-0">
                   Control PC Windows — {locName}
                 </h3>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
-                  isOnline ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold shrink-0 ${
+                  isOnline ? 'bg-[#34C759]/12 text-[#248A3D] dark:text-[#30D158]' : 'bg-[#FF9500]/12 text-[#C93400] dark:text-[#FF9F0A]'
                 }`}>
-                  {isOnline ? '● CONECTAT' : '● OFFLINE / CACHE'}
+                  <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-[#34C759]' : 'bg-[#FF9500]'}`} />
+                  {isOnline ? 'Conectat' : 'Offline'}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 truncate">
-                Lucrezi direct în <code className="text-indigo-300">C:\SmartKiosk</code> în fundal — clientul nu vede nicio fereastră!
+              <p className="text-[12px] text-[#86868B] truncate m-0 mt-0.5">
+                Sesiune fundal în <code className="text-[#007AFF] font-mono text-[11px]">C:\SmartKiosk</code> — fără impact pe ecranul client
               </p>
             </div>
           </div>
 
-          {/* ─── Comutatoare Rapide + Buton Închidere X în colțul din dreapta sus ─── */}
           <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={(e) => handleToggleMaintenanceMode(e, true)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-full text-[12px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
                 isMaintenance
-                  ? 'bg-amber-500 text-slate-950 shadow-sm ring-2 ring-amber-400/40'
-                  : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+                  ? 'bg-[#FF9500] text-white'
+                  : 'apple-btn-secondary'
               }`}
-              title="Comută Kiosk-ul în Mod Mentenanță (afișează ecranul animat cu logo-ul brandului și blochează comenzile)"
+              title="Comută Kiosk-ul în Mod Mentenanță"
             >
               <Sliders className="w-3.5 h-3.5 shrink-0" />
-              <span>{isMaintenance ? 'Mentenanță: ACTIV' : 'Mod Mentenanță'}</span>
+              <span>{isMaintenance ? 'Mentenanță: Activ' : 'Mentenanță'}</span>
             </button>
 
             <button
               type="button"
               onClick={handleRebootPc}
               disabled={!isOnline}
-              className="px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 whitespace-nowrap bg-rose-600/90 hover:bg-rose-600 disabled:opacity-45 text-white shadow-sm border border-rose-500/60"
-              title="Dă Restart complet la calculatorul Windows din locație (shutdown /r /t 2 /f)"
+              className="px-3 py-1.5 rounded-full text-[12px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap bg-[#FF3B30]/10 hover:bg-[#FF3B30]/20 disabled:opacity-45 text-[#FF3B30]"
+              title="Restart complet calculator Windows"
             >
               <RotateCcw className="w-3.5 h-3.5 shrink-0" />
               <span>Restart PC</span>
@@ -558,12 +558,12 @@ export default function WindowsRemoteModal({
             <button
               type="button"
               onClick={(e) => onToggleLock && onToggleLock(loc, e, isLocked)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-full text-[12px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
                 isLocked
-                  ? 'bg-red-600 hover:bg-emerald-600 text-white shadow-sm'
-                  : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+                  ? 'bg-[#FF3B30] text-white'
+                  : 'apple-btn-secondary'
               }`}
-              title={isLocked ? 'Apasă pentru a debloca rapid ecranul PIN' : 'Blochează ecranul cu PIN (fără X)'}
+              title={isLocked ? 'Deblochează ecranul PIN' : 'Blochează ecranul cu PIN'}
             >
               {isLocked ? <Unlock className="w-3.5 h-3.5 shrink-0" /> : <Lock className="w-3.5 h-3.5 shrink-0" />}
               <span>{isLocked ? 'Deblochează PIN' : 'Blochează PIN'}</span>
@@ -573,53 +573,53 @@ export default function WindowsRemoteModal({
               type="button"
               onClick={onClose}
               title="Închide fereastra"
-              className="ml-1 w-8 h-8 rounded-full bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white border border-slate-700 hover:border-rose-500 flex items-center justify-center transition-all cursor-pointer shrink-0"
+              className="apple-close-btn ml-1 shrink-0"
             >
-              <X className="w-4 h-4" />
+              <X size={16} />
             </button>
           </div>
         </div>
 
         {/* ─── Navigation Tabs ─── */}
-        <div className="px-5 pt-2.5 bg-slate-100 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-1">
+        <div className="px-5 py-2.5 bg-[#F5F5F7] dark:bg-[#141416] border-b border-black/[0.06] dark:border-white/[0.08] flex items-center justify-between gap-3 flex-wrap">
+          <div className="apple-segmented inline-flex flex-wrap">
             {[
-              { id: 'desktop', label: '🖥️ Desktop Live (AnyDesk)', icon: Monitor },
-              { id: 'explorer', label: '📁 Fișiere C:\\SmartKiosk & .env', icon: FolderOpen },
-              { id: 'terminal', label: '⚡ Comenzi Windows & Startup', icon: Terminal },
-              { id: 'logs', label: '📟 Fereastra POS Bridge (Live)', icon: Cpu },
-            ].map(t => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setActiveTab(t.id)}
-                className={`px-3.5 py-2 rounded-t-xl text-xs font-bold transition-all cursor-pointer border-b-2 ${
-                  activeTab === t.id
-                    ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 border-indigo-600 dark:border-indigo-400 shadow-2xs'
-                    : 'text-slate-600 dark:text-slate-400 border-transparent hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
+              { id: 'desktop', label: 'Desktop Live', icon: Monitor },
+              { id: 'explorer', label: 'Fișiere & .env', icon: FolderOpen },
+              { id: 'terminal', label: 'Comenzi & Startup', icon: Terminal },
+              { id: 'logs', label: 'Consolă Bridge', icon: Cpu },
+            ].map(t => {
+              const TabIcon = t.icon;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setActiveTab(t.id)}
+                  className={`apple-segmented-item inline-flex items-center gap-1.5 px-3 ${activeTab === t.id ? 'is-active' : ''}`}
+                >
+                  <TabIcon className="w-3.5 h-3.5" />
+                  <span>{t.label}</span>
+                </button>
+              );
+            })}
           </div>
 
-          <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400 pb-2 flex items-center gap-3">
-            <span>Port POS: <b className="text-slate-800 dark:text-slate-200">{quickPort}</b></span>
-            <span>Imprimantă: <b className="text-slate-800 dark:text-slate-200">{quickPrinter || 'Nedetectată'}</b></span>
-            <span>Soft: <b className="text-emerald-600 dark:text-emerald-400">v{bridgeLoc?.bridgeVersion || '3.5.5'}</b></span>
+          <div className="text-[11px] font-medium text-[#6E6E73] dark:text-[#98989D] flex items-center gap-3 tabular-nums">
+            <span>Port POS: <b className="text-[#1D1D1F] dark:text-[#F5F5F7]">{quickPort}</b></span>
+            <span>Imprimantă: <b className="text-[#1D1D1F] dark:text-[#F5F5F7]">{quickPrinter || 'Nedetectată'}</b></span>
+            <span>Soft: <b className="text-[#248A3D] dark:text-[#30D158]">v{bridgeLoc?.bridgeVersion || '3.5.5'}</b></span>
           </div>
         </div>
 
         {/* ─── Feedback Banner ─── */}
         {feedback && (
-          <div className={`mx-5 mt-3 px-3.5 py-2 rounded-xl text-xs font-bold flex items-center justify-between border ${
+          <div className={`mx-5 mt-3 px-3.5 py-2.5 rounded-xl text-[12px] font-medium flex items-center justify-between border ${
             feedback.type === 'success'
-              ? 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800'
-              : 'bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800'
+              ? 'bg-[#34C759]/10 text-[#248A3D] dark:text-[#30D158] border-[#34C759]/20'
+              : 'bg-[#FF3B30]/10 text-[#FF3B30] border-[#FF3B30]/20'
           }`}>
             <span>{feedback.text}</span>
-            <button onClick={() => setFeedback(null)} className="text-xs opacity-70 hover:opacity-100 cursor-pointer">✕</button>
+            <button onClick={() => setFeedback(null)} className="opacity-70 hover:opacity-100 cursor-pointer"><X size={14} /></button>
           </div>
         )}
 
@@ -682,7 +682,7 @@ export default function WindowsRemoteModal({
                               onClick={(e) => { e.stopPropagation(); handleRunFile(f.name, 'smartkiosk'); }}
                               disabled={!isOnline || isThisRunning}
                               title={isOnline ? `Execută ${f.name} pe Windows` : 'PC offline'}
-                              className="px-2 py-0.5 rounded-md bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer"
+                              className="px-2 py-0.5 rounded-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer"
                             >
                               <Play className="w-2.5 h-2.5" />
                               <span>{isThisRunning ? '...' : 'Execută'}</span>
@@ -698,13 +698,14 @@ export default function WindowsRemoteModal({
               {/* Startup Folder Windows */}
               <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden bg-slate-50/60 dark:bg-slate-800/40">
                 <div className="px-3.5 py-2.5 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between gap-2">
-                  <div className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate" title="C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup">
-                    📂 Windows Startup (Autostart)
+                  <div className="text-xs font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] truncate flex items-center gap-1.5" title="C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup">
+                    <FolderOpen className="w-3.5 h-3.5 text-[#007AFF] shrink-0" />
+                    <span>Windows Startup (Autostart)</span>
                   </div>
                   <button
                     type="button"
                     onClick={handleFixStartup}
-                    className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold cursor-pointer shrink-0"
+                    className="px-2.5 py-1 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold cursor-pointer shrink-0"
                   >
                     + Adaugă SmartKiosk în Startup
                   </button>
@@ -723,7 +724,7 @@ export default function WindowsRemoteModal({
                               onClick={() => handleRunFile(sf.name, 'startup')}
                               disabled={!isOnline || isThisRunning}
                               title={isOnline ? `Pornește acum ${sf.name}` : 'PC offline'}
-                              className="px-2 py-0.5 rounded-md bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer"
+                              className="px-2 py-0.5 rounded-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer"
                             >
                               <Play className="w-2.5 h-2.5" />
                               <span>{isThisRunning ? '...' : 'Execută'}</span>
@@ -742,14 +743,15 @@ export default function WindowsRemoteModal({
               {/* Setări rapide .env fără să scrii cod */}
               <div className="p-3.5 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200/70 dark:border-indigo-800/50 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-900 dark:text-white">
-                    ⚡ Modificare Rapidă Hardware (.env)
+                  <span className="text-[12px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] flex items-center gap-1.5">
+                    <Zap className="w-3.5 h-3.5 text-[#007AFF]" />
+                    <span>Modificare Rapidă Hardware (.env)</span>
                   </span>
                   <button
                     type="button"
                     onClick={handleApplyQuickEnv}
                     disabled={saving}
-                    className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer active:scale-95"
+                    className="px-3 py-1.5 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer active:scale-95"
                   >
                     <Save className="w-3.5 h-3.5" />
                     <span>Aplică pe PC & Repornește Bridge</span>
@@ -803,7 +805,7 @@ export default function WindowsRemoteModal({
                         type="button"
                         onClick={() => handleRunFile(selectedFile, 'smartkiosk')}
                         disabled={!isOnline || runningFile === `smartkiosk:${selectedFile}`}
-                        className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                        className="px-2.5 py-1 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-[11px] font-bold flex items-center gap-1 cursor-pointer"
                       >
                         <Play className="w-3 h-3" />
                         <span>Execută acum</span>
@@ -813,7 +815,7 @@ export default function WindowsRemoteModal({
                       type="button"
                       onClick={() => handleSaveFile(false)}
                       disabled={saving}
-                      className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                      className="px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-white text-[11px] font-bold flex items-center gap-1 cursor-pointer"
                     >
                       <Save className="w-3 h-3" />
                       <span>Salvează</span>
@@ -822,7 +824,7 @@ export default function WindowsRemoteModal({
                       type="button"
                       onClick={() => handleSaveFile(true)}
                       disabled={saving}
-                      className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                      className="px-2.5 py-1 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold flex items-center gap-1 cursor-pointer"
                     >
                       <RefreshCw className="w-3 h-3" />
                       <span>Salvează & Repornește Bridge</span>
@@ -850,93 +852,93 @@ export default function WindowsRemoteModal({
                 onClick={handleToggleTaskbar}
                 className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
                   taskbarVisible
-                    ? 'border-amber-400 bg-amber-50 dark:bg-amber-950/30'
-                    : 'border-slate-200 dark:border-slate-700 hover:border-indigo-400 bg-slate-50 dark:bg-slate-800/60'
+                    ? 'border-[#FF9500]/50 bg-[#FF9500]/10'
+                    : 'border-black/[0.08] dark:border-white/[0.1] hover:border-[#007AFF]/50 bg-[#F5F5F7] dark:bg-white/[0.04]'
                 }`}
               >
-                <div className="text-xs font-bold text-slate-900 dark:text-white mb-1">
-                  {taskbarVisible ? '🪟 Ascunde Taskbar Windows la loc' : '🪟 Arată Bara Start / Taskbar Windows'}
+                <div className="text-[12px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] mb-1">
+                  {taskbarVisible ? 'Ascunde Taskbar Windows' : 'Arată Bara Start / Taskbar'}
                 </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                <p className="text-[11px] text-[#6E6E73] dark:text-[#98989D] m-0">
                   {taskbarVisible
-                    ? 'Taskbar-ul e vizibil acum. Click ca să îl ascunzi și să readuci Kiosk-ul Fullscreen.'
-                    : 'Afișează bara de jos Windows (Start Bar) fără să fie ascunsă la fiecare 8s.'}
+                    ? 'Taskbar-ul e vizibil acum. Click pentru a-l ascunde și reveni la Fullscreen.'
+                    : 'Afișează bara de jos Windows (Start Bar) fără auto-ascundere.'}
                 </p>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleRunFile('start-windows.bat', 'smartkiosk')}
-                className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-emerald-400 bg-slate-50 dark:bg-slate-800/60 text-left transition-all cursor-pointer"
+                className="p-3.5 rounded-xl border border-black/[0.08] dark:border-white/[0.1] hover:border-[#007AFF]/50 bg-[#F5F5F7] dark:bg-white/[0.04] text-left transition-all cursor-pointer"
               >
-                <div className="text-xs font-bold text-slate-900 dark:text-white mb-1">▶️ Rulează start-windows.bat</div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Pornește direct <code className="text-emerald-600 dark:text-emerald-400">start-windows.bat</code> detașat în <code className="text-indigo-500">C:\SmartKiosk</code>.
+                <div className="text-[12px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] mb-1">Rulează start-windows.bat</div>
+                <p className="text-[11px] text-[#6E6E73] dark:text-[#98989D] m-0">
+                  Pornește direct <code className="text-[#007AFF]">start-windows.bat</code> în <code className="font-mono">C:\SmartKiosk</code>.
                 </p>
               </button>
 
               <button
                 type="button"
                 onClick={handleFixStartup}
-                className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-400 bg-slate-50 dark:bg-slate-800/60 text-left transition-all cursor-pointer"
+                className="p-3.5 rounded-xl border border-black/[0.08] dark:border-white/[0.1] hover:border-[#007AFF]/50 bg-[#F5F5F7] dark:bg-white/[0.04] text-left transition-all cursor-pointer"
               >
-                <div className="text-xs font-bold text-slate-900 dark:text-white mb-1">📌 Repară Autostart în Startup</div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Creează <code className="text-indigo-500">SmartKiosk_Autostart.vbs</code> în folderul Startup și în Registrul Windows.
+                <div className="text-[12px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] mb-1">Repară Autostart în Startup</div>
+                <p className="text-[11px] text-[#6E6E73] dark:text-[#98989D] m-0">
+                  Creează <code className="text-[#007AFF]">SmartKiosk_Autostart.vbs</code> în Startup și Registrul Windows.
                 </p>
               </button>
 
               <button
                 type="button"
-                onClick={() => triggerBridgeEndpoint('fullscreen-kiosk', 'Comanda Fullscreen (F11 peste Taskbar) a fost aplicată!')}
-                className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-400 bg-slate-50 dark:bg-slate-800/60 text-left transition-all cursor-pointer"
+                onClick={() => triggerBridgeEndpoint('fullscreen-kiosk', 'Comanda Fullscreen (F11 peste Taskbar) a fost aplicată.')}
+                className="p-3.5 rounded-xl border border-black/[0.08] dark:border-white/[0.1] hover:border-[#007AFF]/50 bg-[#F5F5F7] dark:bg-white/[0.04] text-left transition-all cursor-pointer"
               >
-                <div className="text-xs font-bold text-slate-900 dark:text-white mb-1">🖥️ Forțează Kiosk Fullscreen (F11)</div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Ascunde bara de jos din Windows (Taskbar) și aduce Chrome-ul în față pe tot ecranul.
+                <div className="text-[12px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] mb-1">Forțează Kiosk Fullscreen (F11)</div>
+                <p className="text-[11px] text-[#6E6E73] dark:text-[#98989D] m-0">
+                  Ascunde bara de jos din Windows și aduce Chrome-ul pe tot ecranul.
                 </p>
               </button>
 
               <button
                 type="button"
-                onClick={() => triggerBridgeEndpoint('test-pos-signal', 'Testul de semnal UART către POS a fost trimis!')}
-                className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-400 bg-slate-50 dark:bg-slate-800/60 text-left transition-all cursor-pointer"
+                onClick={() => triggerBridgeEndpoint('test-pos-signal', 'Testul de semnal UART către POS a fost trimis.')}
+                className="p-3.5 rounded-xl border border-black/[0.08] dark:border-white/[0.1] hover:border-[#007AFF]/50 bg-[#F5F5F7] dark:bg-white/[0.04] text-left transition-all cursor-pointer"
               >
-                <div className="text-xs font-bold text-slate-900 dark:text-white mb-1">📡 Testează Portul COM POS (UART)</div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Trimite impuls ENQ pe <code className="text-indigo-500">{quickPort}</code> și verifică răspunsul ACK de la Verifone.
+                <div className="text-[12px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] mb-1">Testează Portul COM POS (UART)</div>
+                <p className="text-[11px] text-[#6E6E73] dark:text-[#98989D] m-0">
+                  Trimite impuls ENQ pe <code className="text-[#007AFF]">{quickPort}</code> și verifică răspunsul ACK.
                 </p>
               </button>
 
               <button
                 type="button"
                 onClick={() => runSilentCommand('mode')}
-                className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-400 bg-slate-50 dark:bg-slate-800/60 text-left transition-all cursor-pointer"
+                className="p-3.5 rounded-xl border border-black/[0.08] dark:border-white/[0.1] hover:border-[#007AFF]/50 bg-[#F5F5F7] dark:bg-white/[0.04] text-left transition-all cursor-pointer"
               >
-                <div className="text-xs font-bold text-slate-900 dark:text-white mb-1">🔌 Listează Porturile COM din Windows</div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Rulează <code className="text-indigo-500">mode</code> în fundal și îți arată porturile COM conectate.
+                <div className="text-[12px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] mb-1">Listează Porturile COM</div>
+                <p className="text-[11px] text-[#6E6E73] dark:text-[#98989D] m-0">
+                  Rulează <code className="text-[#007AFF]">mode</code> în fundal și afișează porturile COM conectate.
                 </p>
               </button>
 
               <button
                 type="button"
                 onClick={() => runSilentCommand('wmic printer get name,portname')}
-                className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-400 bg-slate-50 dark:bg-slate-800/60 text-left transition-all cursor-pointer"
+                className="p-3.5 rounded-xl border border-black/[0.08] dark:border-white/[0.1] hover:border-[#007AFF]/50 bg-[#F5F5F7] dark:bg-white/[0.04] text-left transition-all cursor-pointer"
               >
-                <div className="text-xs font-bold text-slate-900 dark:text-white mb-1">🖨️ Vezi Imprimantele Instalate</div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                <div className="text-[12px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] mb-1">Vezi Imprimantele Instalate</div>
+                <p className="text-[11px] text-[#6E6E73] dark:text-[#98989D] m-0">
                   Afișează numele exact al imprimantei din Windows (ex. EPSON TM-T20).
                 </p>
               </button>
 
               <button
                 type="button"
-                onClick={() => triggerBridgeEndpoint('resolve-duplicate', 'Instanțele dublură au fost închise!')}
-                className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-400 bg-slate-50 dark:bg-slate-800/60 text-left transition-all cursor-pointer"
+                onClick={() => triggerBridgeEndpoint('resolve-duplicate', 'Instanțele dublură au fost închise.')}
+                className="p-3.5 rounded-xl border border-black/[0.08] dark:border-white/[0.1] hover:border-[#007AFF]/50 bg-[#F5F5F7] dark:bg-white/[0.04] text-left transition-all cursor-pointer"
               >
-                <div className="text-xs font-bold text-slate-900 dark:text-white mb-1">🧹 Curăță Procese Dublură Node.js</div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                <div className="text-[12px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] mb-1">Curăță Procese Dublură Node.js</div>
+                <p className="text-[11px] text-[#6E6E73] dark:text-[#98989D] m-0">
                   Închide orice proces POS Bridge secundar care blochează portul COM.
                 </p>
               </button>
@@ -944,11 +946,11 @@ export default function WindowsRemoteModal({
               <button
                 type="button"
                 onClick={handleRebootPc}
-                className="p-3.5 rounded-xl border border-rose-300 dark:border-rose-700/80 hover:border-rose-500 bg-rose-50/70 dark:bg-rose-950/30 text-left transition-all cursor-pointer"
+                className="p-3.5 rounded-xl border border-[#FF3B30]/30 hover:border-[#FF3B30]/60 bg-[#FF3B30]/8 text-left transition-all cursor-pointer"
               >
-                <div className="text-xs font-bold text-rose-700 dark:text-rose-300 mb-1">🔄 Restart Complet PC Windows</div>
-                <p className="text-[11px] text-rose-600/80 dark:text-rose-300/80">
-                  Execută <code className="font-bold">shutdown /r /t 2 /f</code> — repornește fizic întregul calculator Windows.
+                <div className="text-[12px] font-semibold text-[#FF3B30] mb-1">Restart Complet PC Windows</div>
+                <p className="text-[11px] text-[#FF3B30]/80 m-0">
+                  Execută <code className="font-mono font-semibold">shutdown /r /t 2 /f</code> — repornește calculatorul Windows.
                 </p>
               </button>
             </div>
@@ -1023,7 +1025,7 @@ export default function WindowsRemoteModal({
                 <button
                   type="submit"
                   disabled={cmdRunning}
-                  className="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold cursor-pointer"
+                  className="px-3 py-1 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold cursor-pointer"
                 >
                   {cmdRunning ? 'Rulează...' : 'Execută'}
                 </button>
@@ -1043,7 +1045,7 @@ export default function WindowsRemoteModal({
                 <button
                   type="button"
                   onClick={handleCopyBridgeLogs}
-                  className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 cursor-pointer transition-colors"
+                  className="px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 cursor-pointer transition-colors"
                   title="Copiază tot jurnalul POS Bridge în clipboard"
                 >
                   {copiedBridgeLogs ? (
@@ -1061,7 +1063,7 @@ export default function WindowsRemoteModal({
                 <button
                   type="button"
                   onClick={() => handleSelectFile('pos-bridge.log')}
-                  className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 cursor-pointer"
+                  className="px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 cursor-pointer"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                   <span>Actualizează Log</span>
@@ -1069,7 +1071,7 @@ export default function WindowsRemoteModal({
                 <button
                   type="button"
                   onClick={() => triggerBridgeEndpoint('restart-bridge', 'Comanda de restart POS Bridge a fost trimisă!')}
-                  className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                  className="px-3 py-1.5 rounded-full bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                   <span>Repornește POS Bridge</span>

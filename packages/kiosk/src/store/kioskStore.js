@@ -267,9 +267,35 @@ export const useKioskStore = create((set, get) => ({
   setFiscalData: (data) => set({ fiscalData: data }),
   clearFiscalData: () => set({ fiscalData: null }),
 
+  // ─── Promo / Voucher ──────────────────────────────────────
+  appliedVoucher: null,
+  setAppliedVoucher: (voucher) => set({ appliedVoucher: voucher }),
+  clearAppliedVoucher: () => set({ appliedVoucher: null }),
+
   // ─── Computed ─────────────────────────────────────────────
   getCartCount: () => get().cartItems.reduce((sum, i) => sum + i.quantity, 0),
-  getCartTotal: () => get().cartItems.reduce((sum, i) => sum + i.totalPrice, 0),
+  getCartSubtotal: () => get().cartItems.reduce((sum, i) => sum + i.totalPrice, 0),
+  getVoucherDiscount: () => {
+    const voucher = get().appliedVoucher;
+    if (!voucher) return 0;
+    const subtotal = get().getCartSubtotal();
+    if (voucher.minOrderAmount && subtotal < voucher.minOrderAmount) return 0;
+    let disc = 0;
+    if (voucher.type === 'percentage') {
+      disc = (subtotal * (Number(voucher.value) || 0)) / 100;
+      if (voucher.maxDiscountAmount && disc > voucher.maxDiscountAmount) {
+        disc = voucher.maxDiscountAmount;
+      }
+    } else {
+      disc = Number(voucher.value) || 0;
+    }
+    return Math.min(subtotal, Math.round(disc * 100) / 100);
+  },
+  getCartTotal: () => {
+    const subtotal = get().getCartSubtotal();
+    const discount = get().getVoucherDiscount();
+    return Math.max(0, Math.round((subtotal - discount) * 100) / 100);
+  },
 
   // ─── Reset ────────────────────────────────────────────────
   resetOrder: () => set({
@@ -280,6 +306,7 @@ export const useKioskStore = create((set, get) => ({
     paymentMethod: 'card',
     selectedProduct: null,
     fiscalData: null,
+    appliedVoucher: null,
     hasPlayedPromo: false,
     hasShownStartPromo: false,
     menuScrollTop: 0,
@@ -302,6 +329,7 @@ export const useKioskStore = create((set, get) => ({
     paymentMethod: 'card',
     selectedProduct: null,
     fiscalData: null,
+    appliedVoucher: null,
     hasPlayedPromo: false,
     hasShownStartPromo: false,
     menuScrollTop: 0,

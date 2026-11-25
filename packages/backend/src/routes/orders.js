@@ -15,6 +15,7 @@ const { addPosLog } = require('./posLogs');
 const { sendKitchenOrderWebhook } = require('../services/kitchenWebhookService');
 
 const { detectCity, getOrderPrefix, findLocation, getLocationAliases } = require('../utils/locations');
+const voucherService = require('../services/voucherService');
 
 // Module-level fallback sequence memory (for offline / dev fallback)
 let memoryCj1Max = 648;
@@ -81,13 +82,47 @@ async function fixRolloverSeriesOrders() {
 }
 fixRolloverSeriesOrders();
 
+// ── Helper: Distribute order-level discounts (vouchers/promos) proportionally across brand splits ──
+function computeBrandSplitTotals(brandsMap, orderTotalAmount) {
+  const entries = Object.entries(brandsMap);
+  const result = {};
+  if (entries.length === 0) return result;
+
+  const targetTotal = Math.max(0, Math.round(Number(orderTotalAmount || 0) * 100) / 100);
+  if (entries.length === 1) {
+    result[entries[0][0]] = targetTotal;
+    return result;
+  }
+
+  const rawSum = entries.reduce((s, [, bd]) => s + (Number(bd.totalAmount) || 0), 0);
+  if (rawSum <= 0 || Math.abs(rawSum - targetTotal) < 0.01) {
+    for (const [bId, bd] of entries) {
+      result[bId] = Math.round((Number(bd.totalAmount) || 0) * 100) / 100;
+    }
+    return result;
+  }
+
+  let allocated = 0;
+  entries.forEach(([bId, bd], idx) => {
+    if (idx === entries.length - 1) {
+      result[bId] = Math.max(0, Math.round((targetTotal - allocated) * 100) / 100);
+    } else {
+      const share = Math.round((targetTotal * ((Number(bd.totalAmount) || 0) / rawSum)) * 100) / 100;
+      result[bId] = share;
+      allocated = Math.round((allocated + share) * 100) / 100;
+    }
+  });
+  return result;
+}
+
 // ── Core order creation logic (callable via HTTP or directly on POS socket confirmation) ──
 async function processOrderCreation(body, io) {
   const {
     locationId, brand, brandId, orgId, locationName,
     orderType, tableNumber, items,
     totalAmount, lang, channel, paymentMethod, paymentRef, kioskId,
-    fiscal, posOrderId
+    fiscal, posOrderId,
+    voucherCode, voucherDiscount
   } = body;
 
   if (!items || items.length === 0) {
@@ -380,6 +415,8 @@ async function processOrderCreation(body, io) {
     items: items || [],
     totalAmount: Math.round(subtotal * 100) / 100,
     discountAmount: discountAmount,
+    voucherCode: voucherCode ? String(voucherCode).trim().toUpperCase() : null,
+    voucherDiscount: voucherDiscount ? Math.round(Number(voucherDiscount) * 100) / 100 : 0,
     lang: lang || 'ro',
     channel: channel || 'kiosk',
     paymentMethod: paymentMethod || 'card',
@@ -397,6 +434,11 @@ async function processOrderCreation(body, io) {
       `INSERT INTO orders (id, location_id, status, data) VALUES ($1, $2, $3, $4)`,
       [orderId, locId, status, JSON.stringify(order)]
     );
+    if (order.voucherCode) {
+      await voucherService.recordVoucherUsage(order.voucherCode).catch(err => {
+        console.warn('[Orders] Voucher usage record error:', err.message);
+      });
+    }
   } catch (dbErr) {
     console.error('[Orders] Could not save order to DB:', dbErr.message);
   }
@@ -465,6 +507,7 @@ async function processOrderCreation(body, io) {
         brandsMap[bId].totalAmount += (item.totalPrice || 0);
       }
 
+      const splitTotals = computeBrandSplitTotals(brandsMap, order.totalAmount);
       const syrveIds = [];
       for (const [bId, brandData] of Object.entries(brandsMap)) {
         const specificOrgId = orgIdsDict[bId] 
@@ -480,7 +523,7 @@ async function processOrderCreation(body, io) {
           brand: bId,
           orgId: specificOrgId,
           items: brandData.items,
-          totalAmount: Math.round(brandData.totalAmount * 100) / 100
+          totalAmount: splitTotals[bId] !== undefined ? splitTotals[bId] : Math.round(brandData.totalAmount * 100) / 100
         };
 
         try {
@@ -720,6 +763,7 @@ router.patch('/:id/status', async (req, res) => {
             brandsMap[bId].items.push(item);
             brandsMap[bId].totalAmount += (item.totalPrice || 0);
           }
+          const splitTotals = computeBrandSplitTotals(brandsMap, order.totalAmount);
           const syrveIds = [];
           for (const [bId, brandData] of Object.entries(brandsMap)) {
             const specificOrgId = orgIdsDict[bId] 
@@ -730,7 +774,13 @@ router.patch('/:id/status', async (req, res) => {
               || order.orgId 
               || (Object.values(orgIdsDict).length === 1 ? Object.values(orgIdsDict)[0] : null);
 
-            const splitOrder = { ...order, brand: bId, orgId: specificOrgId, items: brandData.items, totalAmount: Math.round(brandData.totalAmount * 100) / 100 };
+            const splitOrder = {
+              ...order,
+              brand: bId,
+              orgId: specificOrgId,
+              items: brandData.items,
+              totalAmount: splitTotals[bId] !== undefined ? splitTotals[bId] : Math.round(brandData.totalAmount * 100) / 100
+            };
             try {
               const syrveResult = await syrveCreateOrder({ brandId: bId, orgId: specificOrgId, order: splitOrder });
               if (syrveResult?.orderInfo?.id || syrveResult?.id) syrveIds.push(syrveResult?.orderInfo?.id || syrveResult?.id);
@@ -846,3 +896,4 @@ router.post('/:id/retry', async (req, res) => {
 
 module.exports = router;
 module.exports.processOrderCreation = processOrderCreation;
+module.exports.computeBrandSplitTotals = computeBrandSplitTotals;

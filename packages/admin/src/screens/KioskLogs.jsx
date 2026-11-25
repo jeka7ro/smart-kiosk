@@ -361,35 +361,32 @@ export default function KioskLogs() {
         />
       </div>
 
-      {/* ─── CONTROLS & BARA DE FILTRE (Standard Admin / PosLogs) ─── */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        {/* Filter buttons & Dropdowns */}
-        <div className="flex flex-wrap items-center gap-2">
-          {[
-            { id: 'all', label: 'Toate' },
-            { id: 'unlock_manager', label: 'PIN Manager' },
-            { id: 'unlock_vendor', label: 'PIN Vânzător' },
-            { id: 'auto_unlock', label: '⏱ Deblocat Orar' },
-            { id: 'unlock_failed', label: 'PIN Incorect' }
-          ].map(f => (
-            <button
-              key={f.id}
-              onClick={() => { setFilter(f.id); setCurrentPage(1); }}
-              className={`px-4 h-9 rounded-full text-sm font-bold border transition-colors ${
-                filter === f.id
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
+      {/* ─── CONTROLS & BARA DE FILTRE — STRICTLY 1 ROW Apple Capsule Toolbar ─── */}
+      <div className={`apple-card p-2 ${periodFilter === 'custom' ? '!rounded-[22px]' : '!rounded-full'}`}>
+        <div className="flex items-center gap-2 flex-nowrap overflow-x-auto scrollbar-none w-full min-w-0">
+          <div className="apple-segmented shrink-0">
+            {[
+              { id: 'all', label: 'Toate' },
+              { id: 'unlock_manager', label: 'Manager' },
+              { id: 'unlock_vendor', label: 'Vânzător' },
+              { id: 'auto_unlock', label: 'Orar' },
+              { id: 'unlock_failed', label: 'Incorect' }
+            ].map(f => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => { setFilter(f.id); setCurrentPage(1); }}
+                className={`apple-segmented-item ${filter === f.id ? 'is-active' : ''}`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
 
-          {/* Period Filter Dropdown */}
           <select
             value={periodFilter}
             onChange={e => { setPeriodFilter(e.target.value); setCurrentPage(1); }}
-            className="h-9 px-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-medium text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500"
+            className="apple-input shrink-0 h-8 px-2.5 text-[12px] font-medium cursor-pointer"
           >
             <option value="today">Azi</option>
             <option value="yesterday">Ieri</option>
@@ -398,37 +395,17 @@ export default function KioskLogs() {
             <option value="last_month">Luna trecută</option>
             <option value="this_year">Anul curent</option>
             <option value="all">Toată perioada</option>
-            <option value="custom">Personalizat</option>
+            <option value="custom">Interval...</option>
           </select>
-
-          {periodFilter === 'custom' && (
-            <div className="flex items-center gap-1">
-              <input
-                type="date"
-                value={customStart}
-                onChange={e => { setCustomStart(e.target.value); setCurrentPage(1); }}
-                className="h-9 px-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <span className="text-slate-400 font-bold">-</span>
-              <input
-                type="date"
-                value={customEnd}
-                onChange={e => { setCustomEnd(e.target.value); setCurrentPage(1); }}
-                className="h-9 px-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          )}
 
           {uniqueLocations.length > 0 && (
             <select
               value={locFilter}
               onChange={e => { setLocFilter(e.target.value); setCurrentPage(1); }}
-              className="h-9 px-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-medium text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500"
+              className="apple-input shrink-0 h-8 px-2.5 text-[12px] font-medium cursor-pointer"
             >
               <option value="all">Toate locațiile</option>
-              {uniqueLocations.map(l => (
-                <option key={l} value={l}>{l}</option>
-              ))}
+              {uniqueLocations.map(l => <option key={l} value={l}>{l}</option>)}
             </select>
           )}
 
@@ -436,43 +413,41 @@ export default function KioskLogs() {
             <select
               value={brandFilter}
               onChange={e => { setBrandFilter(e.target.value); setCurrentPage(1); }}
-              className="h-9 px-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-medium text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500 capitalize"
+              className="apple-input shrink-0 h-8 px-2.5 text-[12px] font-medium capitalize cursor-pointer"
             >
               <option value="all">Toate brandurile</option>
-              {uniqueBrands.map(b => (
-                <option key={b} value={b}>{BRAND_NAMES[b] || b}</option>
-              ))}
+              {uniqueBrands.map(b => <option key={b} value={b}>{BRAND_NAMES[b] || b}</option>)}
             </select>
           )}
 
-          {/* Search Box */}
-          <div className="relative">
+          <div className="relative flex-1 min-w-[125px]">
             <input
               type="text"
               placeholder="Caută în loguri..."
               value={searchQuery}
               onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-              className="h-9 pl-9 pr-4 rounded-full text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 w-48 transition-all"
+              className="apple-input h-8 pl-8 pr-3 text-[12px] w-full"
             />
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <Search className="w-3.5 h-3.5 text-[#86868B] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
-        </div>
 
-        {/* Action Buttons: Export Excel (VERDE / EMERALD) & Refresh */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleExportExcel}
-            className="px-4 h-9 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm text-sm font-bold transition-colors flex items-center gap-2"
-            title="Exportă în Excel"
-          >
-            <Download className="w-4 h-4 text-white" />
-            <span>Export Excel</span>
+          <button type="button" onClick={handleExportExcel} className="apple-btn-secondary shrink-0 h-8 px-3 text-[12px] flex items-center gap-1.5" title="Exportă în Excel">
+            <Download className="w-3.5 h-3.5" />
+            <span>Excel</span>
           </button>
         </div>
+
+        {periodFilter === 'custom' && (
+          <div className="mt-2 pt-2 border-t border-black/[0.06] dark:border-white/[0.08] flex items-center gap-2 flex-wrap">
+            <input type="date" value={customStart} onChange={e => { setCustomStart(e.target.value); setCurrentPage(1); }} className="apple-input h-8 px-2.5 text-[12px] tabular-nums" />
+            <span className="text-[#86868B] text-xs">—</span>
+            <input type="date" value={customEnd} onChange={e => { setCustomEnd(e.target.value); setCurrentPage(1); }} className="apple-input h-8 px-2.5 text-[12px] tabular-nums" />
+          </div>
+        )}
       </div>
 
       {/* ─── TABEL EVENIMENTE (Cu Brand Avatar & Typography curată, FĂRĂ tabular-nums) ─── */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-x-auto">
+      <div className="apple-card overflow-x-auto">
         <table className="w-full text-left border-collapse min-w-[850px]">
           <thead>
             <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
@@ -552,31 +527,15 @@ export default function KioskLogs() {
                     ) : '—'}
                   </td>
 
-                  {/* Brand & Locație cu BRAND AVATAR 3D */}
+                  {/* Brand & Locație */}
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      {/* 3D Raised Bezel Brand Avatar */}
-                      <div className="relative shrink-0">
-                        <div
-                          className="absolute -inset-0.5 rounded-full blur-[2px] opacity-40 pointer-events-none"
-                          style={{ backgroundColor: brandColor }}
-                        />
-                        <div
-                          className="relative w-8 h-8 rounded-full p-0.5 flex items-center justify-center bg-gradient-to-b from-white via-slate-50 to-slate-100 dark:from-slate-700 dark:via-slate-800 dark:to-slate-900 border border-white/80 dark:border-slate-600/60"
-                          style={{
-                            boxShadow: `0 2px 6px ${brandColor}35, inset 0 1px 1.5px rgba(255,255,255,0.8)`
-                          }}
-                        >
-                          <BrandLogo brandId={brand} size={20} className="rounded-full" />
-                        </div>
-                      </div>
-
-                      {/* Nume Curat Brand & Locatie FARA ID tehnice */}
+                    <div className="flex items-center gap-2.5">
+                      <BrandLogo brandId={brand} size={26} className="shrink-0" />
                       <div className="flex flex-col items-start min-w-0">
-                        <span style={{ color: getBrandColor(brand) }} className="text-xs font-bold">
+                        <span style={{ color: getBrandColor(brand) }} className="text-[12px] font-semibold">
                           {getBrandLabel(brand)}
                         </span>
-                        <span className="px-2 py-0.5 mt-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-400">
+                        <span className="text-[11px] font-medium text-[#6E6E73] dark:text-[#98989D]">
                           {cleanName}
                         </span>
                       </div>
@@ -649,86 +608,43 @@ export default function KioskLogs() {
   );
 }
 
-// ─── EXACT STATCARD COMPONENT FROM POSLOGS / DASHBOARD ───
 function StatCard({ label, value, color, brandId, icon: Icon, onClick, active, highlight }) {
   const isCurrency = typeof value === 'string' && value.includes('lei');
   const displayVal = isCurrency ? value.replace('lei', '').trim() : value;
-  const valLength = String(displayVal).length;
-
-  let fontSizeClass = 'text-xl';
-  if (isCurrency) {
-    if (valLength > 8) fontSizeClass = 'text-sm';
-    else if (valLength > 5) fontSizeClass = 'text-base';
-    else fontSizeClass = 'text-lg';
-  } else {
-    fontSizeClass = valLength > 4 ? 'text-xl' : 'text-2xl';
-  }
 
   return (
     <div
       onClick={onClick}
-      className={`bg-white dark:bg-slate-900 rounded-2xl shadow-sm border px-4 py-3 flex items-center justify-between min-w-[120px] flex-1 relative overflow-hidden transition-all duration-200 group select-none ${
+      className={`apple-card px-4 py-3.5 flex items-center justify-between min-w-[120px] flex-1 transition-all duration-150 select-none ${
         active
-          ? 'ring-2 ring-blue-500 border-blue-500 shadow-md scale-[1.02]'
+          ? 'ring-2 ring-[#007AFF]'
           : highlight
-          ? 'border-orange-300 dark:border-orange-500/50'
-          : 'border-slate-200 dark:border-slate-800'
-      } ${onClick ? 'cursor-pointer hover:shadow-md hover:scale-[1.02]' : ''}`}
-      style={{ borderLeft: `4px solid ${color}` }}
+          ? 'ring-1 ring-[#FF3B30]/40'
+          : ''
+      } ${onClick ? 'cursor-pointer hover:bg-black/[0.015] dark:hover:bg-white/[0.03]' : ''}`}
     >
-      <div className="flex flex-col justify-center min-w-0 pr-1 z-10 flex-1">
-        <div className="flex items-baseline gap-1 whitespace-nowrap overflow-visible">
-          <span className={`font-black text-slate-900 dark:text-white tracking-tight ${fontSizeClass}`}>
+      <div className="flex flex-col justify-center min-w-0 pr-2 flex-1">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-[#86868B] truncate" title={label}>
+          {label}
+        </span>
+        <div className="flex items-baseline gap-1 mt-1 whitespace-nowrap">
+          <span className="text-[24px] font-bold text-[#1D1D1F] dark:text-[#F5F5F7] tracking-tight tabular-nums leading-none">
             {displayVal}
           </span>
           {isCurrency && (
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-              lei
-            </span>
+            <span className="text-[11px] font-semibold text-[#86868B]">lei</span>
           )}
         </div>
-        {!brandId && (
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis" title={label}>
-            {label}
-          </span>
-        )}
       </div>
 
       {brandId ? (
-        <div className="flex flex-col items-center justify-center shrink-0 ml-2 z-10">
-          <div className="relative">
-            <div
-              className="absolute -inset-1 rounded-full blur-sm opacity-35 group-hover:opacity-75 transition-opacity pointer-events-none"
-              style={{ backgroundColor: color }}
-            />
-            <div
-              className="relative w-9 h-9 rounded-full p-0.5 flex items-center justify-center bg-gradient-to-b from-white via-slate-50 to-slate-100 dark:from-slate-700 dark:via-slate-800 dark:to-slate-900 border border-white/80 dark:border-slate-600/60 transition-transform duration-200 group-hover:scale-110 group-hover:-translate-y-0.5"
-              style={{
-                boxShadow: `0 3px 8px ${color}40, 0 1px 2px rgba(0,0,0,0.1), inset 0 1.5px 2px rgba(255,255,255,0.85)`
-              }}
-            >
-              <BrandLogo brandId={brandId} size={24} className="rounded-full shadow-inner" />
-            </div>
-          </div>
-          <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-1 whitespace-nowrap text-center max-w-[80px] overflow-hidden text-ellipsis" title={label}>
-            {label}
-          </span>
-        </div>
+        <BrandLogo brandId={brandId} size={28} className="shrink-0" />
       ) : Icon ? (
-        <div className="relative shrink-0 ml-2">
-          <div
-            className="absolute -inset-1 rounded-full blur-sm opacity-30 group-hover:opacity-60 transition-opacity pointer-events-none"
-            style={{ backgroundColor: color }}
-          />
-          <div
-            className="relative w-9 h-9 rounded-full flex items-center justify-center text-white transition-transform duration-200 group-hover:scale-110 group-hover:-translate-y-0.5"
-            style={{
-              background: `linear-gradient(135deg, ${color}, ${color}cc)`,
-              boxShadow: `0 3px 8px ${color}35, 0 1px 2px rgba(0,0,0,0.1), inset 0 1.5px 2px rgba(255,255,255,0.4)`
-            }}
-          >
-            <Icon size={18} strokeWidth={2.5} />
-          </div>
+        <div
+          className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+          style={{ backgroundColor: `${color}18`, color }}
+        >
+          <Icon size={18} strokeWidth={2.2} />
         </div>
       ) : null}
     </div>

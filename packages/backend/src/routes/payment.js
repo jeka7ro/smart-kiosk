@@ -680,6 +680,10 @@ router.post('/pending-orders/:orderId/push-iiko', requireApiKey, async (req, res
         brandsMap[bId].totalAmount += (item.totalPrice || 0);
       }
 
+      const { computeBrandSplitTotals } = require('./orders');
+      const splitTotals = typeof computeBrandSplitTotals === 'function'
+        ? computeBrandSplitTotals(brandsMap, order.totalAmount)
+        : {};
       const syrveIds = [];
       for (const [bId, brandData] of Object.entries(brandsMap)) {
         const specificOrgId = orgIdsDict[bId]
@@ -695,7 +699,7 @@ router.post('/pending-orders/:orderId/push-iiko', requireApiKey, async (req, res
           brand: bId,
           orgId: specificOrgId,
           items: brandData.items,
-          totalAmount: Math.round(brandData.totalAmount * 100) / 100,
+          totalAmount: splitTotals[bId] !== undefined ? splitTotals[bId] : Math.round(brandData.totalAmount * 100) / 100,
         };
 
         try {

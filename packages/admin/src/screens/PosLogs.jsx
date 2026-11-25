@@ -2,9 +2,9 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useAuth } from '../context/AuthProvider';
 import { useConfirm } from '../components/ConfirmModal.jsx';
 import { io } from 'socket.io-client';
-import { 
-  CreditCard, CheckCircle2, XCircle, AlertTriangle, RotateCcw, 
-  Receipt, Copy, Check, X, ChevronDown, ChevronUp,
+import {
+  CreditCard, CheckCircle2, XCircle, AlertTriangle, RotateCcw,
+  FileText, Copy, Check, X, ChevronDown, ChevronUp,
   TrendingUp, BarChart3, PieChart, Landmark, ArrowUpRight, ArrowRight, Wallet, ShieldCheck
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
@@ -17,12 +17,12 @@ import { getBrandColor, getBrandLabel } from '../utils/brandTheme';
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
 
 const STATUS_CONFIG = {
-  approved:    { label: 'Aprobat',          color: '#ffffff', bg: '#059669' },
-  declined:    { label: 'Respins bancă',    color: '#ffffff', bg: '#dc2626' },
-  cancelled:   { label: 'Anulat de client', color: '#ffffff', bg: '#d97706' },
-  timeout:     { label: 'Timeout POS',      color: '#ffffff', bg: '#b45309' },
-  refunded:    { label: 'Returnat',         color: '#ffffff', bg: '#2563eb' },
-  unsolicited: { label: 'POS Info',         color: '#ffffff', bg: '#7c3aed' },
+  approved: { label: 'Aprobat', color: '#ffffff', bg: '#059669' },
+  declined: { label: 'Respins bancă', color: '#ffffff', bg: '#dc2626' },
+  cancelled: { label: 'Anulat de client', color: '#ffffff', bg: '#d97706' },
+  timeout: { label: 'Timeout POS', color: '#ffffff', bg: '#b45309' },
+  refunded: { label: 'Returnat', color: '#ffffff', bg: '#2563eb' },
+  unsolicited: { label: 'POS Info', color: '#ffffff', bg: '#7c3aed' },
 };
 
 const isLogCancelled = (l) => {
@@ -62,7 +62,7 @@ export function formatPosError(reason, code) {
   if (c === '54' || rawStr === '54') return 'Card expirat';
   if (c === '41' || rawStr === '41') return 'Card pierdut';
   if (c === '43' || rawStr === '43') return 'Card furat';
-  if (c === '5' || c === '05')        return 'Refuz bancă (Contactați banca emitentă)';
+  if (c === '5' || c === '05') return 'Refuz bancă (Contactați banca emitentă)';
   if (c === '61' || rawStr === '61') return 'Depășire limită retragere/plată';
   if (c === '14' || rawStr === '14') return 'Număr card invalid';
   if (c === '91' || rawStr === '91') return 'Banca emitentă nu răspunde';
@@ -87,7 +87,7 @@ export function CardBrandAvatar({ brand, cardNo, isNfc, cardBank }) {
   const cleanDigits = cardNo ? String(cardNo).replace(/\D/g, '') : '';
   const last4 = cleanDigits.length >= 4 ? cleanDigits.slice(-4) : (cardNo ? String(cardNo).slice(-4) : '');
   const brandName = isMc ? 'Mastercard' : (isVisa ? 'Visa' : (isMaestro ? 'Maestro' : 'Card Bancar'));
-  
+
   const effBank = cardBank || (cardNo ? detectCardBank({ cardNo, brand }) : null);
   const hasBank = effBank && effBank.id && effBank.id !== 'other';
 
@@ -100,38 +100,38 @@ export function CardBrandAvatar({ brand, cardNo, isNfc, cardBank }) {
   let networkMicroBadge = null;
   if (isMc) {
     networkMicroBadge = (
-      <span 
-        className="absolute -bottom-1 -right-1 w-[19px] h-[13px] bg-slate-950 rounded-[4px] ring-2 ring-white dark:ring-slate-900 shadow-xs flex items-center justify-center overflow-hidden pointer-events-none" 
+      <span
+        className="absolute -bottom-1 -right-1 w-[19px] h-[13px] bg-slate-950 rounded-[4px] ring-2 ring-white dark:ring-slate-900 shadow-xs flex items-center justify-center overflow-hidden pointer-events-none"
         title="Mastercard"
       >
         <svg width="15" height="9" viewBox="0 0 24 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="7.5" cy="7.5" r="7" fill="#EB001B"/>
-          <circle cx="16.5" cy="7.5" r="7" fill="#F79E1B"/>
-          <path d="M12 2.2a6.98 6.98 0 0 1 0 10.6 6.98 6.98 0 0 1 0-10.6Z" fill="#FF5F00"/>
+          <circle cx="7.5" cy="7.5" r="7" fill="#EB001B" />
+          <circle cx="16.5" cy="7.5" r="7" fill="#F79E1B" />
+          <path d="M12 2.2a6.98 6.98 0 0 1 0 10.6 6.98 6.98 0 0 1 0-10.6Z" fill="#FF5F00" />
         </svg>
       </span>
     );
   } else if (isVisa) {
     networkMicroBadge = (
-      <span 
-        className="absolute -bottom-1 -right-1 w-[19px] h-[13px] bg-[#0c2054] rounded-[4px] ring-2 ring-white dark:ring-slate-900 shadow-xs flex items-center justify-center overflow-hidden px-0.5 pointer-events-none" 
+      <span
+        className="absolute -bottom-1 -right-1 w-[19px] h-[13px] bg-[#0c2054] rounded-[4px] ring-2 ring-white dark:ring-slate-900 shadow-xs flex items-center justify-center overflow-hidden px-0.5 pointer-events-none"
         title="Visa"
       >
         <svg width="14" height="5" viewBox="0 0 780 250" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M293.4 12.8L192.5 240.4H134.2L81.7 58.7C78.5 46.2 75.7 41.7 65.7 36.3C49.3 27.5 23.1 19.3 0 14.4L5.4 2.1H106.6C120.3 2.1 132.8 11.2 135.8 26.6L162.2 165.7L228.6 2.1H293.4V12.8ZM550.9 164.7C551.4 102.3 464.3 98.7 464.9 70.8C465.2 62.3 473.4 53.2 491.5 50.8C500.4 49.6 525.4 48.6 553.6 61.6L564.7 9.8C549.4 4.3 529.7 0 504.7 0C443.4 0 399.7 32.6 399.3 79.5C398.9 114 430.1 133.3 453.6 144.8C477.8 156.6 485.9 164.1 485.7 174.7C485.4 191 465.9 198.1 448 198.4C416.7 198.8 398.5 190 384.1 183.3L372.4 237.9C388.6 245.4 418.5 251.7 449.6 252C513.7 252 550.4 220.4 550.9 164.7ZM712.5 240.4H768L719.2 2.1H668C656.7 2.1 647.2 8.7 643.1 18.5L549.4 240.4H611.8L624.2 206.3H700.5L712.5 240.4ZM641.4 159.2L672.7 73.1L690.7 159.2H641.4ZM387.6 2.1L338.4 240.4H280.4L329.6 2.1H387.6Z" fill="#FFFFFF"/>
+          <path d="M293.4 12.8L192.5 240.4H134.2L81.7 58.7C78.5 46.2 75.7 41.7 65.7 36.3C49.3 27.5 23.1 19.3 0 14.4L5.4 2.1H106.6C120.3 2.1 132.8 11.2 135.8 26.6L162.2 165.7L228.6 2.1H293.4V12.8ZM550.9 164.7C551.4 102.3 464.3 98.7 464.9 70.8C465.2 62.3 473.4 53.2 491.5 50.8C500.4 49.6 525.4 48.6 553.6 61.6L564.7 9.8C549.4 4.3 529.7 0 504.7 0C443.4 0 399.7 32.6 399.3 79.5C398.9 114 430.1 133.3 453.6 144.8C477.8 156.6 485.9 164.1 485.7 174.7C485.4 191 465.9 198.1 448 198.4C416.7 198.8 398.5 190 384.1 183.3L372.4 237.9C388.6 245.4 418.5 251.7 449.6 252C513.7 252 550.4 220.4 550.9 164.7ZM712.5 240.4H768L719.2 2.1H668C656.7 2.1 647.2 8.7 643.1 18.5L549.4 240.4H611.8L624.2 206.3H700.5L712.5 240.4ZM641.4 159.2L672.7 73.1L690.7 159.2H641.4ZM387.6 2.1L338.4 240.4H280.4L329.6 2.1H387.6Z" fill="#FFFFFF" />
         </svg>
       </span>
     );
   } else if (isMaestro) {
     networkMicroBadge = (
-      <span 
-        className="absolute -bottom-1 -right-1 w-[19px] h-[13px] bg-slate-900 rounded-[4px] ring-2 ring-white dark:ring-slate-900 shadow-xs flex items-center justify-center overflow-hidden pointer-events-none" 
+      <span
+        className="absolute -bottom-1 -right-1 w-[19px] h-[13px] bg-slate-900 rounded-[4px] ring-2 ring-white dark:ring-slate-900 shadow-xs flex items-center justify-center overflow-hidden pointer-events-none"
         title="Maestro"
       >
         <svg width="15" height="9" viewBox="0 0 24 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="7.5" cy="7.5" r="7" fill="#0061A8"/>
-          <circle cx="16.5" cy="7.5" r="7" fill="#EB001B"/>
-          <path d="M12 2.2a6.98 6.98 0 0 1 0 10.6 6.98 6.98 0 0 1 0-10.6Z" fill="#6C6BBA"/>
+          <circle cx="7.5" cy="7.5" r="7" fill="#0061A8" />
+          <circle cx="16.5" cy="7.5" r="7" fill="#EB001B" />
+          <path d="M12 2.2a6.98 6.98 0 0 1 0 10.6 6.98 6.98 0 0 1 0-10.6Z" fill="#6C6BBA" />
         </svg>
       </span>
     );
@@ -150,23 +150,23 @@ export function CardBrandAvatar({ brand, cardNo, isNfc, cardBank }) {
       {isMc ? (
         <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-slate-950 via-slate-900 to-black border border-slate-700/60 shadow-xs flex items-center justify-center shrink-0" title="Mastercard">
           <svg width="22" height="14" viewBox="0 0 24 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="7.5" cy="7.5" r="7" fill="#EB001B"/>
-            <circle cx="16.5" cy="7.5" r="7" fill="#F79E1B"/>
-            <path d="M12 2.2a6.98 6.98 0 0 1 0 10.6 6.98 6.98 0 0 1 0-10.6Z" fill="#FF5F00"/>
+            <circle cx="7.5" cy="7.5" r="7" fill="#EB001B" />
+            <circle cx="16.5" cy="7.5" r="7" fill="#F79E1B" />
+            <path d="M12 2.2a6.98 6.98 0 0 1 0 10.6 6.98 6.98 0 0 1 0-10.6Z" fill="#FF5F00" />
           </svg>
         </div>
       ) : isVisa ? (
         <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#102468] via-[#0b1b4f] to-[#040c29] border border-blue-600/40 shadow-xs flex items-center justify-center shrink-0 px-1" title="Visa">
           <svg width="24" height="8" viewBox="0 0 780 250" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M293.4 12.8L192.5 240.4H134.2L81.7 58.7C78.5 46.2 75.7 41.7 65.7 36.3C49.3 27.5 23.1 19.3 0 14.4L5.4 2.1H106.6C120.3 2.1 132.8 11.2 135.8 26.6L162.2 165.7L228.6 2.1H293.4V12.8ZM550.9 164.7C551.4 102.3 464.3 98.7 464.9 70.8C465.2 62.3 473.4 53.2 491.5 50.8C500.4 49.6 525.4 48.6 553.6 61.6L564.7 9.8C549.4 4.3 529.7 0 504.7 0C443.4 0 399.7 32.6 399.3 79.5C398.9 114 430.1 133.3 453.6 144.8C477.8 156.6 485.9 164.1 485.7 174.7C485.4 191 465.9 198.1 448 198.4C416.7 198.8 398.5 190 384.1 183.3L372.4 237.9C388.6 245.4 418.5 251.7 449.6 252C513.7 252 550.4 220.4 550.9 164.7ZM712.5 240.4H768L719.2 2.1H668C656.7 2.1 647.2 8.7 643.1 18.5L549.4 240.4H611.8L624.2 206.3H700.5L712.5 240.4ZM641.4 159.2L672.7 73.1L690.7 159.2H641.4ZM387.6 2.1L338.4 240.4H280.4L329.6 2.1H387.6Z" fill="#FFFFFF"/>
+            <path d="M293.4 12.8L192.5 240.4H134.2L81.7 58.7C78.5 46.2 75.7 41.7 65.7 36.3C49.3 27.5 23.1 19.3 0 14.4L5.4 2.1H106.6C120.3 2.1 132.8 11.2 135.8 26.6L162.2 165.7L228.6 2.1H293.4V12.8ZM550.9 164.7C551.4 102.3 464.3 98.7 464.9 70.8C465.2 62.3 473.4 53.2 491.5 50.8C500.4 49.6 525.4 48.6 553.6 61.6L564.7 9.8C549.4 4.3 529.7 0 504.7 0C443.4 0 399.7 32.6 399.3 79.5C398.9 114 430.1 133.3 453.6 144.8C477.8 156.6 485.9 164.1 485.7 174.7C485.4 191 465.9 198.1 448 198.4C416.7 198.8 398.5 190 384.1 183.3L372.4 237.9C388.6 245.4 418.5 251.7 449.6 252C513.7 252 550.4 220.4 550.9 164.7ZM712.5 240.4H768L719.2 2.1H668C656.7 2.1 647.2 8.7 643.1 18.5L549.4 240.4H611.8L624.2 206.3H700.5L712.5 240.4ZM641.4 159.2L672.7 73.1L690.7 159.2H641.4ZM387.6 2.1L338.4 240.4H280.4L329.6 2.1H387.6Z" fill="#FFFFFF" />
           </svg>
         </div>
       ) : isMaestro ? (
         <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-slate-900 via-slate-800 to-black border border-slate-700/60 shadow-xs flex items-center justify-center shrink-0" title="Maestro">
           <svg width="22" height="14" viewBox="0 0 24 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="7.5" cy="7.5" r="7" fill="#0061A8"/>
-            <circle cx="16.5" cy="7.5" r="7" fill="#EB001B"/>
-            <path d="M12 2.2a6.98 6.98 0 0 1 0 10.6 6.98 6.98 0 0 1 0-10.6Z" fill="#6C6BBA"/>
+            <circle cx="7.5" cy="7.5" r="7" fill="#0061A8" />
+            <circle cx="16.5" cy="7.5" r="7" fill="#EB001B" />
+            <path d="M12 2.2a6.98 6.98 0 0 1 0 10.6 6.98 6.98 0 0 1 0-10.6Z" fill="#6C6BBA" />
           </svg>
         </div>
       ) : (
@@ -177,8 +177,8 @@ export function CardBrandAvatar({ brand, cardNo, isNfc, cardBank }) {
     </div>
   );
 
-  const primaryTitle = hasBank 
-    ? effBank.name 
+  const primaryTitle = hasBank
+    ? effBank.name
     : (cardNo ? (isMc ? 'Card Mastercard' : (isVisa ? 'Card Visa' : 'Card Bancar')) : brandName);
 
   const tooltipTitle = `${primaryTitle}${brandName && brandName !== primaryTitle ? ` • ${brandName}` : ''}${last4 ? ` •••• ${last4}` : ''}${isNfc ? ' (Contactless NFC)' : ''}`;
@@ -186,7 +186,7 @@ export function CardBrandAvatar({ brand, cardNo, isNfc, cardBank }) {
   return (
     <div className="flex items-center gap-3 min-w-0" title={tooltipTitle}>
       {avatarNode}
-      
+
       <div className="flex flex-col text-left justify-center min-w-0 leading-tight">
         {/* Linia 1: Numele Băncii / Identitatea Cardului + Indicator NFC */}
         <div className="flex items-center gap-1.5">
@@ -194,15 +194,15 @@ export function CardBrandAvatar({ brand, cardNo, isNfc, cardBank }) {
             {primaryTitle}
           </span>
           {isNfc && (
-            <span 
-              title="Plată Contactless (NFC)" 
+            <span
+              title="Plată Contactless (NFC)"
               className="inline-flex items-center text-blue-500 dark:text-blue-400 shrink-0"
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
-                <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
-                <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
-                <line x1="12" y1="20" x2="12.01" y2="20"/>
+                <path d="M5 12.55a11 11 0 0 1 14.08 0" />
+                <path d="M1.42 9a16 16 0 0 1 21.16 0" />
+                <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+                <line x1="12" y1="20" x2="12.01" y2="20" />
               </svg>
             </span>
           )}
@@ -310,7 +310,7 @@ export function extractPosMeta(log) {
         }
         if (ascii.toLowerCase().includes('contactless')) isNfc = true;
       }
-    } catch (_) {}
+    } catch (_) { }
   }
 
   // Regex fallback for text receipt
@@ -389,31 +389,33 @@ Status:  ${log.paid ? 'APROBAT (0000)' : `RESPINS (${meta.respCode || log.error 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={onClose}>
-      <div className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-in fade-in duration-150" onClick={onClose}>
+      <div className="relative w-full max-w-sm apple-modal overflow-hidden animate-in zoom-in-95 duration-150" onClick={e => e.stopPropagation()}>
         {/* Receipt Header */}
-        <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-5 text-white text-center relative">
-          <button 
+        <div className="px-5 pt-5 pb-4 border-b border-black/[0.06] dark:border-white/[0.08] text-center relative">
+          <button
+            type="button"
             onClick={onClose}
-            className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"
+            className="apple-close-btn absolute top-4 right-4"
+            title="Închide"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
-          <div className="flex flex-col items-center justify-center gap-2 mb-1">
+          <div className="flex flex-col items-center justify-center gap-2">
             {brandId ? (
-              <div className="p-1 rounded-2xl bg-white/10 shadow-md">
-                <BrandLogo brandId={brandId} size={48} className="rounded-xl" />
+              <div className="p-1 rounded-2xl bg-[#F5F5F7] dark:bg-[#2C2C2E]">
+                <BrandLogo brandId={brandId} size={44} className="rounded-xl" />
               </div>
             ) : (
-              <div className="p-2.5 rounded-2xl bg-white/10 shadow-inner">
-                <Receipt size={28} className="text-indigo-300" />
+              <div className="w-10 h-10 rounded-[11px] bg-[#007AFF] text-white flex items-center justify-center shadow-[0_2px_8px_-1px_rgba(0,122,255,0.45),inset_0_0.5px_0_rgba(255,255,255,0.35)]">
+                <FileText size={19} strokeWidth={2} />
               </div>
             )}
             <div>
-              <h3 className="text-lg font-black tracking-tight">Chitanță Tranzacție POS</h3>
-              <p className="text-xs text-indigo-200 mt-0.5 flex items-center justify-center gap-1.5 font-medium">
-                {brandId && <span className="font-bold capitalize">{brandId}</span>}
-                {brandId && <span>•</span>}
+              <h3 className="text-[16px] font-semibold tracking-tight text-[#1D1D1F] dark:text-[#F5F5F7] m-0">Chitanță Tranzacție POS</h3>
+              <p className="text-[12px] text-[#6E6E73] dark:text-[#98989D] mt-0.5 mb-0 flex items-center justify-center gap-1.5 font-medium">
+                {brandId && <span className="capitalize">{brandId}</span>}
+                {brandId && <span>·</span>}
                 <span>{locationName}</span>
               </p>
             </div>
@@ -421,106 +423,87 @@ Status:  ${log.paid ? 'APROBAT (0000)' : `RESPINS (${meta.respCode || log.error 
         </div>
 
         {/* Receipt Body */}
-        <div className="p-6 space-y-4">
-          <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+        <div className="p-5 space-y-4">
+          <div className="apple-inset-group flex items-center justify-between p-3.5">
             <div>
-              <span className="text-[11px] font-bold text-slate-400 block">Total tranzacție</span>
-              <span className="text-2xl font-black text-slate-900 dark:text-white">
-                {formatThousands(Number(log.amount) || 0)} <span className="text-sm font-bold text-slate-500">RON</span>
+              <span className="text-[11px] font-semibold text-[#86868B] uppercase tracking-wider block">Total tranzacție</span>
+              <span className="text-[24px] font-bold tracking-tight text-[#1D1D1F] dark:text-[#F5F5F7] tabular-nums">
+                {formatThousands(Number(log.amount) || 0)} <span className="text-[13px] font-medium text-[#86868B]">RON</span>
               </span>
             </div>
             <div className="flex flex-col items-end">
-              <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                log.paid 
-                  ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' 
-                  : (isLogCancelled(log) 
-                      ? 'bg-slate-500/15 text-slate-600 dark:text-slate-400 border border-slate-500/30' 
-                      : (isLogTimeout(log)
-                          ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
-                          : 'bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30'))
-              }`}>
+              <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${log.paid
+                ? 'bg-[#34C759]/12 text-[#248A3D] dark:text-[#30D158]'
+                : (isLogCancelled(log)
+                  ? 'bg-black/[0.06] dark:bg-white/[0.08] text-[#6E6E73] dark:text-[#98989D]'
+                  : (isLogTimeout(log)
+                    ? 'bg-[#FF9500]/12 text-[#C93400] dark:text-[#FF9F0A]'
+                    : 'bg-[#FF3B30]/12 text-[#FF3B30]'))
+                }`}>
                 {log.paid ? 'Aprobat' : (isLogCancelled(log) ? 'Anulat de client' : (isLogTimeout(log) ? 'Timeout POS' : 'Respins'))}
               </span>
               {!log.paid && meta.respCode && meta.respCode !== '0000' && (
-                <span className="text-[11px] font-semibold text-red-500 mt-1">Eroare: {meta.respCode}</span>
+                <span className="text-[11px] font-semibold text-[#FF3B30] mt-1 tabular-nums">Cod {meta.respCode}</span>
               )}
             </div>
           </div>
 
-          <div className="space-y-2.5 text-xs border-t border-b border-slate-100 dark:border-slate-800 py-3 text-slate-600 dark:text-slate-300">
-            <div className="flex justify-between items-center">
-              <span className="text-slate-400 font-medium">Dată și oră:</span>
-              <span className="font-semibold text-slate-800 dark:text-slate-100">{dt ? dt.toLocaleString('ro-RO') : '—'}</span>
+          <div className="apple-inset-group divide-y divide-black/[0.06] dark:divide-white/[0.08] text-[12px] px-3.5">
+            <div className="flex justify-between items-center py-2.5">
+              <span className="text-[#86868B]">Dată și oră</span>
+              <span className="font-medium text-[#1D1D1F] dark:text-[#F5F5F7] tabular-nums">{dt ? dt.toLocaleString('ro-RO') : '—'}</span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-slate-400 font-medium">Terminal (TID):</span>
-              <span className="font-bold text-slate-800 dark:text-slate-100">{meta.tid || '—'}</span>
+            <div className="flex justify-between items-center py-2.5">
+              <span className="text-[#86868B]">Terminal (TID)</span>
+              <span className="font-mono font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">{meta.tid || '—'}</span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-slate-400 font-medium">Număr bon (STAN):</span>
-              <span className="font-bold text-indigo-600 dark:text-indigo-400">{meta.rNo || '—'}</span>
+            <div className="flex justify-between items-center py-2.5">
+              <span className="text-[#86868B]">Număr bon (STAN)</span>
+              <span className="font-mono font-semibold text-[#007AFF]">{meta.rNo || '—'}</span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-slate-400 font-medium">Cod autorizare:</span>
-              <span className="font-semibold text-slate-800 dark:text-slate-100">{log.authCode || '—'}</span>
+            <div className="flex justify-between items-center py-2.5">
+              <span className="text-[#86868B]">Cod autorizare</span>
+              <span className="font-mono font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">{log.authCode || '—'}</span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-slate-400 font-medium">Referință (RRN):</span>
-              <span className="font-semibold text-slate-800 dark:text-slate-100">{log.refNum || '—'}</span>
+            <div className="flex justify-between items-center py-2.5">
+              <span className="text-[#86868B]">Referință (RRN)</span>
+              <span className="font-mono font-medium text-[#1D1D1F] dark:text-[#F5F5F7]">{log.refNum || '—'}</span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-slate-400 font-medium">Card utilizat:</span>
-              <div className="flex items-center gap-1.5">
-                <CardBrandAvatar brand={meta.cardBrand} cardNo={meta.pan || log.cardNo} isNfc={meta.isNfc} cardBank={meta.cardBank} />
-              </div>
+            <div className="flex justify-between items-center py-2.5">
+              <span className="text-[#86868B]">Card utilizat</span>
+              <CardBrandAvatar brand={meta.cardBrand} cardNo={meta.pan || log.cardNo} isNfc={meta.isNfc} cardBank={meta.cardBank} />
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-slate-400 font-medium">Bancă emitentă:</span>
-              <div className="flex items-center gap-1.5">
-                {meta.cardBank ? (
-                  <span 
-                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold border shadow-xs"
-                    style={{
-                      backgroundColor: `${meta.cardBank.color}15`,
-                      color: meta.cardBank.color,
-                      borderColor: `${meta.cardBank.color}35`
-                    }}
-                  >
-                    <BankLogo bankId={meta.cardBank.id} bank={meta.cardBank} size={18} />
-                    {meta.cardBank.name}
-                  </span>
-                ) : (
-                  <span className="font-semibold text-slate-800 dark:text-slate-100">—</span>
-                )}
-              </div>
+            <div className="flex justify-between items-center py-2.5">
+              <span className="text-[#86868B]">Bancă emitentă</span>
+              {meta.cardBank ? (
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-black/[0.04] dark:bg-white/[0.08] text-[#1D1D1F] dark:text-[#F5F5F7]">
+                  <BankLogo bankId={meta.cardBank.id} bank={meta.cardBank} size={16} />
+                  {meta.cardBank.name}
+                </span>
+              ) : (
+                <span className="font-medium text-[#86868B]">—</span>
+              )}
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-slate-400 font-medium">Modalitate plată:</span>
-              <span className="font-bold text-blue-600 dark:text-blue-400">
+            <div className="flex justify-between items-center py-2.5">
+              <span className="text-[#86868B]">Modalitate plată</span>
+              <span className="font-semibold text-[#007AFF]">
                 {meta.isNfc ? 'Contactless (NFC)' : 'Card cu cip (EMV)'}
               </span>
             </div>
             {order?.orderNumber && (
-              <div className="flex justify-between items-center">
-                <span className="text-slate-400 font-medium">Comandă Kiosk:</span>
-                <span className="font-bold text-slate-900 dark:text-white">#{order.orderNumber}</span>
+              <div className="flex justify-between items-center py-2.5">
+                <span className="text-[#86868B]">Comandă Kiosk</span>
+                <span className="font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] tabular-nums">#{order.orderNumber}</span>
               </div>
             )}
           </div>
 
-          {/* Action buttons */}
-          <div className="flex items-center gap-2 pt-1">
-            <button
-              onClick={handleCopy}
-              className="flex-1 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5"
-            >
-              {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
-              {copied ? 'Copiat!' : 'Copiază Bon'}
+          <div className="flex items-center gap-2.5 pt-1">
+            <button onClick={handleCopy} className="apple-btn-secondary flex-1 py-2 text-[13px]">
+              {copied ? <Check size={14} className="text-[#34C759]" /> : <Copy size={14} />}
+              {copied ? 'Copiat' : 'Copiază Bon'}
             </button>
-            <button
-              onClick={onClose}
-              className="flex-1 py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all"
-            >
+            <button onClick={onClose} className="apple-btn-primary flex-1 py-2 text-[13px]">
               Închide
             </button>
           </div>
@@ -533,10 +516,10 @@ Status:  ${log.paid ? 'APROBAT (0000)' : `RESPINS (${meta.respCode || log.error 
 export default function PosLogs({ orders = [], onGoToOrder }) {
   const { fetchWithAuth } = useAuth();
   const confirm = useConfirm();
-  const [logs, setLogs]   = useState([]);
+  const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('logs'); // 'logs' | 'bankStats'
-  const [filter, setFilter]   = useState('all');     // all | approved | declined | timeout
+  const [filter, setFilter] = useState('all');     // all | approved | declined | timeout
   const [locFilter, setLocFilter] = useState('all');
   const [brandFilter, setBrandFilter] = useState('all');
   const [bankFilter, setBankFilter] = useState('all');
@@ -560,7 +543,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
     try {
       const logsRes = await fetchWithAuth(`${BACKEND}/api/pos-logs?limit=500`);
       if (!logsRes.ok) throw new Error('Failed to fetch POS logs');
-      
+
       const logsData = await logsRes.json();
       setLogs(logsData.logs || []);
     } catch (err) {
@@ -586,7 +569,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
       if (!data) return;
       setLogs(prev => prev.map(l => {
         const matches = (data.orderId && (l.orderId === data.orderId || l.order_id === data.orderId)) ||
-                        (data.authCode && l.authCode === data.authCode);
+          (data.authCode && l.authCode === data.authCode);
         if (matches) {
           return {
             ...l,
@@ -651,9 +634,9 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
 
   const getOrderForLog = (log) => {
     if (!log) return null;
-    return orders.find(o => 
-      (log.authCode && o.paymentRef?.authCode === log.authCode) || 
-      (log.refNum && o.paymentRef?.refNum === log.refNum) || 
+    return orders.find(o =>
+      (log.authCode && o.paymentRef?.authCode === log.authCode) ||
+      (log.refNum && o.paymentRef?.refNum === log.refNum) ||
       o._id === log.orderId ||
       o._id === log.order_id ||
       (o.orderNumber && (String(o.orderNumber) === String(log.orderId) || `#${o.orderNumber}` === String(log.orderId))) ||
@@ -668,8 +651,8 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
     if (log.raw?.brand) return log.raw.brand;
     if (log.brand) return log.brand;
 
-    const matchedOrder = orders.find(o => 
-      (o.locationId && (o.locationId === log.locationId || o.locationId === log.locationName)) || 
+    const matchedOrder = orders.find(o =>
+      (o.locationId && (o.locationId === log.locationId || o.locationId === log.locationName)) ||
       (o.locationName && (o.locationName === log.locationId || o.locationName === log.locationName))
     );
     if (matchedOrder?.brand) return matchedOrder.brand;
@@ -695,10 +678,10 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
     if (!dateStr) return false;
     const d = new Date(dateStr);
     const now = new Date();
-    
+
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-    
+
     if (period === 'today') return d >= startOfToday;
     if (period === 'yesterday') return d >= startOfYesterday && d < startOfToday;
     if (period === 'this_week') {
@@ -799,9 +782,9 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
   const bankStats = useMemo(() => {
     const map = {};
     Object.keys(BANK_CONFIG).forEach(k => {
-      map[k] = { 
-        ...BANK_CONFIG[k], 
-        count: 0, 
+      map[k] = {
+        ...BANK_CONFIG[k],
+        count: 0,
         volume: 0,
         brands: { mastercard: 0, visa: 0, maestro: 0, other: 0 }
       };
@@ -825,9 +808,9 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
         totalCardCount += 1;
         totalCardVol += amt;
 
-        const bKey = meta.cardBrand === 'mastercard' ? 'mastercard' : 
-                     (meta.cardBrand === 'visa' ? 'visa' : 
-                     (meta.cardBrand === 'maestro' ? 'maestro' : 'other'));
+        const bKey = meta.cardBrand === 'mastercard' ? 'mastercard' :
+          (meta.cardBrand === 'visa' ? 'visa' :
+            (meta.cardBrand === 'maestro' ? 'maestro' : 'other'));
         networkStats[bKey].count += 1;
         networkStats[bKey].volume += amt;
 
@@ -902,10 +885,10 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
         'Status POS': (log.status === 'approved' || log.paid === true)
           ? 'Aprobat'
           : (isLogCancelled(log)
-              ? 'Anulat de client'
-              : (isLogTimeout(log)
-                  ? 'Timeout POS'
-                  : (STATUS_CONFIG[log.status]?.label || log.status))),
+            ? 'Anulat de client'
+            : (isLogTimeout(log)
+              ? 'Timeout POS'
+              : (STATUS_CONFIG[log.status]?.label || log.status))),
         'Auth Code': log.authCode || '',
         'Tip Card': meta.cardBrand ? meta.cardBrand.toUpperCase() : 'CARD',
         'Bancă Emitentă': meta.cardBank?.name || '—',
@@ -921,11 +904,11 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
   const handleExportExcel = () => {
     const data = prepareExportData();
     if (data.length === 0) return;
-    
+
     const worksheet = XLSX.utils.json_to_sheet(data);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "POS Logs");
-    XLSX.writeFile(workbook, `pos_logs_${new Date().toISOString().slice(0,10)}.xlsx`);
+    XLSX.writeFile(workbook, `pos_logs_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   if (loading) {
@@ -936,171 +919,157 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
     );
   }
 
-  const periodLabel = 
-    periodFilter === 'today' ? 'Total POS Azi' : 
-    periodFilter === 'yesterday' ? 'Total POS Ieri' : 
-    periodFilter === 'this_week' ? 'Total POS Săpt.' : 
-    periodFilter === 'this_month' ? 'Total POS Lună' : 
-    periodFilter === 'last_month' ? 'Total POS Luna Trec.' : 
-    periodFilter === 'this_year' ? 'Total POS An' : 
-    'Total POS Logs';
+  const periodLabel =
+    periodFilter === 'today' ? 'Total POS Azi' :
+      periodFilter === 'yesterday' ? 'Total POS Ieri' :
+        periodFilter === 'this_week' ? 'Total POS Săpt.' :
+          periodFilter === 'this_month' ? 'Total POS Lună' :
+            periodFilter === 'last_month' ? 'Total POS Luna Trec.' :
+              periodFilter === 'this_year' ? 'Total POS An' :
+                'Total POS Logs';
 
   return (
     <div className="space-y-6">
       {/* Settlement Alert Notice */}
       {settlementNotice && (
-        <div className={`p-4 rounded-2xl flex items-center justify-between gap-3 text-sm font-bold shadow-md animate-fadeIn ${
-          settlementNotice.type === 'success' 
-            ? 'bg-emerald-50 border border-emerald-300 text-emerald-800 dark:bg-emerald-950/60 dark:border-emerald-700 dark:text-emerald-200' 
-            : settlementNotice.type === 'info'
+        <div className={`p-4 rounded-2xl flex items-center justify-between gap-3 text-sm font-bold shadow-md animate-fadeIn ${settlementNotice.type === 'success'
+          ? 'bg-emerald-50 border border-emerald-300 text-emerald-800 dark:bg-emerald-950/60 dark:border-emerald-700 dark:text-emerald-200'
+          : settlementNotice.type === 'info'
             ? 'bg-blue-50 border border-blue-300 text-blue-800 dark:bg-blue-950/60 dark:border-blue-700 dark:text-blue-200'
             : 'bg-red-50 border border-red-300 text-red-800 dark:bg-red-950/60 dark:border-red-700 dark:text-red-200'
-        }`}>
+          }`}>
           <div className="flex items-center gap-2">
             {settlementNotice.type === 'success' ? <CheckCircle2 size={18} /> : settlementNotice.type === 'info' ? <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /> : <AlertTriangle size={18} />}
             <span>{settlementNotice.text}</span>
           </div>
-          <button onClick={() => setSettlementNotice(null)} className="p-1 hover:bg-black/10 rounded-lg cursor-pointer">
+          <button onClick={() => setSettlementNotice(null)} className="p-1 hover:bg-black/10 rounded-full cursor-pointer">
             <X size={16} />
           </button>
         </div>
       )}
 
-      {/* Top Segmented Navigation Tabs on Full Row */}
-      <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-2 p-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-inner">
+      {/* Top Apple Capsule Segmented Navigation Tabs */}
+      <div className="apple-segmented w-full grid grid-cols-1 sm:grid-cols-2 !p-1">
         <button
           type="button"
           onClick={() => { setActiveTab('logs'); setCurrentPage(1); }}
-          className={`flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-            activeTab === 'logs'
-              ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs scale-[1.01]'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-          }`}
+          className={`apple-segmented-item !h-9 gap-2 text-[13px] ${activeTab === 'logs' ? 'is-active' : ''
+            }`}
         >
-          <CreditCard size={17} />
+          <CreditCard size={15} />
           <span>Jurnal Tranzacții POS</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('bankStats')}
-          className={`flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-            activeTab === 'bankStats'
-              ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs scale-[1.01]'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-          }`}
+          className={`apple-segmented-item !h-9 gap-2 text-[13px] ${activeTab === 'bankStats' ? 'is-active' : ''
+            }`}
         >
-          <BarChart3 size={17} />
+          <BarChart3 size={15} />
           <span>Statistici Bănci & Carduri</span>
         </button>
       </div>
 
-      {/* Global Filter Bar (Period Pills, Custom Date, Location, Brand, Export) - STRICTLY 1 ROW */}
-      <div className="flex items-center justify-between gap-2 bg-white dark:bg-slate-900 p-2.5 sm:p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-x-auto">
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          {/* Standalone Rounded-Full Period Buttons */}
-          {[
-            { id: 'all', label: 'Toate' },
-            { id: 'today', label: 'Azi' },
-            { id: 'this_month', label: 'Luna curentă' },
-            { id: 'custom', label: 'Personalizat' }
-          ].map(p => {
-            const isActive = periodFilter === p.id;
-            return (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => { setPeriodFilter(p.id); setCurrentPage(1); }}
-                className={`shrink-0 px-3 h-8.5 rounded-full text-xs font-bold border transition-colors cursor-pointer ${
-                  isActive
-                    ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
-                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                }`}
-              >
-                {p.label}
-              </button>
-            );
-          })}
-
-          {periodFilter === 'custom' && (
-            <div className="flex items-center gap-1.5 bg-blue-50/70 dark:bg-blue-950/40 py-1 px-2.5 rounded-full border border-blue-200 dark:border-blue-800 shadow-2xs shrink-0">
-              <input 
-                type="date" 
-                value={customStart} 
-                onChange={e => {setCustomStart(e.target.value); setCurrentPage(1);}} 
-                className="h-6.5 px-2 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500" 
-              />
-              <span className="text-slate-400 font-bold">-</span>
-              <input 
-                type="date" 
-                value={customEnd} 
-                onChange={e => {setCustomEnd(e.target.value); setCurrentPage(1);}} 
-                className="h-6.5 px-2 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500" 
-              />
+      {/* Global Filter Bar — STRICTLY 1 ROW Apple Capsule Toolbar */}
+      <div className={`apple-card p-2 w-full ${periodFilter === 'custom' ? '!rounded-[22px]' : '!rounded-full'}`}>
+        <div className="flex items-center justify-between gap-2 flex-nowrap overflow-x-auto scrollbar-none w-full">
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="apple-segmented shrink-0">
+              {[
+                { id: 'all', label: 'Toate' },
+                { id: 'today', label: 'Azi' },
+                { id: 'this_month', label: 'Lună' },
+                { id: 'custom', label: 'Interval' }
+              ].map(p => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => { setPeriodFilter(p.id); setCurrentPage(1); }}
+                  className={`apple-segmented-item ${periodFilter === p.id ? 'is-active' : ''}`}
+                >
+                  {p.label}
+                </button>
+              ))}
             </div>
-          )}
 
-          {/* Status Dropdown */}
-          <select
-            value={filter}
-            onChange={e => { setFilter(e.target.value); setCurrentPage(1); }}
-            className="shrink-0 h-8.5 px-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs cursor-pointer"
-          >
-            <option value="all">Toate statusurile</option>
-            <option value="approved">Aprobate</option>
-            <option value="cancelled_or_declined">Anulate Client / Respinse</option>
-            <option value="cancelled">Anulate de client</option>
-            <option value="timeout">Timeout POS</option>
-            <option value="declined">Respinse</option>
-            <option value="iikoFailed">iiko Eșuat</option>
-          </select>
+            <div className="w-px h-5 bg-black/[0.07] dark:bg-white/[0.1] shrink-0 hidden sm:block" />
 
-          {/* Bank Dropdown */}
-          <select
-            value={bankFilter}
-            onChange={e => { setBankFilter(e.target.value); setCurrentPage(1); }}
-            className="shrink-0 h-8.5 px-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs cursor-pointer"
-          >
-            <option value="all">Toate băncile</option>
-            {Object.values(BANK_CONFIG).map(b => (
-              <option key={b.id} value={b.id}>{b.name}</option>
-            ))}
-          </select>
-
-          {locations.length > 0 && (
             <select
-              value={locFilter}
-              onChange={e => { setLocFilter(e.target.value); setCurrentPage(1); }}
-              className="shrink-0 h-8.5 px-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs cursor-pointer"
+              value={filter}
+              onChange={e => { setFilter(e.target.value); setCurrentPage(1); }}
+              className="apple-input shrink-0 h-8 px-2.5 text-[12px] font-medium cursor-pointer"
             >
-              <option value="all">Toate locațiile</option>
-              {locations.map(l => <option key={l} value={l}>{l}</option>)}
+              <option value="all">Toate statusurile</option>
+              <option value="approved">Aprobate</option>
+              <option value="cancelled_or_declined">Anulate Client / Respinse</option>
+              <option value="cancelled">Anulate de client</option>
+              <option value="timeout">Timeout POS</option>
+              <option value="declined">Respinse</option>
+              <option value="iikoFailed">iiko Eșuat</option>
             </select>
-          )}
 
-          {brands.length > 0 && (
             <select
-              value={brandFilter}
-              onChange={e => { setBrandFilter(e.target.value); setCurrentPage(1); }}
-              className="shrink-0 h-8.5 px-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500 capitalize shadow-2xs cursor-pointer"
+              value={bankFilter}
+              onChange={e => { setBankFilter(e.target.value); setCurrentPage(1); }}
+              className="apple-input shrink-0 h-8 px-2.5 text-[12px] font-medium cursor-pointer"
             >
-              <option value="all">Toate brandurile</option>
-              {brands.map(b => <option key={b} value={b}>{b}</option>)}
+              <option value="all">Toate băncile</option>
+              {Object.values(BANK_CONFIG).map(b => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
             </select>
-          )}
-        </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          {/* Export Excel */}
+            {locations.length > 0 && (
+              <select
+                value={locFilter}
+                onChange={e => { setLocFilter(e.target.value); setCurrentPage(1); }}
+                className="apple-input shrink-0 h-8 px-2.5 text-[12px] font-medium cursor-pointer"
+              >
+                <option value="all">Toate locațiile</option>
+                {locations.map(l => <option key={l} value={l}>{l}</option>)}
+              </select>
+            )}
+
+            {brands.length > 0 && (
+              <select
+                value={brandFilter}
+                onChange={e => { setBrandFilter(e.target.value); setCurrentPage(1); }}
+                className="apple-input shrink-0 h-8 px-2.5 text-[12px] font-medium capitalize cursor-pointer"
+              >
+                <option value="all">Toate brandurile</option>
+                {brands.map(b => <option key={b} value={b}>{b}</option>)}
+              </select>
+            )}
+          </div>
+
           <button
             onClick={handleExportExcel}
-            className="shrink-0 px-3.5 h-8.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
+            className="apple-btn-secondary shrink-0 px-3 h-8 text-[12px] flex items-center gap-1.5"
             title="Exportă tranzacțiile în Excel"
           >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
             <span>Excel</span>
           </button>
         </div>
+
+        {periodFilter === 'custom' && (
+          <div className="mt-2 pt-2 border-t border-black/[0.06] dark:border-white/[0.08] flex items-center gap-2 flex-wrap">
+            <input
+              type="date"
+              value={customStart}
+              onChange={e => { setCustomStart(e.target.value); setCurrentPage(1); }}
+              className="apple-input h-8 px-2.5 text-[12px] font-medium tabular-nums"
+            />
+            <span className="text-[#86868B] text-xs">—</span>
+            <input
+              type="date"
+              value={customEnd}
+              onChange={e => { setCustomEnd(e.target.value); setCurrentPage(1); }}
+              className="apple-input h-8 px-2.5 text-[12px] font-medium tabular-nums"
+            />
+          </div>
+        )}
       </div>
 
       {/* ─── TAB 1: JURNAL TRANZACȚII POS ─── */}
@@ -1108,42 +1077,42 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
         <div className="space-y-5 animate-fadeIn">
           {/* Stats Cards - Identical to Dashboard StatCard */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <StatCard 
-              label={periodLabel} 
-              value={derivedStats.total} 
-              color="#6366f1" 
+            <StatCard
+              label={periodLabel}
+              value={derivedStats.total}
+              color="#6366f1"
               icon={CreditCard}
               onClick={() => { setFilter('all'); setCurrentPage(1); }}
               active={filter === 'all'}
             />
-            <StatCard 
-              label="Aprobate" 
-              value={derivedStats.approved} 
-              color="#059669" 
+            <StatCard
+              label="Aprobate"
+              value={derivedStats.approved}
+              color="#059669"
               icon={CheckCircle2}
               onClick={() => { setFilter(filter === 'approved' ? 'all' : 'approved'); setCurrentPage(1); }}
               active={filter === 'approved'}
             />
-            <StatCard 
-              label="Anulate de client" 
-              value={derivedStats.cancelled} 
-              color="#f59e0b" 
+            <StatCard
+              label="Anulate de client"
+              value={derivedStats.cancelled}
+              color="#f59e0b"
               icon={XCircle}
               onClick={() => { setFilter(filter === 'cancelled' ? 'all' : 'cancelled'); setCurrentPage(1); }}
               active={filter === 'cancelled'}
             />
-            <StatCard 
-              label="Respinse bancă" 
-              value={derivedStats.declined} 
-              color="#ef4444" 
+            <StatCard
+              label="Respinse bancă"
+              value={derivedStats.declined}
+              color="#ef4444"
               icon={AlertTriangle}
               onClick={() => { setFilter(filter === 'declined' ? 'all' : 'declined'); setCurrentPage(1); }}
               active={filter === 'declined'}
             />
-            <StatCard 
-              label="iiko Eșuat" 
-              value={derivedStats.iikoFailed} 
-              color="#f97316" 
+            <StatCard
+              label="iiko Eșuat"
+              value={derivedStats.iikoFailed}
+              color="#f97316"
               icon={AlertTriangle}
               onClick={() => { setFilter(filter === 'iikoFailed' ? 'all' : 'iikoFailed'); setCurrentPage(1); }}
               active={filter === 'iikoFailed'}
@@ -1165,14 +1134,14 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setActiveTab('bankStats')}
-                  className="px-2.5 py-1 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center gap-1 cursor-pointer"
+                  className="px-2.5 py-1 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center gap-1 cursor-pointer"
                 >
                   <span>Vezi analiză bancară</span>
                   <ArrowRight size={13} />
                 </button>
                 <button
                   onClick={() => { setBankFilter('all'); setCurrentPage(1); }}
-                  className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="px-2.5 py-1 rounded-full bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   Resetează filtru </button>
               </div>
@@ -1181,291 +1150,288 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
 
 
           {/* Table */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-x-auto">
-        <table className="w-full text-left border-collapse min-w-[900px]">
-          <thead>
-            <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
-              <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 w-12">Nr. Crt.</th>
-              <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Data / Ora</th>
-              <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Brand / Locație</th>
-              <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">ID Comandă</th>
-              <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Sumă</th>
-              <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Status POS</th>
-              <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Card / Bancă</th>
-              <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">iiko</th>
-              <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Eroare</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {paginated.length === 0 ? (
-              <tr>
-                <td colSpan={9} className="px-6 py-12 text-center text-slate-400">
-                  Nicio tranzacție POS înregistrată
-                </td>
-              </tr>
-            ) : paginated.map((log, idx) => {
-              const isApproved = log.status === 'approved' || log.paid === true;
-              const isCancelled = isLogCancelled(log);
-              const isTimeout = isLogTimeout(log);
-              const sc = isApproved 
-                ? STATUS_CONFIG.approved 
-                : (isCancelled 
-                    ? STATUS_CONFIG.cancelled 
-                    : (isTimeout 
-                        ? STATUS_CONFIG.timeout 
+          <div className="apple-card overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[900px]">
+              <thead>
+                <tr className="bg-slate-50/70 dark:bg-slate-800/40 border-b border-slate-200/80 dark:border-slate-700/60">
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 w-12">Nr. Crt.</th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Data / Ora</th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Brand / Locație</th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">ID Comandă</th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Sumă</th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Status POS</th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Card / Bancă</th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">iiko</th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Eroare</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {paginated.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="px-6 py-12 text-center text-slate-400">
+                      Nicio tranzacție POS înregistrată
+                    </td>
+                  </tr>
+                ) : paginated.map((log, idx) => {
+                  const isApproved = log.status === 'approved' || log.paid === true;
+                  const isCancelled = isLogCancelled(log);
+                  const isTimeout = isLogTimeout(log);
+                  const sc = isApproved
+                    ? STATUS_CONFIG.approved
+                    : (isCancelled
+                      ? STATUS_CONFIG.cancelled
+                      : (isTimeout
+                        ? STATUS_CONFIG.timeout
                         : (STATUS_CONFIG[log.status] || STATUS_CONFIG.declined)));
-              const dt = log.timestamp ? new Date(log.timestamp) : null;
-              const order = getOrderForLog(log);
-              const meta = extractPosMeta(log);
-              return (
-                <tr key={log._id} onClick={() => onGoToOrder && order && onGoToOrder(order._id)} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer">
-                  <td className="px-4 py-3 text-sm font-medium text-slate-500">
-                    {(currentPage - 1) * itemsPerPage + idx + 1}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 whitespace-nowrap">
-                    {dt ? (
-                      <div className="flex flex-col gap-0.5">
-                        <span className="font-bold">{dt.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
-                        <span className="font-bold">{dt.toLocaleDateString('ro-RO')}</span>
-                      </div>
-                    ) : '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-col gap-1.5 items-start">
-                      {(() => {
-                        const effectiveBrand = getLogBrand(log);
-                        return effectiveBrand ? (
-                          <div className="flex items-center gap-2">
-                            <BrandLogo brandId={effectiveBrand} size={20} />
-                            <span style={{ color: getBrandColor(effectiveBrand) }} className="text-xs font-bold">{getBrandLabel(effectiveBrand)}</span>
+                  const dt = log.timestamp ? new Date(log.timestamp) : null;
+                  const order = getOrderForLog(log);
+                  const meta = extractPosMeta(log);
+                  return (
+                    <tr key={log._id} onClick={() => onGoToOrder && order && onGoToOrder(order._id)} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer">
+                      <td className="px-4 py-3 text-sm font-medium text-slate-500">
+                        {(currentPage - 1) * itemsPerPage + idx + 1}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                        {dt ? (
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-bold">{dt.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                            <span className="font-bold">{dt.toLocaleDateString('ro-RO')}</span>
                           </div>
-                        ) : <span className="text-slate-400">—</span>;
-                      })()}
-                      <div className="flex flex-wrap items-center gap-1">
-                        <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-400">
-                          {log.locationName || (log.locationId === 'cluj1' ? 'SmashMe Cluj' : (log.locationId === 'cluj2' ? 'SmashMe Cluj 2' : (log.locationId === 'sm-brasov' ? 'SmashMe Brașov' : (log.locationId || 'Locație necunoscută'))))}
-                        </span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-col gap-0.5 items-start">
-                      <span className="text-xs font-bold text-slate-800 dark:text-slate-100 select-all">
-                        {order?.orderNumber ? `#${order.orderNumber}` : (log.orderId?.startsWith('kiosk-') ? `Kiosk #${log.orderId.replace('kiosk-', '').slice(-4)}` : (log.orderId || '—'))}
-                      </span>
-                      {meta.rNo ? (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setReceiptModalLog(log);
-                          }}
-                          className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:underline transition-all cursor-pointer"
-                          title="Vezi chitanță POS completă (STAN)"
-                        >
-                          #{meta.rNo}
-                        </button>
-                      ) : (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setReceiptModalLog(log);
-                          }}
-                          className="text-[11px] font-medium text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer flex items-center gap-1"
-                          title="Vezi chitanță POS completă"
-                        >
-                          <Receipt size={12} />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-
-                  <td className="px-4 py-3 text-sm font-bold text-slate-900 dark:text-white">
-                    {formatThousands(Number(log.amount) || 0)} RON
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`${(sc.label && sc.label.length > 8) ? 'px-3 min-w-[78px]' : 'w-[78px]'} h-[26px] rounded-full text-xs font-bold whitespace-nowrap inline-flex items-center justify-center text-center shadow-xs`}
-                      style={{ backgroundColor: sc.bg, color: sc.color }}
-                    >
-                      {sc.label}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <CardBrandAvatar brand={meta.cardBrand} cardNo={meta.pan || log.cardNo} isNfc={meta.isNfc} cardBank={meta.cardBank} />
-                  </td>
-                  <td className="px-4 py-3">
-                    {log.paid ? (() => {
-                      const isSuccess = isLogIikoSuccess(log);
-                      const iikoId = log.iikoOrderId || order?.syrveOrderId;
-
-                      const successMessage = (
-                        <div className="flex flex-col gap-4 text-left mt-2">
-                          <p className="text-slate-600 dark:text-slate-300">Comanda a fost trimisă cu succes în iiko.</p>
-                          {iikoId && (
-                            <div className="bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-lg border border-slate-200 dark:border-slate-700/50 flex flex-col gap-1.5 mt-1">
-                              <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">ID Comandă iiko</span>
-                              <div className="flex items-center justify-between gap-2 bg-white dark:bg-slate-950 px-2 py-1.5 rounded border border-slate-200 dark:border-slate-800">
-                                <span className="font-semibold text-[11px] text-slate-700 dark:text-slate-300 overflow-hidden text-ellipsis whitespace-nowrap">
-                                  {iikoId}
-                                </span>
-                                <button 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    navigator.clipboard.writeText(iikoId);
-                                    const btn = e.currentTarget;
-                                    const originalHTML = btn.innerHTML;
-                                    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#059669" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>';
-                                    setTimeout(() => { btn.innerHTML = originalHTML; }, 1500);
-                                  }}
-                                  className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors shrink-0"
-                                  title="Copiază ID iiko"
-                                >
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                  </svg>
-                                </button>
+                        ) : '—'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-col gap-1.5 items-start">
+                          {(() => {
+                            const effectiveBrand = getLogBrand(log);
+                            return effectiveBrand ? (
+                              <div className="flex items-center gap-2">
+                                <BrandLogo brandId={effectiveBrand} size={20} />
+                                <span style={{ color: getBrandColor(effectiveBrand) }} className="text-xs font-bold">{getBrandLabel(effectiveBrand)}</span>
                               </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-
-                      const errorMessage = (
-                        <div className="flex flex-col gap-3 text-left mt-2">
-                          <p className="text-slate-600 dark:text-slate-300">Eroare la trimiterea comenzii în iiko:</p>
-                          <div className="bg-red-50 dark:bg-red-950/30 p-3 rounded-xl border border-red-100 dark:border-red-900/50">
-                            <span className="font-semibold text-xs text-red-600 dark:text-red-400 break-all select-all">
-                              {log.iikoError || 'Eroare necunoscută. Vă rugăm să verificați manual.'}
+                            ) : <span className="text-slate-400">—</span>;
+                          })()}
+                          <div className="flex flex-wrap items-center gap-1">
+                            <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-400">
+                              {log.locationName || (log.locationId === 'cluj1' ? 'SmashMe Cluj' : (log.locationId === 'cluj2' ? 'SmashMe Cluj 2' : (log.locationId === 'sm-brasov' ? 'SmashMe Brașov' : (log.locationId || 'Locație necunoscută'))))}
                             </span>
                           </div>
                         </div>
-                      );
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-col gap-0.5 items-start">
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-100 select-all">
+                            {order?.orderNumber ? `#${order.orderNumber}` : (log.orderId?.startsWith('kiosk-') ? `Kiosk #${log.orderId.replace('kiosk-', '').slice(-4)}` : (log.orderId || '—'))}
+                          </span>
+                          {meta.rNo ? (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setReceiptModalLog(log);
+                              }}
+                              className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:underline transition-all cursor-pointer"
+                              title="Vezi chitanță POS completă (STAN)"
+                            >
+                              #{meta.rNo}
+                            </button>
+                          ) : (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setReceiptModalLog(log);
+                              }}
+                              className="text-[11px] font-medium text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer flex items-center gap-1"
+                              title="Vezi chitanță POS completă"
+                            >
+                              <FileText size={12} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
 
-                      return (
-                        <div className="flex flex-col gap-1 items-start">
+                      <td className="px-4 py-3 text-sm font-bold text-slate-900 dark:text-white">
+                        {formatThousands(Number(log.amount) || 0)} RON
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`${(sc.label && sc.label.length > 8) ? 'px-3 min-w-[78px]' : 'w-[78px]'} h-[26px] rounded-full text-xs font-bold whitespace-nowrap inline-flex items-center justify-center text-center shadow-xs`}
+                          style={{ backgroundColor: sc.bg, color: sc.color }}
+                        >
+                          {sc.label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <CardBrandAvatar brand={meta.cardBrand} cardNo={meta.pan || log.cardNo} isNfc={meta.isNfc} cardBank={meta.cardBank} />
+                      </td>
+                      <td className="px-4 py-3">
+                        {log.paid ? (() => {
+                          const isSuccess = isLogIikoSuccess(log);
+                          const iikoId = log.iikoOrderId || order?.syrveOrderId;
+
+                          const successMessage = (
+                            <div className="flex flex-col gap-4 text-left mt-2">
+                              <p className="text-slate-600 dark:text-slate-300">Comanda a fost trimisă cu succes în iiko.</p>
+                              {iikoId && (
+                                <div className="bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-lg border border-slate-200 dark:border-slate-700/50 flex flex-col gap-1.5 mt-1">
+                                  <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">ID Comandă iiko</span>
+                                  <div className="flex items-center justify-between gap-2 bg-white dark:bg-slate-950 px-2 py-1.5 rounded border border-slate-200 dark:border-slate-800">
+                                    <span className="font-semibold text-[11px] text-slate-700 dark:text-slate-300 overflow-hidden text-ellipsis whitespace-nowrap">
+                                      {iikoId}
+                                    </span>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigator.clipboard.writeText(iikoId);
+                                        const btn = e.currentTarget;
+                                        const originalHTML = btn.innerHTML;
+                                        btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#059669" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>';
+                                        setTimeout(() => { btn.innerHTML = originalHTML; }, 1500);
+                                      }}
+                                      className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors shrink-0"
+                                      title="Copiază ID iiko"
+                                    >
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                      </svg>
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+
+                          const errorMessage = (
+                            <div className="flex flex-col gap-3 text-left mt-2">
+                              <p className="text-slate-600 dark:text-slate-300">Eroare la trimiterea comenzii în iiko:</p>
+                              <div className="bg-red-50 dark:bg-red-950/30 p-3 rounded-xl border border-red-100 dark:border-red-900/50">
+                                <span className="font-semibold text-xs text-red-600 dark:text-red-400 break-all select-all">
+                                  {log.iikoError || 'Eroare necunoscută. Vă rugăm să verificați manual.'}
+                                </span>
+                              </div>
+                            </div>
+                          );
+
+                          return (
+                            <div className="flex flex-col gap-1 items-start">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  confirm(
+                                    isSuccess ? successMessage : errorMessage,
+                                    {
+                                      title: isSuccess ? 'Status iiko: Succes' : 'Status iiko: Eroare',
+                                      type: isSuccess ? 'info' : 'error',
+                                      hideCancel: true,
+                                      danger: !isSuccess,
+                                      okLabel: 'Închide'
+                                    }
+                                  );
+                                }}
+                                className="w-[78px] h-[26px] rounded-full text-xs font-bold whitespace-nowrap inline-flex items-center justify-center text-center transition-transform active:scale-95 cursor-pointer shadow-xs hover:opacity-90"
+                                style={{
+                                  backgroundColor: isSuccess ? STATUS_CONFIG.approved.bg : STATUS_CONFIG.declined.bg,
+                                  color: '#ffffff'
+                                }}
+                              >
+                                {isSuccess ? 'Trimis' : 'Eroare'}
+                              </button>
+                            </div>
+                          );
+                        })() : (
+                          <span className="text-slate-400 text-xs">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-xs">
+                        {log.error ? (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               confirm(
-                                isSuccess ? successMessage : errorMessage,
+                                <div className="flex flex-col gap-3 text-left mt-2">
+                                  <p className="text-slate-600 dark:text-slate-300">
+                                    {isCancelled ? 'Detalii anulare comandă:' : (isTimeout ? 'Detalii timeout POS:' : 'Detaliu eroare POS:')}
+                                  </p>
+                                  <div className={`${isCancelled
+                                    ? 'bg-slate-100 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700'
+                                    : (isTimeout
+                                      ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/50'
+                                      : 'bg-red-50 dark:bg-red-950/30 border-red-100 dark:border-red-900/50')
+                                    } p-3 rounded-xl border`}>
+                                    <span className={`font-semibold text-sm ${isCancelled
+                                      ? 'text-slate-700 dark:text-slate-300'
+                                      : (isTimeout
+                                        ? 'text-amber-700 dark:text-amber-300'
+                                        : 'text-red-600 dark:text-red-400')
+                                      } break-all select-all whitespace-pre-wrap`}>
+                                      {formatPosError(log.error, log.response_code)}
+                                    </span>
+                                  </div>
+                                </div>,
                                 {
-                                  title: isSuccess ? 'Status iiko: Succes' : 'Status iiko: Eroare',
-                                  type: isSuccess ? 'info' : 'error',
+                                  title: isCancelled ? 'Comandă Anulată de Client' : (isTimeout ? 'Timeout Răspuns POS' : 'Eroare POS / Card'),
+                                  type: isCancelled ? 'info' : (isTimeout ? 'warning' : 'error'),
+                                  danger: !isCancelled && !isTimeout,
                                   hideCancel: true,
-                                  danger: !isSuccess,
                                   okLabel: 'Închide'
                                 }
                               );
                             }}
-                            className="w-[78px] h-[26px] rounded-full text-xs font-bold whitespace-nowrap inline-flex items-center justify-center text-center transition-transform active:scale-95 cursor-pointer shadow-xs hover:opacity-90"
-                            style={{ 
-                              backgroundColor: isSuccess ? STATUS_CONFIG.approved.bg : STATUS_CONFIG.declined.bg, 
-                              color: '#ffffff' 
-                            }}
-                          >
-                            {isSuccess ? 'Trimis' : 'Eroare'}
-                          </button>
-                        </div>
-                      );
-                    })() : (
-                      <span className="text-slate-400 text-xs">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-xs">
-                    {log.error ? (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          confirm(
-                            <div className="flex flex-col gap-3 text-left mt-2">
-                              <p className="text-slate-600 dark:text-slate-300">
-                                {isCancelled ? 'Detalii anulare comandă:' : (isTimeout ? 'Detalii timeout POS:' : 'Detaliu eroare POS:')}
-                              </p>
-                              <div className={`${
-                                isCancelled 
-                                  ? 'bg-slate-100 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700' 
-                                  : (isTimeout 
-                                      ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/50' 
-                                      : 'bg-red-50 dark:bg-red-950/30 border-red-100 dark:border-red-900/50')
-                              } p-3 rounded-xl border`}>
-                                <span className={`font-semibold text-sm ${
-                                  isCancelled 
-                                    ? 'text-slate-700 dark:text-slate-300' 
-                                    : (isTimeout 
-                                        ? 'text-amber-700 dark:text-amber-300' 
-                                        : 'text-red-600 dark:text-red-400')
-                                } break-all select-all whitespace-pre-wrap`}>
-                                  {formatPosError(log.error, log.response_code)}
-                                </span>
-                              </div>
-                            </div>,
-                            { 
-                              title: isCancelled ? 'Comandă Anulată de Client' : (isTimeout ? 'Timeout Răspuns POS' : 'Eroare POS / Card'), 
-                              type: isCancelled ? 'info' : (isTimeout ? 'warning' : 'error'),
-                              danger: !isCancelled && !isTimeout, 
-                              hideCancel: true, 
-                              okLabel: 'Închide' 
-                            }
-                          );
-                        }}
-                        className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-transform active:scale-95 cursor-pointer shadow-sm ${
-                          isCancelled 
-                            ? 'bg-slate-500 hover:bg-slate-600 text-white' 
-                            : (isTimeout 
-                                ? 'bg-amber-500 hover:bg-amber-600 text-white' 
+                            className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-transform active:scale-95 cursor-pointer shadow-sm ${isCancelled
+                              ? 'bg-slate-500 hover:bg-slate-600 text-white'
+                              : (isTimeout
+                                ? 'bg-amber-500 hover:bg-amber-600 text-white'
                                 : 'bg-red-600 hover:bg-red-700 text-white')
-                        }`}
-                      >
-                        Detalii
-                      </button>
-                    ) : (
-                      <span className="text-slate-400">—</span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        
-        {/* Pagination */}
-        <div className="flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 rounded-b-2xl">
-          <div className="flex items-center gap-4 text-sm text-slate-500">
-            <span className="flex items-center gap-2">
-              Afișează
-              <select 
-                value={itemsPerPage} 
-                onChange={e => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full px-2 py-0.5 font-medium outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value={10}>10</option>
-                <option value={15}>15</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-                <option value={9999}>Toți</option>
-              </select>
-            </span>
-            <span>Total înregistrări: <strong className="text-slate-700 dark:text-slate-300">{filtered.length}</strong></span>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-slate-500">Pagina {currentPage} din {totalPages}</span>
-            <div className="flex gap-1">
-              {[
-                { label: '«', action: () => setCurrentPage(1),           disabled: currentPage === 1 },
-                { label: '‹', action: () => setCurrentPage(p => p - 1),  disabled: currentPage === 1 },
-                { label: '›', action: () => setCurrentPage(p => p + 1),  disabled: currentPage === totalPages },
-                { label: '»', action: () => setCurrentPage(totalPages),  disabled: currentPage === totalPages },
-              ].map(btn => (
-                <button key={btn.label} onClick={btn.action} disabled={btn.disabled}
-                  className={`w-8 h-8 rounded-lg border text-sm font-bold flex items-center justify-center transition-colors ${btn.disabled ? 'border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-slate-300 dark:text-slate-600 cursor-not-allowed' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer'}`}
-                >{btn.label}</button>
-              ))}
+                              }`}
+                          >
+                            Detalii
+                          </button>
+                        ) : (
+                          <span className="text-slate-400">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+
+            {/* Pagination */}
+            <div className="flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 rounded-b-2xl">
+              <div className="flex items-center gap-4 text-sm text-slate-500">
+                <span className="flex items-center gap-2">
+                  Afișează
+                  <select
+                    value={itemsPerPage}
+                    onChange={e => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                    className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full px-2 py-0.5 font-medium outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value={10}>10</option>
+                    <option value={15}>15</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={9999}>Toți</option>
+                  </select>
+                </span>
+                <span>Total înregistrări: <strong className="text-slate-700 dark:text-slate-300">{filtered.length}</strong></span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-slate-500">Pagina {currentPage} din {totalPages}</span>
+                <div className="flex gap-1">
+                  {[
+                    { label: '«', action: () => setCurrentPage(1), disabled: currentPage === 1 },
+                    { label: '‹', action: () => setCurrentPage(p => p - 1), disabled: currentPage === 1 },
+                    { label: '›', action: () => setCurrentPage(p => p + 1), disabled: currentPage === totalPages },
+                    { label: '»', action: () => setCurrentPage(totalPages), disabled: currentPage === totalPages },
+                  ].map(btn => (
+                    <button key={btn.label} onClick={btn.action} disabled={btn.disabled}
+                      className={`w-8 h-8 rounded-full border text-sm font-bold flex items-center justify-center transition-colors ${btn.disabled ? 'border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-slate-300 dark:text-slate-600 cursor-not-allowed' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer'}`}
+                    >{btn.label}</button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
-  )}
+      )}
 
       {/* ─── TAB 2: STATISTICI BĂNCI & CARDURI ─── */}
       {activeTab === 'bankStats' && (
@@ -1473,91 +1439,88 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
           {/* 1. High-Level KPIs */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {/* KPI 1: Volum Total Carduri */}
-            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs relative overflow-hidden">
+            <div className="apple-card p-4">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-[#86868B]">
                   Volum Total Carduri
                 </span>
-                <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                  <Landmark size={18} />
+                <div className="w-8 h-8 rounded-xl bg-[#34C759]/12 text-[#34C759] flex items-center justify-center">
+                  <Landmark size={17} />
                 </div>
               </div>
-              <div className="mt-2 flex items-baseline gap-1.5">
-                <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+              <div className="mt-2 flex items-baseline gap-1.5 tabular-nums">
+                <span className="text-[26px] font-bold text-[#1D1D1F] dark:text-[#F5F5F7] tracking-tight">
                   {formatThousands(bankStats.totalVol)}
                 </span>
-                <span className="text-xs font-bold text-slate-400">RON</span>
+                <span className="text-[12px] font-medium text-[#86868B]">RON</span>
               </div>
-              <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 font-medium">
+              <div className="mt-1 text-[12px] text-[#6E6E73] dark:text-[#98989D] tabular-nums">
                 din {bankStats.totalCount} plăți aprobate
               </div>
-              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
             </div>
 
             {/* KPI 2: Plăți Card Aprobate */}
-            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs relative overflow-hidden">
+            <div className="apple-card p-4">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-[#86868B]">
                   Tranzacții Aprobate
                 </span>
-                <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                  <CheckCircle2 size={18} />
+                <div className="w-8 h-8 rounded-xl bg-[#007AFF]/12 text-[#007AFF] flex items-center justify-center">
+                  <CheckCircle2 size={17} />
                 </div>
               </div>
-              <div className="mt-2 flex items-baseline gap-1.5">
-                <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+              <div className="mt-2 flex items-baseline gap-1.5 tabular-nums">
+                <span className="text-[26px] font-bold text-[#1D1D1F] dark:text-[#F5F5F7] tracking-tight">
                   {bankStats.totalCount}
                 </span>
-                <span className="text-xs font-bold text-slate-400">plăți</span>
+                <span className="text-[12px] font-medium text-[#86868B]">plăți</span>
               </div>
-              <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 font-medium">
+              <div className="mt-1 text-[12px] text-[#6E6E73] dark:text-[#98989D] tabular-nums">
                 la {bankStats.list.length} bănci emitente diferite
               </div>
-              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-500" />
             </div>
 
             {/* KPI 3: Valoare Medie / Bon Card (AOV) */}
-            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs relative overflow-hidden">
+            <div className="apple-card p-4">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-[#86868B]">
                   Ticket Mediu / Card
                 </span>
-                <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-                  <TrendingUp size={18} />
+                <div className="w-8 h-8 rounded-xl bg-[#FF9500]/12 text-[#FF9500] flex items-center justify-center">
+                  <TrendingUp size={17} />
                 </div>
               </div>
-              <div className="mt-2 flex items-baseline gap-1.5">
-                <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+              <div className="mt-2 flex items-baseline gap-1.5 tabular-nums">
+                <span className="text-[26px] font-bold text-[#1D1D1F] dark:text-[#F5F5F7] tracking-tight">
                   {bankStats.avgTicket.toFixed(2)}
                 </span>
-                <span className="text-xs font-bold text-slate-400">RON / bon</span>
+                <span className="text-[12px] font-medium text-[#86868B]">RON / bon</span>
               </div>
-              <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 font-medium">
+              <div className="mt-1 text-[12px] text-[#6E6E73] dark:text-[#98989D]">
                 cheltuială medie per client la POS
               </div>
-              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 to-orange-500" />
             </div>
 
             {/* KPI 4: Bancă Lider */}
-            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs relative overflow-hidden">
+            <div className="apple-card p-4">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-[#86868B]">
                   Bancă Lider (Volum)
                 </span>
                 {bankStats.topBank ? (
-                  <BankLogo bankId={bankStats.topBank.id} size={28} className="shadow-xs shrink-0" />
+                  <BankLogo bankId={bankStats.topBank.id} size={26} className="shrink-0" />
                 ) : (
-                  <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center">
-                    <ShieldCheck size={18} />
+                  <div className="w-8 h-8 rounded-xl bg-black/[0.04] dark:bg-white/[0.06] text-[#86868B] flex items-center justify-center">
+                    <ShieldCheck size={17} />
                   </div>
                 )}
               </div>
               <div className="mt-2 flex items-baseline gap-1.5">
-                <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight truncate max-w-[170px]">
+                <span className="text-[22px] font-bold text-[#1D1D1F] dark:text-[#F5F5F7] tracking-tight truncate max-w-[170px]">
                   {bankStats.topBank ? bankStats.topBank.shortName : '—'}
                 </span>
                 {bankStats.topBank && bankStats.totalVol > 0 && (
-                  <span className="text-xs font-extrabold px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#34C759]/12 text-[#248A3D] dark:text-[#30D158] tabular-nums">
                     {((bankStats.topBank.volume / bankStats.totalVol) * 100).toFixed(1)}%
                   </span>
                 )}
@@ -1565,8 +1528,8 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
               <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
                 {bankStats.topBank ? `${formatThousands(bankStats.topBank.volume)} RON • ${bankStats.topBank.count} tranzacții` : 'Nicio tranzacție'}
               </div>
-              <div 
-                className="absolute bottom-0 left-0 right-0 h-1" 
+              <div
+                className="absolute bottom-0 left-0 right-0 h-1"
                 style={{ backgroundColor: bankStats.topBank?.color || '#3b82f6' }}
               />
             </div>
@@ -1660,25 +1623,25 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-1">
               {[
-                { 
-                  id: 'mastercard', 
-                  name: 'Mastercard', 
-                  data: bankStats.networkStats?.mastercard, 
+                {
+                  id: 'mastercard',
+                  name: 'Mastercard',
+                  data: bankStats.networkStats?.mastercard,
                   color: '#eb001b',
                   avatar: (
                     <div className="w-8 h-5 rounded bg-black border border-slate-700 flex items-center justify-center shrink-0">
                       <svg width="20" height="12" viewBox="0 0 24 15" fill="none">
-                        <circle cx="7.5" cy="7.5" r="7" fill="#EB001B"/>
-                        <circle cx="16.5" cy="7.5" r="7" fill="#F79E1B"/>
-                        <path d="M12 2.2a6.98 6.98 0 0 1 0 10.6 6.98 6.98 0 0 1 0-10.6Z" fill="#FF5F00"/>
+                        <circle cx="7.5" cy="7.5" r="7" fill="#EB001B" />
+                        <circle cx="16.5" cy="7.5" r="7" fill="#F79E1B" />
+                        <path d="M12 2.2a6.98 6.98 0 0 1 0 10.6 6.98 6.98 0 0 1 0-10.6Z" fill="#FF5F00" />
                       </svg>
                     </div>
                   )
                 },
-                { 
-                  id: 'visa', 
-                  name: 'Visa', 
-                  data: bankStats.networkStats?.visa, 
+                {
+                  id: 'visa',
+                  name: 'Visa',
+                  data: bankStats.networkStats?.visa,
                   color: '#1a1f71',
                   avatar: (
                     <div className="w-8 h-5 rounded bg-[#102468] border border-blue-600/40 flex items-center justify-center px-1 shrink-0">
@@ -1686,25 +1649,25 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                     </div>
                   )
                 },
-                { 
-                  id: 'maestro', 
-                  name: 'Maestro', 
-                  data: bankStats.networkStats?.maestro, 
+                {
+                  id: 'maestro',
+                  name: 'Maestro',
+                  data: bankStats.networkStats?.maestro,
                   color: '#0061a8',
                   avatar: (
                     <div className="w-8 h-5 rounded bg-black border border-slate-700 flex items-center justify-center shrink-0">
                       <svg width="20" height="12" viewBox="0 0 24 15" fill="none">
-                        <circle cx="7.5" cy="7.5" r="7" fill="#0061A8"/>
-                        <circle cx="16.5" cy="7.5" r="7" fill="#EB001B"/>
-                        <path d="M12 2.2a6.98 6.98 0 0 1 0 10.6 6.98 6.98 0 0 1 0-10.6Z" fill="#6C6BBA"/>
+                        <circle cx="7.5" cy="7.5" r="7" fill="#0061A8" />
+                        <circle cx="16.5" cy="7.5" r="7" fill="#EB001B" />
+                        <path d="M12 2.2a6.98 6.98 0 0 1 0 10.6 6.98 6.98 0 0 1 0-10.6Z" fill="#6C6BBA" />
                       </svg>
                     </div>
                   )
                 },
-                { 
-                  id: 'other', 
-                  name: 'Card Bancar / Altele', 
-                  data: bankStats.networkStats?.other, 
+                {
+                  id: 'other',
+                  name: 'Card Bancar / Altele',
+                  data: bankStats.networkStats?.other,
                   color: '#64748b',
                   avatar: (
                     <div className="w-8 h-5 rounded bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-300 flex items-center justify-center shrink-0">
@@ -1787,7 +1750,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                       </div>
 
                       <div className="text-right">
-                        <span 
+                        <span
                           className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-black shadow-2xs"
                           style={{
                             backgroundColor: `${b.color}18`,
@@ -1840,7 +1803,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                         setActiveTab('logs');
                         setCurrentPage(1);
                       }}
-                      className="w-full py-2 px-3 rounded-xl bg-slate-50 hover:bg-blue-50 dark:bg-slate-800/60 dark:hover:bg-blue-950/40 text-slate-700 hover:text-blue-600 dark:text-slate-300 dark:hover:text-blue-400 border border-slate-200 dark:border-slate-700/80 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer group-hover:border-blue-300 dark:group-hover:border-blue-700"
+                      className="w-full py-2 px-3 rounded-full bg-slate-50 hover:bg-blue-50 dark:bg-slate-800/60 dark:hover:bg-blue-950/40 text-slate-700 hover:text-blue-600 dark:text-slate-300 dark:hover:text-blue-400 border border-slate-200 dark:border-slate-700/80 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer group-hover:border-blue-300 dark:group-hover:border-blue-700"
                     >
                       <span>Vezi tranzacțiile în Jurnal</span>
                       <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
@@ -1909,7 +1872,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                           {formatThousands(b.volume)} lei
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <span 
+                          <span
                             className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-black"
                             style={{
                               backgroundColor: `${b.color}15`,
@@ -1929,7 +1892,7 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
                               setActiveTab('logs');
                               setCurrentPage(1);
                             }}
-                            className="px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white transition-colors text-[11px] font-bold cursor-pointer"
+                            className="px-2.5 py-1 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white transition-colors text-[11px] font-bold cursor-pointer"
                           >
                             Filtrează
                           </button>
@@ -1959,84 +1922,39 @@ export default function PosLogs({ orders = [], onGoToOrder }) {
 function StatCard({ label, value, color, brandId, icon: Icon, onClick, active, highlight }) {
   const isCurrency = typeof value === 'string' && value.includes('lei');
   const displayVal = isCurrency ? value.replace('lei', '').trim() : value;
-  const valLength = String(displayVal).length;
-
-  let fontSizeClass = 'text-xl';
-  if (isCurrency) {
-    if (valLength > 8) fontSizeClass = 'text-sm';
-    else if (valLength > 5) fontSizeClass = 'text-base';
-    else fontSizeClass = 'text-lg';
-  } else {
-    fontSizeClass = valLength > 4 ? 'text-xl' : 'text-2xl';
-  }
 
   return (
-    <div 
+    <div
       onClick={onClick}
-      className={`bg-white dark:bg-slate-900 rounded-2xl shadow-sm border px-4 py-3 flex items-center justify-between min-w-[120px] flex-1 relative overflow-hidden transition-all duration-200 group select-none ${
-        active 
-          ? 'ring-2 ring-blue-500 border-blue-500 shadow-md scale-[1.02]' 
-          : highlight
-          ? 'border-orange-300 dark:border-orange-500/50'
-          : 'border-slate-200 dark:border-slate-800'
-      } ${onClick ? 'cursor-pointer hover:shadow-md hover:scale-[1.02]' : ''}`} 
-      style={{ borderLeft: `4px solid ${color}` }}
+      className={`apple-card px-4 py-3.5 flex items-center justify-between min-w-[120px] flex-1 transition-all duration-150 select-none ${active
+        ? 'ring-2 ring-[#007AFF]'
+        : highlight
+          ? 'ring-1 ring-[#FF9500]/50'
+          : ''
+        } ${onClick ? 'cursor-pointer hover:bg-black/[0.015] dark:hover:bg-white/[0.03]' : ''}`}
     >
-      <div className="flex flex-col justify-center min-w-0 pr-1 z-10 flex-1">
-        <div className="flex items-baseline gap-1 whitespace-nowrap overflow-visible">
-          <span className={`font-black text-slate-900 dark:text-white tracking-tight ${fontSizeClass}`}>
+      <div className="flex flex-col justify-center min-w-0 pr-2 flex-1">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-[#86868B] truncate" title={label}>
+          {label}
+        </span>
+        <div className="flex items-baseline gap-1 mt-1 whitespace-nowrap">
+          <span className="text-[24px] font-bold text-[#1D1D1F] dark:text-[#F5F5F7] tracking-tight tabular-nums leading-none">
             {displayVal}
           </span>
           {isCurrency && (
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-              lei
-            </span>
+            <span className="text-[11px] font-semibold text-[#86868B]">lei</span>
           )}
         </div>
-        {!brandId && (
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis" title={label}>
-            {label}
-          </span>
-        )}
       </div>
 
       {brandId ? (
-        <div className="flex flex-col items-center justify-center shrink-0 ml-2 z-10">
-          <div className="relative">
-            {/* 3D Atmosphere Glow behind avatar */}
-            <div 
-              className="absolute -inset-1 rounded-full blur-sm opacity-35 group-hover:opacity-75 transition-opacity pointer-events-none"
-              style={{ backgroundColor: color }}
-            />
-            {/* 3D Raised Bezel Container with Specular Top Highlight */}
-            <div 
-              className="relative w-9 h-9 rounded-full p-0.5 flex items-center justify-center bg-gradient-to-b from-white via-slate-50 to-slate-100 dark:from-slate-700 dark:via-slate-800 dark:to-slate-900 border border-white/80 dark:border-slate-600/60 transition-transform duration-200 group-hover:scale-110 group-hover:-translate-y-0.5"
-              style={{ 
-                boxShadow: `0 3px 8px ${color}40, 0 1px 2px rgba(0,0,0,0.1), inset 0 1.5px 2px rgba(255,255,255,0.85)` 
-              }}
-            >
-              <BrandLogo brandId={brandId} size={24} className="rounded-full shadow-inner" />
-            </div>
-          </div>
-          <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-1 whitespace-nowrap text-center max-w-[80px] overflow-hidden text-ellipsis" title={label}>
-            {label}
-          </span>
-        </div>
+        <BrandLogo brandId={brandId} size={28} className="shrink-0" />
       ) : Icon ? (
-        <div className="relative shrink-0 ml-2">
-          <div 
-            className="absolute -inset-1 rounded-full blur-sm opacity-30 group-hover:opacity-60 transition-opacity pointer-events-none"
-            style={{ backgroundColor: color }}
-          />
-          <div 
-            className="relative w-9 h-9 rounded-full flex items-center justify-center text-white transition-transform duration-200 group-hover:scale-110 group-hover:-translate-y-0.5"
-            style={{ 
-              background: `linear-gradient(135deg, ${color}, ${color}cc)`,
-              boxShadow: `0 3px 8px ${color}35, 0 1px 2px rgba(0,0,0,0.1), inset 0 1.5px 2px rgba(255,255,255,0.4)` 
-            }}
-          >
-            <Icon size={18} strokeWidth={2.5} />
-          </div>
+        <div
+          className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+          style={{ backgroundColor: `${color}18`, color }}
+        >
+          <Icon size={18} strokeWidth={2.2} />
         </div>
       ) : null}
     </div>

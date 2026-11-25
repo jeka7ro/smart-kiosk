@@ -7,38 +7,40 @@ import { BRANDS } from '../config/brands.js';
 import './PaymentScreen.css';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'https://smart-kiosk-ttut.onrender.com';
-const DEFAULT_BRAND = import.meta.env.VITE_BRAND       || 'smashme';
-const DEFAULT_ORG   = import.meta.env.VITE_ORG_ID      || '';
+const DEFAULT_BRAND = import.meta.env.VITE_BRAND || 'smashme';
+const DEFAULT_ORG = import.meta.env.VITE_ORG_ID || '';
 const LOCATION_NAME = import.meta.env.VITE_LOCATION_NAME || '';
 
 const STATE = {
-  IDLE:         'idle',
-  INITIATING:   'initiating',
+  IDLE: 'idle',
+  INITIATING: 'initiating',
   WAITING_CARD: 'waiting_card',
-  PIN_ENTRY:    'pin_entry',
-  AUTHORIZING:  'authorizing',
-  APPROVED:     'approved',
-  DECLINED:     'declined',
-  ERROR:        'error',
+  PIN_ENTRY: 'pin_entry',
+  AUTHORIZING: 'authorizing',
+  APPROVED: 'approved',
+  DECLINED: 'declined',
+  ERROR: 'error',
   CASH_SUCCESS: 'cash_success',
 };
 
 export default function PaymentScreen() {
   useInactivityTimeout(180);
 
-  const goTo           = useKioskStore((s) => s.goTo);
-  const getCartTotal   = useKioskStore((s) => s.getCartTotal);
-  const cartItems      = useKioskStore((s) => s.cartItems);
-  const orderType      = useKioskStore((s) => s.orderType);
-  const tableNumber    = useKioskStore((s) => s.tableNumber);
-  const lang           = useKioskStore((s) => s.lang);
-  const resetOrder     = useKioskStore((s) => s.resetOrder);
-  const locationData   = useKioskStore((s) => s.locationData);
-  const activeBrandId  = useKioskStore((s) => s.activeBrandId);
+  const goTo = useKioskStore((s) => s.goTo);
+  const getCartTotal = useKioskStore((s) => s.getCartTotal);
+  const cartItems = useKioskStore((s) => s.cartItems);
+  const orderType = useKioskStore((s) => s.orderType);
+  const tableNumber = useKioskStore((s) => s.tableNumber);
+  const lang = useKioskStore((s) => s.lang);
+  const resetOrder = useKioskStore((s) => s.resetOrder);
+  const locationData = useKioskStore((s) => s.locationData);
+  const activeBrandId = useKioskStore((s) => s.activeBrandId);
   const setPaymentMethod = useKioskStore((s) => s.setPaymentMethod);
   const setLastOrderNumber = useKioskStore((s) => s.setLastOrderNumber);
-  const fiscalData     = useKioskStore((s) => s.fiscalData);
-  const setFiscalData  = useKioskStore((s) => s.setFiscalData);
+  const fiscalData = useKioskStore((s) => s.fiscalData);
+  const appliedVoucher = useKioskStore((s) => s.appliedVoucher);
+  const getVoucherDiscount = useKioskStore((s) => s.getVoucherDiscount);
+  const setFiscalData = useKioskStore((s) => s.setFiscalData);
   const clearFiscalData = useKioskStore((s) => s.clearFiscalData);
 
   const urlBrand = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('brand') : null;
@@ -74,13 +76,13 @@ export default function PaymentScreen() {
 
   const [showFiscalModal, setShowFiscalModal] = useState(false);
 
-  const total      = getCartTotal();
+  const total = getCartTotal();
   const orderIdRef = useRef(null);
-  const socketRef  = useRef(null);
+  const socketRef = useRef(null);
 
   const [payState, setPayState] = useState(STATE.IDLE);
   const [errorMsg, setErrorMsg] = useState('');
-  const [txInfo,   setTxInfo]   = useState(null);
+  const [txInfo, setTxInfo] = useState(null);
   const [retryNotice, setRetryNotice] = useState('');
   const autoRetryCountRef = useRef(0);
 
@@ -141,17 +143,17 @@ export default function PaymentScreen() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
-      }).catch(() => {});
-    } catch (_) {}
+      }).catch(() => { });
+    } catch (_) { }
 
     // 2. Socket.IO emit în timp real
     if (socketRef.current) {
       try {
         socketRef.current.emit('cancel_pos_payment', payload);
-      } catch (_) {}
+      } catch (_) { }
       const s = socketRef.current;
       setTimeout(() => {
-        try { s?.disconnect?.(); } catch (_) {}
+        try { s?.disconnect?.(); } catch (_) { }
       }, 500);
       socketRef.current = null;
     }
@@ -163,13 +165,13 @@ export default function PaymentScreen() {
     const draftId = orderIdRef.current || `kiosk-${Date.now()}`;
     orderIdRef.current = draftId;
 
-    const urlBrand   = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('brand') : null;
-    const urlOrg     = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('orgId') : null;
-    const urlKiosk   = effectiveKioskId;
+    const urlBrand = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('brand') : null;
+    const urlOrg = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('orgId') : null;
+    const urlKiosk = effectiveKioskId;
     const effectiveBrand = activeBrandId || urlBrand || DEFAULT_BRAND;
-    const locationOrgId  = locationData?.orgIds?.[effectiveBrand];
+    const locationOrgId = locationData?.orgIds?.[effectiveBrand];
     const effectiveOrgId = locationOrgId || urlOrg || DEFAULT_ORG;
-    const locationName   = locationData?.name || LOCATION_NAME;
+    const locationName = locationData?.name || LOCATION_NAME;
 
     const payload = {
       brand: effectiveBrand,
@@ -200,7 +202,7 @@ export default function PaymentScreen() {
         locationId: locationData?.kioskUrl || locationData?.id || '',
         orderPayload: payload,
       }),
-    }).catch(() => {});
+    }).catch(() => { });
 
   }, [cartItems, total, locationData, activeBrandId, orderType, tableNumber, fiscalData, effectiveKioskId]);
 
@@ -228,26 +230,26 @@ export default function PaymentScreen() {
 
   const sendOrder = useCallback(async (paymentResult, pMethod = 'card') => {
     try {
-      const urlBrand   = new URLSearchParams(window.location.search).get('brand');
-      const urlOrg     = new URLSearchParams(window.location.search).get('orgId');
-      const urlKiosk   = effectiveKioskId;
+      const urlBrand = new URLSearchParams(window.location.search).get('brand');
+      const urlOrg = new URLSearchParams(window.location.search).get('orgId');
+      const urlKiosk = effectiveKioskId;
       const effectiveBrand = activeBrandId || urlBrand || DEFAULT_BRAND;
-      const locationOrgId  = locationData?.orgIds?.[effectiveBrand];
+      const locationOrgId = locationData?.orgIds?.[effectiveBrand];
       const effectiveOrgId = locationOrgId || urlOrg || DEFAULT_ORG;
-      const locationName   = locationData?.name || LOCATION_NAME;
+      const locationName = locationData?.name || LOCATION_NAME;
 
       console.log(`[PaymentScreen] Order → brand: ${effectiveBrand}, org: ${effectiveOrgId}, loc: ${locationName}, kiosk: ${urlKiosk}, method: ${pMethod}`);
 
       const res = await fetch(`${BACKEND}/api/orders`, {
-        method:  'POST',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          brand:        effectiveBrand,
-          orgId:        effectiveOrgId,
-          locationId:   locationData?.id,
+          brand: effectiveBrand,
+          orgId: effectiveOrgId,
+          locationId: locationData?.id,
           locationName: locationName,
-          kioskId:      urlKiosk,
-          posOrderId:   orderIdRef.current,
+          kioskId: urlKiosk,
+          posOrderId: orderIdRef.current,
           orderType, tableNumber,
           items: cartItems.map(i => ({
             productId: i.productId, name: i.name, quantity: i.quantity,
@@ -259,16 +261,20 @@ export default function PaymentScreen() {
             comment: i.comment || (i.selectedModifiers?.find(m => m.modId === 'custom_comment')?.optionName) || null,
           })),
           totalAmount: total, channel: 'kiosk', paymentMethod: pMethod,
+          voucherCode: appliedVoucher?.code || null,
+          voucherDiscount: getVoucherDiscount(),
           fiscal: fiscalData || null,
-          paymentRef: { authCode: paymentResult?.authCode, receiptNo: paymentResult?.receiptNo,
-                        cardNo: paymentResult?.cardNo, refNum: paymentResult?.refNum,
-                        extraFields: paymentResult?.extraFields },
+          paymentRef: {
+            authCode: paymentResult?.authCode, receiptNo: paymentResult?.receiptNo,
+            cardNo: paymentResult?.cardNo, refNum: paymentResult?.refNum,
+            extraFields: paymentResult?.extraFields
+          },
         }),
       });
       const data = await res.json();
       return data.order;
     } catch (err) { console.error('[PaymentScreen] sendOrder failed:', err); return null; }
-  }, [cartItems, total, orderType, tableNumber, activeBrandId, locationData, fiscalData, effectiveKioskId]);
+  }, [cartItems, total, orderType, tableNumber, activeBrandId, locationData, fiscalData, effectiveKioskId, appliedVoucher, getVoucherDiscount]);
 
   const handlePayCash = async () => {
     if (payState !== STATE.IDLE && payState !== STATE.DECLINED && payState !== STATE.ERROR) return;
@@ -297,21 +303,21 @@ export default function PaymentScreen() {
       const orderId = `kiosk-${Date.now()}`;
       orderIdRef.current = orderId;
 
-      const urlBrand   = new URLSearchParams(window.location.search).get('brand');
-      const urlOrg     = new URLSearchParams(window.location.search).get('orgId');
-      const urlKiosk   = effectiveKioskId;
+      const urlBrand = new URLSearchParams(window.location.search).get('brand');
+      const urlOrg = new URLSearchParams(window.location.search).get('orgId');
+      const urlKiosk = effectiveKioskId;
       const effectiveBrand = activeBrandId || urlBrand || DEFAULT_BRAND;
-      const locationOrgId  = locationData?.orgIds?.[effectiveBrand];
+      const locationOrgId = locationData?.orgIds?.[effectiveBrand];
       const effectiveOrgId = locationOrgId || urlOrg || DEFAULT_ORG;
-      const locationName   = locationData?.name || LOCATION_NAME;
+      const locationName = locationData?.name || LOCATION_NAME;
 
       const orderPayload = {
-        brand:        effectiveBrand,
-        orgId:        effectiveOrgId,
-        locationId:   locationData?.id,
+        brand: effectiveBrand,
+        orgId: effectiveOrgId,
+        locationId: locationData?.id,
         locationName: locationName,
-        kioskId:      urlKiosk,
-        posOrderId:   orderId,
+        kioskId: urlKiosk,
+        posOrderId: orderId,
         orderType, tableNumber,
         items: cartItems.map(i => ({
           productId: i.productId, name: i.name, quantity: i.quantity,
@@ -323,6 +329,8 @@ export default function PaymentScreen() {
           comment: i.comment || (i.selectedModifiers?.find(m => m.modId === 'custom_comment')?.optionName) || null,
         })),
         totalAmount: total, channel: 'kiosk', paymentMethod: 'card',
+        voucherCode: appliedVoucher?.code || null,
+        voucherDiscount: getVoucherDiscount(),
         fiscal: fiscalData || null,
       };
 
@@ -332,7 +340,7 @@ export default function PaymentScreen() {
 
       socket.on(`payment_status_${orderId}`, ({ message }) => {
         const lower = (message || '').toLowerCase();
-        if (lower.includes('pin'))   setPayState(STATE.PIN_ENTRY);
+        if (lower.includes('pin')) setPayState(STATE.PIN_ENTRY);
         if (lower.includes('banc') || lower.includes('auth')) setPayState(STATE.AUTHORIZING);
       });
 
@@ -348,10 +356,10 @@ export default function PaymentScreen() {
           if (orderData?.orderNumber) setLastOrderNumber(orderData.orderNumber);
           setTimeout(() => goTo('confirmation'), 2200);
         } else {
-          const isRetryable = result.code === 'A0' || 
+          const isRetryable = result.code === 'A0' ||
             (result.error && (
-              result.error.includes('A0') || 
-              result.error.includes('resetat manual') || 
+              result.error.includes('A0') ||
+              result.error.includes('resetat manual') ||
               result.error.includes('Refusal') ||
               result.error.includes('Timeout') ||
               result.error.includes('nu răspunde')
@@ -391,7 +399,7 @@ export default function PaymentScreen() {
       setPayState(STATE.ERROR);
       setErrorMsg(err.message || 'Eroare conexiune terminal');
     }
-  }, [total, sendOrder, goTo, locationData, activeBrandId, orderType, tableNumber, cartItems, fiscalData, effectiveKioskId]);
+  }, [total, sendOrder, goTo, locationData, activeBrandId, orderType, tableNumber, cartItems, fiscalData, effectiveKioskId, appliedVoucher, getVoucherDiscount]);
 
   handlePayRef.current = handlePay;
 
@@ -466,13 +474,13 @@ export default function PaymentScreen() {
           <div className="kiosk-payment-brands-bar">
             {displayBrands.map((bId) => {
               const b = BRANDS[bId] || BRANDS[DEFAULT_BRAND];
-              const logoSrc = (displayBrands.length === 1 && locationData?.logoUrl) 
-                ? locationData.logoUrl 
+              const logoSrc = (displayBrands.length === 1 && locationData?.logoUrl)
+                ? locationData.logoUrl
                 : (b?.logoImg || `/brands/${bId}-logo.png`);
               return (
-                <div 
-                  key={bId} 
-                  className={`kiosk-payment-brand-avatar ${displayBrands.length > 1 ? 'kiosk-payment-brand-avatar--multi' : ''}`} 
+                <div
+                  key={bId}
+                  className={`kiosk-payment-brand-avatar ${displayBrands.length > 1 ? 'kiosk-payment-brand-avatar--multi' : ''}`}
                   title={b?.name || bId}
                 >
                   <img
@@ -548,6 +556,15 @@ export default function PaymentScreen() {
             <span className="kahc-val">{total.toFixed(2)}</span>
             <span className="kahc-curr">{t('lei', lang) || 'LEI'}</span>
           </div>
+          {appliedVoucher && getVoucherDiscount() > 0 && (
+            <div style={{ marginTop: '6px', display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', background: 'rgba(16, 185, 129, 0.12)', color: '#059669', borderRadius: '12px', fontSize: '0.9rem', fontWeight: 700 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+                <line x1="7" y1="7" x2="7.01" y2="7" />
+              </svg>
+              <span>Cupon {appliedVoucher.code} (-{getVoucherDiscount().toFixed(2)} lei)</span>
+            </div>
+          )}
         </div>
 
         {/* ── STATE: IDLE (Alegere metodă de plată) ── */}
@@ -613,8 +630,8 @@ export default function PaymentScreen() {
             {/* Metode de Plată: Card & Cash */}
             <div className="kiosk-methods-grid">
               {allowCard && (
-                <button 
-                  className="kiosk-method-choice-card active-method" 
+                <button
+                  className="kiosk-method-choice-card active-method"
                   onClick={handlePay}
                   disabled={payState !== STATE.IDLE}
                 >
@@ -638,7 +655,7 @@ export default function PaymentScreen() {
               )}
 
               {allowCash && (
-                <button 
+                <button
                   className={`kiosk-method-choice-card ${!allowCard ? 'active-method' : ''}`}
                   onClick={handlePayCash}
                   disabled={payState !== STATE.IDLE}
@@ -676,29 +693,29 @@ export default function PaymentScreen() {
                 </div>
                 <div className="ktb-pill" title="Visa">
                   <svg width="44" height="15" viewBox="0 0 36 12" fill="none">
-                    <path d="M14.07 0.4L9.22 11.6H6.04L3.69 2.7C3.55 2.12 3.4 1.88 2.92 1.63C2.18 1.23 1.02 0.86 0 0.65L0.08 0.4H5.16C5.83 0.4 6.43 0.84 6.57 1.63L7.79 8.16L10.95 0.4H14.07ZM26.44 7.87C26.46 4.96 22.38 4.8 22.42 3.45C22.43 3.03 22.83 2.59 23.73 2.47C24.18 2.41 25.43 2.36 26.83 3.01L27.42 0.94C26.62 0.65 25.59 0.38 24.28 0.38C21.36 0.38 19.33 1.93 19.31 4.13C19.29 5.76 20.76 6.67 21.87 7.21C23.01 7.76 23.4 8.12 23.39 8.62C23.37 9.38 22.46 9.72 21.62 9.73C20.12 9.75 19.25 9.32 18.57 9.01L17.96 11.17C18.66 11.49 19.96 11.77 21.3 11.78C24.38 11.78 26.42 10.26 26.44 7.87ZM34.25 11.6H37L34.61 0.4H32.22C31.69 0.4 31.24 0.71 31.05 1.18L26.54 11.6H29.68L30.31 9.87H34.14L34.25 11.6ZM31.17 7.55L32.74 3.23L33.64 7.55H31.17ZM18.72 0.4L16.27 11.6H13.27L15.72 0.4H18.72Z" fill="#1434CB"/>
+                    <path d="M14.07 0.4L9.22 11.6H6.04L3.69 2.7C3.55 2.12 3.4 1.88 2.92 1.63C2.18 1.23 1.02 0.86 0 0.65L0.08 0.4H5.16C5.83 0.4 6.43 0.84 6.57 1.63L7.79 8.16L10.95 0.4H14.07ZM26.44 7.87C26.46 4.96 22.38 4.8 22.42 3.45C22.43 3.03 22.83 2.59 23.73 2.47C24.18 2.41 25.43 2.36 26.83 3.01L27.42 0.94C26.62 0.65 25.59 0.38 24.28 0.38C21.36 0.38 19.33 1.93 19.31 4.13C19.29 5.76 20.76 6.67 21.87 7.21C23.01 7.76 23.4 8.12 23.39 8.62C23.37 9.38 22.46 9.72 21.62 9.73C20.12 9.75 19.25 9.32 18.57 9.01L17.96 11.17C18.66 11.49 19.96 11.77 21.3 11.78C24.38 11.78 26.42 10.26 26.44 7.87ZM34.25 11.6H37L34.61 0.4H32.22C31.69 0.4 31.24 0.71 31.05 1.18L26.54 11.6H29.68L30.31 9.87H34.14L34.25 11.6ZM31.17 7.55L32.74 3.23L33.64 7.55H31.17ZM18.72 0.4L16.27 11.6H13.27L15.72 0.4H18.72Z" fill="#1434CB" />
                   </svg>
                 </div>
                 <div className="ktb-pill" title="Mastercard">
                   <svg width="34" height="21" viewBox="0 0 28 18" fill="none">
-                    <circle cx="9" cy="9" r="8" fill="#EB001B"/>
-                    <circle cx="19" cy="9" r="8" fill="#F79E1B"/>
-                    <path d="M14 3.73a7.97 7.97 0 0 0-3 5.27 7.97 7.97 0 0 0 3 5.27 7.97 7.97 0 0 0 3-5.27 7.97 7.97 0 0 0-3-5.27z" fill="#FF5F00"/>
+                    <circle cx="9" cy="9" r="8" fill="#EB001B" />
+                    <circle cx="19" cy="9" r="8" fill="#F79E1B" />
+                    <path d="M14 3.73a7.97 7.97 0 0 0-3 5.27 7.97 7.97 0 0 0 3 5.27 7.97 7.97 0 0 0 3-5.27 7.97 7.97 0 0 0-3-5.27z" fill="#FF5F00" />
                   </svg>
                 </div>
                 <div className="ktb-pill" title="Apple Pay">
                   <svg width="48" height="20" viewBox="0 0 50 20" fill="none">
-                    <path d="M9.13 6.9c-.48.58-1.26 1.02-2.03.96-.1-.8.25-1.63.7-2.16.48-.58 1.34-1 2.05-.98.08.82-.24 1.6-.72 2.18m.7 1.12c-1.12-.07-2.08.64-2.61.64-.54 0-1.35-.6-2.23-.58-1.15.02-2.21.67-2.8 1.7-1.2 2.08-.31 5.17.85 6.85.57.82 1.25 1.74 2.14 1.71.85-.04 1.18-.55 2.21-.55 1.03 0 1.33.55 2.22.53.92-.02 1.51-.83 2.07-1.66.66-.96.93-1.89.94-1.94-.02-.01-1.81-.7-1.83-2.76-.02-1.72 1.4-2.54 1.47-2.59-.8-.18-1.58.55-2.43.65" fill="#0f172a"/>
+                    <path d="M9.13 6.9c-.48.58-1.26 1.02-2.03.96-.1-.8.25-1.63.7-2.16.48-.58 1.34-1 2.05-.98.08.82-.24 1.6-.72 2.18m.7 1.12c-1.12-.07-2.08.64-2.61.64-.54 0-1.35-.6-2.23-.58-1.15.02-2.21.67-2.8 1.7-1.2 2.08-.31 5.17.85 6.85.57.82 1.25 1.74 2.14 1.71.85-.04 1.18-.55 2.21-.55 1.03 0 1.33.55 2.22.53.92-.02 1.51-.83 2.07-1.66.66-.96.93-1.89.94-1.94-.02-.01-1.81-.7-1.83-2.76-.02-1.72 1.4-2.54 1.47-2.59-.8-.18-1.58.55-2.43.65" fill="#0f172a" />
                     <text x="17" y="16.5" fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif" fontSize="13.5" fontWeight="700" fill="#0f172a">Pay</text>
                   </svg>
                 </div>
                 <div className="ktb-pill" title="Google Pay">
                   <svg width="52" height="21" viewBox="0 0 50 20" fill="none">
                     <g transform="translate(1, 2) scale(0.66)">
-                      <path d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47a5.53 5.53 0 0 1-2.4 3.63v3.02h3.88c2.27-2.09 3.54-5.17 3.54-8.89z" fill="#4285F4"/>
-                      <path d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.02c-1.07.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.94H1.26v3.12A11.99 11.99 0 0 0 12 24z" fill="#34A853"/>
-                      <path d="M5.28 14.29a7.18 7.18 0 0 1 0-4.58V6.59H1.26a11.99 11.99 0 0 0 0 10.82l4.02-3.12z" fill="#FBBC05"/>
-                      <path d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.36 2.68 1.26 6.59l4.02 3.12c.95-2.84 3.6-4.96 6.72-4.96z" fill="#EA4335"/>
+                      <path d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47a5.53 5.53 0 0 1-2.4 3.63v3.02h3.88c2.27-2.09 3.54-5.17 3.54-8.89z" fill="#4285F4" />
+                      <path d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.02c-1.07.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.94H1.26v3.12A11.99 11.99 0 0 0 12 24z" fill="#34A853" />
+                      <path d="M5.28 14.29a7.18 7.18 0 0 1 0-4.58V6.59H1.26a11.99 11.99 0 0 0 0 10.82l4.02-3.12z" fill="#FBBC05" />
+                      <path d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.36 2.68 1.26 6.59l4.02 3.12c.95-2.84 3.6-4.96 6.72-4.96z" fill="#EA4335" />
                     </g>
                     <text x="21" y="15" fontFamily="'Google Sans', Roboto, sans-serif" fontSize="13" fontWeight="600" fill="#5f6368">Pay</text>
                   </svg>
@@ -707,9 +724,9 @@ export default function PaymentScreen() {
             )}
 
             <div className="kiosk-cancel-action-wrap">
-              <button 
-                type="button" 
-                className="kiosk-touch-btn kiosk-btn-danger kiosk-btn-cancel-hero" 
+              <button
+                type="button"
+                className="kiosk-touch-btn kiosk-btn-danger kiosk-btn-cancel-hero"
                 onClick={handleCancelOrder}
               >
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -788,10 +805,10 @@ export default function PaymentScreen() {
                     <span className="kmc-cardholder">{brandName}</span>
                     <div className="kmc-footer-logos">
                       {brandLogo && (
-                        <img 
-                          src={brandLogo} 
-                          alt={brandName} 
-                          className="kmc-brand-logo-img" 
+                        <img
+                          src={brandLogo}
+                          alt={brandName}
+                          className="kmc-brand-logo-img"
                           onError={(e) => { e.target.style.display = 'none'; }}
                         />
                       )}
@@ -855,29 +872,29 @@ export default function PaymentScreen() {
               </div>
               <div className="ktb-pill" title="Visa">
                 <svg width="44" height="15" viewBox="0 0 36 12" fill="none">
-                  <path d="M14.07 0.4L9.22 11.6H6.04L3.69 2.7C3.55 2.12 3.4 1.88 2.92 1.63C2.18 1.23 1.02 0.86 0 0.65L0.08 0.4H5.16C5.83 0.4 6.43 0.84 6.57 1.63L7.79 8.16L10.95 0.4H14.07ZM26.44 7.87C26.46 4.96 22.38 4.8 22.42 3.45C22.43 3.03 22.83 2.59 23.73 2.47C24.18 2.41 25.43 2.36 26.83 3.01L27.42 0.94C26.62 0.65 25.59 0.38 24.28 0.38C21.36 0.38 19.33 1.93 19.31 4.13C19.29 5.76 20.76 6.67 21.87 7.21C23.01 7.76 23.4 8.12 23.39 8.62C23.37 9.38 22.46 9.72 21.62 9.73C20.12 9.75 19.25 9.32 18.57 9.01L17.96 11.17C18.66 11.49 19.96 11.77 21.3 11.78C24.38 11.78 26.42 10.26 26.44 7.87ZM34.25 11.6H37L34.61 0.4H32.22C31.69 0.4 31.24 0.71 31.05 1.18L26.54 11.6H29.68L30.31 9.87H34.14L34.25 11.6ZM31.17 7.55L32.74 3.23L33.64 7.55H31.17ZM18.72 0.4L16.27 11.6H13.27L15.72 0.4H18.72Z" fill="#1434CB"/>
+                  <path d="M14.07 0.4L9.22 11.6H6.04L3.69 2.7C3.55 2.12 3.4 1.88 2.92 1.63C2.18 1.23 1.02 0.86 0 0.65L0.08 0.4H5.16C5.83 0.4 6.43 0.84 6.57 1.63L7.79 8.16L10.95 0.4H14.07ZM26.44 7.87C26.46 4.96 22.38 4.8 22.42 3.45C22.43 3.03 22.83 2.59 23.73 2.47C24.18 2.41 25.43 2.36 26.83 3.01L27.42 0.94C26.62 0.65 25.59 0.38 24.28 0.38C21.36 0.38 19.33 1.93 19.31 4.13C19.29 5.76 20.76 6.67 21.87 7.21C23.01 7.76 23.4 8.12 23.39 8.62C23.37 9.38 22.46 9.72 21.62 9.73C20.12 9.75 19.25 9.32 18.57 9.01L17.96 11.17C18.66 11.49 19.96 11.77 21.3 11.78C24.38 11.78 26.42 10.26 26.44 7.87ZM34.25 11.6H37L34.61 0.4H32.22C31.69 0.4 31.24 0.71 31.05 1.18L26.54 11.6H29.68L30.31 9.87H34.14L34.25 11.6ZM31.17 7.55L32.74 3.23L33.64 7.55H31.17ZM18.72 0.4L16.27 11.6H13.27L15.72 0.4H18.72Z" fill="#1434CB" />
                 </svg>
               </div>
               <div className="ktb-pill" title="Mastercard">
                 <svg width="34" height="21" viewBox="0 0 28 18" fill="none">
-                  <circle cx="9" cy="9" r="8" fill="#EB001B"/>
-                  <circle cx="19" cy="9" r="8" fill="#F79E1B"/>
-                  <path d="M14 3.73a7.97 7.97 0 0 0-3 5.27 7.97 7.97 0 0 0 3 5.27 7.97 7.97 0 0 0 3-5.27 7.97 7.97 0 0 0-3-5.27z" fill="#FF5F00"/>
+                  <circle cx="9" cy="9" r="8" fill="#EB001B" />
+                  <circle cx="19" cy="9" r="8" fill="#F79E1B" />
+                  <path d="M14 3.73a7.97 7.97 0 0 0-3 5.27 7.97 7.97 0 0 0 3 5.27 7.97 7.97 0 0 0 3-5.27 7.97 7.97 0 0 0-3-5.27z" fill="#FF5F00" />
                 </svg>
               </div>
               <div className="ktb-pill" title="Apple Pay">
                 <svg width="48" height="20" viewBox="0 0 50 20" fill="none">
-                  <path d="M9.13 6.9c-.48.58-1.26 1.02-2.03.96-.1-.8.25-1.63.7-2.16.48-.58 1.34-1 2.05-.98.08.82-.24 1.6-.72 2.18m.7 1.12c-1.12-.07-2.08.64-2.61.64-.54 0-1.35-.6-2.23-.58-1.15.02-2.21.67-2.8 1.7-1.2 2.08-.31 5.17.85 6.85.57.82 1.25 1.74 2.14 1.71.85-.04 1.18-.55 2.21-.55 1.03 0 1.33.55 2.22.53.92-.02 1.51-.83 2.07-1.66.66-.96.93-1.89.94-1.94-.02-.01-1.81-.7-1.83-2.76-.02-1.72 1.4-2.54 1.47-2.59-.8-.18-1.58.55-2.43.65" fill="#0f172a"/>
+                  <path d="M9.13 6.9c-.48.58-1.26 1.02-2.03.96-.1-.8.25-1.63.7-2.16.48-.58 1.34-1 2.05-.98.08.82-.24 1.6-.72 2.18m.7 1.12c-1.12-.07-2.08.64-2.61.64-.54 0-1.35-.6-2.23-.58-1.15.02-2.21.67-2.8 1.7-1.2 2.08-.31 5.17.85 6.85.57.82 1.25 1.74 2.14 1.71.85-.04 1.18-.55 2.21-.55 1.03 0 1.33.55 2.22.53.92-.02 1.51-.83 2.07-1.66.66-.96.93-1.89.94-1.94-.02-.01-1.81-.7-1.83-2.76-.02-1.72 1.4-2.54 1.47-2.59-.8-.18-1.58.55-2.43.65" fill="#0f172a" />
                   <text x="17" y="16.5" fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif" fontSize="13.5" fontWeight="700" fill="#0f172a">Pay</text>
                 </svg>
               </div>
               <div className="ktb-pill" title="Google Pay">
                 <svg width="52" height="21" viewBox="0 0 50 20" fill="none">
                   <g transform="translate(1, 2) scale(0.66)">
-                    <path d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47a5.53 5.53 0 0 1-2.4 3.63v3.02h3.88c2.27-2.09 3.54-5.17 3.54-8.89z" fill="#4285F4"/>
-                    <path d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.02c-1.07.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.94H1.26v3.12A11.99 11.99 0 0 0 12 24z" fill="#34A853"/>
-                    <path d="M5.28 14.29a7.18 7.18 0 0 1 0-4.58V6.59H1.26a11.99 11.99 0 0 0 0 10.82l4.02-3.12z" fill="#FBBC05"/>
-                    <path d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.36 2.68 1.26 6.59l4.02 3.12c.95-2.84 3.6-4.96 6.72-4.96z" fill="#EA4335"/>
+                    <path d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47a5.53 5.53 0 0 1-2.4 3.63v3.02h3.88c2.27-2.09 3.54-5.17 3.54-8.89z" fill="#4285F4" />
+                    <path d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.02c-1.07.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.94H1.26v3.12A11.99 11.99 0 0 0 12 24z" fill="#34A853" />
+                    <path d="M5.28 14.29a7.18 7.18 0 0 1 0-4.58V6.59H1.26a11.99 11.99 0 0 0 0 10.82l4.02-3.12z" fill="#FBBC05" />
+                    <path d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.36 2.68 1.26 6.59l4.02 3.12c.95-2.84 3.6-4.96 6.72-4.96z" fill="#EA4335" />
                   </g>
                   <text x="21" y="15" fontFamily="'Google Sans', Roboto, sans-serif" fontSize="13" fontWeight="600" fill="#5f6368">Pay</text>
                 </svg>
@@ -1076,7 +1093,7 @@ export default function PaymentScreen() {
                       </svg>
                     ) : (
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
                       </svg>
                     )}
                     <span>{isCardTimeout ? (t('pay_now_card', lang) || 'Plătește Acum cu Cardul') : (t('retry', lang) || 'Încearcă din nou')}</span>

@@ -232,12 +232,12 @@ export default function Integrations() {
 
       {/* ── Table ──────────────────────────────────────────────── */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-4 opacity-50">
-           <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-500 rounded-full animate-spin"></div>
-           <span className="text-slate-500 text-sm font-medium">Se încarcă...</span>
+        <div className="flex flex-col items-center justify-center py-20 gap-3 opacity-60">
+           <div className="w-6 h-6 border-2 border-black/15 border-t-[#007AFF] rounded-full animate-spin"></div>
+           <span className="text-[#86868B] text-[13px]">Se încarcă...</span>
         </div>
       ) : (
-        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+        <div className="apple-card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -373,73 +373,73 @@ export default function Integrations() {
         </div>
       )}
 
-      {/* ── Add / Edit Modal ───────────────────────────────────── */}
+      {/* ── Add / Edit Modal — Apple HIG Sheet ───────────────────────────────────── */}
       {modal && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex flex-col items-center justify-center p-4 sm:p-6 overflow-y-auto" onClick={closeModal}>
-          <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-[24px] shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="px-8 py-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white m-0 leading-tight">{editId ? 'Editează Integrare' : 'Adaugă Integrare POS'}</h3>
-              <button className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-500 transition-colors" onClick={closeModal}>
-                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-md z-50 flex flex-col items-center justify-center p-4 sm:p-6 overflow-y-auto animate-in fade-in duration-150" onClick={closeModal}>
+          <div className="apple-modal w-full max-w-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-150" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-black/[0.06] dark:border-white/[0.08] flex items-center justify-between">
+              <h3 className="text-[16px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] m-0">{editId ? 'Editează Integrare' : 'Adaugă Integrare POS'}</h3>
+              <button type="button" className="apple-close-btn" onClick={closeModal} title="Închide">
+                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
               </button>
             </div>
 
-            <div className="p-8 overflow-y-auto max-h-[70vh]">
+            <div className="p-6 overflow-y-auto max-h-[70vh]">
               {/* Base fields */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <label className="col-span-1 sm:col-span-2 block">
-                  <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Nume afișat *</span>
-                  <input className="w-full px-4 h-11 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-shadow" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder='ex: "SmashMe - Syrve Brașov"' />
+                  <span className="block text-[12px] font-medium text-[#6E6E73] dark:text-[#98989D] mb-1.5">Nume afișat *</span>
+                  <input className="apple-input w-full px-3.5 h-10 text-[13.5px]" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder='ex: "SmashMe - Syrve Brașov"' />
                 </label>
 
                 <label className="col-span-1 sm:col-span-2 block">
-                  <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Provider POS *</span>
+                  <span className="block text-[12px] font-medium text-[#6E6E73] dark:text-[#98989D] mb-1.5">Provider POS *</span>
                   <div className="flex flex-wrap gap-2 mt-1">
                     {providers.map(p => (
                       <button
                         key={p.key}
                         type="button"
                         onClick={() => setForm(prev => ({ ...prev, provider: p.key, credentials: {} }))}
-                        className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-bold border-2 transition-all ${form.provider === p.key ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'}`}
+                        className={`flex items-center gap-2 px-3.5 py-2 rounded-full text-[12.5px] font-medium border transition-all cursor-pointer ${form.provider === p.key ? 'border-[#007AFF] bg-[#007AFF]/10 text-[#007AFF] dark:text-[#0A84FF] font-semibold' : 'border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-[#2C2C2E] text-[#1D1D1F] dark:text-[#F5F5F7]'}`}
                       >
                         {PROVIDER_LOGOS[p.key]
-                          ? <img src={PROVIDER_LOGOS[p.key]} alt={p.label} className="w-5 h-5 rounded bg-white object-contain" onError={e => { e.target.style.display='none'; }} />
-                          : <span className="w-5 h-5 rounded flex items-center justify-center text-[10px] text-white font-bold bg-slate-500">?</span>
+                          ? <img src={PROVIDER_LOGOS[p.key]} alt={p.label} className="w-4 h-4 rounded bg-white object-contain" onError={e => { e.target.style.display='none'; }} />
+                          : <span className="w-4 h-4 rounded flex items-center justify-center text-[10px] text-white font-bold bg-[#8E8E93]">?</span>
                         }
                         {p.label}
                       </button>
                     ))}
                   </div>
                   {currentProvider && (
-                    <p className="text-sm text-slate-500 mt-2 m-0">{currentProvider.description}</p>
+                    <p className="text-[12px] text-[#86868B] mt-2 m-0">{currentProvider.description}</p>
                   )}
                 </label>
 
                 <label className="block">
-                  <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Brand ID (kiosk)</span>
-                  <input className="w-full px-4 h-11 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-shadow" value={form.brand_id} onChange={e => setForm(p => ({ ...p, brand_id: e.target.value }))} placeholder="smashme / sushimaster" />
+                  <span className="block text-[12px] font-medium text-[#6E6E73] dark:text-[#98989D] mb-1.5">Brand ID (kiosk)</span>
+                  <input className="apple-input w-full px-3.5 h-10 text-[13px]" value={form.brand_id} onChange={e => setForm(p => ({ ...p, brand_id: e.target.value }))} placeholder="smashme / sushimaster" />
                 </label>
                 <label className="block">
-                  <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Location ID</span>
-                  <input className="w-full px-4 h-11 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-shadow" value={form.location_id} onChange={e => setForm(p => ({ ...p, location_id: e.target.value }))} placeholder="(opțional)" />
+                  <span className="block text-[12px] font-medium text-[#6E6E73] dark:text-[#98989D] mb-1.5">Location ID</span>
+                  <input className="apple-input w-full px-3.5 h-10 text-[13px]" value={form.location_id} onChange={e => setForm(p => ({ ...p, location_id: e.target.value }))} placeholder="(opțional)" />
                 </label>
               </div>
 
               {/* Dynamic credential fields per provider */}
               {currentProvider?.fields?.length > 0 && (
                 <>
-                  <div className="flex items-center gap-4 my-8">
-                     <div className="h-px bg-slate-200 dark:bg-slate-700 flex-1"></div>
-                     <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Credentiale {currentProvider.label}</span>
-                     <div className="h-px bg-slate-200 dark:bg-slate-700 flex-1"></div>
+                  <div className="flex items-center gap-3 my-6">
+                     <div className="h-px bg-black/[0.06] dark:bg-white/[0.08] flex-1"></div>
+                     <span className="text-[11px] font-semibold text-[#86868B] uppercase tracking-wider">Credențiale {currentProvider.label}</span>
+                     <div className="h-px bg-black/[0.06] dark:bg-white/[0.08] flex-1"></div>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {currentProvider.fields.map(f => (
                       <label key={f.key} className={`block ${f.type === 'textarea' ? 'col-span-1 sm:col-span-2' : ''}`}>
-                        <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{f.label}</span>
+                        <span className="block text-[12px] font-medium text-[#6E6E73] dark:text-[#98989D] mb-1.5">{f.label}</span>
                         {f.type === 'textarea' ? (
                           <textarea
-                            className="w-full p-4 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-shadow text-sm resize-y font-medium"
+                            className="apple-input w-full p-3 text-[13px] resize-y"
                             rows={3}
                             value={form.credentials[f.key] || ''}
                             onChange={e => setCredField(f.key, e.target.value)}
@@ -447,7 +447,7 @@ export default function Integrations() {
                           />
                         ) : (
                           <input
-                            className="w-full px-4 h-11 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-shadow text-sm font-medium"
+                            className="apple-input w-full px-3.5 h-10 text-[13px]"
                             type={f.type}
                             value={form.credentials[f.key] || ''}
                             onChange={e => setCredField(f.key, e.target.value)}
@@ -463,26 +463,26 @@ export default function Integrations() {
 
               {/* Test result */}
               {testResult && (
-                <div className={`mt-6 p-4 rounded-full border font-medium flex items-center gap-3 ${testResult.ok ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50' : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800/50'}`}>
-                  <span className="text-xl">{testResult.ok ? '' : ''}</span>
+                <div className={`mt-5 p-3.5 rounded-xl border text-[12.5px] font-medium flex items-center gap-2 ${testResult.ok ? 'bg-[#34C759]/10 text-[#248A3D] dark:text-[#30D158] border-[#34C759]/25' : 'bg-[#FF3B30]/10 text-[#D70015] dark:text-[#FF453A] border-[#FF3B30]/25'}`}>
                   <span>{testResult.msg}</span>
                 </div>
               )}
             </div>
 
-            <div className="px-8 py-5 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-end gap-3">
-              <button className="px-6 h-11 rounded-full bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 text-sm font-bold transition-colors" onClick={closeModal}>Anulează</button>
+            <div className="px-6 py-4 border-t border-black/[0.06] dark:border-white/[0.08] bg-[#F5F5F7]/70 dark:bg-[#161618]/60 flex items-center justify-end gap-2.5">
+              <button type="button" className="apple-btn-secondary px-4 py-2 text-[13px]" onClick={closeModal}>Anulează</button>
               {editId && (
                 <button
-                  className="px-6 h-11 rounded-full border-2 border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-sm font-bold transition-colors disabled:opacity-50"
+                  type="button"
+                  className="apple-btn-secondary px-4 py-2 text-[13px] text-[#007AFF] dark:text-[#0A84FF] disabled:opacity-50"
                   onClick={() => testConnection(editId)}
                   disabled={testing === editId}
                 >
                   {testing === editId ? 'Se testează...' : 'Test Conexiune'}
                 </button>
               )}
-              <button className="px-8 h-11 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all disabled:opacity-50" onClick={save} disabled={saving}>
-                {saving ? 'Se salvează...' : editId ? 'Salvează' : '+ Adaugă'}
+              <button type="button" className="apple-btn-primary px-5 py-2 text-[13px] disabled:opacity-50" onClick={save} disabled={saving}>
+                {saving ? 'Se salvează...' : editId ? 'Salvează' : 'Adaugă'}
               </button>
             </div>
           </div>

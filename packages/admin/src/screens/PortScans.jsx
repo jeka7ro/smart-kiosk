@@ -61,10 +61,10 @@ export default function PortScans() {
 
 
       {/* Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-x-auto">
+      <div className="apple-card overflow-x-auto">
         <table className="w-full text-left border-collapse min-w-[900px]">
           <thead>
-            <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+            <tr className="bg-black/[0.02] dark:bg-white/[0.02] border-b border-black/[0.06] dark:border-white/[0.08] text-[11px] font-semibold uppercase tracking-wider text-[#6E6E73] dark:text-[#98989D]">
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 w-12">Nr.</th>
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Data Scan</th>
               <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Locație</th>
@@ -236,7 +236,7 @@ export default function PortScans() {
                 { label: '»', action: () => setCurrentPage(totalPages),  disabled: currentPage === totalPages },
               ].map(btn => (
                 <button key={btn.label} onClick={btn.action} disabled={btn.disabled}
-                  className={`w-8 h-8 rounded-lg border text-sm font-bold flex items-center justify-center transition-colors ${btn.disabled ? 'border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-slate-300 dark:text-slate-600 cursor-not-allowed' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer'}`}
+                  className={`w-8 h-8 rounded-full border text-sm font-bold flex items-center justify-center transition-colors ${btn.disabled ? 'border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-slate-300 dark:text-slate-600 cursor-not-allowed' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer'}`}
                 >{btn.label}</button>
               ))}
             </div>
@@ -249,9 +249,9 @@ export default function PortScans() {
 
 function StatCard({ label, value, color, isText }) {
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-4 flex flex-col justify-center" style={{ borderLeft: `3px solid ${color}` }}>
-      <span className={`${isText ? 'text-sm' : 'text-2xl'} font-bold text-slate-900 dark:text-white`}>{value}</span>
-      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mt-1">{label}</span>
+    <div className="apple-card p-4 flex flex-col justify-center">
+      <span className="text-[11px] font-semibold uppercase tracking-wider text-[#86868B]">{label}</span>
+      <span className={`${isText ? 'text-[14px]' : 'text-[26px]'} font-bold tracking-tight text-[#1D1D1F] dark:text-[#F5F5F7] mt-1 tabular-nums`}>{value}</span>
     </div>
   );
 }

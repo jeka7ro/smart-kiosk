@@ -266,7 +266,7 @@ export default function OrdersNotificationBell({
                 setIsOpen(false);
                 onViewAllOrders();
               }}
-              className="w-full py-2 px-4 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs border border-slate-200 dark:border-slate-700 transition-all flex items-center justify-center gap-1.5 shadow-xs"
+              className="w-full py-2 px-4 rounded-full bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs border border-slate-200 dark:border-slate-700 transition-all flex items-center justify-center gap-1.5 shadow-xs"
             >
               <span>Vezi toate comenzile</span>
               <ExternalLink size={12} />

@@ -28,6 +28,7 @@ const printerLogsRoutes = require('./routes/printerLogs');
 const portScansRoutes   = require('./routes/portScans');
 const anafRoutes        = require('./routes/anaf');
 const kitchenWebhookRoutes = require('./routes/kitchenWebhook');
+const vouchersRoutes    = require('./routes/vouchers');
 
 const app = express();
 const server = http.createServer(app);
@@ -100,6 +101,7 @@ app.use('/api/kiosk-logs',   require('./routes/kioskLogs.js'));
 app.use('/api/bridge-monitoring', require('./routes/bridgeMonitoring.js'));
 app.use('/api/anaf',         anafRoutes);
 app.use('/api/webhooks/kitchen', kitchenWebhookRoutes);
+app.use('/api/vouchers',     vouchersRoutes);
 
 // Serve uploaded media (screensavers, logos, products) with PostgreSQL fallback (persists across Render container redeploys)
 const path = require('path');
@@ -201,6 +203,8 @@ async function start() {
     console.log('[DB] PostgreSQL connected');
     const translator = require('./services/translatorService');
     await translator.syncWithDb();
+    const voucherService = require('./services/voucherService');
+    await voucherService.syncWithDb();
   } catch (err) {
     console.warn('[DB] PostgreSQL not available — running without DB:', err.message);
   }

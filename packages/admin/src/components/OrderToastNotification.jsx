@@ -50,91 +50,64 @@ function OrderToastItem({ item, onDismiss, onOpenOrder }) {
       onClick={() => {
         if (onOpenOrder) onOpenOrder(order);
       }}
-      className="group relative flex items-center gap-2.5 sm:gap-3 px-4 py-2.5 rounded-full bg-white/95 dark:bg-slate-900/95 text-slate-900 dark:text-white backdrop-blur-xl border border-slate-200/90 dark:border-slate-700/80 shadow-2xl shadow-slate-900/10 dark:shadow-black/50 hover:scale-[1.02] active:scale-[0.99] transition-all duration-200 cursor-pointer pointer-events-auto animate-in slide-in-from-top-3 fade-in"
-      style={{
-        boxShadow: `0 10px 25px -5px rgba(0,0,0,0.12), 0 0 0 1.5px ${brandColor}40`
-      }}
+      className="group relative flex items-center gap-3 px-3.5 py-2.5 rounded-2xl bg-white/95 dark:bg-slate-900/95 text-slate-900 dark:text-white backdrop-blur-2xl border border-slate-200/80 dark:border-white/10 shadow-[0_12px_32px_-4px_rgba(0,0,0,0.18)] hover:scale-[1.02] active:scale-[0.99] transition-all duration-200 cursor-pointer pointer-events-auto animate-in slide-in-from-top-3 fade-in select-none"
     >
-      {/* Brand Logo in circle with brand border */}
+      {/* Brand Logo in clean squircle */}
       <div 
-        className="w-8 h-8 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center p-0.5 shrink-0 shadow-sm"
-        style={{ border: `1.5px solid ${brandColor}` }}
+        className="w-8 h-8 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center p-1 shrink-0 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs"
       >
         <BrandLogo brandId={order.brand} size={20} />
       </div>
 
-      {/* Order Number pill */}
-      <span className="px-2.5 py-1 rounded-full text-xs font-black bg-blue-50 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/30 whitespace-nowrap shadow-xs">
-        #{order.orderNumber || '---'}
-      </span>
+      {/* Main Order Info & Status */}
+      <div className="flex flex-col min-w-0 pr-1">
+        <div className="flex items-center gap-2">
+          <span className="font-semibold text-xs tracking-tight text-slate-900 dark:text-white">
+            #{order.orderNumber || '---'}
+          </span>
+          <span className="text-slate-300 dark:text-slate-600 text-xs">•</span>
+          <span className="font-bold text-xs tracking-tight text-slate-900 dark:text-white">
+            {formatThousands(order.totalAmount || 0)} <span className="text-[10px] font-normal text-slate-500">lei</span>
+          </span>
+        </div>
 
-      {/* Total Amount */}
-      <span className="font-black text-sm tracking-tight text-slate-900 dark:text-white whitespace-nowrap">
-        {formatThousands(order.totalAmount || 0)} <span className="text-[11px] font-bold text-slate-400 dark:text-slate-400">lei</span>
-      </span>
+        <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+          {hasSyrve ? (
+            <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span>iiko OK</span>
+            </span>
+          ) : isSyrveFailed ? (
+            <span className="inline-flex items-center gap-1 text-rose-600 dark:text-rose-400 font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+              <span>iiko Err</span>
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+              <span>iiko...</span>
+            </span>
+          )}
 
-      {/* Status iiko pill */}
-      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border whitespace-nowrap shadow-xs ${
-        hasSyrve 
-          ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' 
-          : isSyrveFailed
-          ? 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/30'
-          : 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/30'
-      }`}>
-        {hasSyrve ? (
-          <>
-            <CheckCircle2 size={12} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-            <span>iiko: OK</span>
-          </>
-        ) : isSyrveFailed ? (
-          <>
-            <XCircle size={12} className="text-rose-600 dark:text-rose-400 shrink-0" />
-            <span>iiko: Err</span>
-          </>
-        ) : (
-          <>
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 dark:bg-indigo-400 animate-ping shrink-0" />
-            <span>iiko...</span>
-          </>
-        )}
-      </span>
+          <span className="text-slate-300 dark:text-slate-600">•</span>
 
-      {/* Status POS pill */}
-      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border whitespace-nowrap shadow-xs ${
-        !isCard
-          ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30'
-          : isPaymentApproved
-          ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
-          : 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/30'
-      }`}>
-        {!isCard ? (
-          <>
-            <Banknote size={12} className="text-amber-600 dark:text-amber-400 shrink-0" />
-            <span>Cash</span>
-          </>
-        ) : isPaymentApproved ? (
-          <>
-            <CreditCard size={12} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-            <span>Card OK</span>
-          </>
-        ) : (
-          <>
-            <XCircle size={12} className="text-rose-600 dark:text-rose-400 shrink-0" />
-            <span>Refuz</span>
-          </>
-        )}
-      </span>
+          <span className="font-normal">
+            {!isCard ? 'Cash la casă' : isPaymentApproved ? 'Card POS' : 'Refuz card'}
+          </span>
+        </div>
+      </div>
 
       {/* Dismiss button */}
       <button
+        type="button"
         onClick={(e) => {
           e.stopPropagation();
           onDismiss(id);
         }}
-        className="w-6 h-6 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0 ml-0.5"
+        className="w-6 h-6 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0 ml-1 cursor-pointer"
         title="Închide"
       >
-        <X size={14} />
+        <X size={13} strokeWidth={2.2} />
       </button>
     </div>
   );

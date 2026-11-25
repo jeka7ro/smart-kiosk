@@ -329,6 +329,30 @@ async function initDb() {
     );
   `);
 
+  // ─── Vouchers / Promo Codes (persistent across Render redeploys) ─────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS vouchers (
+      id                  TEXT PRIMARY KEY,
+      code                TEXT UNIQUE NOT NULL,
+      description         TEXT DEFAULT '',
+      type                TEXT NOT NULL DEFAULT 'percentage',
+      value               NUMERIC NOT NULL DEFAULT 0,
+      min_order_amount    NUMERIC DEFAULT 0,
+      max_discount_amount NUMERIC,
+      max_uses            INTEGER,
+      used_count          INTEGER NOT NULL DEFAULT 0,
+      start_date          TIMESTAMPTZ,
+      end_date            TIMESTAMPTZ,
+      active              BOOLEAN NOT NULL DEFAULT true,
+      location_ids        JSONB NOT NULL DEFAULT '[]',
+      brand_ids           JSONB NOT NULL DEFAULT '[]',
+      created_at          TIMESTAMPTZ DEFAULT NOW(),
+      updated_at          TIMESTAMPTZ DEFAULT NOW()
+    );
+    ALTER TABLE vouchers ADD COLUMN IF NOT EXISTS brand_ids JSONB NOT NULL DEFAULT '[]';
+    CREATE INDEX IF NOT EXISTS vouchers_code_upper_idx ON vouchers (UPPER(code));
+  `);
+
   console.log('[DB] Tables initialized (Supabase/PostgreSQL)');
 }
 
